@@ -3,7 +3,7 @@ import * as dashql from '../../core/index.js';
 
 import { Logger } from '../logger/logger.js';
 import { VariantKind } from '../../utils/index.js';
-import { ScriptData, NotebookState } from '../../notebook/notebook_state.js';
+import { NotebookState } from '../../notebook/notebook_state.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { getConnectionParamsFromStateDetails, createDefaultConnectionParamsForConnector } from '../../connection/connection_params.js';
 import type { StorageBackend, SessionData, NotebookMetadata as StorageNotebookMetadata } from './storage_backend.js';

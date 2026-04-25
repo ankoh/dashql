@@ -10,7 +10,7 @@ import { DemoDatabaseChannel } from '../../connection/dataless/dataless_demo_cha
 import { setupDatalessDemoConnection } from '../../connection/dataless/dataless_demo_setup.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { RESET_CONNECTION } from '../../connection/connection_state.js';
-import { isDemoMode, DATALESS_SET_DEMO_MODE, DatalessConnectionStateDetails } from '../../connection/dataless/dataless_connection_state.js';
+import { isDemoConnector, DATALESS_SET_DEMO_MODE, DatalessConnectionStateDetails } from '../../connection/dataless/dataless_connection_state.js';
 import { ToggleSwitch } from '../foundations/toggle_switch.js';
 import { classNames } from '../../utils/classnames.js';
 
@@ -30,11 +30,11 @@ export const DatalessConnectorSettings: React.FC<Props> = (props: Props) => {
     const details = connectionState?.details.type === DATALESS_CONNECTOR
         ? connectionState.details.value as DatalessConnectionStateDetails
         : null;
-    const demoMode = details ? isDemoMode(details) : false;
+    const demoConnector = details ? isDemoConnector(details) : false;
 
     const abortCtrl = React.useRef<AbortController | null>(null);
 
-    const setupConnection = demoMode ? async () => {
+    const setupConnection = demoConnector ? async () => {
         abortCtrl.current?.abort();
         abortCtrl.current = new AbortController();
 
@@ -42,11 +42,11 @@ export const DatalessConnectorSettings: React.FC<Props> = (props: Props) => {
         await setupDatalessDemoConnection(modifyConnection, logger, channel, abortCtrl.current.signal);
     } : undefined;
 
-    const cancelSetup = demoMode ? async () => {
+    const cancelSetup = demoConnector ? async () => {
         abortCtrl.current?.abort;
     } : undefined;
 
-    const resetSetup = demoMode ? () => {
+    const resetSetup = demoConnector ? () => {
         abortCtrl.current?.abort;
         modifyConnection({
             type: RESET_CONNECTION,
@@ -57,9 +57,9 @@ export const DatalessConnectorSettings: React.FC<Props> = (props: Props) => {
     const toggleDemoMode = React.useCallback(() => {
         modifyConnection({
             type: DATALESS_SET_DEMO_MODE,
-            value: !demoMode,
+            value: !demoConnector,
         });
-    }, [modifyConnection, demoMode]);
+    }, [modifyConnection, demoConnector]);
 
     // Use the connection's own connectorInfo (which reflects demo mode) if available
     const displayInfo = connectionState?.connectorInfo ?? connectorInfo;
@@ -82,14 +82,14 @@ export const DatalessConnectorSettings: React.FC<Props> = (props: Props) => {
                         <div className={classNames(settingsStyle.toggle_group, style.grid_column_1_span_2)}>
                             <div className={settingsStyle.toggle_row}>
                                 <div className={settingsStyle.toggle_label}>
-                                    <div className={settingsStyle.toggle_name}>Demo Mode</div>
+                                    <div className={settingsStyle.toggle_name}>Demo Connector</div>
                                     <div className={settingsStyle.toggle_caption}>In-memory random data generation</div>
                                 </div>
                                 <ToggleSwitch
                                     size="medium"
-                                    checked={demoMode}
+                                    checked={demoConnector}
                                     onClick={toggleDemoMode}
-                                    aria-label="Demo mode"
+                                    aria-label="Demo connector"
                                 />
                             </div>
                         </div>

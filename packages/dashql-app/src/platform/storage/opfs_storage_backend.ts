@@ -147,7 +147,15 @@ export class OPFSStorageBackend implements StorageBackend {
     async loadNotebookPages(sessionPath: string): Promise<PageData[]> {
         const relativePath = this.parseSessionPath(sessionPath);
         const sessionDir = await this.getSessionDir(relativePath, false);
-        const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: false });
+        let notebookDir: FileSystemDirectoryHandle;
+        try {
+            notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: false });
+        } catch (error) {
+            if ((error as any).name === 'NotFoundError') {
+                return [];
+            }
+            throw error;
+        }
         const pages: PageData[] = [];
 
         for await (const [name, handle] of notebookDir.entries()) {
@@ -394,13 +402,20 @@ export class OPFSStorageBackend implements StorageBackend {
         create: boolean
     ): Promise<FileSystemDirectoryHandle> {
         const root = this.ensureInitialized();
-        // relativePath is like "sessions/uuid", split it
         const parts = relativePath.split('/');
-
         let currentDir = root;
+        let accumulated = '';
         for (const part of parts) {
             if (part) {
-                currentDir = await currentDir.getDirectoryHandle(part, { create });
+                accumulated = accumulated ? `${accumulated}/${part}` : part;
+                try {
+                    currentDir = await currentDir.getDirectoryHandle(part, { create });
+                } catch (error) {
+                    if ((error as any).name === 'NotFoundError') {
+                        throw new Error(`Directory not found: opfs://${accumulated}`);
+                    }
+                    throw error;
+                }
             }
         }
         return currentDir;
@@ -412,7 +427,14 @@ export class OPFSStorageBackend implements StorageBackend {
         create: boolean
     ): Promise<FileSystemDirectoryHandle> {
         const sessionDir = await this.getSessionDir(sessionPath, create);
-        const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create });
-        return await notebookDir.getDirectoryHandle(pageName, { create });
+        try {
+            const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create });
+            return await notebookDir.getDirectoryHandle(pageName, { create });
+        } catch (error) {
+            if ((error as any).name === 'NotFoundError') {
+                throw new Error(`Directory not found: opfs://${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${pageName}`);
+            }
+            throw error;
+        }
     }
 }

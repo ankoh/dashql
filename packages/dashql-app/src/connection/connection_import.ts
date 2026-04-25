@@ -13,11 +13,11 @@ const LOG_CTX = "connection";
 export function decodeConnectionFromProto(conn: connection.Connection, sessionId: string): [ConnectorInfo, ConnectionStateDetailsVariant] {
     if ('dataless' in conn) {
         const dl = conn.dataless as any;
-        // Handle both ConnectionParams format ({ demoMode }) and Connection/Details format ({ setupParams: { demoMode } })
-        const demoMode = dl?.setupParams?.demoMode ?? dl?.demoMode ?? false;
-        const info: ConnectorInfo = createDatalessConnectorInfo(demoMode);
+        // Handle both ConnectionParams format ({ demoConnector }) and Connection/Details format ({ setupParams: { demoConnector } })
+        const demoConnector = dl?.setupParams?.demoConnector ?? dl?.demoConnector ?? false;
+        const info: ConnectorInfo = createDatalessConnectorInfo(demoConnector);
         // Normalize to DatalessConnectionDetails format (with setupParams wrapper).
-        // Storage uses ConnectionParams format ({ demoMode }), not ConnectionDetails ({ setupParams: { demoMode } }).
+        // Storage uses ConnectionParams format ({ demoConnector }), not ConnectionDetails ({ setupParams: { demoConnector } }).
         const proto = dl?.setupParams
             ? (conn.dataless ?? { setupParams: {} })
             : { setupParams: conn.dataless ?? {} } as any;

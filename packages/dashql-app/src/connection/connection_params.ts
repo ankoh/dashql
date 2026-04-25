@@ -23,8 +23,8 @@ export type DatalessParams = app_session.DatalessParams;
 
 export function getConnectionInfoFromParams(params: ConnectionParams) {
     if ('dataless' in params) {
-        const demoMode = (params.dataless as any)?.demoMode ?? false;
-        return createDatalessConnectorInfo(demoMode);
+        const demoConnector = (params.dataless as any)?.demoConnector ?? false;
+        return createDatalessConnectorInfo(demoConnector);
     }
     if ('trino' in params) return CONNECTOR_INFOS[ConnectorType.TRINO];
     if ('hyper' in params) return CONNECTOR_INFOS[ConnectorType.HYPER];

@@ -14,7 +14,7 @@ import { StorageWriter } from "../../platform/storage/storage_writer.js";
 export interface DatalessConnectionStateDetails {
     /// The proto
     proto: connection.DatalessConnectionDetails,
-    /// The demo channel (only populated when demoMode is enabled)
+    /// The demo channel (only populated when demoConnector is enabled)
     channel: DemoDatabaseChannel | null;
 }
 
@@ -27,20 +27,20 @@ export function createDatalessConnectionStateDetails(params?: connection.Datales
     };
 }
 
-export function isDemoMode(details: DatalessConnectionStateDetails): boolean {
-    return details.proto.setupParams?.demoMode === true;
+export function isDemoConnector(details: DatalessConnectionStateDetails): boolean {
+    return details.proto.setupParams?.demoConnector === true;
 }
 
-export function createDatalessConnectionState(dql: dashql.DashQL, connSigs: ConnectionSignatureMap, opts: { demoMode?: boolean } = {}): ConnectionStateWithoutId {
-    const { demoMode = false } = opts;
-    const params: connection.DatalessParams = { demoMode: demoMode || undefined };
+export function createDatalessConnectionState(dql: dashql.DashQL, connSigs: ConnectionSignatureMap, opts: { demoConnector?: boolean } = {}): ConnectionStateWithoutId {
+    const { demoConnector = false } = opts;
+    const params: connection.DatalessParams = { demoConnector: demoConnector || undefined };
     const details = createDatalessConnectionStateDetails(params);
-    const connInfo = createDatalessConnectorInfo(demoMode);
+    const connInfo = createDatalessConnectorInfo(demoConnector);
     const state = createConnectionState(dql, connInfo, connSigs, {
         type: DATALESS_CONNECTOR,
         value: details,
     });
-    if (!demoMode) {
+    if (!demoConnector) {
         // Non-demo dataless connections are immediately online
         state.connectionStatus = ConnectionStatus.CHANNEL_READY;
         state.connectionHealth = ConnectionHealth.ONLINE;
@@ -51,7 +51,7 @@ export function createDatalessConnectionState(dql: dashql.DashQL, connSigs: Conn
 
 export function computeDatalessConnectionSignature(details: DatalessConnectionStateDetails, hasher: Hasher) {
     hasher.add("dataless");
-    if (isDemoMode(details)) {
+    if (isDemoConnector(details)) {
         hasher.add("demo");
     }
 }
@@ -154,16 +154,16 @@ export function reduceDatalessConnectorState(state: ConnectionState, action: Dat
             };
             break;
         case DATALESS_SET_DEMO_MODE: {
-            const newDemoMode = action.value;
+            const newDemoConnector = action.value;
             const newParams: connection.DatalessParams = {
                 ...details.proto.setupParams,
-                demoMode: newDemoMode || undefined,
+                demoConnector: newDemoConnector || undefined,
             };
             next = {
                 ...state,
-                connectorInfo: createDatalessConnectorInfo(newDemoMode),
-                connectionStatus: newDemoMode ? ConnectionStatus.NOT_STARTED : ConnectionStatus.CHANNEL_READY,
-                connectionHealth: newDemoMode ? ConnectionHealth.NOT_STARTED : ConnectionHealth.ONLINE,
+                connectorInfo: createDatalessConnectorInfo(newDemoConnector),
+                connectionStatus: newDemoConnector ? ConnectionStatus.NOT_STARTED : ConnectionStatus.CHANNEL_READY,
+                connectionHealth: newDemoConnector ? ConnectionHealth.NOT_STARTED : ConnectionHealth.ONLINE,
                 details: {
                     type: DATALESS_CONNECTOR,
                     value: {

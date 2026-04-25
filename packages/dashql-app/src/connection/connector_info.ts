@@ -172,8 +172,8 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
 ];
 
 /// Create a ConnectorInfo for a dataless connection with given settings
-export function createDatalessConnectorInfo(demoMode: boolean): ConnectorInfo {
-    if (!demoMode) {
+export function createDatalessConnectorInfo(demoConnector: boolean): ConnectorInfo {
+    if (!demoConnector) {
         return CONNECTOR_INFOS[ConnectorType.DATALESS];
     }
     return {
@@ -197,8 +197,8 @@ export function createDatalessConnectorInfo(demoMode: boolean): ConnectorInfo {
 
 export function getConnectorInfoForParams(params: { dataless?: any; hyper?: any; salesforce?: any; trino?: any }): ConnectorInfo | null {
     if ("dataless" in params) {
-        const demoMode = params.dataless?.demoMode ?? false;
-        return createDatalessConnectorInfo(demoMode);
+        const demoConnector = params.dataless?.demoConnector ?? false;
+        return createDatalessConnectorInfo(demoConnector);
     }
     if ("hyper" in params) return CONNECTOR_INFOS[ConnectorType.HYPER];
     if ("salesforce" in params) return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];

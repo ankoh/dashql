@@ -51,7 +51,6 @@ export function useNotebookRegistry(): [NotebookRegistry, Dispatch<SetNotebookRe
 
 export function useNotebookStateAllocator(): NotebookAllocator {
     const storage = useStorageWriter();
-    const [connReg] = useConnectionRegistry();
     const [_reg, setReg] = React.useContext(NOTEBOOK_REGISTRY_CTX)!;
     return React.useCallback((state: NotebookStateWithoutId) => {
         // Use the sessionId from the state (1:1 mapping with connection)
@@ -71,16 +70,12 @@ export function useNotebookStateAllocator(): NotebookAllocator {
             return { ...reg };
         });
 
-        // Only write to storage if the connection is active
-        const conn = connReg.connectionMap.get(sessionId);
-        if (conn?.active) {
-            storage.write(groupNotebookWrites(notebook.sessionId), {
-                type: WRITE_NOTEBOOK,
-                value: notebook
-            }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
-        }
+        storage.write(groupNotebookWrites(notebook.sessionId), {
+            type: WRITE_NOTEBOOK,
+            value: notebook
+        }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
         return [sessionId, notebook];
-    }, [setReg, storage, connReg]);
+    }, [setReg, storage]);
 }
 
 export function useNotebookState(id: string | null): [NotebookState | null, ModifyNotebook] {

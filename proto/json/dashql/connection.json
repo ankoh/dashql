@@ -99,9 +99,9 @@
       "type": "object",
       "description": "Connection Parameters - Dataless",
       "properties": {
-        "demoMode": {
+        "demoConnector": {
           "type": "boolean",
-          "description": "Enable demo mode with in-memory random data generation"
+          "description": "Enable demo connector with in-memory random data generation"
         }
       },
       "additionalProperties": false
