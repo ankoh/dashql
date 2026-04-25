@@ -173,10 +173,7 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
         // Allocate connection (assigns sessionId)
         const allocatedConnection = props.allocateConnection(stateWithoutId);
 
-        // Create notebook for this connection
-        props.setupNotebook(allocatedConnection);
-
-        // Show configuration card
+        // Show configuration card — notebook is created later when the connection goes online
         setConfigSessionId(allocatedConnection.sessionId);
     }, [props]);
 
@@ -192,10 +189,13 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
     }, [configSessionId, props.connectionRegistry, connectionDispatch]);
 
     const handleConnected = React.useCallback((sessionId: string) => {
-        // Clear config state and navigate to the session
+        const conn = props.connectionRegistry.connectionMap.get(sessionId);
+        if (conn) {
+            props.setupNotebook(conn);
+        }
         setConfigSessionId(null);
         navigate({ type: SELECT_SESSION, value: sessionId });
-    }, [navigate]);
+    }, [navigate, props.connectionRegistry, props.setupNotebook]);
 
     const handleDeleteSession = React.useCallback(async (sessionId: string, sessionPath: string, connectorType: ConnectorType) => {
         // Delete from storage
