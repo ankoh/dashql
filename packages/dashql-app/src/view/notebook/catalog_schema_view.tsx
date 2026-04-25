@@ -1,8 +1,11 @@
 import * as React from 'react';
 import * as detailStyles from './notebook_script_details.module.css';
+import * as styles from './catalog_schema_view.module.css';
 
 import { EditorView } from '@codemirror/view';
 import { motion, AnimatePresence } from 'framer-motion';
+
+import { LockIcon } from '@primer/octicons-react';
 
 import { ConnectionState } from '../../connection/connection_state.js';
 import { CodeMirror, createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
@@ -49,7 +52,7 @@ export const CatalogSchemaView: React.FC<CatalogSchemaViewProps> = (props) => {
                     scriptCursor: null,
                     scriptCompletion: null,
                     derivedFocus: null,
-                    onUpdate: () => {},
+                    onUpdate: () => { },
                 }),
             ],
         });
@@ -67,30 +70,21 @@ export const CatalogSchemaView: React.FC<CatalogSchemaViewProps> = (props) => {
 
     return (
         <div className={detailStyles.entry_body_container}>
-            <AnimatePresence mode="wait">
-                <motion.div
-                    key="catalog-schema"
-                    className={detailStyles.entry_body_card}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{
-                        duration: 0.1,
-                        ease: [0.33, 1, 0.68, 1]
-                    }}
-                >
-                    <div className={detailStyles.entry_card_container}>
-                        <div className={detailStyles.entry_card_action_bar}>
-                            <div className={detailStyles.entry_card_file_name}>
-                                <NotebookScriptName folder=".." file="dashql-schema.sql" />
-                            </div>
-                        </div>
-                        <div className={detailStyles.entry_card_editor}>
-                            <CodeMirror ref={setView} extensions={readonlyExtensions} />
+            <div
+                key="catalog-schema"
+                className={detailStyles.entry_body_card}
+            >
+                <div className={detailStyles.entry_card_container}>
+                    <div className={detailStyles.entry_card_action_bar}>
+                        <div className={detailStyles.entry_card_file_name}>
+                            <NotebookScriptName folder=".." file="dashql-schema.sql" icon={<LockIcon size={12} />} />
                         </div>
                     </div>
-                </motion.div>
-            </AnimatePresence>
+                    <div className={styles.entry_card_editor}>
+                        <CodeMirror ref={setView} extensions={readonlyExtensions} />
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

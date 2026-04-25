@@ -7,6 +7,8 @@ interface Props {
     folder: string;
     /// The file
     file: string;
+    /// Optional icon rendered before the file name
+    icon?: React.ReactNode;
 }
 
 export function NotebookScriptName(props: Props) {
@@ -19,6 +21,7 @@ export function NotebookScriptName(props: Props) {
                 /
             </span>
             <span className={styles.file_name}>
+                {props.icon && <span className={styles.file_icon}>{props.icon}</span>}
                 {props.file}
             </span>
         </span>

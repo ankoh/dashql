@@ -20,8 +20,16 @@
     color: hsl(210deg 17.5% 64.31%);
 }
 
+.file_icon {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 4px;
+    opacity: 0.6;
+}
+
 .file_name {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     box-sizing: border-box;
     background-color: var(--notebook_script_name_background);
     border: 1px solid var(--border_color_primary);
