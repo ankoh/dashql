@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as detailStyles from './notebook_script_details.module.css';
 
-import icons from '@ankoh/dashql-svg-symbols';
 import { EditorView } from '@codemirror/view';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -9,11 +8,6 @@ import { ConnectionState } from '../../connection/connection_state.js';
 import { CodeMirror, createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, analyzeScript, DashQLScriptBuffers } from '../editor/dashql_processor.js';
 import { NotebookScriptName } from './notebook_script_name.js';
-import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
-
-enum TabKey {
-    Editor = 0,
-}
 
 export interface CatalogSchemaViewProps {
     connection: ConnectionState;
@@ -70,7 +64,6 @@ export const CatalogSchemaView: React.FC<CatalogSchemaViewProps> = (props) => {
     }, []);
 
     const readonlyExtensions = React.useMemo(() => createReadonlyCodeMirrorExtensions(), []);
-    const selectTab = React.useCallback(() => {}, []);
 
     return (
         <div className={detailStyles.entry_body_container}>
@@ -92,28 +85,9 @@ export const CatalogSchemaView: React.FC<CatalogSchemaViewProps> = (props) => {
                                 <NotebookScriptName folder=".." file="dashql-schema.sql" />
                             </div>
                         </div>
-                        <VerticalTabs
-                            className={detailStyles.entry_card_tabs}
-                            variant={VerticalTabVariant.Stacked}
-                            selectedTab={TabKey.Editor}
-                            selectTab={selectTab}
-                            tabProps={{
-                                [TabKey.Editor]: {
-                                    tabId: TabKey.Editor,
-                                    icon: `${icons}#file`,
-                                    labelShort: 'Editor',
-                                    ariaLabel: 'Schema script',
-                                    description: 'Schema script',
-                                    disabled: false,
-                                },
-                            }}
-                            tabKeys={[TabKey.Editor]}
-                            tabRenderers={{
-                                [TabKey.Editor]: () => (
-                                    <CodeMirror ref={setView} extensions={readonlyExtensions} />
-                                ),
-                            }}
-                        />
+                        <div className={detailStyles.entry_card_editor}>
+                            <CodeMirror ref={setView} extensions={readonlyExtensions} />
+                        </div>
                     </div>
                 </motion.div>
             </AnimatePresence>
