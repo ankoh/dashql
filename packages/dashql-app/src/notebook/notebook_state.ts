@@ -527,6 +527,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             if (page.scripts.length <= 1) {
                 // If there's only one page total, prevent deletion (can't have empty notebook)
                 if (state.notebookPages.length <= 1) {
+                    logger.info("Refusing to delete script", {}, LOG_CTX);
                     return state;
                 }
                 // Multiple pages exist - delete the entire page instead

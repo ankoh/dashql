@@ -47,12 +47,13 @@ interface CollapsedScriptCardProps {
     folderName: string;
     scriptFileName: string;
     scriptDebugMode: boolean;
+    canDelete: boolean;
     onFocus: (entryIndex: number) => void;
     onExpand: (entryIndex: number) => void;
     onDelete: (entryIndex: number) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, onFocus, onExpand, onDelete }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, onFocus, onExpand, onDelete }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const EyeIcon: Icon = SymbolIcon(isFocused ? 'eye_16' : 'eye_closed_16');
     const [isReady, setIsReady] = React.useState(false);
@@ -96,6 +97,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, isFocused,
                     onClick={() => onDelete(entryIndex)}
                     aria-label="delete"
                     aria-labelledby="delete-entry"
+                    disabled={!canDelete}
                 >
                     <TrashIcon size={16} />
                 </IconButton>
@@ -113,6 +115,7 @@ interface ScriptFeedRowProps {
     folderName: string;
     scriptDebugMode: boolean;
     focusedEntryIndex: number;
+    canDelete: boolean;
     onFocus: (index: number) => void;
     onExpand: (index: number) => void;
     onDelete: (index: number) => void;
@@ -122,7 +125,7 @@ interface ScriptFeedRowProps {
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { entries, scripts, folderName, scriptDebugMode, focusedEntryIndex, onFocus, onExpand, onDelete, onHeightMeasured } = props;
+    const { entries, scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, onFocus, onExpand, onDelete, onHeightMeasured } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -163,6 +166,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     folderName={folderName}
                     scriptFileName={scriptFileName}
                     scriptDebugMode={scriptDebugMode}
+                    canDelete={canDelete}
                     onFocus={onFocus}
                     onExpand={onExpand}
                     onDelete={onDelete}
@@ -290,19 +294,21 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
 
     // Row props — heightsVersion is included so react-window re-evaluates row heights on change
     const focusedEntryIndex = props.notebook.notebookUserFocus.entryInPage;
+    const canDelete = props.notebook.notebookPages.length > 1 || entries.length > 1;
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
         entries,
         scripts: props.notebook.scripts,
         folderName,
         scriptDebugMode,
         focusedEntryIndex,
+        canDelete,
         onFocus: handleFocus,
         onExpand: handleExpand,
         onDelete: handleDelete,
         onHeightMeasured: handleHeightMeasured,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedEntryIndex, handleFocus, handleExpand, handleDelete, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, handleFocus, handleExpand, handleDelete, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container}>
