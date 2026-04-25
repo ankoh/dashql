@@ -4,7 +4,7 @@ import * as dashql from '../core/index.js';
 import { QueryExecutor } from './query_executor.js';
 import { QueryExecutionArgs } from './query_execution_args.js';
 import { DynamicConnectionDispatch } from "./connection_registry.js";
-import { CATALOG_UPDATE_LOAD_DESCRIPTORS, CATALOG_UPDATE_REGISTER_QUERY, SET_CATALOG_SCRIPT } from "./connection_state.js";
+import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY, SET_CATALOG_SCRIPT } from "./connection_state.js";
 import { QueryType } from "./query_execution_state.js";
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from "./catalog_update_state.js";
 import { generateSchemaSQL, type ColumnMetadata } from './catalog_sql_generator.js';
@@ -146,7 +146,7 @@ export async function updateInformationSchemaCatalog(
 
     // Mark loading started
     connectionDispatch(sessionId, {
-        type: CATALOG_UPDATE_LOAD_DESCRIPTORS,
+        type: CATALOG_UPDATE_SCHEMA_SCRIPT,
         value: [updateId]
     });
 

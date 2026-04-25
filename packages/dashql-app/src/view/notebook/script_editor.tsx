@@ -96,7 +96,7 @@ function updateEditor(view: EditorView, notebook: NotebookState, scriptData: Scr
     // Then we reset everything to make sure the script is ok.
     // XXX We could track a version counter to make sure we're referencing the same content.
     if (state.scriptBuffers !== scriptData.scriptAnalysis.buffers) {
-        logger.info("Replacing editor script", {}, LOG_CTX);
+        logger.debug("Replacing editor script", {}, LOG_CTX);
         changes.push({
             from: 0,
             to: view.state.doc.length,

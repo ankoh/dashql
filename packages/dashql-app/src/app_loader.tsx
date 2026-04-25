@@ -178,7 +178,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                     return;
                 }
 
-                logger.info("Navigating to finish setup (session selector)", {}, "app_loader");
+                logger.info("Finishing setup", {}, "app_loader");
 
                 // Mark setup as done - no session selected yet, user will choose
                 navigate({

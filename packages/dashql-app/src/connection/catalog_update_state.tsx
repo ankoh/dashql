@@ -2,7 +2,7 @@ import { StorageWriter } from '../platform/storage/storage_writer.js';
 import {
     CATALOG_UPDATE_CANCELLED,
     CATALOG_UPDATE_FAILED,
-    CATALOG_UPDATE_LOAD_DESCRIPTORS,
+    CATALOG_UPDATE_SCHEMA_SCRIPT,
     CATALOG_UPDATE_REGISTER_QUERY,
     CATALOG_UPDATE_SUCCEEDED,
     CatalogAction,
@@ -101,7 +101,7 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
                 }
             };
         }
-        case CATALOG_UPDATE_LOAD_DESCRIPTORS: {
+        case CATALOG_UPDATE_SCHEMA_SCRIPT: {
             update = {
                 ...update,
                 lastUpdateAt: now,

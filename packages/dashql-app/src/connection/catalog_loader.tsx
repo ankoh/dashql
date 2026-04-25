@@ -18,6 +18,7 @@ import { useQueryExecutor } from './query_executor.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { updateInformationSchemaCatalog } from './catalog_query_information_schema.js';
 import { updatePgAttributeSchemaCatalog } from './catalog_query_pg_attribute.js';
+import { updateDemoSchemaCatalog } from './dataless/dataless_demo_catalog.js';
 import { useConnectionNotebookDispatch } from '../notebook/notebook_state_registry.js';
 import { CATALOG_DID_UPDATE } from '../notebook/notebook_state.js';
 
@@ -99,9 +100,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                             break;
                         }
                         case DATALESS_CONNECTOR: {
-                            const catalog = "";
-                            const schemas: string[] = [];
-                            await updateInformationSchemaCatalog(sessionId, connDispatch, updateId, catalog, schemas, executor, conn.catalog, conn.instance, conn.catalogScript);
+                            await updateDemoSchemaCatalog(sessionId, connDispatch, updateId, conn.catalog, conn.instance, conn.catalogScript);
                             break;
                         }
                         default:

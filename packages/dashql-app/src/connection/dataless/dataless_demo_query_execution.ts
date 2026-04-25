@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 
 import { QueryExecutionArgs } from "../query_execution_args.js";
 import { DatalessConnectionStateDetails } from "./dataless_connection_state.js";
-import { QueryExecutionResponseStream, QueryType } from "../query_execution_state.js";
+import { QueryExecutionResponseStream } from "../query_execution_state.js";
 import { DemoQuerySpec } from './dataless_demo_channel.js';
 import { Int128 } from '../../utils/int128.js';
 
@@ -88,73 +88,9 @@ const DEFAULT_QUERY_SPEC: DemoQuerySpec = {
     timeMsBetweenBatches: 50,
 };
 
-const CATALOG_COUNT = 2;
-const SCHEMAS_PER_CATALOG = 10;
-const TABLES_PER_SCHEMA = 10;
-const TABLES_PER_CATALOG = TABLES_PER_SCHEMA * SCHEMAS_PER_CATALOG;
-const COLUMNS_PER_TABLE = 10;
-const COLUMNS_PER_SCHEMA = COLUMNS_PER_TABLE * TABLES_PER_SCHEMA;
-const COLUMNS_PER_CATALOG = COLUMNS_PER_TABLE * TABLES_PER_CATALOG;
-
-const CATALOG_QUERY_SPEC: DemoQuerySpec = {
-    fields: [
-        {
-            name: "table_catalog",
-            type: new arrow.Utf8(),
-            nullable: true,
-            generateScalarValue: (row: number) => `catalog_${Math.floor(row / COLUMNS_PER_CATALOG)}`
-        },
-        {
-            name: "table_schema",
-            type: new arrow.Utf8(),
-            nullable: true,
-            generateScalarValue: (row: number) => `schema_${Math.floor(row / COLUMNS_PER_CATALOG)}_${Math.floor(row / COLUMNS_PER_SCHEMA)}`,
-        },
-        {
-            name: "table_name",
-            type: new arrow.Utf8(),
-            nullable: true,
-            generateScalarValue: (row: number) => `table_${Math.floor(row / COLUMNS_PER_CATALOG)}_${Math.floor(row / COLUMNS_PER_SCHEMA)}_${Math.floor(row / COLUMNS_PER_TABLE)}`,
-        },
-        {
-            name: "column_name",
-            type: new arrow.Utf8(),
-            nullable: true,
-            generateScalarValue: (row: number) => `column_${Math.floor(row / COLUMNS_PER_CATALOG)}_${Math.floor(row / COLUMNS_PER_SCHEMA)}_${Math.floor(row / COLUMNS_PER_TABLE)}_${row % COLUMNS_PER_TABLE}`,
-        },
-        {
-            name: "ordinal_position",
-            type: new arrow.Uint32(),
-            nullable: true,
-            generateScalarValue: (row: number) => row % COLUMNS_PER_TABLE
-        },
-        {
-            name: "is_nullable",
-            type: new arrow.Uint32(),
-            nullable: true,
-            generateScalarValue: (_row: number) => true
-        },
-        {
-            name: "data_type",
-            type: new arrow.Uint32(),
-            nullable: true,
-            generateScalarValue: (_row: number) => `varchar`
-        },
-    ],
-    resultBatches: SCHEMAS_PER_CATALOG,
-    resultRowsPerBatch: COLUMNS_PER_SCHEMA * SCHEMAS_PER_CATALOG * CATALOG_COUNT,
-    timeMsUntilFirstBatch: 100,
-    timeMsBetweenBatches: 10,
-}
-
-export async function executeDemoQuery(conn: DatalessConnectionStateDetails, args: QueryExecutionArgs, abort?: AbortSignal): Promise<QueryExecutionResponseStream> {
+export async function executeDemoQuery(conn: DatalessConnectionStateDetails, _args: QueryExecutionArgs, abort?: AbortSignal): Promise<QueryExecutionResponseStream> {
     if (!conn.channel) {
         throw new Error(`demo channel is not set up`);
     }
-
-    let spec = DEFAULT_QUERY_SPEC;
-    if (args.metadata.queryType == QueryType.CATALOG_QUERY_INFORMATION_SCHEMA) {
-        spec = CATALOG_QUERY_SPEC;
-    }
-    return await conn.channel.executeQuery(spec, abort);
+    return await conn.channel.executeQuery(DEFAULT_QUERY_SPEC, abort);
 }
