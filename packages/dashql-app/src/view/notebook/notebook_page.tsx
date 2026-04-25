@@ -40,7 +40,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const [conn, _modifyConn] = useConnectionState(notebook?.sessionId ?? null);
     const [sharingIsOpen, setSharingIsOpen] = React.useState<boolean>(false);
     const [connectionOverlayOpen, setConnectionOverlayOpen] = React.useState<boolean>(false);
-    const [showDetails, setShowDetails] = React.useState<boolean>(true);
+    const [showDetails, setShowDetails] = React.useState<boolean>(false);
     const [feedScrollTarget, setFeedScrollTarget] = React.useState<FeedScrollTarget | null>(null);
     const [editingPageIndex, setEditingPageIndex] = React.useState<number | null>(null);
     const [editingPageTitle, setEditingPageTitle] = React.useState<string>("");
