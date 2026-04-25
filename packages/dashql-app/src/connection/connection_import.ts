@@ -13,10 +13,9 @@ const LOG_CTX = "connection";
 export function decodeConnectionFromProto(conn: connection.Connection, sessionId: string): [ConnectorInfo, ConnectionStateDetailsVariant] {
     if ('dataless' in conn) {
         const dl = conn.dataless as any;
-        // Handle both ConnectionParams format ({ demoMode, ephemeral }) and Connection/Details format ({ setupParams: { demoMode, ephemeral } })
+        // Handle both ConnectionParams format ({ demoMode }) and Connection/Details format ({ setupParams: { demoMode } })
         const demoMode = dl?.setupParams?.demoMode ?? dl?.demoMode ?? false;
-        const ephemeral = dl?.setupParams?.ephemeral ?? dl?.ephemeral ?? false;
-        const info: ConnectorInfo = createDatalessConnectorInfo(demoMode, ephemeral);
+        const info: ConnectorInfo = createDatalessConnectorInfo(demoMode);
         // Normalize to DatalessConnectionDetails format (with setupParams wrapper).
         // Storage uses ConnectionParams format ({ demoMode }), not ConnectionDetails ({ setupParams: { demoMode } }).
         const proto = dl?.setupParams
@@ -77,6 +76,7 @@ export function restoreConnectionState(instance: dashql.DashQL, sessionId: strin
     const state: ConnectionState = {
         sessionId: sessionId,
         instance,
+        active: true,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
         connectorInfo: info,

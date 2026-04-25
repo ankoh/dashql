@@ -149,7 +149,7 @@ describe('restoreAppState', () => {
         expect(finalProgress.restoreConnections.failed).toBe(0);
     });
 
-    it('skips ephemeral demo sessions but restores regular DATALESS sessions', async () => {
+    it('restores both demo and regular DATALESS sessions', async () => {
         const demoSession = { path: 'demo-session' };
         const datalessSession = { path: 'dataless-session' };
 
@@ -157,7 +157,7 @@ describe('restoreAppState', () => {
             sessionId: 'demo-uuid',
             sessionPath: 'demo-session',
             title: 'Demo',
-            connectionParams: { dataless: { demoMode: true, ephemeral: true } },
+            connectionParams: { dataless: { demoMode: true } },
             notebook: { originalFileName: 'demo.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
@@ -186,22 +186,20 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        // DATALESS should be restored, ephemeral demo should be skipped
-        expect(result.connectionStates.size).toBe(1);
+        // Both sessions should be restored
+        expect(result.connectionStates.size).toBe(2);
+        expect(result.connectionStates.has('demo-uuid')).toBe(true);
         expect(result.connectionStates.has('dataless-uuid')).toBe(true);
-        expect(result.notebooks.size).toBe(1);
-        expect(result.notebooks.has('dataless-uuid')).toBe(true);
+        expect(result.notebooks.size).toBe(2);
 
-        // Verify DATALESS is in correct type index
+        // Verify both DATALESS connections are in correct type index
+        expect(result.connectionStatesByType[ConnectorType.DATALESS]).toContain('demo-uuid');
         expect(result.connectionStatesByType[ConnectorType.DATALESS]).toContain('dataless-uuid');
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
-        expect(finalProgress.restoreConnections.skipped).toBe(1); // ephemeral demo
-        expect(finalProgress.restoreCatalogs.skipped).toBe(1);
-        expect(finalProgress.restoreNotebooks.skipped).toBe(1);
-        expect(finalProgress.restoreConnections.succeeded).toBe(1); // DATALESS restored
-        expect(finalProgress.restoreCatalogs.succeeded).toBe(1);
-        expect(finalProgress.restoreNotebooks.succeeded).toBe(1);
+        expect(finalProgress.restoreConnections.succeeded).toBe(2);
+        expect(finalProgress.restoreCatalogs.succeeded).toBe(2);
+        expect(finalProgress.restoreNotebooks.succeeded).toBe(2);
     });
 
     it('handles corrupted session gracefully', async () => {
@@ -241,17 +239,17 @@ describe('restoreAppState', () => {
         expect(finalProgress.restoreConnections.succeeded).toBe(1); // good DATALESS session restored
     });
 
-    it('skips unconfigured sessions (no setupParams)', async () => {
+    it('restores sessions without setupParams (inactive connections are never written, but handle gracefully)', async () => {
         const sessionEntry = { path: 'unconfigured-session' };
         const sessionData: SessionData = {
             sessionId: 'unconfigured-uuid',
             sessionPath: 'unconfigured-session',
             title: 'Unconfigured',
-            // Valid format but no setupParams (connection allocated but not configured)
             connectionParams: {
                 hyper: {
                     setupTimings: {},
-                    // setupParams is missing!
+                    // setupParams is missing — normally inactive connections are never
+                    // written to storage, but if one is found it should restore fine
                 } as any
             },
             notebook: { originalFileName: 'unconfigured.sql', createdAt: '2024-01-01T00:00:00Z' }
@@ -259,6 +257,9 @@ describe('restoreAppState', () => {
 
         vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
         vi.mocked(mockBackend.loadSession).mockResolvedValue(sessionData);
+        vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadNotebookPages).mockResolvedValue([]);
+        vi.mocked(mockBackend.loadNotebookScriptDraft).mockResolvedValue(null);
 
         const result = await restoreAppState(
             mockCore,
@@ -267,12 +268,12 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        // Should skip unconfigured session
-        expect(result.connectionStates.size).toBe(0);
+        // Should restore even without setupParams
+        expect(result.connectionStates.size).toBe(1);
+        expect(result.connectionStates.has('unconfigured-uuid')).toBe(true);
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
-        expect(finalProgress.restoreConnections.skipped).toBe(1);
-        expect(finalProgress.restoreConnections.succeeded).toBe(0);
+        expect(finalProgress.restoreConnections.succeeded).toBe(1);
         expect(finalProgress.restoreConnections.failed).toBe(0);
     });
 

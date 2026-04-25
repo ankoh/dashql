@@ -84,8 +84,7 @@ function buildState(): NotebookState {
         instance: dql!,
         sessionId: sessionId,
         notebookMetadata: createEmptyMetadata(),
-        connectorInfo: createDatalessConnectorInfo(true, true),
-        ephemeral: true,
+        connectorInfo: createDatalessConnectorInfo(true),
         connectionCatalog: catalog,
         scriptRegistry: registry,
         scripts: {
@@ -107,7 +106,7 @@ function buildState(): NotebookState {
 }
 
 function reduce(state: NotebookState, action: Parameters<typeof reduceNotebookState>[1]): NotebookState {
-    return reduceNotebookState(state, action, storage, logger);
+    return reduceNotebookState(state, action, storage, logger, true);
 }
 
 // ---------------------------------------------------------------------------

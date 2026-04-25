@@ -31,15 +31,11 @@ export function isDemoMode(details: DatalessConnectionStateDetails): boolean {
     return details.proto.setupParams?.demoMode === true;
 }
 
-export function isEphemeral(details: DatalessConnectionStateDetails): boolean {
-    return details.proto.setupParams?.ephemeral === true;
-}
-
-export function createDatalessConnectionState(dql: dashql.DashQL, connSigs: ConnectionSignatureMap, opts: { demoMode?: boolean; ephemeral?: boolean } = {}): ConnectionStateWithoutId {
-    const { demoMode = false, ephemeral = false } = opts;
-    const params: connection.DatalessParams = { demoMode: demoMode || undefined, ephemeral: ephemeral || undefined };
+export function createDatalessConnectionState(dql: dashql.DashQL, connSigs: ConnectionSignatureMap, opts: { demoMode?: boolean } = {}): ConnectionStateWithoutId {
+    const { demoMode = false } = opts;
+    const params: connection.DatalessParams = { demoMode: demoMode || undefined };
     const details = createDatalessConnectionStateDetails(params);
-    const connInfo = createDatalessConnectorInfo(demoMode, ephemeral);
+    const connInfo = createDatalessConnectorInfo(demoMode);
     const state = createConnectionState(dql, connInfo, connSigs, {
         type: DATALESS_CONNECTOR,
         value: details,
@@ -48,6 +44,7 @@ export function createDatalessConnectionState(dql: dashql.DashQL, connSigs: Conn
         // Non-demo dataless connections are immediately online
         state.connectionStatus = ConnectionStatus.CHANNEL_READY;
         state.connectionHealth = ConnectionHealth.ONLINE;
+        state.active = true;
     }
     return state;
 }
@@ -63,7 +60,6 @@ export const DATALESS_CHANNEL_READY = Symbol('DATALESS_CHANNEL_READY');
 export const DATALESS_CHANNEL_SETUP_FAILED = Symbol('DATALESS_CHANNEL_SETUP_FAILED');
 export const DATALESS_CHANNEL_SETUP_CANCELLED = Symbol('DATALESS_CHANNEL_SETUP_CANCELLED');
 export const DATALESS_SET_DEMO_MODE = Symbol('DATALESS_SET_DEMO_MODE');
-export const DATALESS_SET_EPHEMERAL = Symbol('DATALESS_SET_EPHEMERAL');
 
 export type DatalessConnectorAction =
     | VariantKind<typeof RESET_CONNECTION, null>
@@ -73,7 +69,6 @@ export type DatalessConnectorAction =
     | VariantKind<typeof DATALESS_CHANNEL_SETUP_FAILED, DetailedError>
     | VariantKind<typeof HEALTH_CHECK_SUCCEEDED, null>
     | VariantKind<typeof DATALESS_SET_DEMO_MODE, boolean>
-    | VariantKind<typeof DATALESS_SET_EPHEMERAL, boolean>
     ;
 
 export function reduceDatalessConnectorState(state: ConnectionState, action: DatalessConnectorAction, _storage: StorageWriter): ConnectionState | null {
@@ -160,14 +155,13 @@ export function reduceDatalessConnectorState(state: ConnectionState, action: Dat
             break;
         case DATALESS_SET_DEMO_MODE: {
             const newDemoMode = action.value;
-            const ephemeral = isEphemeral(details);
             const newParams: connection.DatalessParams = {
                 ...details.proto.setupParams,
                 demoMode: newDemoMode || undefined,
             };
             next = {
                 ...state,
-                connectorInfo: createDatalessConnectorInfo(newDemoMode, ephemeral),
+                connectorInfo: createDatalessConnectorInfo(newDemoMode),
                 connectionStatus: newDemoMode ? ConnectionStatus.NOT_STARTED : ConnectionStatus.CHANNEL_READY,
                 connectionHealth: newDemoMode ? ConnectionHealth.NOT_STARTED : ConnectionHealth.ONLINE,
                 details: {
@@ -177,32 +171,6 @@ export function reduceDatalessConnectorState(state: ConnectionState, action: Dat
                             setupParams: newParams,
                         },
                         channel: null,
-                    }
-                },
-            };
-            break;
-        }
-        case DATALESS_SET_EPHEMERAL: {
-            // Only allowed before the connection has been set up
-            if (state.connectionStatus !== ConnectionStatus.NOT_STARTED) {
-                return state;
-            }
-            const newEphemeral = action.value;
-            const demoMode = isDemoMode(details);
-            const newParams: connection.DatalessParams = {
-                ...details.proto.setupParams,
-                ephemeral: newEphemeral || undefined,
-            };
-            next = {
-                ...state,
-                connectorInfo: createDatalessConnectorInfo(demoMode, newEphemeral),
-                details: {
-                    type: DATALESS_CONNECTOR,
-                    value: {
-                        proto: {
-                            setupParams: newParams,
-                        },
-                        channel: details.channel,
                     }
                 },
             };

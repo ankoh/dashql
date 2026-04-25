@@ -3,6 +3,7 @@ import * as React from 'react';
 import { NotebookState, NotebookStateAction, reduceNotebookState } from './notebook_state.js';
 import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES, ConnectorType } from '../connection/connector_info.js';
+import { useConnectionRegistry } from '../connection/connection_registry.js';
 import { useStorageWriter } from '../platform/storage/storage_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK, groupNotebookWrites, WRITE_NOTEBOOK } from "../platform/storage/storage_writer.js";
@@ -50,6 +51,7 @@ export function useNotebookRegistry(): [NotebookRegistry, Dispatch<SetNotebookRe
 
 export function useNotebookStateAllocator(): NotebookAllocator {
     const storage = useStorageWriter();
+    const [connReg] = useConnectionRegistry();
     const [_reg, setReg] = React.useContext(NOTEBOOK_REGISTRY_CTX)!;
     return React.useCallback((state: NotebookStateWithoutId) => {
         // Use the sessionId from the state (1:1 mapping with connection)
@@ -69,19 +71,21 @@ export function useNotebookStateAllocator(): NotebookAllocator {
             return { ...reg };
         });
 
-        // Write the notebook to storage (skip ephemeral notebooks)
-        if (!notebook.ephemeral) {
+        // Only write to storage if the connection is active
+        const conn = connReg.connectionMap.get(sessionId);
+        if (conn?.active) {
             storage.write(groupNotebookWrites(notebook.sessionId), {
                 type: WRITE_NOTEBOOK,
                 value: notebook
             }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
         }
         return [sessionId, notebook];
-    }, [setReg, storage]);
+    }, [setReg, storage, connReg]);
 }
 
 export function useNotebookState(id: string | null): [NotebookState | null, ModifyNotebook] {
     const [registry, setRegistry] = React.useContext(NOTEBOOK_REGISTRY_CTX)!;
+    const [connReg] = useConnectionRegistry();
     const storageWriter = useStorageWriter();
     const logger = useLogger();
 
@@ -97,13 +101,15 @@ export function useNotebookState(id: string | null): [NotebookState | null, Modi
         pendingActionsRef.current = [];
 
         setRegistry((reg: NotebookRegistry) => {
+            // Check if the connection is active to gate storage writes
+            const active = connReg.connectionMap.get(id)?.active ?? false;
             for (const action of actions) {
                 const prev = reg.notebookMap.get(id);
                 if (!prev) {
                     console.warn(`no notebook registered with session id ${id}`);
                     continue;
                 }
-                const next = reduceNotebookState(prev, action, storageWriter, logger);
+                const next = reduceNotebookState(prev, action, storageWriter, logger, active);
                 // @ts-ignore - DELETE_NOTEBOOK is a storage task, not a state action, but we check for it here
                 if ((action as any).type == DELETE_NOTEBOOK) {
                     reg.notebookMap.delete(id);
@@ -116,7 +122,7 @@ export function useNotebookState(id: string | null): [NotebookState | null, Modi
             }
             return { ...reg };
         });
-    }, [id, setRegistry, storageWriter, logger]);
+    }, [id, setRegistry, storageWriter, logger, connReg]);
 
     /// Wrapper to modify an individual notebook
     const dispatch = React.useCallback((action: NotebookStateAction) => {
@@ -136,6 +142,7 @@ export function useNotebookState(id: string | null): [NotebookState | null, Modi
 
 export function useConnectionNotebookDispatch(): ModifyConnectionNotebooks {
     const [_registry, setRegistry] = React.useContext(NOTEBOOK_REGISTRY_CTX)!;
+    const [connReg] = useConnectionRegistry();
     const storage = useStorageWriter();
     const logger = useLogger();
 
@@ -157,14 +164,15 @@ export function useConnectionNotebookDispatch(): ModifyConnectionNotebooks {
                 if (notebookId) {
                     const prev = reg.notebookMap.get(notebookId);
                     if (prev) {
-                        const next = reduceNotebookState(prev, action, storage, logger);
+                        const active = connReg.connectionMap.get(conn)?.active ?? false;
+                        const next = reduceNotebookState(prev, action, storage, logger, active);
                         reg.notebookMap.set(notebookId, next);
                     }
                 }
             }
             return { ...reg };
         });
-    }, [setRegistry, storage, logger]);
+    }, [setRegistry, storage, logger, connReg]);
 
     const dispatch = React.useCallback<ModifyConnectionNotebooks>((conn: string, action: NotebookStateAction) => {
         // Queue the action

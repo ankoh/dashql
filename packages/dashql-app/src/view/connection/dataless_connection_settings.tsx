@@ -9,8 +9,8 @@ import { useAnyConnectionNotebook } from './connection_notebook.js';
 import { DemoDatabaseChannel } from '../../connection/dataless/dataless_demo_channel.js';
 import { setupDatalessDemoConnection } from '../../connection/dataless/dataless_demo_setup.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { RESET_CONNECTION, ConnectionStatus } from '../../connection/connection_state.js';
-import { isDemoMode, isEphemeral, DATALESS_SET_DEMO_MODE, DATALESS_SET_EPHEMERAL, DatalessConnectionStateDetails } from '../../connection/dataless/dataless_connection_state.js';
+import { RESET_CONNECTION } from '../../connection/connection_state.js';
+import { isDemoMode, DATALESS_SET_DEMO_MODE, DatalessConnectionStateDetails } from '../../connection/dataless/dataless_connection_state.js';
 import { ToggleSwitch } from '../foundations/toggle_switch.js';
 import { classNames } from '../../utils/classnames.js';
 
@@ -31,7 +31,6 @@ export const DatalessConnectorSettings: React.FC<Props> = (props: Props) => {
         ? connectionState.details.value as DatalessConnectionStateDetails
         : null;
     const demoMode = details ? isDemoMode(details) : false;
-    const ephemeral = details ? isEphemeral(details) : false;
 
     const abortCtrl = React.useRef<AbortController | null>(null);
 
@@ -54,16 +53,6 @@ export const DatalessConnectorSettings: React.FC<Props> = (props: Props) => {
             value: null
         });
     } : undefined;
-
-    // Ephemeral can only be toggled before the connection has been set up
-    const isNewConnection = connectionState?.connectionStatus === ConnectionStatus.NOT_STARTED;
-
-    const toggleEphemeral = React.useCallback(() => {
-        modifyConnection({
-            type: DATALESS_SET_EPHEMERAL,
-            value: !ephemeral,
-        });
-    }, [modifyConnection, ephemeral]);
 
     const toggleDemoMode = React.useCallback(() => {
         modifyConnection({
@@ -91,19 +80,6 @@ export const DatalessConnectorSettings: React.FC<Props> = (props: Props) => {
                 <div className={style.section}>
                     <div className={classNames(style.section_layout, style.body_section_layout)}>
                         <div className={classNames(settingsStyle.toggle_group, style.grid_column_1_span_2)}>
-                            <div className={settingsStyle.toggle_row}>
-                                <div className={settingsStyle.toggle_label}>
-                                    <div className={settingsStyle.toggle_name}>Ephemeral</div>
-                                    <div className={settingsStyle.toggle_caption}>Connection is not persisted to storage</div>
-                                </div>
-                                <ToggleSwitch
-                                    size="medium"
-                                    checked={ephemeral}
-                                    disabled={!isNewConnection}
-                                    onClick={isNewConnection ? toggleEphemeral : undefined}
-                                    aria-label="Ephemeral connection"
-                                />
-                            </div>
                             <div className={settingsStyle.toggle_row}>
                                 <div className={settingsStyle.toggle_label}>
                                     <div className={settingsStyle.toggle_name}>Demo Mode</div>

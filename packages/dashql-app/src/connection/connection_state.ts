@@ -29,7 +29,6 @@ import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_c
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
 import { DEBOUNCE_DURATION_SESSION_WRITE, DELETE_SESSION, groupSessionWrites, StorageWriter, WRITE_SESSION } from '../platform/storage/storage_writer.js';
-import { getConnectionParamsFromStateDetails } from './connection_params.js';
 import { LoggableException, Logger } from '../platform/logger/logger.js';
 
 export interface CatalogUpdates {
@@ -51,6 +50,9 @@ export interface ConnectionState {
     /// The connection state contains many references into the Wasm heap.
     /// It therefore makes sense that connection state users resolve the "right" module through here.
     instance: core.DashQL;
+    /// Whether this connection has been activated (setup completed at least once).
+    /// Storage writes are suppressed until this is true.
+    active: boolean;
 
     /// The connection state
     connectionStatus: ConnectionStatus;
@@ -175,6 +177,7 @@ export type ConnectionStateWithoutId = Omit<ConnectionState, "sessionId">;
 export const DELETE_CONNECTION = Symbol('DELETE_CONNECTION');
 export const RESET_CONNECTION = Symbol('RESET_CONNECTION');
 export const SWITCH_CONNECTOR_TYPE = Symbol('SWITCH_CONNECTOR_TYPE');
+export const SET_CONNECTION_ACTIVE = Symbol('SET_CONNECTION_ACTIVE');
 export const SET_CATALOG_SCRIPT = Symbol('SET_CATALOG_SCRIPT');
 export const UPDATE_CATALOG = Symbol('UPDATE_CATALOG');
 export const CATALOG_UPDATE_STARTED = Symbol('CATALOG_UPDATE_STARTED');
@@ -231,6 +234,7 @@ export type ConnectionStateAction =
     | VariantKind<typeof DELETE_CONNECTION, null>
     | VariantKind<typeof RESET_CONNECTION, null>
     | VariantKind<typeof SWITCH_CONNECTOR_TYPE, ConnectorType>
+    | VariantKind<typeof SET_CONNECTION_ACTIVE, null>
     | CatalogAction
     | QueryExecutionAction
     | HyperConnectorAction
@@ -311,8 +315,8 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             // Cleaning up details is best-effort. No need to check if RESET was actually consumed
             newState = newState ?? cleaned;
 
-            // Persist the resetted connection (skip ephemeral connections)
-            if (!newState.connectorInfo.features.ephemeral) {
+            // Persist the resetted connection (only if it was previously activated)
+            if (newState.active) {
                 storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
             }
             return newState;
@@ -337,6 +341,17 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 connectionSignature: newConnectionSignature(newSig, state.connectionSignature.signatures, state.sessionId),
                 details: newDetails,
             };
+        }
+
+        // SET_CONNECTION_ACTIVE marks the connection as active.
+        // Once active, storage writes are enabled for both connection and notebook state.
+        case SET_CONNECTION_ACTIVE: {
+            if (state.active) {
+                return state;
+            }
+            const newState = { ...state, active: true };
+            storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
+            return newState;
         }
 
         /// DELETE_CONNECTION deletes the connection state
@@ -392,10 +407,8 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             // Delete the conneciton catalog
             state.catalog.destroy();
 
-            // Delete from storage (skip ephemeral connections)
-            if (!newState.connectorInfo.features.ephemeral) {
-                storage.write(groupSessionWrites(state.sessionId), { type: DELETE_SESSION, value: state.sessionId }, DEBOUNCE_DURATION_SESSION_WRITE);
-            }
+            // Delete from storage
+            storage.write(groupSessionWrites(state.sessionId), { type: DELETE_SESSION, value: state.sessionId }, DEBOUNCE_DURATION_SESSION_WRITE);
             return newState;
         }
 
@@ -420,14 +433,14 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 throw new Error(`failed to apply state action: ${String(action.type)}`);
             }
 
-            // Only persist if connection is configured (has setupParams)
-            // This prevents persisting incomplete connections that can't be restored
-            // Skip ephemeral connections
-            if (!newState.connectorInfo.features.ephemeral) {
-                const connectionParams = getConnectionParamsFromStateDetails(newState.details);
-                if (connectionParams) {
-                    storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
-                }
+            // Activate the connection when the health check succeeds
+            if (action.type === HEALTH_CHECK_SUCCEEDED && !newState.active) {
+                newState = { ...newState, active: true };
+            }
+
+            // Only persist active connections
+            if (newState.active) {
+                storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
             }
             return newState;
         }
@@ -466,6 +479,7 @@ export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, c
     const connSig = computeNewConnectionSignatureFromDetails(details);
     return {
         instance: dql,
+        active: false,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
         connectorInfo: info,
@@ -498,6 +512,7 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
     const catalogScript = dql.createScript(catalog);
     return {
         instance: dql,
+        active: false,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
         connectorInfo: connInfo,

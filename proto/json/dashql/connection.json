@@ -99,10 +99,6 @@
       "type": "object",
       "description": "Connection Parameters - Dataless",
       "properties": {
-        "ephemeral": {
-          "type": "boolean",
-          "description": "Ephemeral connection (not persisted to storage)"
-        },
         "demoMode": {
           "type": "boolean",
           "description": "Enable demo mode with in-memory random data generation"

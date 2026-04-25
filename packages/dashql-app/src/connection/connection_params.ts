@@ -24,8 +24,7 @@ export type DatalessParams = app_session.DatalessParams;
 export function getConnectionInfoFromParams(params: ConnectionParams) {
     if ('dataless' in params) {
         const demoMode = (params.dataless as any)?.demoMode ?? false;
-        const ephemeral = (params.dataless as any)?.ephemeral ?? false;
-        return createDatalessConnectorInfo(demoMode, ephemeral);
+        return createDatalessConnectorInfo(demoMode);
     }
     if ('trino' in params) return CONNECTOR_INFOS[ConnectorType.TRINO];
     if ('hyper' in params) return CONNECTOR_INFOS[ConnectorType.HYPER];
@@ -74,6 +73,7 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: Conn
     const catalogScript = dql.createScript(catalog);
     return {
         instance: dql,
+        active: false,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
         connectorInfo: info,

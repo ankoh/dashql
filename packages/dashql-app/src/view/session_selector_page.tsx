@@ -198,11 +198,6 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
     }, [navigate]);
 
     const handleDeleteSession = React.useCallback(async (sessionId: string, sessionPath: string, connectorType: ConnectorType) => {
-        // Confirmation dialog
-        if (!confirm('Delete this session? This cannot be undone.')) {
-            return;
-        }
-
         // Delete from storage
         try {
             await storageWriter.backend.deleteSession(sessionPath);

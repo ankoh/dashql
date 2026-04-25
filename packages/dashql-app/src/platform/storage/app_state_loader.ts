@@ -147,7 +147,6 @@ async function restoreNotebook(
         sessionId,
         notebookMetadata,
         connectorInfo,
-        ephemeral: connectorInfo.features.ephemeral,
         connectionCatalog,
         scriptRegistry,
         scripts,
@@ -205,48 +204,6 @@ async function restoreSession(
         connectionParams as any,
         sessionId
     );
-
-    // Skip ephemeral sessions (demo-mode dataless connections)
-    if (connectorInfo.features.ephemeral) {
-        logger.info("Skipping ephemeral session", {
-            sessionId,
-            connectorType: ConnectorType[connectorInfo.connectorType]
-        }, LOG_CTX);
-
-        restoreConnections.addSkipped();
-        restoreCatalogs.addSkipped();
-        restoreNotebooks.addSkipped();
-
-        progressConsumer({
-            restoreConnections: restoreConnections.clone(),
-            restoreCatalogs: restoreCatalogs.clone(),
-            restoreNotebooks: restoreNotebooks.clone(),
-        });
-        return;
-    }
-
-    // Skip connections without setupParams (not yet configured)
-    // These are connections that were allocated but never completed setup
-    if (connectorInfo.connectorType !== ConnectorType.DATALESS) {
-        // Check if this connection has setupParams
-        if ('proto' in details.value && !details.value.proto.setupParams) {
-            logger.info("Skipping unconfigured session (no setupParams)", {
-                sessionId,
-                connectorType: ConnectorType[connectorInfo.connectorType]
-            }, LOG_CTX);
-
-            restoreConnections.addSkipped();
-            restoreCatalogs.addSkipped();
-            restoreNotebooks.addSkipped();
-
-            progressConsumer({
-                restoreConnections: restoreConnections.clone(),
-                restoreCatalogs: restoreCatalogs.clone(),
-                restoreNotebooks: restoreNotebooks.clone(),
-            });
-            return;
-        }
-    }
 
     // Restore connection state
     logger.info("Restoring connection state", {

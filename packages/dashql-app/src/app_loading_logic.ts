@@ -10,7 +10,7 @@ import { createDatalessConnectionState } from './connection/dataless/dataless_co
 import { AppConfig } from './app_config.js';
 import { DemoDatabaseChannel } from './connection/dataless/dataless_demo_channel.js';
 import { setupDatalessDemoConnection } from './connection/dataless/dataless_demo_setup.js';
-import { ConnectorType } from './connection/connector_info.js';
+import { ConnectorType, DATALESS_CONNECTOR } from './connection/connector_info.js';
 import { Dispatch } from './utils/variant.js';
 import { SetNotebookRegistryAction } from './notebook/notebook_state_registry.js';
 import { NotebookSetupFn } from './connection/dataless/dataless_notebook.js';
@@ -101,7 +101,7 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
 
             if (!existingDemoSessionId) {
                 logger.info("Creating demo connection", {}, "app_loading");
-                demoConn = allocateConnection(createDatalessConnectionState(core, state.connectionSignatures, { demoMode: true, ephemeral: true }));
+                demoConn = allocateConnection(createDatalessConnectionState(core, state.connectionSignatures, { demoMode: true }));
             } else {
                 demoConn = state.connectionStates.get(existingDemoSessionId)!;
                 logger.info("Using existing demo connection", { sessionId: existingDemoSessionId }, "app_loading");
@@ -207,8 +207,14 @@ function findDemoNotebook(
     const datalessNotebookIds = notebooksByConnectionType[ConnectorType.DATALESS] ?? [];
     for (const nbId of datalessNotebookIds) {
         const nb = notebooks.get(nbId);
-        if (nb && nb.ephemeral) {
-            return nbId;
+        if (!nb) continue;
+        // Check the associated connection for demoMode
+        const conn = connectionStates.get(nb.sessionId);
+        if (conn && conn.details.type === DATALESS_CONNECTOR) {
+            const details = conn.details.value as DatalessConnectionStateDetails;
+            if (isDemoMode(details)) {
+                return nbId;
+            }
         }
     }
     return null;

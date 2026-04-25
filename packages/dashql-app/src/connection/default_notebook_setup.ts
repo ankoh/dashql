@@ -64,7 +64,6 @@ export function createDefaultNotebookWithSchemaPage(
             originalHttpUrl: '',
         },
         connectorInfo: conn.connectorInfo,
-        ephemeral: conn.connectorInfo.features.ephemeral,
         connectionCatalog: conn.catalog,
         scriptRegistry: registry,
         scripts: {

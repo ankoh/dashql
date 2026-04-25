@@ -66,8 +66,6 @@ export interface ConnectorFeatures {
     executeQueryAction: boolean;
     /// Can refresh a schema?
     refreshSchemaAction: boolean;
-    /// Is ephemeral (not persisted to storage)?
-    ephemeral: boolean;
 }
 
 export const CONNECTOR_INFOS: ConnectorInfo[] = [
@@ -90,7 +88,6 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             schemaScript: true,
             executeQueryAction: false,
             refreshSchemaAction: false,
-            ephemeral: false,
         },
         platforms: {
             browser: true,
@@ -116,7 +113,6 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             schemaScript: false,
             executeQueryAction: true,
             refreshSchemaAction: true,
-            ephemeral: false,
         },
         platforms: {
             browser: true,
@@ -142,7 +138,6 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             schemaScript: false,
             executeQueryAction: true,
             refreshSchemaAction: true,
-            ephemeral: false,
         },
         platforms: {
             browser: true,
@@ -168,7 +163,6 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             schemaScript: false,
             executeQueryAction: true,
             refreshSchemaAction: true,
-            ephemeral: false,
         },
         platforms: {
             browser: true,
@@ -178,27 +172,21 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
 ];
 
 /// Create a ConnectorInfo for a dataless connection with given settings
-export function createDatalessConnectorInfo(demoMode: boolean, ephemeral?: boolean): ConnectorInfo {
-    // If neither demoMode nor ephemeral, return the base dataless info
-    if (!demoMode && !ephemeral) {
+export function createDatalessConnectorInfo(demoMode: boolean): ConnectorInfo {
+    if (!demoMode) {
         return CONNECTOR_INFOS[ConnectorType.DATALESS];
     }
     return {
         connectorType: ConnectorType.DATALESS,
-        names: demoMode
-            ? { displayShort: 'Demo', displayLong: 'Demo', fileShort: 'demo' }
-            : { displayShort: 'Dataless', displayLong: 'Dataless', fileShort: 'dataless' },
-        icons: demoMode
-            ? { colored: "beaker", uncolored: "beaker", outlines: "beaker" }
-            : { colored: "cloud_offline", uncolored: "cloud_offline", outlines: "cloud_offline" },
-        catalogResolver: demoMode ? CatalogResolver.SQL_INFORMATION_SCHEMA : CatalogResolver.SQL_SCRIPT,
+        names: { displayShort: 'Demo', displayLong: 'Demo', fileShort: 'demo' },
+        icons: { colored: "beaker", uncolored: "beaker", outlines: "beaker" },
+        catalogResolver: CatalogResolver.SQL_INFORMATION_SCHEMA,
         features: {
-            manualSetup: demoMode,
-            healthChecks: demoMode,
-            schemaScript: !demoMode,
-            executeQueryAction: demoMode,
-            refreshSchemaAction: demoMode,
-            ephemeral: ephemeral ?? false,
+            manualSetup: true,
+            healthChecks: true,
+            schemaScript: false,
+            executeQueryAction: true,
+            refreshSchemaAction: true,
         },
         platforms: {
             browser: true,
@@ -210,8 +198,7 @@ export function createDatalessConnectorInfo(demoMode: boolean, ephemeral?: boole
 export function getConnectorInfoForParams(params: { dataless?: any; hyper?: any; salesforce?: any; trino?: any }): ConnectorInfo | null {
     if ("dataless" in params) {
         const demoMode = params.dataless?.demoMode ?? false;
-        const ephemeral = params.dataless?.ephemeral ?? false;
-        return createDatalessConnectorInfo(demoMode, ephemeral);
+        return createDatalessConnectorInfo(demoMode);
     }
     if ("hyper" in params) return CONNECTOR_INFOS[ConnectorType.HYPER];
     if ("salesforce" in params) return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];

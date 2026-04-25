@@ -8,8 +8,7 @@ import { VariantKind } from '../utils/index.js';
 import { DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupNotebookWrites, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK, WRITE_NOTEBOOK_SCRIPT } from '../platform/storage/storage_writer.js';
 import { NotebookStateWithoutId } from './notebook_state_registry.js';
 import { Logger } from '../platform/logger/logger.js';
-import { remapNotebookPageScripts } from '../view/notebook/remap_notebook_scripts.js';
-import { NotebookScriptAnnotations, NotebookPage, NotebookPageScript, NotebookMetadata as NotebookMetadataType, createEmptyAnnotations, createPageScript, createEmptyPage, generateScriptFileName } from './notebook_types.js';
+import { NotebookScriptAnnotations, NotebookPage, NotebookPageScript, NotebookMetadata as NotebookMetadataType, createEmptyAnnotations, createPageScript, generateScriptFileName } from './notebook_types.js';
 
 const LOG_CTX = 'notebook_state';
 
@@ -43,8 +42,6 @@ export interface NotebookState {
     notebookMetadata: NotebookMetadataType;
     /// The connector info
     connectorInfo: ConnectorInfo;
-    /// Ephemeral flag — set once at creation, prevents storage writes
-    ephemeral: boolean;
     /// The connection catalog
     connectionCatalog: core.DashQLCatalog;
     /// The script registry
@@ -170,7 +167,9 @@ enum FocusUpdate {
     UpdateFromCompletion,
 };
 
-export function reduceNotebookState(state: NotebookState, action: NotebookStateAction, storage: StorageWriter, logger: Logger): NotebookState {
+export function reduceNotebookState(state: NotebookState, action: NotebookStateAction, storageArg: StorageWriter, logger: Logger, active: boolean): NotebookState {
+    // Suppress storage writes when the connection is not yet active
+    const storage = active ? storageArg : null;
     switch (action.type) {
         case SELECT_PAGE: {
             const pageIndex = Math.max(0, Math.min(action.value, state.notebookPages.length - 1));
@@ -231,9 +230,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookUserFocus: { pageIndex: newPages.length - 1, entryInPage: 0 },
             };
 
-            if (!next.ephemeral) {
-                storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
-            }
+            storage?.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             return next;
         }
         case DELETE_PAGE: {
@@ -272,13 +269,11 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 })
             };
 
-            if (!next.ephemeral) {
-                storage.write(
-                    groupNotebookWrites(next.sessionId),
-                    { type: WRITE_NOTEBOOK, value: next },
-                    DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
-                );
-            }
+            storage?.write(
+                groupNotebookWrites(next.sessionId),
+                { type: WRITE_NOTEBOOK, value: next },
+                DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+            );
             return next;
         }
         case SELECT_NEXT_PAGE: {
@@ -453,18 +448,16 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 }
             }
             // Persist only the updated script, not the entire notebook
-            if (!nextState.ephemeral) {
-                const scriptKey = update.scriptKey;
-                const scriptData = nextState.scripts[scriptKey];
-                if (scriptData) {
-                    const sql = scriptData.script.toString();
+            const scriptKey = update.scriptKey;
+            const scriptData = nextState.scripts[scriptKey];
+            if (scriptData) {
+                const sql = scriptData.script.toString();
 
-                    storage.write(
-                        groupScriptWrites(nextState.sessionId, scriptData.folderName, scriptData.fileName),
-                        { type: WRITE_NOTEBOOK_SCRIPT, value: [nextState.sessionId, scriptData.folderName, scriptData.fileName, sql] },
-                        DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
-                    );
-                }
+                storage?.write(
+                    groupScriptWrites(nextState.sessionId, scriptData.folderName, scriptData.fileName),
+                    { type: WRITE_NOTEBOOK_SCRIPT, value: [nextState.sessionId, scriptData.folderName, scriptData.fileName, sql] },
+                    DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                );
             }
             return nextState;
         }
@@ -514,9 +507,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookPages: newPages,
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newEntryInPage },
             };
-            if (!next.ephemeral) {
-                storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
-            }
+            storage?.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             return next;
         }
 
@@ -550,13 +541,11 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     })
                 };
 
-                if (!next.ephemeral) {
-                    storage.write(
-                        groupNotebookWrites(next.sessionId),
-                        { type: WRITE_NOTEBOOK, value: next },
-                        DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
-                    );
-                }
+                storage?.write(
+                    groupNotebookWrites(next.sessionId),
+                    { type: WRITE_NOTEBOOK, value: next },
+                    DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                );
                 return next;
             }
 
@@ -576,9 +565,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookPages: newPages,
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: Math.min(newEntryInPage, newScripts.length - 1) },
             });
-            if (!next.ephemeral) {
-                storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
-            }
+            storage?.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             return next;
         }
 
@@ -629,9 +616,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookPages: newPages,
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newScripts.length - 1 },
             };
-            if (!next.ephemeral) {
-                storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
-            }
+            storage?.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             return next;
         }
 
@@ -663,9 +648,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookPages: newPages,
                 scripts: newScripts
             };
-            if (!next.ephemeral) {
-                storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
-            }
+            storage?.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             return next;
         }
 
@@ -693,9 +676,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookPages: newPages,
                 scripts: newScripts
             };
-            if (!next.ephemeral) {
-                storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
-            }
+            storage?.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             return next;
         }
 
@@ -738,9 +719,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 uncommittedScriptId: newUncommittedKey,
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newPageScripts.length - 1 },
             };
-            if (!next.ephemeral) {
-                storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
-            }
+            storage?.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             return next;
         }
     }
