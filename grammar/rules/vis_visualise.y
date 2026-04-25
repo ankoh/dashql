@@ -3,7 +3,7 @@
 //
 // Shape:
 //
-//   VISUALISE [AS (SELECT ...)]
+//   VISUALISE [(SELECT ...)]
 //     DRAW <geom> [AS (SELECT ... [WHERE ...] [PARTITION BY ...] [ORDER BY ...])] [USING (...)]
 //     PLACE <geom> [USING (...)]
 //     SCALE [<type>] <aesthetic> [BETWEEN [...] AND [...]] [USING (...)]
@@ -35,8 +35,8 @@ vis_visualise_stmt:
     ;
 
 vis_opt_visualise_select:
-    AS LRB sql_select_stmt RRB {
-        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_SELECT, std::move($3));
+    LRB sql_select_stmt RRB {
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_SELECT, std::move($2));
     }
   | %empty { $$ = Null(); }
     ;

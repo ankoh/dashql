@@ -11,14 +11,14 @@ parser-snapshots:
     input: |
       SELECT visualise, draw, scale FROM t;
 
-  # VISUALISE AS (SELECT ...) — global pipeline
-  - name: vis_visualise_as_select
+  # VISUALISE (SELECT ...) — global pipeline
+  - name: vis_visualise_select
     input: |
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW point;
-  - name: vis_visualise_as_select_targets
+  - name: vis_visualise_select_targets
     input: |
-      VISUALISE AS (SELECT date AS x, revenue AS y FROM sales)
+      VISUALISE (SELECT date AS x, revenue AS y FROM sales)
         DRAW line;
 
   # DRAW
@@ -28,28 +28,28 @@ parser-snapshots:
         DRAW point;
   - name: vis_draw_with_select
     input: |
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW line AS (SELECT date AS x, revenue AS y);
   - name: vis_draw_with_where
     input: |
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW bar AS (SELECT region AS x, revenue AS y WHERE revenue > 100);
   - name: vis_draw_order_by
     input: |
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW line AS (SELECT date AS x, revenue AS y ORDER BY date ASC);
   - name: vis_draw_using
     input: |
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW bar AS (SELECT region AS x, revenue AS y)
         USING (size => 10, fill => 'blue');
   - name: vis_draw_col_alias
     input: |
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW col AS (SELECT date AS x, revenue AS y);
   - name: vis_draw_full
     input: |
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW line AS (
           SELECT date AS x, revenue AS y
           WHERE region = 'EU'
@@ -62,7 +62,7 @@ parser-snapshots:
         DRAW line AS (SELECT date AS x, revenue AS y FROM sales);
   - name: vis_draw_two_layers
     input: |
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW line AS (SELECT date AS x, revenue AS y)
         DRAW point AS (SELECT date AS x, revenue AS y) USING (size => 4);
 
@@ -143,7 +143,7 @@ parser-snapshots:
   # Composed pipeline
   - name: vis_full_pipeline
     input: |
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW point AS (SELECT date AS x, revenue AS y)
         PLACE text USING (label => 'top seller')
         SCALE continuous y BETWEEN [0] AND [1000]

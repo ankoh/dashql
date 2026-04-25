@@ -107,9 +107,9 @@ parser-snapshots:
       line-breaks: []
       comments: []
 
-  - name: vis_visualise_as_select
+  - name: vis_visualise_select
     input: |-
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW point;
     expected:
       statements:
@@ -122,7 +122,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_SELECT
-                text: "AS (SELECT..ROM sales)"
+                text: "(SELECT * ..ROM sales)"
                 children:
                   - key: SQL_SELECT_TARGETS
                     type: ARRAY
@@ -165,12 +165,12 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [34,35]
+        - text: [31,32]
       comments: []
 
-  - name: vis_visualise_as_select_targets
+  - name: vis_visualise_select_targets
     input: |-
-      VISUALISE AS (SELECT date AS x, revenue AS y FROM sales)
+      VISUALISE (SELECT date AS x, revenue AS y FROM sales)
         DRAW line;
     expected:
       statements:
@@ -183,7 +183,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_SELECT
-                text: "AS (SELECT..ROM sales)"
+                text: "(SELECT da..ROM sales)"
                 children:
                   - key: SQL_SELECT_TARGETS
                     type: ARRAY
@@ -252,7 +252,7 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [56,57]
+        - text: [53,54]
       comments: []
 
   - name: vis_draw_point_basic
@@ -291,7 +291,7 @@ parser-snapshots:
 
   - name: vis_draw_with_select
     input: |-
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW line AS (SELECT date AS x, revenue AS y);
     expected:
       statements:
@@ -304,7 +304,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_SELECT
-                text: "AS (SELECT..ROM sales)"
+                text: "(SELECT * ..ROM sales)"
                 children:
                   - key: SQL_SELECT_TARGETS
                     type: ARRAY
@@ -387,12 +387,12 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [34,35]
+        - text: [31,32]
       comments: []
 
   - name: vis_draw_with_where
     input: |-
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW bar AS (SELECT region AS x, revenue AS y WHERE revenue > 100);
     expected:
       statements:
@@ -405,7 +405,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_SELECT
-                text: "AS (SELECT..ROM sales)"
+                text: "(SELECT * ..ROM sales)"
                 children:
                   - key: SQL_SELECT_TARGETS
                     type: ARRAY
@@ -510,12 +510,12 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [34,35]
+        - text: [31,32]
       comments: []
 
   - name: vis_draw_order_by
     input: |-
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW line AS (SELECT date AS x, revenue AS y ORDER BY date ASC);
     expected:
       statements:
@@ -528,7 +528,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_SELECT
-                text: "AS (SELECT..ROM sales)"
+                text: "(SELECT * ..ROM sales)"
                 children:
                   - key: SQL_SELECT_TARGETS
                     type: ARRAY
@@ -631,12 +631,12 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [34,35]
+        - text: [31,32]
       comments: []
 
   - name: vis_draw_using
     input: |-
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW bar AS (SELECT region AS x, revenue AS y)
         USING (size => 10, fill => 'blue');
     expected:
@@ -650,7 +650,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_SELECT
-                text: "AS (SELECT..ROM sales)"
+                text: "(SELECT * ..ROM sales)"
                 children:
                   - key: SQL_SELECT_TARGETS
                     type: ARRAY
@@ -755,13 +755,13 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [34,35]
-        - text: [83,84]
+        - text: [31,32]
+        - text: [80,81]
       comments: []
 
   - name: vis_draw_col_alias
     input: |-
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW col AS (SELECT date AS x, revenue AS y);
     expected:
       statements:
@@ -774,7 +774,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_SELECT
-                text: "AS (SELECT..ROM sales)"
+                text: "(SELECT * ..ROM sales)"
                 children:
                   - key: SQL_SELECT_TARGETS
                     type: ARRAY
@@ -857,12 +857,12 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [34,35]
+        - text: [31,32]
       comments: []
 
   - name: vis_draw_full
     input: |-
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW line AS (
           SELECT date AS x, revenue AS y
           WHERE region = 'EU'
@@ -880,7 +880,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_SELECT
-                text: "AS (SELECT..ROM sales)"
+                text: "(SELECT * ..ROM sales)"
                 children:
                   - key: SQL_SELECT_TARGETS
                     type: ARRAY
@@ -1018,12 +1018,12 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [34,35]
-        - text: [51,52]
-        - text: [86,87]
-        - text: [110,111]
-        - text: [132,133]
-        - text: [136,137]
+        - text: [31,32]
+        - text: [48,49]
+        - text: [83,84]
+        - text: [107,108]
+        - text: [129,130]
+        - text: [133,134]
       comments: []
 
   - name: vis_draw_from_rejected
@@ -1117,7 +1117,7 @@ parser-snapshots:
 
   - name: vis_draw_two_layers
     input: |-
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW line AS (SELECT date AS x, revenue AS y)
         DRAW point AS (SELECT date AS x, revenue AS y) USING (size => 4);
     expected:
@@ -1131,7 +1131,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_SELECT
-                text: "AS (SELECT..ROM sales)"
+                text: "(SELECT * ..ROM sales)"
                 children:
                   - key: SQL_SELECT_TARGETS
                     type: ARRAY
@@ -1278,8 +1278,8 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [34,35]
-        - text: [82,83]
+        - text: [31,32]
+        - text: [79,80]
       comments: []
 
   - name: vis_place_basic
@@ -1882,7 +1882,7 @@ parser-snapshots:
 
   - name: vis_full_pipeline
     input: |-
-      VISUALISE AS (SELECT * FROM sales)
+      VISUALISE (SELECT * FROM sales)
         DRAW point AS (SELECT date AS x, revenue AS y)
         PLACE text USING (label => 'top seller')
         SCALE continuous y BETWEEN [0] AND [1000]
@@ -1900,7 +1900,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_SELECT
-                text: "AS (SELECT..ROM sales)"
+                text: "(SELECT * ..ROM sales)"
                 children:
                   - key: SQL_SELECT_TARGETS
                     type: ARRAY
@@ -2075,10 +2075,10 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [34,35]
-        - text: [83,84]
-        - text: [126,127]
-        - text: [170,171]
-        - text: [200,201]
-        - text: [223,224]
+        - text: [31,32]
+        - text: [80,81]
+        - text: [123,124]
+        - text: [167,168]
+        - text: [197,198]
+        - text: [220,221]
       comments: []
