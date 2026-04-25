@@ -2,7 +2,7 @@ import * as dashql from '../../core/index.js';
 
 import { SalesforceApiClientInterface } from './salesforce_api_client.js';
 import { SalesforceConnectionStateDetails } from './salesforce_connection_state.js';
-import { generateSchemaSQL, type ColumnMetadata } from '../catalog_sql_generator.js';
+import { generateSchemaSQL, generateCatalogScriptHeader, CatalogSource, type ColumnMetadata } from '../catalog_sql_generator.js';
 
 const SALESFORCE_CATALOG_RANK = 100;
 
@@ -44,10 +44,11 @@ export async function updateSalesforceCatalog(
     }
 
     // Generate SQL from metadata
+    const header = generateCatalogScriptHeader(CatalogSource.SalesforceMetadataApi);
     const catalogSQL = generateSchemaSQL('salesforce', 'datacloud', tables);
 
     // Update script content
-    catalogScript.replaceText(catalogSQL);
+    catalogScript.replaceText(`${header}${catalogSQL}`);
     catalogScript.analyze();
 
     // Drop old script from catalog if loaded, then reload with Salesforce rank

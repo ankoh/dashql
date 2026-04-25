@@ -118,6 +118,33 @@ export function generateSchemaSQL(
     return sqlStatements.join('\n\n');
 }
 
+export enum CatalogSource {
+    InformationSchema = 0,
+    PgClass = 1,
+    SalesforceMetadataApi = 2,
+    DemoScript = 3,
+    Unknown = 4,
+}
+
+/// Generates a SQL comment header for catalog scripts with the update timestamp and method.
+export function generateCatalogScriptHeader(method: CatalogSource, updatedAt: Date = new Date()): string {
+    let methodStr: string;
+    switch (method) {
+        case CatalogSource.InformationSchema: methodStr = 'SQL information_schema'; break;
+        case CatalogSource.PgClass: methodStr = 'SQL pg_class'; break;
+        case CatalogSource.SalesforceMetadataApi: methodStr = 'Salesforce metadata api'; break;
+        case CatalogSource.DemoScript: methodStr = 'Demo script'; break;
+        default: methodStr = '-'; break;
+    }
+    return `-- DashQL Connection Schema.
+-- This file is auto-generated and can only be updated through a catalog refresh.
+--
+-- Catalog Source: ${methodStr}
+-- Last Refresh: ${updatedAt.toISOString()}
+
+`;
+}
+
 /// Generates SQL for multiple schemas.
 export function generateCatalogSQL(schemas: SchemaMetadata[]): string {
     const sqlStatements: string[] = [];

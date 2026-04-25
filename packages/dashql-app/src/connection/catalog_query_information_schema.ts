@@ -7,7 +7,7 @@ import { DynamicConnectionDispatch } from "./connection_registry.js";
 import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY, SET_CATALOG_SCRIPT } from "./connection_state.js";
 import { QueryType } from "./query_execution_state.js";
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from "./catalog_update_state.js";
-import { generateSchemaSQL, type ColumnMetadata } from './catalog_sql_generator.js';
+import { generateSchemaSQL, generateCatalogScriptHeader, CatalogSource, type ColumnMetadata } from './catalog_sql_generator.js';
 
 export type InformationSchemaColumnsTable = arrow.Table<{
     table_catalog: arrow.Utf8;
@@ -151,10 +151,11 @@ export async function updateInformationSchemaCatalog(
     });
 
     // Generate SQL from query results
+    const header = generateCatalogScriptHeader(CatalogSource.InformationSchema);
     const catalogSQL = generateCatalogSQLFromInformationSchema(queryResult);
 
     // Update script content
-    catalogScript.replaceText(catalogSQL);
+    catalogScript.replaceText(`${header}${catalogSQL}`);
     catalogScript.analyze();
 
     // Drop old script from catalog if loaded, then reload
