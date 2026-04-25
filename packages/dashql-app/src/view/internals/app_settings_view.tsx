@@ -203,7 +203,7 @@ export function AppSettings(props: { onClose: () => void; }) {
                         />
                     </div>
                     <div id="app-setting-reset-storage" className={styles.setting_name}>
-                        Reset App Storage
+                        Reset App
                     </div>
                     <div className={styles.setting_switch}>
                         <Button
@@ -212,7 +212,7 @@ export function AppSettings(props: { onClose: () => void; }) {
                             disabled={isClearing}
                             aria-labelledby="app-setting-reset-storage"
                         >
-                            {isClearing ? "Resetting..." : "Reset App Storage"}
+                            {isClearing ? "Resetting..." : "Reset App"}
                         </Button>
                     </div>
                 </div>
