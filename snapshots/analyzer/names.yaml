@@ -63,8 +63,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 2
           snippet:
-            signature-template: 1794172684583478586
-            signature-raw: 16614441357703323101
+            signature-template: 1794172684583472092
+            signature-raw: 16614441357703179308
             text: a = 2
             ast:
               ast-nodes: 7
@@ -153,8 +153,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 2
           snippet:
-            signature-template: 1794172684583478586
-            signature-raw: 16614441357703323101
+            signature-template: 1794172684583472092
+            signature-raw: 16614441357703179308
             text: a = 2
             ast:
               ast-nodes: 7
@@ -263,8 +263,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 4
           snippet:
-            signature-template: 1794172684583478586
-            signature-raw: 16614441357703323101
+            signature-template: 1794172684583472092
+            signature-raw: 16614441357703179308
             text: a = 2
             ast:
               ast-nodes: 7
@@ -293,8 +293,8 @@ analyzer-snapshots:
                         text: "2"
         - expression: 5
           snippet:
-            signature-template: 1794172684583478586
-            signature-raw: 3070665208392950166
+            signature-template: 1794172684583472092
+            signature-raw: 3070665208392945829
             text: a = 3
             ast:
               ast-nodes: 7
@@ -469,8 +469,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 2
           snippet:
-            signature-template: 10922374919875523772
-            signature-raw: 14006504229082686807
+            signature-template: 10922374919875496751
+            signature-raw: 14006504229082707590
             text: foo.a = 1
             ast:
               ast-nodes: 8
@@ -552,8 +552,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 2
           snippet:
-            signature-template: 10922374919875523772
-            signature-raw: 14006504229082686807
+            signature-template: 10922374919875496751
+            signature-raw: 14006504229082707590
             text: foo.a = 1
             ast:
               ast-nodes: 8
@@ -642,8 +642,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 2
           snippet:
-            signature-template: 10922374919875523772
-            signature-raw: 14006504229082686807
+            signature-template: 10922374919875496751
+            signature-raw: 14006504229082707590
             text: foo.a = 1
             ast:
               ast-nodes: 8
@@ -720,8 +720,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 2
           snippet:
-            signature-template: 10922374919875523772
-            signature-raw: 14006504229082686807
+            signature-template: 10922374919875496751
+            signature-raw: 14006504229082707590
             text: foo.a = 1
             ast:
               ast-nodes: 8

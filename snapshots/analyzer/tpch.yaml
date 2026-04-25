@@ -1439,8 +1439,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 40
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 8251145953384635132
+            signature-template: 7878761948638513151
+            signature-raw: 8251145953384532363
             text: r_name = 'EUROPE'
             ast:
               ast-nodes: 7
@@ -1469,8 +1469,8 @@ analyzer-snapshots:
                         text: "'EUROPE'"
         - expression: 41
           snippet:
-            signature-template: 1794172684583478586
-            signature-raw: 13823816213952588114
+            signature-template: 1794172684583472092
+            signature-raw: 13823816213952592195
             text: p_size = 15
             ast:
               ast-nodes: 7
@@ -1499,8 +1499,8 @@ analyzer-snapshots:
                         text: "15"
         - expression: 42
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 8251145953384635132
+            signature-template: 7878761948638513151
+            signature-raw: 8251145953384532363
             text: r_name = 'EUROPE'
             ast:
               ast-nodes: 7
@@ -2251,8 +2251,8 @@ analyzer-snapshots:
       column-computations:
         - expression: 23
           snippet:
-            signature-template: 14310701343703095298
-            signature-raw: 17001995013923457505
+            signature-template: 14310701343703281362
+            signature-raw: 17001995013923453072
             text: 1 - l_discount
             ast:
               ast-nodes: 7
@@ -2282,8 +2282,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 24
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 8446832695607096638
+            signature-template: 7878761948638513151
+            signature-raw: 8446832695607092527
             text: c_mktsegment = 'BUILDING'
             ast:
               ast-nodes: 7
@@ -3740,8 +3740,8 @@ analyzer-snapshots:
       column-computations:
         - expression: 25
           snippet:
-            signature-template: 14310701343703095298
-            signature-raw: 17001995013923457505
+            signature-template: 14310701343703281362
+            signature-raw: 17001995013923453072
             text: 1 - l_discount
             ast:
               ast-nodes: 7
@@ -3771,8 +3771,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 26
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 1369862379082964638
+            signature-template: 7878761948638513151
+            signature-raw: 1369862379082960495
             text: r_name = 'ASIA'
             ast:
               ast-nodes: 7
@@ -4490,8 +4490,8 @@ analyzer-snapshots:
         - expression: 13
           text: "0.06 - 0.01"
           snippet:
-            signature-template: 11750168420183201345
-            signature-raw: 2392968471144137696
+            signature-template: 11750168420183279538
+            signature-raw: 2392968471144149137
             text: 0.06 - 0.01
             ast:
               ast-nodes: 5
@@ -4514,8 +4514,8 @@ analyzer-snapshots:
         - expression: 14
           text: "0.06 + 0.01"
           snippet:
-            signature-template: 11585643956688421893
-            signature-raw: 2384240539672382412
+            signature-template: 11585643956688402390
+            signature-raw: 2384240539672369567
             text: 0.06 + 0.01
             ast:
               ast-nodes: 5
@@ -4540,8 +4540,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 16
           snippet:
-            signature-template: 1794443991550492122
-            signature-raw: 16397231595477093087
+            signature-template: 1794443991549884817
+            signature-raw: 16397231595477105100
             text: l_quantity < 24
             ast:
               ast-nodes: 7
@@ -5479,8 +5479,8 @@ analyzer-snapshots:
                                     text: "volume"
         - expression: 39
           snippet:
-            signature-template: 14310701343703095298
-            signature-raw: 17001995013923457505
+            signature-template: 14310701343703281362
+            signature-raw: 17001995013923453072
             text: 1 - l_discount
             ast:
               ast-nodes: 7
@@ -5510,8 +5510,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 40
           snippet:
-            signature-template: 1774411175897133756
-            signature-raw: 3150574409033100535
+            signature-template: 1774411175897162371
+            signature-raw: 3150574409029613572
             text: n1.n_name = 'FRANCE'
             ast:
               ast-nodes: 8
@@ -5542,8 +5542,8 @@ analyzer-snapshots:
                         text: "'FRANCE'"
         - expression: 41
           snippet:
-            signature-template: 1774411175897133756
-            signature-raw: 6647721872532571037
+            signature-template: 1774411175897162371
+            signature-raw: 6647721872532559982
             text: n2.n_name = 'GERMANY'
             ast:
               ast-nodes: 8
@@ -5574,8 +5574,8 @@ analyzer-snapshots:
                         text: "'GERMANY'"
         - expression: 42
           snippet:
-            signature-template: 1774411175897133756
-            signature-raw: 18104143012407523739
+            signature-template: 1774411175897162371
+            signature-raw: 18104143012407527080
             text: n1.n_name = 'GERMANY'
             ast:
               ast-nodes: 8
@@ -5606,8 +5606,8 @@ analyzer-snapshots:
                         text: "'GERMANY'"
         - expression: 43
           snippet:
-            signature-template: 1774411175897133756
-            signature-raw: 7747851937444159769
+            signature-template: 1774411175897162371
+            signature-raw: 7747851937444164008
             text: n2.n_name = 'FRANCE'
             ast:
               ast-nodes: 8
@@ -6539,8 +6539,8 @@ analyzer-snapshots:
                                     text: "volume"
         - expression: 37
           snippet:
-            signature-template: 14310701343703095298
-            signature-raw: 17001995013923457505
+            signature-template: 14310701343703281362
+            signature-raw: 17001995013923453072
             text: 1 - l_discount
             ast:
               ast-nodes: 7
@@ -6570,8 +6570,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 38
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 6332405420526788244
+            signature-template: 7878761948638513151
+            signature-raw: 6332405420526791790
             text: nation = 'BRAZIL'
             ast:
               ast-nodes: 7
@@ -6600,8 +6600,8 @@ analyzer-snapshots:
                         text: "'BRAZIL'"
         - expression: 39
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 13986438379663263640
+            signature-template: 7878761948638513151
+            signature-raw: 13986438379663354807
             text: r_name = 'AMERICA'
             ast:
               ast-nodes: 7
@@ -6630,8 +6630,8 @@ analyzer-snapshots:
                         text: "'AMERICA'"
         - expression: 40
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 12697985139264258807
+            signature-template: 7878761948638513151
+            signature-raw: 12697985139271510790
             text: p_type = 'ECONOMY ANODIZED STEEL'
             ast:
               ast-nodes: 7
@@ -7478,8 +7478,8 @@ analyzer-snapshots:
                                     text: "amount"
         - expression: 30
           snippet:
-            signature-template: 14310701343703095298
-            signature-raw: 17001995013923457505
+            signature-template: 14310701343703281362
+            signature-raw: 17001995013923453072
             text: 1 - l_discount
             ast:
               ast-nodes: 7
@@ -8279,8 +8279,8 @@ analyzer-snapshots:
       column-computations:
         - expression: 32
           snippet:
-            signature-template: 14310701343703095298
-            signature-raw: 17001995013923457505
+            signature-template: 14310701343703281362
+            signature-raw: 17001995013923453072
             text: 1 - l_discount
             ast:
               ast-nodes: 7
@@ -8310,8 +8310,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 33
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 12618826992940438907
+            signature-template: 7878761948638513151
+            signature-raw: 12618826992940442760
             text: l_returnflag = 'R'
             ast:
               ast-nodes: 7
@@ -9107,8 +9107,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 25
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 17849391643708943025
+            signature-template: 7878761948638513151
+            signature-raw: 17849391643708947232
             text: n_name = 'GERMANY'
             ast:
               ast-nodes: 7
@@ -9137,8 +9137,8 @@ analyzer-snapshots:
                         text: "'GERMANY'"
         - expression: 26
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 17849391643708943025
+            signature-template: 7878761948638513151
+            signature-raw: 17849391643708947232
             text: n_name = 'GERMANY'
             ast:
               ast-nodes: 7
@@ -9979,8 +9979,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 30
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 12612562843334486563
+            signature-template: 7878761948638513151
+            signature-raw: 12612562843334464946
             text: o_orderpriority = '1-URGENT'
             ast:
               ast-nodes: 7
@@ -10009,8 +10009,8 @@ analyzer-snapshots:
                         text: "'1-URGENT'"
         - expression: 31
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 11078846806949687147
+            signature-template: 7878761948638513151
+            signature-raw: 11078846806949633882
             text: o_orderpriority = '2-HIGH'
             ast:
               ast-nodes: 7
@@ -10039,8 +10039,8 @@ analyzer-snapshots:
                         text: "'2-HIGH'"
         - expression: 32
           snippet:
-            signature-template: 7876191237927212653
-            signature-raw: 12635847034319305931
+            signature-template: 7876191237927208604
+            signature-raw: 12635847034319293528
             text: o_orderpriority <> '1-URGENT'
             ast:
               ast-nodes: 7
@@ -10069,8 +10069,8 @@ analyzer-snapshots:
                         text: "'1-URGENT'"
         - expression: 33
           snippet:
-            signature-template: 7876191237927212653
-            signature-raw: 11230535099903543576
+            signature-template: 7876191237927208604
+            signature-raw: 11230535099903572104
             text: o_orderpriority <> '2-HIGH'
             ast:
               ast-nodes: 7
@@ -11507,8 +11507,8 @@ analyzer-snapshots:
       column-computations:
         - expression: 18
           snippet:
-            signature-template: 14310701343703095298
-            signature-raw: 17001995013923457505
+            signature-template: 14310701343703281362
+            signature-raw: 17001995013923453072
             text: 1 - l_discount
             ast:
               ast-nodes: 7
@@ -11537,8 +11537,8 @@ analyzer-snapshots:
                                 text: "l_discount"
         - expression: 19
           snippet:
-            signature-template: 14310701343703095298
-            signature-raw: 17001995013923457505
+            signature-template: 14310701343703281362
+            signature-raw: 17001995013923453072
             text: 1 - l_discount
             ast:
               ast-nodes: 7
@@ -12267,8 +12267,8 @@ analyzer-snapshots:
       column-computations:
         - expression: 21
           snippet:
-            signature-template: 14310701343703095298
-            signature-raw: 17001995013923457505
+            signature-template: 14310701343703281362
+            signature-raw: 17001995013923453072
             text: 1 - l_discount
             ast:
               ast-nodes: 7
@@ -13128,8 +13128,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 31
           snippet:
-            signature-template: 7876191237927212653
-            signature-raw: 14879473264125503777
+            signature-template: 7876191237927208604
+            signature-raw: 14879473264125507888
             text: 'p_brand <> ''Brand#45'''
             ast:
               ast-nodes: 7
@@ -13909,8 +13909,8 @@ analyzer-snapshots:
                                     text: "l_extendedprice"
         - expression: 15
           snippet:
-            signature-template: 3953482423731880416
-            signature-raw: 13908898628615272176
+            signature-template: 3953482423731795231
+            signature-raw: 13908898628615251361
             text: sum(l_extendedprice) / 7.0
             ast:
               ast-nodes: 12
@@ -13991,8 +13991,8 @@ analyzer-snapshots:
                                     text: "l_quantity"
         - expression: 16
           snippet:
-            signature-template: 5900558999169186486
-            signature-raw: 9251967689031886429
+            signature-template: 5900558999168834247
+            signature-raw: 9251967689031882178
             text: 0.2 * avg(l_quantity)
             ast:
               ast-nodes: 12
@@ -14039,8 +14039,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 17
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 4329201091260278617
+            signature-template: 7878761948638513151
+            signature-raw: 4329201091260225384
             text: 'p_brand = ''Brand#23'''
             ast:
               ast-nodes: 7
@@ -14069,8 +14069,8 @@ analyzer-snapshots:
                         text: "'Brand#23'"
         - expression: 18
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 1719335436705875048
+            signature-template: 7878761948638513151
+            signature-raw: 1719335436705895739
             text: p_container = 'MED BOX'
             ast:
               ast-nodes: 7
@@ -14895,8 +14895,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 25
           snippet:
-            signature-template: 16544040145736921644
-            signature-raw: 15585843519595032425
+            signature-template: 16544040145736918395
+            signature-raw: 15585843519595085754
             text: sum(l_quantity) > 300
             ast:
               ast-nodes: 12
@@ -16051,8 +16051,8 @@ analyzer-snapshots:
         - expression: 39
           text: "1 + 10"
           snippet:
-            signature-template: 12424959531160489459
-            signature-raw: 10116070303484514696
+            signature-template: 12424959531160469152
+            signature-raw: 10116070303484534971
             text: 1 + 10
             ast:
               ast-nodes: 5
@@ -16101,8 +16101,8 @@ analyzer-snapshots:
         - expression: 53
           text: "10 + 10"
           snippet:
-            signature-template: 12424959531160489459
-            signature-raw: 16755926737830464181
+            signature-template: 12424959531160469152
+            signature-raw: 16755926737830427494
             text: 10 + 10
             ast:
               ast-nodes: 5
@@ -16151,8 +16151,8 @@ analyzer-snapshots:
         - expression: 67
           text: "20 + 10"
           snippet:
-            signature-template: 12424959531160489459
-            signature-raw: 10159800169023021064
+            signature-template: 12424959531160469152
+            signature-raw: 10159800169023033403
             text: 20 + 10
             ast:
               ast-nodes: 5
@@ -16185,8 +16185,8 @@ analyzer-snapshots:
       column-computations:
         - expression: 73
           snippet:
-            signature-template: 14310701343703095298
-            signature-raw: 17001995013923457505
+            signature-template: 14310701343703281362
+            signature-raw: 17001995013923453072
             text: 1 - l_discount
             ast:
               ast-nodes: 7
@@ -16216,8 +16216,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 74
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 14135332075547948918
+            signature-template: 7878761948638513151
+            signature-raw: 14135332075547944199
             text: 'p_brand = ''Brand#12'''
             ast:
               ast-nodes: 7
@@ -16246,8 +16246,8 @@ analyzer-snapshots:
                         text: "'Brand#12'"
         - expression: 75
           snippet:
-            signature-template: 1794727616146586915
-            signature-raw: 15312582582394865745
+            signature-template: 1794727616146590994
+            signature-raw: 15312582582394828866
             text: l_quantity >= 1
             ast:
               ast-nodes: 7
@@ -16276,8 +16276,8 @@ analyzer-snapshots:
                         text: "1"
         - expression: 76
           snippet:
-            signature-template: 14979201821369072793
-            signature-raw: 11367199732580831010
+            signature-template: 4422618248048502354
+            signature-raw: 14714834022514975419
             text: l_quantity <= 1 + 10
             ast:
               ast-nodes: 11
@@ -16318,8 +16318,8 @@ analyzer-snapshots:
                                 text: "10"
         - expression: 77
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 6356970924470074570
+            signature-template: 7878761948638513151
+            signature-raw: 6356970924470062171
             text: l_shipinstruct = 'DELIVER IN PERSON'
             ast:
               ast-nodes: 7
@@ -16348,8 +16348,8 @@ analyzer-snapshots:
                         text: "'DELIVER IN PERSON'"
         - expression: 78
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 4329201091260278617
+            signature-template: 7878761948638513151
+            signature-raw: 4329201091260225384
             text: 'p_brand = ''Brand#23'''
             ast:
               ast-nodes: 7
@@ -16378,8 +16378,8 @@ analyzer-snapshots:
                         text: "'Brand#23'"
         - expression: 79
           snippet:
-            signature-template: 1794727616146586915
-            signature-raw: 5325364192640452651
+            signature-template: 1794727616146590994
+            signature-raw: 5325364192640456730
             text: l_quantity >= 10
             ast:
               ast-nodes: 7
@@ -16408,8 +16408,8 @@ analyzer-snapshots:
                         text: "10"
         - expression: 80
           snippet:
-            signature-template: 14979201821369072793
-            signature-raw: 4261815542071764728
+            signature-template: 4422618248048502354
+            signature-raw: 2985694903937708999
             text: l_quantity <= 10 + 10
             ast:
               ast-nodes: 11
@@ -16450,8 +16450,8 @@ analyzer-snapshots:
                                 text: "10"
         - expression: 81
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 6356970924470074570
+            signature-template: 7878761948638513151
+            signature-raw: 6356970924470062171
             text: l_shipinstruct = 'DELIVER IN PERSON'
             ast:
               ast-nodes: 7
@@ -16480,8 +16480,8 @@ analyzer-snapshots:
                         text: "'DELIVER IN PERSON'"
         - expression: 82
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 8846675650963382816
+            signature-template: 7878761948638513151
+            signature-raw: 8846675650963338099
             text: 'p_brand = ''Brand#34'''
             ast:
               ast-nodes: 7
@@ -16510,8 +16510,8 @@ analyzer-snapshots:
                         text: "'Brand#34'"
         - expression: 83
           snippet:
-            signature-template: 1794727616146586915
-            signature-raw: 17876119122366299275
+            signature-template: 1794727616146590994
+            signature-raw: 17876119122366287130
             text: l_quantity >= 20
             ast:
               ast-nodes: 7
@@ -16540,8 +16540,8 @@ analyzer-snapshots:
                         text: "20"
         - expression: 84
           snippet:
-            signature-template: 14979201821369072793
-            signature-raw: 3143745946647309617
+            signature-template: 4422618248048502354
+            signature-raw: 9063520617463310331
             text: l_quantity <= 20 + 10
             ast:
               ast-nodes: 11
@@ -16582,8 +16582,8 @@ analyzer-snapshots:
                                 text: "10"
         - expression: 85
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 6356970924470074570
+            signature-template: 7878761948638513151
+            signature-raw: 6356970924470062171
             text: l_shipinstruct = 'DELIVER IN PERSON'
             ast:
               ast-nodes: 7
@@ -17426,8 +17426,8 @@ analyzer-snapshots:
                                     text: "l_quantity"
         - expression: 25
           snippet:
-            signature-template: 5900558999169186486
-            signature-raw: 5223770085421581126
+            signature-template: 5900558999168834247
+            signature-raw: 5223770085420871701
             text: 0.5 * sum(l_quantity)
             ast:
               ast-nodes: 12
@@ -17474,8 +17474,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 26
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 10065351477473628320
+            signature-template: 7878761948638513151
+            signature-raw: 10065351477473624113
             text: n_name = 'CANADA'
             ast:
               ast-nodes: 7
@@ -18259,8 +18259,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 28
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 15267920131222227459
+            signature-template: 7878761948638513151
+            signature-raw: 15267920131222231664
             text: o_orderstatus = 'F'
             ast:
               ast-nodes: 7
@@ -18289,8 +18289,8 @@ analyzer-snapshots:
                         text: "'F'"
         - expression: 29
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 14637891371526592409
+            signature-template: 7878761948638513151
+            signature-raw: 14637891371526587914
             text: n_name = 'SAUDI ARABIA'
             ast:
               ast-nodes: 7
@@ -19260,8 +19260,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 40
           snippet:
-            signature-template: 2494651304169023382
-            signature-raw: 11669804565785528925
+            signature-template: 2494651304169027239
+            signature-raw: 11669804565785697196
             text: c_acctbal > 0.00
             ast:
               ast-nodes: 7

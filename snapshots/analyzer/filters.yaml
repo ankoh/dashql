@@ -33,8 +33,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 2
           snippet:
-            signature-template: 1794443991550492122
-            signature-raw: 3130651984596412333
+            signature-template: 1794443991549884817
+            signature-raw: 3130651984596326332
             text: a < 3
             ast:
               ast-nodes: 7
@@ -128,8 +128,8 @@ analyzer-snapshots:
         - expression: 4
           text: "current_ti.. '30 days'"
           snippet:
-            signature-template: 11044524866165889543
-            signature-raw: 13280692735104873070
+            signature-template: 11044524866165934520
+            signature-raw: 13280692735104967870
             text: current_timestamp - interval '30 days'
             ast:
               ast-nodes: 7
@@ -160,8 +160,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 5
           snippet:
-            signature-template: 11137086844753160654
-            signature-raw: 12336746105079655642
+            signature-template: 13952714122781464403
+            signature-raw: 2731815153372195269
             text: event_timestamp > current_timestamp - interval '30 days'
             ast:
               ast-nodes: 13
@@ -275,8 +275,8 @@ analyzer-snapshots:
         - expression: 4
           text: "current_ti.. '30 days'"
           snippet:
-            signature-template: 11044524866165889543
-            signature-raw: 13280692735104873070
+            signature-template: 11044524866165934520
+            signature-raw: 13280692735104967870
             text: current_timestamp - interval '30 days'
             ast:
               ast-nodes: 7
@@ -307,8 +307,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 5
           snippet:
-            signature-template: 11137086844753160654
-            signature-raw: 12336746105079655642
+            signature-template: 13952714122781464403
+            signature-raw: 2731815153372195269
             text: event_timestamp > current_timestamp - interval '30 days'
             ast:
               ast-nodes: 13

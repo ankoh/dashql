@@ -202,8 +202,8 @@ analyzer-snapshots:
         - expression: 22
           text: "current_ti..l '30' day"
           snippet:
-            signature-template: 14335000208411224916
-            signature-raw: 14531844735497943305
+            signature-template: 14335000208411245061
+            signature-raw: 14531844735497682038
             text: current_timestamp - interval '30' day
             ast:
               ast-nodes: 9
@@ -336,8 +336,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 23
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 12915170941615982935
+            signature-template: 7878761948638513151
+            signature-raw: 12915170941615971236
             text: tenant = 'a360/prod3/foo'
             ast:
               ast-nodes: 7
@@ -366,8 +366,8 @@ analyzer-snapshots:
                         text: "'a360/prod3/foo'"
         - expression: 24
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 13423462593048553321
+            signature-template: 7878761948638513151
+            signature-raw: 13423462593048598456
             text: tenant = 'a360/prod/bar'
             ast:
               ast-nodes: 7
@@ -396,8 +396,8 @@ analyzer-snapshots:
                         text: "'a360/prod/bar'"
         - expression: 25
           snippet:
-            signature-template: 17608407916322461543
-            signature-raw: 17046291626474264120
+            signature-template: 15660213821378284417
+            signature-raw: 1680048099877219466
             text: event_timestamp >= current_timestamp - interval '30' day
             ast:
               ast-nodes: 15
@@ -637,8 +637,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 17
           snippet:
-            signature-template: 7878761948638532652
-            signature-raw: 12730198808566288772
+            signature-template: 7878761948638513151
+            signature-raw: 12730198808567120787
             text: tenant = 'a360/prod/foo'
             ast:
               ast-nodes: 7
@@ -667,8 +667,8 @@ analyzer-snapshots:
                         text: "'a360/prod/foo'"
         - expression: 18
           snippet:
-            signature-template: 6070048643124566821
-            signature-raw: 15548435774935499767
+            signature-template: 17884465180953514611
+            signature-raw: 7497909176545862026
             text: event_timestamp > cast ('2025-04-14' as timestamp)
             ast:
               ast-nodes: 12
@@ -716,8 +716,8 @@ analyzer-snapshots:
                                     children: []
         - expression: 19
           snippet:
-            signature-template: 2279910941344963753
-            signature-raw: 5597646258326568496
+            signature-template: 2279910941344984120
+            signature-raw: 5597646258323268934
             text: processed_rows_byol > 0
             ast:
               ast-nodes: 7

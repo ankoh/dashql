@@ -1660,10 +1660,10 @@ parser-snapshots:
         - text: [9,10]
       comments: []
 
-  - name: vis_scale_discrete_between
+  - name: vis_scale_discrete_from_to
     input: |-
       VISUALISE
-        SCALE discrete color BETWEEN [1, 2, 3] AND [10, 20, 30];
+        SCALE discrete color FROM [1, 2, 3] TO [10, 20, 30];
     expected:
       statements:
         - type: VIS_VISUALISE
@@ -1687,7 +1687,7 @@ parser-snapshots:
                       - key: VIS_SCALE_AESTHETIC
                         type: NAME
                         text: "color"
-                      - key: VIS_SCALE_BETWEEN_LOWER
+                      - key: VIS_SCALE_FROM
                         type: OBJECT_EXT_VARARG_ARRAY
                         text: "[1, 2, 3]"
                         children:
@@ -1701,7 +1701,7 @@ parser-snapshots:
                                 text: "2"
                               - type: LITERAL_INTEGER
                                 text: "3"
-                      - key: VIS_SCALE_BETWEEN_UPPER
+                      - key: VIS_SCALE_TO
                         type: OBJECT_EXT_VARARG_ARRAY
                         text: "[10, 20, 30]"
                         children:
@@ -1715,6 +1715,96 @@ parser-snapshots:
                                 text: "20"
                               - type: LITERAL_INTEGER
                                 text: "30"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [9,10]
+      comments: []
+
+  - name: vis_scale_continuous_from_only
+    input: |-
+      VISUALISE
+        SCALE continuous x FROM [0, 100];
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 9
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALISE\n..M [0, 100]"
+            children:
+              - key: VIS_VISUALISE_CLAUSES
+                type: ARRAY
+                text: "\n  SCALE c..M [0, 100]"
+                children:
+                  - type: OBJECT_VIS_SCALE
+                    text: "SCALE cont..M [0, 100]"
+                    children:
+                      - key: VIS_SCALE_TYPE
+                        type: ENUM_VIS_SCALE_TYPE
+                        text: "continuous"
+                        children: []
+                      - key: VIS_SCALE_AESTHETIC
+                        type: NAME
+                        text: "x"
+                      - key: VIS_SCALE_FROM
+                        type: OBJECT_EXT_VARARG_ARRAY
+                        text: "[0, 100]"
+                        children:
+                          - key: EXT_VARARG_ARRAY_VALUES
+                            type: ARRAY
+                            text: "[0, 100]"
+                            children:
+                              - type: LITERAL_INTEGER
+                                text: "0"
+                              - type: LITERAL_INTEGER
+                                text: "100"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [9,10]
+      comments: []
+
+  - name: vis_scale_continuous_to_only
+    input: |-
+      VISUALISE
+        SCALE continuous y TO [0, 500];
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 9
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALISE\n..O [0, 500]"
+            children:
+              - key: VIS_VISUALISE_CLAUSES
+                type: ARRAY
+                text: "\n  SCALE c..O [0, 500]"
+                children:
+                  - type: OBJECT_VIS_SCALE
+                    text: "SCALE cont..O [0, 500]"
+                    children:
+                      - key: VIS_SCALE_TYPE
+                        type: ENUM_VIS_SCALE_TYPE
+                        text: "continuous"
+                        children: []
+                      - key: VIS_SCALE_AESTHETIC
+                        type: NAME
+                        text: "y"
+                      - key: VIS_SCALE_TO
+                        type: OBJECT_EXT_VARARG_ARRAY
+                        text: "[0, 500]"
+                        children:
+                          - key: EXT_VARARG_ARRAY_VALUES
+                            type: ARRAY
+                            text: "[0, 500]"
+                            children:
+                              - type: LITERAL_INTEGER
+                                text: "0"
+                              - type: LITERAL_INTEGER
+                                text: "500"
       scanner-errors: []
       parser-errors: []
       line-breaks:
@@ -1833,6 +1923,140 @@ parser-snapshots:
       parser-errors: []
       line-breaks:
         - text: [9,10]
+      comments: []
+
+  - name: vis_scale_format_lambda
+    input: |-
+      VISUALISE
+        SCALE discrete color
+        FORMAT (lambda x: case x when 1 then 'foo' when 2 then 'bar' end);
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 18
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALISE\n..'bar' end)"
+            children:
+              - key: VIS_VISUALISE_CLAUSES
+                type: ARRAY
+                text: "\n  SCALE d..'bar' end)"
+                children:
+                  - type: OBJECT_VIS_SCALE
+                    text: "SCALE disc..'bar' end)"
+                    children:
+                      - key: VIS_SCALE_TYPE
+                        type: ENUM_VIS_SCALE_TYPE
+                        text: "discrete"
+                        children: []
+                      - key: VIS_SCALE_AESTHETIC
+                        type: NAME
+                        text: "color"
+                      - key: VIS_SCALE_FORMAT
+                        type: OBJECT_SQL_LAMBDA_EXPRESSION
+                        text: "lambda x: .. 'bar' end"
+                        children:
+                          - key: SQL_LAMBDA_PARAM
+                            type: NAME
+                            text: "x"
+                          - key: SQL_LAMBDA_BODY
+                            type: OBJECT_SQL_CASE
+                            text: "case x whe.. 'bar' end"
+                            children:
+                              - key: SQL_CASE_ARGUMENT
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "x"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "x"
+                                    children:
+                                      - type: NAME
+                                        text: "x"
+                              - key: SQL_CASE_CLAUSES
+                                type: ARRAY
+                                text: "when 1 the..then 'bar'"
+                                children:
+                                  - type: OBJECT_SQL_CASE_CLAUSE
+                                    text: "when 1 then 'foo'"
+                                    children:
+                                      - key: SQL_CASE_CLAUSE_WHEN
+                                        type: LITERAL_INTEGER
+                                        text: "1"
+                                      - key: SQL_CASE_CLAUSE_THEN
+                                        type: LITERAL_STRING
+                                        text: "'foo'"
+                                  - type: OBJECT_SQL_CASE_CLAUSE
+                                    text: "when 2 then 'bar'"
+                                    children:
+                                      - key: SQL_CASE_CLAUSE_WHEN
+                                        type: LITERAL_INTEGER
+                                        text: "2"
+                                      - key: SQL_CASE_CLAUSE_THEN
+                                        type: LITERAL_STRING
+                                        text: "'bar'"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [9,10]
+        - text: [32,33]
+      comments: []
+
+  - name: vis_scale_transform
+    input: |-
+      VISUALISE
+        SCALE continuous x TRANSFORM log10;
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 6
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALISE\n..FORM log10"
+            children:
+              - key: VIS_VISUALISE_CLAUSES
+                type: ARRAY
+                text: "\n  SCALE c..FORM log10"
+                children:
+                  - type: OBJECT_VIS_SCALE
+                    text: "SCALE cont..FORM log10"
+                    children:
+                      - key: VIS_SCALE_TYPE
+                        type: ENUM_VIS_SCALE_TYPE
+                        text: "continuous"
+                        children: []
+                      - key: VIS_SCALE_AESTHETIC
+                        type: NAME
+                        text: "x"
+                      - key: VIS_SCALE_TRANSFORM
+                        type: NAME
+                        text: "log10"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [9,10]
+      comments: []
+
+  - name: vis_scale_full
+    input: |-
+      VISUALISE
+        SCALE continuous x FROM [0, 100] TO [0, 1000]
+        TRANSFORM log10
+        USING (breaks => 5)
+        FORMAT (lambda v: v * 2);
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected FORMAT'
+          text: "FORMAT"
+      line-breaks:
+        - text: [9,10]
+        - text: [57,58]
+        - text: [75,76]
+        - text: [97,98]
       comments: []
 
   - name: vis_facet_rows
@@ -2113,12 +2337,364 @@ parser-snapshots:
         - text: [9,10]
       comments: []
 
+  - name: vis_draw_remap_single
+    input: |-
+      VISUALISE (SELECT * FROM sales)
+        DRAW histogram AS (SELECT price AS x)
+        REMAP (count AS y);
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 26
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALISE ..ount AS y)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_SELECT
+                text: "(SELECT * ..ROM sales)"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "*"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
+                        text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
+              - key: VIS_VISUALISE_CLAUSES
+                type: ARRAY
+                text: "\n  DRAW hi..ount AS y)"
+                children:
+                  - type: OBJECT_VIS_LAYER
+                    text: "DRAW histo..ount AS y)"
+                    children:
+                      - key: VIS_LAYER_KIND
+                        type: ENUM_VIS_LAYER_KIND
+                        text: "DRAW histo..ount AS y)"
+                        children: []
+                      - key: VIS_LAYER_GEOM
+                        type: ENUM_VIS_GEOM
+                        text: "histogram"
+                        children: []
+                      - key: VIS_LAYER_SELECT
+                        type: OBJECT_SQL_SELECT
+                        text: "AS (SELECT..rice AS x)"
+                        children:
+                          - key: SQL_SELECT_TARGETS
+                            type: ARRAY
+                            text: "price AS x"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "price AS x"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "price"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "price"
+                                        children:
+                                          - type: NAME
+                                            text: "price"
+                                  - key: SQL_RESULT_TARGET_NAME
+                                    type: NAME
+                                    text: "x"
+                      - key: VIS_LAYER_REMAP
+                        type: ARRAY
+                        text: "REMAP (count AS y)"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "count AS y"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "count"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "count"
+                                    children:
+                                      - type: NAME
+                                        text: "count"
+                              - key: SQL_RESULT_TARGET_NAME
+                                type: NAME
+                                text: "y"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [31,32]
+        - text: [71,72]
+      comments: []
+
+  - name: vis_draw_remap_multi
+    input: |-
+      VISUALISE (SELECT * FROM sales)
+        DRAW histogram AS (SELECT price AS x)
+        REMAP (count AS y, count AS fill);
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 31
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALISE ..t AS fill)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_SELECT
+                text: "(SELECT * ..ROM sales)"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "*"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
+                        text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
+              - key: VIS_VISUALISE_CLAUSES
+                type: ARRAY
+                text: "\n  DRAW hi..t AS fill)"
+                children:
+                  - type: OBJECT_VIS_LAYER
+                    text: "DRAW histo..t AS fill)"
+                    children:
+                      - key: VIS_LAYER_KIND
+                        type: ENUM_VIS_LAYER_KIND
+                        text: "DRAW histo..t AS fill)"
+                        children: []
+                      - key: VIS_LAYER_GEOM
+                        type: ENUM_VIS_GEOM
+                        text: "histogram"
+                        children: []
+                      - key: VIS_LAYER_SELECT
+                        type: OBJECT_SQL_SELECT
+                        text: "AS (SELECT..rice AS x)"
+                        children:
+                          - key: SQL_SELECT_TARGETS
+                            type: ARRAY
+                            text: "price AS x"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "price AS x"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "price"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "price"
+                                        children:
+                                          - type: NAME
+                                            text: "price"
+                                  - key: SQL_RESULT_TARGET_NAME
+                                    type: NAME
+                                    text: "x"
+                      - key: VIS_LAYER_REMAP
+                        type: ARRAY
+                        text: "REMAP (cou..t AS fill)"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "count AS y"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "count"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "count"
+                                    children:
+                                      - type: NAME
+                                        text: "count"
+                              - key: SQL_RESULT_TARGET_NAME
+                                type: NAME
+                                text: "y"
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "count AS fill"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "count"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "count"
+                                    children:
+                                      - type: NAME
+                                        text: "count"
+                              - key: SQL_RESULT_TARGET_NAME
+                                type: NAME
+                                text: "fill"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [31,32]
+        - text: [71,72]
+      comments: []
+
+  - name: vis_draw_remap_with_using
+    input: |-
+      VISUALISE (SELECT * FROM sales)
+        DRAW histogram AS (SELECT price AS x)
+        REMAP (density AS y)
+        USING (binwidth => 5);
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 30
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALISE ..idth => 5)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_SELECT
+                text: "(SELECT * ..ROM sales)"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "*"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
+                        text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
+              - key: VIS_VISUALISE_CLAUSES
+                type: ARRAY
+                text: "\n  DRAW hi..idth => 5)"
+                children:
+                  - type: OBJECT_VIS_LAYER
+                    text: "DRAW histo..idth => 5)"
+                    children:
+                      - key: VIS_LAYER_KIND
+                        type: ENUM_VIS_LAYER_KIND
+                        text: "DRAW histo..idth => 5)"
+                        children: []
+                      - key: VIS_LAYER_GEOM
+                        type: ENUM_VIS_GEOM
+                        text: "histogram"
+                        children: []
+                      - key: VIS_LAYER_SELECT
+                        type: OBJECT_SQL_SELECT
+                        text: "AS (SELECT..rice AS x)"
+                        children:
+                          - key: SQL_SELECT_TARGETS
+                            type: ARRAY
+                            text: "price AS x"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "price AS x"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "price"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "price"
+                                        children:
+                                          - type: NAME
+                                            text: "price"
+                                  - key: SQL_RESULT_TARGET_NAME
+                                    type: NAME
+                                    text: "x"
+                      - key: VIS_LAYER_REMAP
+                        type: ARRAY
+                        text: "REMAP (den..sity AS y)"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "density AS y"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "density"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "density"
+                                    children:
+                                      - type: NAME
+                                        text: "density"
+                              - key: SQL_RESULT_TARGET_NAME
+                                type: NAME
+                                text: "y"
+                      - key: VIS_LAYER_USING
+                        type: ARRAY
+                        text: "USING (bin..idth => 5)"
+                        children:
+                          - type: OBJECT_EXT_VARARG_FIELD
+                            text: "binwidth => 5"
+                            children:
+                              - key: EXT_VARARG_FIELD_KEY
+                                type: NAME
+                                text: "binwidth"
+                              - key: EXT_VARARG_FIELD_VALUE
+                                type: LITERAL_INTEGER
+                                text: "5"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [31,32]
+        - text: [71,72]
+        - text: [94,95]
+      comments: []
+
   - name: vis_full_pipeline
     input: |-
       VISUALISE (SELECT * FROM sales)
         DRAW point AS (SELECT date AS x, revenue AS y)
         PLACE text USING (label => 'top seller')
-        SCALE continuous y BETWEEN [0] AND [1000]
+        SCALE continuous y FROM [0] TO [1000]
         FACET region BY fiscal_year
         PROJECT TO cartesian
         LABEL USING (title => 'Sales');
@@ -2238,7 +2814,7 @@ parser-snapshots:
                                 type: LITERAL_STRING
                                 text: "'top seller'"
                   - type: OBJECT_VIS_SCALE
-                    text: "SCALE cont..AND [1000]"
+                    text: "SCALE cont.. TO [1000]"
                     children:
                       - key: VIS_SCALE_TYPE
                         type: ENUM_VIS_SCALE_TYPE
@@ -2247,7 +2823,7 @@ parser-snapshots:
                       - key: VIS_SCALE_AESTHETIC
                         type: NAME
                         text: "y"
-                      - key: VIS_SCALE_BETWEEN_LOWER
+                      - key: VIS_SCALE_FROM
                         type: OBJECT_EXT_VARARG_ARRAY
                         text: "[0]"
                         children:
@@ -2257,7 +2833,7 @@ parser-snapshots:
                             children:
                               - type: LITERAL_INTEGER
                                 text: "0"
-                      - key: VIS_SCALE_BETWEEN_UPPER
+                      - key: VIS_SCALE_TO
                         type: OBJECT_EXT_VARARG_ARRAY
                         text: "[1000]"
                         children:
@@ -2311,7 +2887,7 @@ parser-snapshots:
         - text: [31,32]
         - text: [80,81]
         - text: [123,124]
-        - text: [167,168]
-        - text: [197,198]
-        - text: [220,221]
+        - text: [163,164]
+        - text: [193,194]
+        - text: [216,217]
       comments: []

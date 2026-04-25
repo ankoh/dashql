@@ -95,10 +95,18 @@ parser-snapshots:
     input: |
       VISUALISE
         SCALE continuous x;
-  - name: vis_scale_discrete_between
+  - name: vis_scale_discrete_from_to
     input: |
       VISUALISE
-        SCALE discrete color BETWEEN [1, 2, 3] AND [10, 20, 30];
+        SCALE discrete color FROM [1, 2, 3] TO [10, 20, 30];
+  - name: vis_scale_continuous_from_only
+    input: |
+      VISUALISE
+        SCALE continuous x FROM [0, 100];
+  - name: vis_scale_continuous_to_only
+    input: |
+      VISUALISE
+        SCALE continuous y TO [0, 500];
   - name: vis_scale_binned_using
     input: |
       VISUALISE
@@ -112,6 +120,22 @@ parser-snapshots:
     input: |
       VISUALISE
         SCALE identity size;
+  - name: vis_scale_format_lambda
+    input: |
+      VISUALISE
+        SCALE discrete color
+        FORMAT (lambda x: case x when 1 then 'foo' when 2 then 'bar' end);
+  - name: vis_scale_transform
+    input: |
+      VISUALISE
+        SCALE continuous x TRANSFORM log10;
+  - name: vis_scale_full
+    input: |
+      VISUALISE
+        SCALE continuous x FROM [0, 100] TO [0, 1000]
+        TRANSFORM log10
+        USING (breaks => 5)
+        FORMAT (lambda v: v * 2);
 
   # FACET
   - name: vis_facet_rows
@@ -149,13 +173,31 @@ parser-snapshots:
       VISUALISE
         LABEL USING (title => 'Sales by Region', subtitle => 'FY2026');
 
+  # DRAW ... REMAP
+  - name: vis_draw_remap_single
+    input: |
+      VISUALISE (SELECT * FROM sales)
+        DRAW histogram AS (SELECT price AS x)
+        REMAP (count AS y);
+  - name: vis_draw_remap_multi
+    input: |
+      VISUALISE (SELECT * FROM sales)
+        DRAW histogram AS (SELECT price AS x)
+        REMAP (count AS y, count AS fill);
+  - name: vis_draw_remap_with_using
+    input: |
+      VISUALISE (SELECT * FROM sales)
+        DRAW histogram AS (SELECT price AS x)
+        REMAP (density AS y)
+        USING (binwidth => 5);
+
   # Composed pipeline
   - name: vis_full_pipeline
     input: |
       VISUALISE (SELECT * FROM sales)
         DRAW point AS (SELECT date AS x, revenue AS y)
         PLACE text USING (label => 'top seller')
-        SCALE continuous y BETWEEN [0] AND [1000]
+        SCALE continuous y FROM [0] TO [1000]
         FACET region BY fiscal_year
         PROJECT TO cartesian
         LABEL USING (title => 'Sales');

@@ -19,10 +19,15 @@
 %type <buffers::parser::Node> vis_option;
 
 %type <buffers::parser::Node> vis_opt_draw_select;
+%type <buffers::parser::Node> vis_opt_draw_remap;
 %type <WeakUniquePtr<NodeList>> vis_layer_select;
 %type <buffers::parser::Node> vis_opt_partition_by;
 %type <buffers::parser::Node> vis_opt_scale_type;
-%type <WeakUniquePtr<NodeList>> vis_opt_scale_between;
+%type <buffers::parser::Node> vis_opt_scale_from;
+%type <buffers::parser::Node> vis_opt_scale_to;
+%type <buffers::parser::Node> vis_opt_scale_transform;
+%type <buffers::parser::Node> vis_opt_scale_format;
+%type <buffers::parser::Node> vis_lambda;
 %type <buffers::parser::Node> vis_opt_facet_by;
 %type <buffers::parser::Node> vis_opt_project_aesthetics;
 

@@ -4,9 +4,12 @@
 // Shape:
 //
 //   VISUALISE [(SELECT ...)]
-//     DRAW <geom> [AS (SELECT ... [WHERE ...] [PARTITION BY ...] [ORDER BY ...])] [USING (...)]
+//     DRAW <geom> [AS (SELECT ... [WHERE ...] [PARTITION BY ...] [ORDER BY ...])]
+//                 [REMAP (<target>, ...)] [USING (...)]
 //     PLACE <geom> [USING (...)]
-//     SCALE [<type>] <aesthetic> [BETWEEN [...] AND [...]] [USING (...)]
+//     SCALE [<type>] <aesthetic> [FROM <bracket-array>] [TO <bracket-array>]
+//                                [TRANSFORM <ident>] [FORMAT (lambda x: <expr>)]
+//                                [USING (...)]
 //     FACET <cols> [BY <cols>] [USING (...)]
 //     PROJECT [<aesthetics>] TO <type> [USING (...)]
 //     LABEL USING (...)
@@ -98,10 +101,11 @@ vis_identifier_list:
 // it and rejecting in actions.
 
 vis_draw_clause:
-    DRAW vis_geom vis_opt_draw_select vis_opt_using {
+    DRAW vis_geom vis_opt_draw_select vis_opt_draw_remap vis_opt_using {
         $$ = vis::Layer(ctx, @$, buffers::parser::VisLayerKind::DRAW, $2, {
             Attr(Key::VIS_LAYER_SELECT,  $3),
-            Attr(Key::VIS_LAYER_USING,   $4),
+            Attr(Key::VIS_LAYER_REMAP,   $4),
+            Attr(Key::VIS_LAYER_USING,   $5),
         });
     }
     ;
@@ -111,6 +115,14 @@ vis_opt_draw_select:
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_SELECT, std::move($3));
     }
   | %empty { $$ = Null(); }
+    ;
+
+// REMAP (<target>, ...). A bare target list (`count AS y, density AS fill`)
+// that renames columns added by the layer's statistical transformation.
+// Reuses sql_target_list so the same `<expr> AS <name>` syntax works.
+vis_opt_draw_remap:
+    REMAP LRB sql_target_list RRB  { $$ = ctx.Array(@$, std::move($3)); }
+  | %empty                         { $$ = Null(); }
     ;
 
 // Restricted SELECT for layer bodies: targets, optional WHERE, optional
@@ -148,19 +160,32 @@ vis_place_clause:
 // ---------------------------------------------------------------------------
 // SCALE
 //
-//   SCALE [<type>] <aesthetic> [BETWEEN [lower] AND [upper]] [USING (...)]
+//   SCALE [<type>] <aesthetic>
+//     [FROM <bracket-array>] [TO <bracket-array>]
+//     [TRANSFORM <ident>]
+//     [FORMAT (lambda <param> : <expr>)]
+//     [USING (...)]
 //
 // Aesthetic is a plain IDENT so clause-starter keywords don't get absorbed.
+// FROM/TO each carry a bracket-array literal (e.g. `[0, 100]` or `['a','b']`)
+// reusing `vararg_array_brackets` so values go through the same parser path
+// as option values. TRANSFORM names a scaling transform (e.g. `log10`).
+// FORMAT takes a SQL lambda that receives each break value and returns its
+// rendered label.
 
 vis_scale_clause:
-    SCALE_P vis_opt_scale_type IDENT vis_opt_scale_between vis_opt_using {
-        auto list = ctx.List({
+    SCALE_P vis_opt_scale_type IDENT
+        vis_opt_scale_from vis_opt_scale_to
+        vis_opt_scale_transform vis_opt_scale_format vis_opt_using {
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_SCALE, {
             Attr(Key::VIS_SCALE_TYPE,      $2),
             Attr(Key::VIS_SCALE_AESTHETIC, NameFromIdentifier(@3, $3)),
-        });
-        list->append(std::move($4));
-        list->append({ Attr(Key::VIS_SCALE_USING, $5) });
-        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_SCALE, std::move(list), false);
+            Attr(Key::VIS_SCALE_FROM,      $4),
+            Attr(Key::VIS_SCALE_TO,        $5),
+            Attr(Key::VIS_SCALE_TRANSFORM, $6),
+            Attr(Key::VIS_SCALE_FORMAT,    $7),
+            Attr(Key::VIS_SCALE_USING,     $8),
+        }, false);
     }
     ;
 
@@ -173,22 +198,45 @@ vis_opt_scale_type:
   | %empty      { $$ = Null(); }
     ;
 
-// BETWEEN [lower] AND [upper]. Bounds are bracket-array literals reusing
-// vararg_array_brackets. Values are whatever `vararg_value` already accepts.
-vis_opt_scale_between:
-    BETWEEN vis_scale_bound AND vis_scale_bound {
-        $$ = ctx.List({
-            Attr(Key::VIS_SCALE_BETWEEN_LOWER, $2),
-            Attr(Key::VIS_SCALE_BETWEEN_UPPER, $4),
-        });
-    }
-  | %empty { $$ = ctx.List(); }
+vis_opt_scale_from:
+    FROM vis_scale_bound   { $$ = $2; }
+  | %empty                 { $$ = Null(); }
+    ;
+
+vis_opt_scale_to:
+    TO vis_scale_bound     { $$ = $2; }
+  | %empty                 { $$ = Null(); }
     ;
 
 vis_scale_bound:
     vararg_array_brackets {
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_EXT_VARARG_ARRAY, {
             Attr(Key::EXT_VARARG_ARRAY_VALUES, ctx.Array(@1, std::move($1))),
+        });
+    }
+    ;
+
+// TRANSFORM <ident>. The transform name is a bare identifier (e.g. `log10`,
+// `integer`). A full expression would invite ambiguity with later clauses
+// and doesn't match how transforms are looked up.
+vis_opt_scale_transform:
+    TRANSFORM IDENT   { $$ = NameFromIdentifier(@2, $2); }
+  | %empty            { $$ = Null(); }
+    ;
+
+// FORMAT (lambda <param> : <expr>). The body is a full sql_a_expr so the
+// user can write a CASE, function call, or arithmetic over the break value.
+// Parens keep the body from absorbing the next clause's keyword.
+vis_opt_scale_format:
+    FORMAT LRB vis_lambda RRB  { $$ = $3; }
+  | %empty                     { $$ = Null(); }
+    ;
+
+vis_lambda:
+    LAMBDA sql_col_id COLON sql_a_expr {
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_LAMBDA_EXPRESSION, {
+            Attr(Key::SQL_LAMBDA_PARAM, $2),
+            Attr(Key::SQL_LAMBDA_BODY,  ctx.Expression(std::move($4))),
         });
     }
     ;

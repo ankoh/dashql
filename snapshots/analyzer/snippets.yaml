@@ -84,8 +84,8 @@ analyzer-snapshots:
       column-computations:
         - expression: 8
           snippet:
-            signature-template: 2290193904433761446
-            signature-raw: 6736335147927997687
+            signature-template: 2290193904433782263
+            signature-raw: 6736335147924567076
             text: a + 1
             ast:
               ast-nodes: 7
@@ -114,8 +114,8 @@ analyzer-snapshots:
                         text: "1"
         - expression: 9
           snippet:
-            signature-template: 2290193904433761446
-            signature-raw: 6736335147927997687
+            signature-template: 2290193904433782263
+            signature-raw: 6736335147924567076
             text: a +            1
             ast:
               ast-nodes: 7
@@ -144,8 +144,8 @@ analyzer-snapshots:
                         text: "1"
         - expression: 10
           snippet:
-            signature-template: 2290193904433761446
-            signature-raw: 6736335147927997687
+            signature-template: 2290193904433782263
+            signature-raw: 6736335147924567076
             text: '"a" +            1'
             ast:
               ast-nodes: 7
@@ -174,8 +174,8 @@ analyzer-snapshots:
                         text: "1"
         - expression: 11
           snippet:
-            signature-template: 14311016532657096419
-            signature-raw: 6910378389252992252
+            signature-template: 14311016532658566898
+            signature-raw: 6910378389252988749
             text: 1 + a
             ast:
               ast-nodes: 7

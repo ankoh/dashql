@@ -258,8 +258,8 @@ analyzer-snapshots:
       column-filters:
         - expression: 4
           snippet:
-            signature-template: 1794172684583478586
-            signature-raw: 6895659058441710673
+            signature-template: 1794172684583472092
+            signature-raw: 6895659058441714752
             text: a = 1
             ast:
               ast-nodes: 7
@@ -288,8 +288,8 @@ analyzer-snapshots:
                         text: "1"
         - expression: 5
           snippet:
-            signature-template: 1794172684583478586
-            signature-raw: 4667908901404270351
+            signature-template: 1794172684583472092
+            signature-raw: 4667908901404266302
             text: c = 1
             ast:
               ast-nodes: 7

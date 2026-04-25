@@ -923,8 +923,8 @@ registry-snapshots:
           column-filters:
             - expression: 40
               snippet:
-                signature-template: 7878761948638532652
-                signature-raw: 8251145953384635132
+                signature-template: 7878761948638513151
+                signature-raw: 8251145953384532363
                 text: r_name = 'EUROPE'
                 ast:
                   ast-nodes: 7
@@ -953,8 +953,8 @@ registry-snapshots:
                             text: "'EUROPE'"
             - expression: 41
               snippet:
-                signature-template: 1794172684583478586
-                signature-raw: 13823816213952588114
+                signature-template: 1794172684583472092
+                signature-raw: 13823816213952592195
                 text: p_size = 15
                 ast:
                   ast-nodes: 7
@@ -983,8 +983,8 @@ registry-snapshots:
                             text: "15"
             - expression: 42
               snippet:
-                signature-template: 7878761948638532652
-                signature-raw: 8251145953384635132
+                signature-template: 7878761948638513151
+                signature-raw: 8251145953384532363
                 text: r_name = 'EUROPE'
                 ast:
                   ast-nodes: 7

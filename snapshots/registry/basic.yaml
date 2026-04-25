@@ -49,8 +49,8 @@ registry-snapshots:
           column-filters:
             - expression: 2
               snippet:
-                signature-template: 1794443991550492122
-                signature-raw: 10544378850070544503
+                signature-template: 1794443991549884817
+                signature-raw: 10544378850070548582
                 text: a < 6
                 ast:
                   ast-nodes: 7
@@ -126,8 +126,8 @@ registry-snapshots:
           column-computations:
             - expression: 3
               snippet:
-                signature-template: 2290193904433761446
-                signature-raw: 6736335147927997687
+                signature-template: 2290193904433782263
+                signature-raw: 6736335147924567076
                 text: a + 1
                 ast:
                   ast-nodes: 7
@@ -157,8 +157,8 @@ registry-snapshots:
           column-filters:
             - expression: 4
               snippet:
-                signature-template: 1751179248397104785
-                signature-raw: 2970112772522538482
+                signature-template: 12573477871595708846
+                signature-raw: 6497329974670684772
                 text: (a + 1) < 8
                 ast:
                   ast-nodes: 11
