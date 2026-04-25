@@ -2,7 +2,7 @@ import * as core from '../core/index.js';
 
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { createDefaultNotebookWithSchemaPage } from './default_notebook_setup.js';
+import { createDefaultNotebook } from './default_notebook_setup.js';
 import { type ConnectionState } from './connection_state.js';
 import { createDatalessConnectionState } from './dataless/dataless_connection_state.js';
 import type { NotebookStateWithoutId } from '../notebook/notebook_state_registry.js';
@@ -29,8 +29,8 @@ afterEach(() => {
     dql!.resetUnsafe();
 });
 
-describe('createDefaultNotebookWithSchemaPage', () => {
-    it('creates separate query and schema pages with a notebook-level draft', () => {
+describe('createDefaultNotebook', () => {
+    it('creates a query page with a notebook-level draft', () => {
         const sessionId = crypto.randomUUID();
         const conn: ConnectionState = {
             ...createDatalessConnectionState(dql!, new Map()),
@@ -41,31 +41,24 @@ describe('createDefaultNotebookWithSchemaPage', () => {
             return [sessionId, { ...state, sessionId }];
         });
 
-        const notebook = createDefaultNotebookWithSchemaPage(
+        const notebook = createDefaultNotebook(
             conn,
             allocateNotebookState,
             logger,
             'select 1;',
-            'create table lineitem(l_orderkey integer);',
         );
 
         expect(allocateNotebookState).toHaveBeenCalledTimes(1);
-        expect(notebook.notebookPages).toHaveLength(2);
+        expect(notebook.notebookPages).toHaveLength(1);
         expect(notebook.notebookUserFocus).toEqual({ pageIndex: 0, entryInPage: 0 });
 
         const queryPage = notebook.notebookPages[0];
-        const schemaPage = notebook.notebookPages[1];
         expect(queryPage.scripts).toHaveLength(1);
-        expect(schemaPage.scripts).toHaveLength(1);
 
         const queryScriptId = queryPage.scripts[0].scriptId;
-        const schemaScriptId = schemaPage.scripts[0].scriptId;
-        expect(queryScriptId).not.toBe(schemaScriptId);
         expect(notebook.uncommittedScriptId).not.toBe(queryScriptId);
-        expect(notebook.uncommittedScriptId).not.toBe(schemaScriptId);
 
         expect(notebook.scripts[queryScriptId]?.script.toString()).toBe('select 1;');
-        expect(notebook.scripts[schemaScriptId]?.script.toString()).toBe('create table lineitem(l_orderkey integer);');
         expect(notebook.scripts[notebook.uncommittedScriptId]).toBeDefined();
     });
 });

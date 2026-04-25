@@ -18,6 +18,7 @@ import { useConnectionState } from '../../connection/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH } from '../../router.js';
 
+import { CatalogSchemaView } from './catalog_schema_view.js';
 import { ConnectionCommandList, NotebookCommandList } from './notebook_command_lists.js';
 import { NotebookScriptDetails } from './notebook_script_details.js';
 import { NotebookScriptFeed } from './notebook_script_feed.js';
@@ -42,6 +43,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const [connectionOverlayOpen, setConnectionOverlayOpen] = React.useState<boolean>(false);
     const [showDetails, setShowDetails] = React.useState<boolean>(false);
     const [feedScrollTarget, setFeedScrollTarget] = React.useState<FeedScrollTarget | null>(null);
+    const [schemaTabSelected, setSchemaTabSelected] = React.useState<boolean>(false);
     const [editingPageIndex, setEditingPageIndex] = React.useState<number | null>(null);
     const [editingPageTitle, setEditingPageTitle] = React.useState<string>("");
     const editInputRef = React.useRef<HTMLInputElement>(null);
@@ -141,13 +143,15 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 <div className={styles.header_action_container}>
                     <div>
                         <ButtonGroup>
-                            <IconButton
-                                variant={ButtonVariant.Default}
-                                aria-label="Execute Query"
-                                onClick={() => sessionCommand(NotebookCommandType.ExecuteEditorQuery)}
-                            >
-                                <PaperAirplaneIcon />
-                            </IconButton>
+                            {!schemaTabSelected && (
+                                <IconButton
+                                    variant={ButtonVariant.Default}
+                                    aria-label="Execute Query"
+                                    onClick={() => sessionCommand(NotebookCommandType.ExecuteEditorQuery)}
+                                >
+                                    <PaperAirplaneIcon />
+                                </IconButton>
+                            )}
                             <IconButton
                                 variant={ButtonVariant.Default}
                                 aria-label="Refresh Schema"
@@ -173,7 +177,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             <div className={styles.page_tabs_container}>
                 <div className={styles.page_tabs} role="tablist" aria-label="Notebook pages">
                     {notebook.notebookPages.map((page, index) => {
-                        const isSelected = index === notebook.notebookUserFocus.pageIndex;
+                        const isSelected = !schemaTabSelected && index === notebook.notebookUserFocus.pageIndex;
                         const isEditing = editingPageIndex === index;
                         const label = page.folderName || `Page ${index + 1}`;
 
@@ -192,6 +196,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                                 }}
                                 onClick={() => {
                                     if (isEditing) return; // Don't change page while editing
+                                    setSchemaTabSelected(false);
                                     if (isSelected) {
                                         setShowDetails(false);
                                     } else {
@@ -234,12 +239,33 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                             </motion.div>
                         );
                     })}
+                    {conn && (
+                        <motion.div
+                            key="schema-tab"
+                            className={schemaTabSelected ? styles.page_tab_selected : styles.page_tab}
+                            layout
+                            initial={false}
+                            transition={{
+                                duration: 0.15,
+                                ease: [0.33, 1, 0.68, 1]
+                            }}
+                            onClick={() => {
+                                setSchemaTabSelected(true);
+                                setShowDetails(true);
+                            }}
+                        >
+                            <div className={styles.page_tab_button}>
+                                <span className={styles.page_tab_label}>Schema</span>
+                            </div>
+                        </motion.div>
+                    )}
                     <button
                         type="button"
                         className={styles.page_tab_add}
                         aria-label="Add page"
                         onClick={() => {
                             modifyNotebook({ type: CREATE_PAGE, value: null });
+                            setSchemaTabSelected(false);
                             setShowDetails(false);
                         }}
                     >
@@ -249,9 +275,11 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             </div>
             <div className={styles.body_container} id="notebook-body" role="tabpanel" aria-labelledby={notebook.notebookPages.length > 0 ? `notebook-page-tab-${notebook.notebookUserFocus.pageIndex}` : undefined}>
                 {
-                    showDetails
-                        ? <NotebookScriptDetails notebook={notebook} connection={conn} hideDetails={() => setShowDetails(false)} />
-                        : <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} showDetails={() => setShowDetails(true)} scrollTarget={feedScrollTarget} />
+                    schemaTabSelected && conn
+                        ? <CatalogSchemaView connection={conn} hideDetails={() => setSchemaTabSelected(false)} />
+                        : showDetails
+                            ? <NotebookScriptDetails notebook={notebook} connection={conn} hideDetails={() => setShowDetails(false)} />
+                            : <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} showDetails={() => setShowDetails(true)} scrollTarget={feedScrollTarget} />
                 }
             </div>
             <div className={styles.action_sidebar}>

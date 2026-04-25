@@ -31,26 +31,20 @@ function createScriptData(script: core.DashQLScript, pageIndex: number, fileName
     };
 }
 
-export function createDefaultNotebookWithSchemaPage(
+export function createDefaultNotebook(
     conn: ConnectionState,
     allocateNotebookState: NotebookAllocator,
     logger: Logger,
     mainScriptText: string,
-    schemaScriptText: string,
 ): NotebookState {
     const registry = conn.instance.createScriptRegistry();
     const mainScript = conn.instance.createScript(conn.catalog);
-    const schemaScript = conn.instance.createScript(conn.catalog);
 
     mainScript.replaceText(mainScriptText);
-    schemaScript.replaceText(schemaScriptText);
 
     const mainFileName = generateScriptFileName(0);
-    const schemaFileName = generateScriptFileName(0);
 
     let mainScriptData = createScriptData(mainScript, 0, mainFileName, 'Main');
-    let schemaScriptData = createScriptData(schemaScript, 1, schemaFileName, 'Schema');
-    schemaScriptData = analyzeNotebookScript(schemaScriptData, registry, conn.catalog, logger);
     mainScriptData = analyzeNotebookScript(mainScriptData, registry, conn.catalog, logger);
 
     const [uncommittedKey, uncommittedData] = createEmptyScriptData(conn.instance, conn.catalog);
@@ -68,7 +62,6 @@ export function createDefaultNotebookWithSchemaPage(
         scriptRegistry: registry,
         scripts: {
             [mainScriptData.scriptKey]: mainScriptData,
-            [schemaScriptData.scriptKey]: schemaScriptData,
             [uncommittedKey]: uncommittedData,
         },
         notebookPages: [
@@ -76,12 +69,6 @@ export function createDefaultNotebookWithSchemaPage(
                 folderName: 'Main',
                 scripts: [
                     createPageScript(mainScriptData.scriptKey, mainFileName),
-                ],
-            },
-            {
-                folderName: 'Schema',
-                scripts: [
-                    createPageScript(schemaScriptData.scriptKey, schemaFileName),
                 ],
             },
         ],

@@ -4,7 +4,7 @@ import * as themes from './themes/index.js';
 import { EditorState, Extension } from '@codemirror/state';
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands"
 import { EditorView, keymap, lineNumbers } from '@codemirror/view';
-import { DashQLExtensions } from './dashql_extension.js';
+import { DashQLExtensions, DashQLReadonlyExtensions } from './dashql_extension.js';
 
 import { useLogger } from '../../platform/logger/logger_provider.js';
 
@@ -36,6 +36,16 @@ export function createCodeMirrorExtensions(): Extension[] {
         keymapExtension
     ];
     return extensions;
+}
+
+export function createReadonlyCodeMirrorExtensions(): Extension[] {
+    return [
+        themes.xcode.xcodeLight,
+        lineNumbers(),
+        EditorState.readOnly.of(true),
+        EditorView.editable.of(false),
+        ...DashQLReadonlyExtensions,
+    ];
 }
 
 export const CodeMirror = React.forwardRef<EditorView, CodeMirrorProps>((props: CodeMirrorProps, ref) => {
