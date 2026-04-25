@@ -1,22 +1,22 @@
 import * as React from 'react';
-import * as styles from './catalog_schema_view.module.css';
+import * as detailStyles from './notebook_script_details.module.css';
 
+import icons from '@ankoh/dashql-svg-symbols';
 import { EditorView } from '@codemirror/view';
-
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { ButtonVariant, IconButton } from '../foundations/button.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { CodeMirror, createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, analyzeScript, DashQLScriptBuffers } from '../editor/dashql_processor.js';
 import { NotebookScriptName } from './notebook_script_name.js';
-import { SymbolIcon } from '../foundations/symbol_icon.js';
+import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
 
-import type { Icon } from '@primer/octicons-react';
+enum TabKey {
+    Editor = 0,
+}
 
 export interface CatalogSchemaViewProps {
     connection: ConnectionState;
-    hideDetails: () => void;
 }
 
 export const CatalogSchemaView: React.FC<CatalogSchemaViewProps> = (props) => {
@@ -70,14 +70,14 @@ export const CatalogSchemaView: React.FC<CatalogSchemaViewProps> = (props) => {
     }, []);
 
     const readonlyExtensions = React.useMemo(() => createReadonlyCodeMirrorExtensions(), []);
+    const selectTab = React.useCallback(() => {}, []);
 
-    const ScreenNormalIcon: Icon = SymbolIcon('screen_normal_16');
     return (
-        <div className={styles.container}>
+        <div className={detailStyles.entry_body_container}>
             <AnimatePresence mode="wait">
                 <motion.div
                     key="catalog-schema"
-                    className={styles.card}
+                    className={detailStyles.entry_body_card}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
@@ -86,23 +86,34 @@ export const CatalogSchemaView: React.FC<CatalogSchemaViewProps> = (props) => {
                         ease: [0.33, 1, 0.68, 1]
                     }}
                 >
-                    <div className={styles.card_inner}>
-                        <div className={styles.action_bar}>
-                            <div className={styles.file_name}>
+                    <div className={detailStyles.entry_card_container}>
+                        <div className={detailStyles.entry_card_action_bar}>
+                            <div className={detailStyles.entry_card_file_name}>
                                 <NotebookScriptName folder=".." file="dashql-schema.sql" />
                             </div>
-                            <IconButton
-                                className={styles.collapse_button}
-                                variant={ButtonVariant.Invisible}
-                                onClick={props.hideDetails}
-                                aria-label="Collapse"
-                            >
-                                <ScreenNormalIcon size={16} />
-                            </IconButton>
                         </div>
-                        <div className={styles.editor}>
-                            <CodeMirror ref={setView} extensions={readonlyExtensions} />
-                        </div>
+                        <VerticalTabs
+                            className={detailStyles.entry_card_tabs}
+                            variant={VerticalTabVariant.Stacked}
+                            selectedTab={TabKey.Editor}
+                            selectTab={selectTab}
+                            tabProps={{
+                                [TabKey.Editor]: {
+                                    tabId: TabKey.Editor,
+                                    icon: `${icons}#file`,
+                                    labelShort: 'Editor',
+                                    ariaLabel: 'Schema script',
+                                    description: 'Schema script',
+                                    disabled: false,
+                                },
+                            }}
+                            tabKeys={[TabKey.Editor]}
+                            tabRenderers={{
+                                [TabKey.Editor]: () => (
+                                    <CodeMirror ref={setView} extensions={readonlyExtensions} />
+                                ),
+                            }}
+                        />
                     </div>
                 </motion.div>
             </AnimatePresence>

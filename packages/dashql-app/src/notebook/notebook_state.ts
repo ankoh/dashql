@@ -5,7 +5,7 @@ import { analyzeScript, DashQLCompletionState, DashQLProcessorUpdateOut, DashQLS
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, SemanticUserFocus } from './focus.js';
 import { ConnectorInfo } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
-import { DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupNotebookWrites, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK, WRITE_NOTEBOOK_SCRIPT } from '../platform/storage/storage_writer.js';
+import { CREATE_NOTEBOOK_PAGE, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK_PAGE, DELETE_NOTEBOOK_SCRIPT, groupNotebookWrites, groupPageWrites, groupScriptDeletes, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK, WRITE_NOTEBOOK_SCRIPT } from '../platform/storage/storage_writer.js';
 import { NotebookStateWithoutId } from './notebook_state_registry.js';
 import { Logger } from '../platform/logger/logger.js';
 import { NotebookScriptAnnotations, NotebookPage, NotebookPageScript, NotebookMetadata as NotebookMetadataType, createEmptyAnnotations, createPageScript, generateScriptFileName } from './notebook_types.js';
@@ -230,7 +230,11 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookUserFocus: { pageIndex: newPages.length - 1, entryInPage: 0 },
             };
 
-            storage?.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+            storage?.write(
+                groupPageWrites(next.sessionId, newPage.folderName),
+                { type: CREATE_NOTEBOOK_PAGE, value: [next.sessionId, newPage.folderName, [{ scriptId: scriptKey, fileName, sql: '' }]] },
+                DEBOUNCE_DURATION_NOTEBOOK_WRITE
+            );
             return next;
         }
         case DELETE_PAGE: {
@@ -258,6 +262,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 newPageIndex = state.notebookUserFocus.pageIndex - 1;
             }
 
+            const deletedPage = state.notebookPages[pageIndexToDelete];
             const next: NotebookState = {
                 ...destroyDeadScripts({
                     ...clearSemanticUserFocus(state),
@@ -270,8 +275,8 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             };
 
             storage?.write(
-                groupNotebookWrites(next.sessionId),
-                { type: WRITE_NOTEBOOK, value: next },
+                groupPageWrites(next.sessionId, deletedPage.folderName),
+                { type: DELETE_NOTEBOOK_PAGE, value: [next.sessionId, deletedPage.folderName] },
                 DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
             );
             return next;
@@ -516,6 +521,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             if (!page || action.value < 0 || action.value >= page.scripts.length) {
                 return state;
             }
+            const deletedEntry = page.scripts[action.value];
 
             // If this is the last entry in the page
             if (page.scripts.length <= 1) {
@@ -542,8 +548,8 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 };
 
                 storage?.write(
-                    groupNotebookWrites(next.sessionId),
-                    { type: WRITE_NOTEBOOK, value: next },
+                    groupPageWrites(next.sessionId, page.folderName),
+                    { type: DELETE_NOTEBOOK_PAGE, value: [next.sessionId, page.folderName] },
                     DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
                 );
                 return next;
@@ -565,7 +571,11 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookPages: newPages,
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: Math.min(newEntryInPage, newScripts.length - 1) },
             });
-            storage?.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+            storage?.write(
+                groupScriptDeletes(next.sessionId, page.folderName, deletedEntry.fileName),
+                { type: DELETE_NOTEBOOK_SCRIPT, value: [next.sessionId, page.folderName, deletedEntry.fileName] },
+                DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+            );
             return next;
         }
 
@@ -616,7 +626,11 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookPages: newPages,
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newScripts.length - 1 },
             };
-            storage?.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+            storage?.write(
+                groupScriptWrites(next.sessionId, page.folderName, fileName),
+                { type: WRITE_NOTEBOOK_SCRIPT, value: [next.sessionId, page.folderName, fileName, ''] },
+                DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+            );
             return next;
         }
 
@@ -627,6 +641,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 return state;
             }
             const { entryIndex, fileName } = action.value;
+            const oldFileName = page.scripts[entryIndex].fileName;
             const entries = [...page.scripts];
             const scriptId = entries[entryIndex].scriptId;
             entries[entryIndex] = {
@@ -648,7 +663,20 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookPages: newPages,
                 scripts: newScripts
             };
-            storage?.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+            // Delete old file, write new file
+            if (oldFileName !== fileName) {
+                storage?.write(
+                    groupScriptDeletes(next.sessionId, page.folderName, oldFileName),
+                    { type: DELETE_NOTEBOOK_SCRIPT, value: [next.sessionId, page.folderName, oldFileName] },
+                    DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                );
+            }
+            const sql = updatedScriptData ? updatedScriptData.script.toString() : '';
+            storage?.write(
+                groupScriptWrites(next.sessionId, page.folderName, fileName),
+                { type: WRITE_NOTEBOOK_SCRIPT, value: [next.sessionId, page.folderName, fileName, sql] },
+                DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+            );
             return next;
         }
 
@@ -658,6 +686,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 console.warn("Update references invalid page index");
                 return state;
             }
+            const oldFolderName = state.notebookPages[pageIndex].folderName;
             const newPages = [...state.notebookPages];
             newPages[pageIndex] = { ...newPages[pageIndex], folderName };
 
@@ -676,7 +705,23 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookPages: newPages,
                 scripts: newScripts
             };
-            storage?.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+            // Delete old page folder, create new one with all scripts
+            if (oldFolderName !== folderName) {
+                storage?.write(
+                    groupPageWrites(next.sessionId, oldFolderName),
+                    { type: DELETE_NOTEBOOK_PAGE, value: [next.sessionId, oldFolderName] },
+                    DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                );
+                const scriptEntries = page.scripts.map(entry => {
+                    const sd = newScripts[entry.scriptId];
+                    return { scriptId: entry.scriptId, fileName: entry.fileName, sql: sd ? sd.script.toString() : '' };
+                });
+                storage?.write(
+                    groupPageWrites(next.sessionId, folderName),
+                    { type: CREATE_NOTEBOOK_PAGE, value: [next.sessionId, folderName, scriptEntries] },
+                    DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                );
+            }
             return next;
         }
 
@@ -719,7 +764,12 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 uncommittedScriptId: newUncommittedKey,
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newPageScripts.length - 1 },
             };
-            storage?.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+            const sql = updatedPromotedScript ? updatedPromotedScript.script.toString() : '';
+            storage?.write(
+                groupScriptWrites(next.sessionId, page.folderName, fileName),
+                { type: WRITE_NOTEBOOK_SCRIPT, value: [next.sessionId, page.folderName, fileName, sql] },
+                DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+            );
             return next;
         }
     }

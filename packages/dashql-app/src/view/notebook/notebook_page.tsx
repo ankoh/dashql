@@ -1,8 +1,7 @@
 import * as React from 'react';
 import * as styles from './notebook_page.module.css';
 
-import { motion } from 'framer-motion';
-import { LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
+import { DatabaseIcon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
 
 import * as ActionList from '../foundations/action_list.js';
 import { ConnectionStatus } from '../connection/connection_status.js';
@@ -185,15 +184,9 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                         const canEdit = true; // Allow editing folder name for all pages
 
                         return (
-                            <motion.div
+                            <div
                                 key={index}
                                 className={isSelected ? styles.page_tab_selected : styles.page_tab}
-                                layout
-                                initial={false}
-                                transition={{
-                                    duration: 0.15,
-                                    ease: [0.33, 1, 0.68, 1]
-                                }}
                                 onClick={() => {
                                     if (isEditing) return; // Don't change page while editing
                                     setSchemaTabSelected(false);
@@ -236,29 +229,9 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                                         </>
                                     )}
                                 </div>
-                            </motion.div>
+                            </div>
                         );
                     })}
-                    {conn && (
-                        <motion.div
-                            key="schema-tab"
-                            className={schemaTabSelected ? styles.page_tab_selected : styles.page_tab}
-                            layout
-                            initial={false}
-                            transition={{
-                                duration: 0.15,
-                                ease: [0.33, 1, 0.68, 1]
-                            }}
-                            onClick={() => {
-                                setSchemaTabSelected(true);
-                                setShowDetails(true);
-                            }}
-                        >
-                            <div className={styles.page_tab_button}>
-                                <span className={styles.page_tab_label}>Schema</span>
-                            </div>
-                        </motion.div>
-                    )}
                     <button
                         type="button"
                         className={styles.page_tab_add}
@@ -271,12 +244,27 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     >
                         +
                     </button>
+                    {conn && (
+                        <div
+                            className={schemaTabSelected ? styles.catalog_tab_selected : styles.catalog_tab}
+                            onClick={() => {
+                                setSchemaTabSelected(true);
+                                setShowDetails(true);
+                            }}
+                        >
+                            <div className={styles.page_tab_button}>
+                                <div className={styles.catalog_tab_icon}>
+                                    <DatabaseIcon size={14} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
             <div className={styles.body_container} id="notebook-body" role="tabpanel" aria-labelledby={notebook.notebookPages.length > 0 ? `notebook-page-tab-${notebook.notebookUserFocus.pageIndex}` : undefined}>
                 {
                     schemaTabSelected && conn
-                        ? <CatalogSchemaView connection={conn} hideDetails={() => setSchemaTabSelected(false)} />
+                        ? <CatalogSchemaView connection={conn} />
                         : showDetails
                             ? <NotebookScriptDetails notebook={notebook} connection={conn} hideDetails={() => setShowDetails(false)} />
                             : <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} showDetails={() => setShowDetails(true)} scrollTarget={feedScrollTarget} />

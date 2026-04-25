@@ -183,6 +183,7 @@
     flex-direction: row;
     align-items: stretch;
     gap: 0;
+    width: 100%;
     min-width: 0;
     overflow-x: auto;
     overflow-y: hidden;
@@ -191,7 +192,9 @@
 }
 .page_tab,
 .page_tab_selected,
-.page_tab_add {
+.page_tab_add,
+.catalog_tab,
+.catalog_tab_selected {
     flex-shrink: 0;
     height: 100%;
     min-height: 36px;
@@ -212,7 +215,9 @@
     align-items: center;
 }
 .page_tab:hover,
-.page_tab_selected:hover {
+.page_tab_selected:hover,
+.catalog_tab:hover,
+.catalog_tab_selected:hover {
 }
 .page_tab_selected {
     position: relative;
@@ -296,6 +301,31 @@
 }
 .page_tab_add:hover {
     color: var(--color-accent-fg);
+}
+
+.catalog_tab,
+.catalog_tab_selected {
+    margin-left: auto;
+}
+.catalog_tab_selected {
+    position: relative;
+    font-weight: 500;
+}
+.catalog_tab_selected::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #fd8c73;
+    border-radius: 8px;
+}
+.catalog_tab_icon {
+    padding: 0 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .header_left_container {
