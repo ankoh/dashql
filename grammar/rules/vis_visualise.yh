@@ -19,6 +19,8 @@
 %type <buffers::parser::Node> vis_option;
 
 %type <buffers::parser::Node> vis_opt_draw_select;
+%type <WeakUniquePtr<NodeList>> vis_layer_select;
+%type <buffers::parser::Node> vis_opt_partition_by;
 %type <buffers::parser::Node> vis_opt_scale_type;
 %type <WeakUniquePtr<NodeList>> vis_opt_scale_between;
 %type <buffers::parser::Node> vis_opt_facet_by;

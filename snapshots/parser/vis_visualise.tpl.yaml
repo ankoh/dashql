@@ -65,6 +65,15 @@ parser-snapshots:
       VISUALISE (SELECT * FROM sales)
         DRAW line AS (SELECT date AS x, revenue AS y)
         DRAW point AS (SELECT date AS x, revenue AS y) USING (size => 4);
+  - name: vis_draw_partition_by
+    input: |
+      VISUALISE (SELECT * FROM sales)
+        DRAW line AS (SELECT date AS x, revenue AS y PARTITION BY region ORDER BY date ASC);
+  - name: vis_draw_partition_by_multi
+    input: |
+      VISUALISE (SELECT * FROM sales)
+        DRAW line AS (SELECT date AS x, revenue AS y PARTITION BY region, fiscal_year)
+        USING (size => 2);
 
   # PLACE
   - name: vis_place_basic

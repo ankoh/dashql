@@ -92,8 +92,10 @@ vis_identifier_list:
 //
 //   DRAW <geom> [AS (SELECT <targets> [FROM ...] [WHERE ...] [PARTITION BY ...] [ORDER BY ...])] [USING (...)]
 //
-// Inside `AS (...)` we reuse the full sql_select_stmt so WHERE/ORDER BY etc.
-// come for free. The parens provide the disambiguation boundary.
+// Inside `AS (...)` we use a restricted SELECT that only permits targets,
+// WHERE, and ORDER BY. The top-level FROM lives on VISUALISE and is inherited
+// by every layer, so we grammatically forbid FROM here instead of accepting
+// it and rejecting in actions.
 
 vis_draw_clause:
     DRAW vis_geom vis_opt_draw_select vis_opt_using {
@@ -105,19 +107,31 @@ vis_draw_clause:
     ;
 
 vis_opt_draw_select:
-    AS LRB sql_select_stmt RRB {
-        // A DRAW's inner SELECT may not have its own FROM clause: FROM belongs
-        // to the top-level VISUALISE AS (...) and is inherited by every layer.
-        for (auto* el = $3->front(); el; el = el->next) {
-            if (el->node.attribute_key() == Key::SQL_SELECT_FROM &&
-                el->node.node_type() != buffers::parser::NodeType::NONE) {
-                ctx.AddError(el->node.location(), "FROM is not allowed inside DRAW AS (...); use VISUALISE AS (SELECT ... FROM ...) instead");
-                break;
-            }
-        }
+    AS LRB vis_layer_select RRB {
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_SELECT, std::move($3));
     }
   | %empty { $$ = Null(); }
+    ;
+
+// Restricted SELECT for layer bodies: targets, optional WHERE, optional
+// PARTITION BY, optional ORDER BY. PARTITION BY is a ggsql layer-level concept
+// that gets emitted as a dedicated attribute on the select node rather than
+// reusing SQL_SELECT_GROUPS (which would be semantically wrong).
+// No FROM / GROUP BY / HAVING / WINDOW / set ops / LIMIT.
+vis_layer_select:
+    SELECT sql_target_list sql_where_clause vis_opt_partition_by sql_opt_sort_clause {
+        $$ = ctx.List({
+            Attr(Key::SQL_SELECT_TARGETS,     ctx.Array(@2, std::move($2))),
+            Attr(Key::SQL_SELECT_WHERE,       $3),
+            Attr(Key::VIS_LAYER_PARTITION_BY, $4),
+            Attr(Key::SQL_SELECT_ORDER,       $5),
+        });
+    }
+    ;
+
+vis_opt_partition_by:
+    PARTITION BY sql_expr_list  { $$ = ctx.Array(@$, std::move($3)); }
+  | %empty                      { $$ = Null(); }
     ;
 
 // ---------------------------------------------------------------------------
