@@ -32,7 +32,7 @@ class NullLogger extends Logger {
 class NullStorageBackend {
     async listSessions(): Promise<string[]> { return []; }
     async loadSession(): Promise<any> { return {}; }
-    async saveSession(): Promise<void> { }
+    async saveSessionManifest(): Promise<void> { }
     async deleteSession(): Promise<void> { }
     async loadSessionSchema(): Promise<string | null> { return null; }
     async saveSessionSchema(): Promise<void> { }

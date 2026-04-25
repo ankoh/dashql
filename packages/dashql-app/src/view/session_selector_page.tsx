@@ -212,7 +212,6 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
         // The registry handles cleaning up the associated notebook
     }, [storageWriter, connectionDispatch]);
 
-    const DeleteIcon = SymbolIcon("graph_minus");
     return (
         <div className={baseStyles.page} data-tauri-drag-region>
             <div className={baseStyles.banner_and_content_container} data-tauri-drag-region>

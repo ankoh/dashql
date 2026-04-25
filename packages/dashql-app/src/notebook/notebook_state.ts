@@ -5,7 +5,7 @@ import { analyzeScript, DashQLCompletionState, DashQLProcessorUpdateOut, DashQLS
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, SemanticUserFocus } from './focus.js';
 import { ConnectorInfo } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
-import { CREATE_NOTEBOOK_PAGE, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK_PAGE, DELETE_NOTEBOOK_SCRIPT, groupNotebookWrites, groupPageWrites, groupScriptDeletes, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK, WRITE_NOTEBOOK_SCRIPT } from '../platform/storage/storage_writer.js';
+import { REPLACE_NOTEBOOK, CREATE_NOTEBOOK_PAGE, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK_PAGE, DELETE_NOTEBOOK_SCRIPT, groupNotebookWrites, groupPageWrites, groupScriptDeletes, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK_SCRIPT } from '../platform/storage/storage_writer.js';
 import { NotebookStateWithoutId } from './notebook_state_registry.js';
 import { Logger } from '../platform/logger/logger.js';
 import { NotebookScriptAnnotations, NotebookPage, NotebookPageScript, NotebookMetadata as NotebookMetadataType, createEmptyAnnotations, createPageScript, generateScriptFileName } from './notebook_types.js';
@@ -512,7 +512,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookPages: newPages,
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newEntryInPage },
             };
-            storage?.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+            storage?.write(groupNotebookWrites(next.sessionId), { type: REPLACE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             return next;
         }
 

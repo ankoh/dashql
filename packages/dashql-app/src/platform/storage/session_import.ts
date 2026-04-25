@@ -24,7 +24,7 @@ export async function importSessionFromZip(
 
     sessionData.sessionId = newSessionId;
     sessionData.sessionPath = newSessionPath;
-    await backend.saveSession(newSessionPath, sessionData);
+    await backend.saveSessionManifest(newSessionPath, sessionData);
 
     // Import pages and scripts
     const notebookFolder = zip.folder(STORAGE_NOTEBOOK_FOLDER);

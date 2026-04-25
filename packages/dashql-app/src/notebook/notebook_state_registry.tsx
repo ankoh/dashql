@@ -6,7 +6,7 @@ import { CONNECTOR_TYPES, ConnectorType } from '../connection/connector_info.js'
 import { useConnectionRegistry } from '../connection/connection_registry.js';
 import { useStorageWriter } from '../platform/storage/storage_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK, groupNotebookWrites, WRITE_NOTEBOOK } from "../platform/storage/storage_writer.js";
+import { REPLACE_NOTEBOOK, DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK, groupNotebookWrites } from "../platform/storage/storage_writer.js";
 
 /// The notebook registry.
 ///
@@ -71,7 +71,7 @@ export function useNotebookStateAllocator(): NotebookAllocator {
         });
 
         storage.write(groupNotebookWrites(notebook.sessionId), {
-            type: WRITE_NOTEBOOK,
+            type: REPLACE_NOTEBOOK,
             value: notebook
         }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
         return [sessionId, notebook];

@@ -190,7 +190,7 @@ describe('OPFSStorageBackend', () => {
                 },
             };
 
-            await backend.saveSession('test-session', sessionData);
+            await backend.saveSessionManifest('test-session', sessionData);
 
             const loaded = await backend.loadSession('test-session');
             expect(loaded).toEqual(sessionData);
@@ -205,7 +205,7 @@ describe('OPFSStorageBackend', () => {
                 notebook: {},
             };
 
-            await backend.saveSession('test-session', sessionData);
+            await backend.saveSessionManifest('test-session', sessionData);
 
             const sessions = await backend.listSessions(STORAGE_MANIFEST_FILE);
             expect(sessions.some(s => s.path === 'test-session')).toBe(true);
@@ -220,7 +220,7 @@ describe('OPFSStorageBackend', () => {
                 notebook: {},
             };
 
-            await backend.saveSession('test-session', sessionData);
+            await backend.saveSessionManifest('test-session', sessionData);
             const sessionsAfterSave = await backend.listSessions(STORAGE_MANIFEST_FILE);
             expect(sessionsAfterSave.some(s => s.path === 'test-session')).toBe(true);
 
@@ -238,8 +238,8 @@ describe('OPFSStorageBackend', () => {
                 notebook: {},
             };
 
-            await backend.saveSession('test-session', sessionData);
-            await backend.saveSession('test-session', sessionData);
+            await backend.saveSessionManifest('test-session', sessionData);
+            await backend.saveSessionManifest('test-session', sessionData);
 
             const sessions = await backend.listSessions(STORAGE_MANIFEST_FILE);
             const count = sessions.filter(s => s.path === 'test-session').length;
@@ -256,7 +256,7 @@ describe('OPFSStorageBackend', () => {
                 connectionParams: { dataless: {} },
                 notebook: {},
             };
-            await backend.saveSession('test-session', sessionData);
+            await backend.saveSessionManifest('test-session', sessionData);
         });
 
         it('creates notebook pages', async () => {
@@ -299,7 +299,7 @@ describe('OPFSStorageBackend', () => {
                 connectionParams: { dataless: {} },
                 notebook: {},
             };
-            await backend.saveSession('test-session', sessionData);
+            await backend.saveSessionManifest('test-session', sessionData);
             await backend.createNotebookPage('test-session', 'page-1');
         });
 
@@ -356,7 +356,7 @@ describe('OPFSStorageBackend', () => {
                 connectionParams: { dataless: {} },
                 notebook: {},
             };
-            await backend.saveSession('test-session', sessionData);
+            await backend.saveSessionManifest('test-session', sessionData);
         });
 
         it('saves and loads draft script', async () => {
@@ -390,7 +390,7 @@ describe('OPFSStorageBackend', () => {
                 connectionParams: { dataless: {} },
                 notebook: {},
             };
-            await backend.saveSession('test-session', sessionData);
+            await backend.saveSessionManifest('test-session', sessionData);
             await backend.createNotebookPage('test-session', 'page-1');
         });
 
@@ -417,7 +417,7 @@ describe('OPFSStorageBackend', () => {
                 connectionParams: { dataless: {} },
                 notebook: {},
             };
-            await backend.saveSession('test-session', sessionData);
+            await backend.saveSessionManifest('test-session', sessionData);
         });
 
         it.skip('reorders pages', async () => {

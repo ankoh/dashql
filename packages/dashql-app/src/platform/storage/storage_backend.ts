@@ -36,7 +36,7 @@ export interface StorageBackend {
     /// Load a session by path
     loadSession(sessionPath: string): Promise<SessionData>;
     /// Save a session
-    saveSession(sessionPath: string, data: SessionData): Promise<void>;
+    saveSessionManifest(sessionPath: string, data: SessionData): Promise<void>;
     /// Delete a session
     deleteSession(sessionPath: string): Promise<void>;
 

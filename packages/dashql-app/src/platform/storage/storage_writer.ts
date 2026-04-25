@@ -15,9 +15,9 @@ export const DEBOUNCE_DURATION_SESSION_WRITE = 100;
 export const DEBOUNCE_DURATION_NOTEBOOK_WRITE = 100;
 export const DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE = 100;
 
-export const WRITE_SESSION = Symbol('WRITE_SESSION');
-export const WRITE_SESSION_SCHEMA = Symbol('WRITE_SESSION_SCHEMA');
-export const WRITE_NOTEBOOK = Symbol('WRITE_NOTEBOOK');
+export const WRITE_SESSION_MANIFEST = Symbol('WRITE_SESSION_MANIFEST');
+export const WRITE_SESSION_CATALOG_SCRIPT = Symbol('WRITE_SESSION_CATALOG_SCRIPT');
+export const REPLACE_NOTEBOOK = Symbol('REPLACE_NOTEBOOK');
 export const WRITE_NOTEBOOK_SCRIPT = Symbol('WRITE_NOTEBOOK_SCRIPT');
 export const CREATE_NOTEBOOK_PAGE = Symbol('CREATE_NOTEBOOK_PAGE');
 export const DELETE_NOTEBOOK_PAGE = Symbol('DELETE_NOTEBOOK_PAGE');
@@ -26,9 +26,9 @@ export const DELETE_NOTEBOOK = Symbol('DELETE_NOTEBOOK');
 export const DELETE_NOTEBOOK_SCRIPT = Symbol('DELETE_NOTEBOOK_SCRIPT');
 
 export type StorageWriteTaskVariant =
-    | VariantKind<typeof WRITE_SESSION, [string, ConnectionState]>
-    | VariantKind<typeof WRITE_SESSION_SCHEMA, [string, dashql.DashQLScript]>
-    | VariantKind<typeof WRITE_NOTEBOOK, NotebookState>
+    | VariantKind<typeof WRITE_SESSION_MANIFEST, [string, ConnectionState]>
+    | VariantKind<typeof WRITE_SESSION_CATALOG_SCRIPT, [string, dashql.DashQLScript]>
+    | VariantKind<typeof REPLACE_NOTEBOOK, NotebookState>
     | VariantKind<typeof WRITE_NOTEBOOK_SCRIPT, [string, string, string, string]>  // sessionPath, folderName (empty=draft), fileName (empty=draft), sql
     | VariantKind<typeof CREATE_NOTEBOOK_PAGE, [string, string, { scriptId: number, fileName: string, sql: string }[]]>  // sessionPath, pageName, scripts
     | VariantKind<typeof DELETE_NOTEBOOK_PAGE, [string, string]>  // sessionPath, pageName
@@ -43,7 +43,7 @@ export const groupSessionSchemaWrites = (sessionPath: string) => `${sessionPath}
 export const groupNotebookWrites = (sessionPath: string) => `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}`;
 export const groupPageWrites = (sessionPath: string, pageName: string) => `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${pageName}`;
 export const groupScriptWrites = (sessionPath: string, folderName: string, fileName: string) =>
-    (folderName === '' || fileName === '') ? `${sessionPath}/dashql-draft.sql` : `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${folderName}/${fileName}`;
+    (folderName === '' || fileName === '') ? `${sessionPath}/notebook/dashql-draft.sql` : `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${folderName}/${fileName}`;
 export const groupScriptDeletes = (sessionPath: string, pageName: string, scriptName: string) =>
     `delete:${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${scriptName}`;
 
@@ -196,7 +196,7 @@ export class StorageWriter {
 
     protected async executeTask(key: string, task: StorageWriteTaskVariant) {
         switch (task.type) {
-            case WRITE_SESSION: {
+            case WRITE_SESSION_MANIFEST: {
                 const [sessionPath, conn] = task.value;
                 this.logger.info("Writing session", {
                     key,
@@ -229,14 +229,14 @@ export class StorageWriter {
                 };
 
                 const timeBefore = new Date();
-                await this.backend.saveSession(sessionPath, connData);
+                await this.backend.saveSessionManifest(sessionPath, connData);
                 const timeAfter = new Date();
                 const writeDuration = timeAfter.getTime() - timeBefore.getTime();
                 const actualPath = `${sessionPath}/dashql-session.json`;
                 this.registerWrite(actualPath, JSON.stringify(connData).length, writeDuration);
                 break;
             }
-            case WRITE_SESSION_SCHEMA: {
+            case WRITE_SESSION_CATALOG_SCRIPT: {
                 const [sessionPath, catalogScript] = task.value;
                 this.logger.info("Writing session schema", {
                     key,
@@ -254,43 +254,16 @@ export class StorageWriter {
                 this.registerWrite(actualPath, schemaSQL.length, writeDuration);
                 break;
             }
-            case WRITE_NOTEBOOK: {
+            case REPLACE_NOTEBOOK: {
                 const notebook = task.value;
-                this.logger.info("Writing full notebook", {
+                this.logger.info("Creating notebook", {
                     key,
                     sessionPath: notebook.sessionId,
                 }, LOG_CTX);
 
                 const sessionPath = notebook.sessionId;
 
-                // Load existing session data to preserve connection params
-                let connectionParams: any;
-                try {
-                    const existingSession = await this.backend.loadSession(sessionPath);
-                    connectionParams = existingSession.connectionParams;
-                } catch {
-                    connectionParams = createDefaultConnectionParamsForConnector(notebook.connectorInfo);
-                }
-
-                const notebookMetadata: StorageNotebookMetadata = {
-                    originalFileName: notebook.notebookMetadata.originalFileName,
-                    createdAt: new Date().toISOString(),
-                };
-
-                const connData: SessionData = {
-                    sessionId: notebook.sessionId,
-                    sessionPath,
-                    title: notebook.notebookMetadata.originalFileName || "Untitled",
-                    connectionParams,
-                    notebook: notebookMetadata,
-                };
-
-                const sessionTimeBefore = new Date();
-                await this.backend.saveSession(sessionPath, connData);
-                const sessionTimeAfter = new Date();
-                this.registerWrite(`${sessionPath}/dashql-session.json`, JSON.stringify(connData).length, sessionTimeAfter.getTime() - sessionTimeBefore.getTime());
-
-                // Write all pages and their scripts
+                // Write all pages and their scripts first
                 for (const page of notebook.notebookPages) {
                     const pageName = page.folderName;
                     await this.backend.createNotebookPage(sessionPath, pageName);
@@ -314,8 +287,35 @@ export class StorageWriter {
                     const t0 = new Date();
                     await this.backend.saveNotebookScriptDraft(sessionPath, composerSql);
                     const t1 = new Date();
-                    this.registerWrite(`${sessionPath}/dashql-draft.sql`, composerSql.length, t1.getTime() - t0.getTime());
+                    this.registerWrite(`${sessionPath}/notebook/dashql-draft.sql`, composerSql.length, t1.getTime() - t0.getTime());
                 }
+
+                // Save session last so it never references content that doesn't exist yet
+                let connectionParams: any;
+                try {
+                    const existingSession = await this.backend.loadSession(sessionPath);
+                    connectionParams = existingSession.connectionParams;
+                } catch {
+                    connectionParams = createDefaultConnectionParamsForConnector(notebook.connectorInfo);
+                }
+
+                const notebookMetadata: StorageNotebookMetadata = {
+                    originalFileName: notebook.notebookMetadata.originalFileName,
+                    createdAt: new Date().toISOString(),
+                };
+
+                const connData: SessionData = {
+                    sessionId: notebook.sessionId,
+                    sessionPath,
+                    title: notebook.notebookMetadata.originalFileName || "Untitled",
+                    connectionParams,
+                    notebook: notebookMetadata,
+                };
+
+                const sessionTimeBefore = new Date();
+                await this.backend.saveSessionManifest(sessionPath, connData);
+                const sessionTimeAfter = new Date();
+                this.registerWrite(`${sessionPath}/dashql-session.json`, JSON.stringify(connData).length, sessionTimeAfter.getTime() - sessionTimeBefore.getTime());
 
                 break;
             }
@@ -335,7 +335,7 @@ export class StorageWriter {
                 if (folderName === '' || fileName === '') {
                     // Draft script (empty folder/file name)
                     await this.backend.saveNotebookScriptDraft(sessionPath, sql);
-                    actualPath = `${sessionPath}/dashql-draft.sql`;
+                    actualPath = `${sessionPath}/notebook/dashql-draft.sql`;
                 } else {
                     // Committed script in a page
                     await this.backend.saveNotebookScript(sessionPath, folderName, fileName, sql);

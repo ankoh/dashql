@@ -28,7 +28,7 @@ import { DatalessConnectorAction, reduceDatalessConnectorState } from './datales
 import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
-import { DEBOUNCE_DURATION_SESSION_WRITE, DELETE_SESSION, groupSessionWrites, StorageWriter, WRITE_SESSION } from '../platform/storage/storage_writer.js';
+import { DEBOUNCE_DURATION_SESSION_WRITE, DELETE_SESSION, groupSessionWrites, StorageWriter, WRITE_SESSION_MANIFEST } from '../platform/storage/storage_writer.js';
 import { LoggableException, Logger } from '../platform/logger/logger.js';
 
 export interface CatalogUpdates {
@@ -317,7 +317,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
             // Persist the resetted connection (only if it was previously activated)
             if (newState.active) {
-                storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
+                storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION_MANIFEST, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
             }
             return newState;
         }
@@ -350,7 +350,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 return state;
             }
             const newState = { ...state, active: true };
-            storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
+            storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION_MANIFEST, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
             return newState;
         }
 
@@ -440,7 +440,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
             // Only persist active connections
             if (newState.active) {
-                storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
+                storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION_MANIFEST, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
             }
             return newState;
         }

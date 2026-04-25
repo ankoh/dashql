@@ -84,7 +84,7 @@ export class OPFSStorageBackend implements StorageBackend {
         return data;
     }
 
-    async saveSession(sessionPath: string, data: SessionData): Promise<void> {
+    async saveSessionManifest(sessionPath: string, data: SessionData): Promise<void> {
         const relativePath = this.parseSessionPath(sessionPath);
         const sessionDir = await this.getSessionDir(relativePath, true);
         const metaFile = await sessionDir.getFileHandle(STORAGE_SESSION_FILE, { create: true });

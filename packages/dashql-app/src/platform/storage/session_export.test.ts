@@ -14,7 +14,7 @@ describe('exportSessionAsZip', () => {
             parseSessionPath: vi.fn((sessionPath: string) => sessionPath.replace('mock://', '')),
             listSessions: vi.fn(),
             loadSession: vi.fn(),
-            saveSession: vi.fn(),
+            saveSessionManifest: vi.fn(),
             deleteSession: vi.fn(),
             loadSessionSchema: vi.fn(),
             saveSessionSchema: vi.fn(),

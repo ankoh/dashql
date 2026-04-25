@@ -15,7 +15,7 @@ describe('importSessionFromZip', () => {
             parseSessionPath: vi.fn((sessionPath: string) => sessionPath.replace('mock://', '')),
             listSessions: vi.fn(),
             loadSession: vi.fn(),
-            saveSession: vi.fn(),
+            saveSessionManifest: vi.fn(),
             deleteSession: vi.fn(),
             loadSessionSchema: vi.fn(),
             saveSessionSchema: vi.fn(),
@@ -71,8 +71,8 @@ describe('importSessionFromZip', () => {
         expect(allocateSessionPath).toHaveBeenCalledTimes(1);
 
         // Verify session was saved with new path and new sessionId
-        expect(mockBackend.saveSession).toHaveBeenCalledTimes(1);
-        const savedCall = vi.mocked(mockBackend.saveSession).mock.calls[0];
+        expect(mockBackend.saveSessionManifest).toHaveBeenCalledTimes(1);
+        const savedCall = vi.mocked(mockBackend.saveSessionManifest).mock.calls[0];
         expect(savedCall[0]).toBe('session-1');  // First arg is sessionPath
         expect(savedCall[1].sessionPath).toBe('session-1');
         expect(savedCall[1].title).toBe('Original Session');
@@ -133,7 +133,7 @@ describe('importSessionFromZip', () => {
         );
 
         expect(newSessionPath).toBe('session-1');
-        expect(mockBackend.saveSession).toHaveBeenCalledTimes(1);
+        expect(mockBackend.saveSessionManifest).toHaveBeenCalledTimes(1);
         expect(mockBackend.createNotebookPage).not.toHaveBeenCalled();
         expect(mockBackend.saveNotebookScript).not.toHaveBeenCalled();
         expect(mockBackend.saveNotebookScriptDraft).not.toHaveBeenCalled();
