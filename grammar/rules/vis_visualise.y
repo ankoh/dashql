@@ -109,7 +109,8 @@ vis_opt_draw_select:
         // A DRAW's inner SELECT may not have its own FROM clause: FROM belongs
         // to the top-level VISUALISE AS (...) and is inherited by every layer.
         for (auto* el = $3->front(); el; el = el->next) {
-            if (el->node.attribute_key() == Key::SQL_SELECT_FROM) {
+            if (el->node.attribute_key() == Key::SQL_SELECT_FROM &&
+                el->node.node_type() != buffers::parser::NodeType::NONE) {
                 ctx.AddError(el->node.location(), "FROM is not allowed inside DRAW AS (...); use VISUALISE AS (SELECT ... FROM ...) instead");
                 break;
             }

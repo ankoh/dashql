@@ -385,9 +385,7 @@ parser-snapshots:
                                     type: NAME
                                     text: "y"
       scanner-errors: []
-      parser-errors:
-        - message: FROM is not allowed inside DRAW AS (...); use VISUALISE AS (SELECT ... FROM ...) instead
-          text: ""
+      parser-errors: []
       line-breaks:
         - text: [34,35]
       comments: []
@@ -510,9 +508,7 @@ parser-snapshots:
                                   - type: LITERAL_INTEGER
                                     text: "100"
       scanner-errors: []
-      parser-errors:
-        - message: FROM is not allowed inside DRAW AS (...); use VISUALISE AS (SELECT ... FROM ...) instead
-          text: ""
+      parser-errors: []
       line-breaks:
         - text: [34,35]
       comments: []
@@ -633,9 +629,7 @@ parser-snapshots:
                                     type: ENUM_SQL_ORDER_DIRECTION
                                     value: ASCENDING
       scanner-errors: []
-      parser-errors:
-        - message: FROM is not allowed inside DRAW AS (...); use VISUALISE AS (SELECT ... FROM ...) instead
-          text: ""
+      parser-errors: []
       line-breaks:
         - text: [34,35]
       comments: []
@@ -759,9 +753,7 @@ parser-snapshots:
                                 type: LITERAL_STRING
                                 text: "'blue'"
       scanner-errors: []
-      parser-errors:
-        - message: FROM is not allowed inside DRAW AS (...); use VISUALISE AS (SELECT ... FROM ...) instead
-          text: ""
+      parser-errors: []
       line-breaks:
         - text: [34,35]
         - text: [83,84]
@@ -863,9 +855,7 @@ parser-snapshots:
                                     type: NAME
                                     text: "y"
       scanner-errors: []
-      parser-errors:
-        - message: FROM is not allowed inside DRAW AS (...); use VISUALISE AS (SELECT ... FROM ...) instead
-          text: ""
+      parser-errors: []
       line-breaks:
         - text: [34,35]
       comments: []
@@ -1026,9 +1016,7 @@ parser-snapshots:
                                 type: LITERAL_INTEGER
                                 text: "2"
       scanner-errors: []
-      parser-errors:
-        - message: FROM is not allowed inside DRAW AS (...); use VISUALISE AS (SELECT ... FROM ...) instead
-          text: ""
+      parser-errors: []
       line-breaks:
         - text: [34,35]
         - text: [51,52]
@@ -1288,11 +1276,7 @@ parser-snapshots:
                                 type: LITERAL_INTEGER
                                 text: "4"
       scanner-errors: []
-      parser-errors:
-        - message: FROM is not allowed inside DRAW AS (...); use VISUALISE AS (SELECT ... FROM ...) instead
-          text: ""
-        - message: FROM is not allowed inside DRAW AS (...); use VISUALISE AS (SELECT ... FROM ...) instead
-          text: ""
+      parser-errors: []
       line-breaks:
         - text: [34,35]
         - text: [82,83]
@@ -2089,9 +2073,7 @@ parser-snapshots:
                                 type: LITERAL_STRING
                                 text: "'Sales'"
       scanner-errors: []
-      parser-errors:
-        - message: FROM is not allowed inside DRAW AS (...); use VISUALISE AS (SELECT ... FROM ...) instead
-          text: ""
+      parser-errors: []
       line-breaks:
         - text: [34,35]
         - text: [83,84]
