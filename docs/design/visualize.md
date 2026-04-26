@@ -80,8 +80,7 @@ SCALE continuous(lambda v: log10(v), breaks => log10) x
     (e.g. `value => lambda v: log10(v)`).
   - `lambda <p>: <e>` — a bare lambda, kept concise for the common case
     where the name is implied by position.
-  A lambda entry (named or unnamed) serves as the value projection
-  (replaces the old `TRANSFORM` clause).
+  A lambda entry (named or unnamed) serves as the value projection.
 - `LAMBDA` is a reserved keyword so an entry starting with it cannot be
   mistaken for a kwarg key.
 - `<aesthetic>` is a plain identifier — keeping it an `IDENT` prevents
