@@ -333,6 +333,7 @@ sh_binary(
         ":dev_config",
         ":dep_flatbuf",
         ":dep_protobuf",
+        ":dep_jsonschema",
         ":dep_core_wasm",
         ":dep_duckdb_web_wasm",
         ":dep_svg_symbols",
