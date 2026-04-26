@@ -305,11 +305,6 @@ enum GroupByItemType: uint8 {
     GROUPING_SETS,
 }
 
-enum VisLayerKind: uint8 {
-    DRAW,
-    PLACE,
-}
-
 enum VisGeom: uint8 {
     POINT,
     LINE,

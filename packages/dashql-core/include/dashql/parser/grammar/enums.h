@@ -48,7 +48,6 @@ X(buffers::parser::WindowBoundMode, buffers::parser::NodeType::ENUM_SQL_WINDOW_B
 X(buffers::parser::WindowExclusionMode, buffers::parser::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE)
 X(buffers::parser::WindowRangeMode, buffers::parser::NodeType::ENUM_SQL_WINDOW_RANGE_MODE)
 X(buffers::parser::VisGeom, buffers::parser::NodeType::ENUM_VIS_GEOM)
-X(buffers::parser::VisLayerKind, buffers::parser::NodeType::ENUM_VIS_LAYER_KIND)
 X(buffers::parser::VisScaleType, buffers::parser::NodeType::ENUM_VIS_SCALE_TYPE)
 X(buffers::parser::VisProjectType, buffers::parser::NodeType::ENUM_VIS_PROJECT_TYPE)
 #undef X

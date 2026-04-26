@@ -7,7 +7,6 @@
 %type <buffers::parser::Node> vis_clause;
 
 %type <buffers::parser::Node> vis_draw_clause;
-%type <buffers::parser::Node> vis_place_clause;
 %type <buffers::parser::Node> vis_scale_clause;
 %type <buffers::parser::Node> vis_facet_clause;
 %type <buffers::parser::Node> vis_project_clause;
@@ -24,8 +23,10 @@
 %type <buffers::parser::Node> vis_opt_scale_type;
 %type <buffers::parser::Node> vis_opt_scale_from;
 %type <buffers::parser::Node> vis_opt_scale_to;
-%type <buffers::parser::Node> vis_opt_scale_transform;
 %type <buffers::parser::Node> vis_opt_scale_format;
+%type <buffers::parser::Node> vis_opt_scale_options;
+%type <WeakUniquePtr<NodeList>> vis_scale_option_list;
+%type <buffers::parser::Node> vis_scale_option;
 %type <buffers::parser::Node> vis_lambda;
 %type <buffers::parser::Node> vis_opt_facet_by;
 %type <buffers::parser::Node> vis_opt_project_aesthetics;

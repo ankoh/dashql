@@ -21,6 +21,16 @@ parser-snapshots:
       VISUALISE (SELECT date AS x, revenue AS y FROM sales)
         DRAW line;
 
+  # VISUALISE TABLE <name> — shorthand for VISUALISE (SELECT * FROM <name>)
+  - name: vis_visualise_table
+    input: |
+      VISUALISE TABLE sales
+        DRAW point;
+  - name: vis_visualise_table_qualified
+    input: |
+      VISUALISE TABLE warehouse.public.sales
+        DRAW line;
+
   # DRAW
   - name: vis_draw_point_basic
     input: |
@@ -77,17 +87,6 @@ parser-snapshots:
         PARTITION BY region, fiscal_year
         USING (size => 2);
 
-  # PLACE
-  - name: vis_place_basic
-    input: |
-      VISUALISE
-        PLACE text;
-  - name: vis_place_with_using
-    input: |
-      VISUALISE
-        PLACE text
-        USING (label => 'annotation');
-
   # SCALE
   - name: vis_scale_aesthetic_only
     input: |
@@ -127,16 +126,28 @@ parser-snapshots:
       VISUALISE
         SCALE discrete color
         FORMAT (lambda x: case x when 1 then 'foo' when 2 then 'bar' end);
-  - name: vis_scale_transform
+  - name: vis_scale_projection
     input: |
       VISUALISE
-        SCALE continuous x TRANSFORM log10;
+        SCALE continuous(lambda v: log10(v)) x;
+  - name: vis_scale_type_options
+    input: |
+      VISUALISE
+        SCALE binned(breaks => 10) y;
+  - name: vis_scale_projection_and_type_options
+    input: |
+      VISUALISE
+        SCALE continuous(lambda v: log10(v), breaks => log10) x;
+  - name: vis_scale_named_projection
+    input: |
+      VISUALISE
+        SCALE continuous(value => lambda v: log10(v), breaks => log10) x;
   - name: vis_scale_full
     input: |
       VISUALISE
-        SCALE continuous x FROM [0, 100] TO [0, 1000]
-        TRANSFORM log10
-        USING (breaks => 5)
+        SCALE continuous(lambda v: log10(v), breaks => log10) x
+        FROM [0, 100] TO [0, 1000]
+        USING (labels => 'scientific')
         FORMAT (lambda v: v * 2);
 
   # FACET
@@ -198,7 +209,6 @@ parser-snapshots:
     input: |
       VISUALISE (SELECT * FROM sales)
         DRAW point FROM (SELECT date AS x, revenue AS y)
-        PLACE text USING (label => 'top seller')
         SCALE continuous y FROM [0] TO [1000]
         FACET region BY fiscal_year
         PROJECT TO cartesian

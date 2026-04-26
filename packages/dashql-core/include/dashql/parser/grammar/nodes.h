@@ -301,18 +301,6 @@ inline buffers::parser::Node ProjectTypeEnum(ParseContext& driver, buffers::pars
     return Enum(loc, value);
 }
 
-/// Build an OBJECT_VIS_LAYER (DRAW or PLACE) with layer-kind and geom prepended to `attrs`.
-inline buffers::parser::Node Layer(ParseContext& driver, buffers::parser::Location loc,
-                                   buffers::parser::VisLayerKind kind, buffers::parser::Node geom,
-                                   std::initializer_list<buffers::parser::Node> attrs) {
-    auto list = driver.List({
-        Attr(Key::VIS_LAYER_KIND, Enum(loc, kind)),
-        Attr(Key::VIS_LAYER_GEOM, geom),
-    });
-    list->append(std::move(attrs));
-    return driver.Object(loc, buffers::parser::NodeType::OBJECT_VIS_LAYER, std::move(list), false);
-}
-
 }  // namespace vis
 
 }  // namespace parser
