@@ -4,7 +4,7 @@
 // Shape:
 //
 //   VISUALISE [(SELECT ...)]
-//     DRAW <geom> [AS (SELECT ... [WHERE ...] [PARTITION BY ...] [ORDER BY ...])]
+//     DRAW <geom> [FROM (<select>)] [PARTITION BY ...]
 //                 [REMAP (<target>, ...)] [USING (...)]
 //     PLACE <geom> [USING (...)]
 //     SCALE [<type>] <aesthetic> [FROM <bracket-array>] [TO <bracket-array>]
@@ -93,25 +93,26 @@ vis_identifier_list:
 // ---------------------------------------------------------------------------
 // DRAW
 //
-//   DRAW <geom> [AS (SELECT <targets> [FROM ...] [WHERE ...] [PARTITION BY ...] [ORDER BY ...])] [USING (...)]
+//   DRAW <geom> [FROM (<select>)] [PARTITION BY <ident>, ...]
+//                                 [REMAP (<target>, ...)] [USING (...)]
 //
-// Inside `AS (...)` we use a restricted SELECT that only permits targets,
-// WHERE, and ORDER BY. The top-level FROM lives on VISUALISE and is inherited
-// by every layer, so we grammatically forbid FROM here instead of accepting
-// it and rejecting in actions.
+// Inside `FROM (...)` we accept a full SQL select statement. PARTITION BY is a
+// ggsql layer-level concept (not part of SELECT) and lives as its own DRAW
+// sub-clause.
 
 vis_draw_clause:
-    DRAW vis_geom vis_opt_draw_select vis_opt_draw_remap vis_opt_using {
+    DRAW vis_geom vis_opt_draw_select vis_opt_partition_by vis_opt_draw_remap vis_opt_using {
         $$ = vis::Layer(ctx, @$, buffers::parser::VisLayerKind::DRAW, $2, {
-            Attr(Key::VIS_LAYER_SELECT,  $3),
-            Attr(Key::VIS_LAYER_REMAP,   $4),
-            Attr(Key::VIS_LAYER_USING,   $5),
+            Attr(Key::VIS_LAYER_SELECT,        $3),
+            Attr(Key::VIS_LAYER_PARTITION_BY,  $4),
+            Attr(Key::VIS_LAYER_REMAP,         $5),
+            Attr(Key::VIS_LAYER_USING,         $6),
         });
     }
     ;
 
 vis_opt_draw_select:
-    AS LRB vis_layer_select RRB {
+    FROM LRB sql_select_stmt RRB {
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_SELECT, std::move($3));
     }
   | %empty { $$ = Null(); }
@@ -125,25 +126,9 @@ vis_opt_draw_remap:
   | %empty                         { $$ = Null(); }
     ;
 
-// Restricted SELECT for layer bodies: targets, optional WHERE, optional
-// PARTITION BY, optional ORDER BY. PARTITION BY is a ggsql layer-level concept
-// that gets emitted as a dedicated attribute on the select node rather than
-// reusing SQL_SELECT_GROUPS (which would be semantically wrong).
-// No FROM / GROUP BY / HAVING / WINDOW / set ops / LIMIT.
-vis_layer_select:
-    SELECT sql_target_list sql_where_clause vis_opt_partition_by sql_opt_sort_clause {
-        $$ = ctx.List({
-            Attr(Key::SQL_SELECT_TARGETS,     ctx.Array(@2, std::move($2))),
-            Attr(Key::SQL_SELECT_WHERE,       $3),
-            Attr(Key::VIS_LAYER_PARTITION_BY, $4),
-            Attr(Key::SQL_SELECT_ORDER,       $5),
-        });
-    }
-    ;
-
 vis_opt_partition_by:
-    PARTITION BY sql_expr_list  { $$ = ctx.Array(@$, std::move($3)); }
-  | %empty                      { $$ = Null(); }
+    PARTITION BY vis_identifier_list  { $$ = ctx.Array(@$, std::move($3)); }
+  | %empty                            { $$ = Null(); }
     ;
 
 // ---------------------------------------------------------------------------

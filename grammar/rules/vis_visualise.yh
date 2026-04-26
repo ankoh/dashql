@@ -20,7 +20,6 @@
 
 %type <buffers::parser::Node> vis_opt_draw_select;
 %type <buffers::parser::Node> vis_opt_draw_remap;
-%type <WeakUniquePtr<NodeList>> vis_layer_select;
 %type <buffers::parser::Node> vis_opt_partition_by;
 %type <buffers::parser::Node> vis_opt_scale_type;
 %type <buffers::parser::Node> vis_opt_scale_from;

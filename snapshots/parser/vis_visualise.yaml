@@ -292,7 +292,7 @@ parser-snapshots:
   - name: vis_draw_with_select
     input: |-
       VISUALISE (SELECT * FROM sales)
-        DRAW line AS (SELECT date AS x, revenue AS y);
+        DRAW line FROM (SELECT date AS x, revenue AS y);
     expected:
       statements:
         - type: VIS_VISUALISE
@@ -346,7 +346,7 @@ parser-snapshots:
                         children: []
                       - key: VIS_LAYER_SELECT
                         type: OBJECT_SQL_SELECT
-                        text: "AS (SELECT..enue AS y)"
+                        text: "FROM (SELE..enue AS y)"
                         children:
                           - key: SQL_SELECT_TARGETS
                             type: ARRAY
@@ -393,7 +393,7 @@ parser-snapshots:
   - name: vis_draw_with_where
     input: |-
       VISUALISE (SELECT * FROM sales)
-        DRAW bar AS (SELECT region AS x, revenue AS y WHERE revenue > 100);
+        DRAW bar FROM (SELECT region AS x, revenue AS y WHERE revenue > 100);
     expected:
       statements:
         - type: VIS_VISUALISE
@@ -435,11 +435,11 @@ parser-snapshots:
                 text: "\n  DRAW ba..nue > 100)"
                 children:
                   - type: OBJECT_VIS_LAYER
-                    text: "DRAW bar A..nue > 100)"
+                    text: "DRAW bar F..nue > 100)"
                     children:
                       - key: VIS_LAYER_KIND
                         type: ENUM_VIS_LAYER_KIND
-                        text: "DRAW bar A..nue > 100)"
+                        text: "DRAW bar F..nue > 100)"
                         children: []
                       - key: VIS_LAYER_GEOM
                         type: ENUM_VIS_GEOM
@@ -447,7 +447,7 @@ parser-snapshots:
                         children: []
                       - key: VIS_LAYER_SELECT
                         type: OBJECT_SQL_SELECT
-                        text: "AS (SELECT..nue > 100)"
+                        text: "FROM (SELE..nue > 100)"
                         children:
                           - key: SQL_SELECT_TARGETS
                             type: ARRAY
@@ -516,7 +516,7 @@ parser-snapshots:
   - name: vis_draw_order_by
     input: |-
       VISUALISE (SELECT * FROM sales)
-        DRAW line AS (SELECT date AS x, revenue AS y ORDER BY date ASC);
+        DRAW line FROM (SELECT date AS x, revenue AS y ORDER BY date ASC);
     expected:
       statements:
         - type: VIS_VISUALISE
@@ -570,7 +570,7 @@ parser-snapshots:
                         children: []
                       - key: VIS_LAYER_SELECT
                         type: OBJECT_SQL_SELECT
-                        text: "AS (SELECT.. date ASC)"
+                        text: "FROM (SELE.. date ASC)"
                         children:
                           - key: SQL_SELECT_TARGETS
                             type: ARRAY
@@ -637,7 +637,7 @@ parser-snapshots:
   - name: vis_draw_using
     input: |-
       VISUALISE (SELECT * FROM sales)
-        DRAW bar AS (SELECT region AS x, revenue AS y)
+        DRAW bar FROM (SELECT region AS x, revenue AS y)
         USING (size => 10, fill => 'blue');
     expected:
       statements:
@@ -680,11 +680,11 @@ parser-snapshots:
                 text: "\n  DRAW ba..=> 'blue')"
                 children:
                   - type: OBJECT_VIS_LAYER
-                    text: "DRAW bar A..=> 'blue')"
+                    text: "DRAW bar F..=> 'blue')"
                     children:
                       - key: VIS_LAYER_KIND
                         type: ENUM_VIS_LAYER_KIND
-                        text: "DRAW bar A..=> 'blue')"
+                        text: "DRAW bar F..=> 'blue')"
                         children: []
                       - key: VIS_LAYER_GEOM
                         type: ENUM_VIS_GEOM
@@ -692,7 +692,7 @@ parser-snapshots:
                         children: []
                       - key: VIS_LAYER_SELECT
                         type: OBJECT_SQL_SELECT
-                        text: "AS (SELECT..enue AS y)"
+                        text: "FROM (SELE..enue AS y)"
                         children:
                           - key: SQL_SELECT_TARGETS
                             type: ARRAY
@@ -756,13 +756,13 @@ parser-snapshots:
       parser-errors: []
       line-breaks:
         - text: [31,32]
-        - text: [80,81]
+        - text: [82,83]
       comments: []
 
   - name: vis_draw_col_alias
     input: |-
       VISUALISE (SELECT * FROM sales)
-        DRAW col AS (SELECT date AS x, revenue AS y);
+        DRAW col FROM (SELECT date AS x, revenue AS y);
     expected:
       statements:
         - type: VIS_VISUALISE
@@ -804,11 +804,11 @@ parser-snapshots:
                 text: "\n  DRAW co..enue AS y)"
                 children:
                   - type: OBJECT_VIS_LAYER
-                    text: "DRAW col A..enue AS y)"
+                    text: "DRAW col F..enue AS y)"
                     children:
                       - key: VIS_LAYER_KIND
                         type: ENUM_VIS_LAYER_KIND
-                        text: "DRAW col A..enue AS y)"
+                        text: "DRAW col F..enue AS y)"
                         children: []
                       - key: VIS_LAYER_GEOM
                         type: ENUM_VIS_GEOM
@@ -816,7 +816,7 @@ parser-snapshots:
                         children: []
                       - key: VIS_LAYER_SELECT
                         type: OBJECT_SQL_SELECT
-                        text: "AS (SELECT..enue AS y)"
+                        text: "FROM (SELE..enue AS y)"
                         children:
                           - key: SQL_SELECT_TARGETS
                             type: ARRAY
@@ -863,7 +863,7 @@ parser-snapshots:
   - name: vis_draw_full
     input: |-
       VISUALISE (SELECT * FROM sales)
-        DRAW line AS (
+        DRAW line FROM (
           SELECT date AS x, revenue AS y
           WHERE region = 'EU'
           ORDER BY date ASC
@@ -922,7 +922,7 @@ parser-snapshots:
                         children: []
                       - key: VIS_LAYER_SELECT
                         type: OBJECT_SQL_SELECT
-                        text: "AS (\n    S..te ASC\n  )"
+                        text: "FROM (\n   ..te ASC\n  )"
                         children:
                           - key: SQL_SELECT_TARGETS
                             type: ARRAY
@@ -1019,22 +1019,22 @@ parser-snapshots:
       parser-errors: []
       line-breaks:
         - text: [31,32]
-        - text: [48,49]
-        - text: [83,84]
-        - text: [107,108]
-        - text: [129,130]
-        - text: [133,134]
+        - text: [50,51]
+        - text: [85,86]
+        - text: [109,110]
+        - text: [131,132]
+        - text: [135,136]
       comments: []
 
-  - name: vis_draw_from_rejected
+  - name: vis_draw_with_from
     input: |-
       VISUALISE
-        DRAW line AS (SELECT date AS x, revenue AS y FROM sales);
+        DRAW line FROM (SELECT date AS x, revenue AS y FROM sales);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 17
+          ast-size: 21
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALISE\n..ROM sales)"
@@ -1056,22 +1056,59 @@ parser-snapshots:
                         children: []
                       - key: VIS_LAYER_SELECT
                         type: OBJECT_SQL_SELECT
-                        text: "AS (SELECT..ROM sales)"
+                        text: "FROM (SELE..ROM sales)"
                         children:
                           - key: SQL_SELECT_TARGETS
                             type: ARRAY
-                            text: "date AS x,..FROM sales"
+                            text: "date AS x,..venue AS y"
                             children:
                               - type: OBJECT_SQL_RESULT_TARGET
-                                text: "date AS x,..FROM sales"
+                                text: "date AS x"
                                 children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "date"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "date"
+                                        children:
+                                          - type: NAME
+                                            text: "date"
                                   - key: SQL_RESULT_TARGET_NAME
                                     type: NAME
+                                    text: "x"
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "revenue AS y"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "revenue"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "revenue"
+                                        children:
+                                          - type: NAME
+                                            text: "revenue"
+                                  - key: SQL_RESULT_TARGET_NAME
+                                    type: NAME
+                                    text: "y"
+                          - key: SQL_SELECT_FROM
+                            type: ARRAY
+                            text: "FROM sales"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "sales"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
                                     text: "sales"
+                                    children:
+                                      - type: NAME
+                                        text: "sales"
       scanner-errors: []
-      parser-errors:
-        - message: 'syntax error, unexpected FROM'
-          text: "FROM"
+      parser-errors: []
       line-breaks:
         - text: [9,10]
       comments: []
@@ -1079,8 +1116,8 @@ parser-snapshots:
   - name: vis_draw_two_layers
     input: |-
       VISUALISE (SELECT * FROM sales)
-        DRAW line AS (SELECT date AS x, revenue AS y)
-        DRAW point AS (SELECT date AS x, revenue AS y) USING (size => 4);
+        DRAW line FROM (SELECT date AS x, revenue AS y)
+        DRAW point FROM (SELECT date AS x, revenue AS y) USING (size => 4);
     expected:
       statements:
         - type: VIS_VISUALISE
@@ -1134,7 +1171,7 @@ parser-snapshots:
                         children: []
                       - key: VIS_LAYER_SELECT
                         type: OBJECT_SQL_SELECT
-                        text: "AS (SELECT..enue AS y)"
+                        text: "FROM (SELE..enue AS y)"
                         children:
                           - key: SQL_SELECT_TARGETS
                             type: ARRAY
@@ -1185,7 +1222,7 @@ parser-snapshots:
                         children: []
                       - key: VIS_LAYER_SELECT
                         type: OBJECT_SQL_SELECT
-                        text: "AS (SELECT..enue AS y)"
+                        text: "FROM (SELE..enue AS y)"
                         children:
                           - key: SQL_SELECT_TARGETS
                             type: ARRAY
@@ -1240,21 +1277,22 @@ parser-snapshots:
       parser-errors: []
       line-breaks:
         - text: [31,32]
-        - text: [79,80]
+        - text: [81,82]
       comments: []
 
   - name: vis_draw_partition_by
     input: |-
       VISUALISE (SELECT * FROM sales)
-        DRAW line AS (SELECT date AS x, revenue AS y PARTITION BY region ORDER BY date ASC);
+        DRAW line FROM (SELECT date AS x, revenue AS y ORDER BY date ASC)
+        PARTITION BY region;
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 35
+          ast-size: 33
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALISE .. date ASC)"
+            text: "VISUALISE .. BY region"
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_SELECT
@@ -1285,14 +1323,14 @@ parser-snapshots:
                                 text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW li.. date ASC)"
+                text: "\n  DRAW li.. BY region"
                 children:
                   - type: OBJECT_VIS_LAYER
-                    text: "DRAW line .. date ASC)"
+                    text: "DRAW line .. BY region"
                     children:
                       - key: VIS_LAYER_KIND
                         type: ENUM_VIS_LAYER_KIND
-                        text: "DRAW line .. date ASC)"
+                        text: "DRAW line .. BY region"
                         children: []
                       - key: VIS_LAYER_GEOM
                         type: ENUM_VIS_GEOM
@@ -1300,7 +1338,7 @@ parser-snapshots:
                         children: []
                       - key: VIS_LAYER_SELECT
                         type: OBJECT_SQL_SELECT
-                        text: "AS (SELECT.. date ASC)"
+                        text: "FROM (SELE.. date ASC)"
                         children:
                           - key: SQL_SELECT_TARGETS
                             type: ARRAY
@@ -1338,19 +1376,6 @@ parser-snapshots:
                                   - key: SQL_RESULT_TARGET_NAME
                                     type: NAME
                                     text: "y"
-                          - key: VIS_LAYER_PARTITION_BY
-                            type: ARRAY
-                            text: "PARTITION BY region"
-                            children:
-                              - type: OBJECT_SQL_COLUMN_REF
-                                text: "region"
-                                children:
-                                  - key: SQL_COLUMN_REF_PATH
-                                    type: ARRAY
-                                    text: "region"
-                                    children:
-                                      - type: NAME
-                                        text: "region"
                           - key: SQL_SELECT_ORDER
                             type: ARRAY
                             text: "ORDER BY date ASC"
@@ -1371,22 +1396,30 @@ parser-snapshots:
                                   - key: SQL_ORDER_DIRECTION
                                     type: ENUM_SQL_ORDER_DIRECTION
                                     value: ASCENDING
+                      - key: VIS_LAYER_PARTITION_BY
+                        type: ARRAY
+                        text: "PARTITION BY region"
+                        children:
+                          - type: NAME
+                            text: "region"
       scanner-errors: []
       parser-errors: []
       line-breaks:
         - text: [31,32]
+        - text: [99,100]
       comments: []
 
   - name: vis_draw_partition_by_multi
     input: |-
       VISUALISE (SELECT * FROM sales)
-        DRAW line AS (SELECT date AS x, revenue AS y PARTITION BY region, fiscal_year)
+        DRAW line FROM (SELECT date AS x, revenue AS y)
+        PARTITION BY region, fiscal_year
         USING (size => 2);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 36
+          ast-size: 32
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALISE ..size => 2)"
@@ -1435,7 +1468,7 @@ parser-snapshots:
                         children: []
                       - key: VIS_LAYER_SELECT
                         type: OBJECT_SQL_SELECT
-                        text: "AS (SELECT..scal_year)"
+                        text: "FROM (SELE..enue AS y)"
                         children:
                           - key: SQL_SELECT_TARGETS
                             type: ARRAY
@@ -1473,28 +1506,14 @@ parser-snapshots:
                                   - key: SQL_RESULT_TARGET_NAME
                                     type: NAME
                                     text: "y"
-                          - key: VIS_LAYER_PARTITION_BY
-                            type: ARRAY
-                            text: "PARTITION ..iscal_year"
-                            children:
-                              - type: OBJECT_SQL_COLUMN_REF
-                                text: "region"
-                                children:
-                                  - key: SQL_COLUMN_REF_PATH
-                                    type: ARRAY
-                                    text: "region"
-                                    children:
-                                      - type: NAME
-                                        text: "region"
-                              - type: OBJECT_SQL_COLUMN_REF
-                                text: "fiscal_year"
-                                children:
-                                  - key: SQL_COLUMN_REF_PATH
-                                    type: ARRAY
-                                    text: "fiscal_year"
-                                    children:
-                                      - type: NAME
-                                        text: "fiscal_year"
+                      - key: VIS_LAYER_PARTITION_BY
+                        type: ARRAY
+                        text: "PARTITION ..iscal_year"
+                        children:
+                          - type: NAME
+                            text: "region"
+                          - type: NAME
+                            text: "fiscal_year"
                       - key: VIS_LAYER_USING
                         type: ARRAY
                         text: "USING (size => 2)"
@@ -1512,7 +1531,8 @@ parser-snapshots:
       parser-errors: []
       line-breaks:
         - text: [31,32]
-        - text: [112,113]
+        - text: [81,82]
+        - text: [116,117]
       comments: []
 
   - name: vis_place_basic
@@ -2340,7 +2360,7 @@ parser-snapshots:
   - name: vis_draw_remap_single
     input: |-
       VISUALISE (SELECT * FROM sales)
-        DRAW histogram AS (SELECT price AS x)
+        DRAW histogram FROM (SELECT price AS x)
         REMAP (count AS y);
     expected:
       statements:
@@ -2395,7 +2415,7 @@ parser-snapshots:
                         children: []
                       - key: VIS_LAYER_SELECT
                         type: OBJECT_SQL_SELECT
-                        text: "AS (SELECT..rice AS x)"
+                        text: "FROM (SELE..rice AS x)"
                         children:
                           - key: SQL_SELECT_TARGETS
                             type: ARRAY
@@ -2441,13 +2461,13 @@ parser-snapshots:
       parser-errors: []
       line-breaks:
         - text: [31,32]
-        - text: [71,72]
+        - text: [73,74]
       comments: []
 
   - name: vis_draw_remap_multi
     input: |-
       VISUALISE (SELECT * FROM sales)
-        DRAW histogram AS (SELECT price AS x)
+        DRAW histogram FROM (SELECT price AS x)
         REMAP (count AS y, count AS fill);
     expected:
       statements:
@@ -2502,7 +2522,7 @@ parser-snapshots:
                         children: []
                       - key: VIS_LAYER_SELECT
                         type: OBJECT_SQL_SELECT
-                        text: "AS (SELECT..rice AS x)"
+                        text: "FROM (SELE..rice AS x)"
                         children:
                           - key: SQL_SELECT_TARGETS
                             type: ARRAY
@@ -2564,13 +2584,13 @@ parser-snapshots:
       parser-errors: []
       line-breaks:
         - text: [31,32]
-        - text: [71,72]
+        - text: [73,74]
       comments: []
 
   - name: vis_draw_remap_with_using
     input: |-
       VISUALISE (SELECT * FROM sales)
-        DRAW histogram AS (SELECT price AS x)
+        DRAW histogram FROM (SELECT price AS x)
         REMAP (density AS y)
         USING (binwidth => 5);
     expected:
@@ -2626,7 +2646,7 @@ parser-snapshots:
                         children: []
                       - key: VIS_LAYER_SELECT
                         type: OBJECT_SQL_SELECT
-                        text: "AS (SELECT..rice AS x)"
+                        text: "FROM (SELE..rice AS x)"
                         children:
                           - key: SQL_SELECT_TARGETS
                             type: ARRAY
@@ -2685,14 +2705,14 @@ parser-snapshots:
       parser-errors: []
       line-breaks:
         - text: [31,32]
-        - text: [71,72]
-        - text: [94,95]
+        - text: [73,74]
+        - text: [96,97]
       comments: []
 
   - name: vis_full_pipeline
     input: |-
       VISUALISE (SELECT * FROM sales)
-        DRAW point AS (SELECT date AS x, revenue AS y)
+        DRAW point FROM (SELECT date AS x, revenue AS y)
         PLACE text USING (label => 'top seller')
         SCALE continuous y FROM [0] TO [1000]
         FACET region BY fiscal_year
@@ -2751,7 +2771,7 @@ parser-snapshots:
                         children: []
                       - key: VIS_LAYER_SELECT
                         type: OBJECT_SQL_SELECT
-                        text: "AS (SELECT..enue AS y)"
+                        text: "FROM (SELE..enue AS y)"
                         children:
                           - key: SQL_SELECT_TARGETS
                             type: ARRAY
@@ -2885,9 +2905,9 @@ parser-snapshots:
       parser-errors: []
       line-breaks:
         - text: [31,32]
-        - text: [80,81]
-        - text: [123,124]
-        - text: [163,164]
-        - text: [193,194]
-        - text: [216,217]
+        - text: [82,83]
+        - text: [125,126]
+        - text: [165,166]
+        - text: [195,196]
+        - text: [218,219]
       comments: []

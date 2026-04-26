@@ -29,50 +29,52 @@ parser-snapshots:
   - name: vis_draw_with_select
     input: |
       VISUALISE (SELECT * FROM sales)
-        DRAW line AS (SELECT date AS x, revenue AS y);
+        DRAW line FROM (SELECT date AS x, revenue AS y);
   - name: vis_draw_with_where
     input: |
       VISUALISE (SELECT * FROM sales)
-        DRAW bar AS (SELECT region AS x, revenue AS y WHERE revenue > 100);
+        DRAW bar FROM (SELECT region AS x, revenue AS y WHERE revenue > 100);
   - name: vis_draw_order_by
     input: |
       VISUALISE (SELECT * FROM sales)
-        DRAW line AS (SELECT date AS x, revenue AS y ORDER BY date ASC);
+        DRAW line FROM (SELECT date AS x, revenue AS y ORDER BY date ASC);
   - name: vis_draw_using
     input: |
       VISUALISE (SELECT * FROM sales)
-        DRAW bar AS (SELECT region AS x, revenue AS y)
+        DRAW bar FROM (SELECT region AS x, revenue AS y)
         USING (size => 10, fill => 'blue');
   - name: vis_draw_col_alias
     input: |
       VISUALISE (SELECT * FROM sales)
-        DRAW col AS (SELECT date AS x, revenue AS y);
+        DRAW col FROM (SELECT date AS x, revenue AS y);
   - name: vis_draw_full
     input: |
       VISUALISE (SELECT * FROM sales)
-        DRAW line AS (
+        DRAW line FROM (
           SELECT date AS x, revenue AS y
           WHERE region = 'EU'
           ORDER BY date ASC
         )
         USING (size => 2);
-  - name: vis_draw_from_rejected
+  - name: vis_draw_with_from
     input: |
       VISUALISE
-        DRAW line AS (SELECT date AS x, revenue AS y FROM sales);
+        DRAW line FROM (SELECT date AS x, revenue AS y FROM sales);
   - name: vis_draw_two_layers
     input: |
       VISUALISE (SELECT * FROM sales)
-        DRAW line AS (SELECT date AS x, revenue AS y)
-        DRAW point AS (SELECT date AS x, revenue AS y) USING (size => 4);
+        DRAW line FROM (SELECT date AS x, revenue AS y)
+        DRAW point FROM (SELECT date AS x, revenue AS y) USING (size => 4);
   - name: vis_draw_partition_by
     input: |
       VISUALISE (SELECT * FROM sales)
-        DRAW line AS (SELECT date AS x, revenue AS y PARTITION BY region ORDER BY date ASC);
+        DRAW line FROM (SELECT date AS x, revenue AS y ORDER BY date ASC)
+        PARTITION BY region;
   - name: vis_draw_partition_by_multi
     input: |
       VISUALISE (SELECT * FROM sales)
-        DRAW line AS (SELECT date AS x, revenue AS y PARTITION BY region, fiscal_year)
+        DRAW line FROM (SELECT date AS x, revenue AS y)
+        PARTITION BY region, fiscal_year
         USING (size => 2);
 
   # PLACE
@@ -177,17 +179,17 @@ parser-snapshots:
   - name: vis_draw_remap_single
     input: |
       VISUALISE (SELECT * FROM sales)
-        DRAW histogram AS (SELECT price AS x)
+        DRAW histogram FROM (SELECT price AS x)
         REMAP (count AS y);
   - name: vis_draw_remap_multi
     input: |
       VISUALISE (SELECT * FROM sales)
-        DRAW histogram AS (SELECT price AS x)
+        DRAW histogram FROM (SELECT price AS x)
         REMAP (count AS y, count AS fill);
   - name: vis_draw_remap_with_using
     input: |
       VISUALISE (SELECT * FROM sales)
-        DRAW histogram AS (SELECT price AS x)
+        DRAW histogram FROM (SELECT price AS x)
         REMAP (density AS y)
         USING (binwidth => 5);
 
@@ -195,7 +197,7 @@ parser-snapshots:
   - name: vis_full_pipeline
     input: |
       VISUALISE (SELECT * FROM sales)
-        DRAW point AS (SELECT date AS x, revenue AS y)
+        DRAW point FROM (SELECT date AS x, revenue AS y)
         PLACE text USING (label => 'top seller')
         SCALE continuous y FROM [0] TO [1000]
         FACET region BY fiscal_year
