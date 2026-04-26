@@ -69,39 +69,6 @@ export interface GetQueryRowsParams {
 }
 
 // ---------------------------------------------------------------------------
-// Response types
-// ---------------------------------------------------------------------------
-
-export interface QueryDataResponse {
-    metadata?: { columns: ColumnDefinition[] } | null;
-    data: unknown[][];
-    returnedRows?: number;
-}
-
-export interface QueryErrorResponse {
-    error: string;
-    message: string;
-    details?: {
-        customerHint?: string;
-        customerDetail?: string;
-        errorSource?: string;
-        position?: {
-            errorBeginCharacterOffset: string;
-            errorEndCharacterOffset: string;
-        };
-    };
-}
-
-// ---------------------------------------------------------------------------
-// Response format
-// ---------------------------------------------------------------------------
-
-export enum ResponseFormat {
-    JSON = "application/json",
-    ARROW = "application/vnd.apache.arrow.stream",
-}
-
-// ---------------------------------------------------------------------------
 // Optional request headers
 // ---------------------------------------------------------------------------
 
@@ -122,6 +89,20 @@ export interface HyperHttpAuthProvider {
 // ---------------------------------------------------------------------------
 // Error
 // ---------------------------------------------------------------------------
+
+export interface QueryErrorResponse {
+    error: string;
+    message: string;
+    details?: {
+        customerHint?: string;
+        customerDetail?: string;
+        errorSource?: string;
+        position?: {
+            errorBeginCharacterOffset: string;
+            errorEndCharacterOffset: string;
+        };
+    };
+}
 
 export class HyperHttpError extends Error {
     public readonly httpStatus: number;
@@ -151,10 +132,10 @@ export class HyperDatabaseHttpClient {
         this.logger = logger;
     }
 
-    private async buildHeaders(format: ResponseFormat, extra?: HyperHttpRequestHeaders): Promise<Headers> {
+    private async buildHeaders(extra?: HyperHttpRequestHeaders): Promise<Headers> {
         const authHeaders = await this.auth.getAuthHeaders();
         const headers = new Headers({
-            "Accept": format,
+            "Accept": "application/vnd.apache.arrow.stream",
             "Content-Type": "application/json",
             ...authHeaders,
         });
@@ -189,9 +170,9 @@ export class HyperDatabaseHttpClient {
     }
 
     /// POST /v3/query
-    async executeQuery(request: ExecuteQueryRequest, format: ResponseFormat = ResponseFormat.ARROW, extra?: HyperHttpRequestHeaders, abort?: AbortSignal): Promise<{ status: QueryStatus | null; response: HttpFetchResult }> {
+    async executeQuery(request: ExecuteQueryRequest, extra?: HyperHttpRequestHeaders, abort?: AbortSignal): Promise<{ status: QueryStatus | null; response: HttpFetchResult }> {
         const url = new URL("/v3/query", this.baseUrl);
-        const headers = await this.buildHeaders(format, extra);
+        const headers = await this.buildHeaders(extra);
         const response = await this.httpClient.fetch(url, {
             method: "POST",
             headers,
@@ -209,7 +190,7 @@ export class HyperDatabaseHttpClient {
         if (params.waitTimeMs !== undefined) {
             url.searchParams.set("waitTimeMs", params.waitTimeMs.toString());
         }
-        const headers = await this.buildHeaders(ResponseFormat.JSON);
+        const headers = await this.buildHeaders();
         const response = await this.httpClient.fetch(url, {
             method: "GET",
             headers,
@@ -222,7 +203,7 @@ export class HyperDatabaseHttpClient {
     /// DELETE /v3/query/{queryId}
     async cancelQuery(queryId: string, abort?: AbortSignal): Promise<void> {
         const url = new URL(`/v3/query/${encodeURIComponent(queryId)}`, this.baseUrl);
-        const headers = await this.buildHeaders(ResponseFormat.JSON);
+        const headers = await this.buildHeaders();
         const response = await this.httpClient.fetch(url, {
             method: "DELETE",
             headers,
@@ -232,12 +213,12 @@ export class HyperDatabaseHttpClient {
     }
 
     /// GET /v3/query/{queryId}/chunk/{chunkId}
-    async getQueryChunk(params: GetQueryChunkParams, format: ResponseFormat = ResponseFormat.ARROW, extra?: HyperHttpRequestHeaders, abort?: AbortSignal): Promise<{ status: QueryStatus | null; response: HttpFetchResult }> {
+    async getQueryChunk(params: GetQueryChunkParams, extra?: HyperHttpRequestHeaders, abort?: AbortSignal): Promise<{ status: QueryStatus | null; response: HttpFetchResult }> {
         const url = new URL(`/v3/query/${encodeURIComponent(params.queryId)}/chunk/${params.chunkId}`, this.baseUrl);
         if (params.omitSchema) {
             url.searchParams.set("omitSchema", "true");
         }
-        const headers = await this.buildHeaders(format, extra);
+        const headers = await this.buildHeaders(extra);
         const response = await this.httpClient.fetch(url, {
             method: "GET",
             headers,
@@ -249,7 +230,7 @@ export class HyperDatabaseHttpClient {
     }
 
     /// GET /v3/query/{queryId}/row
-    async getQueryRows(params: GetQueryRowsParams, format: ResponseFormat = ResponseFormat.ARROW, extra?: HyperHttpRequestHeaders, abort?: AbortSignal): Promise<HttpFetchResult> {
+    async getQueryRows(params: GetQueryRowsParams, extra?: HyperHttpRequestHeaders, abort?: AbortSignal): Promise<HttpFetchResult> {
         const url = new URL(`/v3/query/${encodeURIComponent(params.queryId)}/row`, this.baseUrl);
         url.searchParams.set("offset", params.offset.toString());
         if (params.limit !== undefined) {
@@ -261,7 +242,7 @@ export class HyperDatabaseHttpClient {
         if (params.omitSchema) {
             url.searchParams.set("omitSchema", "true");
         }
-        const headers = await this.buildHeaders(format, extra);
+        const headers = await this.buildHeaders(extra);
         const response = await this.httpClient.fetch(url, {
             method: "GET",
             headers,
