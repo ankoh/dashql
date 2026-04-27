@@ -14,6 +14,7 @@
 # Will work
 https://dsm000001gktt2au.sfdctest.test1.my.pc-rnd.salesforce.com
 https://dsm000001gktt2au.sfdctest.test1.file.pc-rnd.force.com
+https://orgfarm-fdd95295a3.test2.file.pc-rnd.force.com
 
 # Will NOT work
 https://dsm000001gktt2au.sfdctest.test1.lightning.pc-rnd.force.com

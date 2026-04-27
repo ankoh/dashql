@@ -190,14 +190,8 @@ export class Base64UrlCodec {
 
     /// Get the decoded size
     public getDecodedSize(base64: string) {
-        let resultSize = Math.floor((base64.length / 4) * 3);
-        const leftOver = (resultSize % 4);
-        if (leftOver == 2) {
-            resultSize += 1;
-        } else if (leftOver == 3) {
-            resultSize += 2;
-        }
-        return resultSize;
+        const rem = base64.length % 4;
+        return Math.floor(base64.length / 4) * 3 + (rem >= 3 ? 2 : rem >= 2 ? 1 : 0);
     }
 
     /// Decode a Base64URL string
