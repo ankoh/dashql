@@ -1,22 +1,30 @@
 import { Logger } from '../logger/logger.js';
 import { PlatformEventListener } from "./event_listener.js";
 import { WebFile } from '../file/web_file.js';
-import { DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, PlatformDragEvent, PlatformDropEvent } from './event.js';
+import { DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, OAUTH_BROADCAST_CHANNEL, PlatformDragEvent, PlatformDropEvent } from './event.js';
 
 const DRAG_TIMEOUT = 100;
 
 export class WebPlatformEventListener extends PlatformEventListener {
     onWindowMessage: (event: any) => void;
+    oauthBroadcastChannel: BroadcastChannel;
     dragTimeoutId: any | null;
 
     constructor(logger: Logger) {
         super(logger);
         this.onWindowMessage = this.processMessageEvent.bind(this);
+        this.oauthBroadcastChannel = new BroadcastChannel(OAUTH_BROADCAST_CHANNEL);
         this.dragTimeoutId = null;
     }
 
     public async listenForAppEvents(): Promise<void> {
         const listener = this;
+        this.oauthBroadcastChannel.onmessage = (event: MessageEvent) => {
+            const data = this.readAppEvent(event.data, `broadcast channel`);
+            if (data != null) {
+                super.dispatchAppEvent(data);
+            }
+        };
         window.addEventListener("message", this.onWindowMessage);
         window.addEventListener("dragover", function(e: DragEvent) {
             // Prevent default to enable drop events

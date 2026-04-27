@@ -25,6 +25,7 @@ import { Result, RESULT_ERROR, RESULT_OK } from './utils/result.js';
 import { TextField, TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_WARNING } from './view/foundations/text_field.js';
 import { classNames } from './utils/classnames.js';
 import { formatHHMMSS, formatTimeDifference } from './utils/format.js';
+import { OAUTH_BROADCAST_CHANNEL } from './platform/events/event.js';
 
 import '../static/fonts/fonts.css';
 import './globals.css';
@@ -51,12 +52,17 @@ function triggerFlow(state: OAuthState, eventBase64: string, deepLink: string, l
             break;
         }
         case "WEB_OPENER_FLOW": {
-            if (!window.opener) {
-                logger.error("window opener is undefined", {}, LOG_CTX);
-                return;
+            // COOP (Cross-Origin-Opener-Policy: same-origin) severs window.opener after
+            // the popup navigates to Salesforce. Use BroadcastChannel as the primary path
+            // since it works same-origin regardless of COOP, and fall back to postMessage
+            // for environments that lack BroadcastChannel support.
+            logger.info(`posting oauth data via broadcast channel`, { "data": eventBase64 }, LOG_CTX);
+            const channel = new BroadcastChannel(OAUTH_BROADCAST_CHANNEL);
+            channel.postMessage(eventBase64);
+            channel.close();
+            if (window.opener) {
+                window.opener.postMessage(eventBase64);
             }
-            logger.info(`posting oauth data to opener`, { "data": eventBase64 }, LOG_CTX);
-            window.opener.postMessage(eventBase64);
             break;
         }
     }
@@ -275,7 +281,7 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
                     <div className={baseStyles.card}>
                         <div className={baseStyles.card_header}>
                             <div className={baseStyles.card_header_left_container}>
-                                Authorization Succeeded
+                                <div className={baseStyles.card_header_left_title}>Authorization Succeeded</div>
                             </div>
                             <div className={baseStyles.card_header_right_container}>
                                 <InternalsViewerOverlay
@@ -285,11 +291,11 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
                                         <IconButton
                                             {...p}
                                             variant={ButtonVariant.Invisible}
-                                            aria-label="close-overlay"
+                                            aria-label="open-logs"
                                             onClick={() => setLogsAreOpen(s => !s)}
                                         >
                                             <svg width="16px" height="16px">
-                                                <use xlinkHref={`${symbols}#log`} />
+                                                <use xlinkHref={`${symbols}#processor`} />
                                             </svg>
                                         </IconButton>
                                     )}

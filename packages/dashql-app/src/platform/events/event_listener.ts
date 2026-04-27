@@ -172,7 +172,9 @@ export abstract class PlatformEventListener {
     /// Method to listen for pasted dashql links
     private listenForClipboardEvents() {
         this.logger.info("Subscribing to clipboard events", {}, LOG_CTX);
-        window.addEventListener("paste", this.clipboardEventHandler);
+        // Use capture phase on document so we see paste events even when an input field
+        // has focus (inputs otherwise consume the event before it reaches window).
+        document.addEventListener("paste", this.clipboardEventHandler, true);
     }
 
     /// Helper to unpack app link data

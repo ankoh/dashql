@@ -27,6 +27,8 @@ export type PlatformDragDropEventVariant =
     ;
 
 
+export const OAUTH_BROADCAST_CHANNEL = "dashql_oauth";
+
 export const SETUP_SESSION = Symbol("SETUP_SESSION");
 
 export type SetupEventVariant =
