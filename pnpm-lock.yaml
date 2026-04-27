@@ -52,8 +52,8 @@ importers:
         specifier: ^1.10.2
         version: 1.10.2
       '@primer/octicons-react':
-        specifier: ^19.24.1
-        version: 19.24.1(react@19.2.5)
+        specifier: ^19.25.0
+        version: 19.25.0(react@19.2.5)
       '@react-hook/resize-observer':
         specifier: ^2.0.2
         version: 2.0.2(react@19.2.5)
@@ -545,8 +545,8 @@ packages:
   '@primer/behaviors@1.10.2':
     resolution: {integrity: sha512-93juWZbWg2DRhC11+7RT7hMpY1VD3lBosLmccqEZ65yrCHqkBCjI8Uj8wxs3y0U+wWE07LAoLHAPylyWbifg5A==}
 
-  '@primer/octicons-react@19.24.1':
-    resolution: {integrity: sha512-Y4EqqNb6VrFWfs9HDu3EUpFNm2xbOWMh6uEyXn968gQgXDxfRjBKhWoogrMsbo74S3mGAP0KYSxL8ZebWHDRtA==}
+  '@primer/octicons-react@19.25.0':
+    resolution: {integrity: sha512-Cv7l7Mk4ahe6pOJ4A59viOQ22q5QkJ3jtkMyrQ2lpOofcKpVzvVg4CpYiq76Lj0RRlYC4qk1Tp9FpfzQnf4AuQ==}
     engines: {node: '>=8'}
     peerDependencies:
       react: '>=16.3'
@@ -2674,7 +2674,7 @@ snapshots:
 
   '@primer/behaviors@1.10.2': {}
 
-  '@primer/octicons-react@19.24.1(react@19.2.5)':
+  '@primer/octicons-react@19.25.0(react@19.2.5)':
     dependencies:
       react: 19.2.5
 
