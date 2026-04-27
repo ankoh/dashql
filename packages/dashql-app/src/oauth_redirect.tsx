@@ -74,7 +74,7 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
         const eventMessage: AppEventData = {
             oauthRedirect: {
                 code,
-                state: props.state.state ?? ""
+                state: props.state
             }
         };
         // Encode to JSON

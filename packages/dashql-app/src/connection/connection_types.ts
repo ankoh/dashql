@@ -35,7 +35,7 @@ export interface OAuthState {
  * OAuth redirect data
  */
 export interface OAuthRedirectData {
-    state: string;
+    state: OAuthState;
     code?: string;
     error?: string;
     errorDescription?: string;
