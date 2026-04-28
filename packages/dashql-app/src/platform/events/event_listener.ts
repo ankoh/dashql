@@ -213,35 +213,36 @@ export abstract class PlatformEventListener {
 
     /// Helper to process a clipboard event
     private processClipboardEvent(event: ClipboardEvent) {
-        // Is the pasted text of a deeplink?
         const pastedText = event.clipboardData?.getData("text/plain") ?? null;
-        if (pastedText != null && pastedText.startsWith("dashql://")) {
-            // Get the data parameter
-            let deepLinkData: any = null;
+        if (pastedText == null) return;
+
+        let eventData: string | null = null;
+        if (pastedText.startsWith("dashql://")) {
+            // Deep link format: dashql://localhost?data=<base64>
             try {
                 const deepLink = new URL(pastedText);
                 this.logger.info("Received deep link", { "link": deepLink.toString() }, LOG_CTX);
-                // Has link data?
-                deepLinkData = deepLink.searchParams.get(EVENT_QUERY_PARAMETER);
-                if (!deepLinkData) {
+                eventData = deepLink.searchParams.get(EVENT_QUERY_PARAMETER);
+                if (!eventData) {
                     this.logger.warn("Deep link lacks the data query parameter", {}, LOG_CTX);
                     return;
                 }
             } catch (e: any) {
-                console.warn(e);
                 this.logger.warn("Failed to parse deep link", { "error": e.toString() }, LOG_CTX);
+                return;
             }
+        } else if (BASE64URL_CODEC.isValidBase64(pastedText.trim())) {
+            // Raw base64 event data pasted directly (web opener flow fallback)
+            eventData = pastedText.trim();
+        } else {
+            return;
+        }
 
-            // Unpack the app event
-            const data = this.readAppEvent(deepLinkData, `clipboard data`);
-            if (data != null) {
-                // Stop propagation of clipboard event
-                event.preventDefault();
-                event.stopPropagation();
-
-                // Dispatch App Event
-                this.dispatchAppEvent(data);
-            }
+        const data = this.readAppEvent(eventData, `clipboard data`);
+        if (data != null) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.dispatchAppEvent(data);
         }
     }
 }

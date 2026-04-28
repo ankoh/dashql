@@ -196,6 +196,37 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
     let flowContinuation: React.ReactElement = <div />;
     switch (props.state.flowVariant) {
         case "WEB_OPENER_FLOW": {
+            flowContinuation = (
+                <div className={baseStyles.card_section}>
+                    <div className={baseStyles.section_entries}>
+                        <div className={baseStyles.section_description}>
+                            The authorization code was sent to the app automatically.
+                            If the app did not receive it, copy the event data below and paste it into the app window.
+                        </div>
+                        <TextField
+                            name="OAuth Event Data"
+                            value={eventBase64}
+                            leadingVisual={() => <div>Data</div>}
+                            logContext={LOG_CTX}
+                            readOnly
+                            disabled
+                            concealed
+                        />
+                    </div>
+                    <div className={baseStyles.card_actions}>
+                        <div className={baseStyles.card_actions_right}>
+                            <CopyToClipboardButton
+                                variant={ButtonVariant.Default}
+                                size={ButtonSize.Medium}
+                                logContext={LOG_CTX}
+                                value={eventBase64}
+                                aria-label="copy-event-data"
+                                aria-labelledby=""
+                            />
+                        </div>
+                    </div>
+                </div>
+            );
             break;
         }
         case "NATIVE_LINK_FLOW": {
@@ -362,7 +393,6 @@ interface RedirectPageProps { }
 
 const RedirectPage: React.FC<RedirectPageProps> = (_props: RedirectPageProps) => {
     const [params, _setParams] = useSearchParams();
-    // const code = params.get("code") ?? "";
     const state = params.get("state") ?? "";
 
     const authState = React.useMemo<Result<OAuthState>>(() => {
@@ -380,6 +410,22 @@ const RedirectPage: React.FC<RedirectPageProps> = (_props: RedirectPageProps) =>
             };
         }
     }, [state]);
+
+    // If the state encodes a callbackUrl on a different origin, redirect the popup there
+    // before doing anything else. This lets localhost dev servers receive the OAuth code
+    // via BroadcastChannel even though the registered redirect_uri is dashql.app/oauth.html.
+    if (authState.type == RESULT_OK) {
+        const callbackUrl = authState.value.callbackUrl;
+        if (callbackUrl) {
+            const target = new URL(callbackUrl);
+            if (target.origin !== window.location.origin) {
+                // Forward all query params (code, state, error, ...) to the target origin
+                target.search = window.location.search;
+                window.location.replace(target.toString());
+                return <div />;
+            }
+        }
+    }
 
     if (authState.type == RESULT_OK) {
         return <OAuthSucceeded params={params} state={authState.value} />

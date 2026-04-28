@@ -18,11 +18,8 @@ export interface DetailedError {
  */
 export interface OAuthState {
     flowVariant: 'UNSPECIFIED_FLOW' | 'WEB_OPENER_FLOW' | 'NATIVE_LINK_FLOW';
-    debugMode?: boolean;
+    debugMode: boolean;
     callbackUrl?: string;
-    state?: string;
-    codeVerifier?: string;
-    authorizationUrl?: string;
     salesforceProvider?: {
         instanceUrl: string;
         appConsumerKey: string;

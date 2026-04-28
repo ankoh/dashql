@@ -23,6 +23,7 @@ import {
 } from './salesforce_connection_state.js';
 import { generatePKCEChallenge } from '../../utils/pkce.js';
 import { BASE64URL_CODEC } from '../../utils/base64.js';
+import { isDebugBuild } from '../../globals.js';
 import { PlatformType } from '../../platform/platform_type.js';
 import { SalesforceConnectorConfig } from '../connector_configs.js';
 import { collectSalesforceAuthInfo, SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
@@ -101,9 +102,19 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             ? "NATIVE_LINK_FLOW"
             : "WEB_OPENER_FLOW";
 
-        // Construct the auth state
+        // Construct the auth state.
+        // For WEB_OPENER_FLOW, embed the actual app origin so that dashql.app/oauth.html
+        // can redirect back to the same origin as the initiating app before posting the
+        // event. This is needed when the app runs on a different origin than dashql.app
+        // (e.g. localhost dev server), because BroadcastChannel is same-origin only and
+        // COOP severs window.opener after the popup crosses origins to Salesforce.
+        const callbackUrl = flowVariant === "WEB_OPENER_FLOW"
+            ? `${window.location.origin}/oauth.html`
+            : undefined;
         const authState: OAuthState = {
             flowVariant: flowVariant,
+            debugMode: isDebugBuild(),
+            ...(callbackUrl ? { callbackUrl } : {}),
             salesforceProvider: {
                 instanceUrl: params.instanceUrl,
                 appConsumerKey: params.appConsumerKey,

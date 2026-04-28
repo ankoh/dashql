@@ -73,6 +73,39 @@ describe('Base64Codec', () => {
     });
 });
 
+describe('Base64UrlCodec oauth event roundtrip', () => {
+    const INSTANCE_URL = "https://trialorgfarmforu-16f.test2.my.pc-rnd.salesforce.com";
+    const CONSUMER_KEY = "3MVG9GS4BiwvuHvgBoJxvy6gBq99_Ptg8FHx1QqO0bcDgy3lYc3x1b3nLPXGDQzYlYYMOwqo_j12QdTgAvAZD";
+
+    // Use a range of timestamps so the encoded JSON hits all four base64 remainder lengths (% 4 == 0..3)
+    const timestamps = [1777316266148, 1777316266149, 1777316266150, 1777316266151];
+
+    for (const ts of timestamps) {
+        it(`roundtrip with timestamp ${ts}`, () => {
+            const event: app_event.AppEventData = {
+                oauthRedirect: {
+                    code: "auth_code_abc123",
+                    state: {
+                        flowVariant: "WEB_OPENER_FLOW",
+                        debugMode: false,
+                        salesforceProvider: {
+                            instanceUrl: INSTANCE_URL,
+                            appConsumerKey: CONSUMER_KEY,
+                            requestedAt: ts,
+                            expiresAt: ts + 7200000,
+                        }
+                    }
+                }
+            };
+            const json = JSON.stringify(event);
+            const encoded = BASE64URL_CODEC.encode(new TextEncoder().encode(json).buffer);
+            expect(BASE64URL_CODEC.isValidBase64(encoded)).toBeTruthy();
+            const decoded = new TextDecoder().decode(BASE64URL_CODEC.decode(encoded));
+            expect(JSON.parse(decoded)).toEqual(event);
+        });
+    }
+});
+
 describe('Base64UrlCodec', () => {
     describe("invalid base64url strings", () => {
         it("padding chars", () => {
