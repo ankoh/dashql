@@ -1,6 +1,6 @@
-## Setup
+## Setup External Client App
 
-1. Go To Setup > App Manager > New Connected App
+1. Go To Setup > External Client Apps
 2. Enable OAuth Settings
     a. Callback URL: `https://dashql.app/oauth.html`
     b. Enable OAuth Scopes: api, cdp_api
@@ -12,10 +12,17 @@
 8. For the instance URL, make sure to use the correct URL:
 ```
 # Will work
-https://dsm000001gktt2au.sfdctest.test1.my.pc-rnd.salesforce.com
-https://dsm000001gktt2au.sfdctest.test1.file.pc-rnd.force.com
-https://orgfarm-fdd95295a3.test2.file.pc-rnd.force.com
+https://orgfarm-fdd95295a3.test2.my.pc-rnd.salesforce.com
+
 
 # Will NOT work
+https://dsm000001gktt2au.sfdctest.test1.my.pc-rnd.salesforce.com
 https://dsm000001gktt2au.sfdctest.test1.lightning.pc-rnd.force.com
+https://orgfarm-fdd95295a3.test2.file.pc-rnd.force.com
 ```
+
+# Setup CORS
+
+1. Go To Setup > CORS
+2. Add `https://dashql.app` and `http://localhost:9002`
+3. Check "Enable CORS for OAuth endpoints"
