@@ -1147,6 +1147,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "cors-proxy"
+version = "0.0.2-dev.17"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "clap",
+ "env_logger",
+ "http 1.4.0",
+ "http-body-util",
+ "hyper 1.9.0",
+ "hyper-util",
+ "log",
+ "reqwest 0.13.2",
+ "tokio",
+]
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
