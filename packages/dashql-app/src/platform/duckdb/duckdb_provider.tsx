@@ -32,6 +32,18 @@ export const DuckDBProvider: React.FC<Props> = (props: Props) => {
         return await instantiation.current;
     }, [logger]);
 
+    React.useEffect(() => {
+        return () => {
+            const pending = instantiation.current;
+            instantiation.current = null;
+            if (pending) {
+                pending
+                    .then(webdb => { webdb.terminate(); })
+                    .catch(() => { /* instantiation failed - nothing to terminate */ });
+            }
+        };
+    }, []);
+
     return (
         <SETUP_CTX.Provider value={setup}>
             {props.children}

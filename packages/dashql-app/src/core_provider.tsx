@@ -141,6 +141,17 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
 
     }, [logger, setProgress]);
 
+    React.useEffect(() => {
+        return () => {
+            const pending = instantiation.current;
+            instantiation.current = null;
+            // Swallow any instantiation rejection - nothing to clean up in that case.
+            // Dropping the ref lets the WASM module become GC-eligible so a remount
+            // (e.g. from Vite HMR) does not stack multiple live core instances.
+            pending?.catch(() => { /* noop */ });
+        };
+    }, []);
+
     return (
         <INSTANTIATOR_CONTEXT.Provider value={instantiator}>
             <PROGRESS_CONTEXT.Provider value={progress}>
