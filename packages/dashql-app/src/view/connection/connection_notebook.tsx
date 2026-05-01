@@ -8,6 +8,7 @@ export function useAnyConnectionNotebook(sessionId: string | null): NotebookStat
     if (sessionId == null) {
         return null;
     }
+
     const [notebookRegistry, _modifyNotebookRegistry] = useNotebookRegistry();
     // 1:1 mapping: sessionId -> sessionId
     const notebookSessionId = notebookRegistry.notebooksByConnection.get(sessionId);

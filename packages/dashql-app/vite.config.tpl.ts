@@ -180,7 +180,10 @@ export default vite.defineConfig(({ mode, command }) => {
         server: {
             port: 9002,
             strictPort: true,
-            hmr: true,
+            // HMR disabled: hot-swapping modules in the DuckDB/core WASM + Worker graph
+            // stacks live instances in the renderer (doubled workers, 2 GB SAB reservations)
+            // and causes "Aw Snap" crashes. Manual refresh after edits is the safe workflow.
+            hmr: false,
             cors: true,
             // Enable Cross-Origin Isolation for SharedArrayBuffer (required for multi-threaded WASM)
             headers: isNativeBuild ? {} : {
