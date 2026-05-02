@@ -169,9 +169,9 @@ export class HyperDatabaseHttpClient {
         }
     }
 
-    /// POST /v3/query
+    /// POST /api/v3/query
     async executeQuery(request: ExecuteQueryRequest, extra?: HyperHttpRequestHeaders, abort?: AbortSignal): Promise<{ status: QueryStatus | null; response: HttpFetchResult }> {
-        const url = new URL("/v3/query", this.baseUrl);
+        const url = new URL("/api/v3/query", this.baseUrl);
         const headers = await this.buildHeaders(extra);
         const response = await this.httpClient.fetch(url, {
             method: "POST",
@@ -184,9 +184,9 @@ export class HyperDatabaseHttpClient {
         return { status, response };
     }
 
-    /// GET /v3/query/{queryId}
+    /// GET /api/v3/query/{queryId}
     async getQueryStatus(params: GetQueryStatusParams, abort?: AbortSignal): Promise<QueryStatus> {
-        const url = new URL(`/v3/query/${encodeURIComponent(params.queryId)}`, this.baseUrl);
+        const url = new URL(`/api/v3/query/${encodeURIComponent(params.queryId)}`, this.baseUrl);
         if (params.waitTimeMs !== undefined) {
             url.searchParams.set("waitTimeMs", params.waitTimeMs.toString());
         }
@@ -200,9 +200,9 @@ export class HyperDatabaseHttpClient {
         return await response.json() as QueryStatus;
     }
 
-    /// DELETE /v3/query/{queryId}
+    /// DELETE /api/v3/query/{queryId}
     async cancelQuery(queryId: string, abort?: AbortSignal): Promise<void> {
-        const url = new URL(`/v3/query/${encodeURIComponent(queryId)}`, this.baseUrl);
+        const url = new URL(`/api/v3/query/${encodeURIComponent(queryId)}`, this.baseUrl);
         const headers = await this.buildHeaders();
         const response = await this.httpClient.fetch(url, {
             method: "DELETE",
@@ -212,9 +212,9 @@ export class HyperDatabaseHttpClient {
         await this.throwIfError(response);
     }
 
-    /// GET /v3/query/{queryId}/chunk/{chunkId}
+    /// GET /api/v3/query/{queryId}/chunk/{chunkId}
     async getQueryChunk(params: GetQueryChunkParams, extra?: HyperHttpRequestHeaders, abort?: AbortSignal): Promise<{ status: QueryStatus | null; response: HttpFetchResult }> {
-        const url = new URL(`/v3/query/${encodeURIComponent(params.queryId)}/chunk/${params.chunkId}`, this.baseUrl);
+        const url = new URL(`/api/v3/query/${encodeURIComponent(params.queryId)}/chunk/${params.chunkId}`, this.baseUrl);
         if (params.omitSchema) {
             url.searchParams.set("omitSchema", "true");
         }
@@ -229,9 +229,9 @@ export class HyperDatabaseHttpClient {
         return { status, response };
     }
 
-    /// GET /v3/query/{queryId}/row
+    /// GET /api/v3/query/{queryId}/row
     async getQueryRows(params: GetQueryRowsParams, extra?: HyperHttpRequestHeaders, abort?: AbortSignal): Promise<HttpFetchResult> {
-        const url = new URL(`/v3/query/${encodeURIComponent(params.queryId)}/row`, this.baseUrl);
+        const url = new URL(`/api/v3/query/${encodeURIComponent(params.queryId)}/row`, this.baseUrl);
         url.searchParams.set("offset", params.offset.toString());
         if (params.limit !== undefined) {
             url.searchParams.set("limit", params.limit.toString());

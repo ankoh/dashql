@@ -35,12 +35,14 @@ export const SalesforceConnector: React.FC<Props> = (props: Props) => {
             const api = new SalesforceAPIClientMock(connectorConfig.mock);
             const setup = mockSalesforceSetup(api, connectorConfig, logger);
             return [api, setup];
+        } else if (!httpClient || !hyperClient) {
+            return [null, null];
         } else {
             const api = new SalesforceApiClient(logger, httpClient);
-            const setup = createSalesforceSetup(hyperClient!, api, platformType, appEvents, connectorConfig, logger);
+            const setup = createSalesforceSetup(hyperClient, api, platformType, appEvents, connectorConfig, logger);
             return [api, setup];
         }
-    }, [connectorConfig]);
+    }, [connectorConfig, httpClient, hyperClient, platformType, appEvents]);
 
     return (
         <API_CTX.Provider value={api}>

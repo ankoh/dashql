@@ -114,22 +114,22 @@ export class HyperHttpClientMock implements HttpClient {
         const method = (init?.method ?? 'GET').toUpperCase();
         const path = url.pathname;
 
-        if (method === 'POST' && path === '/v3/query') {
+        if (method === 'POST' && path === '/api/v3/query') {
             return this.handleExecuteQuery(init);
         }
 
-        const statusMatch = path.match(/^\/v3\/query\/([^/]+)$/);
+        const statusMatch = path.match(/^\/api\/v3\/query\/([^/]+)$/);
         if (statusMatch) {
             if (method === 'GET') return this.handleGetStatus(decodeURIComponent(statusMatch[1]));
             if (method === 'DELETE') return this.handleCancelQuery(decodeURIComponent(statusMatch[1]));
         }
 
-        const chunkMatch = path.match(/^\/v3\/query\/([^/]+)\/chunk\/(\d+)$/);
+        const chunkMatch = path.match(/^\/api\/v3\/query\/([^/]+)\/chunk\/(\d+)$/);
         if (method === 'GET' && chunkMatch) {
             return this.handleGetChunk(decodeURIComponent(chunkMatch[1]), parseInt(chunkMatch[2], 10));
         }
 
-        const rowMatch = path.match(/^\/v3\/query\/([^/]+)\/row$/);
+        const rowMatch = path.match(/^\/api\/v3\/query\/([^/]+)\/row$/);
         if (method === 'GET' && rowMatch) {
             return this.handleGetRows(decodeURIComponent(rowMatch[1]), url);
         }
