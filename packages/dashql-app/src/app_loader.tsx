@@ -122,12 +122,20 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
 
     }, [appEvents]);
 
-    // Effect to run the default setup once at the beginning
+    // Effect to run the default setup once at the beginning.
+    // We guard against re-runs triggered by config identity changes (e.g. AppSettingsSync
+    // hydrating persisted settings into AppConfig). The abort controller is only fired
+    // on unmount so an in-flight setup is not cancelled by an unrelated config update.
+    const hasStartedSetup = React.useRef(false);
+    const setupAbortRef = React.useRef<AbortController | null>(null);
+    React.useEffect(() => () => setupAbortRef.current?.abort(), []);
     React.useEffect(() => {
-        const abort = new AbortController();
-        if (config == null) {
+        if (config == null || hasStartedSetup.current) {
             return;
         }
+        hasStartedSetup.current = true;
+        const abort = new AbortController();
+        setupAbortRef.current = abort;
 
         const run = async () => {
             // Start trace for app loading
@@ -190,8 +198,6 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             }
         };
         run();
-
-        return () => abort.abort();
     }, [config]);
 
     // Setup done but no session selected? Show session selector
