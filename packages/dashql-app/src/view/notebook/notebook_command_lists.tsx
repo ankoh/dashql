@@ -67,16 +67,6 @@ export const NotebookCommandList: React.FC<{
     return (
         <>
             <ActionList.ListItem
-                onClick={() => notebookCommand(NotebookCommandType.CloseNotebook)}
-            >
-                <ActionList.Leading>
-                    <XIcon />
-                </ActionList.Leading>
-                <ActionList.ItemText>
-                    Close Notebook
-                </ActionList.ItemText>
-            </ActionList.ListItem>
-            <ActionList.ListItem
                 onClick={() => notebookCommand(NotebookCommandType.SelectPreviousNotebookPage)}
                 disabled={(props.notebook?.notebookUserFocus.pageIndex ?? 0) === 0}
             >
@@ -147,6 +137,16 @@ export const NotebookCommandList: React.FC<{
                     />
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + S</ActionList.Trailing>
+            </ActionList.ListItem>
+            <ActionList.ListItem
+                onClick={() => notebookCommand(NotebookCommandType.CloseNotebook)}
+            >
+                <ActionList.Leading>
+                    <XIcon />
+                </ActionList.Leading>
+                <ActionList.ItemText>
+                    Close Notebook
+                </ActionList.ItemText>
             </ActionList.ListItem>
         </>
     );
