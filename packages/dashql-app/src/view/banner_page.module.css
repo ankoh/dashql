@@ -9,6 +9,8 @@
         height: 100%;
         display: flex;
         flex-direction: column;
+        padding: 0 16px;
+        box-sizing: border-box;
     }
     .banner_and_content_container {
         margin: auto;
