@@ -28,6 +28,8 @@ describe('importSessionFromZip', () => {
             reorderNotebookScript: vi.fn(),
             loadNotebookScriptDraft: vi.fn(),
             saveNotebookScriptDraft: vi.fn(),
+            loadAppSettings: vi.fn(),
+            saveAppSettings: vi.fn(),
         };
 
         let counter = 0;

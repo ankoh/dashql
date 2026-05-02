@@ -11,6 +11,10 @@
         "$ref": "#/definitions/SessionEntry"
       },
       "description": "List of sessions"
+    },
+    "appSettings": {
+      "$ref": "#/definitions/AppSettings",
+      "description": "Persisted app-level settings"
     }
   },
   "required": ["sessions"],
@@ -26,6 +30,21 @@
         }
       },
       "required": ["path"],
+      "additionalProperties": false
+    },
+    "AppSettings": {
+      "type": "object",
+      "description": "Persisted app-level settings",
+      "properties": {
+        "httpProxyUrl": {
+          "type": "string",
+          "description": "Optional HTTP/CORS proxy origin. When set and the request host matches httpProxyTargetList, the shared HTTP client rewrites the request to this origin and attaches an X-Forward-To header with the original origin."
+        },
+        "httpProxyTargetList": {
+          "type": "string",
+          "description": "Comma-separated list of host patterns to route through the proxy. Entries may be exact hostnames (example.com) or wildcard patterns (*.example.com). Empty = no requests are proxied."
+        }
+      },
       "additionalProperties": false
     }
   }

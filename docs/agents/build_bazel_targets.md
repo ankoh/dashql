@@ -4,7 +4,7 @@
 
 **All building, testing, and verification MUST be done through Bazel targets.**
 
-Do not invoke language-specific tools directly (`npx tsc`, `cargo build`, `cargo test`, etc.). These bypass the build system's dependency tracking, caching, and reproducibility guarantees.
+Do not invoke language-specific tools or package-manager scripts directly (`npx tsc`, `yarn build`, `yarn test`, `pnpm run build`, `pnpm test`, `npm run build`, `cargo build`, `cargo test`, etc.). These bypass the build system's dependency tracking, caching, and reproducibility guarantees — even when the underlying `package.json` script exists, the Bazel target is the source of truth.
 
 ## Why Bazel Only?
 
@@ -207,9 +207,13 @@ cargo build
 cargo test
 cargo check
 
-# ❌ Direct npm/pnpm commands for building
+# ❌ Direct yarn / pnpm / npm scripts for building or testing
+yarn build
+yarn test
+yarn typecheck
+pnpm run build
+pnpm test
 npm run build
-pnpm build
 
 # ❌ Manual file operations in bazel-bin/
 cp something.wasm bazel-bin/packages/foo/
@@ -312,4 +316,4 @@ When working as an agent:
 4. **Verify through Bazel** — Type checking is a test target
 5. **Trust the cache** — Bazel's incrementality is correct; avoid `clean`
 
-If you find yourself typing `npx`, `cargo`, or `npm run`, stop and find the Bazel target instead.
+If you find yourself typing `yarn`, `pnpm`, `npm`, `npx`, or `cargo`, stop and find the Bazel target instead.

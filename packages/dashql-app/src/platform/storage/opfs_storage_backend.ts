@@ -1,4 +1,4 @@
-import { type StorageBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type StorageManifest, STORAGE_MANIFEST_FILE, STORAGE_SESSIONS_FOLDER, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA } from './storage_backend.js';
+import { type StorageBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type StorageManifest, type AppSettings, STORAGE_MANIFEST_FILE, STORAGE_SESSIONS_FOLDER, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA } from './storage_backend.js';
 
 export class OPFSStorageBackend implements StorageBackend {
     private rootHandle: FileSystemDirectoryHandle | null = null;
@@ -351,27 +351,57 @@ export class OPFSStorageBackend implements StorageBackend {
         }
     }
 
-    private async updateManifest(sessionPath: string, operation: 'add' | 'remove'): Promise<void> {
+    async loadAppSettings(): Promise<AppSettings | null> {
         const root = this.ensureInitialized();
-
-        let manifest: StorageManifest;
         try {
             const indexFile = await root.getFileHandle(STORAGE_MANIFEST_FILE, { create: false });
             const file = await indexFile.getFile();
             const text = await file.text();
-            manifest = JSON.parse(text);
+            const manifest: StorageManifest = JSON.parse(text);
+            return manifest.appSettings ?? null;
+        } catch (error) {
+            if ((error as any).name === 'NotFoundError') {
+                return null;
+            }
+            throw error;
+        }
+    }
 
+    async saveAppSettings(settings: AppSettings): Promise<void> {
+        const root = this.ensureInitialized();
+        const manifest = await this.readManifest(root);
+        manifest.appSettings = settings;
+        await this.writeManifest(root, manifest);
+    }
+
+    private async readManifest(root: FileSystemDirectoryHandle): Promise<StorageManifest> {
+        try {
+            const indexFile = await root.getFileHandle(STORAGE_MANIFEST_FILE, { create: false });
+            const file = await indexFile.getFile();
+            const text = await file.text();
+            const manifest: StorageManifest = JSON.parse(text);
             if (!manifest.sessions || !Array.isArray(manifest.sessions)) {
                 throw new Error('Invalid manifest format: sessions must be an array');
             }
+            return manifest;
         } catch (error) {
-            // If file doesn't exist, create new manifest
             if ((error as any).name === 'NotFoundError') {
-                manifest = { sessions: [] };
-            } else {
-                throw error;
+                return { sessions: [] };
             }
+            throw error;
         }
+    }
+
+    private async writeManifest(root: FileSystemDirectoryHandle, manifest: StorageManifest): Promise<void> {
+        const indexFile = await root.getFileHandle(STORAGE_MANIFEST_FILE, { create: true });
+        const writable = await indexFile.createWritable();
+        await writable.write(JSON.stringify(manifest, null, 2));
+        await writable.close();
+    }
+
+    private async updateManifest(sessionPath: string, operation: 'add' | 'remove'): Promise<void> {
+        const root = this.ensureInitialized();
+        const manifest = await this.readManifest(root);
 
         if (operation === 'add') {
             // Check if session already exists
@@ -391,10 +421,7 @@ export class OPFSStorageBackend implements StorageBackend {
             manifest.sessions = manifest.sessions.filter((s: SessionEntry) => s.path !== sessionPath);
         }
 
-        const indexFile = await root.getFileHandle(STORAGE_MANIFEST_FILE, { create: true });
-        const writable = await indexFile.createWritable();
-        await writable.write(JSON.stringify(manifest, null, 2));
-        await writable.close();
+        await this.writeManifest(root, manifest);
     }
 
     private async getSessionDir(

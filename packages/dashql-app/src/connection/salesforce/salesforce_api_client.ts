@@ -9,24 +9,6 @@ import { BASE64_CODEC } from "../../utils/base64.js";
 import { dateToTimestamp } from "../../connection/proto_helper.js";
 
 const LOG_CTX = "salesforce_api";
-const HEADER_FORWARD_TO = "X-Forward-To";
-
-/// Rewrite a token-endpoint URL to route through the configured auth proxy.
-/// When no proxy URL is provided, returns the target URL unchanged.
-/// Otherwise returns a URL at the proxy origin with the target's path/query,
-/// plus an X-Forward-To header carrying the original origin.
-export function applyAuthProxy(target: URL, authProxyUrl?: string): { url: URL, extraHeaders?: Record<string, string> } {
-    if (!authProxyUrl) {
-        return { url: target };
-    }
-    const proxy = new URL(authProxyUrl);
-    proxy.pathname = target.pathname;
-    proxy.search = target.search;
-    return {
-        url: proxy,
-        extraHeaders: { [HEADER_FORWARD_TO]: `${target.protocol}//${target.host}` },
-    };
-}
 
 /// The Data Cloud auth infos
 export interface SalesforceAuthInfo {
@@ -155,11 +137,10 @@ export interface SalesforceApiClientInterface {
         pkceVerifier: string,
         cancel: AbortSignal,
     ): Promise<connection.SalesforceCoreAccessToken>;
-    getCoreUserInfo(access: connection.SalesforceCoreAccessToken, cancel: AbortSignal, authProxyUrl?: string): Promise<connection.SalesforceCoreUserInfo>;
+    getCoreUserInfo(access: connection.SalesforceCoreAccessToken, cancel: AbortSignal): Promise<connection.SalesforceCoreUserInfo>;
     getDataCloudAccessToken(
         access: connection.SalesforceCoreAccessToken,
         cancel: AbortSignal,
-        authProxyUrl?: string,
     ): Promise<connection.SalesforceDataCloudAccessToken>;
     getDataCloudMetadata(access: connection.SalesforceDataCloudAccessToken, cancel: AbortSignal): Promise<connection.SalesforceDataCloudMetadata>;
 }
@@ -195,18 +176,12 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
         }
         const body = new URLSearchParams(params);
         // Get the access token
-        const target = new URL(`${authParams.instanceUrl}/services/oauth2/token`);
-        const routed = applyAuthProxy(target, authParams.authProxyUrl);
-        const headers = new Headers({
-            Accept: 'application/json',
-            'Content-Type': 'application/x-www-form-urlencoded',
-        });
-        for (const [k, v] of Object.entries(routed.extraHeaders ?? {})) {
-            headers.set(k, v);
-        }
-        const response = await this.httpClient.fetch(routed.url, {
+        const response = await this.httpClient.fetch(new URL(`${authParams.instanceUrl}/services/oauth2/token`), {
             method: 'POST',
-            headers,
+            headers: new Headers({
+                Accept: 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }),
             body: body,
             signal: cancel,
         });
@@ -272,7 +247,6 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
     public async getDataCloudAccessToken(
         access: connection.SalesforceCoreAccessToken,
         cancel: AbortSignal,
-        authProxyUrl?: string,
     ): Promise<connection.SalesforceDataCloudAccessToken> {
         const params: Record<string, string> = {
             grant_type: 'urn:salesforce:grant-type:external:cdp',
@@ -282,18 +256,12 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
         };
         const body = new URLSearchParams(params);
         // Get the data cloud access token
-        const target = new URL(`${access.instanceUrl}/services/a360/token`);
-        const routed = applyAuthProxy(target, authProxyUrl);
-        const headers = new Headers({
-            Accept: 'application/json',
-            'Content-Type': 'application/x-www-form-urlencoded',
-        });
-        for (const [k, v] of Object.entries(routed.extraHeaders ?? {})) {
-            headers.set(k, v);
-        }
-        const response = await this.httpClient.fetch(routed.url, {
+        const response = await this.httpClient.fetch(new URL(`${access.instanceUrl}/services/a360/token`), {
             method: 'POST',
-            headers,
+            headers: new Headers({
+                Accept: 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }),
             body: body,
             signal: cancel,
         });
@@ -305,17 +273,14 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
         return this.readDataCloudAccessToken(responseBody);
     }
 
-    public async getCoreUserInfo(access: connection.SalesforceCoreAccessToken, cancel: AbortSignal, authProxyUrl?: string): Promise<connection.SalesforceCoreUserInfo> {
+    public async getCoreUserInfo(access: connection.SalesforceCoreAccessToken, cancel: AbortSignal): Promise<connection.SalesforceCoreUserInfo> {
         const params = new URLSearchParams();
         params.set('format', 'json');
         params.set('access_token', access.accessToken ?? '');
-        const target = new URL(`${access.instanceUrl}/services/oauth2/userinfo?${params.toString()}`);
-        const routed = applyAuthProxy(target, authProxyUrl);
-        const response = await this.httpClient.fetch(routed.url, {
+        const response = await this.httpClient.fetch(new URL(`${access.instanceUrl}/services/oauth2/userinfo?${params.toString()}`), {
             headers: {
                 authorization: `Bearer ${access.accessToken}`,
                 accept: 'application/json',
-                ...(routed.extraHeaders ?? {}),
             },
             signal: cancel,
         });

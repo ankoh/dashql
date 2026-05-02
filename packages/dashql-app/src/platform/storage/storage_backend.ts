@@ -13,6 +13,7 @@ export const STORAGE_SCRIPT_EXTENSION = '.sql';
 // Re-export JSON Schema types
 export type SessionEntry = app_manifest.SessionEntry;
 export type StorageManifest = app_manifest.StorageManifest;
+export type AppSettings = app_manifest.AppSettings;
 export type SessionData = app_session.SessionData;
 export type NotebookMetadata = app_session.NotebookMetadata;
 export type ConnectionParams = app_session.ConnectionParams;
@@ -33,6 +34,11 @@ export interface StorageBackend {
 
     /// List all sessions
     listSessions(manifestPath: string): Promise<SessionEntry[]>;
+
+    /// Load persisted app settings from the manifest
+    loadAppSettings(): Promise<AppSettings | null>;
+    /// Persist app settings to the manifest
+    saveAppSettings(settings: AppSettings): Promise<void>;
     /// Load a session by path
     loadSession(sessionPath: string): Promise<SessionData>;
     /// Save a session

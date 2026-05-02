@@ -38,6 +38,8 @@ describe('restoreAppState', () => {
             reorderNotebookScript: vi.fn(),
             loadNotebookScriptDraft: vi.fn(),
             saveNotebookScriptDraft: vi.fn(),
+            loadAppSettings: vi.fn(),
+            saveAppSettings: vi.fn(),
         };
 
         // Mock DashQL WASM instance

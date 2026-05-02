@@ -4,6 +4,7 @@ import { Route, Routes, Navigate, BrowserRouter, HashRouter, useLocation } from 
 
 import { AppConfigProvider } from './app_config.js';
 import { AppLoader } from './app_loader.js';
+import { AppSettingsSync } from './app_settings_sync.js';
 import { CatalogLoaderProvider } from './connection/catalog_loader.js';
 import { ComputationRegistry } from './compute/computation_registry.js';
 import { ComputationScheduler } from './compute/computation_scheduler.js';
@@ -102,19 +103,21 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                 <VersionCheck>
                                     <StorageProvider>
                                         <HttpClientProvider>
-                                            <OllamaClientProvider>
-                                                <HyperDatabaseClientProvider>
-                                                    <DashQLCoreProvider>
-                                                        <DuckDBProvider>
-                                                            <ComputeConnectionProvider>
-                                                                <NotebookProviders>
-                                                                    {props.children}
-                                                                </NotebookProviders>
-                                                            </ComputeConnectionProvider>
-                                                        </DuckDBProvider>
-                                                    </DashQLCoreProvider>
-                                                </HyperDatabaseClientProvider>
-                                            </OllamaClientProvider>
+                                            <AppSettingsSync>
+                                                <OllamaClientProvider>
+                                                    <HyperDatabaseClientProvider>
+                                                        <DashQLCoreProvider>
+                                                            <DuckDBProvider>
+                                                                <ComputeConnectionProvider>
+                                                                    <NotebookProviders>
+                                                                        {props.children}
+                                                                    </NotebookProviders>
+                                                                </ComputeConnectionProvider>
+                                                            </DuckDBProvider>
+                                                        </DashQLCoreProvider>
+                                                    </HyperDatabaseClientProvider>
+                                                </OllamaClientProvider>
+                                            </AppSettingsSync>
                                         </HttpClientProvider>
                                     </StorageProvider>
                                 </VersionCheck>

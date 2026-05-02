@@ -4,6 +4,8 @@
 .settings_root {
     display: grid;
     grid-template-rows: 40px 1fr;
+    min-height: 0;
+    height: 100%;
 }
 
 .header_container {
@@ -45,11 +47,14 @@
 }
 
 .internals_container {
-    padding: 16px 16px;
+    grid-row: 2;
     font-size: 0.9rem;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 .settings_container {
+    padding: 16px 16px;
     width: 100%;
     min-width: 240px;
     display: grid;
@@ -73,4 +78,29 @@
     display: flex;
     align-items: center;
     justify-content: end;
+}
+
+.proxy_section {
+    border-top: 1px solid var(--border_color_primary);
+    padding: 16px 16px;
+    display: flex;
+    flex-direction: column;
+    row-gap: 16px;
+}
+
+.proxy_actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.reset_section {
+    border-top: 1px solid var(--border_color_primary);
+    padding: 16px 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.reset_actions {
+    display: flex;
+    justify-content: flex-end;
 }

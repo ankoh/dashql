@@ -328,10 +328,6 @@
         "login": {
           "type": "string",
           "description": "The login"
-        },
-        "authProxyUrl": {
-          "type": "string",
-          "description": "Optional CORS proxy URL used by the web build to reach the Salesforce token endpoints (/services/oauth2/token and /services/a360/token). Ignored by the native build."
         }
       },
       "required": ["hyperProtocol", "instanceUrl", "appConsumerKey", "appConsumerSecret", "login"],

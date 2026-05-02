@@ -33,7 +33,6 @@ interface PageState {
     hyperProtocol: connection.HyperProtocol;
     instanceUrl: string;
     appConsumerKey: string;
-    authProxyUrl: string;
 };
 type PageStateSetter = Dispatch<React.SetStateAction<PageState>>;
 const PAGE_STATE_CTX = React.createContext<[PageState, PageStateSetter] | null>(null);
@@ -146,7 +145,6 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const setHyperProtocol = (v: connection.HyperProtocol) => setPageState(s => ({ ...s, hyperProtocol: v }));
     const updateInstanceUrl: React.ChangeEventHandler<HTMLInputElement> = ev => setPageState(s => ({ ...s, instanceUrl: ev.target.value }));
     const updateAppConsumerKey: React.ChangeEventHandler<HTMLInputElement> = ev => setPageState(s => ({ ...s, appConsumerKey: ev.target.value }));
-    const updateAuthProxyUrl: React.ChangeEventHandler<HTMLInputElement> = ev => setPageState(s => ({ ...s, authProxyUrl: ev.target.value }));
 
     // Maintain setting validations
     const [instanceUrlValidation, setInstanceUrlValidation] = React.useState<TextFieldValidationStatus>({
@@ -164,9 +162,8 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
         instanceUrl: pageState.instanceUrl,
         appConsumerKey: pageState.appConsumerKey,
         appConsumerSecret: "",
-        login: "",
-        ...(pageState.authProxyUrl ? { authProxyUrl: pageState.authProxyUrl } : {}),
-    }), [pageState.hyperProtocol, pageState.instanceUrl, pageState.appConsumerKey, pageState.authProxyUrl]);
+        login: ""
+    }), [pageState.hyperProtocol, pageState.instanceUrl, pageState.appConsumerKey]);
     const setupAbortController = React.useRef<AbortController | null>(null);
     const setupConnection = async () => {
         let validationSucceeded = true;
@@ -305,19 +302,6 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
                             disabled={freezeInput}
                             readOnly={freezeInput}
                         />
-                        {!isNativePlatform() && (
-                            <TextField
-                                name="Auth Proxy URL"
-                                caption="Optional proxy for the OAuth and token exchange"
-                                value={pageState.authProxyUrl}
-                                onChange={updateAuthProxyUrl}
-                                placeholder="http://127.0.0.1:23333"
-                                leadingVisual={() => <div>URL</div>}
-                                logContext={LOG_CTX}
-                                disabled={freezeInput}
-                                readOnly={freezeInput}
-                            />
-                        )}
                     </div>
                 </div>
                 <div className={style.section}>
@@ -390,7 +374,6 @@ export const SalesforceConnectorSettingsStateProvider: React.FC<ProviderProps> =
         hyperProtocol: "V3_HTTP",
         instanceUrl: "",
         appConsumerKey: "",
-        authProxyUrl: "",
     });
     return (
         <PAGE_STATE_CTX.Provider value={state}>
