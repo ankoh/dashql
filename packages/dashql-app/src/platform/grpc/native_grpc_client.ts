@@ -1,7 +1,6 @@
 import { ChannelArgs, ChannelError, ChannelMetadataProvider, RawProxyError } from '../channel_common.js';
 import { Logger } from "../logger/logger.js";
 import { HEADER_NAME_BATCH_BYTES, HEADER_NAME_BATCH_TIMEOUT, HEADER_NAME_CHANNEL_ID, HEADER_NAME_ENDPOINT, HEADER_NAME_PATH, HEADER_NAME_READ_TIMEOUT, HEADER_NAME_STREAM_ID, HEADER_NAME_TLS, HEADER_NAME_TLS_CACERTS, HEADER_NAME_TLS_CLIENT_CERT, HEADER_NAME_TLS_CLIENT_KEY } from '../native_proxy_headers.js';
-import { injectTraceHeaders } from '../ipc/ipc_headers.js';
 
 const LOG_CTX = 'native_grpc_client';
 
@@ -85,7 +84,6 @@ export class NativeGrpcServerStream implements AsyncIterator<NativeGrpcServerStr
             [HEADER_NAME_BATCH_TIMEOUT]: DEFAULT_BATCH_TIMEOUT.toString(),
             [HEADER_NAME_BATCH_BYTES]: DEFAULT_BATCH_BYTES.toString(),
         });
-        injectTraceHeaders(headers);
         const request = new Request(url, {
             method: 'GET',
             headers
@@ -244,7 +242,6 @@ export class NativeGrpcChannel {
         const headers = new Headers(additionalMetadata);
         headers.set(HEADER_NAME_CHANNEL_ID, this.channelId.toString());
         headers.set(HEADER_NAME_PATH, args.path);
-        injectTraceHeaders(headers);
 
         // Send the request
         const request = new Request(url, {
@@ -266,7 +263,6 @@ export class NativeGrpcChannel {
 
         const headers = new Headers();
         headers.set(HEADER_NAME_CHANNEL_ID, this.channelId.toString());
-        injectTraceHeaders(headers);
 
         // Send the request
         const request = new Request(url, {
@@ -313,7 +309,6 @@ export class NativeGrpcClient {
                 headers.set(HEADER_NAME_TLS_CACERTS, args.tls.caPath);
             }
         }
-        injectTraceHeaders(headers);
         const request = new Request(url, {
             method: 'POST',
             headers

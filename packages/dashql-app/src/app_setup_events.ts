@@ -3,7 +3,7 @@ import * as appSession from '@ankoh/dashql-jsonschema/app_session.js';
 import * as dashql from './core/index.js';
 
 import { ConnectionAllocator, ConnectionRegistry } from './connection/connection_registry.js';
-import { Logger } from './platform/logger/logger.js';
+import { LoggerLike } from './platform/logger/logger.js';
 import { SETUP_SESSION, SetupEventVariant } from './platform/events/event.js';
 import { importSessionFromZip } from './platform/storage/session_import.js';
 import type { StorageBackend } from './platform/storage/storage_backend.js';
@@ -30,7 +30,7 @@ export type AppLinkSetupResult =
 /// Called either through app links (url or os deep-link), or by opening a file
 export async function configureAppWithSetupEvent(
     data: SetupEventVariant,
-    logger: Logger,
+    logger: LoggerLike,
     core: dashql.DashQL,
     allocateConnection: ConnectionAllocator,
     setupNotebook: NotebookSetup,

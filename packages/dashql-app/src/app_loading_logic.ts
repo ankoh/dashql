@@ -1,8 +1,7 @@
 import * as dashql from './core/index.js';
 
-import { Logger } from './platform/logger/logger.js';
+import { TracedLogger } from './platform/logger/logger.js';
 import { StorageReader } from './platform/storage/storage_provider.js';
-import { globalTraceContext } from './platform/logger/trace_context.js';
 import { AppLoadingProgress, AppLoadingProgressConsumer } from './app_loading_progress.js';
 import { ConnectionAllocator, DynamicConnectionDispatch, SetConnectionRegistryAction } from './connection/connection_registry.js';
 import { ConnectionState, ConnectionStateAction } from './connection/connection_state.js';
@@ -25,160 +24,155 @@ export interface AppLoadingResult {
 }
 
 /// Main logic to setup the application
-export async function loadApp(config: AppConfig, logger: Logger, core: dashql.DashQL, storage: StorageReader, resetConnections: Dispatch<SetConnectionRegistryAction>, allocateConnection: ConnectionAllocator, modifyConnection: DynamicConnectionDispatch, resetNotebooks: Dispatch<SetNotebookRegistryAction>, setupDemoNotebook: NotebookSetupFn, consumer: AppLoadingProgressConsumer, abortSignal: AbortSignal) {
-    // Create child span for loadApp
-    globalTraceContext.startSpan();
-    try {
-        logger.info("Loading application", {}, "app_loading");
-        const appLoadStartTime = performance.now();
+export async function loadApp(config: AppConfig, logger: TracedLogger, core: dashql.DashQL, storage: StorageReader, resetConnections: Dispatch<SetConnectionRegistryAction>, allocateConnection: ConnectionAllocator, modifyConnection: DynamicConnectionDispatch, resetNotebooks: Dispatch<SetNotebookRegistryAction>, setupDemoNotebook: NotebookSetupFn, consumer: AppLoadingProgressConsumer, abortSignal: AbortSignal) {
+    const traced = logger.childSpan();
+    traced.info("Loading application", {}, "app_loading");
+    const appLoadStartTime = performance.now();
 
-        let progress: AppLoadingProgress = {
-            restoreConnections: new ProgressCounter(),
-            restoreCatalogs: new ProgressCounter(),
-            restoreNotebooks: new ProgressCounter(),
-            setupDefaultConnections: new ProgressCounter(1),
-            setupDefaultNotebooks: new ProgressCounter(1),
-        };
-        const partialProgressConsumer = (update: Partial<AppLoadingProgress>) => {
-            progress = {
-                ...progress,
-                ...update
-            };
-            consumer(progress);
-        };
-
-        logger.info("Restoring application state", {}, "app_loading");
-        const restoreStartTime = performance.now();
-
-        /// First restore the previous app state
-        const state = await storage.restoreAppState(core, partialProgressConsumer);
-
-        const restoreDuration = performance.now() - restoreStartTime;
-        logger.info("Restored application state", {
-            connections: state.connectionStates.size.toString(),
-            notebooks: state.notebooks.size.toString(),
-            durationMs: restoreDuration.toFixed(2)
-        }, "app_loading");
-
-        // Reset the connection registry
-        logger.info("Updating connection registry", {
-            connectionCount: state.connectionStates.size.toString()
-        }, "app_loading");
-        resetConnections({
-            connectionMap: state.connectionStates,
-            connectionsByType: state.connectionStatesByType,
-            connectionsBySignature: state.connectionSignatures,
-        });
-
-        // Reset the notebook registry
-        logger.info("Updating notebook registry", {
-            notebookCount: state.notebooks.size.toString()
-        }, "app_loading");
-        resetNotebooks({
-            notebookMap: state.notebooks,
-            notebooksByConnection: state.notebooksByConnection,
-            notebooksByConnectionType: state.notebooksByConnectionType,
-        });
-
+    let progress: AppLoadingProgress = {
+        restoreConnections: new ProgressCounter(),
+        restoreCatalogs: new ProgressCounter(),
+        restoreNotebooks: new ProgressCounter(),
+        setupDefaultConnections: new ProgressCounter(1),
+        setupDefaultNotebooks: new ProgressCounter(1),
+    };
+    const partialProgressConsumer = (update: Partial<AppLoadingProgress>) => {
         progress = {
             ...progress,
-            setupDefaultConnections: progress.setupDefaultConnections
-                .clone()
-                .addStarted()
+            ...update
         };
         consumer(progress);
+    };
 
-        logger.info("Setting up default connections", {}, "app_loading");
+    traced.info("Restoring application state", {}, "app_loading");
+    const restoreStartTime = performance.now();
 
-        // Configure the demo connection (as a dataless connection with demoConnector enabled)
-        let demoConn: ConnectionState;
-        if (config.settings?.setupDemoConnection) {
-            logger.info("Setting up demo connection", {}, "app_loading");
-            const demoSetupStartTime = performance.now();
+    /// First restore the previous app state
+    const state = await storage.restoreAppState(core, partialProgressConsumer);
 
-            // Find an existing dataless connection with demoConnector enabled
-            const existingDemoSessionId = findDemoConnection(state.connectionStatesByType, state.connectionStates);
+    const restoreDuration = performance.now() - restoreStartTime;
+    traced.info("Restored application state", {
+        connections: state.connectionStates.size.toString(),
+        notebooks: state.notebooks.size.toString(),
+        durationMs: restoreDuration.toFixed(2)
+    }, "app_loading");
 
-            if (!existingDemoSessionId) {
-                logger.info("Creating demo connection", {}, "app_loading");
-                demoConn = allocateConnection(createDatalessConnectionState(core, state.connectionSignatures, { demoConnector: true }));
-            } else {
-                demoConn = state.connectionStates.get(existingDemoSessionId)!;
-                logger.info("Using existing demo connection", { sessionId: existingDemoSessionId }, "app_loading");
-            }
+    // Reset the connection registry
+    traced.info("Updating connection registry", {
+        connectionCount: state.connectionStates.size.toString()
+    }, "app_loading");
+    resetConnections({
+        connectionMap: state.connectionStates,
+        connectionsByType: state.connectionStatesByType,
+        connectionsBySignature: state.connectionSignatures,
+    });
 
-            // Create the default demo params
-            logger.info("Creating demo database channel", {}, "app_loading");
-            const demoChannel = new DemoDatabaseChannel();
-            // Curry the dispatch
-            const dispatch = (action: ConnectionStateAction) => modifyConnection(demoConn!.sessionId, action);
-            // Setup the demo connection
-            logger.info("Setting up demo connection", {}, "app_loading");
-            await setupDatalessDemoConnection(dispatch, logger, demoChannel, abortSignal);
+    // Reset the notebook registry
+    traced.info("Updating notebook registry", {
+        notebookCount: state.notebooks.size.toString()
+    }, "app_loading");
+    resetNotebooks({
+        notebookMap: state.notebooks,
+        notebooksByConnection: state.notebooksByConnection,
+        notebooksByConnectionType: state.notebooksByConnectionType,
+    });
 
-            const demoSetupDuration = performance.now() - demoSetupStartTime;
-            logger.info("Demo connection setup complete", {
-                durationMs: demoSetupDuration.toFixed(2)
-            }, "app_loading");
+    progress = {
+        ...progress,
+        setupDefaultConnections: progress.setupDefaultConnections
+            .clone()
+            .addStarted()
+    };
+    consumer(progress);
+
+    traced.info("Setting up default connections", {}, "app_loading");
+
+    // Configure the demo connection (as a dataless connection with demoConnector enabled)
+    let demoConn: ConnectionState;
+    if (config.settings?.setupDemoConnection) {
+        traced.info("Setting up demo connection", {}, "app_loading");
+        const demoSetupStartTime = performance.now();
+
+        // Find an existing dataless connection with demoConnector enabled
+        const existingDemoSessionId = findDemoConnection(state.connectionStatesByType, state.connectionStates);
+
+        if (!existingDemoSessionId) {
+            traced.info("Creating demo connection", {}, "app_loading");
+            demoConn = allocateConnection(createDatalessConnectionState(core, state.connectionSignatures, { demoConnector: true }));
         } else {
-            logger.error("Demo connection is required but disabled in config", {}, "app_loading");
-            throw new Error("Demo connection is required");
+            demoConn = state.connectionStates.get(existingDemoSessionId)!;
+            traced.info("Using existing demo connection", { sessionId: existingDemoSessionId }, "app_loading");
         }
 
-        progress = {
-            ...progress,
-            setupDefaultConnections: progress.setupDefaultConnections
-                .clone()
-                .addSucceeded(),
-            setupDefaultNotebooks: progress.setupDefaultNotebooks
-                .clone()
-                .addStarted(),
-        };
-        consumer(progress);
+        // Create the default demo params
+        traced.info("Creating demo database channel", {}, "app_loading");
+        const demoChannel = new DemoDatabaseChannel();
+        // Curry the dispatch
+        const dispatch = (action: ConnectionStateAction) => modifyConnection(demoConn!.sessionId, action);
+        // Setup the demo connection
+        traced.info("Setting up demo connection", {}, "app_loading");
+        await setupDatalessDemoConnection(dispatch, traced, demoChannel, abortSignal);
 
-        // Add a demo notebook if none exist
-        logger.info("Setting up default notebooks", {}, "app_loading");
-        const notebookSetupStartTime = performance.now();
-
-        let demoNotebook: NotebookState;
-        const existingDemoNotebookId = findDemoNotebook(state.notebooksByConnectionType, state.connectionStatesByType, state.connectionStates, state.notebooks);
-        if (!existingDemoNotebookId) {
-            logger.info("Creating demo notebook", {}, "app_loading");
-            demoNotebook = await setupDemoNotebook(demoConn, abortSignal);
-            logger.info("Created demo notebook", {
-                sessionId: demoNotebook.sessionId
-            }, "app_loading");
-        } else {
-            demoNotebook = state.notebooks.get(existingDemoNotebookId)!;
-            logger.info("Using existing demo notebook", {
-                notebookId: existingDemoNotebookId.toString()
-            }, "app_loading");
-        }
-
-        const notebookSetupDuration = performance.now() - notebookSetupStartTime;
-        logger.info("Default notebooks setup complete", {
-            durationMs: notebookSetupDuration.toFixed(2)
+        const demoSetupDuration = performance.now() - demoSetupStartTime;
+        traced.info("Demo connection setup complete", {
+            durationMs: demoSetupDuration.toFixed(2)
         }, "app_loading");
-
-        progress = {
-            ...progress,
-            setupDefaultNotebooks: progress.setupDefaultNotebooks
-                .clone()
-                .addSucceeded()
-        };
-        consumer(progress);
-
-        const totalAppLoadDuration = performance.now() - appLoadStartTime;
-        logger.info("Application loading complete", {
-            totalDurationMs: totalAppLoadDuration.toFixed(2)
-        }, "app_loading");
-
-        return {
-            demo: demoNotebook,
-        };
-    } finally {
-        globalTraceContext.endSpan();
+    } else {
+        traced.error("Demo connection is required but disabled in config", {}, "app_loading");
+        throw new Error("Demo connection is required");
     }
+
+    progress = {
+        ...progress,
+        setupDefaultConnections: progress.setupDefaultConnections
+            .clone()
+            .addSucceeded(),
+        setupDefaultNotebooks: progress.setupDefaultNotebooks
+            .clone()
+            .addStarted(),
+    };
+    consumer(progress);
+
+    // Add a demo notebook if none exist
+    traced.info("Setting up default notebooks", {}, "app_loading");
+    const notebookSetupStartTime = performance.now();
+
+    let demoNotebook: NotebookState;
+    const existingDemoNotebookId = findDemoNotebook(state.notebooksByConnectionType, state.connectionStatesByType, state.connectionStates, state.notebooks);
+    if (!existingDemoNotebookId) {
+        traced.info("Creating demo notebook", {}, "app_loading");
+        demoNotebook = await setupDemoNotebook(demoConn, abortSignal);
+        traced.info("Created demo notebook", {
+            sessionId: demoNotebook.sessionId
+        }, "app_loading");
+    } else {
+        demoNotebook = state.notebooks.get(existingDemoNotebookId)!;
+        traced.info("Using existing demo notebook", {
+            notebookId: existingDemoNotebookId.toString()
+        }, "app_loading");
+    }
+
+    const notebookSetupDuration = performance.now() - notebookSetupStartTime;
+    traced.info("Default notebooks setup complete", {
+        durationMs: notebookSetupDuration.toFixed(2)
+    }, "app_loading");
+
+    progress = {
+        ...progress,
+        setupDefaultNotebooks: progress.setupDefaultNotebooks
+            .clone()
+            .addSucceeded()
+    };
+    consumer(progress);
+
+    const totalAppLoadDuration = performance.now() - appLoadStartTime;
+    traced.info("Application loading complete", {
+        totalDurationMs: totalAppLoadDuration.toFixed(2)
+    }, "app_loading");
+
+    return {
+        demo: demoNotebook,
+    };
 }
 
 /// Find an existing dataless connection with demoConnector enabled

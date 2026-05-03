@@ -7,7 +7,7 @@ import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUM
 import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SCHEDULE_TASK } from './computation_state.js';
 import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderingTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, WithFilter, WithFilterEpoch, ComputationStateVersion } from './computation_types.js';
 import { Dispatch } from '../utils/variant.js';
-import { LoggableException, Logger } from '../platform/logger/logger.js';
+import { LoggableException, LoggerLike } from '../platform/logger/logger.js';
 import { assert } from '../utils/assert.js';
 import { SQLFrame } from '../sql/sqlframe_builder.js';
 import { DuckDB } from '../platform/duckdb/duckdb_api.js';
@@ -73,7 +73,7 @@ function isTemporalType(typeId: arrow.Type): boolean {
 ///     Whenever a user updates a cross-filter (by brushing or selecting a distinct value), we just recompute the column summaries
 ///     with the new set of cross-filters and update the UI.
 ///
-export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, duckdb: DuckDB, logger: Logger): Promise<void> {
+export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, duckdb: DuckDB, logger: LoggerLike): Promise<void> {
     let gridColumnGroups = buildGridColumnGroups(table!);
     const computeAbortCtrl = new AbortController();
     dispatch({
@@ -152,7 +152,7 @@ export async function computeSystemColumnsDispatched(task: SystemColumnComputati
     return result.getValue();
 }
 
-export async function computeSystemColumns(task: SystemColumnComputationTask, logger: Logger): Promise<[arrow.Table, DataFrame, ColumnGroup[]]> {
+export async function computeSystemColumns(task: SystemColumnComputationTask, logger: LoggerLike): Promise<[arrow.Table, DataFrame, ColumnGroup[]]> {
     try {
         const [sqlFrame, columnGroups] = buildSystemColumnSQLFrame(task.inputTable.schema, task.columnEntries, task.inputDataFrame.tableName, task.tableAggregate);
 
@@ -386,7 +386,7 @@ export async function sortTableDispatched(task: TableOrderingTask, dispatch: Dis
     return result.getValue();
 }
 
-export async function sortTable(task: TableOrderingTask, logger: Logger): Promise<OrderingTable> {
+export async function sortTable(task: TableOrderingTask, logger: LoggerLike): Promise<OrderingTable> {
     if (task.orderingConstraints.length == 1) {
         logger.info("Sorting table by field", {
             "field": task.orderingConstraints[0].field
@@ -453,7 +453,7 @@ export async function filterTableDispatched(task: TableFilteringTask, dispatch: 
     return result.getValue();
 }
 
-export async function filterTable(task: TableFilteringTask, logger: Logger): Promise<FilterTable | null> {
+export async function filterTable(task: TableFilteringTask, logger: LoggerLike): Promise<FilterTable | null> {
     if (task.filters.length == 0) {
         return null;
     }
@@ -512,7 +512,7 @@ export async function computeTableAggregatesDispatched(task: TableAggregationTas
     return result.getValue();
 }
 
-export async function computeTableAggregates(task: TableAggregationTask, logger: Logger): Promise<[TableAggregation, ColumnGroup[]]> {
+export async function computeTableAggregates(task: TableAggregationTask, logger: LoggerLike): Promise<[TableAggregation, ColumnGroup[]]> {
     const [sql, columnEntries, countStarColumn] = buildTableAggregationSQL(task);
 
     try {
@@ -797,7 +797,7 @@ export async function computeFilteredColumnAggregatesDispatched(task: WithFilter
     return result.getValue();
 }
 
-export async function computeColumnAggregates(task: ColumnAggregationTask, logger: Logger): Promise<ColumnAggregationVariant> {
+export async function computeColumnAggregates(task: ColumnAggregationTask, logger: LoggerLike): Promise<ColumnAggregationVariant> {
     if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN) {
         throw new LoggableException(`Column of type cannot be aggregated`, {
             type: getGridColumnTypeName(task.columnEntry),
@@ -966,7 +966,7 @@ function buildColumnAggregationSQL(task: ColumnAggregationTask, filtered: [Filte
     return frame.toSQL();
 }
 
-export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAggregationTask>, logger: Logger): Promise<WithFilterEpoch<ColumnAggregationVariant> | null> {
+export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAggregationTask>, logger: LoggerLike): Promise<WithFilterEpoch<ColumnAggregationVariant> | null> {
     if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN) {
         throw new LoggableException(`Column of type cannot be aggregated`, {
             type: getGridColumnTypeName(task.columnEntry),

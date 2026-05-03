@@ -1,7 +1,6 @@
 import * as arrow from 'apache-arrow';
 
 import { RawProxyError } from '../channel_common.js';
-import { injectTraceHeaders } from '../ipc/ipc_headers.js';
 import {
     HEADER_NAME_BATCH_BYTES,
     HEADER_NAME_BATCH_CHUNKS,
@@ -185,7 +184,6 @@ export class NativeDuckDB extends DuckDB {
         const url = new URL(this.proxyEndpoint);
         url.pathname = path;
         const request = new Request(url, init);
-        injectTraceHeaders(request.headers);
         return await fetch(request);
     }
 }

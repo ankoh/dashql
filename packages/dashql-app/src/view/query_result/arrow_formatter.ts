@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as styles from './arrow_formatter.module.css';
 import { Int128, Decimal128 } from '../../utils/int128.js';
-import { Logger } from '../../platform/logger/logger.js';
+import { LoggerLike } from '../../platform/logger/logger.js';
 
 const LOG_CTX = 'arrow_formatter';
 
@@ -258,7 +258,7 @@ export interface ArrowColumnFormatter {
 }
 
 export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
-    readonly logger: Logger;
+    readonly logger: LoggerLike;
     readonly columnId: number;
     readonly columnName: string;
     readonly batches: arrow.RecordBatch[];
@@ -270,7 +270,7 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
     formatter: ((o: any) => (null | string));
 
     public constructor(
-        logger: Logger,
+        logger: LoggerLike,
         columnId: number,
         schema: arrow.Schema,
         batches: arrow.RecordBatch[]
@@ -542,7 +542,7 @@ export class ArrowTableFormatter {
     /// Matches rows to batches
     rowIndex: Uint32Array;
 
-    public constructor(schema: arrow.Schema, batches: arrow.RecordBatch[], logger: Logger) {
+    public constructor(schema: arrow.Schema, batches: arrow.RecordBatch[], logger: LoggerLike) {
         // Resolve the starting offset for all batches
         const batchOffsets = new Uint32Array(batches.length);
         let numRows = 0;

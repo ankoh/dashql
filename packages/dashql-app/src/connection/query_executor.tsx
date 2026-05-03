@@ -28,7 +28,7 @@ import { useComputationRegistry } from '../compute/computation_registry.js';
 import { analyzeTable } from '../compute/computation_logic.js';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { globalTraceContext } from '../platform/logger/trace_context.js';
+import { createTrace } from '../platform/logger/trace_context.js';
 import { QueryExecutionArgs } from './query_execution_args.js';
 import { executeTrinoQuery } from './trino/trino_query_execution.js';
 import { executeSalesforceQuery } from './salesforce/salesforce_query_execution.js';
@@ -69,215 +69,211 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     // Execute a query with pre-allocated query id
     const executeImpl = React.useCallback(async (sessionId: string, args: QueryExecutionArgs, queryId: number): Promise<arrow.Table | null> => {
         // Start a new trace for this query execution
-        const trace = globalTraceContext.startTrace();
-        try {
-            if (!computeDb) {
-                throw new Error(`Compute database is not yet ready`);
-            }
-            // Check if we know the session id.
-            const conn = connMap.get(sessionId);
-            if (!conn) {
-                logger.error("Connection not configured", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
-                throw new Error(`Couldn't find a connection with session id ${sessionId}`);
-            }
-            logger.info("Executing query", {
-                "session": sessionId,
-                "query": queryId.toString(),
-                "text": args.query
-            }, LOG_CTX);
+        const trace = createTrace();
+        const traced = logger.withTrace(trace);
+        if (!computeDb) {
+            throw new Error(`Compute database is not yet ready`);
+        }
+        // Check if we know the session id.
+        const conn = connMap.get(sessionId);
+        if (!conn) {
+            traced.error("Connection not configured", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
+            throw new Error(`Couldn't find a connection with session id ${sessionId}`);
+        }
+        traced.info("Executing query", {
+            "session": sessionId,
+            "query": queryId.toString(),
+            "text": args.query
+        }, LOG_CTX);
 
-            // Accept the query and clear the request
-            const initialState: QueryExecutionState = {
-                queryId,
-                traceId: trace.traceId,
-                queryText: args.query,
-                queryMetadata: args.metadata,
-                status: QueryExecutionStatus.REQUESTED,
-                cancellation: new AbortController(),
-                resultStream: null,
-                error: null,
-                metrics: {
-                    textLength: args.query.length,
-                    queryRequestedAt: new Date(),
-                    queryPreparingStartedAt: null,
-                    querySendingStartedAt: null,
-                    queryQueuedStartedAt: null,
-                    queryRunningStartedAt: null,
-                    receivedFirstBatchAt: null,
-                    receivedLastBatchAt: null,
-                    receivedAllBatchesAt: null,
-                    processingResultsStartedAt: null,
-                    processedResultsAt: null,
-                    querySucceededAt: null,
-                    queryFailedAt: null,
-                    queryCancelledAt: null,
-                    lastUpdatedAt: null,
-                    progressUpdatesReceived: 0,
-                    queryDurationMs: null,
-                    streamMetrics: createQueryResponseStreamMetrics(),
-                },
-                latestProgressUpdate: null,
-                resultMetadata: null,
-                resultSchema: null,
-                resultBatches: [],
-                resultTable: null,
-            };
+        // Accept the query and clear the request
+        const initialState: QueryExecutionState = {
+            queryId,
+            traceId: trace.traceId,
+            queryText: args.query,
+            queryMetadata: args.metadata,
+            status: QueryExecutionStatus.REQUESTED,
+            cancellation: new AbortController(),
+            resultStream: null,
+            error: null,
+            metrics: {
+                textLength: args.query.length,
+                queryRequestedAt: new Date(),
+                queryPreparingStartedAt: null,
+                querySendingStartedAt: null,
+                queryQueuedStartedAt: null,
+                queryRunningStartedAt: null,
+                receivedFirstBatchAt: null,
+                receivedLastBatchAt: null,
+                receivedAllBatchesAt: null,
+                processingResultsStartedAt: null,
+                processedResultsAt: null,
+                querySucceededAt: null,
+                queryFailedAt: null,
+                queryCancelledAt: null,
+                lastUpdatedAt: null,
+                progressUpdatesReceived: 0,
+                queryDurationMs: null,
+                streamMetrics: createQueryResponseStreamMetrics(),
+            },
+            latestProgressUpdate: null,
+            resultMetadata: null,
+            resultSchema: null,
+            resultBatches: [],
+            resultTable: null,
+        };
+        connDispatch(sessionId, {
+            type: EXECUTE_QUERY,
+            value: [queryId, initialState],
+        });
+
+        // XXX Add explicit query preparation here later
+
+        // Execute the query and consume the results
+        let resultStream: QueryExecutionResponseStream | null = null;
+        let table: arrow.Table | null = null;
+        try {
             connDispatch(sessionId, {
-                type: EXECUTE_QUERY,
-                value: [queryId, initialState],
+                type: QUERY_SENDING,
+                value: [queryId],
             });
 
-            // XXX Add explicit query preparation here later
+            // Start the query
+            switch (conn.details.type) {
+                case SALESFORCE_DATA_CLOUD_CONNECTOR:
+                    resultStream = await executeSalesforceQuery(conn.details.value, args);
+                    break;
+                case HYPER_CONNECTOR:
+                    resultStream = await executeHyperQuery(conn.details.value, args);
+                    break;
+                case TRINO_CONNECTOR:
+                    resultStream = await executeTrinoQuery(conn.details.value, args);
+                    break;
+                case DATALESS_CONNECTOR:
+                    resultStream = await executeDemoQuery(conn.details.value, args);
+                    break;
+            }
+            traced.debug("Received query results", {
+                "session": sessionId,
+                "query": queryId.toString()
+            }, LOG_CTX);
 
-            // Execute the query and consume the results
-            let resultStream: QueryExecutionResponseStream | null = null;
-            let table: arrow.Table | null = null;
+            if (resultStream != null) {
+                connDispatch(sessionId, {
+                    type: QUERY_RUNNING,
+                    value: [queryId, resultStream],
+                });
+
+                // Helper to forward progress updates
+                const consumeProgress = new AsyncConsumerLambdas<QueryExecutionResponseStream, QueryExecutionProgress>(
+                    (_: QueryExecutionResponseStream, progress: QueryExecutionProgress) => {
+                        connDispatch(sessionId, {
+                            type: QUERY_PROGRESS_UPDATED,
+                            value: [queryId, progress],
+                        });
+                    },
+                );
+
+                // Helper to consume result batches
+                const batches: arrow.RecordBatch[] = [];
+                const consumeBatches = new AsyncConsumerLambdas<QueryExecutionResponseStream, arrow.RecordBatch>(
+                    (ctx: QueryExecutionResponseStream, batch: arrow.RecordBatch) => {
+                        batches.push(batch);
+
+                        traced.debug("Received result batch", {
+                            "session": sessionId,
+                            "query": queryId.toString(),
+                            "batchColumns": batch.numCols.toString(),
+                            "batchRows": batch.numRows.toString(),
+                        }, LOG_CTX);
+                        connDispatch(sessionId, {
+                            type: QUERY_RECEIVED_BATCH,
+                            value: [queryId, batch, ctx.getMetrics()],
+                        });
+                    },
+                );
+
+                // Subscribe to query_status and result messages
+                await resultStream.produce(consumeBatches, consumeProgress);
+                table = new arrow.Table(batches.length > 0 ? batches[0].schema : new arrow.Schema(), batches);
+
+                traced.info("Executed query", {
+                    "session": sessionId,
+                    "query": queryId.toString(),
+                    "numRows": table.numRows.toString(),
+                    "numCols": table.numCols.toString(),
+                    "batchesReceived": resultStream.getMetrics().totalBatchesReceived.toString(),
+                    "dataBytesReceived": resultStream.getMetrics().totalDataBytesReceived.toString(),
+                }, LOG_CTX);
+
+                // Is there any metadata?
+                const metadata = resultStream.getMetadata();
+                connDispatch(sessionId, {
+                    type: QUERY_RECEIVED_ALL_BATCHES,
+                    value: [queryId, table!, metadata, resultStream!.getMetrics()],
+                });
+            } else {
+                traced.error("Query returned no results", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
+            }
+        } catch (e: any) {
+            if ((e.message === 'AbortError')) {
+                traced.warn("Cancelled query", {
+                    query: queryId.toString(),
+                    session: sessionId
+                }, LOG_CTX);
+                connDispatch(sessionId, {
+                    type: QUERY_CANCELLED,
+                    value: [queryId, e, resultStream?.getMetrics() ?? null],
+                });
+            } else {
+                if (e instanceof LoggableException) {
+                    traced.exception(e);
+                } else {
+                    traced.error("Query failed with unknown error", {
+                        query: queryId.toString(),
+                        session: sessionId,
+                        raw: e.toString(),
+                    });
+                }
+                connDispatch(sessionId, {
+                    type: QUERY_FAILED,
+                    value: [queryId, e, resultStream?.getMetrics() ?? null],
+                });
+            }
+            return null;
+        }
+
+
+        // Compute all table summaries of the result
+        if (table && args.analyzeResults) {
             try {
                 connDispatch(sessionId, {
-                    type: QUERY_SENDING,
+                    type: QUERY_PROCESSING_RESULTS,
                     value: [queryId],
                 });
 
-                // Start the query
-                switch (conn.details.type) {
-                    case SALESFORCE_DATA_CLOUD_CONNECTOR:
-                        resultStream = await executeSalesforceQuery(conn.details.value, args);
-                        break;
-                    case HYPER_CONNECTOR:
-                        resultStream = await executeHyperQuery(conn.details.value, args);
-                        break;
-                    case TRINO_CONNECTOR:
-                        resultStream = await executeTrinoQuery(conn.details.value, args);
-                        break;
-                    case DATALESS_CONNECTOR:
-                        resultStream = await executeDemoQuery(conn.details.value, args);
-                        break;
-                }
-                logger.debug("Received query results", {
-                    "session": sessionId,
-                    "query": queryId.toString()
-                }, LOG_CTX);
+                await analyzeTable(queryId, table!, computeDispatch, computeDb, traced);
 
-                if (resultStream != null) {
-                    connDispatch(sessionId, {
-                        type: QUERY_RUNNING,
-                        value: [queryId, resultStream],
-                    });
-
-                    // Helper to forward progress updates
-                    const consumeProgress = new AsyncConsumerLambdas<QueryExecutionResponseStream, QueryExecutionProgress>(
-                        (_: QueryExecutionResponseStream, progress: QueryExecutionProgress) => {
-                            connDispatch(sessionId, {
-                                type: QUERY_PROGRESS_UPDATED,
-                                value: [queryId, progress],
-                            });
-                        },
-                    );
-
-                    // Helper to consume result batches
-                    const batches: arrow.RecordBatch[] = [];
-                    const consumeBatches = new AsyncConsumerLambdas<QueryExecutionResponseStream, arrow.RecordBatch>(
-                        (ctx: QueryExecutionResponseStream, batch: arrow.RecordBatch) => {
-                            batches.push(batch);
-
-                            logger.debug("Received result batch", {
-                                "session": sessionId,
-                                "query": queryId.toString(),
-                                "batchColumns": batch.numCols.toString(),
-                                "batchRows": batch.numRows.toString(),
-                            }, LOG_CTX);
-                            connDispatch(sessionId, {
-                                type: QUERY_RECEIVED_BATCH,
-                                value: [queryId, batch, ctx.getMetrics()],
-                            });
-                        },
-                    );
-
-                    // Subscribe to query_status and result messages
-                    await resultStream.produce(consumeBatches, consumeProgress);
-                    table = new arrow.Table(batches.length > 0 ? batches[0].schema : new arrow.Schema(), batches);
-
-                    logger.info("Executed query", {
-                        "session": sessionId,
-                        "query": queryId.toString(),
-                        "numRows": table.numRows.toString(),
-                        "numCols": table.numCols.toString(),
-                        "batchesReceived": resultStream.getMetrics().totalBatchesReceived.toString(),
-                        "dataBytesReceived": resultStream.getMetrics().totalDataBytesReceived.toString(),
-                    }, LOG_CTX);
-
-                    // Is there any metadata?
-                    const metadata = resultStream.getMetadata();
-                    connDispatch(sessionId, {
-                        type: QUERY_RECEIVED_ALL_BATCHES,
-                        value: [queryId, table!, metadata, resultStream!.getMetrics()],
-                    });
-                } else {
-                    logger.error("Query returned no results", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
-                }
+                connDispatch(sessionId, {
+                    type: QUERY_PROCESSED_RESULTS,
+                    value: [queryId],
+                });
             } catch (e: any) {
-                if ((e.message === 'AbortError')) {
-                    logger.warn("Cancelled query", {
-                        query: queryId.toString(),
-                        session: sessionId
-                    }, LOG_CTX);
-                    connDispatch(sessionId, {
-                        type: QUERY_CANCELLED,
-                        value: [queryId, e, resultStream?.getMetrics() ?? null],
-                    });
-                } else {
-                    if (e instanceof LoggableException) {
-                        logger.exception(e);
-                    } else {
-                        logger.error("Query failed with unknown error", {
-                            query: queryId.toString(),
-                            session: sessionId,
-                            raw: e.toString(),
-                        });
-                    }
-                    connDispatch(sessionId, {
-                        type: QUERY_FAILED,
-                        value: [queryId, e, resultStream?.getMetrics() ?? null],
-                    });
-                }
-                return null;
+                console.error(e);
+                connDispatch(sessionId, {
+                    type: QUERY_FAILED,
+                    value: [queryId, e, null],
+                });
+                throw e;
             }
-
-
-            // Compute all table summaries of the result
-            if (table && args.analyzeResults) {
-                try {
-                    connDispatch(sessionId, {
-                        type: QUERY_PROCESSING_RESULTS,
-                        value: [queryId],
-                    });
-
-                    await analyzeTable(queryId, table!, computeDispatch, computeDb, logger);
-
-                    connDispatch(sessionId, {
-                        type: QUERY_PROCESSED_RESULTS,
-                        value: [queryId],
-                    });
-                } catch (e: any) {
-                    console.error(e);
-                    connDispatch(sessionId, {
-                        type: QUERY_FAILED,
-                        value: [queryId, e, null],
-                    });
-                    throw e;
-                }
-            }
-
-            // Mark as succeeded
-            connDispatch(sessionId, {
-                type: QUERY_SUCCEEDED,
-                value: [queryId],
-            });
-            return table;
-        } finally {
-            // End the trace span
-            globalTraceContext.endSpan();
         }
+
+        // Mark as succeeded
+        connDispatch(sessionId, {
+            type: QUERY_SUCCEEDED,
+            value: [queryId],
+        });
+        return table;
 
     }, [computeDb, connMap, computeDispatch, logger, sfApi]);
 

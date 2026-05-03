@@ -16,6 +16,7 @@ import {
 import { updateSalesforceCatalog } from './salesforce/salesforce_catalog_update.js';
 import { useQueryExecutor } from './query_executor.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
+import { createTrace } from '../platform/logger/trace_context.js';
 import { updateInformationSchemaCatalog } from './catalog_query_information_schema.js';
 import { updatePgAttributeSchemaCatalog } from './catalog_query_pg_attribute.js';
 import { updateDemoSchemaCatalog } from './dataless/dataless_demo_catalog.js';
@@ -55,18 +56,22 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
 
     // Execute a query with pre-allocated query id
     const updateImpl = React.useCallback(async (sessionId: string, _args: CatalogLoaderArgs, updateId: number): Promise<void> => {
+        // Each catalog update gets its own trace so failures don't borrow
+        // whatever trace happens to be on a shared stack.
+        const traced = logger.withTrace(createTrace());
+
         // Check if we know the session id.
         const conn = connMap.get(sessionId);
         if (!conn) {
-            logger.error("Failed to resolve connection", { "session": sessionId }, LOG_CTX);
+            traced.error("Failed to resolve connection", { "session": sessionId }, LOG_CTX);
             throw new Error(`couldn't find a connection with session id ${sessionId}`);
         }
         if (!executor) {
-            logger.error("Query executor not configured", { "session": sessionId }, LOG_CTX);
+            traced.error("Query executor not configured", { "session": sessionId }, LOG_CTX);
             throw new Error(`couldn't find trino executor`);
         }
 
-        logger.debug("Updating catalog", { "session": sessionId }, LOG_CTX);
+        traced.debug("Updating catalog", { "session": sessionId }, LOG_CTX);
 
         // Accept the query and clear the request
         const abortController = new AbortController();
@@ -143,7 +148,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                 case CatalogResolver.SQL_SCRIPT:
                     break;
             }
-            logger.debug("Updated catalog", { "session": sessionId }, LOG_CTX);
+            traced.debug("Updated catalog", { "session": sessionId }, LOG_CTX);
 
             // Mark the update successful
             connDispatch(sessionId, {
@@ -158,13 +163,13 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
 
         } catch (e: any) {
             if (e?.name === 'AbortError') {
-                logger.error("Cancelled catalog update", { "session": sessionId, "error": e?.message ?? String(e) }, LOG_CTX);
+                traced.error("Cancelled catalog update", { "session": sessionId, "error": e?.message ?? String(e) }, LOG_CTX);
                 connDispatch(sessionId, {
                     type: CATALOG_UPDATE_CANCELLED,
                     value: [updateId, e],
                 });
             } else {
-                logger.error("Failed to update catalog", { "session": sessionId, "error": e?.message ?? String(e) }, LOG_CTX);
+                traced.error("Failed to update catalog", { "session": sessionId, "error": e?.message ?? String(e) }, LOG_CTX);
                 console.error(e);
                 connDispatch(sessionId, {
                     type: CATALOG_UPDATE_FAILED,
