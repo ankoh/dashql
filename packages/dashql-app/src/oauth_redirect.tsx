@@ -25,7 +25,7 @@ import { Result, RESULT_ERROR, RESULT_OK } from './utils/result.js';
 import { TextField, TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_WARNING } from './view/foundations/text_field.js';
 import { classNames } from './utils/classnames.js';
 import { formatHHMMSS, formatTimeDifference } from './utils/format.js';
-import { OAUTH_BROADCAST_CHANNEL } from './platform/events/event.js';
+import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from './platform/events/event.js';
 
 import '../static/fonts/fonts.css';
 import './globals.css';
@@ -61,8 +61,12 @@ function triggerFlow(state: OAuthState, eventBase64: string, deepLink: string, l
             channel.postMessage(eventBase64);
             channel.close();
             if (window.opener) {
-                window.opener.postMessage(eventBase64);
+                window.opener.postMessage({ kind: APP_EVENT_POST_MESSAGE_KIND, data: eventBase64 });
             }
+            // Close self — opener.close() can be blocked by COOP after the cross-origin
+            // bounce through Salesforce, but window.close() on the popup itself works
+            // because the popup was opened via window.open().
+            window.close();
             break;
         }
     }

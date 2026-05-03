@@ -11,6 +11,7 @@ import {
     GENERATED_PKCE_CHALLENGE,
     GENERATING_PKCE_CHALLENGE,
     OAUTH_NATIVE_LINK_OPENED,
+    OAUTH_WEB_WINDOW_CLOSED,
     OAUTH_WEB_WINDOW_OPENED,
     RECEIVED_CORE_AUTH_CODE,
     RECEIVED_CORE_AUTH_TOKEN,
@@ -74,6 +75,16 @@ const OAUTH_POPUP_SETTINGS = 'toolbar=no, menubar=no, width=600, height=700, top
 export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, platformType: PlatformType, apiClient: SalesforceApiClientInterface, hyperClient: HyperDatabaseClient, appEvents: PlatformEventListener, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
     let hyperChannel: HyperDatabaseChannel;
     let sfChannel: SalesforceDatabaseChannel;
+    let oauthPopup: Window | null = null;
+    const closeOAuthPopup = () => {
+        if (oauthPopup && !oauthPopup.closed) {
+            oauthPopup.close();
+        }
+        if (oauthPopup) {
+            oauthPopup = null;
+            modifyState({ type: OAUTH_WEB_WINDOW_CLOSED, value: null });
+        }
+    };
     try {
         // Start the authorization process
         modifyState({
@@ -152,7 +163,8 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
                 throw new Error('could not open oauth window');
             }
             popup.focus();
-            modifyState({ type: OAUTH_WEB_WINDOW_OPENED, value: popup });
+            oauthPopup = popup;
+            modifyState({ type: OAUTH_WEB_WINDOW_OPENED, value: null });
         } else {
             // Just open the link with the default browser
             logger.debug("Opening URL", { "url": url.toString() }, LOG_CTX);
@@ -164,6 +176,8 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         const authCode = await appEvents.waitForOAuthRedirect(abortSignal);
         abortSignal.throwIfAborted();
         logger.debug("Received OAuth code", { "code": JSON.stringify(authCode) }, LOG_CTX);
+
+        closeOAuthPopup();
 
         // Received an oauth error?
         if (authCode.error) {
@@ -206,7 +220,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             type: REQUESTING_DATA_CLOUD_ACCESS_TOKEN,
             value: null,
         });
-        const dcToken = await apiClient.getDataCloudAccessToken(coreAccessToken, abortSignal);
+        const dcToken = await apiClient.getDataCloudAccessToken(coreAccessToken, abortSignal, params.httpProxyUrl);
         logger.debug("Received data cloud token", { "token": JSON.stringify(dcToken) }, LOG_CTX);
         modifyState({
             type: RECEIVED_DATA_CLOUD_ACCESS_TOKEN,
@@ -228,7 +242,8 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             metadata: {
                 message: "",
                 details: {}
-            } as any
+            } as any,
+            ...(params.httpProxyUrl ? { httpProxyUrl: params.httpProxyUrl } : {}),
         };
         modifyState({
             type: SF_CHANNEL_SETUP_STARTED,
@@ -266,6 +281,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         abortSignal.throwIfAborted();
 
     } catch (error: any) {
+        closeOAuthPopup();
         if (error.name === 'AbortError') {
             logger.warn("Cancelled OAuth flow", {}, LOG_CTX);
             modifyState({

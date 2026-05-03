@@ -20,6 +20,7 @@ import { Dispatch } from '../../utils/variant.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
 import { useHyperSetup } from '../../connection/hyper/hyper_connection_setup.js';
+import { getHyperConnectionDetails } from '../../connection/hyper/hyper_connection_state.js';
 import { useAnyConnectionNotebook } from './connection_notebook.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
 import { isNativePlatform } from '../../platform/native_globals.js';
@@ -30,14 +31,30 @@ const LOG_CTX = "hyper_connector";
 interface PageState {
     protocol: connection.HyperProtocol;
     endpoint: string;
+    httpProxyUrl: string;
     mTlsKeyPath: string;
     mTlsPubPath: string;
     mTlsCaPath: string;
     attachedDatabases: KeyValueListElement[];
     gRPCMetadata: KeyValueListElement[];
 };
-type PageStateSetter = Dispatch<React.SetStateAction<PageState>>;
-const PAGE_STATE_CTX = React.createContext<[PageState, PageStateSetter] | null>(null);
+
+function buildPageStateFromParams(params: connection.HyperConnectionParams | undefined): PageState {
+    const metadataDetails = (params?.metadata as { details?: Record<string, string> } | undefined)?.details;
+    return {
+        protocol: params?.protocol ?? "V3_HTTP",
+        endpoint: params?.endpoint ?? "http://localhost:7484",
+        httpProxyUrl: params?.httpProxyUrl ?? "",
+        mTlsKeyPath: params?.tls?.clientKeyPath ?? "",
+        mTlsPubPath: params?.tls?.clientCertPath ?? "",
+        mTlsCaPath: params?.tls?.caCertsPath ?? "",
+        attachedDatabases: (params?.attachedDatabases ?? []).map((db: any) => ({
+            key: db?.path ?? "",
+            value: db?.alias ?? "",
+        })),
+        gRPCMetadata: Object.entries(metadataDetails ?? {}).map(([k, v]) => ({ key: k, value: v ?? "" })),
+    };
+}
 
 interface Props {
     sessionId: string | null;
@@ -55,14 +72,31 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     // Wire up the page state
     const [connectionState, dispatchConnectionState] = useConnectionState(props.sessionId);
     const connectionNotebook = useAnyConnectionNotebook(props.sessionId);
+    const hyperConnection = getHyperConnectionDetails(connectionState);
 
-    const [pageState, setPageState] = React.useContext(PAGE_STATE_CTX)!;
+    // Seed the form state from the restored connection params so a session
+    // that was saved across an app restart displays its endpoint/proxy/etc.
+    // Re-seeds whenever the stored setupParams reference changes (session
+    // switch, async storage hydration, or an action like RESET that swaps
+    // the wrapper state).
+    const [pageState, setPageState] = React.useState<PageState>(() =>
+        buildPageStateFromParams(hyperConnection?.proto.setupParams));
+    const seededParamsRef = React.useRef(hyperConnection?.proto.setupParams);
+    React.useEffect(() => {
+        const params = hyperConnection?.proto.setupParams;
+        if (params !== seededParamsRef.current) {
+            seededParamsRef.current = params;
+            setPageState(buildPageStateFromParams(params));
+        }
+    }, [hyperConnection]);
+
     const protocol = pageState.protocol;
 
     // gRPC requires the native platform
     const wrongPlatform = protocol === "V3_GRPC" && !isNativePlatform();
     const setProtocol = (v: connection.HyperProtocol) => setPageState(s => ({ ...s, protocol: v }));
     const setEndpoint = (v: string) => setPageState(s => ({ ...s, endpoint: v }));
+    const setHttpProxyUrl = (v: string) => setPageState(s => ({ ...s, httpProxyUrl: v }));
     const setMTLSKeyPath = (v: string) => setPageState(s => ({ ...s, mTlsKeyPath: v }));
     const setMTLSPubPath = (v: string) => setPageState(s => ({ ...s, mTlsPubPath: v }));
     const setMTLSCaPath = (v: string) => setPageState(s => ({ ...s, mTlsCaPath: v }));
@@ -71,6 +105,9 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const isGrpc = protocol === "V3_GRPC";
 
     // Helper to setup the connection
+    // The HTTP proxy setting is meaningful only under V3_HTTP; it's dropped
+    // under V3_GRPC so a stale value from a previous protocol switch doesn't
+    // leak into the connection.
     const setupParams = React.useMemo<connection.HyperConnectionParams>(() => ({
         protocol: pageState.protocol,
         endpoint: pageState.endpoint,
@@ -87,7 +124,10 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
             message: "",
             details: flattenKeyValueList(pageState.gRPCMetadata)
         } as any,
-    }), [pageState.protocol, pageState.endpoint, pageState.attachedDatabases, pageState.gRPCMetadata]);
+        ...(pageState.protocol === "V3_HTTP" && pageState.httpProxyUrl
+            ? { httpProxyUrl: pageState.httpProxyUrl }
+            : {}),
+    }), [pageState.protocol, pageState.endpoint, pageState.httpProxyUrl, pageState.attachedDatabases, pageState.gRPCMetadata]);
     const setupAbortController = React.useRef<AbortController | null>(null);
     const setupConnection = async () => {
         // Is there a Hyper client?
@@ -176,6 +216,17 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                             readOnly={freezeInput}
                             logContext={LOG_CTX}
                         />
+                        {!isGrpc && <TextField
+                            name="HTTP Proxy URL"
+                            caption="Optional proxy URL for all HTTP traffic"
+                            value={pageState.httpProxyUrl}
+                            placeholder="http://127.0.0.1:9100"
+                            leadingVisual={() => <div>URL</div>}
+                            onChange={(e) => setHttpProxyUrl(e.target.value)}
+                            disabled={freezeInput}
+                            readOnly={freezeInput}
+                            logContext={LOG_CTX}
+                        />}
                         {isGrpc && <KeyValueTextField
                             className={style.grid_column_1}
                             name="mTLS Client Key"
@@ -239,21 +290,3 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     );
 };
 
-interface ProviderProps { children: React.ReactElement };
-
-export const HyperConnectorSettingsStateProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
-    const state = React.useState<PageState>({
-        protocol: "V3_HTTP",
-        endpoint: "http://localhost:7484",
-        mTlsKeyPath: "",
-        mTlsPubPath: "",
-        mTlsCaPath: "",
-        attachedDatabases: [],
-        gRPCMetadata: [],
-    });
-    return (
-        <PAGE_STATE_CTX.Provider value={state}>
-            {props.children}
-        </PAGE_STATE_CTX.Provider>
-    );
-};

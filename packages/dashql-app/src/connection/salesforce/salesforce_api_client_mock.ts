@@ -29,7 +29,11 @@ export class SalesforceAPIClientMock implements SalesforceApiClientInterface {
         return this.mock.coreAccess;
     }
 
-    async getCoreUserInfo(_access: connection.SalesforceCoreAccessToken, _cancel: AbortSignal): Promise<connection.SalesforceCoreUserInfo> {
+    async getCoreUserInfo(
+        _access: connection.SalesforceCoreAccessToken,
+        _cancel: AbortSignal,
+        _httpProxyUrl?: string,
+    ): Promise<connection.SalesforceCoreUserInfo> {
         await sleep(200);
         return this.mock.coreUserInfo;
     }
@@ -37,6 +41,7 @@ export class SalesforceAPIClientMock implements SalesforceApiClientInterface {
     public async getDataCloudAccessToken(
         _access: connection.SalesforceCoreAccessToken,
         _cancel: AbortSignal,
+        _httpProxyUrl?: string,
     ): Promise<connection.SalesforceDataCloudAccessToken> {
         await sleep(200);
         const expiresAt = new Date();
@@ -47,6 +52,7 @@ export class SalesforceAPIClientMock implements SalesforceApiClientInterface {
     public async getDataCloudMetadata(
         _access: connection.SalesforceDataCloudAccessToken,
         _cancel: AbortSignal,
+        _httpProxyUrl?: string,
     ): Promise<connection.SalesforceDataCloudMetadata> {
         console.log('mock(getDataCloudMetadata)');
         await sleep(200);

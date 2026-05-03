@@ -13,7 +13,7 @@ use crate::query_registry::QueryRegistry;
     about = "Salesforce Hyper Database HTTP v3 API proxy that forwards queries to the Hyper gRPC API."
 )]
 pub struct Args {
-    /// Comma-separated list of host patterns allowed as X-Grpc-Endpoint targets
+    /// Comma-separated list of host patterns allowed as Dashql-Grpc-Endpoint targets
     /// (e.g. "*.salesforce.com,*.force.com"). "*." matches any prefix.
     #[arg(long = "allow-forward-to", value_delimiter = ',', num_args = 1..)]
     pub allow_forward_to: Vec<String>,
@@ -38,7 +38,7 @@ pub struct Args {
     #[arg(long = "long-poll-max-ms", default_value_t = 60_000)]
     pub long_poll_max_ms: u64,
 
-    /// Time to wait on POST /v3/query for a fast completion before returning
+    /// Time to wait on POST /api/v3/query for a fast completion before returning
     /// a queryId for the client to poll. Set to 0 to always return a queryId.
     #[arg(long = "inline-deadline-ms", default_value_t = 1_500)]
     pub inline_deadline_ms: u64,
@@ -101,6 +101,8 @@ pub struct Config {
     pub inline_deadline: Duration,
     pub registry: Arc<QueryRegistry>,
     pub channels: ChannelCache,
+    /// Shared HTTP client used by the generic `Dashql-Forward-To` forwarder.
+    pub http_client: reqwest::Client,
 }
 
 impl Config {
@@ -115,6 +117,10 @@ impl Config {
             .iter()
             .map(|p| HostPattern::parse(p))
             .collect::<Result<Vec<_>>>()?;
+        let http_client = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .map_err(|e| anyhow!("build reqwest client: {}", e))?;
         Ok(Config {
             allow_forward_to,
             allow_origin: args.allow_origin,
@@ -124,6 +130,7 @@ impl Config {
             inline_deadline: Duration::from_millis(args.inline_deadline_ms),
             registry: Arc::new(QueryRegistry::new()),
             channels: ChannelCache::new(),
+            http_client,
         })
     }
 

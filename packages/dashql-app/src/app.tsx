@@ -16,7 +16,6 @@ import { FileDropzone } from './view/file_dropzone.js';
 import { GitHubTheme } from './github_theme.js';
 import { HttpClientProvider } from './platform/http/http_client_provider.js';
 import { HyperConnector } from './connection/hyper/hyper_connector.js';
-import { HyperConnectorSettingsStateProvider } from './view/connection/hyper_connection_settings.js';
 import { HyperDatabaseClientProvider } from './connection/hyper/hyperdb_grpc_client_provider.js';
 import { HyperPlanDemoPage } from './view/demos/plan_demo.js';
 import { JsonViewerExperimentPage } from './view/demos/json_demo.js';
@@ -30,10 +29,8 @@ import { PromptDemoPage } from './view/demos/prompt_demo.js';
 import { QueryExecutorProvider } from './connection/query_executor.js';
 import { RouterReset } from './router_reset.js';
 import { SalesforceConnector } from './connection/salesforce/salesforce_connector.js';
-import { SalesforceConnectorSettingsStateProvider } from './view/connection/salesforce_connection_settings.js';
 import { StorageProvider } from './platform/storage/storage_provider.js';
 import { TrinoConnector } from './connection/trino/trino_connector.js';
-import { TrinoConnectorSettingsStateProvider } from './view/connection/trino_connection_settings.js';
 import { ToolsPage } from './view/tools/tools_page.js';
 import { UIExperimentPage } from './view/demos/ui_demo.js';
 import { VersionCheck } from './platform/version/version_check.js';
@@ -50,17 +47,6 @@ import './globals.css';
 
 const LOG_CTX = 'app';
 
-// We decouple (some) page states from the actual page views to remember user input
-const PageStateProviders = (props: { children: React.ReactElement }) => (
-    <SalesforceConnectorSettingsStateProvider>
-        <HyperConnectorSettingsStateProvider>
-            <TrinoConnectorSettingsStateProvider>
-                {props.children}
-            </TrinoConnectorSettingsStateProvider>
-        </HyperConnectorSettingsStateProvider>
-    </SalesforceConnectorSettingsStateProvider>
-);
-
 // Note that the order among connection providers is important and non-obvious.
 // For example:
 // - CatalogLoaderProvider requires the NotebookStateRegistry to mark connection notebooks as outdated.
@@ -75,11 +61,9 @@ const NotebookProviders = (props: { children: React.ReactElement }) => (
                             <NotebookStateRegistry>
                                 <CatalogLoaderProvider>
                                     <NotebookCommands>
-                                        <PageStateProviders>
-                                            <AppLoader>
-                                                {props.children}
-                                            </AppLoader>
-                                        </PageStateProviders>
+                                        <AppLoader>
+                                            {props.children}
+                                        </AppLoader>
                                     </NotebookCommands>
                                 </CatalogLoaderProvider>
                             </NotebookStateRegistry>

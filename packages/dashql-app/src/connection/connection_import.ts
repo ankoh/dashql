@@ -31,31 +31,44 @@ export function decodeConnectionFromProto(conn: connection.Connection, sessionId
         return [info, details];
     } else if ('salesforce' in conn) {
         const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
+        // Storage persists ConnectionParams (flat SalesforceConnectionParams),
+        // not the Details wrapper. Normalize so proto.setupParams is populated.
+        const sf = conn.salesforce as any;
+        const proto = sf?.setupParams
+            ? sf
+            : { setupTimings: {}, setupParams: sf ?? {} };
         const details: ConnectionStateDetailsVariant = {
             type: SALESFORCE_DATA_CLOUD_CONNECTOR,
             value: {
-                proto: conn.salesforce,
-                openAuthWindow: null,
+                proto,
                 channel: null,
             }
         };
         return [info, details];
     } else if ('hyper' in conn) {
         const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER];
+        const hy = conn.hyper as any;
+        const proto = hy?.setupParams
+            ? hy
+            : { setupTimings: {}, setupParams: hy ?? {} };
         const details: ConnectionStateDetailsVariant = {
             type: HYPER_CONNECTOR,
             value: {
-                proto: conn.hyper,
+                proto,
                 channel: null,
             }
         };
         return [info, details];
     } else if ('trino' in conn) {
         const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.TRINO];
+        const tr = conn.trino as any;
+        const proto = tr?.setupParams
+            ? tr
+            : { setupTimings: {}, setupParams: tr ?? {} };
         const details: ConnectionStateDetailsVariant = {
             type: TRINO_CONNECTOR,
             value: {
-                proto: conn.trino,
+                proto,
                 channel: null,
             }
         };

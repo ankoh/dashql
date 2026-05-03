@@ -1,35 +1,51 @@
-"""Repository rule: download tableauhyperapi wheel (Linux x86_64) from PyPI.
+"""Repository rules: download tableauhyperapi wheels from PyPI.
 
-The wheel is a zip containing:
-  tableauhyperapi/bin/hyper/hyperd          -- hyperd binary
-  tableauhyperapi/bin/libtableauhyperapi.so -- shared library
+Each wheel is a zip containing:
+  tableauhyperapi/bin/hyper/hyperd                -- hyperd binary
+  tableauhyperapi/bin/libtableauhyperapi.{so|dylib} -- shared library
 
-After extraction the rule copies both files to a flat bin/ directory at the
-repository root so downstream BUILD rules can reference them at stable paths
-regardless of wheel-internal layout.
+The wheel is fetched per target platform; consumers select() on
+@platforms//os and @platforms//cpu to pick the right repo.
 
-To update: bump TABLEAUHYPERAPI_VERSION and _WHEEL_SHA256 below.  The wheel
-URL is resolved automatically from the PyPI JSON API at fetch time.
+To update: bump TABLEAUHYPERAPI_VERSION and the _WHEEL_SHA256_* map below.
 Get the new sha256 with:
   curl -s https://pypi.org/pypi/tableauhyperapi/<version>/json | \
-    jq -r '.urls[] | select(.filename | contains("manylinux2014_x86_64")) | .digests.sha256'
+    jq -r '.urls[] | .filename + " " + .digests.sha256'
 """
 
 # renovate: datasource=pypi depName=tableauhyperapi
 TABLEAUHYPERAPI_VERSION = "0.0.25080"
 
-_WHEEL_SHA256 = "3f4b4a2004b09c90e5a74a5731afed705c6a6120211a66920fa46416a1cd898a"
+# Per-platform wheel sha256 digests.
+_WHEEL_SHA256 = {
+    "linux_x86_64": "3f4b4a2004b09c90e5a74a5731afed705c6a6120211a66920fa46416a1cd898a",
+    "macos_x86_64": "08789b1dfad2bc767c376036ca95213f10600f45ad1e74dfedba2b645cf1a5a9",
+    "macos_arm64": "4a1289b4f985240b55477555a678c5656be54aa6449ffc443a7c1b2119d60496",
+}
+
+# Suffix on the wheel filename that identifies each platform.
+_WHEEL_SUFFIX = {
+    "linux_x86_64": "manylinux2014_x86_64.whl",
+    "macos_x86_64": "macosx_10_11_x86_64.whl",
+    "macos_arm64": "macosx_13_0_arm64.whl",
+}
+
+# Shared-library filename inside the wheel, per platform.
+_SHARED_LIB = {
+    "linux_x86_64": "libtableauhyperapi.so",
+    "macos_x86_64": "libtableauhyperapi.dylib",
+    "macos_arm64": "libtableauhyperapi.dylib",
+}
 
 _PYPI_META_URL = "https://pypi.org/pypi/tableauhyperapi/{version}/json"
-_WHEEL_SUFFIX = "manylinux2014_x86_64.whl"
 
 def _tableauhyperapi_wheel_repository_impl(repository_ctx):
     version = repository_ctx.attr.version
     sha256 = repository_ctx.attr.sha256
+    suffix = repository_ctx.attr.wheel_suffix
+    shared_lib = repository_ctx.attr.shared_lib
 
-    # Resolve the wheel URL from the PyPI JSON API so we only need to
-    # hardcode the version and the wheel sha256 (not the opaque hash prefix
-    # in the PyPI storage path).
+    # Resolve the wheel URL from the PyPI JSON API.
     repository_ctx.download(
         url = _PYPI_META_URL.format(version = version),
         output = "pypi_meta.json",
@@ -38,12 +54,12 @@ def _tableauhyperapi_wheel_repository_impl(repository_ctx):
 
     wheel_url = None
     for entry in meta["urls"]:
-        if entry["filename"].endswith(_WHEEL_SUFFIX):
+        if entry["filename"].endswith(suffix):
             wheel_url = entry["url"]
             break
 
     if wheel_url == None:
-        fail("No {} wheel found for tableauhyperapi {}".format(_WHEEL_SUFFIX, version))
+        fail("No {} wheel found for tableauhyperapi {}".format(suffix, version))
 
     repository_ctx.download_and_extract(
         url = wheel_url,
@@ -59,8 +75,8 @@ def _tableauhyperapi_wheel_repository_impl(repository_ctx):
         "mkdir -p bin && " +
         "cp tableauhyperapi/bin/hyper/hyperd bin/hyperd && " +
         "chmod 755 bin/hyperd && " +
-        "cp tableauhyperapi/bin/libtableauhyperapi.so bin/libtableauhyperapi.so && " +
-        "chmod 755 bin/libtableauhyperapi.so",
+        "cp tableauhyperapi/bin/" + shared_lib + " bin/" + shared_lib + " && " +
+        "chmod 755 bin/" + shared_lib,
     ])
 
     repository_ctx.file("BUILD.bazel", content = """\
@@ -74,39 +90,72 @@ filegroup(
 )
 
 filegroup(
-    name = "libtableauhyperapi_so",
-    srcs = ["bin/libtableauhyperapi.so"],
+    name = "shared_lib",
+    srcs = ["bin/{shared_lib}"],
+)
+
+# All runtime files hyperd needs: binary + its shared library.
+filegroup(
+    name = "hyperd_runfiles",
+    srcs = [
+        "bin/hyperd",
+        "bin/{shared_lib}",
+    ],
 )
 
 # Pre-mapped pkg_files: places both binaries under /opt/hyper/bin with mode 0755.
 # Intended for use as a direct src in pkg_tar without any strip_prefix gymnastics
-# on the consumer side.
+# on the consumer side (used by //packages/hyper-docker).
 pkg_files(
     name = "hyper_bin_files",
     srcs = [
         "bin/hyperd",
-        "bin/libtableauhyperapi.so",
+        "bin/{shared_lib}",
     ],
     prefix = "/opt/hyper/bin",
     strip_prefix = strip_prefix.from_root("bin"),
     attributes = pkg_attributes(mode = "0755"),
 )
-""")
+""".format(shared_lib = shared_lib))
 
 tableauhyperapi_wheel_repository = repository_rule(
     implementation = _tableauhyperapi_wheel_repository_impl,
-    doc = "Downloads the tableauhyperapi Linux x86_64 wheel and exposes hyperd and its shared library.",
+    doc = "Downloads a single tableauhyperapi wheel and exposes hyperd and its shared library.",
     attrs = {
         "version": attr.string(mandatory = True, doc = "tableauhyperapi version, e.g. '0.0.24457'"),
-        "sha256": attr.string(mandatory = True, doc = "sha256 of the manylinux2014_x86_64 wheel"),
+        "sha256": attr.string(mandatory = True, doc = "sha256 of the wheel"),
+        "wheel_suffix": attr.string(mandatory = True, doc = "wheel filename suffix, e.g. 'manylinux2014_x86_64.whl'"),
+        "shared_lib": attr.string(mandatory = True, doc = "shared library filename inside the wheel"),
     },
 )
 
-def _tableauhyperapi_ext_impl(mctx):
+def _tableauhyperapi_ext_impl(_mctx):
+    # Linux x86_64: used by //packages/hyper-docker and by integration tests on
+    # Linux CI runners.
     tableauhyperapi_wheel_repository(
-        name = "tableauhyperapi_wheel",
+        name = "tableauhyperapi_linux_x86_64",
         version = TABLEAUHYPERAPI_VERSION,
-        sha256 = _WHEEL_SHA256,
+        sha256 = _WHEEL_SHA256["linux_x86_64"],
+        wheel_suffix = _WHEEL_SUFFIX["linux_x86_64"],
+        shared_lib = _SHARED_LIB["linux_x86_64"],
+    )
+
+    # macOS arm64: for Apple Silicon dev machines.
+    tableauhyperapi_wheel_repository(
+        name = "tableauhyperapi_macos_arm64",
+        version = TABLEAUHYPERAPI_VERSION,
+        sha256 = _WHEEL_SHA256["macos_arm64"],
+        wheel_suffix = _WHEEL_SUFFIX["macos_arm64"],
+        shared_lib = _SHARED_LIB["macos_arm64"],
+    )
+
+    # macOS x86_64: for Intel dev machines.
+    tableauhyperapi_wheel_repository(
+        name = "tableauhyperapi_macos_x86_64",
+        version = TABLEAUHYPERAPI_VERSION,
+        sha256 = _WHEEL_SHA256["macos_x86_64"],
+        wheel_suffix = _WHEEL_SUFFIX["macos_x86_64"],
+        shared_lib = _SHARED_LIB["macos_x86_64"],
     )
 
 tableauhyperapi_ext = module_extension(

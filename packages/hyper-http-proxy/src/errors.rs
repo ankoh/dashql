@@ -79,6 +79,15 @@ impl HttpError {
         }
     }
 
+    pub fn bad_gateway(message: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::BAD_GATEWAY,
+            code: "BAD_GATEWAY".into(),
+            message: message.into(),
+            details: None,
+        }
+    }
+
     pub fn into_response(self) -> Response<BoxedBody> {
         let envelope = ErrorEnvelope {
             error: &self.code,

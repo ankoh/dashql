@@ -31,8 +31,6 @@ import { StorageWriter } from "../../platform/storage/storage_writer.js";
 export interface SalesforceConnectionStateDetails {
     /// The connection details
     proto: connection.SalesforceConnectionDetails;
-    /// The open auth window
-    openAuthWindow: Window | null,
     /// The Hyper connection
     channel: SalesforceDatabaseChannel | null;
 }
@@ -44,7 +42,6 @@ export function createSalesforceConnectionStateDetails(params?: connection.Sales
             setupTimings: {},
             setupParams: params ?? { hyperProtocol: "V3_HTTP", instanceUrl: "", appConsumerKey: "", appConsumerSecret: "", login: "" }
         },
-        openAuthWindow: null,
         channel: null
     };
 }
@@ -104,7 +101,7 @@ export type SalesforceConnectionStateAction =
     | VariantKind<typeof HEALTH_CHECK_SUCCEEDED, null>
     | VariantKind<typeof OAUTH_NATIVE_LINK_OPENED, null>
     | VariantKind<typeof OAUTH_WEB_WINDOW_CLOSED, null>
-    | VariantKind<typeof OAUTH_WEB_WINDOW_OPENED, Window>
+    | VariantKind<typeof OAUTH_WEB_WINDOW_OPENED, null>
     | VariantKind<typeof RECEIVED_CORE_AUTH_CODE, auth.TemporaryToken>
     | VariantKind<typeof RECEIVED_CORE_AUTH_TOKEN, connection.SalesforceCoreAccessToken>
     | VariantKind<typeof RECEIVED_DATA_CLOUD_ACCESS_TOKEN, connection.SalesforceDataCloudAccessToken>
@@ -170,7 +167,6 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     }
                 },
                 channel: null,
-                openAuthWindow: null,
             };
             let sig = new DefaultHasher();
             computeSalesforceConnectionSignature(details, sig);
@@ -296,7 +292,6 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                                 openedNativeAuthLinkAt: dateToTimestamp(new Date()),
                             },
                         },
-                        openAuthWindow: null,
                     }
                 }
             };
@@ -317,13 +312,11 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                                 openedWebAuthWindowAt: dateToTimestamp(new Date()),
                             },
                         },
-                        openAuthWindow: action.value,
                     }
                 }
             };
             break;
         case OAUTH_WEB_WINDOW_CLOSED:
-            if (!details.openAuthWindow) return state;
             next = {
                 ...state,
                 details: {
@@ -337,7 +330,6 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                                 closedWebAuthWindowAt: dateToTimestamp(new Date()),
                             },
                         },
-                        openAuthWindow: null,
                     }
                 }
             };

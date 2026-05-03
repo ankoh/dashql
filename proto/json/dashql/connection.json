@@ -176,6 +176,10 @@
             "type": "string"
           },
           "description": "The metadata"
+        },
+        "httpProxyUrl": {
+          "type": "string",
+          "description": "Optional proxy URL for /api/v3/query* HTTP v3 traffic. When set, requests go through this URL with an Dashql-Grpc-Endpoint header naming the real Hyper endpoint (for V3_HTTP)."
         }
       },
       "required": ["protocol", "endpoint", "tls"],
@@ -328,6 +332,10 @@
         "login": {
           "type": "string",
           "description": "The login"
+        },
+        "httpProxyUrl": {
+          "type": "string",
+          "description": "Optional proxy URL for all connection HTTP traffic. When set, OAuth / token-exchange / Data Cloud metadata calls go through this URL with an Dashql-Forward-To header naming the real Salesforce host, and /api/v3/query* HTTP v3 calls go through it with an Dashql-Grpc-Endpoint header naming the Hyper gRPC endpoint."
         }
       },
       "required": ["hyperProtocol", "instanceUrl", "appConsumerKey", "appConsumerSecret", "login"],

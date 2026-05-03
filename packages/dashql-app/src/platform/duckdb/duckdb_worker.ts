@@ -191,7 +191,9 @@ export class DuckDBWorker {
             const dataSize = response.dataSize;
 
             if (dataPtr !== 0 && dataSize > 0 && this.module) {
-                const errorData = this.module.HEAPU8.subarray(dataPtr, dataPtr + dataSize);
+                // HEAPU8 is backed by SharedArrayBuffer when pthreads are enabled,
+                // and TextDecoder.decode() rejects shared views. Copy first.
+                const errorData = new Uint8Array(this.module.HEAPU8.subarray(dataPtr, dataPtr + dataSize));
                 const errorMessage = this.decoder.decode(errorData);
                 throw new Error(errorMessage);
             } else {
@@ -317,7 +319,7 @@ export class DuckDBWorker {
 
                         const dataPtr = response.dataOrValue;
                         const dataSize = response.dataSize;
-                        const versionData = this.module.HEAPU8.subarray(dataPtr, dataPtr + dataSize);
+                        const versionData = new Uint8Array(this.module.HEAPU8.subarray(dataPtr, dataPtr + dataSize));
                         const version = this.decoder.decode(versionData);
 
                         this.postMessage(

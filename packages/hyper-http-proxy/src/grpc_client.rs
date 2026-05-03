@@ -15,7 +15,7 @@ use crate::proto::hyper::QueryParam;
 pub const DEFAULT_WORKLOAD: &str = "query-service-http-v3-proxy";
 
 /// Endpoint override selected per-request.
-pub const HEADER_GRPC_ENDPOINT: &str = "x-grpc-endpoint";
+pub const HEADER_GRPC_ENDPOINT: &str = "dashql-grpc-endpoint";
 
 /// Lazily-built cache of tonic channels keyed by `scheme://authority`.
 pub struct ChannelCache {
@@ -35,6 +35,9 @@ impl ChannelCache {
             return Ok(existing);
         }
 
+        log::info!("grpc opening channel to {}", key);
+        let started = std::time::Instant::now();
+
         let mut endpoint = Endpoint::from_shared(key.clone())
             .map_err(|e| HttpError::bad_request(format!("invalid grpc endpoint: {}", e)))?
             .keep_alive_while_idle(true)
@@ -47,10 +50,20 @@ impl ChannelCache {
                 .map_err(|e| HttpError::internal(format!("tls config: {}", e)))?;
         }
 
-        let channel = endpoint
-            .connect()
-            .await
-            .map_err(|e| HttpError::internal(format!("connect {}: {}", key, e)))?;
+        let channel = endpoint.connect().await.map_err(|e| {
+            log::warn!(
+                "grpc channel to {} failed after {}ms: {}",
+                key,
+                started.elapsed().as_millis(),
+                e
+            );
+            HttpError::internal(format!("connect {}: {}", key, e))
+        })?;
+        log::info!(
+            "grpc channel to {} ready ({}ms)",
+            key,
+            started.elapsed().as_millis()
+        );
 
         self.channels
             .lock()

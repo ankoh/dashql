@@ -43,7 +43,9 @@ export const QueryStatusPanel: React.FC<Props> = (props: Props) => {
         return <div className={styles.root}></div>;
     }
     switch (props.query.status) {
+        case QueryExecutionStatus.REQUESTED:
         case QueryExecutionStatus.PREPARING:
+        case QueryExecutionStatus.SENDING:
         case QueryExecutionStatus.QUEUED:
         case QueryExecutionStatus.RUNNING:
         case QueryExecutionStatus.RECEIVED_FIRST_BATCH:

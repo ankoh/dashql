@@ -233,6 +233,6 @@ export function createMockHyperHttpClient(httpMock?: HyperHttpClientMock): {
     mock: HyperHttpClientMock;
 } {
     const mock = httpMock ?? new HyperHttpClientMock();
-    const client = new HyperDatabaseHttpClient(mock, MOCK_BASE_URL, MOCK_AUTH, new TestLogger());
+    const client = new HyperDatabaseHttpClient(mock, MOCK_BASE_URL, null, MOCK_AUTH, new TestLogger());
     return { client, mock };
 }

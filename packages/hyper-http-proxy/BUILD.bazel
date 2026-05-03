@@ -35,6 +35,7 @@ _DEPS = [
     "@crates//:hyper-util",
     "@crates//:log",
     "@crates//:prost",
+    "@crates//:reqwest",
     "@crates//:serde",
     "@crates//:serde_json",
     "@crates//:tokio",
@@ -51,10 +52,82 @@ rust_binary(
     visibility = ["//visibility:public"],
 )
 
+_TEST_DEPS = [
+    "@crates//:reqwest",
+    "@crates//:tokio-stream",
+]
+
 rust_test(
     name = "tests",
     crate = ":proxy",
-    deps = [
-        "@crates//:tokio-stream",
+    deps = _TEST_DEPS,
+)
+
+# ---------------------------------------------------------------------------
+# Integration test against a real hyperd binary (ignored by default).
+# Run with:
+#   bazel test //packages/hyper-http-proxy:tests_hyperd --test_arg=--ignored
+# ---------------------------------------------------------------------------
+
+config_setting(
+    name = "linux_x86_64",
+    constraint_values = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
     ],
+)
+
+config_setting(
+    name = "macos_arm64",
+    constraint_values = [
+        "@platforms//os:macos",
+        "@platforms//cpu:arm64",
+    ],
+)
+
+config_setting(
+    name = "macos_x86_64",
+    constraint_values = [
+        "@platforms//os:macos",
+        "@platforms//cpu:x86_64",
+    ],
+)
+
+alias(
+    name = "hyperd_runfiles",
+    actual = select({
+        ":linux_x86_64": "@tableauhyperapi_linux_x86_64//:hyperd_runfiles",
+        ":macos_arm64": "@tableauhyperapi_macos_arm64//:hyperd_runfiles",
+        ":macos_x86_64": "@tableauhyperapi_macos_x86_64//:hyperd_runfiles",
+    }),
+)
+
+alias(
+    name = "hyperd_bin",
+    actual = select({
+        ":linux_x86_64": "@tableauhyperapi_linux_x86_64//:hyperd",
+        ":macos_arm64": "@tableauhyperapi_macos_arm64//:hyperd",
+        ":macos_x86_64": "@tableauhyperapi_macos_x86_64//:hyperd",
+    }),
+)
+
+rust_test(
+    name = "tests_hyperd",
+    crate = ":proxy",
+    deps = _TEST_DEPS,
+    data = [
+        ":hyperd_bin",
+        ":hyperd_runfiles",
+    ],
+    env = {
+        "HYPERD_BIN": "$(rootpath :hyperd_bin)",
+    },
+    args = ["--ignored"],
+    tags = ["manual"],
+    target_compatible_with = select({
+        ":linux_x86_64": [],
+        ":macos_arm64": [],
+        ":macos_x86_64": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
 )

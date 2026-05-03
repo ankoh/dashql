@@ -1,13 +1,14 @@
 //! Standalone HTTP v3 → gRPC proxy for the Salesforce Hyper Database.
 //!
 //! Accepts requests on the Salesforce Query Service V3 HTTP surface
-//! (`/v3/query...`) and forwards them to a Hyper gRPC endpoint selected
-//! per-request via the `X-Grpc-Endpoint` header.
+//! (`/api/v3/query...`) and forwards them to a Hyper gRPC endpoint selected
+//! per-request via the `Dashql-Grpc-Endpoint` header.
 
 mod arrow_stream;
 mod config;
 mod cors;
 mod errors;
+mod forward;
 mod grpc_client;
 mod http_api;
 mod query_registry;

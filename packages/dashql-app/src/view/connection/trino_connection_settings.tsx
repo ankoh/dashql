@@ -37,8 +37,33 @@ interface PageState {
     newParams: connection.TrinoConnectionParams;
     newParamsMetadata: KeyValueListElement[];
 };
-type PageStateSetter = Dispatch<React.SetStateAction<PageState>>;
-const PAGE_STATE_CTX = React.createContext<[PageState, PageStateSetter] | null>(null);
+
+const DEFAULT_TRINO_PARAMS: connection.TrinoConnectionParams = {
+    endpoint: "http://localhost:8080",
+    auth: {
+        authType: "AUTH_BASIC",
+        basic: {
+            username: "",
+            secret: "",
+        }
+    },
+    metadata: {
+        message: ""
+    },
+    catalogName: "",
+    schemaNames: [],
+};
+
+function buildPageStateFromParams(params: connection.TrinoConnectionParams | null | undefined): PageState {
+    const active = params ?? null;
+    const newParams = params ?? DEFAULT_TRINO_PARAMS;
+    const metadataData = (newParams.metadata as { data?: Record<string, string> } | undefined)?.data ?? {};
+    return {
+        activeParams: active,
+        newParams,
+        newParamsMetadata: Object.entries(metadataData).map(([k, v]) => ({ key: k, value: v ?? "" })),
+    };
+}
 
 interface Props {
     sessionId: string | null;
@@ -56,7 +81,16 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     // Resolve connection state
     const [connectionState, dispatchConnectionState] = useConnectionState(props.sessionId);
     const connectionNotebook = useAnyConnectionNotebook(props.sessionId);
-    const [pageState, setPageState] = React.useContext(PAGE_STATE_CTX)!;
+
+    // Seed the form state from the restored connection params so a session
+    // that was saved across an app restart displays its endpoint/auth/etc.
+    // The effect below keeps it in sync with later param changes.
+    const [pageState, setPageState] = React.useState<PageState>(() => {
+        const params = connectionState?.details.type === TRINO_CONNECTOR
+            ? connectionState.details.value.proto.setupParams
+            : null;
+        return buildPageStateFromParams(params);
+    });
 
     const endpoint = pageState.newParams?.endpoint;
     const setEndpoint = (v: string) => setPageState(s => ({
@@ -232,20 +266,15 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
         };
     });
 
-    // Update the page state with the connection params
+    // Re-seed the form when the underlying connection params change
+    // (e.g. on session switch or after a successful setup).
     React.useEffect(() => {
         if (connectionState?.details.type != TRINO_CONNECTOR) {
             return;
         }
-        // Did the channel params change?
-        // Then we reset the params of the settings page
         const activeParams = connectionState.details.value.proto.setupParams;
         if (activeParams != null && activeParams !== pageState.activeParams) {
-            setPageState({
-                activeParams: activeParams,
-                newParamsMetadata: Object.entries(activeParams.metadata?.data ?? {}).map(([k, v]) => ({ key: k, value: v ?? "" })) as KeyValueListElement[],
-                newParams: activeParams
-            });
+            setPageState(buildPageStateFromParams(activeParams));
         }
     }, [connectionState?.details]);
 
@@ -544,31 +573,3 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     );
 };
 
-interface ProviderProps { children: React.ReactElement };
-
-export const TrinoConnectorSettingsStateProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
-    const state = React.useState<PageState>({
-        activeParams: null,
-        newParamsMetadata: [],
-        newParams: {
-            endpoint: "http://localhost:8080",
-            auth: {
-                authType: "AUTH_BASIC",
-                basic: {
-                    username: "",
-                    secret: "",
-                }
-            },
-            metadata: {
-                message: ""
-            },
-            catalogName: "",
-            schemaNames: [],
-        }
-    });
-    return (
-        <PAGE_STATE_CTX.Provider value={state}>
-            {props.children}
-        </PAGE_STATE_CTX.Provider>
-    );
-};

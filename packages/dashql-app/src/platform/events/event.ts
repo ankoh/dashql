@@ -29,6 +29,23 @@ export type PlatformDragDropEventVariant =
 
 export const OAUTH_BROADCAST_CHANNEL = "dashql_oauth";
 
+/// Envelope kind for app events sent via window.postMessage.
+/// Required because a global window "message" listener otherwise receives
+/// unrelated traffic (devtools bridges, extensions, etc.).
+export const APP_EVENT_POST_MESSAGE_KIND = "dashql:app_event";
+
+export interface AppEventPostMessage {
+    kind: typeof APP_EVENT_POST_MESSAGE_KIND;
+    data: string;
+}
+
+export function isAppEventPostMessage(msg: any): msg is AppEventPostMessage {
+    return msg != null
+        && typeof msg === "object"
+        && msg.kind === APP_EVENT_POST_MESSAGE_KIND
+        && typeof msg.data === "string";
+}
+
 export const SETUP_SESSION = Symbol("SETUP_SESSION");
 
 export type SetupEventVariant =

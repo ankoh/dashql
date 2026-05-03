@@ -245,9 +245,16 @@ oci.pull(
 )
 use_repo(oci, "ubi9_minimal", "ubi9_minimal_linux_amd64")
 
-# tableauhyperapi wheel (hyperd binary + shared lib for //packages/hyper-docker).
+# tableauhyperapi wheels (hyperd binary + shared lib) for //packages/hyper-docker
+# and for integration tests that spawn a real hyperd. Per-platform repos let
+# rust_test consumers select() the host-native build.
 tableauhyperapi = use_extension("//bazel:external_tableauhyperapi.bzl", "tableauhyperapi_ext")
-use_repo(tableauhyperapi, "tableauhyperapi_wheel")
+use_repo(
+    tableauhyperapi,
+    "tableauhyperapi_linux_x86_64",
+    "tableauhyperapi_macos_arm64",
+    "tableauhyperapi_macos_x86_64",
+)
 
 # Hedron's Compile Commands Extractor for Bazel
 # https://github.com/hedronvision/bazel-compile-commands-extractor

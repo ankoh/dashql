@@ -1,7 +1,7 @@
 import { Logger } from '../logger/logger.js';
 import { PlatformEventListener } from "./event_listener.js";
 import { WebFile } from '../file/web_file.js';
-import { DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, OAUTH_BROADCAST_CHANNEL, PlatformDragEvent, PlatformDropEvent } from './event.js';
+import { DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, OAUTH_BROADCAST_CHANNEL, PlatformDragEvent, PlatformDropEvent, isAppEventPostMessage } from './event.js';
 
 const DRAG_TIMEOUT = 100;
 
@@ -115,13 +115,15 @@ export class WebPlatformEventListener extends PlatformEventListener {
     }
 
     protected processMessageEvent(event: MessageEvent) {
-        const data = this.readAppEvent(event.data, `event message`);
+        // The global "message" listener also receives unrelated traffic (devtools
+        // bridges, browser extensions, etc.). Only act on our own envelope.
+        if (!isAppEventPostMessage(event.data)) {
+            return;
+        }
+        const data = this.readAppEvent(event.data.data, `event message`);
         if (data != null) {
-            // Message was a valid base64 AND parsed as AppEvent?
-            // Assume it's ours.
             event.stopPropagation();
             event.preventDefault();
-            // Dispatch App Event
             super.dispatchAppEvent(data);
         }
     }

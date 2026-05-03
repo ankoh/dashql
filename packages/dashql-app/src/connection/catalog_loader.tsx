@@ -157,14 +157,14 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
             });
 
         } catch (e: any) {
-            if ((e.message === 'AbortError')) {
-                logger.error("Cancelled catalog update", { "session": sessionId }, LOG_CTX);
+            if (e?.name === 'AbortError') {
+                logger.error("Cancelled catalog update", { "session": sessionId, "error": e?.message ?? String(e) }, LOG_CTX);
                 connDispatch(sessionId, {
                     type: CATALOG_UPDATE_CANCELLED,
                     value: [updateId, e],
                 });
             } else {
-                logger.error("Failed to update catalog", { "session": sessionId }, LOG_CTX);
+                logger.error("Failed to update catalog", { "session": sessionId, "error": e?.message ?? String(e) }, LOG_CTX);
                 console.error(e);
                 connDispatch(sessionId, {
                     type: CATALOG_UPDATE_FAILED,
@@ -202,7 +202,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                 // Await the update
                 await updatePromise;
             } catch (e: any) {
-                logger.warn("Catalog update failed", {}, LOG_CTX);
+                logger.warn("Catalog update failed", { "session": sessionId, "error": e?.message ?? String(e) }, LOG_CTX);
             }
             inProgress.delete(sessionId);
         };
@@ -223,10 +223,16 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
             }
 
             // Has a current catalog update running?
-            // Then we skip auto-updates
+            // Skip auto-updates, but let explicit user refreshes supersede
+            // the in-flight ones by aborting them first.
             if (connState.catalogUpdates.tasksRunning.size > 0) {
-                logger.info("Skipping redundant catalog update", { "session": sessionId }, LOG_CTX);
-                continue;
+                if (!force) {
+                    logger.info("Skipping redundant catalog update", { "session": sessionId }, LOG_CTX);
+                    continue;
+                }
+                for (const task of connState.catalogUpdates.tasksRunning.values()) {
+                    task.cancellation.abort("superseded by forced catalog refresh");
+                }
             }
 
             // Was recently restored?

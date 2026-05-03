@@ -7,8 +7,9 @@ load("//bazel:external_tableauhyperapi.bzl", "TABLEAUHYPERAPI_VERSION")
 # Layer: hyperd binary + shared lib + entrypoint script under /opt/hyper/bin
 # ---------------------------------------------------------------------------
 
-# @tableauhyperapi_wheel//:hyper_bin_files already maps hyperd and
-# libtableauhyperapi.so to /opt/hyper/bin with mode 0755.
+# @tableauhyperapi_linux_x86_64//:hyper_bin_files already maps hyperd and
+# libtableauhyperapi.so to /opt/hyper/bin with mode 0755. The Docker image is
+# always linux/amd64 so we hardcode the linux wheel here.
 pkg_files(
     name = "run_script_files",
     srcs = ["run_hyperd.sh"],
@@ -20,7 +21,7 @@ pkg_files(
 pkg_tar(
     name = "hyper_layer_tar",
     srcs = [
-        "@tableauhyperapi_wheel//:hyper_bin_files",
+        "@tableauhyperapi_linux_x86_64//:hyper_bin_files",
         ":run_script_files",
     ],
     tags = ["manual"],

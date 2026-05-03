@@ -3,7 +3,7 @@
 ## Base Path
 
 ```
-/v3
+/api/v3
 ```
 
 ## Content Negotiation
@@ -36,7 +36,7 @@ All endpoints require at least one of:
 
 ## Endpoints
 
-### 1. Execute Query — `POST /v3/query`
+### 1. Execute Query — `POST /api/v3/query`
 
 Executes a SQL query. Returns results inline for fast queries, or a query ID for async retrieval.
 
@@ -97,7 +97,7 @@ Both JSON and Arrow responses include a `status` header containing a JSON-serial
 
 ---
 
-### 2. Get Query Status — `GET /v3/query/{queryId}`
+### 2. Get Query Status — `GET /api/v3/query/{queryId}`
 
 Polls for query execution status. Supports long-polling.
 
@@ -131,7 +131,7 @@ Note: `chunkCount` and `rowCount` are serialized as JSON strings (e.g. `"10"` no
 
 ---
 
-### 3. Cancel Query — `DELETE /v3/query/{queryId}`
+### 3. Cancel Query — `DELETE /api/v3/query/{queryId}`
 
 Cancels a running query.
 
@@ -143,7 +143,7 @@ Cancels a running query.
 
 ---
 
-### 4. Get Query Result Chunk — `GET /v3/query/{queryId}/chunk/{chunkId}`
+### 4. Get Query Result Chunk — `GET /api/v3/query/{queryId}/chunk/{chunkId}`
 
 Retrieves a single result chunk by index.
 
@@ -176,7 +176,7 @@ Raw binary Arrow IPC stream.
 
 ---
 
-### 5. Stream Query Result Rows — `GET /v3/query/{queryId}/row`
+### 5. Stream Query Result Rows — `GET /api/v3/query/{queryId}/row`
 
 Streams query results with offset-based pagination. Response body is flushed progressively.
 
@@ -298,9 +298,9 @@ Uncaught exceptions: `500` with `{ error: "INTERNAL_ERROR", message: "..." }`.
 
 ## Client Implementation Notes
 
-1. **`status` header** — POST `/v3/query` and GET `/chunk/{chunkId}` include a `status` response header containing JSON-serialized `QueryStatus`. Parse with `JSON.parse(response.headers.get("status"))`.
+1. **`status` header** — POST `/api/v3/query` and GET `/chunk/{chunkId}` include a `status` response header containing JSON-serialized `QueryStatus`. Parse with `JSON.parse(response.headers.get("status"))`.
 
-2. **Async query flow** — POST returns inline results for fast queries. If `completionStatus` is `RUNNING_OR_UNSPECIFIED`, poll `GET /v3/query/{queryId}` (with `waitTimeMs` for long-polling) until `FINISHED` or `RESULTS_PRODUCED`, then fetch chunks via `/chunk/{chunkId}`.
+2. **Async query flow** — POST returns inline results for fast queries. If `completionStatus` is `RUNNING_OR_UNSPECIFIED`, poll `GET /api/v3/query/{queryId}` (with `waitTimeMs` for long-polling) until `FINISHED` or `RESULTS_PRODUCED`, then fetch chunks via `/chunk/{chunkId}`.
 
 3. **Streaming rows** — `GET /row` streams the response progressively. For Arrow, read the response body as a stream. For JSON, the full object is assembled server-side but flushed in chunks.
 

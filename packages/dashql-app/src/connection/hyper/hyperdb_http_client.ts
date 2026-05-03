@@ -121,15 +121,27 @@ export class HyperHttpError extends Error {
 
 export class HyperDatabaseHttpClient {
     httpClient: HttpClient;
-    baseUrl: URL;
+    /// The real Hyper endpoint URL (the Salesforce Data Cloud instance URL).
+    endpointUrl: URL;
+    /// Optional proxy URL. When set, all requests target this URL instead of
+    /// `endpointUrl`, and the header `dashql-grpc-endpoint` carries the real endpoint origin
+    /// so the hyper-http-proxy can translate HTTP v3 to Hyper gRPC.
+    proxyUrl: URL | null;
     auth: HyperHttpAuthProvider;
     logger: Logger;
 
-    constructor(httpClient: HttpClient, baseUrl: URL, auth: HyperHttpAuthProvider, logger: Logger) {
+    constructor(httpClient: HttpClient, endpointUrl: URL, proxyUrl: URL | null, auth: HyperHttpAuthProvider, logger: Logger) {
         this.httpClient = httpClient;
-        this.baseUrl = baseUrl;
+        this.endpointUrl = endpointUrl;
+        this.proxyUrl = proxyUrl;
         this.auth = auth;
         this.logger = logger;
+    }
+
+    /// Base URL that request paths are resolved against. Requests go to the
+    /// proxy when one is configured.
+    private get requestBase(): URL {
+        return this.proxyUrl ?? this.endpointUrl;
     }
 
     private async buildHeaders(extra?: HyperHttpRequestHeaders): Promise<Headers> {
@@ -139,6 +151,10 @@ export class HyperDatabaseHttpClient {
             "Content-Type": "application/json",
             ...authHeaders,
         });
+        if (this.proxyUrl != null) {
+            // Tell the proxy which real gRPC endpoint to forward to.
+            headers.set("dashql-grpc-endpoint", this.endpointUrl.origin);
+        }
         if (extra?.workload) {
             headers.set("x-hyperdb-workload", extra.workload);
         }
@@ -171,7 +187,7 @@ export class HyperDatabaseHttpClient {
 
     /// POST /api/v3/query
     async executeQuery(request: ExecuteQueryRequest, extra?: HyperHttpRequestHeaders, abort?: AbortSignal): Promise<{ status: QueryStatus | null; response: HttpFetchResult }> {
-        const url = new URL("/api/v3/query", this.baseUrl);
+        const url = new URL("/api/v3/query", this.requestBase);
         const headers = await this.buildHeaders(extra);
         const response = await this.httpClient.fetch(url, {
             method: "POST",
@@ -186,7 +202,7 @@ export class HyperDatabaseHttpClient {
 
     /// GET /api/v3/query/{queryId}
     async getQueryStatus(params: GetQueryStatusParams, abort?: AbortSignal): Promise<QueryStatus> {
-        const url = new URL(`/api/v3/query/${encodeURIComponent(params.queryId)}`, this.baseUrl);
+        const url = new URL(`/api/v3/query/${encodeURIComponent(params.queryId)}`, this.requestBase);
         if (params.waitTimeMs !== undefined) {
             url.searchParams.set("waitTimeMs", params.waitTimeMs.toString());
         }
@@ -202,7 +218,7 @@ export class HyperDatabaseHttpClient {
 
     /// DELETE /api/v3/query/{queryId}
     async cancelQuery(queryId: string, abort?: AbortSignal): Promise<void> {
-        const url = new URL(`/api/v3/query/${encodeURIComponent(queryId)}`, this.baseUrl);
+        const url = new URL(`/api/v3/query/${encodeURIComponent(queryId)}`, this.requestBase);
         const headers = await this.buildHeaders();
         const response = await this.httpClient.fetch(url, {
             method: "DELETE",
@@ -214,7 +230,7 @@ export class HyperDatabaseHttpClient {
 
     /// GET /api/v3/query/{queryId}/chunk/{chunkId}
     async getQueryChunk(params: GetQueryChunkParams, extra?: HyperHttpRequestHeaders, abort?: AbortSignal): Promise<{ status: QueryStatus | null; response: HttpFetchResult }> {
-        const url = new URL(`/api/v3/query/${encodeURIComponent(params.queryId)}/chunk/${params.chunkId}`, this.baseUrl);
+        const url = new URL(`/api/v3/query/${encodeURIComponent(params.queryId)}/chunk/${params.chunkId}`, this.requestBase);
         if (params.omitSchema) {
             url.searchParams.set("omitSchema", "true");
         }
@@ -231,7 +247,7 @@ export class HyperDatabaseHttpClient {
 
     /// GET /api/v3/query/{queryId}/row
     async getQueryRows(params: GetQueryRowsParams, extra?: HyperHttpRequestHeaders, abort?: AbortSignal): Promise<HttpFetchResult> {
-        const url = new URL(`/api/v3/query/${encodeURIComponent(params.queryId)}/row`, this.baseUrl);
+        const url = new URL(`/api/v3/query/${encodeURIComponent(params.queryId)}/row`, this.requestBase);
         url.searchParams.set("offset", params.offset.toString());
         if (params.limit !== undefined) {
             url.searchParams.set("limit", params.limit.toString());

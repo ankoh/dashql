@@ -47,7 +47,7 @@ pub fn preflight_response(cfg: &Config, req_headers: &HeaderMap) -> Response<Box
     );
     h.insert(
         "access-control-allow-methods",
-        HeaderValue::from_static("GET, POST, DELETE, OPTIONS"),
+        HeaderValue::from_static("GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS"),
     );
     h.insert(
         "access-control-allow-headers",
@@ -61,8 +61,8 @@ pub fn preflight_response(cfg: &Config, req_headers: &HeaderMap) -> Response<Box
     resp
 }
 
-/// Adds the CORS response headers onto an already-built response.
-/// Call this on every non-preflight response.
+/// Adds the CORS response headers for `/api/v3/query*` responses.
+/// Exposes only the `status` header since that's the only extra field clients read.
 pub fn decorate_with_cors(cfg: &Config, resp: &mut Response<BoxedBody>) {
     let h = resp.headers_mut();
     h.insert(
@@ -73,6 +73,22 @@ pub fn decorate_with_cors(cfg: &Config, resp: &mut Response<BoxedBody>) {
     h.insert(
         "access-control-expose-headers",
         HeaderValue::from_static("status"),
+    );
+    h.insert("vary", HeaderValue::from_static("Origin"));
+}
+
+/// Adds the CORS response headers for the generic `Dashql-Forward-To` forwarder.
+/// Exposes all response headers because upstream servers may emit anything the
+/// caller needs (e.g. `authorization`, custom X- headers).
+pub fn decorate_with_cors_forward(cfg: &Config, resp: &mut Response<BoxedBody>) {
+    let h = resp.headers_mut();
+    h.insert(
+        "access-control-allow-origin",
+        HeaderValue::from_str(&cfg.allow_origin).unwrap_or(HeaderValue::from_static("*")),
+    );
+    h.insert(
+        "access-control-expose-headers",
+        HeaderValue::from_static("*"),
     );
     h.insert("vary", HeaderValue::from_static("Origin"));
 }

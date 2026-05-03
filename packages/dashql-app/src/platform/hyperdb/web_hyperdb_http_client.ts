@@ -55,6 +55,8 @@ class WebHyperResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<U
     currentStatus: QueryExecutionStatus;
     metrics: QueryExecutionMetrics;
     metadata: Map<string, string>;
+    /// Callback invoked whenever a new QueryStatus is observed.
+    progressCallback: ((progress: QueryExecutionProgress) => void) | null;
 
     constructor(httpClient: HyperDatabaseHttpClient, logger: Logger, queryId: string, initialStatus: QueryStatus, initialBytes: Uint8Array | null, parallelChunks: number) {
         this.httpClient = httpClient;
@@ -69,9 +71,18 @@ class WebHyperResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<U
         this.currentStatus = QueryExecutionStatus.RUNNING;
         this.metrics = createQueryResponseStreamMetrics();
         this.metadata = new Map();
+        this.progressCallback = null;
         if (initialBytes) {
             this.metrics.totalDataBytesReceived += initialBytes.byteLength;
         }
+    }
+
+    private emitProgress(): void {
+        if (!this.progressCallback) return;
+        this.progressCallback({
+            isQueued: null,
+            metrics: { ...this.metrics },
+        });
     }
 
     private isCompleted(): boolean {
@@ -96,6 +107,7 @@ class WebHyperResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<U
         });
         if (status) {
             this.status = status;
+            this.emitProgress();
         }
         const body = await response.arrayBuffer();
         return new Uint8Array(body);
@@ -133,6 +145,7 @@ class WebHyperResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<U
                 queryId: this.queryId,
                 waitTimeMs: CHUNK_POLL_DELAY_MS,
             });
+            this.emitProgress();
         }
     }
 
@@ -164,7 +177,10 @@ export class WebHyperQueryResultStream implements QueryExecutionResponseStream {
         return this.resultSchema.getValue();
     }
 
-    async produce(batches: AsyncConsumer<QueryExecutionResponseStream, arrow.RecordBatch>, _progress: AsyncConsumer<QueryExecutionResponseStream, QueryExecutionProgress>, abort?: AbortSignal): Promise<void> {
+    async produce(batches: AsyncConsumer<QueryExecutionResponseStream, arrow.RecordBatch>, progress: AsyncConsumer<QueryExecutionResponseStream, QueryExecutionProgress>, abort?: AbortSignal): Promise<void> {
+        this.reader.progressCallback = (update: QueryExecutionProgress) => {
+            progress.resolve(this, update);
+        };
         const arrowReader = await arrow.AsyncRecordBatchStreamReader.from(this.reader);
         abort?.throwIfAborted();
 
@@ -295,9 +311,10 @@ export class WebHyperDatabaseClient implements HyperDatabaseClient {
         if (!hyperArgs.endpoint) {
             throw new Error("missing hyper endpoint");
         }
-        const baseUrl = new URL(hyperArgs.endpoint);
+        const endpointUrl = new URL(hyperArgs.endpoint);
+        const proxyUrl = hyperArgs.httpProxyUrl ? new URL(hyperArgs.httpProxyUrl) : null;
         const auth = new ContextAuthProvider(context);
-        const client = new HyperDatabaseHttpClient(this.httpClient, baseUrl, auth, this.logger);
+        const client = new HyperDatabaseHttpClient(this.httpClient, endpointUrl, proxyUrl, auth, this.logger);
         return new WebHyperDatabaseChannel(client, context, this.logger, this.parallelChunks);
     }
 }
