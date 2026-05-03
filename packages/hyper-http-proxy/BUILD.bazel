@@ -1,0 +1,60 @@
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
+
+exports_files(["Cargo.toml"])
+
+_BUILD_SCRIPT_DATA = [
+    "Cargo.toml",
+    "@bazel_tools//tools/proto:protoc",
+    "//proto/pb:google/protobuf/empty.proto",
+    "//proto/pb:salesforce/hyperdb/grpc/v1/hyper_service.proto",
+]
+
+cargo_build_script(
+    name = "build_script",
+    srcs = ["build.rs"],
+    pkg_name = "hyper-http-proxy",
+    data = _BUILD_SCRIPT_DATA,
+    build_script_env = {
+        "PROTOC": "$(execpath @bazel_tools//tools/proto:protoc)",
+        "PROTO_HYPER_SERVICE": "$(execpath //proto/pb:salesforce/hyperdb/grpc/v1/hyper_service.proto)",
+    },
+    deps = ["@crates//:tonic-prost-build"],
+    rundir = "packages/hyper-http-proxy",
+)
+
+_DEPS = [
+    "@crates//:anyhow",
+    "@crates//:bytes",
+    "@crates//:clap",
+    "@crates//:env_logger",
+    "@crates//:futures-util",
+    "@crates//:http",
+    "@crates//:http-body-util",
+    "@crates//:hyper",
+    "@crates//:hyper-util",
+    "@crates//:log",
+    "@crates//:prost",
+    "@crates//:serde",
+    "@crates//:serde_json",
+    "@crates//:tokio",
+    "@crates//:tonic",
+    "@crates//:tonic-prost",
+    "@crates//:uuid",
+]
+
+rust_binary(
+    name = "proxy",
+    srcs = glob(["src/**/*.rs"]),
+    crate_root = "src/main.rs",
+    deps = [":build_script"] + _DEPS,
+    visibility = ["//visibility:public"],
+)
+
+rust_test(
+    name = "tests",
+    crate = ":proxy",
+    deps = [
+        "@crates//:tokio-stream",
+    ],
+)

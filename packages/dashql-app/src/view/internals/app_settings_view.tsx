@@ -5,7 +5,6 @@ import { XIcon } from '@primer/octicons-react';
 import { Button, ButtonVariant, IconButton } from '../../view/foundations/button.js';
 import { ToggleSwitch } from '../../view/foundations/toggle_switch.js';
 import { SegmentedControl } from '../../view/foundations/segmented_control.js';
-import { TextField } from '../../view/foundations/text_field.js';
 
 import { AppConfig, useAppConfig, useAppReconfigure } from '../../app_config.js';
 import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../../router.js';
@@ -22,44 +21,6 @@ export function AppSettings(props: { onClose: () => void; }) {
     const storageReader = useStorageReader();
 
     const [isClearing, setIsClearing] = React.useState(false);
-
-    // Proxy settings form state
-    const storedProxyUrl = config?.settings?.httpProxyUrl ?? "";
-    const storedProxyTargetList = config?.settings?.httpProxyTargetList ?? "";
-    const [proxyUrl, setProxyUrl] = React.useState(storedProxyUrl);
-    const [proxyTargetList, setProxyTargetList] = React.useState(storedProxyTargetList);
-    const [savingProxy, setSavingProxy] = React.useState(false);
-    // Keep the form in sync with the persisted config (e.g. after hydration).
-    React.useEffect(() => { setProxyUrl(storedProxyUrl); }, [storedProxyUrl]);
-    React.useEffect(() => { setProxyTargetList(storedProxyTargetList); }, [storedProxyTargetList]);
-    const proxyDirty = proxyUrl !== storedProxyUrl || proxyTargetList !== storedProxyTargetList;
-
-    const saveProxySettings = React.useCallback(async () => {
-        const nextUrl = proxyUrl.trim() || undefined;
-        const nextList = proxyTargetList.trim() || undefined;
-        setSavingProxy(true);
-        try {
-            reconfigure((value: AppConfig | null) => (value == null ? null : {
-                ...value,
-                settings: {
-                    ...(value.settings ?? {}),
-                    httpProxyUrl: nextUrl,
-                    httpProxyTargetList: nextList,
-                },
-            }));
-            await storageReader.backend.saveAppSettings({
-                ...(nextUrl ? { httpProxyUrl: nextUrl } : {}),
-                ...(nextList ? { httpProxyTargetList: nextList } : {}),
-            });
-            logger.info("Saved proxy settings", {}, "app_settings");
-        } catch (error) {
-            logger.error("Failed to save proxy settings", {
-                error: error instanceof Error ? error.message : String(error),
-            }, "app_settings");
-        } finally {
-            setSavingProxy(false);
-        }
-    }, [proxyUrl, proxyTargetList, reconfigure, storageReader, logger]);
 
     const toggleScriptDebugMode = React.useCallback(() => {
         reconfigure((value: AppConfig | null) => (value == null ? null : {
@@ -239,37 +200,6 @@ export function AppSettings(props: { onClose: () => void; }) {
                     <div className={styles.setting_switch}>
                         <Button onClick={revertSetupConfirmation}>
                             Restart
-                        </Button>
-                    </div>
-                </div>
-                <div className={styles.proxy_section}>
-                    <TextField
-                        name="HTTP Proxy URL"
-                        caption="Address of the HTTP proxy"
-                        value={proxyUrl}
-                        onChange={ev => setProxyUrl(ev.target.value)}
-                        placeholder="http://127.0.0.1:23333"
-                        leadingVisual={() => <div>URL</div>}
-                        logContext="app_settings"
-                        disabled={savingProxy}
-                    />
-                    <TextField
-                        name="HTTP Proxy Targets"
-                        caption="Comma-separated host patterns to route through the proxy"
-                        value={proxyTargetList}
-                        onChange={ev => setProxyTargetList(ev.target.value)}
-                        placeholder="login.salesforce.com, *.my.salesforce.com"
-                        leadingVisual={() => <div>HOSTS</div>}
-                        logContext="app_settings"
-                        disabled={savingProxy}
-                    />
-                    <div className={styles.proxy_actions}>
-                        <Button
-                            variant={ButtonVariant.Default}
-                            onClick={saveProxySettings}
-                            disabled={!proxyDirty || savingProxy || config == null}
-                        >
-                            {savingProxy ? "Saving..." : "Reconfigure Proxy"}
                         </Button>
                     </div>
                 </div>

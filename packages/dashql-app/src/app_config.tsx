@@ -15,8 +15,6 @@ export interface AppSettings {
     tableDebugMode?: boolean;
     formattingDebugMode?: boolean;
     minLogLevel?: number;
-    httpProxyUrl?: string;
-    httpProxyTargetList?: string;
 }
 
 export interface AppConfig {

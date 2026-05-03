@@ -4,7 +4,6 @@ import { NativeAPIRustBridge } from '../native_api_rust_bridge.js';
 import { getUnusedLocalEndpoint, TestHttpServer } from '../native_proxy_test_servers.js';
 import { TestLogger } from '../logger/test_logger.js';
 import { NativeHttpClient } from './native_http_client.js';
-import { HttpProxyConfigHolder } from './http_proxy.js';
 
 describe('Native HTTP client', () => {
     let bridge: NativeAPIRustBridge;
@@ -22,7 +21,7 @@ describe('Native HTTP client', () => {
         const logger = new TestLogger();
         const client = new NativeHttpClient({
             proxyEndpoint: new URL("dashql-native://localhost")
-        }, new HttpProxyConfigHolder(), logger);
+        }, logger);
         const url = new URL(`${endpoint}/foo/bar`);
         const response = await client.fetch(url, {
             method: "POST",
@@ -47,7 +46,7 @@ describe('Native HTTP client', () => {
         const logger = new TestLogger();
         const client = new NativeHttpClient({
             proxyEndpoint: new URL("dashql-native://localhost")
-        }, new HttpProxyConfigHolder(), logger);
+        }, logger);
         const url = new URL(`/foo/bar`, server.endpoint!);
 
         const response = await client.fetch(url, {

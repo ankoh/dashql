@@ -80,19 +80,6 @@
     justify-content: end;
 }
 
-.proxy_section {
-    border-top: 1px solid var(--border_color_primary);
-    padding: 16px 16px;
-    display: flex;
-    flex-direction: column;
-    row-gap: 16px;
-}
-
-.proxy_actions {
-    display: flex;
-    justify-content: flex-end;
-}
-
 .reset_section {
     border-top: 1px solid var(--border_color_primary);
     padding: 16px 16px;

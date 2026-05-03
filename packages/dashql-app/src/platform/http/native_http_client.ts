@@ -1,7 +1,6 @@
 import { DetailedError } from '../../utils/error.js';
 import { RawProxyError } from '../channel_common.js';
 import { HttpClient, HttpFetchResult } from './http_client.js';
-import { applyHttpProxy, HttpProxyConfigHolder } from './http_proxy.js';
 import { Logger } from '../logger/logger.js';
 import { HEADER_NAME_BATCH_BYTES, HEADER_NAME_BATCH_EVENT, HEADER_NAME_BATCH_TIMEOUT, HEADER_NAME_ENDPOINT, HEADER_NAME_METHOD, HEADER_NAME_PATH, HEADER_NAME_READ_TIMEOUT, HEADER_NAME_SEARCH_PARAMS, HEADER_NAME_STREAM_ID } from '../native_proxy_headers.js';
 import { injectTraceHeaders } from '../ipc/ipc_headers.js';
@@ -160,35 +159,26 @@ export class NativeHttpClient implements HttpClient {
     logger: Logger;
     /// The endpoint
     endpoint: NativeHttpProxyConfig;
-    /// The global http proxy configuration holder
-    proxyConfig: HttpProxyConfigHolder;
     /// The text encoder
     encoder: TextEncoder;
 
     /// Constructor
-    constructor(proxy: NativeHttpProxyConfig, proxyConfig: HttpProxyConfigHolder, logger: Logger) {
+    constructor(proxy: NativeHttpProxyConfig, logger: Logger) {
         this.logger = logger;
         this.endpoint = proxy;
-        this.proxyConfig = proxyConfig;
         this.encoder = new TextEncoder();
     }
 
     public async fetch(input: URL, init?: RequestInit): Promise<HttpFetchResult> {
-        const routed = applyHttpProxy(input, this.proxyConfig.get());
-        const effective = routed.url;
-
         const url = new URL(this.endpoint.proxyEndpoint);
         url.pathname = `/http/streams`;
-        const remote = `${effective.protocol}//${effective.host}`;
+        const remote = `${input.protocol}//${input.host}`;
 
         const headers = new Headers(init?.headers);
-        if (routed.extraHeaders) {
-            for (const [k, v] of Object.entries(routed.extraHeaders)) headers.set(k, v);
-        }
         headers.set(HEADER_NAME_METHOD, init?.method ?? "GET");
         headers.set(HEADER_NAME_ENDPOINT, remote);
-        headers.set(HEADER_NAME_PATH, effective.pathname);
-        headers.set(HEADER_NAME_SEARCH_PARAMS, effective.searchParams.toString());
+        headers.set(HEADER_NAME_PATH, input.pathname);
+        headers.set(HEADER_NAME_SEARCH_PARAMS, input.searchParams.toString());
         headers.set(HEADER_NAME_BATCH_TIMEOUT, "1000");
         headers.set(HEADER_NAME_READ_TIMEOUT, "10000");
         injectTraceHeaders(headers);
