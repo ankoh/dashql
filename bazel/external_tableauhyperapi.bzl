@@ -16,7 +16,7 @@ Get the new sha256 with:
 """
 
 # renovate: datasource=pypi depName=tableauhyperapi
-TABLEAUHYPERAPI_VERSION = "0.0.24457"
+TABLEAUHYPERAPI_VERSION = "0.0.25080"
 
 _WHEEL_SHA256 = "3f4b4a2004b09c90e5a74a5731afed705c6a6120211a66920fa46416a1cd898a"
 
