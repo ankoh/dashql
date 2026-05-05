@@ -8,8 +8,6 @@ import {
     CATALOG_UPDATE_CANCELLED,
     CATALOG_UPDATE_FAILED,
     CATALOG_UPDATE_SUCCEEDED,
-    ConnectionHealth,
-    ConnectionState,
     SET_CATALOG_SCRIPT,
     UPDATE_CATALOG,
 } from './connection_state.js';
@@ -317,15 +315,4 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
             {props.children}
         </LOADER_QUEUE_FN_CTX.Provider>
     );
-}
-
-
-export function refreshCatalogOnce(connState: ConnectionState | null) {
-    const refreshCatalog = useCatalogLoaderQueue();
-    React.useEffect(() => {
-        const currentFullRefresh = connState?.catalogUpdates.currentFullRefresh ?? null;
-        if (currentFullRefresh == null && connState != null && connState.connectionHealth == ConnectionHealth.ONLINE) {
-            refreshCatalog(connState.sessionId, false);
-        }
-    }, [connState]);
 }

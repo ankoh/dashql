@@ -9,8 +9,6 @@ import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } f
 import { ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, NotebookState } from '../../notebook/notebook_state.js';
 import { AppConfig, useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { useConnectionState } from '../../connection/connection_registry.js';
-import { refreshCatalogOnce } from '../../connection/catalog_loader.js';
 import { ModifyNotebook, useNotebookState } from '../../notebook/notebook_state_registry.js';
 import { Logger } from '../../platform/logger/logger.js';
 
@@ -28,13 +26,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     const logger = useLogger();
     const config = useAppConfig();
     const [notebook, modifyNotebook] = useNotebookState(props.sessionId);
-    const [connState, _modifyConn] = useConnectionState(notebook?.sessionId ?? null);
 
     const scriptData = notebook?.scripts[props.scriptKey] ?? null;
-
-    // Effect to refresh the connection catalog for the active script
-    // if it hasn't been refreshed yet.
-    refreshCatalogOnce(connState);
 
     // Update outdated scripts that are displayed in the editor
     React.useEffect(() => {
