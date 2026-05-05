@@ -100,6 +100,7 @@ export function restoreConnectionState(instance: dashql.DashQL, sessionId: strin
         catalogUpdates: {
             tasksRunning: new Map(),
             tasksFinished: new Map(),
+            currentFullRefresh: null,
             lastFullRefresh: null,
             restoredAt: null,
         },

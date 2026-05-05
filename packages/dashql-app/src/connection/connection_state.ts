@@ -38,8 +38,13 @@ export interface CatalogUpdates {
     tasksFinished: Map<number, CatalogUpdateTaskState>;
     /// Restored at a certain time
     restoredAt: Date | null;
-    /// The most recent catalog update.
-    /// We use this to trigger auto-refreshs.
+    /// The id of the running or most recently completed full refresh.
+    /// Set at UPDATE_CATALOG start; used to decide whether to kick off
+    /// an auto-refresh and to surface the currently-displayed refresh task.
+    currentFullRefresh: number | null;
+    /// The id of the most recently *completed* full refresh (succeeded,
+    /// failed, or cancelled). Only advances on completion, so components
+    /// can depend on it to react when the catalog script has been updated.
     lastFullRefresh: number | null;
 }
 
@@ -289,6 +294,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 catalogUpdates: {
                     tasksRunning: new Map(),
                     tasksFinished: new Map(),
+                    currentFullRefresh: null,
                     lastFullRefresh: null,
                     restoredAt: null,
                 },
@@ -369,6 +375,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 catalogUpdates: {
                     tasksRunning: new Map(),
                     tasksFinished: new Map(),
+                    currentFullRefresh: null,
                     lastFullRefresh: null,
                     restoredAt: null,
                 },
@@ -490,6 +497,7 @@ export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, c
         catalogUpdates: {
             tasksRunning: new Map(),
             tasksFinished: new Map(),
+            currentFullRefresh: null,
             lastFullRefresh: null,
             restoredAt: null,
         },
@@ -523,6 +531,7 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
         catalogUpdates: {
             tasksRunning: new Map(),
             tasksFinished: new Map(),
+            currentFullRefresh: null,
             lastFullRefresh: null,
             restoredAt: null,
         },

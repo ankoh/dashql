@@ -48,12 +48,12 @@ export function CatalogStatisticsView(props: CatalogInfoViewProps) {
         return () => clearTimeout(timeoutId);
     }, [refreshUi]);
 
-    const lastFullRefresh = props.connection.catalogUpdates.lastFullRefresh
+    const currentFullRefresh = props.connection.catalogUpdates.currentFullRefresh
     const sinceLastFullRefresh = React.useMemo(() => {
         let sinceLastFullRefresh = null;
-        if (lastFullRefresh != null) {
-            const task = props.connection!.catalogUpdates.tasksRunning.get(lastFullRefresh)
-                ?? props.connection!.catalogUpdates.tasksFinished.get(lastFullRefresh)
+        if (currentFullRefresh != null) {
+            const task = props.connection!.catalogUpdates.tasksRunning.get(currentFullRefresh)
+                ?? props.connection!.catalogUpdates.tasksFinished.get(currentFullRefresh)
                 ?? null;
             if (task?.startedAt != null) {
                 sinceLastFullRefresh = formatTimeDifference(task.startedAt);

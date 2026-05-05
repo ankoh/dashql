@@ -84,6 +84,7 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: Conn
         catalogUpdates: {
             tasksRunning: new Map(),
             tasksFinished: new Map(),
+            currentFullRefresh: null,
             lastFullRefresh: null,
             restoredAt: null,
         },

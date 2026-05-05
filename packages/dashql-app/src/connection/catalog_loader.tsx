@@ -92,6 +92,18 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
             value: [updateId, initialState],
         });
 
+        // Emit a heartbeat log every few seconds so long-running updates
+        // don't look like a silent hang between "Starting" and "Updated".
+        const updateStartMs = performance.now();
+        const heartbeat = setInterval(() => {
+            const elapsedMs = performance.now() - updateStartMs;
+            traced.info("Catalog update in progress", {
+                "session": sessionId,
+                "updateId": updateId.toString(),
+                "elapsedMs": elapsedMs.toFixed(0),
+            }, LOG_CTX);
+        }, 5000);
+
         // Update the catalog
         try {
             switch (conn.connectorInfo.catalogResolver) {
@@ -176,6 +188,14 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                     value: [updateId, e],
                 });
             }
+        } finally {
+            clearInterval(heartbeat);
+            const totalMs = performance.now() - updateStartMs;
+            traced.info("Finished catalog update", {
+                "session": sessionId,
+                "updateId": updateId.toString(),
+                "durationMs": totalMs.toFixed(0),
+            }, LOG_CTX);
         }
     }, [connMap, sfapi, executor]);
 
@@ -240,19 +260,17 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                 }
             }
 
-            // Was recently restored?
+            // Was the catalog restored from disk on session open?
+            // Skip auto-refreshes so a saved catalog script isn't wiped by
+            // an empty/erroring query right after opening the session.
+            // Only an explicit (forced) refresh can replace a restored catalog.
             if (!force && connState.catalogUpdates.restoredAt != null) {
-                const restoredAt = connState.catalogUpdates.restoredAt;
-                const now = new Date();
-                const elapsed = (restoredAt.getTime() ?? now.getTime()) - now.getTime();
-                if (elapsed < CATALOG_REFRESH_AFTER) {
-                    logger.info("Skipping catalog update", {
-                        "elapsed": elapsed.toString(),
-                        "threshold": CATALOG_REFRESH_AFTER.toString(),
-                    }, LOG_CTX);
-                    continue;
-                }
-
+                logger.info("Skipping catalog update, catalog was restored from disk", {
+                    "session": sessionId,
+                    "restoredAt": connState.catalogUpdates.restoredAt.toISOString(),
+                }, LOG_CTX);
+                processed.push(sessionId);
+                continue;
             }
 
             // Was there a recent refresh?
@@ -305,8 +323,8 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
 export function refreshCatalogOnce(connState: ConnectionState | null) {
     const refreshCatalog = useCatalogLoaderQueue();
     React.useEffect(() => {
-        const lastFullRefresh = connState?.catalogUpdates.lastFullRefresh ?? null;
-        if (lastFullRefresh == null && connState != null && connState.connectionHealth == ConnectionHealth.ONLINE) {
+        const currentFullRefresh = connState?.catalogUpdates.currentFullRefresh ?? null;
+        if (currentFullRefresh == null && connState != null && connState.connectionHealth == ConnectionHealth.ONLINE) {
             refreshCatalog(connState.sessionId, false);
         }
     }, [connState]);

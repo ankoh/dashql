@@ -138,9 +138,18 @@ export async function updateInformationSchemaCatalog(
     dql: dashql.DashQL,
     catalogScript: dashql.DashQLScript
 ): Promise<void> {
-    // Query the information schema
+    // Query the information schema. If the query errors it throws and propagates
+    // to the caller so we never overwrite the existing catalog script with partial data.
     const queryResult = await queryInformationSchema(sessionId, connectionDispatch, updateId, catalogName, schemaNames, executor);
-    if (queryResult == null) {
+    if (queryResult == null || queryResult.numRows === 0) {
+        return;
+    }
+
+    // Generate SQL from query results before touching the script so an empty
+    // result (after row-level filtering) doesn't clobber a restored catalog.
+    const header = generateCatalogScriptHeader(CatalogSource.InformationSchema);
+    const catalogSQL = generateCatalogSQLFromInformationSchema(queryResult);
+    if (catalogSQL.length === 0) {
         return;
     }
 
@@ -149,10 +158,6 @@ export async function updateInformationSchemaCatalog(
         type: CATALOG_UPDATE_SCHEMA_SCRIPT,
         value: [updateId]
     });
-
-    // Generate SQL from query results
-    const header = generateCatalogScriptHeader(CatalogSource.InformationSchema);
-    const catalogSQL = generateCatalogSQLFromInformationSchema(queryResult);
 
     // Update script content
     catalogScript.replaceText(`${header}${catalogSQL}`);

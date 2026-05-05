@@ -1,4 +1,9 @@
-import { StorageWriter } from '../platform/storage/storage_writer.js';
+import {
+    DEBOUNCE_DURATION_SESSION_WRITE,
+    groupSessionSchemaWrites,
+    StorageWriter,
+    WRITE_SESSION_CATALOG_SCRIPT,
+} from '../platform/storage/storage_writer.js';
 import {
     CATALOG_UPDATE_CANCELLED,
     CATALOG_UPDATE_FAILED,
@@ -68,9 +73,9 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
             catalogUpdates: {
                 ...state.catalogUpdates,
                 tasksRunning: state.catalogUpdates.tasksRunning,
-                lastFullRefresh: update.taskVariant == CatalogUpdateVariant.FULL_CATALOG_REFRESH
+                currentFullRefresh: update.taskVariant == CatalogUpdateVariant.FULL_CATALOG_REFRESH
                     ? updateId
-                    : state.catalogUpdates.lastFullRefresh
+                    : state.catalogUpdates.currentFullRefresh
             },
         };
     }
@@ -131,6 +136,7 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
                     tasksRunning: state.catalogUpdates.tasksRunning,
                     tasksFinished: state.catalogUpdates.tasksFinished,
                     restoredAt: state.catalogUpdates.restoredAt,
+                    currentFullRefresh: updateId,
                     lastFullRefresh: updateId,
                 }
             };
@@ -150,6 +156,7 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
                     tasksRunning: state.catalogUpdates.tasksRunning,
                     tasksFinished: state.catalogUpdates.tasksFinished,
                     restoredAt: state.catalogUpdates.restoredAt,
+                    currentFullRefresh: updateId,
                     lastFullRefresh: updateId,
                 }
             };
@@ -168,10 +175,19 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
                     tasksRunning: state.catalogUpdates.tasksRunning,
                     tasksFinished: state.catalogUpdates.tasksFinished,
                     restoredAt: state.catalogUpdates.restoredAt,
+                    currentFullRefresh: updateId,
                     lastFullRefresh: updateId,
                 }
             };
-            // Note: Catalogs are now stored as SQL scripts, no separate catalog write needed
+            // Persist the updated catalog script so it survives reloads.
+            // Debounced on the schema path so bursts of updates collapse to a single write.
+            if (newState.active) {
+                storage.write(
+                    groupSessionSchemaWrites(newState.sessionId),
+                    { type: WRITE_SESSION_CATALOG_SCRIPT, value: [newState.sessionId, newState.catalogScript] },
+                    DEBOUNCE_DURATION_SESSION_WRITE,
+                );
+            }
             return newState;
         default:
             return state;
