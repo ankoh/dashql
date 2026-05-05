@@ -4,6 +4,7 @@ import * as styles from './notebook_page.module.css';
 import { DatabaseIcon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
 
 import * as ActionList from '../foundations/action_list.js';
+import { ConnectionHealth } from '../../connection/connection_state.js';
 import { ConnectionStatus } from '../connection/connection_status.js';
 import { ConnectionSettingsOverlay } from '../connection/connection_settings_overlay.js';
 import { ButtonGroup } from '../foundations/button_group.js';
@@ -103,6 +104,20 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             editInputRef.current.select();
         }
     }, [editingPageIndex]);
+
+    // Auto-close the connection settings overlay once a connect attempt succeeds
+    const prevConnectionHealth = React.useRef<ConnectionHealth | null>(null);
+    React.useEffect(() => {
+        const health = conn?.connectionHealth ?? null;
+        if (
+            connectionOverlayOpen &&
+            prevConnectionHealth.current === ConnectionHealth.CONNECTING &&
+            health === ConnectionHealth.ONLINE
+        ) {
+            setConnectionOverlayOpen(false);
+        }
+        prevConnectionHealth.current = health;
+    }, [conn?.connectionHealth, connectionOverlayOpen]);
 
     React.useEffect(() => {
         if (showDetails || notebook == null) {
