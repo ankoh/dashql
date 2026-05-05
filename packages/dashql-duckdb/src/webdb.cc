@@ -510,6 +510,8 @@ arrow::Status WebDB::Open(std::string_view args_json) {
         db_config.options.maximum_threads = config_->maximum_threads;
         db_config.options.use_temporary_directory = false;
         db_config.options.access_mode = AccessMode::AUTOMATIC;
+        db_config.SetOptionByName("autoinstall_known_extensions", Value::BOOLEAN(false));
+        db_config.SetOptionByName("autoload_known_extensions", Value::BOOLEAN(false));
         if constexpr (ENVIRONMENT == Environment::WEB) {
             db_config.SetOptionByName("duckdb_api", "wasm");
         } else {

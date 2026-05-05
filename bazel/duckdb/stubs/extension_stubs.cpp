@@ -9,26 +9,35 @@
 #include "duckdb/main/extension_manager.hpp"
 #include "duckdb/main/extension_install_info.hpp"
 #include "duckdb/main/extension/extension_loader.hpp"
+#include "icu_extension.hpp"
 
 namespace duckdb {
 
 // Forward declaration from core_functions extension
 void CoreFunctionsLoadInternal(ExtensionLoader &loader);
 
-void ExtensionHelper::LoadAllExtensions(DuckDB &db) {
-    // Load core_functions extension (statically linked)
-    auto &extension_manager = db.instance->GetExtensionManager();
-    auto load_handle = extension_manager.BeginLoad("core_functions");
-    if (load_handle) {
-        // Create an ExtensionLoader and register all core functions
-        ExtensionLoader loader(*load_handle);
-        CoreFunctionsLoadInternal(loader);
-
-        // Mark as loaded
-        ExtensionInstallInfo install_info;
-        install_info.mode = ExtensionInstallMode::STATICALLY_LINKED;
-        load_handle->FinishLoad(install_info);
+static void LoadStaticExtension(ExtensionManager &manager, const string &name,
+                                 std::function<void(ExtensionLoader &)> load_fn) {
+    auto handle = manager.BeginLoad(name);
+    if (!handle) {
+        return;
     }
+    ExtensionLoader loader(*handle);
+    load_fn(loader);
+    ExtensionInstallInfo info;
+    info.mode = ExtensionInstallMode::STATICALLY_LINKED;
+    handle->FinishLoad(info);
+}
+
+void ExtensionHelper::LoadAllExtensions(DuckDB &db) {
+    auto &extension_manager = db.instance->GetExtensionManager();
+
+    LoadStaticExtension(extension_manager, "core_functions", CoreFunctionsLoadInternal);
+
+    LoadStaticExtension(extension_manager, "icu", [](ExtensionLoader &loader) {
+        IcuExtension ext;
+        ext.Load(loader);
+    });
 }
 
 unique_ptr<ExtensionInstallInfo> ExtensionHelper::InstallExtension(ClientContext &context, const string &extension, ExtensionInstallOptions &options) {

@@ -19,6 +19,7 @@ cc_library(
     ],
     deps = [
         "@duckdb_source//:duckdb_headers",
+        "@duckdb_source//:duckdb_icu_extension",
         "@duckdb_source//:duckdb_static",
         "@duckdb_source//:mbedtls",
     ],

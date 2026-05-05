@@ -531,6 +531,45 @@ cc_library(
     ],
 )
 
+# ICU extension (statically linked into WASM build)
+# Compiles the vendored ICU (common + i18n + inlined stub data) together with the
+# DuckDB ICU wrapper sources. Headers in extension/icu/include/unicode auto-define
+# U_COMMON_IMPLEMENTATION and U_STATIC_IMPLEMENTATION, so no extra copts are needed.
+cc_library(
+    name = "duckdb_icu_extension",
+    srcs = glob([
+        "extension/icu/*.cpp",
+        "extension/icu/third_party/icu/common/*.cpp",
+        "extension/icu/third_party/icu/i18n/*.cpp",
+        "extension/icu/third_party/icu/stubdata/*.cpp",
+    ]),
+    hdrs = glob(
+        [
+            "extension/icu/include/**/*.hpp",
+            "extension/icu/third_party/icu/common/**/*.h",
+            "extension/icu/third_party/icu/common/**/*.hpp",
+            "extension/icu/third_party/icu/i18n/**/*.h",
+            "extension/icu/third_party/icu/i18n/**/*.hpp",
+        ],
+        allow_empty = True,
+    ),
+    copts = select({
+        "@platforms//cpu:wasm32": DUCKDB_WASM_COPTS + ["-Wno-everything"],
+        "//conditions:default": DUCKDB_COPTS + ["-Wno-everything"],
+    }),
+    features = ["wasm_exceptions"],
+    includes = [
+        "extension/icu",
+        "extension/icu/include",
+        "extension/icu/third_party/icu/common",
+        "extension/icu/third_party/icu/i18n",
+    ],
+    deps = [
+        ":duckdb_headers",
+        ":fmt",
+    ],
+)
+
 # Main DuckDB library (static build from source)
 cc_library(
     name = "duckdb_static",
