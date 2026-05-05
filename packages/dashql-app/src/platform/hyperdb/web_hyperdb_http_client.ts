@@ -1,10 +1,8 @@
 import * as arrow from 'apache-arrow';
-import * as buf from "@bufbuild/protobuf";
 import * as pb from "../../proto.js";
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import {
-    HealthCheckResult,
     HyperDatabaseChannel,
     HyperDatabaseClient,
     HyperDatabaseConnectionContext,
@@ -22,7 +20,7 @@ import {
     QueryExecutionResponseStream,
     QueryExecutionStatus,
 } from '../../connection/query_execution_state.js';
-import { AsyncConsumer, AsyncConsumerLambdas } from '../../utils/async_consumer.js';
+import { AsyncConsumer } from '../../utils/async_consumer.js';
 import { AsyncValue } from '../../utils/async_value.js';
 import { HttpClient } from '../http/http_client.js';
 import { Logger } from '../logger/logger.js';
@@ -213,56 +211,6 @@ class WebHyperDatabaseChannel implements HyperDatabaseChannel {
         this.connection = connection;
         this.logger = logger;
         this.parallelChunks = parallelChunks;
-    }
-
-    async checkHealth(): Promise<HealthCheckResult> {
-        try {
-            const result = await this.executeQuery(buf.create(pb.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, {
-                query: "select 1 as healthy"
-            }));
-            const batches: arrow.RecordBatch<any>[] = [];
-            const collectBatches = new AsyncConsumerLambdas<QueryExecutionResponseStream, arrow.RecordBatch<any>>(
-                (_: QueryExecutionResponseStream, batch: arrow.RecordBatch<any>) => {
-                    batches.push(batch);
-                }
-            );
-            const ignoreProgress = new AsyncConsumerLambdas<QueryExecutionResponseStream, QueryExecutionProgress>();
-            // produce() resolves the schema; await it first so getSchema() below doesn't hang on an empty result.
-            await result.produce(collectBatches, ignoreProgress);
-            const schema = await result.getSchema();
-            if (schema == null) {
-                return { ok: false, error: { message: "Query result did not include a schema" } };
-            }
-            if (schema.fields.length != 1) {
-                return { ok: false, error: { message: `Unexpected number of fields in the query result schema: expected 1, received ${schema.fields.length}` } };
-            }
-            const field = schema.fields[0];
-            if (field.name != "healthy") {
-                return { ok: false, error: { message: `Unexpected field name in the query result schema: expected 'healthy', received '${field.name}'` } };
-            }
-            if (batches.length == 0) {
-                return { ok: false, error: { message: "Query result did not include a record batch" } };
-            }
-            const healthyColumn = batches[0].getChildAt(0)!;
-            if (healthyColumn == null) {
-                return { ok: false, error: { message: "Query result batch did not include any data" } };
-            }
-            if (healthyColumn.length != 1) {
-                return { ok: false, error: { message: `Query result batch contains an unexpected number of rows: expected 1, received ${healthyColumn.length}` } };
-            }
-            const healthyRow = healthyColumn.get(0);
-            if (healthyRow !== 1) {
-                return { ok: false, error: { message: `Health check query returned an unexpected result` } };
-            }
-            return { ok: true, error: null };
-        } catch (e: any) {
-            this.logger.warn("Health check failed", { "message": e.message, "data": e.data }, LOG_CTX);
-            if (e.message) {
-                return { ok: false, error: { message: e.message, data: e.data ?? {} } };
-            } else {
-                return { ok: false, error: { message: e.toString() } };
-            }
-        }
     }
 
     async executeQuery(params: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal): Promise<HyperQueryResultStream> {

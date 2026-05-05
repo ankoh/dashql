@@ -4,7 +4,7 @@ import * as buf from "@bufbuild/protobuf";
 
 import { Logger } from '../../platform/logger/logger.js';
 import { HttpClient } from '../../platform/http/http_client.js';
-import { HealthCheckResult, HyperDatabaseChannel, HyperQueryResultStream } from '../hyper/hyperdb_grpc_client.js';
+import { HyperDatabaseChannel, HyperQueryResultStream } from '../hyper/hyperdb_grpc_client.js';
 import { BASE64_CODEC } from "../../utils/base64.js";
 import { dateToTimestamp } from "../../connection/proto_helper.js";
 
@@ -444,10 +444,6 @@ export class SalesforceDatabaseChannel implements HyperDatabaseChannel {
         this.hyperChannel = channel;
     }
 
-    /// Perform a health check
-    async checkHealth(): Promise<HealthCheckResult> {
-        return this.hyperChannel.checkHealth();
-    }
     /// Execute Query
     async executeQuery(param: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal): Promise<HyperQueryResultStream> {
         return this.hyperChannel.executeQuery(param, abort);

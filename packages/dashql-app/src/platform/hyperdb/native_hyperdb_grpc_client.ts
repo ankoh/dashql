@@ -4,7 +4,6 @@ import * as pb from "../../proto.js";
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import {
-    HealthCheckResult,
     HyperDatabaseChannel,
     HyperDatabaseClient,
     HyperDatabaseConnectionContext,
@@ -25,7 +24,7 @@ import {
 } from '../../connection/query_execution_state.js';
 import { ChannelArgs } from '../channel_common.js';
 import { Logger } from '../logger/logger.js';
-import { AsyncConsumerLambdas, AsyncConsumer } from '../../utils/async_consumer.js';
+import { AsyncConsumer } from '../../utils/async_consumer.js';
 import { AsyncValue } from '../../utils/async_value.js';
 
 const LOG_CTX = "native_hyperdb_grpc_client";
@@ -147,56 +146,6 @@ class NativeHyperDatabaseChannel implements HyperDatabaseChannel {
         this.grpcChannel = channel;
         this.connection = connection;
         this.logger = logger;
-    }
-
-    /// Check if Hyper is reachable
-    public async checkHealth(): Promise<HealthCheckResult> {
-        try {
-            const result = await this.executeQuery(buf.create(pb.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, {
-                query: "select 1 as healthy"
-            }));
-            const schema = await result.getSchema();
-            if (schema == null) {
-                return { ok: false, error: { message: "Query result did not include a schema" } };
-            }
-            if (schema.fields.length != 1) {
-                return { ok: false, error: { message: `Unexpected number of fields in the query result schema: expected 1, received ${schema.fields.length}` } };
-            }
-            const field = schema.fields[0];
-            if (field.name != "healthy") {
-                return { ok: false, error: { message: `Unexpected field name in the query result schema: expected 'healthy', received '${field.name}'` } };
-            }
-            let batches: arrow.RecordBatch<any>[] = [];
-            const collectBatches = new AsyncConsumerLambdas(
-                (_: QueryExecutionResponseStream, batch: arrow.RecordBatch<any>) => {
-                    batches.push(batch);
-                }
-            );
-            const ignoreProgressUpdates = new AsyncConsumerLambdas();
-            await result.produce(collectBatches, ignoreProgressUpdates);
-            if (batches.length == 0) {
-                return { ok: false, error: { message: "Query result did not include a record batch" } };
-            }
-            const healthyColumn = batches[0].getChildAt(0)!;
-            if (healthyColumn == null) {
-                return { ok: false, error: { message: "Query result batch did not include any data" } };
-            }
-            if (healthyColumn.length != 1) {
-                return { ok: false, error: { message: `Query result batch contains an unexpected number of rows: expected 1, received ${healthyColumn.length}` } };
-            }
-            const healthyRow = healthyColumn.get(0);
-            if (healthyRow !== 1) {
-                return { ok: false, error: { message: `Health check query returned an unexpected result` } };
-            }
-            return { ok: true, error: null };
-        } catch (e: any) {
-            this.logger.warn("Health check failed", { "message": e.message, "data": e.data }, LOG_CTX);
-            if (e.message) {
-                return { ok: false, error: { message: e.message, data: e.data ?? {} } };
-            } else {
-                return { ok: false, error: { message: e.toString() } };
-            }
-        }
     }
 
     /// Execute a query against Hyper

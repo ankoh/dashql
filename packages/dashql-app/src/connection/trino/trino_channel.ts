@@ -3,7 +3,7 @@ import * as proto from "../../proto.js";
 
 import { Logger } from '../../platform/logger/logger.js';
 import { createQueryResponseStreamMetrics, QueryExecutionProgress, QueryExecutionResponseStream, QueryExecutionMetrics, QueryExecutionStatus } from "../../connection/query_execution_state.js";
-import { TRINO_STATUS_HTTP_ERROR, TRINO_STATUS_OK, TRINO_STATUS_OTHER_ERROR, TrinoApiClientInterface, TrinoApiEndpoint, TrinoQueryData, TrinoQueryResult, TrinoQueryStatistics } from "./trino_api_client.js";
+import { TrinoApiClientInterface, TrinoApiEndpoint, TrinoQueryData, TrinoQueryResult, TrinoQueryStatistics } from "./trino_api_client.js";
 import { ChannelError, RawProxyError } from '../../platform/channel_common.js';
 import { AsyncValue } from '../../utils/async_value.js';
 import { AsyncConsumer } from '../../utils/async_consumer.js';
@@ -161,18 +161,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
     }
 }
 
-export interface TrinoHealthCheckResult {
-    /// Did the health check succeed?
-    ok: boolean;
-    /// The http status (if any)
-    httpStatus: number | null;
-    /// The error (if any)
-    error: any | null;
-}
-
 export interface TrinoChannelInterface {
-    /// Perform a health check
-    checkHealth(): Promise<TrinoHealthCheckResult>;
     /// Execute Query
     executeQuery(param: proto.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal): Promise<TrinoQueryResultStream>;
     /// Destroy the connection
@@ -195,20 +184,6 @@ export class TrinoChannel implements TrinoChannelInterface {
         this.apiClient = client;
         this.endpoint = endpoint;
         this.catalogName = catalogName;
-    }
-
-    /// Perform a health check
-    async checkHealth(): Promise<TrinoHealthCheckResult> {
-        const status = await this.apiClient.checkHealth(this.endpoint);
-        switch (status.type) {
-            case TRINO_STATUS_OK:
-                return { ok: true, httpStatus: null, error: null };
-            case TRINO_STATUS_HTTP_ERROR:
-                return { ok: false, httpStatus: status.value.status, error: null };
-            case TRINO_STATUS_OTHER_ERROR:
-                return { ok: false, httpStatus: null, error: status.value };
-        }
-        throw new Error("unreachable");
     }
 
     /// Execute Query

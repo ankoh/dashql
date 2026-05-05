@@ -3,8 +3,6 @@ import * as buf from "@bufbuild/protobuf";
 import * as pb from "../../proto.js";
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import type { DetailedError } from '../connection_types.js';
-
 import {
     HYPER_CHANNEL_READY,
     HYPER_CHANNEL_SETUP_CANCELLED,
@@ -23,7 +21,7 @@ import {
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useAppConfig } from '../../app_config.js';
 import { useHyperDatabaseClient } from '../../connection/hyper/hyperdb_grpc_client_provider.js';
-import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION } from '../connection_state.js';
+import { RESET_CONNECTION } from '../connection_state.js';
 
 const LOG_CTX = "hyper_setup";
 
@@ -79,50 +77,10 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
         }
         throw error;
     }
-
-    // Then perform an initial health check
-    try {
-        // Start the channel setup
-        updateState({
-            type: HEALTH_CHECK_STARTED,
-            value: null,
-        });
-        abortSignal.throwIfAborted();
-
-        // Create the channel
-        const health = await channel.checkHealth();
-        abortSignal.throwIfAborted();
-
-        if (health.ok) {
-            updateState({
-                type: HEALTH_CHECK_SUCCEEDED,
-                value: null,
-            });
-        } else {
-            throw new Error(health.error?.message ?? "health check failed");
-        }
-    } catch (error: any) {
-        if (error.name === 'AbortError') {
-            logger.warn("Cancelled health check", {}, LOG_CTX);
-            updateState({
-                type: HEALTH_CHECK_CANCELLED,
-                value: null,
-            });
-        } else if (error instanceof Error) {
-            logger.error("Health check failed", { "error": error.toString() }, LOG_CTX);
-            updateState({
-                type: HEALTH_CHECK_FAILED,
-                value: {
-                    message: error.message,
-                },
-            });
-        }
-        throw error;
-    }
     return channel;
 }
 export interface HyperSetupApi {
-    setup(dispatch: Dispatch<HyperConnectorAction>, params: connection.HyperConnectionParams, abortSignal: AbortSignal): Promise<void>
+    setup(dispatch: Dispatch<HyperConnectorAction>, params: connection.HyperConnectionParams, abortSignal: AbortSignal): Promise<HyperDatabaseChannel | null>
     reset(dispatch: Dispatch<HyperConnectorAction>): Promise<void>
 }
 
@@ -145,7 +103,7 @@ export const HyperSetupProvider: React.FC<Props> = (props: Props) => {
             return null;
         }
         const setup = async (dispatch: Dispatch<HyperConnectorAction>, params: connection.HyperConnectionParams, abort: AbortSignal) => {
-            await setupHyperConnection(dispatch, logger, params, connectorConfig, hyperClient, abort);
+            return await setupHyperConnection(dispatch, logger, params, connectorConfig, hyperClient, abort);
         };
         const reset = async (dispatch: Dispatch<HyperConnectorAction>) => {
             dispatch({

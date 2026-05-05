@@ -69,71 +69,15 @@ describe('WebHyperDatabaseClient', () => {
             mock.setHandler(() => ({
                 queryId: 'q-auth',
                 completionStatus: 'RESULTS_PRODUCED',
-                arrowBytes: encodeIntTable('healthy', [1]),
+                arrowBytes: encodeIntTable('n', [1]),
             }));
 
             const channel = await client.connect(makeHyperArgs(), ctx);
-            await channel.checkHealth();
+            await channel.executeQuery({ query: 'select 1 as n' } as any);
 
             const init = spy.mock.calls[0][1] as RequestInit;
             const headers = init.headers as Headers;
             expect(headers.get('Authorization')).toBe('Bearer test-token');
-        });
-    });
-
-    describe('checkHealth', () => {
-        it('returns ok when the healthy query yields 1', async () => {
-            mock.setHandler((sql) => {
-                expect(sql).toBe('select 1 as healthy');
-                return {
-                    queryId: 'q-health',
-                    completionStatus: 'RESULTS_PRODUCED',
-                    arrowBytes: encodeIntTable('healthy', [1]),
-                };
-            });
-
-            const channel = await client.connect(makeHyperArgs(), noopContext);
-            const health = await channel.checkHealth();
-            expect(health.ok).toBe(true);
-            expect(health.error).toBeNull();
-        });
-
-        it('fails when the schema has the wrong field name', async () => {
-            mock.setHandler(() => ({
-                queryId: 'q-health',
-                completionStatus: 'RESULTS_PRODUCED',
-                arrowBytes: encodeIntTable('not_healthy', [1]),
-            }));
-
-            const channel = await client.connect(makeHyperArgs(), noopContext);
-            const health = await channel.checkHealth();
-            expect(health.ok).toBe(false);
-            expect(health.error?.message).toMatch(/Unexpected field name/);
-        });
-
-        it('fails when the healthy column is not 1', async () => {
-            mock.setHandler(() => ({
-                queryId: 'q-health',
-                completionStatus: 'RESULTS_PRODUCED',
-                arrowBytes: encodeIntTable('healthy', [0]),
-            }));
-
-            const channel = await client.connect(makeHyperArgs(), noopContext);
-            const health = await channel.checkHealth();
-            expect(health.ok).toBe(false);
-            expect(health.error?.message).toMatch(/unexpected result/);
-        });
-
-        it('fails when the query returns an HTTP error', async () => {
-            mock.setHandler(() => ({
-                errorStatus: 400,
-                errorResponse: { error: '42601', message: 'syntax error' },
-            }));
-
-            const channel = await client.connect(makeHyperArgs(), noopContext);
-            const health = await channel.checkHealth();
-            expect(health.ok).toBe(false);
-            expect(health.error?.message).toMatch(/syntax error/);
         });
     });
 

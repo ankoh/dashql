@@ -1,17 +1,10 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as pb from "../../proto.js";
 
-import { HealthCheckResult, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext, HyperQueryResultStream } from "./hyperdb_grpc_client.js";
+import { HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext, HyperQueryResultStream } from "./hyperdb_grpc_client.js";
 import { QueryExecutionResponseStreamMock } from "../query_execution_mock.js";
 
 export class HyperDatabaseChannelMock implements HyperDatabaseChannel {
-    /// Perform a health check
-    async checkHealth(): Promise<HealthCheckResult> {
-        return {
-            ok: true,
-            error: null,
-        };
-    }
     /// Execute Query
     async executeQuery(_param: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam): Promise<HyperQueryResultStream> {
         return new QueryExecutionResponseStreamMock();

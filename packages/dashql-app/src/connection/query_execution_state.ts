@@ -133,7 +133,8 @@ export interface QueryMetrics {
 export enum QueryType {
     USER_PROVIDED,
     CATALOG_QUERY_INFORMATION_SCHEMA,
-    CATALOG_QUERY_PG_ATTRIBUTE
+    CATALOG_QUERY_PG_ATTRIBUTE,
+    HEALTH_CHECK,
 }
 
 export interface QueryMetadata {

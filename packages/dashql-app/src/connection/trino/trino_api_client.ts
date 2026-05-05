@@ -1,7 +1,6 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 
-import { VariantKind } from "../../utils/variant.js";
 import { HttpClient } from "../../platform/http/http_client.js";
 import { LoggableException, Logger } from "../../platform/logger/logger.js";
 
@@ -161,18 +160,7 @@ export interface TrinoQueryInfo {
     failureInfo?: TrinoQueryFailureInfo;
 };
 
-export const TRINO_STATUS_OK = Symbol("TRINO_STATUS_OK");
-export const TRINO_STATUS_HTTP_ERROR = Symbol("TRINO_STATUS_HTTP_ERROR");
-export const TRINO_STATUS_OTHER_ERROR = Symbol("TRINO_STATUS_OTHER_ERROR");
-
-export type TrinoHealthCheckStatus =
-    | VariantKind<typeof TRINO_STATUS_OK, { status: number }>
-    | VariantKind<typeof TRINO_STATUS_HTTP_ERROR, { status: number }>
-    | VariantKind<typeof TRINO_STATUS_OTHER_ERROR, any>
-
 export interface TrinoApiClientInterface {
-    /// Check the health
-    checkHealth(endpoint: TrinoApiEndpoint): Promise<TrinoHealthCheckStatus>;
     /// Run a query
     runQuery(endpoint: TrinoApiEndpoint, catalogName: string, text: string): Promise<TrinoQueryResult>;
     /// Get a query result
@@ -193,37 +181,6 @@ export class TrinoApiClient implements TrinoApiClientInterface {
     constructor(logger: Logger, httpClient: HttpClient) {
         this.logger = logger;
         this.httpClient = httpClient;
-    }
-
-    /// Check the health
-    async checkHealth(endpoint: TrinoApiEndpoint): Promise<TrinoHealthCheckStatus> {
-        const headers = new Headers();
-        addAuthHeaders(headers, endpoint);
-        try {
-            const url = new URL(`${endpoint.endpoint}/v1/statement`);
-            const rawResponse = await this.httpClient.fetch(url, {
-                method: 'POST',
-                body: "select 1",
-                headers
-            });
-            await rawResponse.json();
-            return {
-                type: TRINO_STATUS_OK,
-                value: {
-                    status: rawResponse.status,
-                }
-            };
-        } catch (error: any) {
-            return error.status ? {
-                type: TRINO_STATUS_HTTP_ERROR,
-                value: {
-                    status: error.status,
-                }
-            } : {
-                type: TRINO_STATUS_OTHER_ERROR,
-                value: error
-            };
-        }
     }
 
     /// Run a query

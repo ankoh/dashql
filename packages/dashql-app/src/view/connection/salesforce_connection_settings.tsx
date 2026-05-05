@@ -6,6 +6,8 @@ import { KeyIcon, PlugIcon, XIcon } from '@primer/octicons-react';
 
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { ConnectionHealth, ConnectionStatus } from '../../connection/connection_state.js';
+import { performHealthCheck } from '../../connection/health_check.js';
+import { useQueryExecutor } from '../../connection/query_executor.js';
 import { useSalesforceSetup } from '../../connection/salesforce/salesforce_connector.js';
 import { getSalesforceConnectionDetails } from '../../connection/salesforce/salesforce_connection_state.js';
 import {
@@ -125,6 +127,7 @@ interface Props {
 
 export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const sfSetup = useSalesforceSetup();
+    const queryExecutor = useQueryExecutor();
 
     // Can we use the connector here?
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
@@ -240,7 +243,10 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
         try {
             // Authorize the client
             setupAbortController.current = new AbortController();
-            const _channel = await sfSetup.setup(dispatchConnectionState, setupParams, setupAbortController.current.signal);
+            const sfChannel = await sfSetup.setup(dispatchConnectionState, setupParams, setupAbortController.current.signal);
+            if (connectionState != null) {
+                await performHealthCheck(queryExecutor, connectionState.sessionId, { type: 'salesforce', channel: sfChannel }, dispatchConnectionState, setupAbortController.current.signal);
+            }
 
 
             // Start the catalog update

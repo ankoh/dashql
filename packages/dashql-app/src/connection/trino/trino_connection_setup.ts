@@ -3,8 +3,6 @@ import * as shell from '@tauri-apps/plugin-shell';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 
-import type { DetailedError } from '../connection_types.js';
-
 import {
     TRINO_CHANNEL_READY,
     TRINO_CHANNEL_SETUP_CANCELLED,
@@ -23,7 +21,7 @@ import {
 } from './trino_connection_state.js';
 import { Dispatch } from '../../utils/index.js';
 import { LoggableException, Logger } from '../../platform/logger/logger.js';
-import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION } from '../connection_state.js';
+import { RESET_CONNECTION } from '../connection_state.js';
 import { TrinoApiClientInterface, TrinoApiEndpoint } from './trino_api_client.js';
 import { TrinoChannel, TrinoChannelInterface } from './trino_channel.js';
 import { TrinoConnectorConfig } from '../connector_configs.js';
@@ -361,58 +359,15 @@ export async function setupTrinoConnection(
     _platformType: PlatformType,
     abortSignal: AbortSignal
 ): Promise<TrinoChannelInterface> {
-    let channel: TrinoChannelInterface;
-
     // Determine auth type
     const authType = params.auth?.authType ?? "AUTH_BASIC";
     switch (authType) {
-        case "AUTH_BASIC": {
-            channel = await setupTrinoConnectionBasic(modifyState, logger, params, client, abortSignal);
-            break;
-        }
-        case "AUTH_OAUTH": {
-            channel = await setupTrinoConnectionOAuth(modifyState, logger, params, config, client, httpClient, abortSignal);
-            break;
-        }
+        case "AUTH_OAUTH":
+            return await setupTrinoConnectionOAuth(modifyState, logger, params, config, client, httpClient, abortSignal);
+        case "AUTH_BASIC":
+        default:
+            return await setupTrinoConnectionBasic(modifyState, logger, params, client, abortSignal);
     }
-
-    // Health check
-    try {
-        modifyState({
-            type: HEALTH_CHECK_STARTED,
-            value: null
-        });
-        abortSignal.throwIfAborted();
-
-        const health = await channel.checkHealth();
-        abortSignal.throwIfAborted();
-
-        if (health.ok) {
-            modifyState({
-                type: HEALTH_CHECK_SUCCEEDED,
-                value: null,
-            });
-        } else {
-            throw health.error;
-        }
-    } catch (error: any) {
-        if (error.name === 'AbortError') {
-            logger.warn("Cancelled setup", {}, LOG_CTX);
-            modifyState({
-                type: HEALTH_CHECK_CANCELLED,
-                value: error,
-            });
-        } else {
-            logger.error("Setup failed", { "message": error.message, "details": error.data }, LOG_CTX);
-            modifyState({
-                type: HEALTH_CHECK_FAILED,
-                value: error,
-            });
-        }
-        throw error;
-    }
-
-    return channel;
 }
 
 export interface TrinoSetupApi {

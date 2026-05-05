@@ -1,7 +1,7 @@
 import * as shell from '@tauri-apps/plugin-shell';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import type { OAuthState, DetailedError } from '../connection_types.js';
+import type { OAuthState } from '../connection_types.js';
 import { dateToTimestamp } from '../proto_helper.js';
 
 import {
@@ -31,7 +31,7 @@ import { collectSalesforceAuthInfo, SalesforceApiClientInterface, SalesforceData
 import { Dispatch } from '../../utils/variant.js';
 import { Logger } from '../../platform/logger/logger.js';
 import { PlatformEventListener } from '../../platform/events/event_listener.js';
-import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION } from './../connection_state.js';
+import { RESET_CONNECTION } from './../connection_state.js';
 import { AttachedDatabase, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '../../connection/hyper/hyperdb_grpc_client.js';
 
 const LOG_CTX = "salesforce_setup";
@@ -301,48 +301,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         throw error;
     }
 
-    try {
-        // Start the health check
-        modifyState({
-            type: HEALTH_CHECK_STARTED,
-            value: null,
-        });
-        abortSignal.throwIfAborted();
-
-        // Check the health
-        const health = await hyperChannel.checkHealth();
-        abortSignal.throwIfAborted();
-
-        if (health.ok) {
-            modifyState({
-                type: HEALTH_CHECK_SUCCEEDED,
-                value: null,
-            });
-            return sfChannel;
-        } else {
-            throw new Error(health.error?.message ?? "health check failed");
-        }
-
-    } catch (error: any) {
-        if (error.name === 'AbortError') {
-            logger.warn("Cancelled OAuth flow", {}, LOG_CTX);
-            modifyState({
-                type: HEALTH_CHECK_CANCELLED,
-                value: error,
-            });
-        } else if (error instanceof Error) {
-            logger.error("Failed OAuth flow", { "error": error.toString() }, LOG_CTX);
-            modifyState({
-                type: HEALTH_CHECK_FAILED,
-                value: {
-                    message: error.message,
-                },
-            });
-        }
-        // Rethrow the error
-        throw error;
-    }
-
+    return sfChannel;
 }
 
 export interface SalesforceSetupApi {

@@ -22,6 +22,8 @@ import { TextField, VALIDATION_WARNING } from '../foundations/text_field.js';
 import { classNames } from '../../utils/classnames.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useQueryExecutor } from '../../connection/query_executor.js';
+import { performHealthCheck } from '../../connection/health_check.js';
 import { useTrinoSetup } from '../../connection/trino/trino_connector.js';
 import { CONNECTOR_INFOS, ConnectorType, requiresSwitchingToNative, TRINO_CONNECTOR } from '../../connection/connector_info.js';
 import { UpdateValueList, ValueListBuilder } from '../../view/foundations/value_list.js';
@@ -73,6 +75,7 @@ interface Props {
 export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const trinoSetup = useTrinoSetup();
+    const queryExecutor = useQueryExecutor();
 
     // Can we use the connector here?
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.TRINO];
@@ -296,7 +299,10 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
             // Setup the Trino connection
             setupAbortController.current = new AbortController();
             const connectionParams: connection.TrinoConnectionParams = pageState.newParams;
-            await trinoSetup.setup(dispatchConnectionState, connectionParams, setupAbortController.current.signal);
+            const trinoChannel = await trinoSetup.setup(dispatchConnectionState, connectionParams, setupAbortController.current.signal);
+            if (trinoChannel != null) {
+                await performHealthCheck(queryExecutor, connectionState.sessionId, { type: 'trino', channel: trinoChannel }, dispatchConnectionState, setupAbortController.current.signal);
+            }
 
         } catch (error: any) {
             if (error instanceof LoggableException) {

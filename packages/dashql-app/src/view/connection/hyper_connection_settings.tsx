@@ -19,8 +19,10 @@ import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKe
 import { Dispatch } from '../../utils/variant.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
+import { performHealthCheck } from '../../connection/health_check.js';
 import { useHyperSetup } from '../../connection/hyper/hyper_connection_setup.js';
 import { getHyperConnectionDetails } from '../../connection/hyper/hyper_connection_state.js';
+import { useQueryExecutor } from '../../connection/query_executor.js';
 import { useAnyConnectionNotebook } from './connection_notebook.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
 import { isNativePlatform } from '../../platform/native_globals.js';
@@ -65,6 +67,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const hyperClient = useHyperDatabaseClient();
     const hyperSetup = useHyperSetup();
+    const queryExecutor = useQueryExecutor();
 
     // Can we use the connector here?
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER];
@@ -144,7 +147,10 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
         try {
             // Setup the Hyper connection
             setupAbortController.current = new AbortController();
-            const _channel = await hyperSetup.setup(dispatchConnectionState, setupParams, setupAbortController.current.signal);
+            const hyperChannel = await hyperSetup.setup(dispatchConnectionState, setupParams, setupAbortController.current.signal);
+            if (hyperChannel != null) {
+                await performHealthCheck(queryExecutor, connectionState.sessionId, { type: 'hyper', channel: hyperChannel }, dispatchConnectionState, setupAbortController.current.signal);
+            }
 
             // Start the the inital catalog update
             // XXX
