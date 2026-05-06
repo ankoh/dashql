@@ -145,6 +145,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     if (route.sessionId === null || notebook == null) {
         return <div />;
     }
+    const isDisconnected = conn?.connectionHealth !== ConnectionHealth.ONLINE;
     return (
         <div className={styles.page}>
             <div className={styles.header_container}>
@@ -152,7 +153,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     <div className={styles.page_title}>Notebook</div>
                 </div>
                 <div className={styles.header_right_container}>
-                    {conn && <ConnectionStatus conn={conn} sessionId={route.sessionId} onClick={() => setConnectionOverlayOpen(true)} />}
+                    {conn && <ConnectionStatus conn={conn} sessionId={route.sessionId} onClick={() => setConnectionOverlayOpen(true)} compact />}
                 </div>
                 <div className={styles.header_action_container}>
                     <div>
@@ -161,6 +162,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                                 <IconButton
                                     variant={ButtonVariant.Default}
                                     aria-label="Execute Query"
+                                    disabled={isDisconnected}
                                     onClick={() => sessionCommand(NotebookCommandType.ExecuteEditorQuery)}
                                 >
                                     <PaperAirplaneIcon />
@@ -282,7 +284,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                         ? <CatalogSchemaView connection={conn} />
                         : showDetails
                             ? <NotebookScriptDetails notebook={notebook} connection={conn} hideDetails={() => setShowDetails(false)} />
-                            : <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} showDetails={() => setShowDetails(true)} scrollTarget={feedScrollTarget} />
+                            : <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} showDetails={() => setShowDetails(true)} scrollTarget={feedScrollTarget} conn={conn ?? null} openConnectionOverlay={() => setConnectionOverlayOpen(true)} />
                 }
             </div>
             <div className={styles.action_sidebar}>

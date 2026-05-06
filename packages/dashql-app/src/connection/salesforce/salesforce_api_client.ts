@@ -1,6 +1,5 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as pb from "../../proto.js";
-import * as buf from "@bufbuild/protobuf";
 
 import { Logger } from '../../platform/logger/logger.js';
 import { HttpClient } from '../../platform/http/http_client.js';

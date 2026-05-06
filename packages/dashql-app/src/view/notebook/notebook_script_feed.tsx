@@ -3,7 +3,7 @@ import * as styles from './notebook_script_feed.module.css';
 
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '@primer/octicons-react';
-import { CodeIcon, SparklesFillIcon } from '@primer/octicons-react';
+import { CodeIcon, PaperAirplaneIcon, SparklesFillIcon } from '@primer/octicons-react';
 import { motion } from 'framer-motion';
 
 import { useAppConfig } from '../../app_config.js';
@@ -12,8 +12,10 @@ import { ScriptStatisticsBar } from './script_statistics_bar.js';
 import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
+import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
 import { getSelectedPageEntries, getUncommittedScriptData, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
+import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { ScriptEditor } from './script_editor.js';
 import { ScriptPreview } from './notebook_script_preview.js';
@@ -34,6 +36,8 @@ export interface NotebookScriptListProps {
     modifyNotebook: ModifyNotebook;
     showDetails: () => void;
     scrollTarget?: FeedScrollTarget | null;
+    conn: ConnectionState | null;
+    openConnectionOverlay: () => void;
 }
 
 const ESTIMATED_ROW_HEIGHT = 120;
@@ -194,10 +198,26 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         props.showDetails();
     }, [props.modifyNotebook, props.showDetails]);
 
+    const isDisconnected = props.conn?.connectionHealth !== ConnectionHealth.ONLINE;
+    const openConnectionOverlay = props.openConnectionOverlay;
+    const notebookCommand = useNotebookCommandDispatch();
+
+    const [executeOnSend, setExecuteOnSend] = React.useState(false);
+    React.useEffect(() => {
+        if (isDisconnected) {
+            setExecuteOnSend(false);
+        } else {
+            setExecuteOnSend(true);
+        }
+    }, [isDisconnected]);
+
     const handleSend = React.useCallback(() => {
         pendingScrollToBottomRef.current = true;
         props.modifyNotebook({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
-    }, [props.modifyNotebook]);
+        if (executeOnSend && !isDisconnected) {
+            notebookCommand(NotebookCommandType.ExecuteEditorQuery);
+        }
+    }, [props.modifyNotebook, executeOnSend, isDisconnected, notebookCommand]);
 
     const handleDelete = React.useCallback((entryIndex: number) => {
         props.modifyNotebook({ type: DELETE_NOTEBOOK_ENTRY, value: entryIndex });
@@ -360,12 +380,29 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                                 AI
                             </SegmentedControl.Button>
                         </SegmentedControl>
-                        <Button
-                            size={ButtonSize.Small}
-                            onClick={handleSend}
-                        >
-                            Send
-                        </Button>
+                        <div className={styles.compose_send_group}>
+                            <SegmentedControl
+                                aria-label="Save mode"
+                                size={SegmentedControlSize.Small}
+                                onChange={(index) => setExecuteOnSend(index === 1)}
+                            >
+                                <SegmentedControl.Button selected={!executeOnSend}>
+                                    Save
+                                </SegmentedControl.Button>
+                                <SegmentedControl.Button selected={executeOnSend} disabled={isDisconnected}>
+                                    Execute
+                                </SegmentedControl.Button>
+                            </SegmentedControl>
+                            <IconButton
+                                variant={ButtonVariant.Default}
+                                size={ButtonSize.Small}
+                                className={styles.compose_send_button}
+                                aria-label={executeOnSend ? 'Save & Execute' : 'Save'}
+                                onClick={handleSend}
+                            >
+                                <PaperAirplaneIcon />
+                            </IconButton>
+                        </div>
                     </div>
                 </div>
             </div>

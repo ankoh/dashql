@@ -227,7 +227,6 @@ interface Props {
 export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
     const now = new Date();
     const navigate = useRouterNavigate();
-    const route = useRouteContext();
     const logger = useLogger();
     const salesforceSetup = useSalesforceSetup();
     const trinoSetup = useTrinoSetup();

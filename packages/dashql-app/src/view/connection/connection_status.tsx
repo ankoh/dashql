@@ -1,17 +1,14 @@
 import * as React from 'react';
+import symbols from '@ankoh/dashql-svg-symbols';
 
 import { ConnectionState } from '../../connection/connection_state.js';
-import { ConnectorType } from '../../connection/connector_info.js';
 import { Button, ButtonVariant } from '../../view/foundations/button.js';
 
 interface ButtonProps {
     sessionId?: string;
     conn: ConnectionState;
     onClick?: () => void;
-}
-
-interface ButtonWithRefProps extends ButtonProps {
-    buttonRef?: React.RefObject<HTMLButtonElement>;
+    compact?: boolean;
 }
 
 export const CONNECTION_HEALTH_NAMES: string[] = [
@@ -31,8 +28,10 @@ export const CONNECTION_HEALTH_COLORS: string[] = [
 ];
 
 export const ConnectionStatus = React.forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
-    const connStatusText = CONNECTION_HEALTH_NAMES[props.conn.connectionHealth ?? 0]
-    const connStatusColor = CONNECTION_HEALTH_COLORS[props.conn.connectionHealth ?? 0];
+    const health = props.conn.connectionHealth ?? 0;
+    const connStatusText = CONNECTION_HEALTH_NAMES[health];
+    const connStatusColor = CONNECTION_HEALTH_COLORS[health];
+    const connectorIcon = props.conn.connectorInfo.icons.colored;
 
     const handleClick = () => {
         if (props.onClick) {
@@ -40,20 +39,27 @@ export const ConnectionStatus = React.forwardRef<HTMLButtonElement, ButtonProps>
         }
     };
 
+    const ConnectorIconVisual = () => (
+        <svg width="16" height="16">
+            <use xlinkHref={`${symbols}#${connectorIcon}`} />
+        </svg>
+    );
+    const StatusDotVisual = () => (
+        <svg width="8" height="8" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="4" cy="4" r="4" fill={connStatusColor} />
+        </svg>
+    );
+
     return (
         <Button
             ref={ref}
             variant={ButtonVariant.Default}
-            trailingVisual={
-                () => (
-                    <svg width="8" height="8" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="4" cy="4" r="4" fill={connStatusColor} />
-                    </svg>
-                )
-            }
+            leadingVisual={ConnectorIconVisual}
+            trailingVisual={StatusDotVisual}
             onClick={handleClick}
+            aria-label={props.compact ? connStatusText : undefined}
         >
-            {connStatusText}
+            {props.compact ? null : connStatusText}
         </Button>
     );
 });

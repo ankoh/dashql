@@ -111,6 +111,17 @@
     padding: 8px 8px;
 }
 
+.compose_send_group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    column-gap: 8px;
+}
+
+.compose_send_button {
+    border-radius: 8px;
+}
+
 
 .feed_entry_card {
     border: 1px solid var(--log_border_color);

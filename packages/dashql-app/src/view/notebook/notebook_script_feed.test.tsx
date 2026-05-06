@@ -40,6 +40,10 @@ vi.mock('../../utils/key_events.js', () => ({
         mockState.keyHandlers = handlers;
     },
 }));
+vi.mock('../../notebook/notebook_commands.js', () => ({
+    NotebookCommandType: { ExecuteEditorQuery: 1 },
+    useNotebookCommandDispatch: () => () => { },
+}));
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
 
@@ -49,7 +53,12 @@ import {
     SELECT_ENTRY,
     type NotebookState,
 } from '../../notebook/notebook_state.js';
+import { ConnectionHealth, type ConnectionState } from '../../connection/connection_state.js';
 import { NotebookScriptFeed } from './notebook_script_feed.js';
+
+function createOnlineConnection(): ConnectionState {
+    return { connectionHealth: ConnectionHealth.ONLINE } as unknown as ConnectionState;
+}
 
 function makeScriptData(scriptKey: number, text: string, pageIndex: number = -1, fileName: string = '', folderName: string = '') {
     return {
@@ -144,9 +153,19 @@ describe('NotebookScriptFeed', () => {
         container.remove();
     });
 
-    function renderFeed(props: React.ComponentProps<typeof NotebookScriptFeed>) {
+    function renderFeed(props: Partial<React.ComponentProps<typeof NotebookScriptFeed>> & {
+        notebook: NotebookState;
+        modifyNotebook: React.ComponentProps<typeof NotebookScriptFeed>['modifyNotebook'];
+        showDetails: React.ComponentProps<typeof NotebookScriptFeed>['showDetails'];
+    }) {
+        const fullProps: React.ComponentProps<typeof NotebookScriptFeed> = {
+            scrollTarget: null,
+            conn: createOnlineConnection(),
+            openConnectionOverlay: () => { },
+            ...props,
+        };
         act(() => {
-            root.render(<NotebookScriptFeed {...props} />);
+            root.render(<NotebookScriptFeed {...fullProps} />);
         });
     }
 
@@ -205,7 +224,10 @@ describe('NotebookScriptFeed', () => {
             scrollTarget: null,
         });
 
-        const sendButton = Array.from(container.querySelectorAll('button')).find(button => button.textContent?.trim() === 'Send');
+        const sendButton = Array.from(container.querySelectorAll('button')).find(button => {
+            const label = button.getAttribute('aria-label');
+            return label === 'Save' || label === 'Save & Execute';
+        });
         expect(sendButton).toBeDefined();
 
         act(() => {
@@ -306,7 +328,10 @@ describe('NotebookScriptFeed', () => {
             scrollTarget: null,
         });
 
-        const sendButton = Array.from(container.querySelectorAll('button')).find(button => button.textContent?.trim() === 'Send');
+        const sendButton = Array.from(container.querySelectorAll('button')).find(button => {
+            const label = button.getAttribute('aria-label');
+            return label === 'Save' || label === 'Save & Execute';
+        });
         expect(sendButton).toBeDefined();
 
         act(() => {

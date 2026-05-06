@@ -1,6 +1,5 @@
 import * as React from 'react';
 import * as ActionList from '../foundations/action_list.js';
-import * as styles from './notebook_page.module.css';
 import { LinkIcon, SyncIcon } from '@primer/octicons-react';
 
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
@@ -10,7 +9,7 @@ import { getSelectedPageEntries, NotebookState } from '../../notebook/notebook_s
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { NotebookFileSaveOverlay } from './notebook_file_save_overlay.js';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
-import { ConnectionState } from '../../connection/connection_state.js';
+import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
 
 export const ConnectionCommandList: React.FC<{
     conn: ConnectionState | null;
@@ -18,11 +17,12 @@ export const ConnectionCommandList: React.FC<{
 }> = (props) => {
     const notebookCommand = useNotebookCommandDispatch();
 
+    const isDisconnected = props.conn?.connectionHealth !== ConnectionHealth.ONLINE;
     const DatabaseQueryIcon = SymbolIcon('search_16');
     return (
         <>
             <ActionList.ListItem
-                disabled={!props.conn?.connectorInfo.features.executeQueryAction}
+                disabled={isDisconnected || !props.conn?.connectorInfo.features.executeQueryAction}
                 onClick={() => notebookCommand(NotebookCommandType.ExecuteEditorQuery)}
             >
                 <ActionList.Leading>

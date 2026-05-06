@@ -7,6 +7,7 @@
     position: relative;
     display: inline-flex;
     align-items: center;
+    box-sizing: border-box;
     width: var(--toggle-width);
     height: var(--toggle-height);
     padding: var(--toggle-padding);
@@ -49,5 +50,5 @@
 }
 
 .root.checked .handle {
-    transform: translateX(calc(var(--toggle-width) - var(--toggle-handle-size) - (var(--toggle-padding) * 2)));
+    transform: translateX(calc(var(--toggle-width) - var(--toggle-handle-size) - (var(--toggle-padding) * 2) - 2px));
 }
