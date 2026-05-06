@@ -18,9 +18,9 @@ TABLEAUHYPERAPI_VERSION = "0.0.25080"
 
 # Per-platform wheel sha256 digests.
 _WHEEL_SHA256 = {
-    "linux_x86_64": "3f4b4a2004b09c90e5a74a5731afed705c6a6120211a66920fa46416a1cd898a",
-    "macos_x86_64": "08789b1dfad2bc767c376036ca95213f10600f45ad1e74dfedba2b645cf1a5a9",
-    "macos_arm64": "4a1289b4f985240b55477555a678c5656be54aa6449ffc443a7c1b2119d60496",
+    "linux_x86_64": "38184aa8e723e264f864a0f7e2658ef3c1375c981e01c19a670cb4ab07ad4e3b",
+    "macos_x86_64": "eb9ee455cf99662fe49199ffdcfa5126ad1394e418a65fb145d4b801cc07e409",
+    "macos_arm64": "ab16896373ad14b79e4ec992ae7e8746cc1af804fd0e36215cd6fd3dbdc19917",
 }
 
 # Suffix on the wheel filename that identifies each platform.
