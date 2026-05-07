@@ -37,4 +37,49 @@
     padding: 2px 8px;
     font-weight: 500;
     text-transform: uppercase;
+    gap: 4px;
+    height: 24px;
+}
+
+.file_name:has(.file_name_trailing) {
+    padding: 1px 2px 1px 4px;
+    gap: 2px;
+}
+
+.file_name_trailing {
+    display: inline-flex;
+    align-items: center;
+}
+
+.file_name:hover {
+    border-color: var(--color-border-default, var(--border_color_primary));
+    background-color: rgba(0, 0, 0, 0.04);
+    cursor: text;
+}
+
+.file_name_editing {
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    background-color: var(--notebook_script_name_background);
+    border: 1px solid var(--color-accent-emphasis, var(--border_color_primary));
+    border-radius: 8px;
+    padding: 1px 4px;
+    font-weight: 500;
+    text-transform: uppercase;
+    gap: 4px;
+}
+
+.file_name_input {
+    border: none;
+    outline: none;
+    padding: 1px 4px;
+    margin: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 500;
+    text-transform: uppercase;
+    min-width: 0;
+    width: 18ch;
 }

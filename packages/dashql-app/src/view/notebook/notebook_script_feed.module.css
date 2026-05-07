@@ -148,6 +148,29 @@
 
 .feed_entry_file_name {
     flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.feed_entry_actions {
+    display: none;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.feed_entry_card:hover .feed_entry_actions {
+    display: flex;
+}
+
+.feed_entry_action_button {
+    opacity: 0.6;
+}
+
+.feed_entry_action_button:hover {
+    opacity: 1;
 }
 
 .feed_entry_focus {

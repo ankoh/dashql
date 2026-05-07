@@ -14,7 +14,7 @@ import type { RowComponentProps } from 'react-window';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
-import { getSelectedPageEntries, getUncommittedScriptData, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
+import { getSelectedPageEntries, getUncommittedScriptData, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { ScriptEditor } from './script_editor.js';
@@ -55,12 +55,52 @@ interface CollapsedScriptCardProps {
     onFocus: (entryIndex: number) => void;
     onExpand: (entryIndex: number) => void;
     onDelete: (entryIndex: number) => void;
+    onRename: (entryIndex: number, fileName: string) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, onFocus, onExpand, onDelete }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, onFocus, onExpand, onDelete, onRename }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const EyeIcon: Icon = SymbolIcon(isFocused ? 'eye_16' : 'eye_closed_16');
+    const PencilIcon: Icon = SymbolIcon('pencil_16');
     const [isReady, setIsReady] = React.useState(false);
+    const [isEditing, setIsEditing] = React.useState(false);
+    const [draftFileName, setDraftFileName] = React.useState(scriptFileName);
+    const editInputRef = React.useRef<HTMLInputElement>(null);
+
+    const startEditing = React.useCallback((event: React.MouseEvent) => {
+        event.stopPropagation();
+        setDraftFileName(scriptFileName);
+        setIsEditing(true);
+    }, [scriptFileName]);
+
+    const saveEdit = React.useCallback(() => {
+        const trimmed = draftFileName.trim();
+        if (trimmed && trimmed !== scriptFileName) {
+            onRename(entryIndex, trimmed);
+        }
+        setIsEditing(false);
+    }, [draftFileName, scriptFileName, entryIndex, onRename]);
+
+    const cancelEdit = React.useCallback(() => {
+        setIsEditing(false);
+    }, []);
+
+    const handleEditKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            saveEdit();
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            cancelEdit();
+        }
+    }, [saveEdit, cancelEdit]);
+
+    React.useEffect(() => {
+        if (isEditing && editInputRef.current) {
+            editInputRef.current.focus();
+            editInputRef.current.select();
+        }
+    }, [isEditing]);
 
     const handleHeaderPointerDown = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
         if (event.button !== 0 || event.defaultPrevented) {
@@ -89,7 +129,31 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, isFocused,
                     <EyeIcon className={isFocused ? styles.feed_entry_focus_icon_focused : styles.feed_entry_focus_icon_unfocused} size={16} />
                 </div>
                 <div className={styles.feed_entry_file_name}>
-                    <NotebookScriptName folder={folderName} file={scriptFileName} />
+                    <NotebookScriptName
+                        folder={folderName}
+                        file={scriptFileName}
+                        onFileClick={startEditing}
+                        editing={isEditing ? {
+                            value: draftFileName,
+                            onChange: setDraftFileName,
+                            onCommit: saveEdit,
+                            onCancel: cancelEdit,
+                            inputRef: editInputRef,
+                        } : undefined}
+                        fileNameTrailing={
+                            <span className={styles.feed_entry_actions}>
+                                <IconButton
+                                    variant={ButtonVariant.Invisible}
+                                    size={ButtonSize.Tiny}
+                                    aria-label="Rename script"
+                                    onClick={startEditing}
+                                    className={styles.feed_entry_action_button}
+                                >
+                                    <PencilIcon size={12} />
+                                </IconButton>
+                            </span>
+                        }
+                    />
                 </div>
                 {scriptDebugMode && scriptData != null && (
                     <div className={styles.feed_entry_stats_bar}>
@@ -123,13 +187,14 @@ interface ScriptFeedRowProps {
     onFocus: (index: number) => void;
     onExpand: (index: number) => void;
     onDelete: (index: number) => void;
+    onRename: (index: number, fileName: string) => void;
     onHeightMeasured: (index: number, height: number) => void;
     fillerRowHeight: number;
     heightsVersion: number;
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { entries, scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, onFocus, onExpand, onDelete, onHeightMeasured } = props;
+    const { entries, scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, onFocus, onExpand, onDelete, onRename, onHeightMeasured } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -174,6 +239,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onFocus={onFocus}
                     onExpand={onExpand}
                     onDelete={onDelete}
+                    onRename={onRename}
                 />
             </div>
         </div>
@@ -221,6 +287,10 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
 
     const handleDelete = React.useCallback((entryIndex: number) => {
         props.modifyNotebook({ type: DELETE_NOTEBOOK_ENTRY, value: entryIndex });
+    }, [props.modifyNotebook]);
+
+    const handleRename = React.useCallback((entryIndex: number, fileName: string) => {
+        props.modifyNotebook({ type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex, fileName } });
     }, [props.modifyNotebook]);
 
     const keyHandlers = React.useMemo<KeyEventHandler[]>(() => [
@@ -325,10 +395,11 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onFocus: handleFocus,
         onExpand: handleExpand,
         onDelete: handleDelete,
+        onRename: handleRename,
         onHeightMeasured: handleHeightMeasured,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, handleFocus, handleExpand, handleDelete, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container}>
