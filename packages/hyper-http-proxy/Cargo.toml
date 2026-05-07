@@ -19,7 +19,7 @@ env_logger = "0.11.10"
 prost = "^0.14.3"
 serde_json = "1.0.149"
 futures-util = "0.3.32"
-reqwest = { version = "^0.13.2", default-features = false, features = ["native-tls", "http2", "charset", "stream"] }
+reqwest = { version = "^0.13.3", default-features = false, features = ["native-tls", "http2", "charset", "stream"] }
 
 [dependencies.uuid]
 version = "1.23.1"
@@ -55,4 +55,4 @@ version = "0.14.5"
 [dev-dependencies]
 tokio-stream = { version = "0.1.18", features = ["net"] }
 # Dev-only: re-declare reqwest to enable the `json` feature for integration tests.
-reqwest = { version = "^0.13.2", default-features = false, features = ["native-tls", "http2", "charset", "stream", "json"] }
+reqwest = { version = "^0.13.3", default-features = false, features = ["native-tls", "http2", "charset", "stream", "json"] }
