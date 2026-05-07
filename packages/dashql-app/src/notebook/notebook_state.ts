@@ -643,12 +643,17 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             }
             const { entryIndex, fileName } = action.value;
             const oldFileName = page.scripts[entryIndex].fileName;
-            const entries = [...page.scripts];
-            const scriptId = entries[entryIndex].scriptId;
-            entries[entryIndex] = {
-                ...entries[entryIndex],
-                fileName
-            };
+            const renamedEntry: NotebookPageScript = { ...page.scripts[entryIndex], fileName };
+            const scriptId = renamedEntry.scriptId;
+            // Re-sort entries by fileName so the feed order tracks the storage ordering
+            const entries = page.scripts
+                .map((entry, i) => i === entryIndex ? renamedEntry : entry)
+                .sort((a, b) => a.fileName.localeCompare(b.fileName));
+
+            // Keep focus on the same script across the reorder
+            const focusedScriptId = page.scripts[state.notebookUserFocus.entryInPage]?.scriptId ?? scriptId;
+            const remappedEntryInPage = entries.findIndex(e => e.scriptId === focusedScriptId);
+
             const newPages = [...state.notebookPages];
             newPages[state.notebookUserFocus.pageIndex] = { ...page, scripts: entries };
 
@@ -662,7 +667,11 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const next = {
                 ...state,
                 notebookPages: newPages,
-                scripts: newScripts
+                scripts: newScripts,
+                notebookUserFocus: {
+                    ...state.notebookUserFocus,
+                    entryInPage: Math.max(0, remappedEntryInPage),
+                },
             };
             // Delete old file, write new file
             if (oldFileName !== fileName) {
