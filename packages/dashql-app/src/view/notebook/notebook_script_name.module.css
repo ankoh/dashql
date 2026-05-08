@@ -15,6 +15,11 @@
     text-transform: uppercase;
 }
 
+.folder_name_clickable {
+    composes: folder_name;
+    cursor: pointer;
+}
+
 .separator {
     padding: 0px 8px 0px 8px;
     color: hsl(210deg 17.5% 64.31%);

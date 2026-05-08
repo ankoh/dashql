@@ -312,6 +312,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                 <NotebookScriptName
                                     folder={folderName}
                                     file={scriptFileName}
+                                    onFolderClick={props.hideDetails}
                                     onFileClick={startEditingName}
                                     editing={isEditingName ? {
                                         value: draftFileName,

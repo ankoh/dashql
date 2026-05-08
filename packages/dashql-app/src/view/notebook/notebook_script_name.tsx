@@ -21,6 +21,8 @@ interface Props {
     };
     /// Optional click handler for the file-name chip (ignored while editing)
     onFileClick?: (event: React.MouseEvent<HTMLSpanElement>) => void;
+    /// Optional click handler for the folder name
+    onFolderClick?: (event: React.MouseEvent<HTMLSpanElement>) => void;
 }
 
 export function NotebookScriptName(props: Props) {
@@ -41,7 +43,10 @@ export function NotebookScriptName(props: Props) {
     };
     return (
         <span className={styles.container}>
-            <span className={styles.folder_name}>
+            <span
+                className={props.onFolderClick ? styles.folder_name_clickable : styles.folder_name}
+                onClick={props.onFolderClick}
+            >
                 {props.folder}
             </span>
             <span className={styles.separator}>
