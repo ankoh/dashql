@@ -284,7 +284,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     schemaTabSelected && conn
                         ? <CatalogSchemaView connection={conn} />
                         : showDetails
-                            ? <NotebookScriptDetails notebook={notebook} connection={conn} hideDetails={() => setShowDetails(false)} />
+                            ? <NotebookScriptDetails notebook={notebook} modifyNotebook={modifyNotebook} connection={conn} hideDetails={() => setShowDetails(false)} />
                             : <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} showDetails={() => setShowDetails(true)} scrollTarget={feedScrollTarget} conn={conn ?? null} openConnectionOverlay={() => setConnectionOverlayOpen(true)} />
                 }
             </div>

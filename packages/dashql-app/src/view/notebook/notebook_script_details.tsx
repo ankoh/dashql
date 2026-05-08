@@ -7,14 +7,15 @@ import icons from '@ankoh/dashql-svg-symbols';
 
 import type { Icon } from '@primer/octicons-react';
 
-import { ButtonVariant, IconButton } from '../foundations/button.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { QueryStatusPanel } from '../query_status/query_status_panel.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { useQueryState } from '../../connection/query_executor.js';
-import { getSelectedEntry, NotebookState } from '../../notebook/notebook_state.js';
+import { getSelectedEntry, getSelectedPageEntries, NotebookState, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
+import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { useAppConfig } from '../../app_config.js';
 import { ScriptEditor } from './script_editor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
@@ -36,6 +37,7 @@ interface TabState {
 
 export interface NotebookScriptDetailsProps {
     notebook: NotebookState;
+    modifyNotebook: ModifyNotebook;
     connection: ConnectionState | null;
     hideDetails: () => void;
 }
@@ -56,6 +58,45 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     const selectedPage = props.notebook.notebookPages[props.notebook.notebookUserFocus.pageIndex];
     const folderName = selectedPage?.folderName ?? 'Untitled';
     const scriptFileName = notebookEntry?.fileName ?? '01-script.sql';
+
+    const pageEntries = getSelectedPageEntries(props.notebook);
+    const selectedEntryIndex = pageEntries.length === 0
+        ? -1
+        : Math.max(0, Math.min(props.notebook.notebookUserFocus.entryInPage, pageEntries.length - 1));
+
+    const PencilIcon: Icon = SymbolIcon('pencil_16');
+    const [isEditingName, setIsEditingName] = React.useState(false);
+    const [draftFileName, setDraftFileName] = React.useState(scriptFileName);
+    const editInputRef = React.useRef<HTMLInputElement>(null);
+
+    const startEditingName = React.useCallback((event?: React.MouseEvent) => {
+        event?.stopPropagation();
+        setDraftFileName(scriptFileName);
+        setIsEditingName(true);
+    }, [scriptFileName]);
+
+    const saveNameEdit = React.useCallback(() => {
+        const trimmed = draftFileName.trim();
+        if (trimmed && trimmed !== scriptFileName && selectedEntryIndex >= 0) {
+            props.modifyNotebook({ type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex: selectedEntryIndex, fileName: trimmed } });
+        }
+        setIsEditingName(false);
+    }, [draftFileName, scriptFileName, selectedEntryIndex, props.modifyNotebook]);
+
+    const cancelNameEdit = React.useCallback(() => {
+        setIsEditingName(false);
+    }, []);
+
+    React.useEffect(() => {
+        if (isEditingName && editInputRef.current) {
+            editInputRef.current.focus();
+            editInputRef.current.select();
+        }
+    }, [isEditingName]);
+
+    React.useEffect(() => {
+        setIsEditingName(false);
+    }, [notebookEntry?.scriptId]);
 
     const activeQueryId = scriptData?.latestQueryId ?? null;
     const activeQueryState = useQueryState(props.notebook?.sessionId ?? null, activeQueryId);
@@ -129,10 +170,16 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                 ctrlKey: false,
                 // Capture is required so Escape reaches hideDetails before the editor consumes it.
                 capture: true,
-                callback: () => props.hideDetails(),
+                callback: () => {
+                    if (isEditingName) {
+                        cancelNameEdit();
+                        return;
+                    }
+                    props.hideDetails();
+                },
             },
         ],
-        [props.hideDetails, tabState, selectTab, splitModeEnabled],
+        [props.hideDetails, tabState, selectTab, splitModeEnabled, isEditingName, cancelNameEdit],
     );
     useKeyEvents(keyHandlers);
 
@@ -262,7 +309,31 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                     <div className={styles.entry_card_container}>
                         <div className={styles.entry_card_action_bar}>
                             <div className={styles.entry_card_file_name}>
-                                <NotebookScriptName folder={folderName} file={scriptFileName} />
+                                <NotebookScriptName
+                                    folder={folderName}
+                                    file={scriptFileName}
+                                    onFileClick={startEditingName}
+                                    editing={isEditingName ? {
+                                        value: draftFileName,
+                                        onChange: setDraftFileName,
+                                        onCommit: saveNameEdit,
+                                        onCancel: cancelNameEdit,
+                                        inputRef: editInputRef,
+                                    } : undefined}
+                                    fileNameTrailing={
+                                        <span className={styles.entry_card_file_name_actions}>
+                                            <IconButton
+                                                variant={ButtonVariant.Invisible}
+                                                size={ButtonSize.Tiny}
+                                                aria-label="Rename script"
+                                                onClick={startEditingName}
+                                                className={styles.entry_card_file_name_action_button}
+                                            >
+                                                <PencilIcon size={12} />
+                                            </IconButton>
+                                        </span>
+                                    }
+                                />
                             </div>
                             {scriptDebugMode && scriptData != null && (
                                 <div className={styles.entry_card_stats_bar}>
