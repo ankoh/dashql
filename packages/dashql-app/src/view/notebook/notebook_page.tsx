@@ -10,13 +10,14 @@ import { ConnectionSettingsOverlay } from '../connection/connection_settings_ove
 import { ButtonGroup } from '../foundations/button_group.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
+import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
 import { CREATE_PAGE, SELECT_PAGE, UPDATE_PAGE_FOLDER_NAME } from '../../notebook/notebook_state.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH } from '../../router.js';
+import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH, CHANGE_SESSION } from '../../router.js';
 
 import { CatalogSchemaView } from './catalog_schema_view.js';
 import { ConnectionCommandList, NotebookCommandList } from './notebook_command_lists.js';
@@ -104,6 +105,30 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             editInputRef.current.select();
         }
     }, [editingPageIndex]);
+
+    const keyHandlers = React.useMemo<KeyEventHandler[]>(
+        () => [
+            {
+                key: 'Escape',
+                ctrlKey: false,
+                callback: () => {
+                    if (editingPageIndex !== null) return;
+                    if (schemaTabSelected) {
+                        setSchemaTabSelected(false);
+                        setShowDetails(false);
+                        if (notebook && notebook.notebookUserFocus.pageIndex !== 0 && notebook.notebookPages.length > 0) {
+                            modifyNotebook({ type: SELECT_PAGE, value: 0 });
+                        }
+                        return;
+                    }
+                    if (showDetails) return;
+                    navigate({ type: CHANGE_SESSION, value: null });
+                },
+            },
+        ],
+        [schemaTabSelected, showDetails, editingPageIndex, notebook, modifyNotebook, navigate],
+    );
+    useKeyEvents(keyHandlers);
 
     // Auto-close the connection settings overlay once a connect attempt succeeds
     const prevConnectionHealth = React.useRef<ConnectionHealth | null>(null);

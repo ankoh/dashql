@@ -170,12 +170,14 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                 ctrlKey: false,
                 // Capture is required so Escape reaches hideDetails before the editor consumes it.
                 capture: true,
-                callback: () => {
+                callback: (event) => {
                     if (isEditingName) {
                         cancelNameEdit();
+                        event.stopImmediatePropagation();
                         return;
                     }
                     props.hideDetails();
+                    event.stopImmediatePropagation();
                 },
             },
         ],
