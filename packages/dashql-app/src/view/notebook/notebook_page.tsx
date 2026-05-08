@@ -171,6 +171,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                             <IconButton
                                 variant={ButtonVariant.Default}
                                 aria-label="Refresh Schema"
+                                disabled={isDisconnected}
                                 onClick={() => sessionCommand(NotebookCommandType.RefreshCatalog)}
                             >
                                 <SyncIcon />

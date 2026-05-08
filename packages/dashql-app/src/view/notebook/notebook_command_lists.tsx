@@ -34,7 +34,7 @@ export const ConnectionCommandList: React.FC<{
                 <ActionList.Trailing>Ctrl + E</ActionList.Trailing>
             </ActionList.ListItem>
             <ActionList.ListItem
-                disabled={!props.conn?.connectorInfo.features.refreshSchemaAction}
+                disabled={isDisconnected || !props.conn?.connectorInfo.features.refreshSchemaAction}
                 onClick={() => notebookCommand(NotebookCommandType.RefreshCatalog)}
             >
                 <ActionList.Leading>
