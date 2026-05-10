@@ -177,9 +177,7 @@ export function createDatalessConnectorInfo(demoConnector: boolean): ConnectorIn
         return CONNECTOR_INFOS[ConnectorType.DATALESS];
     }
     return {
-        connectorType: ConnectorType.DATALESS,
-        names: { displayShort: 'Demo', displayLong: 'Demo', fileShort: 'demo' },
-        icons: { colored: "beaker", uncolored: "beaker", outlines: "beaker" },
+        ...CONNECTOR_INFOS[ConnectorType.DATALESS],
         catalogResolver: CatalogResolver.SQL_INFORMATION_SCHEMA,
         features: {
             manualSetup: true,
