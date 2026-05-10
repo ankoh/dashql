@@ -298,8 +298,15 @@ TAURI_CONFIG_OVERRIDE = json.encode({
     "bundle": {"icon": TAURI_CONFIG_ICON_PATHS},
 })
 TAURI_CONFIG_OVERRIDE_DEV = json.encode({
+    # Pin the window URL to the Vite dev server so the dev binary loads live (readable
+    # CSS module class names) instead of the embedded :native bundle. We can't rely on
+    # Tauri's `devUrl` switching here: tauri-codegen picks `dev_url` only when
+    # `cfg!(not(feature = "custom-protocol"))` evaluates true *inside the compiled
+    # tauri-macros crate*, but the @crates// crate universe compiles tauri once with
+    # `custom-protocol` enabled (per Cargo.toml) and shares it across :app and :dev.
+    # Setting `url` directly on the window bypasses that selection entirely.
     "build": {"frontendDist": "./dependencies/dashql-app"},
-    "app": {"windows": [{"fullscreen": False, "height": 800, "hiddenTitle": True, "resizable": True, "title": "DashQL (Dev)", "titleBarStyle": "Overlay", "width": 1400}]},
+    "app": {"windows": [{"fullscreen": False, "height": 800, "hiddenTitle": True, "resizable": True, "title": "DashQL (Dev)", "titleBarStyle": "Overlay", "width": 1400, "url": "http://localhost:9002"}]},
     "bundle": {"icon": TAURI_CONFIG_ICON_PATHS_INVERTED},
 })
 
@@ -386,8 +393,9 @@ rust_binary(
     deps = [":build_script"] + _SHARED_DEPS,
 )
 
-# Dev binary: window URL overridden to http://localhost:9002 so the app loads
-# from the Vite dev server instead of embedded assets.  Run in two terminals:
+# Dev binary: window URL pinned to http://localhost:9002 (see TAURI_CONFIG_OVERRIDE_DEV)
+# so the app loads from the Vite dev server instead of embedded assets.
+# Run in two terminals:
 #   bazel run //packages/dashql-app:dev
 #   bazel run //packages/dashql-native:dev
 rust_binary(
