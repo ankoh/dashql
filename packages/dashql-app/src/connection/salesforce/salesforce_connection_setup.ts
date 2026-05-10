@@ -220,7 +220,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             type: REQUESTING_DATA_CLOUD_ACCESS_TOKEN,
             value: null,
         });
-        const dcToken = await apiClient.getDataCloudAccessToken(coreAccessToken, abortSignal, params.httpProxyUrl);
+        const dcToken = await apiClient.getDataCloudAccessToken(coreAccessToken, abortSignal);
         logger.debug("Received data cloud token", { "token": JSON.stringify(dcToken) }, LOG_CTX);
         modifyState({
             type: RECEIVED_DATA_CLOUD_ACCESS_TOKEN,
@@ -243,7 +243,6 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
                 message: "",
                 details: {}
             } as any,
-            ...(params.httpProxyUrl ? { httpProxyUrl: params.httpProxyUrl } : {}),
         };
         modifyState({
             type: SF_CHANNEL_SETUP_STARTED,

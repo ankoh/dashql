@@ -9,35 +9,6 @@ import { dateToTimestamp } from "../../connection/proto_helper.js";
 
 const LOG_CTX = "salesforce_api";
 
-/// When an httpProxyUrl is configured on the Salesforce connection, rewrite the
-/// request URL to target the proxy and set `Dashql-Forward-To` to the real
-/// origin. The proxy (hyper-http-proxy) forwards to that origin based on the
-/// header. Without a proxy configured the call goes direct to `targetBase`.
-function applyHttpProxy(
-    targetBase: string,
-    subpath: string,
-    headers: Headers,
-    proxyUrl?: string,
-): URL {
-    if (!proxyUrl) {
-        return new URL(`${targetBase}${subpath}`);
-    }
-    // Forward target: the origin of the real Salesforce host.
-    headers.set('dashql-forward-to', new URL(targetBase).origin);
-    // Preserve any existing path on the proxy URL (e.g. http://proxy/auth),
-    // then append the subpath (with its query string if present).
-    const url = new URL(proxyUrl);
-    const basePath = url.pathname.replace(/\/$/, '');
-    const [path, query] = subpath.split('?', 2);
-    url.pathname = `${basePath}${path}`;
-    if (query != null) {
-        url.search = query;
-    } else {
-        url.search = '';
-    }
-    return url;
-}
-
 /// The Data Cloud auth infos
 export interface SalesforceAuthInfo {
     /// The core tenant id
@@ -168,17 +139,14 @@ export interface SalesforceApiClientInterface {
     getCoreUserInfo(
         access: connection.SalesforceCoreAccessToken,
         cancel: AbortSignal,
-        httpProxyUrl?: string,
     ): Promise<connection.SalesforceCoreUserInfo>;
     getDataCloudAccessToken(
         access: connection.SalesforceCoreAccessToken,
         cancel: AbortSignal,
-        httpProxyUrl?: string,
     ): Promise<connection.SalesforceDataCloudAccessToken>;
     getDataCloudMetadata(
         access: connection.SalesforceDataCloudAccessToken,
         cancel: AbortSignal,
-        httpProxyUrl?: string,
     ): Promise<connection.SalesforceDataCloudMetadata>;
 }
 
@@ -217,12 +185,7 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
             Accept: 'application/json',
             'Content-Type': 'application/x-www-form-urlencoded',
         });
-        const url = applyHttpProxy(
-            authParams.instanceUrl,
-            '/services/oauth2/token',
-            headers,
-            authParams.httpProxyUrl,
-        );
+        const url = new URL(`${authParams.instanceUrl}/services/oauth2/token`);
         const response = await this.httpClient.fetch(url, {
             method: 'POST',
             headers,
@@ -291,7 +254,6 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
     public async getDataCloudAccessToken(
         access: connection.SalesforceCoreAccessToken,
         cancel: AbortSignal,
-        httpProxyUrl?: string,
     ): Promise<connection.SalesforceDataCloudAccessToken> {
         const params: Record<string, string> = {
             grant_type: 'urn:salesforce:grant-type:external:cdp',
@@ -305,12 +267,7 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
             Accept: 'application/json',
             'Content-Type': 'application/x-www-form-urlencoded',
         });
-        const url = applyHttpProxy(
-            access.instanceUrl ?? "",
-            '/services/a360/token',
-            headers,
-            httpProxyUrl,
-        );
+        const url = new URL(`${access.instanceUrl ?? ""}/services/a360/token`);
         const response = await this.httpClient.fetch(url, {
             method: 'POST',
             headers,
@@ -328,7 +285,6 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
     public async getCoreUserInfo(
         access: connection.SalesforceCoreAccessToken,
         cancel: AbortSignal,
-        httpProxyUrl?: string,
     ): Promise<connection.SalesforceCoreUserInfo> {
         const params = new URLSearchParams();
         params.set('format', 'json');
@@ -337,12 +293,7 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
             authorization: `Bearer ${access.accessToken}`,
             accept: 'application/json',
         });
-        const url = applyHttpProxy(
-            access.instanceUrl ?? "",
-            `/services/oauth2/userinfo?${params.toString()}`,
-            headers,
-            httpProxyUrl,
-        );
+        const url = new URL(`${access.instanceUrl ?? ""}/services/oauth2/userinfo?${params.toString()}`);
         const response = await this.httpClient.fetch(url, {
             headers,
             signal: cancel,
@@ -354,23 +305,13 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
     public async getDataCloudMetadata(
         access: connection.SalesforceDataCloudAccessToken,
         cancel: AbortSignal,
-        httpProxyUrl?: string,
     ): Promise<connection.SalesforceDataCloudMetadata> {
-        // Historical quirk: the old URL joined instanceUrl to "api/v1/metadata"
-        // without a separator, producing "https://.../api/v1/metadata" only if
-        // the instanceUrl ended with "/". Normalize here so the subpath always
-        // starts with "/" — applyHttpProxy relies on that.
         const base = (access.instanceUrl ?? "").replace(/\/+$/, '');
         const headers = new Headers({
             authorization: `Bearer ${access.jwt?.raw}`,
             accept: 'application/json',
         });
-        const url = applyHttpProxy(
-            base,
-            '/api/v1/metadata',
-            headers,
-            httpProxyUrl,
-        );
+        const url = new URL(`${base}/api/v1/metadata`);
         const response = await this.httpClient.fetch(url, {
             headers,
             signal: cancel,

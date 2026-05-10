@@ -7,6 +7,5 @@ export function createSalesforceConnectionParamsSignature(params: SalesforceConn
         instanceUrl: params.instanceUrl,
         appConsumerKey: params.appConsumerKey,
         login: params.login,
-        httpProxyUrl: params.httpProxyUrl ?? null,
     };
 }

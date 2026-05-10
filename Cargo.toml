@@ -6,7 +6,6 @@ members = [
     "packages/dashql-native",
     "packages/tauri-aclgen",
     "packages/dashql-pack",
-    "packages/hyper-http-proxy",
 ]
 
 [profile.release]

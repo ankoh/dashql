@@ -260,9 +260,8 @@ export class WebHyperDatabaseClient implements HyperDatabaseClient {
             throw new Error("missing hyper endpoint");
         }
         const endpointUrl = new URL(hyperArgs.endpoint);
-        const proxyUrl = hyperArgs.httpProxyUrl ? new URL(hyperArgs.httpProxyUrl) : null;
         const auth = new ContextAuthProvider(context);
-        const client = new HyperDatabaseHttpClient(this.httpClient, endpointUrl, proxyUrl, auth, this.logger);
+        const client = new HyperDatabaseHttpClient(this.httpClient, endpointUrl, auth, this.logger);
         return new WebHyperDatabaseChannel(client, context, this.logger, this.parallelChunks);
     }
 }

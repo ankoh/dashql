@@ -33,7 +33,6 @@ const LOG_CTX = "hyper_connector";
 interface PageState {
     protocol: connection.HyperProtocol;
     endpoint: string;
-    httpProxyUrl: string;
     mTlsKeyPath: string;
     mTlsPubPath: string;
     mTlsCaPath: string;
@@ -46,7 +45,6 @@ function buildPageStateFromParams(params: connection.HyperConnectionParams | und
     return {
         protocol: params?.protocol ?? "V3_HTTP",
         endpoint: params?.endpoint ?? "http://localhost:7484",
-        httpProxyUrl: params?.httpProxyUrl ?? "",
         mTlsKeyPath: params?.tls?.clientKeyPath ?? "",
         mTlsPubPath: params?.tls?.clientCertPath ?? "",
         mTlsCaPath: params?.tls?.caCertsPath ?? "",
@@ -78,7 +76,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const hyperConnection = getHyperConnectionDetails(connectionState);
 
     // Seed the form state from the restored connection params so a session
-    // that was saved across an app restart displays its endpoint/proxy/etc.
+    // that was saved across an app restart displays its endpoint/etc.
     // Re-seeds whenever the stored setupParams reference changes (session
     // switch, async storage hydration, or an action like RESET that swaps
     // the wrapper state).
@@ -99,7 +97,6 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const wrongPlatform = protocol === "V3_GRPC" && !isNativePlatform();
     const setProtocol = (v: connection.HyperProtocol) => setPageState(s => ({ ...s, protocol: v }));
     const setEndpoint = (v: string) => setPageState(s => ({ ...s, endpoint: v }));
-    const setHttpProxyUrl = (v: string) => setPageState(s => ({ ...s, httpProxyUrl: v }));
     const setMTLSKeyPath = (v: string) => setPageState(s => ({ ...s, mTlsKeyPath: v }));
     const setMTLSPubPath = (v: string) => setPageState(s => ({ ...s, mTlsPubPath: v }));
     const setMTLSCaPath = (v: string) => setPageState(s => ({ ...s, mTlsCaPath: v }));
@@ -108,9 +105,6 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const isGrpc = protocol === "V3_GRPC";
 
     // Helper to setup the connection
-    // The HTTP proxy setting is meaningful only under V3_HTTP; it's dropped
-    // under V3_GRPC so a stale value from a previous protocol switch doesn't
-    // leak into the connection.
     const setupParams = React.useMemo<connection.HyperConnectionParams>(() => ({
         protocol: pageState.protocol,
         endpoint: pageState.endpoint,
@@ -127,10 +121,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
             message: "",
             details: flattenKeyValueList(pageState.gRPCMetadata)
         } as any,
-        ...(pageState.protocol === "V3_HTTP" && pageState.httpProxyUrl
-            ? { httpProxyUrl: pageState.httpProxyUrl }
-            : {}),
-    }), [pageState.protocol, pageState.endpoint, pageState.httpProxyUrl, pageState.attachedDatabases, pageState.gRPCMetadata]);
+    }), [pageState.protocol, pageState.endpoint, pageState.attachedDatabases, pageState.gRPCMetadata]);
     const setupAbortController = React.useRef<AbortController | null>(null);
     const setupConnection = async () => {
         // Is there a Hyper client?
@@ -222,17 +213,6 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                             readOnly={freezeInput}
                             logContext={LOG_CTX}
                         />
-                        {!isGrpc && <TextField
-                            name="HTTP Proxy URL"
-                            caption="Optional proxy URL for all HTTP traffic"
-                            value={pageState.httpProxyUrl}
-                            placeholder="http://127.0.0.1:9100"
-                            leadingVisual={() => <div>URL</div>}
-                            onChange={(e) => setHttpProxyUrl(e.target.value)}
-                            disabled={freezeInput}
-                            readOnly={freezeInput}
-                            logContext={LOG_CTX}
-                        />}
                         {isGrpc && <KeyValueTextField
                             className={style.grid_column_1}
                             name="mTLS Client Key"

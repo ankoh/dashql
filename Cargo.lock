@@ -2685,32 +2685,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hyper-http-proxy"
-version = "0.0.2-dev.17"
-dependencies = [
- "anyhow",
- "bytes",
- "clap",
- "env_logger",
- "futures-util",
- "http 1.4.0",
- "http-body-util",
- "hyper 1.9.0",
- "hyper-util",
- "log",
- "prost",
- "reqwest 0.13.3",
- "serde",
- "serde_json",
- "tokio",
- "tokio-stream",
- "tonic",
- "tonic-prost",
- "tonic-prost-build",
- "uuid",
-]
-
-[[package]]
 name = "hyper-rustls"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6866,7 +6840,6 @@ dependencies = [
  "hyper-util",
  "percent-encoding",
  "pin-project",
- "rustls-native-certs",
  "socket2 0.6.3",
  "sync_wrapper",
  "tokio",

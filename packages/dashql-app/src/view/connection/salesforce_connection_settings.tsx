@@ -34,7 +34,6 @@ interface PageState {
     hyperProtocol: connection.HyperProtocol;
     instanceUrl: string;
     appConsumerKey: string;
-    httpProxyUrl: string;
 };
 
 export function getConnectionStatusText(status: ConnectionStatus | undefined, logger: Logger) {
@@ -138,7 +137,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const salesforceConnection = getSalesforceConnectionDetails(connectionState);
 
     // Seed the form state from the restored connection params so a session
-    // that was saved across an app restart displays its endpoint/key/proxy.
+    // that was saved across an app restart displays its endpoint/key.
     // Re-seeds whenever the stored setupParams reference changes (session
     // switch, async storage hydration, or an action like RESET that swaps
     // the wrapper state).
@@ -146,7 +145,6 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
         hyperProtocol: params?.hyperProtocol ?? "V3_HTTP",
         instanceUrl: params?.instanceUrl ?? "",
         appConsumerKey: params?.appConsumerKey ?? "",
-        httpProxyUrl: params?.httpProxyUrl ?? "",
     });
     const [pageState, setPageState] = React.useState<PageState>(() =>
         buildPageState(salesforceConnection?.proto.setupParams));
@@ -165,7 +163,6 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const setHyperProtocol = (v: connection.HyperProtocol) => setPageState(s => ({ ...s, hyperProtocol: v }));
     const updateInstanceUrl: React.ChangeEventHandler<HTMLInputElement> = ev => setPageState(s => ({ ...s, instanceUrl: ev.target.value }));
     const updateAppConsumerKey: React.ChangeEventHandler<HTMLInputElement> = ev => setPageState(s => ({ ...s, appConsumerKey: ev.target.value }));
-    const updateHttpProxyUrl: React.ChangeEventHandler<HTMLInputElement> = ev => setPageState(s => ({ ...s, httpProxyUrl: ev.target.value }));
 
     // Maintain setting validations
     const [instanceUrlValidation, setInstanceUrlValidation] = React.useState<TextFieldValidationStatus>({
@@ -176,25 +173,15 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
         type: VALIDATION_UNKNOWN,
         value: null
     });
-    const [httpProxyValidation, setHttpProxyValidation] = React.useState<TextFieldValidationStatus>({
-        type: VALIDATION_UNKNOWN,
-        value: null
-    });
 
     // Helper to start the authorization
-    // The HTTP proxy setting is meaningful only under V3_HTTP; it's dropped
-    // under V3_GRPC so a stale value from a previous protocol switch doesn't
-    // leak into the connection.
     const setupParams = React.useMemo<connection.SalesforceConnectionParams>(() => ({
         hyperProtocol: pageState.hyperProtocol,
         instanceUrl: pageState.instanceUrl,
         appConsumerKey: pageState.appConsumerKey,
         appConsumerSecret: "",
         login: "",
-        ...(pageState.hyperProtocol === "V3_HTTP" && pageState.httpProxyUrl
-            ? { httpProxyUrl: pageState.httpProxyUrl }
-            : {}),
-    }), [pageState.hyperProtocol, pageState.instanceUrl, pageState.appConsumerKey, pageState.httpProxyUrl]);
+    }), [pageState.hyperProtocol, pageState.instanceUrl, pageState.appConsumerKey]);
     const setupAbortController = React.useRef<AbortController | null>(null);
     const setupConnection = async () => {
         let validationSucceeded = true;
@@ -221,20 +208,6 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
                 type: VALIDATION_UNKNOWN,
                 value: null
             });
-        }
-        if (pageState.hyperProtocol === "V3_HTTP" && pageState.httpProxyUrl !== "") {
-            try {
-                new URL(pageState.httpProxyUrl);
-                setHttpProxyValidation({ type: VALIDATION_UNKNOWN, value: null });
-            } catch {
-                validationSucceeded = false;
-                setHttpProxyValidation({
-                    type: VALIDATION_ERROR,
-                    value: "HTTP Proxy URL must be a valid URL (e.g. http://127.0.0.1:9100)"
-                });
-            }
-        } else {
-            setHttpProxyValidation({ type: VALIDATION_UNKNOWN, value: null });
         }
         if (!validationSucceeded || !sfSetup) {
             return;
@@ -350,18 +323,6 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
                             disabled={freezeInput}
                             readOnly={freezeInput}
                         />
-                        {hyperProtocol === "V3_HTTP" && <TextField
-                            name="HTTP Proxy URL"
-                            caption="Optional proxy URL for all HTTP traffic"
-                            value={pageState.httpProxyUrl}
-                            onChange={updateHttpProxyUrl}
-                            placeholder="http://127.0.0.1:9100"
-                            leadingVisual={() => <div>URL</div>}
-                            validation={httpProxyValidation}
-                            logContext={LOG_CTX}
-                            disabled={freezeInput}
-                            readOnly={freezeInput}
-                        />}
                     </div>
                 </div>
                 <div className={style.section}>

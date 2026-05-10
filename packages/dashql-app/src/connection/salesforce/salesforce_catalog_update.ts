@@ -22,7 +22,6 @@ export async function updateSalesforceCatalog(
     const metadata = await api.getDataCloudMetadata(
         conn.proto.oauthState?.dataCloudAccessToken!,
         abortController.signal,
-        conn.proto.setupParams?.httpProxyUrl,
     );
 
     // Build table metadata
