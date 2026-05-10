@@ -1,3 +1,8 @@
+mod docker_log_stream_manager;
+mod docker_proxy;
+mod docker_proxy_globals;
+mod docker_proxy_routes;
+mod docker_registry_client;
 mod duckdb;
 mod duckdb_proxy;
 mod duckdb_proxy_globals;
