@@ -218,6 +218,10 @@ function getClippingRect(element: Element): BoxPosition {
     }
 }
 
+// Pixels of breathing room kept between an out-of-bounds overlay and the
+// window edges. Matches the max-width/max-height inset in overlay.module.css.
+const VIEWPORT_INSET = 16;
+
 // Default settings to position a floating element
 const positionDefaults: PositionSettings = {
     side: AnchorSide.OutsideBottom,
@@ -319,24 +323,21 @@ function pureCalculateAnchoredPosition(
             }
         }
 
-        // At this point we've flipped the position if applicable. Now just nudge until it's on-screen.
-        if (pos.top < relativeViewportRect.top) {
-            pos.top = relativeViewportRect.top
+        // At this point we've flipped the position if applicable. Now just nudge until it's on-screen,
+        // keeping VIEWPORT_INSET pixels of breathing room from each window edge.
+        // Clamp bottom *first* so the subsequent top clamp wins on overlays taller than the viewport
+        // (we'd rather show the top of the content than the bottom).
+        if (pos.top + floatingRect.height > viewportRect.height + relativeViewportRect.top - VIEWPORT_INSET) {
+            pos.top = Math.max(viewportRect.height + relativeViewportRect.top - floatingRect.height - VIEWPORT_INSET, relativeViewportRect.top + VIEWPORT_INSET)
         }
-        if (pos.left < relativeViewportRect.left) {
-            pos.left = relativeViewportRect.left
+        if (pos.top < relativeViewportRect.top + VIEWPORT_INSET) {
+            pos.top = relativeViewportRect.top + VIEWPORT_INSET
         }
-        if (pos.left + floatingRect.width > viewportRect.width + relativeViewportRect.left) {
-            pos.left = viewportRect.width + relativeViewportRect.left - floatingRect.width
+        if (pos.left < relativeViewportRect.left + VIEWPORT_INSET) {
+            pos.left = relativeViewportRect.left + VIEWPORT_INSET
         }
-        // If we have exhausted all possible positions and none of them worked, we
-        // say that overflowing the bottom of the screen is acceptable since it is
-        // likely to be able to scroll.
-        if (alternateOrder && positionAttempt < alternateOrder.length) {
-            if (pos.top + floatingRect.height > viewportRect.height + relativeViewportRect.top) {
-                // This prevents top from being a negative value
-                pos.top = Math.max(viewportRect.height + relativeViewportRect.top - floatingRect.height, 0)
-            }
+        if (pos.left + floatingRect.width > viewportRect.width + relativeViewportRect.left - VIEWPORT_INSET) {
+            pos.left = viewportRect.width + relativeViewportRect.left - floatingRect.width - VIEWPORT_INSET
         }
     }
 

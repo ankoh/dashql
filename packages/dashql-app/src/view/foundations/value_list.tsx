@@ -17,7 +17,7 @@ interface Props {
     className?: string;
     title: string;
     caption?: string;
-    valueIcon: React.ElementType;
+    valueIcon?: React.ElementType;
     addButtonLabel: string;
     elements: ValueListElement[];
     modifyElements: Dispatch<UpdateValueList>;

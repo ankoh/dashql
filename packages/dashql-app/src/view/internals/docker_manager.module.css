@@ -1,0 +1,373 @@
+:root {
+}
+
+.root {
+    display: grid;
+    grid-template-rows: 40px max-content 1fr;
+    min-height: 0;
+    height: 100%;
+}
+
+.header {
+    grid-row: 1;
+    width: 100%;
+    display: grid;
+    grid-template-rows: 100%;
+    grid-template-columns: max-content auto max-content;
+    border-bottom: 1px solid var(--border_color_primary);
+    border-top-right-radius: var(--border_radius);
+    border-top-left-radius: var(--border_radius);
+}
+
+.header_left {
+    grid-column: 1;
+    margin-left: 16px;
+    display: flex;
+    align-items: center;
+    column-gap: 8px;
+}
+
+.header_actions {
+    grid-column: 3;
+    display: flex;
+    align-items: center;
+    column-gap: 8px;
+    padding: 0 4px;
+}
+
+.title {
+    font-size: 1rem;
+}
+
+.body {
+    grid-row: 2;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-size: 0.9rem;
+}
+
+.empty_state {
+    color: #6e7781;
+    text-align: center;
+    padding: 24px;
+}
+
+.container_card {
+    border: 1px solid var(--border_color_primary);
+    border-radius: var(--border_radius);
+    padding: 12px;
+    display: grid;
+    grid-template-columns: 1fr max-content;
+    grid-template-rows: auto auto;
+    column-gap: 12px;
+    row-gap: 8px;
+}
+
+.container_meta {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.container_name {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.container_image {
+    color: #6e7781;
+    font-family: 'Roboto Mono';
+    font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.status_pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    background: #f6f8fa;
+    border: 1px solid var(--border_color_primary);
+    width: fit-content;
+}
+
+.status_pill.running {
+    background: rgba(46, 160, 67, 0.2);
+    border-color: rgba(46, 160, 67, 0.5);
+}
+
+.actions {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+}
+
+.log_panel {
+    grid-column: 1 / span 2;
+    grid-row: 2;
+    margin-top: 8px;
+    border-top: 1px solid var(--border_color_primary);
+    padding-top: 8px;
+    height: 240px;
+    background: #f6f8fa;
+    border-radius: var(--border_radius);
+}
+
+.log_row {
+    display: block;
+    padding: 0 8px;
+    font-family: 'Roboto Mono';
+    font-size: 0.75rem;
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.log_row_stderr {
+    color: #bf8700;
+}
+
+/* Create panel */
+.create_root {
+    grid-row: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 16px 32px 16px;
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* Step 1 (tag selection) takes over the body region directly; no padding/gap
+   so the virtualized list can sit flush against the wizard toolbar. */
+.create_root_flush {
+    grid-row: 3;
+    display: block;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Wizard sub-toolbar (cancel | step indicator | next) */
+.wizard_toolbar {
+    grid-row: 2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    column-gap: 12px;
+    padding: 0 12px;
+    height: 40px;
+    border-bottom: 1px solid var(--border_color_primary);
+}
+
+.wizard_toolbar_left {
+    grid-column: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wizard_toolbar_center {
+}
+
+.wizard_toolbar_right {
+    grid-column: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wizard_toolbar_icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* Step indicator: 3 dots + 2 edges, each edge split into 2 halves so we can
+   color half-edges. Layout: dot edgeA1 edgeA2 dot edgeB1 edgeB2 dot. */
+.step_indicator {
+    display: flex;
+    align-items: center;
+    column-gap: 0;
+}
+
+.step_dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid var(--border_color_primary);
+    background: white;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+}
+
+.step_dot_active {
+    width: 12px;
+    height: 12px;
+    border: 2px solid #0969da;
+    background: white;
+}
+
+.step_edge_half {
+    width: 24px;
+    height: 1px;
+    background: var(--border_color_primary);
+    flex: 0 0 auto;
+}
+
+.step_edge_half_active {
+    background: #0969da;
+    height: 2px;
+}
+
+.create_section_label {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.create_field_group {
+    display: flex;
+    flex-direction: column;
+    row-gap: 8px;
+}
+
+/* Step 1 (tag selection) — full-height layout mirroring the log viewer:
+   column header bar with embedded filter, virtualized list filling the rest. */
+.tag_step {
+    display: grid;
+    grid-template-rows: max-content 1fr;
+    height: 100%;
+    min-height: 0;
+}
+
+.tag_subheader {
+    grid-row: 1;
+    height: 36px;
+    display: grid;
+    grid-template-columns: 1fr max-content;
+    align-items: center;
+    column-gap: 10px;
+    padding: 0 0 0 12px;
+    border-bottom: 1px solid var(--border_color_primary);
+    font-family: 'Roboto Mono';
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: hsl(208.5, 24.69%, 51.76%);
+}
+
+.tag_subheader_label {
+    grid-column: 1;
+}
+
+.tag_filter {
+    grid-column: 2;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    column-gap: 8px;
+    width: 200px;
+    height: 100%;
+    padding: 0 12px;
+    border-left: 1px solid var(--border_color_primary);
+    color: #6e7781;
+}
+
+.tag_filter_icon {
+    width: 12px;
+    height: 12px;
+    flex: 0 0 auto;
+    color: #656d76;
+}
+
+.tag_filter_input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font: inherit;
+    font-size: 0.75rem;
+    color: inherit;
+    padding: 0;
+}
+
+.tag_filter_input::placeholder {
+    color: #6e7781;
+}
+
+.tag_list_container {
+    grid-row: 2;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    font-family: 'Roboto Mono';
+    font-size: 0.75rem;
+}
+
+.tag_row {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    cursor: pointer;
+    border-top: 1px solid var(--log_border_color);
+}
+
+.tag_row:first-child {
+    border-top: none;
+}
+
+.tag_row.selected {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+.tag_progress {
+    color: #6e7781;
+    font-size: 0.75rem;
+    text-align: right;
+}
+
+.create_actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.error_text {
+    color: #cf222e;
+    font-size: 0.8rem;
+}
+
+.hyper_settings {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: #f6f8fa;
+    border: 1px solid var(--border_color_primary);
+    border-radius: var(--border_radius);
+    padding: 8px;
+}
+
+.hyper_setting_row {
+    font-family: 'Roboto Mono';
+    font-size: 0.75rem;
+    color: #6e7781;
+}
+

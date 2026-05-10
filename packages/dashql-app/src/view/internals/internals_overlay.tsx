@@ -9,6 +9,8 @@ import { LogViewer } from './log_viewer.js';
 import { OverlaySize } from '../foundations/overlay.js';
 import { QueryViewer } from './query_viewer.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
+import { DockerManager } from './docker_manager.js';
+import { useDockerClient } from '../../platform/docker/docker_client_provider.js';
 
 interface InternalsViewerProps {
     onClose: () => void;
@@ -19,10 +21,22 @@ enum TabKey {
     QueryViewer = 1,
     AppSettings = 2,
     StorageWriter = 3,
+    Docker = 4,
 }
 
 export const InternalsViewer: React.FC<InternalsViewerProps> = (props: InternalsViewerProps) => {
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.LogViewer);
+    const dockerClient = useDockerClient();
+    const dockerEnabled = dockerClient != null;
+
+    const tabKeys = React.useMemo(() => {
+        const keys: TabKey[] = [TabKey.LogViewer, TabKey.QueryViewer, TabKey.StorageWriter];
+        if (dockerEnabled) {
+            keys.push(TabKey.Docker);
+        }
+        keys.push(TabKey.AppSettings);
+        return keys;
+    }, [dockerEnabled]);
 
     return (
         <VerticalTabs
@@ -54,6 +68,14 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     description: 'View storage writer statistics',
                     disabled: false,
                 },
+                [TabKey.Docker]: {
+                    tabId: TabKey.Docker,
+                    icon: `${icons}#package`,
+                    labelShort: 'Docker',
+                    ariaLabel: 'Docker containers',
+                    description: 'Manage local Hyper containers',
+                    disabled: false,
+                },
                 [TabKey.AppSettings]: {
                     tabId: TabKey.AppSettings,
                     icon: `${icons}#settings`,
@@ -63,7 +85,7 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     disabled: false,
                 },
             }}
-            tabKeys={[TabKey.LogViewer, TabKey.QueryViewer, TabKey.StorageWriter, TabKey.AppSettings]}
+            tabKeys={tabKeys}
             tabRenderers={{
                 [TabKey.LogViewer]: _props => (
                     <LogViewer onClose={props.onClose} />
@@ -73,6 +95,9 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                 ),
                 [TabKey.StorageWriter]: _props => (
                     <StorageWriterView onClose={props.onClose} />
+                ),
+                [TabKey.Docker]: _props => (
+                    <DockerManager onClose={props.onClose} />
                 ),
                 [TabKey.AppSettings]: _props => (
                     <AppSettings onClose={props.onClose} />

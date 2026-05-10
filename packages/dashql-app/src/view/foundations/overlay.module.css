@@ -3,6 +3,11 @@
     box-shadow: 0 1px 3px rgba(31,35,40,0.12), 0 8px 24px rgba(66,74,83,0.12);
     position: absolute;
     min-width: 192px;
+    /* Never grow beyond the window. Keeps 16px breathing room on each side
+       (matches VIEWPORT_INSET in anchored_position.ts) so the overlay isn't
+       flush against the window chrome. */
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 32px);
     animation: overlay-appear 200ms cubic-bezier(0.33, 1, 0.68, 1);
     border-radius: 12px;
     border: 1px solid var(--border_color_primary);

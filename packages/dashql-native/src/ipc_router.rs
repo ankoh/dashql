@@ -46,6 +46,18 @@ use crate::http_proxy_globals::read_http_server_stream;
 use crate::http_proxy_globals::start_http_server_stream;
 use crate::http_proxy_routes::HttpProxyRoute;
 use crate::http_proxy_routes::parse_http_proxy_path;
+use crate::docker_proxy_globals::create_container as docker_create_container;
+use crate::docker_proxy_globals::delete_container as docker_delete_container;
+use crate::docker_proxy_globals::delete_log_stream as docker_delete_log_stream;
+use crate::docker_proxy_globals::list_containers as docker_list_containers;
+use crate::docker_proxy_globals::list_registry_tags as docker_list_registry_tags;
+use crate::docker_proxy_globals::read_log_stream as docker_read_log_stream;
+use crate::docker_proxy_globals::start_container as docker_start_container;
+use crate::docker_proxy_globals::start_log_stream as docker_start_log_stream;
+use crate::docker_proxy_globals::start_pull_stream as docker_start_pull_stream;
+use crate::docker_proxy_globals::stop_container as docker_stop_container;
+use crate::docker_proxy_routes::DockerProxyRoute;
+use crate::docker_proxy_routes::parse_docker_proxy_path;
 
 pub async fn route_ipc_request(mut request: Request<Vec<u8>>) -> Response<Vec<u8>> {
     // Capture trace context at call site and include in logs
@@ -165,6 +177,32 @@ pub async fn route_ipc_request(mut request: Request<Vec<u8>>) -> Response<Vec<u8
             }
         };
         log::debug!("Grpc proxy responded with: status={:?}, body_bytes={:?}", response.status(), response.body().len());
+        return response;
+    }
+
+    // Handle Docker requests
+    if let Some(route) = parse_docker_proxy_path(request.uri().path()) {
+        log::debug!("Matching docker proxy route={:?}, method={:?}", route, request.method());
+        let response = match (request.method().clone(), route) {
+            (Method::GET, DockerProxyRoute::Containers) => docker_list_containers(std::mem::take(&mut request)).await,
+            (Method::POST, DockerProxyRoute::Containers) => docker_create_container(std::mem::take(&mut request)).await,
+            (Method::DELETE, DockerProxyRoute::Container { id }) => docker_delete_container(id, std::mem::take(&mut request)).await,
+            (Method::POST, DockerProxyRoute::ContainerStart { id }) => docker_start_container(id, std::mem::take(&mut request)).await,
+            (Method::POST, DockerProxyRoute::ContainerStop { id }) => docker_stop_container(id, std::mem::take(&mut request)).await,
+            (Method::POST, DockerProxyRoute::ImagesPull) => docker_start_pull_stream(std::mem::take(&mut request)).await,
+            (Method::POST, DockerProxyRoute::LogStreams) => docker_start_log_stream(std::mem::take(&mut request)).await,
+            (Method::GET, DockerProxyRoute::LogStream { stream_id }) => docker_read_log_stream(stream_id, std::mem::take(&mut request)).await,
+            (Method::DELETE, DockerProxyRoute::LogStream { stream_id }) => docker_delete_log_stream(stream_id, std::mem::take(&mut request)).await,
+            (Method::GET, DockerProxyRoute::RegistryTags) => docker_list_registry_tags(std::mem::take(&mut request)).await,
+            (_, _) => {
+                let body = format!("cannot find handler for docker proxy route={:?}, method={:?}", request.uri().path(), request.method());
+                return Response::builder()
+                    .status(404)
+                    .header(CONTENT_TYPE, mime::TEXT_PLAIN.essence_str())
+                    .body(body.as_bytes().to_vec())
+                    .unwrap();
+            }
+        };
         return response;
     }
 

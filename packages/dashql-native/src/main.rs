@@ -17,6 +17,11 @@ mod grpc_proxy_tests;
 #[cfg(test)]
 mod duckdb_tests;
 mod grpc_stream_manager;
+mod docker_log_stream_manager;
+mod docker_proxy;
+mod docker_proxy_globals;
+mod docker_proxy_routes;
+mod docker_registry_client;
 mod http_proxy;
 mod http_proxy_globals;
 mod http_proxy_routes;

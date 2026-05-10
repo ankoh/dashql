@@ -2,6 +2,7 @@
     display: grid;
     grid-template-rows: 1fr max-content;
     column-gap: 8px;
+    row-gap: 2px;
 }
 .list_name {
     grid-row: 1;
