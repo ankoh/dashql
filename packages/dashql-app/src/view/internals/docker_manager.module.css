@@ -110,36 +110,73 @@
 
 .actions {
     grid-column: 2;
-    grid-row: 1 / span 2;
+    grid-row: 1 / span 1;
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: 4px;
 }
 
-.log_panel {
-    grid-column: 1 / span 2;
+.log_overlay {
+    height: 100%;
+    display: grid;
+    grid-template-rows: 40px 1fr;
+}
+
+.log_overlay_header {
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 4px 0 16px;
+    border-bottom: 1px solid var(--border_color_primary);
+    gap: 8px;
+}
+
+.log_overlay_title {
+    flex: 1;
+    font-size: 1rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.log_grid_container {
     grid-row: 2;
-    margin-top: 8px;
-    border-top: 1px solid var(--border_color_primary);
-    padding-top: 8px;
-    height: 240px;
-    background: #f6f8fa;
-    border-radius: var(--border_radius);
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    font-family: 'Roboto Mono';
+    font-size: 0.65rem;
 }
 
 .log_row {
-    display: block;
-    padding: 0 8px;
-    font-family: 'Roboto Mono';
-    font-size: 0.75rem;
-    white-space: pre;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    width: 100%;
+    cursor: pointer;
+    border-top: 1px solid var(--log_border_color);
 }
 
-.log_row_stderr {
-    color: #bf8700;
+.log_row:first-child {
+    border-top: none;
+}
+
+.log_row_selected {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+
+.log_row_main {
+    width: 100%;
+    height: 32px;
+    display: flex;
+    align-items: center;
+}
+
+.log_cell_message {
+    padding: 0 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Create panel */

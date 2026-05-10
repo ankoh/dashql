@@ -1,15 +1,22 @@
 import * as React from 'react';
 import * as styles from './docker_manager.module.css';
 
-import { List } from 'react-window';
+import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 import { XIcon, PlayIcon, SquareIcon, TrashIcon, FileIcon, PlusIcon } from '@primer/octicons-react';
 
 import { ButtonVariant, IconButton } from '../foundations/button.js';
+import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
+import { OverlaySize } from '../foundations/overlay.js';
 import { useDockerClient } from '../../platform/docker/docker_client_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { DockerContainerSummary, DockerLogChunk } from '../../platform/docker/docker_types.js';
 import { DockerCreatePanel } from './docker_create_panel.js';
+import { observeSize } from '../foundations/size_observer.js';
+import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
+import { useKeyEvents } from '../../utils/key_events.js';
+import { LogJsonModal } from './log_json_modal.js';
+import { LogRecord } from '../../platform/logger/log_buffer.js';
 
 const LABEL_KEY = 'dashql';
 const POLL_INTERVAL_MS = 2000;
@@ -218,85 +225,192 @@ const ContainerCard: React.FC<ContainerCardProps> = (props) => {
     const c = props.container;
     const isRunning = c.State === 'running';
     const name = c.Names[0]?.replace(/^\//, '') ?? c.Id.slice(0, 12);
+    const cardRef = React.useRef<HTMLDivElement>(null);
     return (
-        <div className={styles.container_card}>
-            <div className={styles.container_meta}>
-                <div className={styles.container_name}>{name}</div>
-                <div className={styles.container_image}>{c.Image}</div>
-                <div className={`${styles.status_pill} ${isRunning ? styles.running : ''}`}>{c.Status}</div>
-            </div>
-            <div className={styles.actions}>
-                {isRunning ? (
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        aria-label="Stop container"
-                        description="Stop"
-                        onClick={props.onStop}
-                        disabled={props.busy}
-                    >
-                        <SquareIcon />
-                    </IconButton>
-                ) : (
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        aria-label="Start container"
-                        description="Start"
-                        onClick={props.onStart}
-                        disabled={props.busy}
-                    >
-                        <PlayIcon />
-                    </IconButton>
-                )}
-                <IconButton
-                    variant={props.logsActive ? ButtonVariant.Default : ButtonVariant.Invisible}
-                    aria-label="Toggle logs"
-                    description={props.logsActive ? 'Hide logs' : 'Show logs'}
-                    onClick={props.onToggleLogs}
-                >
-                    <FileIcon />
-                </IconButton>
-                <IconButton
-                    variant={ButtonVariant.Invisible}
-                    aria-label="Remove container"
-                    description="Remove"
-                    onClick={props.onRemove}
-                    disabled={props.busy}
-                >
-                    <TrashIcon />
-                </IconButton>
-            </div>
-            {props.logsActive && props.logLines != null && (
-                <div className={styles.log_panel}>
-                    <LogList lines={props.logLines} />
+        <>
+            <div className={styles.container_card} ref={cardRef}>
+                <div className={styles.container_meta}>
+                    <div className={styles.container_name}>{name}</div>
+                    <div className={styles.container_image}>{c.Image}</div>
+                    <div className={`${styles.status_pill} ${isRunning ? styles.running : ''}`}>{c.Status}</div>
                 </div>
-            )}
-        </div>
+                <div className={styles.actions}>
+                    {isRunning ? (
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Stop container"
+                            description="Stop"
+                            onClick={props.onStop}
+                            disabled={props.busy}
+                        >
+                            <SquareIcon />
+                        </IconButton>
+                    ) : (
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Start container"
+                            description="Start"
+                            onClick={props.onStart}
+                            disabled={props.busy}
+                        >
+                            <PlayIcon />
+                        </IconButton>
+                    )}
+                    <IconButton
+                        variant={props.logsActive ? ButtonVariant.Default : ButtonVariant.Invisible}
+                        aria-label="Toggle logs"
+                        description={props.logsActive ? 'Hide logs' : 'Show logs'}
+                        onClick={props.onToggleLogs}
+                    >
+                        <FileIcon />
+                    </IconButton>
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        aria-label="Remove container"
+                        description="Remove"
+                        onClick={props.onRemove}
+                        disabled={props.busy}
+                    >
+                        <TrashIcon />
+                    </IconButton>
+                </div>
+            </div>
+            <AnchoredOverlay
+                renderAnchor={null}
+                anchorRef={cardRef}
+                open={props.logsActive}
+                onClose={() => props.onToggleLogs()}
+                width={OverlaySize.XXL}
+                height={OverlaySize.XL}
+                side={AnchorSide.OutsideLeft}
+                align={AnchorAlignment.Start}
+                focusTrapSettings={{ disabled: true }}
+            >
+                <DockerLogList
+                    lines={props.logLines ?? []}
+                    onClose={props.onToggleLogs}
+                />
+            </AnchoredOverlay>
+        </>
     );
 };
 
-const LogRow = (props: RowComponentProps<{ lines: DockerLogChunk[] }>) => {
-    const line = props.lines[props.index];
-    if (!line) return <div style={props.style} />;
-    const isStderr = line.stream === 2;
+interface DockerLogRowProps {
+    lines: DockerLogChunk[];
+    showJsonRecord: (index: number) => void;
+    selectedRecordIndex: number;
+}
+
+const DockerLogRow = (props: RowComponentProps<DockerLogRowProps>) => {
+    const { lines, showJsonRecord, selectedRecordIndex } = props;
+    const item = lines[props.index];
+    if (!item) return <div style={props.style} />;
+    const isSelected = props.index === selectedRecordIndex;
     return (
         <div
             style={props.style}
-            className={`${styles.log_row} ${isStderr ? styles.log_row_stderr : ''}`}
+            className={`${styles.log_row} ${isSelected ? styles.log_row_selected : ''}`}
+            onClick={() => showJsonRecord(props.index)}
         >
-            {line.text.replace(/\n$/, '')}
+            <div className={styles.log_row_main}>
+                <div className={styles.log_cell_message} title={item.text}>
+                    {item.text.replace(/\n$/, '')}
+                </div>
+            </div>
         </div>
     );
 };
 
-const LogList: React.FC<{ lines: DockerLogChunk[] }> = ({ lines }) => {
-    const ROW_HEIGHT = 18;
+interface DockerLogListProps {
+    lines: DockerLogChunk[];
+    onClose: () => void;
+}
+
+const DockerLogList: React.FC<DockerLogListProps> = ({ lines, onClose }) => {
+    const ROW_HEIGHT = 32;
+    const [jsonModalState, setJsonModalState] =
+        React.useState<[object | null, number]>([null, -1]);
+    const [jsonModalRecord, jsonModalRecordIndex] = jsonModalState;
+    const closeJsonModal = React.useCallback(() => setJsonModalState([null, -1]), []);
+
+    const containerRef = React.useRef<HTMLDivElement>(null);
+    const containerSize = observeSize(containerRef);
+    const containerWidth = containerSize?.width ?? 200;
+    const containerHeight = containerSize?.height ?? 560;
+
+    const listRef = useListRef(null);
+    React.useEffect(() => {
+        if (listRef.current && lines.length > 0) {
+            listRef.current.scrollToRow({ index: lines.length - 1, align: 'end' });
+        }
+    }, [lines.length]);
+
+    const showJsonRecord = React.useCallback((index: number) => {
+        const item = lines[index] ?? null;
+        if (!item) return;
+        let parsed: object;
+        try {
+            parsed = JSON.parse(item.text);
+        } catch {
+            parsed = { text: item.text.replace(/\n$/, '') };
+        }
+        setJsonModalState([parsed, index]);
+    }, [lines]);
+
+    const showPreviousRecord = React.useCallback(() => {
+        if (jsonModalRecordIndex > 0) showJsonRecord(jsonModalRecordIndex - 1);
+    }, [jsonModalRecordIndex, showJsonRecord]);
+
+    const showNextRecord = React.useCallback(() => {
+        if (jsonModalRecordIndex < lines.length - 1) showJsonRecord(jsonModalRecordIndex + 1);
+    }, [jsonModalRecordIndex, showJsonRecord, lines.length]);
+
+    useKeyEvents(jsonModalRecord ? [
+        { key: 'ArrowUp', capture: true, callback: (e: KeyboardEvent) => { e.preventDefault(); e.stopPropagation(); showPreviousRecord(); } },
+        { key: 'ArrowDown', capture: true, callback: (e: KeyboardEvent) => { e.preventDefault(); e.stopPropagation(); showNextRecord(); } },
+    ] : []);
+
+    React.useEffect(() => {
+        if (jsonModalRecordIndex >= 0 && listRef.current) {
+            listRef.current.scrollToRow({ index: jsonModalRecordIndex, align: 'center' });
+        }
+    }, [jsonModalRecordIndex]);
+
+    const rowProps = React.useMemo<DockerLogRowProps>(() => ({
+        lines,
+        showJsonRecord,
+        selectedRecordIndex: jsonModalRecordIndex,
+    }), [lines, showJsonRecord, jsonModalRecordIndex]);
+
     return (
-        <List
-            style={{ width: '100%', height: '100%' }}
-            rowCount={lines.length}
-            rowHeight={ROW_HEIGHT}
-            rowComponent={LogRow}
-            rowProps={{ lines }}
-        />
+        <div className={styles.log_overlay}>
+            <div className={styles.log_overlay_header}>
+                <div className={styles.log_overlay_title}>Container Logs</div>
+                <IconButton variant={ButtonVariant.Invisible} aria-label="Close" onClick={onClose}>
+                    <XIcon />
+                </IconButton>
+            </div>
+            <div className={styles.log_grid_container} ref={containerRef}>
+                <List
+                    listRef={listRef}
+                    style={{ width: containerWidth, height: containerHeight }}
+                    rowCount={lines.length}
+                    rowHeight={ROW_HEIGHT}
+                    rowComponent={DockerLogRow}
+                    rowProps={rowProps}
+                />
+            </div>
+            <LogJsonModal
+                record={jsonModalRecord as unknown as LogRecord}
+                recordIndex={jsonModalRecordIndex}
+                maxIndex={lines.length - 1}
+                anchorRef={containerRef}
+                align={AnchorAlignment.Start}
+                side={AnchorSide.OutsideLeft}
+                onClose={closeJsonModal}
+                onPrevious={showPreviousRecord}
+                onNext={showNextRecord}
+            />
+        </div>
     );
 };
