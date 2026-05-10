@@ -46,7 +46,7 @@ version = "^1.52.1"
 features = ["rt-multi-thread", "macros", "net", "io-util", "sync", "time"]
 
 [dependencies.tonic]
-version = "^0.14.5"
+version = "^0.14.6"
 features = ["tls-ring", "tls-native-roots"]
 
 [dependencies.tonic-prost]
