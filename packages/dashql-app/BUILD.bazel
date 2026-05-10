@@ -340,3 +340,18 @@ sh_binary(
     ],
     visibility = ["//visibility:public"],
 )
+
+sh_binary(
+    name = "dev_native",
+    srcs = ["utils/dev.sh"],
+    args = ["$(location :dev_config)", "--mode", "native"],
+    data = [
+        ":dev_config",
+        ":dep_flatbuf",
+        ":dep_protobuf",
+        ":dep_jsonschema",
+        ":dep_core_wasm",
+        ":dep_svg_symbols",
+    ],
+    visibility = ["//visibility:public"],
+)

@@ -396,7 +396,7 @@ rust_binary(
 # Dev binary: window URL pinned to http://localhost:9002 (see TAURI_CONFIG_OVERRIDE_DEV)
 # so the app loads from the Vite dev server instead of embedded assets.
 # Run in two terminals:
-#   bazel run //packages/dashql-app:dev
+#   bazel run //packages/dashql-app:dev_native
 #   bazel run //packages/dashql-native:dev
 rust_binary(
     name = "dev",

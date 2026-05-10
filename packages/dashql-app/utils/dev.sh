@@ -11,4 +11,4 @@ rm -f "$APP_DIR/vite.config.dev.ts"
 cp "$1" "$APP_DIR/vite.config.dev.ts"
 
 cd "$APP_DIR"
-exec ${VITE_BIN} --config vite.config.dev.ts
+exec ${VITE_BIN} --config vite.config.dev.ts "${@:2}"
