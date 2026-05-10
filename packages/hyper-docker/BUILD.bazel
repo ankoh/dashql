@@ -72,7 +72,7 @@ oci_image(
 genrule(
     name = "image_repo_tags",
     outs = ["repo_tags.txt"],
-    cmd = "echo 'dashql/hyperdb:" + TABLEAUHYPERAPI_VERSION + "' > $@",
+    cmd = "echo 'ankoh/hyperdb:" + TABLEAUHYPERAPI_VERSION + "' > $@",
     tags = ["manual"],
 )
 

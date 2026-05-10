@@ -467,15 +467,15 @@
     },
     "//bazel:external_tableauhyperapi.bzl%tableauhyperapi_ext": {
       "general": {
-        "bzlTransitiveDigest": "s43WrbSVD85c0oll9qSq/RR6ag0TQITfU0CN35xn9Zw=",
+        "bzlTransitiveDigest": "o7XdoWY3LIPGWhuz9sjE/FEJ0u3b8taVulwolk3jc4Y=",
         "usagesDigest": "/Cj4t34gwtluFYaKn+aza5CUpAo3VxHJDL1vTkM7hIs=",
         "recordedInputs": [],
         "generatedRepoSpecs": {
           "tableauhyperapi_linux_x86_64": {
             "repoRuleId": "@@//bazel:external_tableauhyperapi.bzl%tableauhyperapi_wheel_repository",
             "attributes": {
-              "version": "0.0.24457",
-              "sha256": "3f4b4a2004b09c90e5a74a5731afed705c6a6120211a66920fa46416a1cd898a",
+              "version": "0.0.25080",
+              "sha256": "38184aa8e723e264f864a0f7e2658ef3c1375c981e01c19a670cb4ab07ad4e3b",
               "wheel_suffix": "manylinux2014_x86_64.whl",
               "shared_lib": "libtableauhyperapi.so"
             }
@@ -483,8 +483,8 @@
           "tableauhyperapi_macos_arm64": {
             "repoRuleId": "@@//bazel:external_tableauhyperapi.bzl%tableauhyperapi_wheel_repository",
             "attributes": {
-              "version": "0.0.24457",
-              "sha256": "4a1289b4f985240b55477555a678c5656be54aa6449ffc443a7c1b2119d60496",
+              "version": "0.0.25080",
+              "sha256": "ab16896373ad14b79e4ec992ae7e8746cc1af804fd0e36215cd6fd3dbdc19917",
               "wheel_suffix": "macosx_13_0_arm64.whl",
               "shared_lib": "libtableauhyperapi.dylib"
             }
@@ -492,8 +492,8 @@
           "tableauhyperapi_macos_x86_64": {
             "repoRuleId": "@@//bazel:external_tableauhyperapi.bzl%tableauhyperapi_wheel_repository",
             "attributes": {
-              "version": "0.0.24457",
-              "sha256": "08789b1dfad2bc767c376036ca95213f10600f45ad1e74dfedba2b645cf1a5a9",
+              "version": "0.0.25080",
+              "sha256": "eb9ee455cf99662fe49199ffdcfa5126ad1394e418a65fb145d4b801cc07e409",
               "wheel_suffix": "macosx_10_11_x86_64.whl",
               "shared_lib": "libtableauhyperapi.dylib"
             }
