@@ -53,12 +53,14 @@ export const DockerManager: React.FC<DockerManagerProps> = (props: DockerManager
         }
     }, [client, logger]);
 
-    React.useEffect(() => {
-        if (!client || mode !== 'list') return;
-        refresh();
-        const t = setInterval(refresh, POLL_INTERVAL_MS);
-        return () => clearInterval(t);
-    }, [client, mode, refresh]);
+    // XXX Polling multiple times can be very expensive for very large repositories
+    //
+    // React.useEffect(() => {
+    //     if (!client || mode !== 'list') return;
+    //     refresh();
+    //     const t = setInterval(refresh, POLL_INTERVAL_MS);
+    //     return () => clearInterval(t);
+    // }, [client, mode, refresh]);
 
     React.useEffect(() => {
         return () => {
@@ -114,7 +116,7 @@ export const DockerManager: React.FC<DockerManagerProps> = (props: DockerManager
         }
     };
 
-    const handleToggleLogs = async (c: DockerContainerSummary) => {
+    const showLogs = async (c: DockerContainerSummary) => {
         if (!client) return;
         // Toggle off if already streaming this one.
         if (logState.containerId === c.Id) {
@@ -202,7 +204,7 @@ export const DockerManager: React.FC<DockerManagerProps> = (props: DockerManager
                         onStart={() => handleStart(c)}
                         onStop={() => handleStop(c)}
                         onRemove={() => handleRemove(c)}
-                        onToggleLogs={() => handleToggleLogs(c)}
+                        onShowLogs={() => showLogs(c)}
                     />
                 ))}
             </div>
@@ -218,7 +220,7 @@ interface ContainerCardProps {
     onStart: () => void;
     onStop: () => void;
     onRemove: () => void;
-    onToggleLogs: () => void;
+    onShowLogs: () => void;
 }
 
 const ContainerCard: React.FC<ContainerCardProps> = (props) => {
@@ -260,7 +262,7 @@ const ContainerCard: React.FC<ContainerCardProps> = (props) => {
                         variant={props.logsActive ? ButtonVariant.Default : ButtonVariant.Invisible}
                         aria-label="Toggle logs"
                         description={props.logsActive ? 'Hide logs' : 'Show logs'}
-                        onClick={props.onToggleLogs}
+                        onClick={props.onShowLogs}
                     >
                         <FileIcon />
                     </IconButton>
@@ -279,7 +281,7 @@ const ContainerCard: React.FC<ContainerCardProps> = (props) => {
                 renderAnchor={null}
                 anchorRef={cardRef}
                 open={props.logsActive}
-                onClose={() => props.onToggleLogs()}
+                onClose={() => props.onShowLogs()}
                 width={OverlaySize.XXL}
                 height={OverlaySize.XL}
                 side={AnchorSide.OutsideLeft}
@@ -288,7 +290,7 @@ const ContainerCard: React.FC<ContainerCardProps> = (props) => {
             >
                 <DockerLogList
                     lines={props.logLines ?? []}
-                    onClose={props.onToggleLogs}
+                    onClose={props.onShowLogs}
                 />
             </AnchoredOverlay>
         </>
