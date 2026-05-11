@@ -19,6 +19,7 @@ import { useKeyEvents } from '../../utils/key_events.js';
 import { LogJsonModal } from './log_json_modal.js';
 import { LogRecord } from '../../platform/logger/log_buffer.js';
 import { BinaryStatusIndicator, IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
+import { RectangleWaveSpinner } from '../foundations/spinners.js';
 import { SymbolIcon } from '../foundations/symbol_icon';
 
 const LABEL_KEY = 'dashql';
@@ -463,14 +464,24 @@ const DockerLogList: React.FC<DockerLogListProps> = ({ lines, containerName, onC
                 </IconButton>
             </div>
             <div className={styles.log_grid_container} ref={containerRef}>
-                <List
-                    listRef={listRef}
-                    style={{ width: containerWidth, height: containerHeight }}
-                    rowCount={lines.length}
-                    rowHeight={ROW_HEIGHT}
-                    rowComponent={DockerLogRow}
-                    rowProps={rowProps}
-                />
+                {lines.length === 0 ? (
+                    <div className={styles.log_loading}>
+                        <RectangleWaveSpinner
+                            className={styles.log_loading_spinner}
+                            active={true}
+                            color="rgb(36, 41, 46)"
+                        />
+                    </div>
+                ) : (
+                    <List
+                        listRef={listRef}
+                        style={{ width: containerWidth, height: containerHeight }}
+                        rowCount={lines.length}
+                        rowHeight={ROW_HEIGHT}
+                        rowComponent={DockerLogRow}
+                        rowProps={rowProps}
+                    />
+                )}
             </div>
             <LogJsonModal
                 record={jsonModalRecord as unknown as LogRecord}
