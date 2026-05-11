@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as styles from './docker_manager.module.css';
+import icons from '@ankoh/dashql-svg-symbols';
 
 import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
@@ -17,6 +18,8 @@ import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js
 import { useKeyEvents } from '../../utils/key_events.js';
 import { LogJsonModal } from './log_json_modal.js';
 import { LogRecord } from '../../platform/logger/log_buffer.js';
+import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator';
+import { SymbolIcon } from '../foundations/symbol_icon';
 
 const LABEL_KEY = 'dashql';
 const POLL_INTERVAL_MS = 2000;
@@ -223,21 +226,40 @@ interface ContainerCardProps {
     onShowLogs: () => void;
 }
 
+function getContainerStatus(status: string): IndicatorStatus {
+    switch (status) {
+        case 'running':
+            return IndicatorStatus.Running;
+        default:
+            console.log(status);
+            return IndicatorStatus.None;
+    }
+}
+
 const ContainerCard: React.FC<ContainerCardProps> = (props) => {
     const c = props.container;
-    const isRunning = c.State === 'running';
     const name = c.Names[0]?.replace(/^\//, '') ?? c.Id.slice(0, 12);
     const cardRef = React.useRef<HTMLDivElement>(null);
+    const status = getContainerStatus(c.State);
+
+    const LogIcon = SymbolIcon('log');
     return (
         <>
             <div className={styles.container_card} ref={cardRef}>
+                <div className={styles.container_status}>
+                    <StatusIndicator
+                        status={status}
+                        width="14px"
+                        height="14px"
+                        fill="black"
+                    />
+                </div>
                 <div className={styles.container_meta}>
-                    <div className={styles.container_name}>{name}</div>
-                    <div className={styles.container_image}>{c.Image}</div>
-                    <div className={`${styles.status_pill} ${isRunning ? styles.running : ''}`}>{c.Status}</div>
+                    <div className={styles.container_meta_name}>{name}</div>
+                    <div className={styles.container_meta_image}>{c.Image}</div>
                 </div>
                 <div className={styles.actions}>
-                    {isRunning ? (
+                    {(status == IndicatorStatus.Running) ? (
                         <IconButton
                             variant={ButtonVariant.Invisible}
                             aria-label="Stop container"
@@ -259,12 +281,12 @@ const ContainerCard: React.FC<ContainerCardProps> = (props) => {
                         </IconButton>
                     )}
                     <IconButton
-                        variant={props.logsActive ? ButtonVariant.Default : ButtonVariant.Invisible}
+                        variant={ButtonVariant.Invisible}
                         aria-label="Toggle logs"
-                        description={props.logsActive ? 'Hide logs' : 'Show logs'}
+                        description={'Show logs'}
                         onClick={props.onShowLogs}
                     >
-                        <FileIcon />
+                        <LogIcon />
                     </IconButton>
                     <IconButton
                         variant={ButtonVariant.Invisible}
