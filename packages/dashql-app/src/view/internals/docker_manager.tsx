@@ -4,12 +4,13 @@ import icons from '@ankoh/dashql-svg-symbols';
 
 import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
-import { XIcon, PlayIcon, SquareIcon, TrashIcon, FileIcon, PlusIcon } from '@primer/octicons-react';
+import { XIcon, PlayIcon, SquareIcon, TrashIcon, FileIcon, PlusIcon, DownloadIcon } from '@primer/octicons-react';
 
 import { ButtonVariant, IconButton } from '../foundations/button.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
 import { OverlaySize } from '../foundations/overlay.js';
 import { useDockerClient } from '../../platform/docker/docker_client_provider.js';
+import { useFileDownloader } from '../../platform/file/file_downloader_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { DockerContainerSummary, DockerLogChunk } from '../../platform/docker/docker_types.js';
 import { DockerCreatePanel } from './docker_create_panel.js';
@@ -331,6 +332,7 @@ const ContainerCard: React.FC<ContainerCardProps> = (props) => {
             >
                 <DockerLogList
                     lines={props.logLines ?? []}
+                    containerName={name}
                     onClose={props.onShowLogs}
                 />
             </AnchoredOverlay>
@@ -366,15 +368,30 @@ const DockerLogRow = (props: RowComponentProps<DockerLogRowProps>) => {
 
 interface DockerLogListProps {
     lines: DockerLogChunk[];
+    containerName: string;
     onClose: () => void;
 }
 
-const DockerLogList: React.FC<DockerLogListProps> = ({ lines, onClose }) => {
+const DockerLogList: React.FC<DockerLogListProps> = ({ lines, containerName, onClose }) => {
     const ROW_HEIGHT = 32;
+    const fileDownloader = useFileDownloader();
     const [jsonModalState, setJsonModalState] =
         React.useState<[object | null, number]>([null, -1]);
     const [jsonModalRecord, jsonModalRecordIndex] = jsonModalState;
     const closeJsonModal = React.useCallback(() => setJsonModalState([null, -1]), []);
+
+    const downloadLogs = React.useCallback(async () => {
+        try {
+            const text = lines.map(l => l.text.replace(/\n$/, '')).join('\n');
+            const uint8Array = new TextEncoder().encode(text);
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const safeName = containerName.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const filename = `dashql-docker-${safeName}-${timestamp}.log`;
+            await fileDownloader.downloadBufferAsFile(uint8Array, filename);
+        } catch (error) {
+            console.error('Failed to download docker logs:', error);
+        }
+    }, [lines, containerName, fileDownloader]);
 
     const containerRef = React.useRef<HTMLDivElement>(null);
     const containerSize = observeSize(containerRef);
@@ -429,6 +446,14 @@ const DockerLogList: React.FC<DockerLogListProps> = ({ lines, onClose }) => {
         <div className={styles.log_overlay}>
             <div className={styles.log_overlay_header}>
                 <div className={styles.log_overlay_title}>Container Logs</div>
+                <IconButton
+                    variant={ButtonVariant.Invisible}
+                    aria-label="Download container logs"
+                    onClick={downloadLogs}
+                    disabled={lines.length === 0}
+                >
+                    <DownloadIcon />
+                </IconButton>
                 <IconButton variant={ButtonVariant.Invisible} aria-label="Close" onClick={onClose}>
                     <XIcon />
                 </IconButton>
