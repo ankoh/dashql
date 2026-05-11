@@ -1,10 +1,9 @@
 import * as React from 'react';
 import * as styles from './docker_manager.module.css';
-import icons from '@ankoh/dashql-svg-symbols';
 
 import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
-import { XIcon, PlayIcon, SquareIcon, TrashIcon, FileIcon, PlusIcon, DownloadIcon } from '@primer/octicons-react';
+import { XIcon, TrashIcon, PlusIcon, DownloadIcon, DashIcon, CircleSlashIcon } from '@primer/octicons-react';
 
 import { ButtonVariant, IconButton } from '../foundations/button.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
@@ -19,11 +18,10 @@ import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js
 import { useKeyEvents } from '../../utils/key_events.js';
 import { LogJsonModal } from './log_json_modal.js';
 import { LogRecord } from '../../platform/logger/log_buffer.js';
-import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator';
+import { BinaryStatusIndicator, IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
 import { SymbolIcon } from '../foundations/symbol_icon';
 
 const LABEL_KEY = 'dashql';
-const POLL_INTERVAL_MS = 2000;
 const MAX_LOG_LINES = 2000;
 
 interface DockerManagerProps {
@@ -44,6 +42,7 @@ export const DockerManager: React.FC<DockerManagerProps> = (props: DockerManager
     const [errorText, setErrorText] = React.useState<string | null>(null);
     const [logState, setLogState] = React.useState<LogState>({ containerId: null, lines: [] });
     const [loading, setLoading] = React.useState<boolean>(false);
+    const [isEditMode, setIsEditMode] = React.useState<boolean>(false);
     const logAbort = React.useRef<AbortController | null>(null);
 
     const refresh = React.useCallback(async () => {
@@ -181,6 +180,15 @@ export const DockerManager: React.FC<DockerManagerProps> = (props: DockerManager
                 </div>
                 <div className={styles.header_actions}>
                     <IconButton
+                        variant={isEditMode ? ButtonVariant.Default : ButtonVariant.Invisible}
+                        aria-label={isEditMode ? 'Done removing' : 'Remove containers'}
+                        aria-pressed={isEditMode}
+                        onClick={() => setIsEditMode(!isEditMode)}
+                        disabled={!client}
+                    >
+                        {isEditMode ? <CircleSlashIcon /> : <DashIcon />}
+                    </IconButton>
+                    <IconButton
                         variant={ButtonVariant.Invisible}
                         aria-label="Create container"
                         description="Create a new container"
@@ -224,6 +232,7 @@ export const DockerManager: React.FC<DockerManagerProps> = (props: DockerManager
                         busy={!!busy[c.Id]}
                         logsActive={logState.containerId === c.Id}
                         logLines={logState.containerId === c.Id ? logState.lines : null}
+                        isEditMode={isEditMode}
                         onStart={() => handleStart(c)}
                         onStop={() => handleStop(c)}
                         onRemove={() => handleRemove(c)}
@@ -240,35 +249,28 @@ interface ContainerCardProps {
     busy: boolean;
     logsActive: boolean;
     logLines: DockerLogChunk[] | null;
+    isEditMode: boolean;
     onStart: () => void;
     onStop: () => void;
     onRemove: () => void;
     onShowLogs: () => void;
 }
 
-function getContainerStatus(status: string): IndicatorStatus {
-    switch (status) {
-        case 'running':
-            return IndicatorStatus.Running;
-        default:
-            console.log(status);
-            return IndicatorStatus.None;
-    }
-}
-
 const ContainerCard: React.FC<ContainerCardProps> = (props) => {
     const c = props.container;
     const name = c.Names[0]?.replace(/^\//, '') ?? c.Id.slice(0, 12);
     const cardRef = React.useRef<HTMLDivElement>(null);
-    const status = getContainerStatus(c.State);
+    const isRunning = c.State === 'running';
 
-    const LogIcon = SymbolIcon('log');
+    const LogIcon = SymbolIcon('log_24');
+    const PauseIcon = SymbolIcon('pause_24');
+    const RocketIcon = SymbolIcon('rocket_24');
     return (
         <>
             <div className={styles.container_card} ref={cardRef}>
                 <div className={styles.container_status}>
-                    <StatusIndicator
-                        status={status}
+                    <BinaryStatusIndicator
+                        online={isRunning}
                         width="14px"
                         height="14px"
                         fill="black"
@@ -279,7 +281,15 @@ const ContainerCard: React.FC<ContainerCardProps> = (props) => {
                     <div className={styles.container_meta_image}>{c.Image}</div>
                 </div>
                 <div className={styles.actions}>
-                    {(status == IndicatorStatus.Running) ? (
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        aria-label="Toggle logs"
+                        description={'Show logs'}
+                        onClick={props.onShowLogs}
+                    >
+                        <LogIcon />
+                    </IconButton>
+                    {isRunning ? (
                         <IconButton
                             variant={ButtonVariant.Invisible}
                             aria-label="Stop container"
@@ -287,7 +297,7 @@ const ContainerCard: React.FC<ContainerCardProps> = (props) => {
                             onClick={props.onStop}
                             disabled={props.busy}
                         >
-                            <SquareIcon />
+                            <PauseIcon />
                         </IconButton>
                     ) : (
                         <IconButton
@@ -297,26 +307,20 @@ const ContainerCard: React.FC<ContainerCardProps> = (props) => {
                             onClick={props.onStart}
                             disabled={props.busy}
                         >
-                            <PlayIcon />
+                            <RocketIcon />
                         </IconButton>
                     )}
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        aria-label="Toggle logs"
-                        description={'Show logs'}
-                        onClick={props.onShowLogs}
-                    >
-                        <LogIcon />
-                    </IconButton>
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        aria-label="Remove container"
-                        description="Remove"
-                        onClick={props.onRemove}
-                        disabled={props.busy}
-                    >
-                        <TrashIcon />
-                    </IconButton>
+                    {!isRunning && props.isEditMode && (
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Remove container"
+                            description="Remove"
+                            onClick={props.onRemove}
+                            disabled={props.busy}
+                        >
+                            <TrashIcon />
+                        </IconButton>
+                    )}
                 </div>
             </div>
             <AnchoredOverlay
