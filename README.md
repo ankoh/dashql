@@ -25,15 +25,14 @@ This encoding is compact and efficient for simple passes, but is not directly su
 ### Building
 
 ```
-# Dev server for dashql-native:dev.
-# dashql-native:dev connects to dashql-app:dev_native, so run them in separate terminals.
-# :dev_native supports HMR in the Tauri WebView.
-bazel run //packages/dashql-app:dev_native
-bazel run //packages/dashql-native:dev
-
 # Dev server with for Vite in the browser.
 # We don't support HMR in the browser since pthread web-workers + HMR crash Chrome.
 bazel run //packages/dashql-app:dev
+
+# Dev server for dashql-native:dev.
+# dashql-app:dev_native supports HMR for the Tauri WebView.
+bazel run //packages/dashql-app:dev_native
+bazel run //packages/dashql-native:dev
 
 # If you need demangled wasm stacktraces, run with
 bazel run --config=debug //packages/dashql-app:dev

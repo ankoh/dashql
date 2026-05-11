@@ -318,7 +318,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "BPz0eLxsWHjbV9fhCEzbtpxuXWHA3Wwp8sqtln5wf3A=",
+        "bzlTransitiveDigest": "fRxkPExjGrtXBhpWfSsKAWleEqGAKKuI1acUMRhSdxM=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -1023,7 +1023,7 @@
           "FILE:@@//Cargo.lock 74f4bc21981b72f829fd4b70e442e213544a03726676cf1a4b353d2f0fe7a529",
           "FILE:@@//Cargo.toml b06448a8854fbefd34184d1ba55cb5c1519c80c55cb645fa99fc26f9e8c27e9e",
           "FILE:@@//packages/dashql-native/Cargo.toml b24e09c6c4b42e95207d98edd259cea9699b11dd431b14790dcbf32c57c12afa",
-          "FILE:@@//packages/tauri-aclgen/Cargo.toml 826f85f748d7efb83b4ec8cd68250216dc3aeeec8647c5b0e5e18c5d9d2eeea2",
+          "FILE:@@//packages/tauri-aclgen/Cargo.toml 668def9d286d678b9bff2ba3502edf2fbe6c7e70f806f84bb41c3721e5846686",
           "FILE:@@//packages/dashql-pack/Cargo.toml 3e0a4f76fab2b15c9f53cffc27e5880fdbf6b2523798fee1618c89f5690d8bcb"
         ],
         "generatedRepoSpecs": {
