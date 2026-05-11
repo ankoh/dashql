@@ -310,13 +310,13 @@ const ContainerCard: React.FC<ContainerCardProps> = (props) => {
                             <RocketIcon />
                         </IconButton>
                     )}
-                    {!isRunning && props.isEditMode && (
+                    {props.isEditMode && (
                         <IconButton
                             variant={ButtonVariant.Invisible}
                             aria-label="Remove container"
                             description="Remove"
                             onClick={props.onRemove}
-                            disabled={props.busy}
+                            disabled={props.busy || isRunning}
                         >
                             <TrashIcon />
                         </IconButton>

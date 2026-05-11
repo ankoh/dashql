@@ -48,7 +48,6 @@ pub enum Status {
     DockerRegistryFailed { message: String },
     DockerStreamIsUnknown { stream_id: usize },
     DockerStreamClosed { stream_id: usize },
-    DockerStreamReadTimedOut { stream_id: usize },
     DockerStreamFailed { stream_id: usize, error: String },
 }
 
@@ -310,12 +309,6 @@ impl TryFrom<&Status> for StatusMessage {
                     ("stream", stream_id.to_string()),
                 ]),
             }),
-            Status::DockerStreamReadTimedOut { stream_id } => Ok(StatusMessage {
-                message: "reading from docker stream timed out".to_string(),
-                details: HashMap::from_iter([
-                    ("stream", stream_id.to_string()),
-                ]),
-            }),
             Status::DockerStreamFailed { stream_id, error } => Ok(StatusMessage {
                 message: "docker stream failed".to_string(),
                 details: HashMap::from_iter([
@@ -366,7 +359,6 @@ impl From<&Status> for StatusCode {
             Status::DockerRegistryFailed { message: _ } => StatusCode::BAD_GATEWAY,
             Status::DockerStreamIsUnknown { stream_id: _ } => StatusCode::NOT_FOUND,
             Status::DockerStreamClosed { stream_id: _ } => StatusCode::BAD_REQUEST,
-            Status::DockerStreamReadTimedOut { stream_id: _ } => StatusCode::BAD_REQUEST,
             Status::DockerStreamFailed { stream_id: _, error: _ } => StatusCode::BAD_REQUEST,
         }
     }
