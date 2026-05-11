@@ -31,7 +31,7 @@ importers:
         specifier: ^6.6.0
         version: 6.6.0
       '@codemirror/view':
-        specifier: ^6.42.0
+        specifier: ^6.42.1
         version: 6.42.1
       '@dnd-kit/core':
         specifier: ^6.3.1
