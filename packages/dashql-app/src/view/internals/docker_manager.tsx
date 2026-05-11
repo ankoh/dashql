@@ -42,10 +42,12 @@ export const DockerManager: React.FC<DockerManagerProps> = (props: DockerManager
     const [busy, setBusy] = React.useState<Record<string, boolean>>({});
     const [errorText, setErrorText] = React.useState<string | null>(null);
     const [logState, setLogState] = React.useState<LogState>({ containerId: null, lines: [] });
+    const [loading, setLoading] = React.useState<boolean>(false);
     const logAbort = React.useRef<AbortController | null>(null);
 
     const refresh = React.useCallback(async () => {
         if (!client) return;
+        setLoading(true);
         try {
             const list = await client.listContainers(LABEL_KEY);
             setContainers(list);
@@ -53,6 +55,8 @@ export const DockerManager: React.FC<DockerManagerProps> = (props: DockerManager
         } catch (e: any) {
             setErrorText(e?.message ?? String(e));
             logger.warn('docker list failed', { error: e?.message ?? String(e) }, 'docker');
+        } finally {
+            setLoading(false);
         }
     }, [client, logger]);
 
@@ -64,6 +68,11 @@ export const DockerManager: React.FC<DockerManagerProps> = (props: DockerManager
     //     const t = setInterval(refresh, POLL_INTERVAL_MS);
     //     return () => clearInterval(t);
     // }, [client, mode, refresh]);
+
+    React.useEffect(() => {
+        if (!client || mode !== 'list') return;
+        refresh();
+    }, [client, mode, refresh]);
 
     React.useEffect(() => {
         return () => {
@@ -190,7 +199,17 @@ export const DockerManager: React.FC<DockerManagerProps> = (props: DockerManager
             </div>
             <div className={styles.body}>
                 {errorText && <div className={styles.error_text}>{errorText}</div>}
-                {!errorText && containers.length === 0 && (
+                {!errorText && loading && containers.length === 0 && (
+                    <div className={styles.empty_state}>
+                        <StatusIndicator
+                            status={IndicatorStatus.Running}
+                            width="16px"
+                            height="16px"
+                            fill="black"
+                        />
+                    </div>
+                )}
+                {!errorText && !loading && containers.length === 0 && (
                     <div className={styles.empty_state}>
                         No containers with label <code>{LABEL_KEY}</code> found.
                         <br />
