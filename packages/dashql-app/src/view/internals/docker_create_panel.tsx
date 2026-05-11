@@ -17,7 +17,7 @@ import { DockerCreateContainerSpec } from '../../platform/docker/docker_types.js
 const DEFAULT_REPOSITORY = 'ankoh/hyperdb';
 const HYPER_GRPC_PORT = '7484';
 const FIXED_HYPER_CMD: readonly string[] = [
-    'shell',
+    'run',
     '--no-password',
     '--skip-license=1',
     '--init-user=tableau_internal_user',
