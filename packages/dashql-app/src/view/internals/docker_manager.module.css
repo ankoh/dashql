@@ -56,6 +56,18 @@
     padding: 24px;
 }
 
+.loading_state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.loading_spinner {
+    width: 32px;
+    height: 20px;
+}
+
 .container_card {
     border: 1px solid var(--border_color_primary);
     border-radius: var(--border_radius);

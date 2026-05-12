@@ -18,7 +18,7 @@ import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js
 import { useKeyEvents } from '../../utils/key_events.js';
 import { LogJsonModal } from './log_json_modal.js';
 import { LogRecord } from '../../platform/logger/log_buffer.js';
-import { BinaryStatusIndicator, IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
+import { BinaryStatusIndicator } from '../foundations/status_indicator.js';
 import { RectangleWaveSpinner } from '../foundations/spinners.js';
 import { SymbolIcon } from '../foundations/symbol_icon';
 
@@ -210,12 +210,11 @@ export const DockerManager: React.FC<DockerManagerProps> = (props: DockerManager
             <div className={styles.body}>
                 {errorText && <div className={styles.error_text}>{errorText}</div>}
                 {!errorText && loading && containers.length === 0 && (
-                    <div className={styles.empty_state}>
-                        <StatusIndicator
-                            status={IndicatorStatus.Running}
-                            width="16px"
-                            height="16px"
-                            fill="black"
+                    <div className={styles.loading_state}>
+                        <RectangleWaveSpinner
+                            className={styles.loading_spinner}
+                            active={true}
+                            color="rgb(36, 41, 46)"
                         />
                     </div>
                 )}
