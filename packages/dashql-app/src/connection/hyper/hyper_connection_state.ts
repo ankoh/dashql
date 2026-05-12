@@ -6,6 +6,7 @@ import type { DetailedError } from '../connection_types.js';
 
 import { VariantKind } from '../../utils/variant.js';
 import { HyperDatabaseChannel } from '../../connection/hyper/hyperdb_grpc_client.js';
+import { isNativePlatform } from '../../platform/native_globals.js';
 import { ConnectorType, CONNECTOR_INFOS, HYPER_CONNECTOR } from '../connector_info.js';
 import {
     ConnectionHealth,
@@ -38,7 +39,7 @@ export function createHyperConnectionStateDetails(params?: connection.HyperConne
         proto: {
             setupTimings: {},
             setupParams: params ?? {
-                protocol: "V3_HTTP",
+                protocol: isNativePlatform() ? "V3_GRPC" : "V3_HTTP",
                 endpoint: "",
                 tls: {
                     clientKeyPath: "",

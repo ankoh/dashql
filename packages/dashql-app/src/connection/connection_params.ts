@@ -13,6 +13,7 @@ import { createDatalessConnectionParamsSignature } from './dataless/dataless_con
 import { createTrinoConnectionParamsSignature } from './trino/trino_connection_params.js';
 import { createTrinoConnectionStateDetails } from './trino/trino_connection_state.js';
 import { newConnectionSignature, ConnectionSignatureMap } from './connection_signature.js';
+import { isNativePlatform } from '../platform/native_globals.js';
 
 // Re-export connection param types from JSON Schema
 export type ConnectionParams = app_session.ConnectionParams;
@@ -102,9 +103,9 @@ export function createDefaultConnectionParamsForConnector(connector: ConnectorIn
         case ConnectorType.DATALESS:
             return { dataless: {} };
         case ConnectorType.HYPER:
-            return { hyper: { protocol: 'V3_HTTP', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } };
+            return { hyper: { protocol: isNativePlatform() ? 'V3_GRPC' : 'V3_HTTP', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } };
         case ConnectorType.SALESFORCE_DATA_CLOUD:
-            return { salesforce: { hyperProtocol: 'V3_HTTP', instanceUrl: '', appConsumerKey: '', appConsumerSecret: '', login: '' } };
+            return { salesforce: { hyperProtocol: isNativePlatform() ? 'V3_GRPC' : 'V3_HTTP', instanceUrl: '', appConsumerKey: '', appConsumerSecret: '', login: '' } };
         case ConnectorType.TRINO:
             return { trino: { endpoint: '', catalogName: '', auth: { authType: 'AUTH_BASIC' } } };
     }

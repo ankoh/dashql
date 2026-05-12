@@ -43,7 +43,7 @@ interface PageState {
 function buildPageStateFromParams(params: connection.HyperConnectionParams | undefined): PageState {
     const metadataDetails = (params?.metadata as { details?: Record<string, string> } | undefined)?.details;
     return {
-        protocol: params?.protocol ?? "V3_HTTP",
+        protocol: params?.protocol ?? (isNativePlatform() ? "V3_GRPC" : "V3_HTTP"),
         endpoint: params?.endpoint ?? "http://localhost:7484",
         mTlsKeyPath: params?.tls?.clientKeyPath ?? "",
         mTlsPubPath: params?.tls?.clientCertPath ?? "",
