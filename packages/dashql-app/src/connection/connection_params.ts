@@ -103,7 +103,7 @@ export function createDefaultConnectionParamsForConnector(connector: ConnectorIn
         case ConnectorType.DATALESS:
             return { dataless: {} };
         case ConnectorType.HYPER:
-            return { hyper: { protocol: isNativePlatform() ? 'V3_GRPC' : 'V3_HTTP', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } };
+            return { hyper: { protocol: isNativePlatform() ? 'V3_DOCKER' : 'V3_HTTP', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } };
         case ConnectorType.SALESFORCE_DATA_CLOUD:
             return { salesforce: { hyperProtocol: isNativePlatform() ? 'V3_GRPC' : 'V3_HTTP', instanceUrl: '', appConsumerKey: '', appConsumerSecret: '', login: '' } };
         case ConnectorType.TRINO:

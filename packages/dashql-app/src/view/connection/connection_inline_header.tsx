@@ -30,17 +30,29 @@ interface Props {
     resetSetup?: () => void;
     notebook: NotebookState | null;
     protocol?: connection.HyperProtocol;
+    protocols?: connection.HyperProtocol[];
     onProtocolChange?: (protocol: connection.HyperProtocol) => void;
     freezeInput?: boolean;
     onClose?: () => void;
+    /// Extra actions rendered fully right in the status bar, after the connect button.
+    trailingStatusActions?: React.ReactNode;
 }
+
+const PROTOCOL_LABELS: Record<connection.HyperProtocol, string> = {
+    V3_DOCKER: "Docker",
+    V3_GRPC: "gRPC",
+    V3_HTTP: "HTTP",
+};
 
 export function ConnectionInlineHeader(props: Props): React.ReactElement {
     const logger = useLogger();
 
-    // Get the action button
+    // Get the action button.
+    // If no setup/cancel/reset handler is provided, the caller is taking over the connect action
+    // (e.g. the Docker panel uses per-row Connect buttons), so suppress the header button entirely.
+    const headerActionsProvided = props.setupConnection || props.cancelSetup || props.resetSetup;
     let connectButton: React.ReactElement = <div />;
-    if (props.connector.features.manualSetup) {
+    if (props.connector.features.manualSetup && headerActionsProvided) {
         switch (props.connection?.connectionHealth) {
             case ConnectionHealth.NOT_STARTED:
             case ConnectionHealth.CANCELLED:
@@ -111,25 +123,22 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                     </div>
                 </div>
                 <div className={style.actions}>
-                    {props.protocol !== undefined && props.onProtocolChange && (
+                    {props.protocol !== undefined && props.onProtocolChange && props.protocols && props.protocols.length > 0 && (
                         <SegmentedControl
                             aria-label="Connection protocol"
                             onChange={(index) => {
-                                props.onProtocolChange!(index === 0 ? "V3_GRPC" : "V3_HTTP");
+                                props.onProtocolChange!(props.protocols![index]);
                             }}
                         >
-                            <SegmentedControl.Button
-                                selected={props.protocol === "V3_GRPC"}
-                                disabled={props.freezeInput}
-                            >
-                                gRPC
-                            </SegmentedControl.Button>
-                            <SegmentedControl.Button
-                                selected={props.protocol === "V3_HTTP"}
-                                disabled={props.freezeInput}
-                            >
-                                HTTP
-                            </SegmentedControl.Button>
+                            {props.protocols.map(p => (
+                                <SegmentedControl.Button
+                                    key={p}
+                                    selected={props.protocol === p}
+                                    disabled={props.freezeInput}
+                                >
+                                    {PROTOCOL_LABELS[p]}
+                                </SegmentedControl.Button>
+                            ))}
                         </SegmentedControl>
                     )}
                     {props.onClose && (
@@ -160,6 +169,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                     </div>
                     <div className={style.status_right}>
                         {connectButton}
+                        {props.trailingStatusActions}
                     </div>
                 </div>
             )}

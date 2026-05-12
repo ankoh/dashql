@@ -1,0 +1,350 @@
+import * as React from 'react';
+import * as styles from '../internals/docker_manager.module.css';
+
+import { PlugIcon, TrashIcon, XIcon } from '@primer/octicons-react';
+
+import { ButtonVariant, IconButton } from '../foundations/button.js';
+import { BinaryStatusIndicator } from '../foundations/status_indicator.js';
+import { RectangleWaveSpinner } from '../foundations/spinners.js';
+import { SymbolIcon } from '../foundations/symbol_icon.js';
+import { useDockerClient } from '../../platform/docker/docker_client_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useHyperDatabaseClient } from '../../connection/hyper/hyperdb_grpc_client_provider.js';
+import { useHyperSetup } from '../../connection/hyper/hyper_connection_setup.js';
+import { useQueryExecutor } from '../../connection/query_executor.js';
+import { useConnectionState } from '../../connection/connection_registry.js';
+import { ConnectionHealth } from '../../connection/connection_state.js';
+import { performHealthCheck } from '../../connection/health_check.js';
+import { getHyperConnectionDetails } from '../../connection/hyper/hyper_connection_state.js';
+import {
+    DockerContainerSummary,
+    pickHyperPort,
+} from '../../platform/docker/docker_types.js';
+import { DockerCreatePanel } from '../internals/docker_create_panel.js';
+
+const LOG_CTX = 'hyper_docker_settings';
+const LABEL_KEY = 'dashql';
+
+export type HyperDockerPanelMode = 'list' | 'create';
+
+interface Props {
+    sessionId: string | null;
+    freezeInput?: boolean;
+    mode: HyperDockerPanelMode;
+    setMode: (mode: HyperDockerPanelMode) => void;
+    isEditMode: boolean;
+    onClose?: () => void;
+}
+
+function endpointForPort(port: number): string {
+    return `http://localhost:${port}`;
+}
+
+export const HyperDockerSettingsPanel: React.FC<Props> = (props: Props) => {
+    const logger = useLogger();
+    const dockerClient = useDockerClient();
+    const hyperClient = useHyperDatabaseClient();
+    const hyperSetup = useHyperSetup();
+    const queryExecutor = useQueryExecutor();
+    const [connectionState, dispatchConnectionState] = useConnectionState(props.sessionId);
+    const hyperConnection = getHyperConnectionDetails(connectionState);
+
+    const [containers, setContainers] = React.useState<DockerContainerSummary[]>([]);
+    const [loading, setLoading] = React.useState(false);
+    const [errorText, setErrorText] = React.useState<string | null>(null);
+    const [busyContainerId, setBusyContainerId] = React.useState<string | null>(null);
+    const setupAbort = React.useRef<AbortController | null>(null);
+
+    const refresh = React.useCallback(async () => {
+        if (!dockerClient) return;
+        setLoading(true);
+        try {
+            const list = await dockerClient.listContainers(LABEL_KEY);
+            setContainers(list);
+            setErrorText(null);
+        } catch (e: any) {
+            setErrorText(e?.message ?? String(e));
+            logger.warn('docker list failed', { error: e?.message ?? String(e) }, LOG_CTX);
+        } finally {
+            setLoading(false);
+        }
+    }, [dockerClient, logger]);
+
+    React.useEffect(() => {
+        if (!dockerClient || props.mode !== 'list') return;
+        refresh();
+    }, [dockerClient, refresh, props.mode]);
+
+    const handleRemove = async (c: DockerContainerSummary) => {
+        if (!dockerClient) return;
+        if (!confirm(`Remove container ${c.Names[0] ?? c.Id.slice(0, 12)}?`)) return;
+        setBusyContainerId(c.Id);
+        try {
+            await dockerClient.removeContainer(c.Id, true);
+            await refresh();
+        } catch (e: any) {
+            setErrorText(e?.message ?? String(e));
+        } finally {
+            setBusyContainerId(null);
+        }
+    };
+
+    const handleStart = async (c: DockerContainerSummary) => {
+        if (!dockerClient) return;
+        setBusyContainerId(c.Id);
+        try {
+            await dockerClient.startContainer(c.Id);
+            await refresh();
+        } catch (e: any) {
+            setErrorText(e?.message ?? String(e));
+        } finally {
+            setBusyContainerId(null);
+        }
+    };
+
+    const handleStop = async (c: DockerContainerSummary) => {
+        if (!dockerClient) return;
+        setBusyContainerId(c.Id);
+        try {
+            await dockerClient.stopContainer(c.Id);
+            await refresh();
+        } catch (e: any) {
+            setErrorText(e?.message ?? String(e));
+        } finally {
+            setBusyContainerId(null);
+        }
+    };
+
+    const handleConnect = async (c: DockerContainerSummary) => {
+        if (hyperClient == null || hyperSetup == null) {
+            logger.error('Hyper connector is unavailable', {}, LOG_CTX);
+            return;
+        }
+        if (connectionState == null) {
+            logger.warn('Connection state is null', {}, LOG_CTX);
+            return;
+        }
+        const port = pickHyperPort(c);
+        if (port == null) {
+            setErrorText(`Container ${c.Names[0] ?? c.Id.slice(0, 12)} has no published TCP port`);
+            return;
+        }
+        try {
+            setupAbort.current = new AbortController();
+            const params = {
+                protocol: 'V3_DOCKER' as const,
+                endpoint: endpointForPort(port),
+                tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
+                attachedDatabases: [],
+                metadata: { message: '', details: {} } as any,
+            };
+            const channel = await hyperSetup.setup(dispatchConnectionState, params, setupAbort.current.signal);
+            if (channel != null) {
+                await performHealthCheck(queryExecutor, connectionState.sessionId, { type: 'hyper', channel }, dispatchConnectionState, setupAbort.current.signal);
+            }
+        } catch (_error: any) {
+            // Errors are surfaced through the connection state; nothing to do here.
+        }
+        setupAbort.current = null;
+    };
+
+    const handleCancel = () => {
+        if (setupAbort.current) {
+            setupAbort.current.abort('abort the Hyper setup');
+            setupAbort.current = null;
+        }
+    };
+
+    const handleDisconnect = async () => {
+        if (hyperSetup) {
+            await hyperSetup.reset(dispatchConnectionState);
+        }
+    };
+
+    const activeEndpoint = hyperConnection?.proto.setupParams?.endpoint ?? null;
+    const health = connectionState?.connectionHealth ?? ConnectionHealth.NOT_STARTED;
+
+    if (props.mode === 'create') {
+        return (
+            <DockerCreatePanel
+                onBack={() => props.setMode('list')}
+                onCreated={async () => {
+                    props.setMode('list');
+                    await refresh();
+                }}
+                onClose={props.onClose ?? (() => props.setMode('list'))}
+            />
+        );
+    }
+
+    return (
+        <div className={styles.body}>
+            {errorText && <div className={styles.error_text}>{errorText}</div>}
+            {!errorText && loading && containers.length === 0 && (
+                <div className={styles.loading_state}>
+                    <RectangleWaveSpinner
+                        className={styles.loading_spinner}
+                        active={true}
+                        color="rgb(36, 41, 46)"
+                    />
+                </div>
+            )}
+            {!errorText && !loading && containers.length === 0 && (
+                <div className={styles.empty_state}>
+                    No containers with label <code>{LABEL_KEY}</code> found.
+                </div>
+            )}
+            {containers.map(c => {
+                const port = pickHyperPort(c);
+                const endpoint = port != null ? endpointForPort(port) : null;
+                const isActive = endpoint != null && endpoint === activeEndpoint;
+                return (
+                    <HyperContainerCard
+                        key={c.Id}
+                        container={c}
+                        port={port}
+                        busy={busyContainerId === c.Id}
+                        isActive={isActive}
+                        connectionHealth={isActive ? health : ConnectionHealth.NOT_STARTED}
+                        freezeInput={!!props.freezeInput}
+                        isEditMode={props.isEditMode}
+                        onStart={() => handleStart(c)}
+                        onStop={() => handleStop(c)}
+                        onRemove={() => handleRemove(c)}
+                        onConnect={() => handleConnect(c)}
+                        onCancel={handleCancel}
+                        onDisconnect={handleDisconnect}
+                    />
+                );
+            })}
+        </div>
+    );
+};
+
+interface HyperContainerCardProps {
+    container: DockerContainerSummary;
+    port: number | null;
+    busy: boolean;
+    isActive: boolean;
+    connectionHealth: ConnectionHealth;
+    freezeInput: boolean;
+    isEditMode: boolean;
+    onStart: () => void;
+    onStop: () => void;
+    onRemove: () => void;
+    onConnect: () => void;
+    onCancel: () => void;
+    onDisconnect: () => void;
+}
+
+const HyperContainerCard: React.FC<HyperContainerCardProps> = (props) => {
+    const c = props.container;
+    const name = c.Names[0]?.replace(/^\//, '') ?? c.Id.slice(0, 12);
+    const isRunning = c.State === 'running';
+    const PauseIcon = SymbolIcon('pause_24');
+    const RocketIcon = SymbolIcon('rocket_24');
+
+    let connectButton: React.ReactElement | null = null;
+    if (props.isActive) {
+        switch (props.connectionHealth) {
+            case ConnectionHealth.CONNECTING:
+                connectButton = (
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        aria-label="Cancel connection"
+                        description="Cancel"
+                        onClick={props.onCancel}
+                    >
+                        <XIcon />
+                    </IconButton>
+                );
+                break;
+            case ConnectionHealth.ONLINE:
+                connectButton = (
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        aria-label="Disconnect"
+                        description="Disconnect"
+                        onClick={props.onDisconnect}
+                    >
+                        <XIcon />
+                    </IconButton>
+                );
+                break;
+            default:
+                connectButton = renderConnectButton(props, isRunning);
+                break;
+        }
+    } else {
+        connectButton = renderConnectButton(props, isRunning);
+    }
+
+    return (
+        <div className={styles.container_card}>
+            <div className={styles.container_status}>
+                <BinaryStatusIndicator
+                    online={isRunning}
+                    width="14px"
+                    height="14px"
+                    fill="black"
+                />
+            </div>
+            <div className={styles.container_meta}>
+                <div className={styles.container_meta_name}>{name}</div>
+                <div className={styles.container_meta_image}>
+                    {c.Image}{props.port != null ? ` · :${props.port}` : ''}
+                </div>
+            </div>
+            <div className={styles.actions}>
+                {isRunning ? (
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        aria-label="Stop container"
+                        description="Stop"
+                        onClick={props.onStop}
+                        disabled={props.busy || props.freezeInput}
+                    >
+                        <PauseIcon />
+                    </IconButton>
+                ) : (
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        aria-label="Start container"
+                        description="Start"
+                        onClick={props.onStart}
+                        disabled={props.busy || props.freezeInput}
+                    >
+                        <RocketIcon />
+                    </IconButton>
+                )}
+                {connectButton}
+                {props.isEditMode && (
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        aria-label="Remove container"
+                        description="Remove"
+                        onClick={props.onRemove}
+                        disabled={props.busy || isRunning}
+                    >
+                        <TrashIcon />
+                    </IconButton>
+                )}
+            </div>
+        </div>
+    );
+};
+
+function renderConnectButton(props: HyperContainerCardProps, isRunning: boolean): React.ReactElement {
+    const disabled = !isRunning || props.port == null || props.busy || props.freezeInput;
+    return (
+        <IconButton
+            variant={ButtonVariant.Invisible}
+            aria-label="Connect to container"
+            description="Connect"
+            onClick={props.onConnect}
+            disabled={disabled}
+        >
+            <PlugIcon />
+        </IconButton>
+    );
+}

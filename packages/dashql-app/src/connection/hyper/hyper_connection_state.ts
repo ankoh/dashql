@@ -39,7 +39,7 @@ export function createHyperConnectionStateDetails(params?: connection.HyperConne
         proto: {
             setupTimings: {},
             setupParams: params ?? {
-                protocol: isNativePlatform() ? "V3_GRPC" : "V3_HTTP",
+                protocol: isNativePlatform() ? "V3_DOCKER" : "V3_HTTP",
                 endpoint: "",
                 tls: {
                     clientKeyPath: "",

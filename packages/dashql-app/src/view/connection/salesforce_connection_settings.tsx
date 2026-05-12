@@ -292,6 +292,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
                 resetSetup={resetSetup}
                 notebook={connectionNotebook}
                 protocol={hyperProtocol}
+                protocols={["V3_GRPC", "V3_HTTP"]}
                 onProtocolChange={setHyperProtocol}
                 freezeInput={freezeInput}
                 onClose={props.onClose}
