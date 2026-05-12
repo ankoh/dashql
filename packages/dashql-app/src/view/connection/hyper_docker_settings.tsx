@@ -225,6 +225,7 @@ export const HyperDockerSettingsPanel: React.FC<Props> = (props: Props) => {
                     await refresh();
                 }}
                 onClose={props.onClose ?? (() => props.setMode('list'))}
+                hideHeader
             />
         );
     }

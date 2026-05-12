@@ -29,6 +29,7 @@ interface Props {
     onBack: () => void;
     onClose: () => void;
     onCreated: () => void | Promise<void>;
+    hideHeader?: boolean;
 }
 
 type Step = 0 | 1 | 2;
@@ -162,20 +163,22 @@ export const DockerCreatePanel: React.FC<Props> = (props: Props) => {
 
     return (
         <div className={styles.root}>
-            <div className={styles.header}>
-                <div className={styles.header_left}>
-                    <div className={styles.title}>Docker</div>
+            {!props.hideHeader && (
+                <div className={styles.header}>
+                    <div className={styles.header_left}>
+                        <div className={styles.title}>Docker</div>
+                    </div>
+                    <div className={styles.header_actions}>
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-label="close-overlay"
+                            onClick={props.onClose}
+                        >
+                            <XIcon />
+                        </IconButton>
+                    </div>
                 </div>
-                <div className={styles.header_actions}>
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        aria-label="close-overlay"
-                        onClick={props.onClose}
-                    >
-                        <XIcon />
-                    </IconButton>
-                </div>
-            </div>
+            )}
             <div className={styles.wizard_toolbar}>
                 <IconButton
                     variant={ButtonVariant.Invisible}

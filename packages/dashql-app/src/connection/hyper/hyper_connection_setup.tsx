@@ -112,7 +112,7 @@ export const HyperSetupProvider: React.FC<Props> = (props: Props) => {
             });
         };
         return { setup, reset };
-    }, [connectorConfig]);
+    }, [connectorConfig, hyperClient, logger]);
 
     return (
         <SETUP_CTX.Provider value={api} > {props.children} </SETUP_CTX.Provider>
