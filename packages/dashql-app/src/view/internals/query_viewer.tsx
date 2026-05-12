@@ -245,7 +245,7 @@ export function QueryViewer(props: { onClose: () => void }) {
                 </div>
                 <div className={styles.query_grid_container} ref={containerRef}>
                     {entries.length === 0 ? (
-                        <div className={styles.empty_state}>No Logs</div>
+                        <div className={styles.empty_state}>Nothing to see here</div>
                     ) : (
                         <List
                             listRef={listRef}

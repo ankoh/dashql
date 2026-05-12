@@ -210,7 +210,7 @@ export function StorageWriterView(props: { onClose: () => void; }) {
                 </div>
                 <div className={styles.stat_grid_container} ref={containerRef}>
                     {entries.length === 0 ? (
-                        <div className={styles.empty_state}>No Writes</div>
+                        <div className={styles.empty_state}>Nothing to see here</div>
                     ) : (
                         <List
                             listRef={listRef}
