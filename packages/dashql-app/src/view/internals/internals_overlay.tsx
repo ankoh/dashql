@@ -46,7 +46,7 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
             tabProps={{
                 [TabKey.LogViewer]: {
                     tabId: TabKey.LogViewer,
-                    icon: `${icons}#log`,
+                    icon: `${icons}#log_24`,
                     labelShort: 'Logs',
                     ariaLabel: 'Application logs',
                     description: 'View application logs',

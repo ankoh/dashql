@@ -23,6 +23,7 @@ pub enum DockerStreamBatchEvent {
     FlushAfterClose,
     FlushAfterTimeout,
     FlushAfterBytes,
+    ReadIdle,
 }
 
 impl DockerStreamBatchEvent {
@@ -33,6 +34,7 @@ impl DockerStreamBatchEvent {
             DockerStreamBatchEvent::FlushAfterClose => "FlushAfterClose",
             DockerStreamBatchEvent::FlushAfterTimeout => "FlushAfterTimeout",
             DockerStreamBatchEvent::FlushAfterBytes => "FlushAfterBytes",
+            DockerStreamBatchEvent::ReadIdle => "ReadIdle",
         }
     }
 }
@@ -197,7 +199,10 @@ impl DockerLogStreamManager {
                 match timeout(recv_timeout, receiver.recv()).await {
                     Ok(Some(e)) => e,
                     Ok(None) => return Err(Status::DockerStreamClosed { stream_id }),
-                    Err(_) => return Err(Status::DockerStreamReadTimedOut { stream_id }),
+                    Err(_) => {
+                        batch.event = DockerStreamBatchEvent::ReadIdle;
+                        return Ok(batch);
+                    }
                 }
             } else {
                 let recv_timeout = match flush_batch_after.checked_sub(elapsed) {

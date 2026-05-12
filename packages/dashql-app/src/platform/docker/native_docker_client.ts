@@ -179,6 +179,10 @@ export class NativeDockerClient implements DockerClient {
                 if (buffer.length > 0) {
                     yield buffer;
                 }
+                if (event === "ReadIdle") {
+                    this.logger.trace("docker stream idle", { stream: String(streamId) }, LOG_CTX);
+                    continue;
+                }
                 if (event === "StreamFinished" || event === "FlushAfterClose" || event === "StreamFailed") {
                     return;
                 }

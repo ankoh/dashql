@@ -166,3 +166,47 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
     }
     return element;
 };
+
+export interface BinaryStatusIndicatorProps {
+    className?: string;
+    online: boolean;
+    width?: string;
+    height?: string;
+    fill?: string;
+}
+
+export const BinaryStatusIndicator: React.FC<BinaryStatusIndicatorProps> = (props: BinaryStatusIndicatorProps) => {
+    const fill = props.fill || 'white';
+    return (
+        <svg
+            className={classNames(props.className)}
+            width={props.width || '24px'}
+            height={props.height || '24px'}
+            viewBox="-8 -8 16 16"
+            fill="none"
+            stroke={fill}
+            strokeWidth="2"
+        >
+            <g fill="none" fillRule="evenodd">
+                {props.online && (
+                    <circle
+                        cx="0"
+                        cy="0"
+                        r="4"
+                        strokeWidth="0"
+                        fill={fill}
+                        className={styles.status_binary_pulse}
+                    />
+                )}
+                <circle
+                    cx="0"
+                    cy="0"
+                    r="4"
+                    opacity=".5"
+                    strokeWidth="0"
+                    fill={fill}
+                />
+            </g>
+        </svg>
+    );
+};

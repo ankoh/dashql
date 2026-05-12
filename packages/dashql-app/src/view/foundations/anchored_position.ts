@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { observeSize } from './size_observer.js';
+import { isNativePlatform } from '../../platform/native_globals.js';
 
 export enum AnchorAlignment {
     Start,
@@ -222,6 +223,14 @@ function getClippingRect(element: Element): BoxPosition {
 // window edges. Matches the max-width/max-height inset in overlay.module.css.
 const VIEWPORT_INSET = 16;
 
+// On macOS we run with a frameless window (titleBarStyle: "Overlay"), so the
+// webview spans the full window including the traffic-light region. Reserve
+// extra space at the top so anchored overlays don't underflow the controls.
+const MACOS_TITLE_BAR_INSET = 36;
+function getTopViewportInset(): number {
+    return isNativePlatform() ? MACOS_TITLE_BAR_INSET : VIEWPORT_INSET;
+}
+
 // Default settings to position a floating element
 const positionDefaults: PositionSettings = {
     side: AnchorSide.OutsideBottom,
@@ -324,14 +333,16 @@ function pureCalculateAnchoredPosition(
         }
 
         // At this point we've flipped the position if applicable. Now just nudge until it's on-screen,
-        // keeping VIEWPORT_INSET pixels of breathing room from each window edge.
+        // keeping VIEWPORT_INSET pixels of breathing room from each window edge. The top inset is
+        // larger on native macOS to clear the frameless-window title bar / traffic lights.
         // Clamp bottom *first* so the subsequent top clamp wins on overlays taller than the viewport
         // (we'd rather show the top of the content than the bottom).
+        const topInset = getTopViewportInset();
         if (pos.top + floatingRect.height > viewportRect.height + relativeViewportRect.top - VIEWPORT_INSET) {
-            pos.top = Math.max(viewportRect.height + relativeViewportRect.top - floatingRect.height - VIEWPORT_INSET, relativeViewportRect.top + VIEWPORT_INSET)
+            pos.top = Math.max(viewportRect.height + relativeViewportRect.top - floatingRect.height - VIEWPORT_INSET, relativeViewportRect.top + topInset)
         }
-        if (pos.top < relativeViewportRect.top + VIEWPORT_INSET) {
-            pos.top = relativeViewportRect.top + VIEWPORT_INSET
+        if (pos.top < relativeViewportRect.top + topInset) {
+            pos.top = relativeViewportRect.top + topInset
         }
         if (pos.left < relativeViewportRect.left + VIEWPORT_INSET) {
             pos.left = relativeViewportRect.left + VIEWPORT_INSET

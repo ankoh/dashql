@@ -3,12 +3,13 @@ import * as styles from './docker_manager.module.css';
 
 import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
-import { XIcon, PlayIcon, SquareIcon, TrashIcon, FileIcon, PlusIcon } from '@primer/octicons-react';
+import { XIcon, TrashIcon, PlusIcon, DownloadIcon, DashIcon, CircleSlashIcon } from '@primer/octicons-react';
 
 import { ButtonVariant, IconButton } from '../foundations/button.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
 import { OverlaySize } from '../foundations/overlay.js';
 import { useDockerClient } from '../../platform/docker/docker_client_provider.js';
+import { useFileDownloader } from '../../platform/file/file_downloader_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { DockerContainerSummary, DockerLogChunk } from '../../platform/docker/docker_types.js';
 import { DockerCreatePanel } from './docker_create_panel.js';
@@ -17,9 +18,11 @@ import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js
 import { useKeyEvents } from '../../utils/key_events.js';
 import { LogJsonModal } from './log_json_modal.js';
 import { LogRecord } from '../../platform/logger/log_buffer.js';
+import { BinaryStatusIndicator, IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
+import { RectangleWaveSpinner } from '../foundations/spinners.js';
+import { SymbolIcon } from '../foundations/symbol_icon';
 
 const LABEL_KEY = 'dashql';
-const POLL_INTERVAL_MS = 2000;
 const MAX_LOG_LINES = 2000;
 
 interface DockerManagerProps {
@@ -39,10 +42,13 @@ export const DockerManager: React.FC<DockerManagerProps> = (props: DockerManager
     const [busy, setBusy] = React.useState<Record<string, boolean>>({});
     const [errorText, setErrorText] = React.useState<string | null>(null);
     const [logState, setLogState] = React.useState<LogState>({ containerId: null, lines: [] });
+    const [loading, setLoading] = React.useState<boolean>(false);
+    const [isEditMode, setIsEditMode] = React.useState<boolean>(false);
     const logAbort = React.useRef<AbortController | null>(null);
 
     const refresh = React.useCallback(async () => {
         if (!client) return;
+        setLoading(true);
         try {
             const list = await client.listContainers(LABEL_KEY);
             setContainers(list);
@@ -50,14 +56,23 @@ export const DockerManager: React.FC<DockerManagerProps> = (props: DockerManager
         } catch (e: any) {
             setErrorText(e?.message ?? String(e));
             logger.warn('docker list failed', { error: e?.message ?? String(e) }, 'docker');
+        } finally {
+            setLoading(false);
         }
     }, [client, logger]);
+
+    // XXX Polling multiple times can be very expensive for very large repositories
+    //
+    // React.useEffect(() => {
+    //     if (!client || mode !== 'list') return;
+    //     refresh();
+    //     const t = setInterval(refresh, POLL_INTERVAL_MS);
+    //     return () => clearInterval(t);
+    // }, [client, mode, refresh]);
 
     React.useEffect(() => {
         if (!client || mode !== 'list') return;
         refresh();
-        const t = setInterval(refresh, POLL_INTERVAL_MS);
-        return () => clearInterval(t);
     }, [client, mode, refresh]);
 
     React.useEffect(() => {
@@ -114,7 +129,7 @@ export const DockerManager: React.FC<DockerManagerProps> = (props: DockerManager
         }
     };
 
-    const handleToggleLogs = async (c: DockerContainerSummary) => {
+    const showLogs = async (c: DockerContainerSummary) => {
         if (!client) return;
         // Toggle off if already streaming this one.
         if (logState.containerId === c.Id) {
@@ -166,6 +181,15 @@ export const DockerManager: React.FC<DockerManagerProps> = (props: DockerManager
                 </div>
                 <div className={styles.header_actions}>
                     <IconButton
+                        variant={isEditMode ? ButtonVariant.Default : ButtonVariant.Invisible}
+                        aria-label={isEditMode ? 'Done removing' : 'Remove containers'}
+                        aria-pressed={isEditMode}
+                        onClick={() => setIsEditMode(!isEditMode)}
+                        disabled={!client}
+                    >
+                        {isEditMode ? <CircleSlashIcon /> : <DashIcon />}
+                    </IconButton>
+                    <IconButton
                         variant={ButtonVariant.Invisible}
                         aria-label="Create container"
                         description="Create a new container"
@@ -185,7 +209,17 @@ export const DockerManager: React.FC<DockerManagerProps> = (props: DockerManager
             </div>
             <div className={styles.body}>
                 {errorText && <div className={styles.error_text}>{errorText}</div>}
-                {!errorText && containers.length === 0 && (
+                {!errorText && loading && containers.length === 0 && (
+                    <div className={styles.empty_state}>
+                        <StatusIndicator
+                            status={IndicatorStatus.Running}
+                            width="16px"
+                            height="16px"
+                            fill="black"
+                        />
+                    </div>
+                )}
+                {!errorText && !loading && containers.length === 0 && (
                     <div className={styles.empty_state}>
                         No containers with label <code>{LABEL_KEY}</code> found.
                         <br />
@@ -199,10 +233,11 @@ export const DockerManager: React.FC<DockerManagerProps> = (props: DockerManager
                         busy={!!busy[c.Id]}
                         logsActive={logState.containerId === c.Id}
                         logLines={logState.containerId === c.Id ? logState.lines : null}
+                        isEditMode={isEditMode}
                         onStart={() => handleStart(c)}
                         onStop={() => handleStop(c)}
                         onRemove={() => handleRemove(c)}
-                        onToggleLogs={() => handleToggleLogs(c)}
+                        onShowLogs={() => showLogs(c)}
                     />
                 ))}
             </div>
@@ -215,26 +250,46 @@ interface ContainerCardProps {
     busy: boolean;
     logsActive: boolean;
     logLines: DockerLogChunk[] | null;
+    isEditMode: boolean;
     onStart: () => void;
     onStop: () => void;
     onRemove: () => void;
-    onToggleLogs: () => void;
+    onShowLogs: () => void;
 }
 
 const ContainerCard: React.FC<ContainerCardProps> = (props) => {
     const c = props.container;
-    const isRunning = c.State === 'running';
     const name = c.Names[0]?.replace(/^\//, '') ?? c.Id.slice(0, 12);
     const cardRef = React.useRef<HTMLDivElement>(null);
+    const isRunning = c.State === 'running';
+
+    const LogIcon = SymbolIcon('log_24');
+    const PauseIcon = SymbolIcon('pause_24');
+    const RocketIcon = SymbolIcon('rocket_24');
     return (
         <>
             <div className={styles.container_card} ref={cardRef}>
+                <div className={styles.container_status}>
+                    <BinaryStatusIndicator
+                        online={isRunning}
+                        width="14px"
+                        height="14px"
+                        fill="black"
+                    />
+                </div>
                 <div className={styles.container_meta}>
-                    <div className={styles.container_name}>{name}</div>
-                    <div className={styles.container_image}>{c.Image}</div>
-                    <div className={`${styles.status_pill} ${isRunning ? styles.running : ''}`}>{c.Status}</div>
+                    <div className={styles.container_meta_name}>{name}</div>
+                    <div className={styles.container_meta_image}>{c.Image}</div>
                 </div>
                 <div className={styles.actions}>
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        aria-label="Toggle logs"
+                        description={'Show logs'}
+                        onClick={props.onShowLogs}
+                    >
+                        <LogIcon />
+                    </IconButton>
                     {isRunning ? (
                         <IconButton
                             variant={ButtonVariant.Invisible}
@@ -243,7 +298,7 @@ const ContainerCard: React.FC<ContainerCardProps> = (props) => {
                             onClick={props.onStop}
                             disabled={props.busy}
                         >
-                            <SquareIcon />
+                            <PauseIcon />
                         </IconButton>
                     ) : (
                         <IconButton
@@ -253,33 +308,27 @@ const ContainerCard: React.FC<ContainerCardProps> = (props) => {
                             onClick={props.onStart}
                             disabled={props.busy}
                         >
-                            <PlayIcon />
+                            <RocketIcon />
                         </IconButton>
                     )}
-                    <IconButton
-                        variant={props.logsActive ? ButtonVariant.Default : ButtonVariant.Invisible}
-                        aria-label="Toggle logs"
-                        description={props.logsActive ? 'Hide logs' : 'Show logs'}
-                        onClick={props.onToggleLogs}
-                    >
-                        <FileIcon />
-                    </IconButton>
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        aria-label="Remove container"
-                        description="Remove"
-                        onClick={props.onRemove}
-                        disabled={props.busy}
-                    >
-                        <TrashIcon />
-                    </IconButton>
+                    {props.isEditMode && (
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Remove container"
+                            description="Remove"
+                            onClick={props.onRemove}
+                            disabled={props.busy || isRunning}
+                        >
+                            <TrashIcon />
+                        </IconButton>
+                    )}
                 </div>
             </div>
             <AnchoredOverlay
                 renderAnchor={null}
                 anchorRef={cardRef}
                 open={props.logsActive}
-                onClose={() => props.onToggleLogs()}
+                onClose={() => props.onShowLogs()}
                 width={OverlaySize.XXL}
                 height={OverlaySize.XL}
                 side={AnchorSide.OutsideLeft}
@@ -288,7 +337,8 @@ const ContainerCard: React.FC<ContainerCardProps> = (props) => {
             >
                 <DockerLogList
                     lines={props.logLines ?? []}
-                    onClose={props.onToggleLogs}
+                    containerName={name}
+                    onClose={props.onShowLogs}
                 />
             </AnchoredOverlay>
         </>
@@ -323,15 +373,30 @@ const DockerLogRow = (props: RowComponentProps<DockerLogRowProps>) => {
 
 interface DockerLogListProps {
     lines: DockerLogChunk[];
+    containerName: string;
     onClose: () => void;
 }
 
-const DockerLogList: React.FC<DockerLogListProps> = ({ lines, onClose }) => {
+const DockerLogList: React.FC<DockerLogListProps> = ({ lines, containerName, onClose }) => {
     const ROW_HEIGHT = 32;
+    const fileDownloader = useFileDownloader();
     const [jsonModalState, setJsonModalState] =
         React.useState<[object | null, number]>([null, -1]);
     const [jsonModalRecord, jsonModalRecordIndex] = jsonModalState;
     const closeJsonModal = React.useCallback(() => setJsonModalState([null, -1]), []);
+
+    const downloadLogs = React.useCallback(async () => {
+        try {
+            const text = lines.map(l => l.text.replace(/\n$/, '')).join('\n');
+            const uint8Array = new TextEncoder().encode(text);
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const safeName = containerName.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const filename = `dashql-docker-${safeName}-${timestamp}.log`;
+            await fileDownloader.downloadBufferAsFile(uint8Array, filename);
+        } catch (error) {
+            console.error('Failed to download docker logs:', error);
+        }
+    }, [lines, containerName, fileDownloader]);
 
     const containerRef = React.useRef<HTMLDivElement>(null);
     const containerSize = observeSize(containerRef);
@@ -386,19 +451,37 @@ const DockerLogList: React.FC<DockerLogListProps> = ({ lines, onClose }) => {
         <div className={styles.log_overlay}>
             <div className={styles.log_overlay_header}>
                 <div className={styles.log_overlay_title}>Container Logs</div>
+                <IconButton
+                    variant={ButtonVariant.Invisible}
+                    aria-label="Download container logs"
+                    onClick={downloadLogs}
+                    disabled={lines.length === 0}
+                >
+                    <DownloadIcon />
+                </IconButton>
                 <IconButton variant={ButtonVariant.Invisible} aria-label="Close" onClick={onClose}>
                     <XIcon />
                 </IconButton>
             </div>
             <div className={styles.log_grid_container} ref={containerRef}>
-                <List
-                    listRef={listRef}
-                    style={{ width: containerWidth, height: containerHeight }}
-                    rowCount={lines.length}
-                    rowHeight={ROW_HEIGHT}
-                    rowComponent={DockerLogRow}
-                    rowProps={rowProps}
-                />
+                {lines.length === 0 ? (
+                    <div className={styles.log_loading}>
+                        <RectangleWaveSpinner
+                            className={styles.log_loading_spinner}
+                            active={true}
+                            color="rgb(36, 41, 46)"
+                        />
+                    </div>
+                ) : (
+                    <List
+                        listRef={listRef}
+                        style={{ width: containerWidth, height: containerHeight }}
+                        rowCount={lines.length}
+                        rowHeight={ROW_HEIGHT}
+                        rowComponent={DockerLogRow}
+                        rowProps={rowProps}
+                    />
+                )}
             </div>
             <LogJsonModal
                 record={jsonModalRecord as unknown as LogRecord}
