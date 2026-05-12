@@ -4,6 +4,9 @@ import * as styles from '../internals/docker_manager.module.css';
 import { PlugIcon, TrashIcon, XIcon } from '@primer/octicons-react';
 
 import { ButtonVariant, IconButton } from '../foundations/button.js';
+import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
+import { OverlaySize } from '../foundations/overlay.js';
+import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
 import { BinaryStatusIndicator } from '../foundations/status_indicator.js';
 import { RectangleWaveSpinner } from '../foundations/spinners.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
@@ -18,12 +21,20 @@ import { performHealthCheck } from '../../connection/health_check.js';
 import { getHyperConnectionDetails } from '../../connection/hyper/hyper_connection_state.js';
 import {
     DockerContainerSummary,
+    DockerLogChunk,
     pickHyperPort,
 } from '../../platform/docker/docker_types.js';
 import { DockerCreatePanel } from '../internals/docker_create_panel.js';
+import { DockerLogList } from '../internals/docker_manager.js';
 
 const LOG_CTX = 'hyper_docker_settings';
 const LABEL_KEY = 'dashql';
+const MAX_LOG_LINES = 2000;
+
+interface LogState {
+    containerId: string | null;
+    lines: DockerLogChunk[];
+}
 
 export type HyperDockerPanelMode = 'list' | 'create';
 
@@ -53,7 +64,15 @@ export const HyperDockerSettingsPanel: React.FC<Props> = (props: Props) => {
     const [loading, setLoading] = React.useState(false);
     const [errorText, setErrorText] = React.useState<string | null>(null);
     const [busyContainerId, setBusyContainerId] = React.useState<string | null>(null);
+    const [logState, setLogState] = React.useState<LogState>({ containerId: null, lines: [] });
     const setupAbort = React.useRef<AbortController | null>(null);
+    const logAbort = React.useRef<AbortController | null>(null);
+
+    React.useEffect(() => {
+        return () => {
+            logAbort.current?.abort();
+        };
+    }, []);
 
     const refresh = React.useCallback(async () => {
         if (!dockerClient) return;
@@ -81,11 +100,44 @@ export const HyperDockerSettingsPanel: React.FC<Props> = (props: Props) => {
         setBusyContainerId(c.Id);
         try {
             await dockerClient.removeContainer(c.Id, true);
+            if (logState.containerId === c.Id) {
+                logAbort.current?.abort();
+                setLogState({ containerId: null, lines: [] });
+            }
             await refresh();
         } catch (e: any) {
             setErrorText(e?.message ?? String(e));
         } finally {
             setBusyContainerId(null);
+        }
+    };
+
+    const showLogs = async (c: DockerContainerSummary) => {
+        if (!dockerClient) return;
+        if (logState.containerId === c.Id) {
+            logAbort.current?.abort();
+            setLogState({ containerId: null, lines: [] });
+            return;
+        }
+        logAbort.current?.abort();
+        const ctrl = new AbortController();
+        logAbort.current = ctrl;
+        setLogState({ containerId: c.Id, lines: [] });
+        try {
+            for await (const chunk of dockerClient.streamLogs(c.Id, ctrl.signal)) {
+                setLogState(prev => {
+                    if (prev.containerId !== c.Id) return prev;
+                    const next = [...prev.lines, chunk];
+                    if (next.length > MAX_LOG_LINES) {
+                        next.splice(0, next.length - MAX_LOG_LINES);
+                    }
+                    return { containerId: c.Id, lines: next };
+                });
+            }
+        } catch (e: any) {
+            if (!ctrl.signal.aborted) {
+                logger.warn('docker logs failed', { error: e?.message ?? String(e) }, LOG_CTX);
+            }
         }
     };
 
@@ -208,9 +260,12 @@ export const HyperDockerSettingsPanel: React.FC<Props> = (props: Props) => {
                         connectionHealth={isActive ? health : ConnectionHealth.NOT_STARTED}
                         freezeInput={!!props.freezeInput}
                         isEditMode={props.isEditMode}
+                        logsActive={logState.containerId === c.Id}
+                        logLines={logState.containerId === c.Id ? logState.lines : null}
                         onStart={() => handleStart(c)}
                         onStop={() => handleStop(c)}
                         onRemove={() => handleRemove(c)}
+                        onShowLogs={() => showLogs(c)}
                         onConnect={() => handleConnect(c)}
                         onCancel={handleCancel}
                         onDisconnect={handleDisconnect}
@@ -229,9 +284,12 @@ interface HyperContainerCardProps {
     connectionHealth: ConnectionHealth;
     freezeInput: boolean;
     isEditMode: boolean;
+    logsActive: boolean;
+    logLines: DockerLogChunk[] | null;
     onStart: () => void;
     onStop: () => void;
     onRemove: () => void;
+    onShowLogs: () => void;
     onConnect: () => void;
     onCancel: () => void;
     onDisconnect: () => void;
@@ -241,6 +299,8 @@ const HyperContainerCard: React.FC<HyperContainerCardProps> = (props) => {
     const c = props.container;
     const name = c.Names[0]?.replace(/^\//, '') ?? c.Id.slice(0, 12);
     const isRunning = c.State === 'running';
+    const cardRef = React.useRef<HTMLDivElement>(null);
+    const LogIcon = SymbolIcon('log_24');
     const PauseIcon = SymbolIcon('pause_24');
     const RocketIcon = SymbolIcon('rocket_24');
 
@@ -280,57 +340,84 @@ const HyperContainerCard: React.FC<HyperContainerCardProps> = (props) => {
     }
 
     return (
-        <div className={styles.container_card}>
-            <div className={styles.container_status}>
-                <BinaryStatusIndicator
-                    online={isRunning}
-                    width="14px"
-                    height="14px"
-                    fill="black"
-                />
-            </div>
-            <div className={styles.container_meta}>
-                <div className={styles.container_meta_name}>{name}</div>
-                <div className={styles.container_meta_image}>
-                    {c.Image}{props.port != null ? ` · :${props.port}` : ''}
+        <>
+            <div className={styles.container_card} ref={cardRef}>
+                <div className={styles.container_status}>
+                    <BinaryStatusIndicator
+                        online={isRunning}
+                        width="14px"
+                        height="14px"
+                        fill="black"
+                    />
+                </div>
+                <div className={styles.container_meta}>
+                    <div className={styles.container_meta_name}>{name}</div>
+                    <div className={styles.container_meta_image}>
+                        {c.Image}{props.port != null ? ` · :${props.port}` : ''}
+                    </div>
+                </div>
+                <div className={styles.actions}>
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        aria-label="Toggle logs"
+                        description="Show logs"
+                        onClick={props.onShowLogs}
+                    >
+                        <LogIcon />
+                    </IconButton>
+                    {isRunning ? (
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Stop container"
+                            description="Stop"
+                            onClick={props.onStop}
+                            disabled={props.busy || props.freezeInput}
+                        >
+                            <PauseIcon />
+                        </IconButton>
+                    ) : (
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Start container"
+                            description="Start"
+                            onClick={props.onStart}
+                            disabled={props.busy || props.freezeInput}
+                        >
+                            <RocketIcon />
+                        </IconButton>
+                    )}
+                    {connectButton}
+                    {props.isEditMode && (
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Remove container"
+                            description="Remove"
+                            onClick={props.onRemove}
+                            disabled={props.busy || isRunning}
+                        >
+                            <TrashIcon />
+                        </IconButton>
+                    )}
                 </div>
             </div>
-            <div className={styles.actions}>
-                {isRunning ? (
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        aria-label="Stop container"
-                        description="Stop"
-                        onClick={props.onStop}
-                        disabled={props.busy || props.freezeInput}
-                    >
-                        <PauseIcon />
-                    </IconButton>
-                ) : (
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        aria-label="Start container"
-                        description="Start"
-                        onClick={props.onStart}
-                        disabled={props.busy || props.freezeInput}
-                    >
-                        <RocketIcon />
-                    </IconButton>
-                )}
-                {connectButton}
-                {props.isEditMode && (
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        aria-label="Remove container"
-                        description="Remove"
-                        onClick={props.onRemove}
-                        disabled={props.busy || isRunning}
-                    >
-                        <TrashIcon />
-                    </IconButton>
-                )}
-            </div>
-        </div>
+            <AnchoredOverlay
+                renderAnchor={null}
+                anchorRef={cardRef}
+                open={props.logsActive}
+                onClose={() => props.onShowLogs()}
+                width={OverlaySize.XXL}
+                height={OverlaySize.XL}
+                side={AnchorSide.OutsideLeft}
+                align={AnchorAlignment.Start}
+                focusTrapSettings={{ disabled: true }}
+            >
+                <DockerLogList
+                    lines={props.logLines ?? []}
+                    containerName={name}
+                    onClose={props.onShowLogs}
+                />
+            </AnchoredOverlay>
+        </>
     );
 };
 

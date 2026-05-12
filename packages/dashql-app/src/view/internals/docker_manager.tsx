@@ -376,7 +376,7 @@ interface DockerLogListProps {
     onClose: () => void;
 }
 
-const DockerLogList: React.FC<DockerLogListProps> = ({ lines, containerName, onClose }) => {
+export const DockerLogList: React.FC<DockerLogListProps> = ({ lines, containerName, onClose }) => {
     const ROW_HEIGHT = 32;
     const fileDownloader = useFileDownloader();
     const [jsonModalState, setJsonModalState] =
