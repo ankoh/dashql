@@ -4,8 +4,10 @@ import { DynamicConnectionDispatch } from "../connection_registry.js";
 import { CATALOG_UPDATE_SCHEMA_SCRIPT } from "../connection_state.js";
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from "../catalog_update_state.js";
 import { generateCatalogScriptHeader, CatalogSource } from "../catalog_sql_generator.js";
+import { generateFunctionScriptHeader } from "../catalog_function_sql_generator.js";
 
 const demo_schema_url = new URL('../../../static/examples/demo/schema.sql', import.meta.url);
+const demo_functions_url = new URL('../../../static/examples/demo/functions.sql', import.meta.url);
 
 export async function updateDemoSchemaCatalog(
     sessionId: string,
@@ -13,18 +15,35 @@ export async function updateDemoSchemaCatalog(
     updateId: number,
     catalog: dashql.DashQLCatalog,
     _dql: dashql.DashQL,
-    catalogScript: dashql.DashQLScript,
+    catalogSchemaScript: dashql.DashQLScript,
+    catalogFunctionScript: dashql.DashQLScript,
 ): Promise<void> {
-    const response = await fetch(demo_schema_url);
-    const catalogSQL = await response.text();
+    const [schemaResponse, functionsResponse] = await Promise.all([
+        fetch(demo_schema_url),
+        fetch(demo_functions_url),
+    ]);
+    const catalogSQL = await schemaResponse.text();
+    const functionsSQL = await functionsResponse.text();
 
     connectionDispatch(sessionId, {
         type: CATALOG_UPDATE_SCHEMA_SCRIPT,
         value: [updateId],
     });
 
-    const header = generateCatalogScriptHeader(CatalogSource.DemoScript);
-    catalogScript.replaceText(`${header}${catalogSQL}`);
-    catalogScript.analyze();
-    catalog.loadScript(catalogScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    const schemaHeader = generateCatalogScriptHeader(CatalogSource.DemoScript);
+    catalogSchemaScript.replaceText(`${schemaHeader}${catalogSQL}`);
+    catalogSchemaScript.analyze();
+    catalog.loadScript(catalogSchemaScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+
+    if (functionsSQL.trim().length > 0) {
+        const fnHeader = generateFunctionScriptHeader(CatalogSource.DemoScript);
+        catalogFunctionScript.replaceText(`${fnHeader}${functionsSQL}`);
+        catalogFunctionScript.analyze();
+        try {
+            catalog.dropScript(catalogFunctionScript);
+        } catch (e) {
+            // Script may not have been loaded yet - ignore error
+        }
+        catalog.loadScript(catalogFunctionScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    }
 }

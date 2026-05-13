@@ -71,7 +71,8 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: Conn
     const sig = computeNewConnectionSignatureFromDetails(details);
 
     const catalog = dql.createCatalog();
-    const catalogScript = dql.createScript(catalog);
+    const catalogSchemaScript = dql.createScript(catalog);
+    const catalogFunctionScript = dql.createScript(catalog);
     return {
         instance: dql,
         active: false,
@@ -89,7 +90,8 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: Conn
             lastFullRefresh: null,
             restoredAt: null,
         },
-        catalogScript,
+        catalogSchemaScript,
+        catalogFunctionScript,
         snapshotQueriesActiveFinished: 1,
         queriesActive: new Map(),
         queriesActiveOrdered: [],

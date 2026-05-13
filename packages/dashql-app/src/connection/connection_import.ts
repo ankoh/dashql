@@ -84,7 +84,8 @@ export function restoreConnectionState(instance: dashql.DashQL, sessionId: strin
     const sig = newConnectionSignature(hasher, connSigs, null);
 
     const catalog = instance.createCatalog();
-    const catalogScript = instance.createScript(catalog);
+    const catalogSchemaScript = instance.createScript(catalog);
+    const catalogFunctionScript = instance.createScript(catalog);
 
     const state: ConnectionState = {
         sessionId: sessionId,
@@ -104,7 +105,8 @@ export function restoreConnectionState(instance: dashql.DashQL, sessionId: strin
             lastFullRefresh: null,
             restoredAt: null,
         },
-        catalogScript,
+        catalogSchemaScript,
+        catalogFunctionScript,
         queriesActive: new Map(),
         queriesActiveOrdered: [],
         queriesFinished: new Map<number, QueryExecutionState>(),

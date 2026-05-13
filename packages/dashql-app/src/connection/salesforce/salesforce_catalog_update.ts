@@ -10,7 +10,7 @@ export async function updateSalesforceCatalog(
     conn: SalesforceConnectionStateDetails,
     catalog: dashql.DashQLCatalog,
     dql: dashql.DashQL,
-    catalogScript: dashql.DashQLScript,
+    catalogSchemaScript: dashql.DashQLScript,
     api: SalesforceApiClientInterface,
     abortController: AbortController
 ): Promise<dashql.DashQLScript> {
@@ -48,16 +48,16 @@ export async function updateSalesforceCatalog(
     const catalogSQL = generateSchemaSQL('salesforce', 'datacloud', tables);
 
     // Update script content
-    catalogScript.replaceText(`${header}${catalogSQL}`);
-    catalogScript.analyze();
+    catalogSchemaScript.replaceText(`${header}${catalogSQL}`);
+    catalogSchemaScript.analyze();
 
     // Drop old script from catalog if loaded, then reload with Salesforce rank
     try {
-        catalog.dropScript(catalogScript);
+        catalog.dropScript(catalogSchemaScript);
     } catch (e) {
         // Script may not have been loaded yet - ignore error
     }
-    catalog.loadScript(catalogScript, SALESFORCE_CATALOG_RANK);
+    catalog.loadScript(catalogSchemaScript, SALESFORCE_CATALOG_RANK);
 
-    return catalogScript;
+    return catalogSchemaScript;
 }

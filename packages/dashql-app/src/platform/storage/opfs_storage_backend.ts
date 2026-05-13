@@ -1,4 +1,4 @@
-import { type StorageBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type StorageManifest, type AppSettings, STORAGE_MANIFEST_FILE, STORAGE_SESSIONS_FOLDER, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA } from './storage_backend.js';
+import { type StorageBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type StorageManifest, type AppSettings, STORAGE_MANIFEST_FILE, STORAGE_SESSIONS_FOLDER, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS } from './storage_backend.js';
 
 export class OPFSStorageBackend implements StorageBackend {
     private rootHandle: FileSystemDirectoryHandle | null = null;
@@ -140,6 +140,27 @@ export class OPFSStorageBackend implements StorageBackend {
         const sessionDir = await this.getSessionDir(relativePath, true);
         const schemaFile = await sessionDir.getFileHandle(STORAGE_SCRIPT_SCHEMA, { create: true });
         const writable = await schemaFile.createWritable();
+        await writable.write(sql);
+        await writable.close();
+    }
+
+    async loadSessionFunctions(sessionPath: string): Promise<string | null> {
+        try {
+            const relativePath = this.parseSessionPath(sessionPath);
+            const sessionDir = await this.getSessionDir(relativePath, false);
+            const functionsFile = await sessionDir.getFileHandle(STORAGE_SCRIPT_FUNCTIONS, { create: false });
+            const file = await functionsFile.getFile();
+            return await file.text();
+        } catch {
+            return null;
+        }
+    }
+
+    async saveSessionFunctions(sessionPath: string, sql: string): Promise<void> {
+        const relativePath = this.parseSessionPath(sessionPath);
+        const sessionDir = await this.getSessionDir(relativePath, true);
+        const functionsFile = await sessionDir.getFileHandle(STORAGE_SCRIPT_FUNCTIONS, { create: true });
+        const writable = await functionsFile.createWritable();
         await writable.write(sql);
         await writable.close();
     }

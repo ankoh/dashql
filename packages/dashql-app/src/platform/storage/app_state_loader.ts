@@ -250,21 +250,21 @@ async function restoreSession(
                 schemaLength: schemaSQL.length.toString()
             }, LOG_CTX);
 
-            const { catalog, catalogScript } = connectionState;
+            const { catalog, catalogSchemaScript } = connectionState;
 
             // Apply schema to catalog script
             logger.info("Analyzing catalog schema", { sessionId }, LOG_CTX);
-            catalogScript.replaceText(schemaSQL);
-            catalogScript.analyze();
+            catalogSchemaScript.replaceText(schemaSQL);
+            catalogSchemaScript.analyze();
 
             // Load into catalog (drop old first if exists)
             logger.info("Loading catalog schema into catalog", { sessionId }, LOG_CTX);
             try {
-                catalog.dropScript(catalogScript);
+                catalog.dropScript(catalogSchemaScript);
             } catch (e) {
                 // Script not loaded yet, ignore
             }
-            catalog.loadScript(catalogScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+            catalog.loadScript(catalogSchemaScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
 
             // Mark as restored
             connectionState.catalogUpdates.restoredAt = new Date();
@@ -277,6 +277,29 @@ async function restoreSession(
             }, LOG_CTX);
         } else {
             logger.info("No catalog schema found for session", { sessionId }, LOG_CTX);
+        }
+
+        // Load function catalog SQL from storage
+        const functionsSQL = await backend.loadSessionFunctions(sessionPath);
+        if (functionsSQL && functionsSQL.trim().length > 0) {
+            logger.info("Catalog functions loaded", {
+                sessionId,
+                functionsLength: functionsSQL.length.toString()
+            }, LOG_CTX);
+
+            const { catalog, catalogFunctionScript } = connectionState;
+
+            catalogFunctionScript.replaceText(functionsSQL);
+            catalogFunctionScript.analyze();
+
+            try {
+                catalog.dropScript(catalogFunctionScript);
+            } catch (e) {
+                // Script not loaded yet, ignore
+            }
+            catalog.loadScript(catalogFunctionScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+
+            logger.info("Catalog functions restored", { sessionId }, LOG_CTX);
         }
 
         restoreCatalogs.addSucceeded();
