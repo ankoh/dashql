@@ -126,9 +126,9 @@ export class NativeHyperQueryResultStream implements QueryExecutionResponseStrea
                 if (iter.value !== undefined) {
                     batches.resolve(this, iter.value);
                 }
-            } else {
-                batches.resolve(this, iter.value);
+                return;
             }
+            batches.resolve(this, iter.value);
         }
     }
 }

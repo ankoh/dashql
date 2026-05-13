@@ -162,7 +162,7 @@ export const DockerCreatePanel: React.FC<Props> = (props: Props) => {
     };
 
     return (
-        <div className={styles.root}>
+        <div className={props.hideHeader ? styles.root_no_header : styles.root}>
             {!props.hideHeader && (
                 <div className={styles.header}>
                     <div className={styles.header_left}>

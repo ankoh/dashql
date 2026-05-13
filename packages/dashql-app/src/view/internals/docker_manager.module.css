@@ -8,6 +8,13 @@
     height: 100%;
 }
 
+.root_no_header {
+    display: grid;
+    grid-template-rows: max-content 1fr;
+    min-height: 0;
+    height: 100%;
+}
+
 .header {
     grid-row: 1;
     width: 100%;
@@ -194,7 +201,6 @@
 
 /* Create panel */
 .create_root {
-    grid-row: 3;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -204,19 +210,33 @@
     overflow-y: auto;
 }
 
+.root > .create_root {
+    grid-row: 3;
+}
+
+.root_no_header > .create_root {
+    grid-row: 2;
+}
+
 /* Step 1 (tag selection) takes over the body region directly; no padding/gap
    so the virtualized list can sit flush against the wizard toolbar. */
 .create_root_flush {
-    grid-row: 3;
     display: block;
     height: 100%;
     min-height: 0;
     overflow: hidden;
 }
 
+.root > .create_root_flush {
+    grid-row: 3;
+}
+
+.root_no_header > .create_root_flush {
+    grid-row: 2;
+}
+
 /* Wizard sub-toolbar (cancel | step indicator | next) */
 .wizard_toolbar {
-    grid-row: 2;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -224,6 +244,14 @@
     padding: 0 12px;
     height: 40px;
     border-bottom: 1px solid var(--border_color_primary);
+}
+
+.root > .wizard_toolbar {
+    grid-row: 2;
+}
+
+.root_no_header > .wizard_toolbar {
+    grid-row: 1;
 }
 
 .wizard_toolbar_left {
