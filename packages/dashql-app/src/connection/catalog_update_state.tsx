@@ -186,7 +186,7 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
             if (newState.active) {
                 storage.write(
                     groupSessionSchemaWrites(newState.sessionId),
-                    { type: WRITE_SESSION_CATALOG_SCRIPT, value: [newState.sessionId, newState.catalogSchemaScript] },
+                    { type: WRITE_SESSION_CATALOG_SCRIPT, value: [newState.sessionId, newState.catalogRelationScript] },
                     DEBOUNCE_DURATION_SESSION_WRITE,
                 );
                 storage.write(

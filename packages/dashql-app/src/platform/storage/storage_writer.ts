@@ -41,7 +41,7 @@ export type StorageWriteTaskVariant =
 
 export type StorageWriteKey = string;
 export const groupSessionWrites = (sessionPath: string) => `${sessionPath}/`;
-export const groupSessionSchemaWrites = (sessionPath: string) => `${sessionPath}/dashql-schema.sql`;
+export const groupSessionSchemaWrites = (sessionPath: string) => `${sessionPath}/dashql-relations.sql`;
 export const groupSessionFunctionWrites = (sessionPath: string) => `${sessionPath}/dashql-functions.sql`;
 export const groupNotebookWrites = (sessionPath: string) => `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}`;
 export const groupPageWrites = (sessionPath: string, pageName: string) => `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${pageName}`;
@@ -240,20 +240,20 @@ export class StorageWriter {
                 break;
             }
             case WRITE_SESSION_CATALOG_SCRIPT: {
-                const [sessionPath, catalogSchemaScript] = task.value;
+                const [sessionPath, catalogRelationScript] = task.value;
                 this.logger.info("Writing session schema", {
                     key,
                     sessionPath,
                 }, LOG_CTX);
 
                 // Get the SQL from the catalog script
-                const schemaSQL = catalogSchemaScript.toString();
+                const schemaSQL = catalogRelationScript.toString();
 
                 const timeBefore = new Date();
                 await this.backend.saveSessionSchema(sessionPath, schemaSQL);
                 const timeAfter = new Date();
                 const writeDuration = timeAfter.getTime() - timeBefore.getTime();
-                const actualPath = `${sessionPath}/dashql-schema.sql`;
+                const actualPath = `${sessionPath}/dashql-relations.sql`;
                 this.registerWrite(actualPath, schemaSQL.length, writeDuration);
                 break;
             }

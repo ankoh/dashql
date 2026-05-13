@@ -250,21 +250,21 @@ async function restoreSession(
                 schemaLength: schemaSQL.length.toString()
             }, LOG_CTX);
 
-            const { catalog, catalogSchemaScript } = connectionState;
+            const { catalog, catalogRelationScript } = connectionState;
 
             // Apply schema to catalog script
             logger.info("Analyzing catalog schema", { sessionId }, LOG_CTX);
-            catalogSchemaScript.replaceText(schemaSQL);
-            catalogSchemaScript.analyze();
+            catalogRelationScript.replaceText(schemaSQL);
+            catalogRelationScript.analyze();
 
             // Load into catalog (drop old first if exists)
             logger.info("Loading catalog schema into catalog", { sessionId }, LOG_CTX);
             try {
-                catalog.dropScript(catalogSchemaScript);
+                catalog.dropScript(catalogRelationScript);
             } catch (e) {
                 // Script not loaded yet, ignore
             }
-            catalog.loadScript(catalogSchemaScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+            catalog.loadScript(catalogRelationScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
 
             // Mark as restored
             connectionState.catalogUpdates.restoredAt = new Date();

@@ -136,7 +136,7 @@ export async function updateInformationSchemaCatalog(
     executor: QueryExecutor,
     catalog: dashql.DashQLCatalog,
     dql: dashql.DashQL,
-    catalogSchemaScript: dashql.DashQLScript,
+    catalogRelationScript: dashql.DashQLScript,
     _catalogFunctionScript: dashql.DashQLScript
 ): Promise<void> {
     // Query the information schema. If the query errors it throws and propagates
@@ -161,14 +161,14 @@ export async function updateInformationSchemaCatalog(
     });
 
     // Update script content
-    catalogSchemaScript.replaceText(`${header}${catalogSQL}`);
-    catalogSchemaScript.analyze();
+    catalogRelationScript.replaceText(`${header}${catalogSQL}`);
+    catalogRelationScript.analyze();
 
     // Drop old script from catalog if loaded, then reload
     try {
-        catalog.dropScript(catalogSchemaScript);
+        catalog.dropScript(catalogRelationScript);
     } catch (e) {
         // Script may not have been loaded yet - ignore error
     }
-    catalog.loadScript(catalogSchemaScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    catalog.loadScript(catalogRelationScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
 }

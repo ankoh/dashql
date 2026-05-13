@@ -43,7 +43,6 @@ export function createReadonlyCodeMirrorExtensions(): Extension[] {
         themes.xcode.xcodeLight,
         lineNumbers(),
         EditorState.readOnly.of(true),
-        EditorView.editable.of(false),
         ...DashQLReadonlyExtensions,
     ];
 }

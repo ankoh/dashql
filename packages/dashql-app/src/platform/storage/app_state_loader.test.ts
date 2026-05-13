@@ -382,9 +382,9 @@ describe('restoreAppState', () => {
         const connection = result.connectionStates.get('schema-uuid')!;
         expect(connection.catalogUpdates.restoredAt).not.toBeNull();
 
-        // Verify catalogSchemaScript was updated with schema
-        expect(connection.catalogSchemaScript.replaceText).toHaveBeenCalledWith(schemaSQL);
-        expect(connection.catalogSchemaScript.analyze).toHaveBeenCalled();
+        // Verify catalogRelationScript was updated with schema
+        expect(connection.catalogRelationScript.replaceText).toHaveBeenCalledWith(schemaSQL);
+        expect(connection.catalogRelationScript.analyze).toHaveBeenCalled();
         expect(connection.catalog.loadScript).toHaveBeenCalled();
     });
 

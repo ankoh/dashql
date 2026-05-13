@@ -152,7 +152,7 @@ async function updatePgSchemaScript(
     schemaNames: string[],
     executor: QueryExecutor,
     catalog: dashql.DashQLCatalog,
-    catalogSchemaScript: dashql.DashQLScript
+    catalogRelationScript: dashql.DashQLScript
 ): Promise<void> {
     const queryResult = await queryPgAttribute(sessionId, connectionDispatch, updateId, databaseName, schemaNames, executor);
     if (queryResult == null || queryResult.numRows === 0) {
@@ -170,15 +170,15 @@ async function updatePgSchemaScript(
         value: [updateId]
     });
 
-    catalogSchemaScript.replaceText(`${header}${catalogSQL}`);
-    catalogSchemaScript.analyze();
+    catalogRelationScript.replaceText(`${header}${catalogSQL}`);
+    catalogRelationScript.analyze();
 
     try {
-        catalog.dropScript(catalogSchemaScript);
+        catalog.dropScript(catalogRelationScript);
     } catch (e) {
         // Script may not have been loaded yet - ignore error
     }
-    catalog.loadScript(catalogSchemaScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    catalog.loadScript(catalogRelationScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
 }
 
 async function updatePgFunctionScript(
@@ -221,11 +221,11 @@ export async function updatePgCatalog(
     executor: QueryExecutor,
     catalog: dashql.DashQLCatalog,
     _dql: dashql.DashQL,
-    catalogSchemaScript: dashql.DashQLScript,
+    catalogRelationScript: dashql.DashQLScript,
     catalogFunctionScript: dashql.DashQLScript
 ): Promise<void> {
     await Promise.all([
-        updatePgSchemaScript(sessionId, connectionDispatch, updateId, databaseName, schemaNames, executor, catalog, catalogSchemaScript),
+        updatePgSchemaScript(sessionId, connectionDispatch, updateId, databaseName, schemaNames, executor, catalog, catalogRelationScript),
         updatePgFunctionScript(sessionId, connectionDispatch, updateId, schemaNames, executor, catalog, catalogFunctionScript),
     ]);
 }

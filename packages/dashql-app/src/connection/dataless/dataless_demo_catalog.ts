@@ -15,7 +15,7 @@ export async function updateDemoSchemaCatalog(
     updateId: number,
     catalog: dashql.DashQLCatalog,
     _dql: dashql.DashQL,
-    catalogSchemaScript: dashql.DashQLScript,
+    catalogRelationScript: dashql.DashQLScript,
     catalogFunctionScript: dashql.DashQLScript,
 ): Promise<void> {
     const [schemaResponse, functionsResponse] = await Promise.all([
@@ -31,9 +31,9 @@ export async function updateDemoSchemaCatalog(
     });
 
     const schemaHeader = generateCatalogScriptHeader(CatalogSource.DemoScript);
-    catalogSchemaScript.replaceText(`${schemaHeader}${catalogSQL}`);
-    catalogSchemaScript.analyze();
-    catalog.loadScript(catalogSchemaScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    catalogRelationScript.replaceText(`${schemaHeader}${catalogSQL}`);
+    catalogRelationScript.analyze();
+    catalog.loadScript(catalogRelationScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
 
     if (functionsSQL.trim().length > 0) {
         const fnHeader = generateFunctionScriptHeader(CatalogSource.DemoScript);

@@ -13,6 +13,8 @@ import { createDatalessConnectionParamsSignature } from './dataless/dataless_con
 import { createTrinoConnectionParamsSignature } from './trino/trino_connection_params.js';
 import { createTrinoConnectionStateDetails } from './trino/trino_connection_state.js';
 import { newConnectionSignature, ConnectionSignatureMap } from './connection_signature.js';
+import { generateCatalogScriptHeader, CatalogSource } from './catalog_sql_generator.js';
+import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
 import { isNativePlatform } from '../platform/native_globals.js';
 
 // Re-export connection param types from JSON Schema
@@ -71,8 +73,10 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: Conn
     const sig = computeNewConnectionSignatureFromDetails(details);
 
     const catalog = dql.createCatalog();
-    const catalogSchemaScript = dql.createScript(catalog);
+    const catalogRelationScript = dql.createScript(catalog);
+    catalogRelationScript.replaceText(generateCatalogScriptHeader(CatalogSource.Unknown));
     const catalogFunctionScript = dql.createScript(catalog);
+    catalogFunctionScript.replaceText(generateFunctionScriptHeader(CatalogSource.Unknown));
     return {
         instance: dql,
         active: false,
@@ -90,7 +94,7 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: Conn
             lastFullRefresh: null,
             restoredAt: null,
         },
-        catalogSchemaScript,
+        catalogRelationScript,
         catalogFunctionScript,
         snapshotQueriesActiveFinished: 1,
         queriesActive: new Map(),

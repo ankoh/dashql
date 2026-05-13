@@ -5,6 +5,8 @@ import { computeConnectionSignatureFromDetails, ConnectionStateDetailsVariant } 
 import { LoggableException } from '../platform/logger/logger.js';
 import { CONNECTOR_INFOS, ConnectorInfo, ConnectorType, DATALESS_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR, createDatalessConnectorInfo } from './connector_info.js';
 import { ConnectionHealth, ConnectionState, ConnectionStatus, createConnectionMetrics } from './connection_state.js';
+import { generateCatalogScriptHeader, CatalogSource } from './catalog_sql_generator.js';
+import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
 import { DefaultHasher } from '../utils/hash_default.js';
 import { ConnectionSignatureMap, newConnectionSignature } from './connection_signature.js';
 import { QueryExecutionState } from './query_execution_state.js';
@@ -84,8 +86,10 @@ export function restoreConnectionState(instance: dashql.DashQL, sessionId: strin
     const sig = newConnectionSignature(hasher, connSigs, null);
 
     const catalog = instance.createCatalog();
-    const catalogSchemaScript = instance.createScript(catalog);
+    const catalogRelationScript = instance.createScript(catalog);
+    catalogRelationScript.replaceText(generateCatalogScriptHeader(CatalogSource.Unknown));
     const catalogFunctionScript = instance.createScript(catalog);
+    catalogFunctionScript.replaceText(generateFunctionScriptHeader(CatalogSource.Unknown));
 
     const state: ConnectionState = {
         sessionId: sessionId,
@@ -105,7 +109,7 @@ export function restoreConnectionState(instance: dashql.DashQL, sessionId: strin
             lastFullRefresh: null,
             restoredAt: null,
         },
-        catalogSchemaScript,
+        catalogRelationScript,
         catalogFunctionScript,
         queriesActive: new Map(),
         queriesActiveOrdered: [],

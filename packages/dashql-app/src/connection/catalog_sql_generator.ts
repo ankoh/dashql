@@ -136,7 +136,7 @@ export function generateCatalogScriptHeader(method: CatalogSource, updatedAt: Da
         case CatalogSource.DemoScript: methodStr = 'Demo script'; break;
         default: methodStr = '-'; break;
     }
-    return `-- DashQL Connection Schema.
+    return `-- DashQL Connection Relations.
 -- This file is auto-generated and can only be updated through a catalog refresh.
 --
 -- Catalog Source: ${methodStr}

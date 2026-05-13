@@ -6,6 +6,8 @@ import * as arrow from 'apache-arrow';
 import { HyperConnectorAction, reduceHyperConnectorState } from './hyper/hyper_connection_state.js';
 import { SalesforceConnectionStateAction, reduceSalesforceConnectionState } from './salesforce/salesforce_connection_state.js';
 import { CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
+import { generateCatalogScriptHeader, CatalogSource } from './catalog_sql_generator.js';
+import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
 import { VariantKind } from '../utils/variant.js';
 import {
     CONNECTOR_INFOS,
@@ -77,8 +79,8 @@ export interface ConnectionState {
     catalog: dashql.DashQLCatalog;
     /// The  catalog updates
     catalogUpdates: CatalogUpdates;
-    /// The catalog schema script (consolidated SQL for all schemas)
-    catalogSchemaScript: dashql.DashQLScript;
+    /// The catalog relation script (consolidated SQL for all relations)
+    catalogRelationScript: dashql.DashQLScript;
     /// The catalog function script (consolidated SQL for all function declarations)
     catalogFunctionScript: dashql.DashQLScript;
 
@@ -255,7 +257,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
         case SET_CATALOG_SCRIPT:
             return {
                 ...state,
-                catalogSchemaScript: action.value,
+                catalogRelationScript: action.value,
             };
 
         case UPDATE_CATALOG:
@@ -407,11 +409,11 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
             // Cleanup catalog script before destroying catalog
             try {
-                state.catalog.dropScript(state.catalogSchemaScript);
+                state.catalog.dropScript(state.catalogRelationScript);
             } catch (e) {
                 // Script may have already been dropped - ignore error
             }
-            state.catalogSchemaScript.destroy();
+            state.catalogRelationScript.destroy();
             try {
                 state.catalog.dropScript(state.catalogFunctionScript);
             } catch (e) {
@@ -490,8 +492,10 @@ export function createConnectionMetrics(): connection.ConnectionMetrics {
 
 export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, connSigs: ConnectionSignatureMap, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
     const catalog = dql.createCatalog();
-    const catalogSchemaScript = dql.createScript(catalog);
+    const catalogRelationScript = dql.createScript(catalog);
+    catalogRelationScript.replaceText(generateCatalogScriptHeader(CatalogSource.Unknown));
     const catalogFunctionScript = dql.createScript(catalog);
+    catalogFunctionScript.replaceText(generateFunctionScriptHeader(CatalogSource.Unknown));
     const connSig = computeNewConnectionSignatureFromDetails(details);
     return {
         instance: dql,
@@ -510,7 +514,7 @@ export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, c
             lastFullRefresh: null,
             restoredAt: null,
         },
-        catalogSchemaScript,
+        catalogRelationScript,
         catalogFunctionScript,
         snapshotQueriesActiveFinished: 1,
         queriesActive: new Map(),
@@ -527,8 +531,10 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
     const connSig = computeNewConnectionSignatureFromDetails(connDetails);
 
     const catalog = dql.createCatalog();
-    const catalogSchemaScript = dql.createScript(catalog);
+    const catalogRelationScript = dql.createScript(catalog);
+    catalogRelationScript.replaceText(generateCatalogScriptHeader(CatalogSource.Unknown));
     const catalogFunctionScript = dql.createScript(catalog);
+    catalogFunctionScript.replaceText(generateFunctionScriptHeader(CatalogSource.Unknown));
     return {
         instance: dql,
         active: false,
@@ -546,7 +552,7 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
             lastFullRefresh: null,
             restoredAt: null,
         },
-        catalogSchemaScript,
+        catalogRelationScript,
         catalogFunctionScript,
         snapshotQueriesActiveFinished: 1,
         queriesActive: new Map(),

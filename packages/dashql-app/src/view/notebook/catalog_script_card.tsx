@@ -3,22 +3,20 @@ import * as detailStyles from './notebook_script_details.module.css';
 import * as styles from './catalog_schema_view.module.css';
 
 import { EditorView } from '@codemirror/view';
-
 import { LockIcon } from '@primer/octicons-react';
 
-import { ConnectionState } from '../../connection/connection_state.js';
 import { CodeMirror, createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, analyzeScript, DashQLScriptBuffers } from '../editor/dashql_processor.js';
 import { NotebookScriptName } from './notebook_script_name.js';
 import type { DashQLScript } from '../../core/api.js';
 
-interface CatalogScriptCardProps {
+export interface CatalogScriptCardProps {
     script: DashQLScript;
     fileName: string;
     lastFullRefresh: number | null;
 }
 
-const CatalogScriptCard: React.FC<CatalogScriptCardProps> = (props) => {
+export const CatalogScriptCard: React.FC<CatalogScriptCardProps> = (props) => {
     const [view, setView] = React.useState<EditorView | null>(null);
     const prevTextRef = React.useRef<string>('');
     const prevBuffersRef = React.useRef<DashQLScriptBuffers | null>(null);
@@ -74,24 +72,6 @@ const CatalogScriptCard: React.FC<CatalogScriptCardProps> = (props) => {
                     <CodeMirror ref={setView} extensions={readonlyExtensions} />
                 </div>
             </div>
-        </div>
-    );
-};
-
-export interface CatalogSchemaViewProps {
-    connection: ConnectionState;
-}
-
-export const CatalogSchemaView: React.FC<CatalogSchemaViewProps> = (props) => {
-    const lastFullRefresh = props.connection.catalogUpdates.lastFullRefresh;
-
-    return (
-        <div className={detailStyles.entry_body_container}>
-            <CatalogScriptCard
-                script={props.connection.catalogRelationScript}
-                fileName="dashql-relations.sql"
-                lastFullRefresh={lastFullRefresh}
-            />
         </div>
     );
 };

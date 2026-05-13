@@ -20,7 +20,7 @@ export function generateFunctionsSQL(functions: FunctionMetadata[]): string {
         if (schemaCmp !== 0) return schemaCmp;
         return a.functionName.localeCompare(b.functionName);
     });
-    return sorted.map(generateCreateFunctionSQL).join('\n');
+    return sorted.map(fn => generateCreateFunctionSQL(fn) + ';').join('\n');
 }
 
 export function generateFunctionScriptHeader(method: CatalogSource, updatedAt: Date = new Date()): string {
