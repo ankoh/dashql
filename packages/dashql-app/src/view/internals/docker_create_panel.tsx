@@ -20,6 +20,7 @@ const FIXED_HYPER_CMD: readonly string[] = [
     'run',
     '--no-password',
     '--skip-license=1',
+    '--restrict_dmv_access=false',
     '--init-user=tableau_internal_user',
     '--log_config=cerr,json,all',
     `--listen-connection=tcp.grpc://0.0.0.0:${HYPER_GRPC_PORT}`,
