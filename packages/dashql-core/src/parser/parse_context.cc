@@ -227,6 +227,10 @@ void ParseContext::AddStatement(buffers::parser::Node node) {
             stmt_type = buffers::parser::StatementType::CREATE_VIEW;
             break;
 
+        case buffers::parser::NodeType::OBJECT_SQL_CREATE_FUNCTION:
+            stmt_type = buffers::parser::StatementType::CREATE_FUNCTION;
+            break;
+
         case buffers::parser::NodeType::OBJECT_SQL_SELECT:
             stmt_type = buffers::parser::StatementType::SELECT;
             break;

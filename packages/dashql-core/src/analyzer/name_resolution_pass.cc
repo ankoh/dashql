@@ -496,6 +496,48 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 break;
             }
 
+            case buffers::parser::NodeType::OBJECT_SQL_CREATE_FUNCTION: {
+                auto [name_node, params_node, returns_node, is_aggregate_node] =
+                    state.GetAttributes<AttributeKey::SQL_CREATE_FUNCTION_NAME,
+                                        AttributeKey::SQL_CREATE_FUNCTION_PARAMS,
+                                        AttributeKey::SQL_CREATE_FUNCTION_RETURNS,
+                                        AttributeKey::SQL_CREATE_FUNCTION_IS_AGGREGATE>(node);
+                auto func_name = state.ReadQualifiedFunctionName(name_node);
+                if (func_name.has_value()) {
+                    auto schema_id = RegisterSchema(func_name->database_name, func_name->schema_name);
+                    auto& decl = state.analyzed->function_declarations.PushBack(
+                        CatalogEntry::FunctionDeclaration(schema_id, func_name.value()));
+                    decl.ast_node_id = node_id;
+                    decl.is_aggregate = (is_aggregate_node != nullptr);
+                    // Read return type text from the AST node location
+                    if (returns_node) {
+                        decl.return_type = state.scanned.ReadTextAtLocation(returns_node->location());
+                    }
+                    // Read parameters
+                    if (params_node && params_node->node_type() == buffers::parser::NodeType::ARRAY) {
+                        auto param_nodes = state.ast.subspan(
+                            params_node->children_begin_or_value(), params_node->children_count());
+                        for (auto& param_node : param_nodes) {
+                            if (param_node.node_type() != buffers::parser::NodeType::OBJECT_SQL_FUNCTION_PARAM) continue;
+                            auto [param_name_node, param_type_node] =
+                                LookupAttributes<AttributeKey::SQL_FUNCTION_PARAM_NAME,
+                                                 AttributeKey::SQL_FUNCTION_PARAM_TYPE>(
+                                    state.ast.subspan(param_node.children_begin_or_value(), param_node.children_count()));
+                            if (param_name_node && param_name_node->node_type() == buffers::parser::NodeType::NAME) {
+                                auto& param_name = state.scanned.GetNames().At(param_name_node->children_begin_or_value());
+                                std::string_view param_type_text;
+                                if (param_type_node) {
+                                    param_type_text = state.scanned.ReadTextAtLocation(param_type_node->location());
+                                }
+                                decl.params.emplace_back(&param_node - state.ast.data(), param_name, param_type_text);
+                            }
+                        }
+                    }
+                    func_name->function_name.get().coarse_analyzer_tags |= buffers::analyzer::NameTag::FUNCTION_NAME;
+                }
+                break;
+            }
+
             case buffers::parser::NodeType::OBJECT_SQL_CREATE_AS: {
                 auto [name_node, elements_node] =
                     state.GetAttributes<buffers::parser::AttributeKey::SQL_CREATE_TABLE_NAME,
@@ -524,6 +566,14 @@ void NameResolutionPass::Finish() {
                 state.analyzed->tables_by_unqualified_schema.insert(
                     {{table.table_name.schema_name.get(), table.table_name.database_name.get()}, table});
             }
+        }
+    }
+
+    // Index function declarations
+    for (auto& func_chunk : state.analyzed->function_declarations.GetChunks()) {
+        for (auto& func : func_chunk) {
+            state.analyzed->functions_by_qualified_name.insert({func.function_name, func});
+            state.analyzed->functions_by_unqualified_name.insert({func.function_name.function_name.get().text, func});
         }
     }
 
@@ -562,6 +612,7 @@ void NameResolutionPass::Finish() {
         assign_statment_ids(state.analyzed->table_references.GetChunks());
         assign_statment_ids(state.analyzed->expressions.GetChunks());
         assign_statment_ids(state.analyzed->name_scopes.GetChunks());
+        assign_statment_ids(state.analyzed->function_declarations.GetChunks());
     }
 
     // Index the table declarations

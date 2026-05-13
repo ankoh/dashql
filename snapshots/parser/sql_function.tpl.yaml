@@ -1,0 +1,19 @@
+parser-snapshots:
+  - name: create_function_basic
+    input: |
+      create function foo(a int, b varchar) returns varchar
+  - name: create_function_no_params
+    input: |
+      create function foo() returns int
+  - name: create_function_any_type
+    input: |
+      create function foo(a any) returns any
+  - name: create_aggregate_basic
+    input: |
+      create aggregate foo(a int) returns varchar
+  - name: create_function_qualified
+    input: |
+      create function myschema.foo(a int) returns int
+  - name: create_function_many_params
+    input: |
+      create function bar(x int, y int, z varchar) returns int

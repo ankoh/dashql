@@ -126,6 +126,30 @@ table TableReference {
     resolved_table: ResolvedTable;
 }
 
+table FunctionParam {
+    // The id of the AST node
+    ast_node_id: uint32;
+    // The parameter name
+    param_name: string;
+    // The parameter type name
+    param_type: string;
+}
+
+table FunctionDeclaration {
+    // The id of the AST node that created this function declaration
+    ast_node_id: uint32;
+    // The id of the statement that created the function declaration
+    ast_statement_id: uint32;
+    // Is this an aggregate function?
+    is_aggregate: bool = false;
+    // The name of the function
+    function_name: QualifiedFunctionName;
+    // The function parameters
+    params: [FunctionParam];
+    // The return type name
+    return_type: string;
+}
+
 table FunctionReference {
     // The id of the AST node that created this table declaration.
     ast_node_id: uint32 ;
@@ -301,4 +325,7 @@ table AnalyzedScript {
 
     // The function references
     function_references: [FunctionReference];
+
+    // The function declarations
+    function_declarations: [FunctionDeclaration];
 }

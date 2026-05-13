@@ -317,6 +317,35 @@ flatbuffers::Offset<buffers::analyzer::QualifiedFunctionName> AnalyzedScript::Qu
     return out.Finish();
 }
 
+flatbuffers::Offset<buffers::analyzer::FunctionDeclaration> CatalogEntry::FunctionDeclaration::Pack(
+    flatbuffers::FlatBufferBuilder& builder) const {
+    auto function_name_ofs = function_name.Pack(builder);
+    flatbuffers::Offset<flatbuffers::String> return_type_ofs;
+    if (!return_type.empty()) {
+        return_type_ofs = builder.CreateString(return_type);
+    }
+    std::vector<flatbuffers::Offset<buffers::analyzer::FunctionParam>> param_offsets;
+    param_offsets.reserve(params.size());
+    for (auto& p : params) {
+        auto param_name_ofs = builder.CreateString(p.param_name.get().text);
+        auto param_type_ofs = builder.CreateString(p.param_type);
+        buffers::analyzer::FunctionParamBuilder pb{builder};
+        pb.add_ast_node_id(p.ast_node_id.value_or(PROTO_NULL_U32));
+        pb.add_param_name(param_name_ofs);
+        pb.add_param_type(param_type_ofs);
+        param_offsets.push_back(pb.Finish());
+    }
+    auto params_ofs = builder.CreateVector(param_offsets);
+    buffers::analyzer::FunctionDeclarationBuilder out{builder};
+    out.add_ast_node_id(ast_node_id);
+    out.add_ast_statement_id(ast_statement_id.value_or(PROTO_NULL_U32));
+    out.add_is_aggregate(is_aggregate);
+    out.add_function_name(function_name_ofs);
+    out.add_params(params_ofs);
+    out.add_return_type(return_type_ofs);
+    return out.Finish();
+}
+
 /// Pack as FlatBuffer
 flatbuffers::Offset<buffers::analyzer::TableReference> AnalyzedScript::TableReference::Pack(
     flatbuffers::FlatBufferBuilder& builder) const {
@@ -741,6 +770,20 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
                                                  root.location.value(), root.expression_id, column_ref.expression_id);
     });
 
+    // Pack function declarations
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<buffers::analyzer::FunctionDeclaration>>>
+        func_decls_ofs;
+    {
+        std::vector<flatbuffers::Offset<buffers::analyzer::FunctionDeclaration>> func_offsets;
+        func_offsets.reserve(function_declarations.GetSize());
+        for (auto& func_chunk : function_declarations.GetChunks()) {
+            for (auto& func : func_chunk) {
+                func_offsets.push_back(func.Pack(builder));
+            }
+        }
+        func_decls_ofs = builder.CreateVector(func_offsets);
+    }
+
     buffers::analyzer::AnalyzedScriptBuilder out{builder};
     out.add_catalog_entry_id(catalog_entry_id);
     out.add_tables(tables_ofs);
@@ -752,6 +795,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     out.add_column_filters(column_filters_ofs);
     out.add_column_computations(column_computations_ofs);
     out.add_name_scopes(name_scopes_ofs);
+    out.add_function_declarations(func_decls_ofs);
     return out.Finish();
 }
 
