@@ -1,0 +1,21 @@
+formatter-snapshots:
+  # Explain a simple select
+  - name: explain_select
+    input: explain select 1
+    dialects:
+      duckdb:
+  # Explain with analyze option
+  - name: explain_with_analyze
+    input: explain (analyze) select 1
+    dialects:
+      duckdb:
+  # Explain with multiple options
+  - name: explain_with_options
+    input: explain (analyze, format text) select 1
+    dialects:
+      duckdb:
+  # Explain create table
+  - name: explain_create_table
+    input: explain create table foo (id integer)
+    dialects:
+      duckdb:

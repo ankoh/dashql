@@ -239,6 +239,10 @@ void ParseContext::AddStatement(buffers::parser::Node node) {
             stmt_type = buffers::parser::StatementType::VIS_VISUALISE;
             break;
 
+        case buffers::parser::NodeType::OBJECT_EXT_EXPLAIN:
+            stmt_type = buffers::parser::StatementType::EXPLAIN;
+            break;
+
         default:
             assert(false);
     }

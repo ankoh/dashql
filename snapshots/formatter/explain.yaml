@@ -1,0 +1,69 @@
+formatter-snapshots:
+
+  - name: explain_select
+    input: |-
+      explain select 1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              explain select 1;
+          - mode: compact
+            expected: |-
+              explain select 1;
+          - mode: pretty
+            expected: |-
+              explain select 1;
+
+  - name: explain_with_analyze
+    input: |-
+      explain (analyze) select 1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              explain (analyze) select 1;
+          - mode: compact
+            expected: |-
+              explain (analyze)
+              select 1;
+          - mode: pretty
+            expected: |-
+              explain (analyze)
+              select 1;
+
+  - name: explain_with_options
+    input: |-
+      explain (analyze, format text) select 1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              explain (analyze, format text) select 1;
+          - mode: compact
+            expected: |-
+              explain (analyze, format text)
+              select 1;
+          - mode: pretty
+            expected: |-
+              explain (analyze, format text)
+              select 1;
+
+  - name: explain_create_table
+    input: |-
+      explain create table foo (id integer)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              explain create table foo (id integer);
+          - mode: compact
+            expected: |-
+              explain create table foo (id integer);
+          - mode: pretty
+            expected: |-
+              explain create table foo (id integer);

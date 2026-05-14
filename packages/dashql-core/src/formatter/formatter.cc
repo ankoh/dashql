@@ -204,6 +204,21 @@ std::string_view GetKnownFunctionText(KnownFunction fn) {
 
 }  // namespace
 
+void Formatter::MarkExplainInnerStatementRoot(size_t root_id) {
+    const auto& root_node = ast[root_id];
+    if (root_node.node_type() != NodeType::OBJECT_EXT_EXPLAIN) return;
+    auto children = ast.subspan(root_node.children_begin_or_value(), root_node.children_count());
+    for (const auto& child : children) {
+        if (child.attribute_key() == AttributeKey::EXT_EXPLAIN_STATEMENT) {
+            size_t inner_id = &child - ast.data();
+            if (inner_id < node_states.size()) {
+                node_states[inner_id].is_statement_root = true;
+            }
+            break;
+        }
+    }
+}
+
 Formatter::Formatter(ParsedScript& parsed)
     : scanned(*parsed.scanned_script),
       parsed(parsed),
@@ -214,6 +229,7 @@ Formatter::Formatter(ParsedScript& parsed)
     for (const auto& statement : parsed.statements) {
         if (statement.root < node_states.size()) {
             node_states[statement.root].is_statement_root = true;
+            MarkExplainInnerStatementRoot(statement.root);
         }
     }
 }
@@ -1050,8 +1066,10 @@ FmtReg Formatter::FormatConstraintAttribute(const buffers::parser::Node& node) {
 FmtReg Formatter::FormatGenericOption(const buffers::parser::Node& node) {
     auto [key, value] =
         GetAttributes<AttributeKey::SQL_GENERIC_OPTION_KEY, AttributeKey::SQL_GENERIC_OPTION_VALUE>(node);
-    if (!key || !value) return FormatUnimplemented(node);
-    return fmt.Concat({Reg(*key), fmt.Text(" "), Reg(*value)});
+    if (!key) return FormatUnimplemented(node);
+    auto key_reg = Reg(*key);
+    if (!value || value->node_type() == NodeType::NONE) return key_reg;
+    return fmt.Concat({key_reg, fmt.Text(" "), Reg(*value)});
 }
 
 FmtReg Formatter::FormatFunctionArg(const buffers::parser::Node& node) {
@@ -1314,6 +1332,33 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
     return fmt.Join(clauses, fmt.Text(" "), fmt.Break(), clause_policy);
 }
 
+FmtReg Formatter::FormatExplain(size_t node_id) {
+    const auto& node = ast[node_id];
+    auto [statement, options] =
+        GetAttributes<AttributeKey::EXT_EXPLAIN_STATEMENT, AttributeKey::EXT_EXPLAIN_OPTIONS>(node);
+    if (!statement) return FormatUnimplemented(node);
+
+    auto stmt_reg = Reg(*statement);
+    if (stmt_reg == 0) return FormatUnimplemented(node);
+
+    if (options && options->children_count() > 0) {
+        std::vector<FmtReg> opt_parts;
+        opt_parts.reserve(options->children_count());
+        auto begin = options->children_begin_or_value();
+        for (size_t i = 0; i < options->children_count(); ++i) {
+            auto reg = Reg(ast[begin + i]);
+            if (reg == 0) return FormatUnimplemented(node);
+            opt_parts.push_back(reg);
+        }
+        auto opt_list = fmt.Join(opt_parts, fmt.Text(", "), fmt.Text(", "));
+        auto header = fmt.Concat({fmt.Text("explain "), fmt.Parenthesized(opt_list)});
+        std::array<FmtReg, 2> clauses{header, stmt_reg};
+        return fmt.Join(clauses, fmt.Text(" "), fmt.Break(), FormattingJoinPolicy::ForceBreak);
+    }
+
+    return fmt.Concat({fmt.Text("explain "), stmt_reg});
+}
+
 FmtReg Formatter::FormatCreate(size_t node_id) {
     const auto& node = ast[node_id];
     const auto& state = node_states[node_id];
@@ -1366,6 +1411,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatSelect(node_id);
         case NodeType::OBJECT_SQL_CREATE:
             return FormatCreate(node_id);
+        case NodeType::OBJECT_EXT_EXPLAIN:
+            return FormatExplain(node_id);
         case NodeType::OBJECT_SQL_TABLEREF:
             return FormatTableRef(node);
         case NodeType::OBJECT_SQL_GROUP_BY_ITEM:
@@ -1489,6 +1536,7 @@ std::string Formatter::Format(const buffers::formatting::FormattingConfigT& conf
     for (const auto& statement : parsed.statements) {
         if (statement.root < node_states.size()) {
             node_states[statement.root].is_statement_root = true;
+            MarkExplainInnerStatementRoot(statement.root);
         }
     }
 

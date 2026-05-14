@@ -548,6 +548,11 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 break;
             }
 
+            case buffers::parser::NodeType::OBJECT_EXT_EXPLAIN: {
+                MergeChildStates(node_state, node);
+                break;
+            }
+
             // By default, merge child states into the node state
             default:
                 MergeChildStates(node_state, node);

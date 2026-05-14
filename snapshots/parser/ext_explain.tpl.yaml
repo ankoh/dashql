@@ -1,0 +1,25 @@
+parser-snapshots:
+  # Explain a simple select
+  - name: explain_select
+    input: |
+      explain select 1
+  # Explain with analyze option
+  - name: explain_with_analyze
+    input: |
+      explain (analyze) select 1
+  # Explain with multiple options
+  - name: explain_with_options
+    input: |
+      explain (analyze, format text) select 1
+  # Explain with option value
+  - name: explain_with_bool_option
+    input: |
+      explain (analyze true, verbose false) select 1
+  # Explain create table
+  - name: explain_create_table
+    input: |
+      explain create table foo (id integer)
+  # Explain a select with from
+  - name: explain_select_from
+    input: |
+      explain select a, b from t where a > 1

@@ -27,4 +27,5 @@ sql_query_statement:
   | set_statement         { $$ = std::move($1); }
   | vis_visualise_stmt    { $$ = std::move($1); }
   | sql_create_function_stmt  { $$ = std::move($1); }
+  | explain_stmt              { $$ = std::move($1); }
     ;
