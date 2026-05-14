@@ -84,7 +84,6 @@ async function restoreNotebook(
                 script,
                 scriptAnalysis: {
                     buffers: {
-                        scanned: null,
                         parsed: null,
                         analyzed: null,
                         destroy: () => { },

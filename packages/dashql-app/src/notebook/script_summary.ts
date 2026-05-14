@@ -79,12 +79,12 @@ export function buildScriptSummary(processed: DashQLScriptBuffers, scriptText: s
     }
 
     const columnFilters: ColumnFilterSummary[] = [];
-    const scannedPtr = processed.scanned;
-    if (scriptText != null && scriptText.length > 0 && scannedPtr != null) {
-        const scanned = scannedPtr.read();
+    const parsedPtr = processed.parsed;
+    if (scriptText != null && scriptText.length > 0 && parsedPtr != null) {
+        const parsed = parsedPtr.read();
         for (let i = 0; i < analyzed.columnFiltersLength(); ++i) {
             const filter = analyzed.columnFilters(i, tmpFilter)!;
-            const one = columnFilterFromText(scriptText, scanned, analyzed, filter, tmpExpr);
+            const one = columnFilterFromText(scriptText, parsed, analyzed, filter, tmpExpr);
             if (one) columnFilters.push(one);
         }
     }

@@ -135,8 +135,6 @@ class ScannedScript {
     };
     /// Find token at text offset
     LocationInfo FindSymbol(size_t text_offset);
-    /// Pack syntax tokens
-    std::unique_ptr<buffers::parser::ScannerTokensT> PackTokens();
     /// Pack scanned program
     flatbuffers::Offset<buffers::parser::ScannedScript> Pack(flatbuffers::FlatBufferBuilder& builder);
 };
@@ -176,6 +174,8 @@ class ParsedScript {
     auto& GetNodes() const { return nodes; }
     /// Resolve statement and ast node at a text offset
     std::optional<std::pair<size_t, size_t>> FindNodeAtOffset(size_t text_offset) const;
+    /// Pack syntax tokens (uses AST to correct keyword-as-identifier types)
+    std::unique_ptr<buffers::parser::ScannerTokensT> PackTokens();
     /// Build the script
     flatbuffers::Offset<buffers::parser::ParsedScript> Pack(flatbuffers::FlatBufferBuilder& builder);
 };

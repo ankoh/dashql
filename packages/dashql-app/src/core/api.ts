@@ -33,7 +33,6 @@ interface EmscriptenModule {
     _dashql_script_erase_text_range: (ptr: number, offset: number, length: number) => void;
     _dashql_script_replace_text: (ptr: number, text: number, textLength: number) => void;
     _dashql_script_to_string: (result: number, ptr: number) => void;
-    _dashql_script_scan: (ptr: number) => void;
     _dashql_script_parse: (ptr: number) => void;
     _dashql_script_analyze: (ptr: number, parse_if_outdated: boolean) => void;
     _dashql_script_move_cursor: (result: number, ptr: number, offset: number) => void;
@@ -41,7 +40,6 @@ interface EmscriptenModule {
     _dashql_script_select_completion_candidate_at_cursor: (result: number, ptr: number, completion: number, candidateId: number) => void;
     _dashql_script_select_completion_catalog_object_at_cursor: (result: number, ptr: number, completion: number, candidateId: number, catalogObjectIdx: number) => void;
     _dashql_script_get_catalog_entry_id: (ptr: number) => number;
-    _dashql_script_get_scanned: (result: number, ptr: number) => void;
     _dashql_script_get_parsed: (result: number, ptr: number) => void;
     _dashql_script_get_analyzed: (result: number, ptr: number) => void;
     _dashql_script_get_statistics: (result: number, ptr: number) => void;
@@ -83,7 +81,6 @@ interface DashQLModuleExports {
     dashql_script_erase_text_range: (ptr: number, offset: number, length: number) => void;
     dashql_script_replace_text: (ptr: number, text: number, textLength: number) => void;
     dashql_script_to_string: (result: number, ptr: number) => void;
-    dashql_script_scan: (ptr: number) => void;
     dashql_script_parse: (ptr: number) => void;
     dashql_script_analyze: (ptr: number, parse_if_outdated: boolean) => void;
     dashql_script_move_cursor: (result: number, ptr: number, offset: number) => void;
@@ -91,7 +88,6 @@ interface DashQLModuleExports {
     dashql_script_select_completion_candidate_at_cursor: (result: number, ptr: number, completion: number, candidateId: number) => void;
     dashql_script_select_completion_catalog_object_at_cursor: (result: number, ptr: number, completion: number, candidateId: number, catalogObjectIdx: number) => void;
     dashql_script_get_catalog_entry_id: (ptr: number) => number;
-    dashql_script_get_scanned: (result: number, ptr: number) => void;
     dashql_script_get_parsed: (result: number, ptr: number) => void;
     dashql_script_get_analyzed: (result: number, ptr: number) => void;
     dashql_script_get_statistics: (result: number, ptr: number) => void;
@@ -157,7 +153,6 @@ const FLAT_CATALOG_TYPE = Symbol('FLAT_CATALOG_TYPE');
 const FLAT_PLAN_VIEW_MODEL_TYPE = Symbol('FLAT_PLAN_VIEW_MODEL_TYPE');
 const PARSED_SCRIPT_TYPE = Symbol('PARSED_SCRIPT_TYPE');
 const PLAN_VIEW_MODEL_TYPE = Symbol('PLAN_VIEW_MODEL_TYPE');
-const SCANNED_SCRIPT_TYPE = Symbol('SCANNED_SCRIPT_TYPE');
 const SCRIPT_REGISTRY_COLUMN_INFO_TYPE = Symbol('SCRIPT_REGISTRY_COLUMN_INFO_TYPE');
 const SCRIPT_REGISTRY_TYPE = Symbol('SCRIPT_REGISTRY_TYPE');
 const SCRIPT_STATISTICS_TYPE = Symbol('SCRIPT_STATISTICS_TYPE');
@@ -175,7 +170,6 @@ export type DashQLRegisteredMemory =
     | VariantKind<typeof FLAT_PLAN_VIEW_MODEL_TYPE, FlatBufferPtr<buffers.view.PlanViewModel>>
     | VariantKind<typeof PARSED_SCRIPT_TYPE, FlatBufferPtr<buffers.parser.ParsedScript>>
     | VariantKind<typeof PLAN_VIEW_MODEL_TYPE, Ptr<typeof PLAN_VIEW_MODEL_TYPE>>
-    | VariantKind<typeof SCANNED_SCRIPT_TYPE, FlatBufferPtr<buffers.parser.ScannedScript>>
     | VariantKind<typeof SCRIPT_REGISTRY_COLUMN_INFO_TYPE, FlatBufferPtr<buffers.registry.ScriptRegistryColumnInfo>>
     | VariantKind<typeof SCRIPT_REGISTRY_TYPE, Ptr<typeof SCRIPT_REGISTRY_TYPE>>
     | VariantKind<typeof SCRIPT_STATISTICS_TYPE, FlatBufferPtr<buffers.statistics.ScriptStatistics>>
@@ -225,12 +219,10 @@ export class DashQL {
             dashql_script_erase_text_range: module._dashql_script_erase_text_range,
             dashql_script_replace_text: module._dashql_script_replace_text,
             dashql_script_to_string: module._dashql_script_to_string,
-            dashql_script_scan: module._dashql_script_scan,
             dashql_script_parse: module._dashql_script_parse,
             dashql_script_analyze: module._dashql_script_analyze,
             dashql_script_get_statistics: module._dashql_script_get_statistics,
             dashql_script_get_catalog_entry_id: module._dashql_script_get_catalog_entry_id,
-            dashql_script_get_scanned: module._dashql_script_get_scanned,
             dashql_script_get_parsed: module._dashql_script_get_parsed,
             dashql_script_get_analyzed: module._dashql_script_get_analyzed,
             dashql_script_move_cursor: module._dashql_script_move_cursor,
@@ -658,13 +650,6 @@ export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = any> {
     }
 }
 
-export class ScannerError extends Error {
-    public scanned: FlatBufferPtr<buffers.parser.ScannedScript>;
-    constructor(scanned: FlatBufferPtr<buffers.parser.ScannedScript>, firstError: buffers.parser.Error) {
-        super(firstError.message()!);
-        this.scanned = scanned;
-    }
-}
 export class ParserError extends Error {
     public parsed: FlatBufferPtr<buffers.parser.ParsedScript>;
     constructor(parsed: FlatBufferPtr<buffers.parser.ParsedScript>, firstError: buffers.parser.Error) {
@@ -719,11 +704,6 @@ export class DashQLScript {
             this.ptr.api.instanceExports.dashql_script_to_string(resultPtr, scriptPtr)
         );
     }
-    /// Scan the script (throws exception on error)
-    public scan() {
-        const scriptPtr = this.ptr.assertNotNull();
-        this.ptr.api.instanceExports.dashql_script_scan(scriptPtr);
-    }
     /// Parse the script (throws exception on error)
     public parse() {
         const scriptPtr = this.ptr.assertNotNull();
@@ -733,17 +713,6 @@ export class DashQLScript {
     public analyze(parseIfOutdated: boolean = true) {
         const scriptPtr = this.ptr.assertNotNull();
         this.ptr.api.instanceExports.dashql_script_analyze(scriptPtr, parseIfOutdated);
-    }
-    /// Get the scanned script
-    public getScanned(): FlatBufferPtr<buffers.parser.ScannedScript> {
-        const scriptPtr = this.ptr.assertNotNull();
-        const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.parser.ScannedScript, buffers.parser.ScannedScriptT>(
-            SCANNED_SCRIPT_TYPE,
-            (resultPtr) => this.ptr.api.instanceExports.dashql_script_get_scanned(resultPtr, scriptPtr),
-            () => new buffers.parser.ScannedScript()
-        );
-        this.ptr.api.registerMemory({ type: SCANNED_SCRIPT_TYPE, value: resultBuffer });
-        return resultBuffer;
     }
     /// Get the parsed script
     public getParsed(): FlatBufferPtr<buffers.parser.ParsedScript> {

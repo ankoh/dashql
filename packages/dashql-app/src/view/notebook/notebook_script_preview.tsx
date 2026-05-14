@@ -37,7 +37,7 @@ export interface ScriptPreviewProps {
 
 interface PreviewSnapshot {
     scriptText: string;
-    scanned: core.FlatBufferPtr<core.buffers.parser.ScannedScript> | null;
+    parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null;
 }
 
 /// Helper to read a script text
@@ -82,16 +82,16 @@ function formatPreviewScript(
     }
 
     try {
-        formattedScript.scan();
-        const scanned = formattedScript.getScanned();
+        formattedScript.analyze();
+        const parsed = formattedScript.getParsed();
         const scriptText = readScriptText(formattedScript, logger, scriptKey, LOG_CTX);
         if (scriptText == null) {
-            scanned.destroy();
+            parsed.destroy();
             return null;
         }
-        return { scriptText, scanned };
+        return { scriptText, parsed };
     } catch (e: any) {
-        logger.warn('Failed to scan formatted script preview', {
+        logger.warn('Failed to analyze formatted script preview', {
             scriptKey: scriptKey.toString(),
             error: `${e}`,
             maxWidth: maxWidth.toString(),
@@ -109,7 +109,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptD
     const [maxWidthChars, setMaxWidthChars] = React.useState<number | null>(null);
     const [previewSnapshot, setPreviewSnapshot] = React.useState<PreviewSnapshot>(() => ({
         scriptText: '',
-        scanned: null,
+        parsed: null,
     }));
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
 
@@ -159,7 +159,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptD
         );
         setPreviewSnapshot(nextFormatted ?? {
             scriptText: '',
-            scanned: null,
+            parsed: null,
         });
         // Mark as ready after first format attempt (success or failure)
         onReady?.(true);
@@ -172,10 +172,10 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptD
         onReady,
     ]);
 
-    // Make sure to clean up the scanned script when the component unmounts
+    // Make sure to clean up the parsed script when the component unmounts
     React.useEffect(() => {
-        return () => { previewSnapshot.scanned?.destroy(); };
-    }, [previewSnapshot.scanned]);
+        return () => { previewSnapshot.parsed?.destroy(); };
+    }, [previewSnapshot.parsed]);
 
     React.useEffect(() => {
         if (view == null) {
@@ -188,7 +188,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptD
                 insert: previewSnapshot.scriptText,
             },
             effects: [
-                DashQLScannerDecorationUpdateEffect.of(previewSnapshot.scanned),
+                DashQLScannerDecorationUpdateEffect.of(previewSnapshot.parsed),
             ],
         });
     }, [previewSnapshot, view]);

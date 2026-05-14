@@ -43,17 +43,16 @@ function buildDecorationsFromErrors(
     const builder = new RangeSetBuilder<Decoration>();
     const decorations: DecorationInfo[] = [];
 
-    const scanned = scriptBuffers.scanned?.read() ?? null;
     const parsed = scriptBuffers.parsed?.read() ?? null;
     const analyzed = scriptBuffers.analyzed?.read() ?? null;
 
     const tmpError = new dashql.buffers.parser.Error();
     const tmpAnalyzerError = new dashql.buffers.analyzer.AnalyzerError();
 
-    // Are there any scanner errors?
-    if (scanned != null) {
-        for (let i = 0; i < scanned.errorsLength(); ++i) {
-            const error = scanned.errors(i, tmpError)!;
+    if (parsed != null) {
+        // Scanner errors
+        for (let i = 0; i < parsed.scannerErrorsLength(); ++i) {
+            const error = parsed.scannerErrors(i, tmpError)!;
             const loc = error.textSpan()!;
             decorations.push({
                 from: loc.offset(),
@@ -61,11 +60,9 @@ function buildDecorationsFromErrors(
                 decoration: ErrorDecoration,
             });
         }
-    }
-    // Are there any parser errors?
-    if (parsed !== null) {
-        for (let i = 0; i < parsed.errorsLength(); ++i) {
-            const error = parsed.errors(i, tmpError)!;
+        // Parser errors
+        for (let i = 0; i < parsed.parserErrorsLength(); ++i) {
+            const error = parsed.parserErrors(i, tmpError)!;
             const loc = error.textSpan()!;
             decorations.push({
                 from: loc.offset(),
@@ -75,8 +72,8 @@ function buildDecorationsFromErrors(
         }
     }
     if (analyzed !== null) {
-        // Are there any analyzer errors?
-        const tokens = scriptBuffers.scanned?.read()?.tokens() ?? null;
+        // Analyzer errors
+        const tokens = parsed?.tokens() ?? null;
         for (let i = 0; i < analyzed.errorsLength(); ++i) {
             const error = analyzed.errors(i, tmpAnalyzerError)!;
             const span = error.symbolSpan();
@@ -108,7 +105,7 @@ function buildDecorationsFromAnalysis(
     const decorations: DecorationInfo[] = [];
 
     if (analyzed !== null) {
-        const tokens = scriptBuffers.scanned?.read()?.tokens() ?? null;
+        const tokens = scriptBuffers.parsed?.read()?.tokens() ?? null;
         if (tokens) {
             // Decorate unresolved tables
             const tmpTableRef = new dashql.buffers.analyzer.TableReference();
@@ -182,7 +179,7 @@ function buildDecorationsFromFocus(
     const tmpNamedExpr = new dashql.buffers.algebra.Expression();
     const tmpTblRef = new dashql.buffers.analyzer.TableReference();
     const tmpNode = new dashql.buffers.parser.Node();
-    const tokens = scriptBuffers.scanned?.read()?.tokens() ?? null;
+    const tokens = scriptBuffers.parsed?.read()?.tokens() ?? null;
     if (!tokens) return builder.finish();
 
     // Build decorations for column refs of targeting the primary table
@@ -299,7 +296,6 @@ const ScannerDecorationField: StateField<ScriptDecorationState> = StateField.def
         const config: ScriptDecorationState = {
             decorations: new RangeSetBuilder<Decoration>().finish(),
             scriptBuffers: {
-                scanned: null,
                 parsed: null,
                 analyzed: null,
                 destroy: () => { },
@@ -309,17 +305,16 @@ const ScannerDecorationField: StateField<ScriptDecorationState> = StateField.def
     },
     // Mirror the DashQL state
     update: (state: ScriptDecorationState, transaction: Transaction) => {
-        // Scanned program untouched?
         const processor = transaction.state.field(DashQLProcessorPlugin);
-        if (processor.scriptBuffers.scanned === state.scriptBuffers.scanned) {
+        if (processor.scriptBuffers.parsed === state.scriptBuffers.parsed) {
             return state;
         }
         // Rebuild decorations
         const s = { ...state };
-        s.scriptBuffers.scanned = processor.scriptBuffers.scanned;
+        s.scriptBuffers.parsed = processor.scriptBuffers.parsed;
         s.decorations = (new RangeSetBuilder<Decoration>()).finish();
-        if (s.scriptBuffers.scanned) {
-            s.decorations = buildDecorationsFromTokens(transaction.state, s.scriptBuffers.scanned);
+        if (s.scriptBuffers.parsed) {
+            s.decorations = buildDecorationsFromTokens(transaction.state, s.scriptBuffers.parsed);
         }
         return s;
     },
@@ -331,7 +326,6 @@ const ErrorDecorationField: StateField<ScriptDecorationState> = StateField.defin
         const config: ScriptDecorationState = {
             decorations: new RangeSetBuilder<Decoration>().finish(),
             scriptBuffers: {
-                scanned: null,
                 parsed: null,
                 analyzed: null,
                 destroy: () => { },
@@ -358,7 +352,6 @@ const AnalyzerDecorationsField: StateField<ScriptDecorationState> = StateField.d
         const config: ScriptDecorationState = {
             decorations: new RangeSetBuilder<Decoration>().finish(),
             scriptBuffers: {
-                scanned: null,
                 parsed: null,
                 analyzed: null,
                 destroy: () => { },
@@ -396,7 +389,6 @@ const FocusDecorationField: StateField<FocusDecorationState> = StateField.define
             scriptKey: null,
             decorations: new RangeSetBuilder<Decoration>().finish(),
             scriptBuffers: {
-                scanned: null,
                 parsed: null,
                 analyzed: null,
                 destroy: () => { },
@@ -412,7 +404,6 @@ const FocusDecorationField: StateField<FocusDecorationState> = StateField.define
         const processor = transaction.state.field(DashQLProcessorPlugin);
         if (
             processor.scriptKey === state.scriptKey &&
-            processor.scriptBuffers.scanned === state.scriptBuffers.scanned &&
             processor.scriptBuffers.parsed === state.scriptBuffers.parsed &&
             processor.scriptBuffers.analyzed === state.scriptBuffers.analyzed &&
             processor.scriptCursor === state.scriptCursor &&
@@ -423,7 +414,6 @@ const FocusDecorationField: StateField<FocusDecorationState> = StateField.define
         // Rebuild decorations
         const s = { ...state };
         s.scriptKey = processor.scriptKey;
-        s.scriptBuffers.scanned = processor.scriptBuffers.scanned;
         s.scriptBuffers.parsed = processor.scriptBuffers.parsed;
         s.scriptBuffers.analyzed = processor.scriptBuffers.analyzed;
         s.scriptCursor = processor.scriptCursor;

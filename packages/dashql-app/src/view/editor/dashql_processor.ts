@@ -15,8 +15,6 @@ export interface DashQLProcessorConfig {
 export type DashQLScriptKey = number;
 /// A collection of FlatBuffers for a script
 export interface DashQLScriptBuffers {
-    /// The scanned script
-    scanned: dashql.FlatBufferPtr<dashql.buffers.parser.ScannedScript> | null;
     /// The parsed script
     parsed: dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript> | null;
     /// The analyzed script
@@ -92,23 +90,18 @@ export function analyzeScript(script: dashql.DashQLScript): DashQLScriptBuffers 
     try {
         script.analyze();
 
-        const scanned = script.getScanned();
         const parsed = script.getParsed();
         const analyzed = script.getAnalyzed();
-        return { scanned, parsed, analyzed, destroy: destroyBuffers };
+        return { parsed, analyzed, destroy: destroyBuffers };
 
     } catch (e: any) {
         console.error(e);
     }
-    return { scanned: null, parsed: null, analyzed: null, destroy: destroyBuffers };
+    return { parsed: null, analyzed: null, destroy: destroyBuffers };
 }
 
 /// Destory the buffers
 const destroyBuffers = (state: DashQLScriptBuffers) => {
-    if (state.scanned != null) {
-        state.scanned.destroy();
-        state.scanned = null;
-    }
     if (state.parsed != null) {
         state.parsed.destroy();
         state.parsed = null;
@@ -163,7 +156,6 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
             scriptKey: 0,
             script: null,
             scriptBuffers: {
-                scanned: null,
                 parsed: null,
                 analyzed: null,
                 destroy: destroyBuffers,

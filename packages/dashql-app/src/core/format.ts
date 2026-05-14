@@ -33,7 +33,7 @@ export interface ColumnFilterSummary {
 
 export function columnFilterFromText(
     scriptText: string,
-    scanned: buffers.parser.ScannedScript,
+    parsed: buffers.parser.ParsedScript,
     analyzed: buffers.analyzer.AnalyzedScript,
     filter: buffers.analyzer.ColumnFilter,
     tmpExpr: buffers.algebra.Expression,
@@ -43,7 +43,7 @@ export function columnFilterFromText(
     if (!filterSpan || !colExpr?.symbolSpan()) return null;
     const colSpan = colExpr.symbolSpan()!;
 
-    const tokens = scanned.tokens();
+    const tokens = parsed.tokens();
     if (!tokens) return null;
     const filterTs = resolveSymbolSpan(tokens, filterSpan);
     const colTs = resolveSymbolSpan(tokens, colSpan);

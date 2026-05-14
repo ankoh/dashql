@@ -1,6 +1,7 @@
 #include "dashql/parser/parser.h"
 
-#include "dashql/exception.h"
+#include <cassert>
+
 #include "dashql/parser/parse_context.h"
 #include "dashql/parser/parser_generated.h"
 #include "dashql/utils/chunk_buffer.h"
@@ -306,9 +307,7 @@ std::vector<Parser::ExpectedSymbol> Parser::ParseUntil(ScannedScript& scanned, C
 }
 
 std::shared_ptr<ParsedScript> Parser::Parse(std::shared_ptr<ScannedScript> scanned, bool debug) {
-    if (scanned == nullptr) {
-        throw Exception(buffers::status::StatusCode::SCRIPT_NOT_SCANNED);
-    }
+    assert(scanned != nullptr);
 
 #ifndef NDEBUG
     if (debug) {

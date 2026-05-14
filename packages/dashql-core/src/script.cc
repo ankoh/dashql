@@ -176,7 +176,6 @@ flatbuffers::Offset<buffers::parser::ScannedScript> ScannedScript::Pack(flatbuff
         err->message = msg;
         out.errors.push_back(std::move(err));
     }
-    out.tokens = PackTokens();
     out.line_breaks = line_breaks;
     out.comments = comments;
     return buffers::parser::ScannedScript::Pack(builder, &out);
@@ -266,13 +265,25 @@ flatbuffers::Offset<buffers::parser::ParsedScript> ParsedScript::Pack(flatbuffer
     for (auto& stmt : statements) {
         out.statements.push_back(stmt.Pack());
     }
-    out.errors.reserve(errors.size());
+    // Pack scanner errors
+    out.scanner_errors.reserve(scanned_script->errors.size());
+    for (auto& [loc, msg] : scanned_script->errors) {
+        auto err = std::make_unique<buffers::parser::ErrorT>();
+        err->text_span = std::make_unique<buffers::parser::TextSpan>(loc.offset(), loc.length());
+        err->message = msg;
+        out.scanner_errors.push_back(std::move(err));
+    }
+    // Pack parser errors
+    out.parser_errors.reserve(errors.size());
     for (auto& [loc, msg] : errors) {
         auto err = std::make_unique<buffers::parser::ErrorT>();
         err->text_span = std::make_unique<buffers::parser::TextSpan>(loc.offset(), loc.length());
         err->message = msg;
-        out.errors.push_back(std::move(err));
+        out.parser_errors.push_back(std::move(err));
     }
+    out.tokens = PackTokens();
+    out.line_breaks = scanned_script->line_breaks;
+    out.comments = scanned_script->comments;
     return buffers::parser::ParsedScript::Pack(builder, &out);
 }
 
@@ -946,8 +957,11 @@ void Script::Scan() {
 }
 
 void Script::Parse() {
+    if (scanned_script == nullptr || scanned_script->text_version != text_version) {
+        Scan();
+    }
     auto time_before = std::chrono::steady_clock::now();
-    parsed_script = parser::Parser::Parse(scanned_script);  // throws on error
+    parsed_script = parser::Parser::Parse(scanned_script);
     timing_statistics.mutate_parser_last_elapsed(
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - time_before).count());
 }

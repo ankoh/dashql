@@ -5,6 +5,28 @@ import { Transaction, StateField, EditorState } from '@codemirror/state';
 
 import { DashQLCompletionStatus, DashQLProcessorPlugin, DashQLScriptBuffers } from './dashql_processor.js';
 
+function findErrorAtCursor(
+    parsed: dashql.buffers.parser.ParsedScript,
+    cursor: number,
+): dashql.buffers.parser.Error | null {
+    const tmp = new dashql.buffers.parser.Error();
+    for (let i = 0; i < parsed.scannerErrorsLength(); ++i) {
+        const error = parsed.scannerErrors(i, tmp)!;
+        const loc = error.textSpan()!;
+        if (loc.offset() <= cursor && loc.offset() + loc.length() >= cursor) {
+            return error;
+        }
+    }
+    for (let i = 0; i < parsed.parserErrorsLength(); ++i) {
+        const error = parsed.parserErrors(i, tmp)!;
+        const loc = error.textSpan()!;
+        if (loc.offset() <= cursor && loc.offset() + loc.length() >= cursor) {
+            return error;
+        }
+    }
+    return null;
+}
+
 class CursorDiagnosticsState {
     public readonly buffers: DashQLScriptBuffers;
     public readonly tooltip: Tooltip;
@@ -19,45 +41,9 @@ class CursorDiagnosticsState {
     }
 
     static tryCreate(buffers: DashQLScriptBuffers, pos: number): (CursorDiagnosticsState | null) {
-        const findErrorAtLocation = (
-            buffer: {
-                errors: (index: number, obj?: dashql.buffers.parser.Error) => dashql.buffers.parser.Error | null;
-                errorsLength: () => number;
-            },
-            cursor: number,
-        ) => {
-            const tmp = new dashql.buffers.parser.Error();
-            for (let i = 0; i < buffer.errorsLength(); ++i) {
-                const error = buffer.errors(i, tmp)!;
-                const errorLoc = error.textSpan()!;
-                const errorMatches = errorLoc.offset() <= cursor && errorLoc.offset() + errorLoc.length() >= cursor;
-                if (errorMatches) {
-                    return error;
-                }
-            }
-            return null;
-        };
-
-        if (buffers.scanned) {
-            const scanned = buffers.scanned.read();
-            const error = findErrorAtLocation(scanned, pos);
-            if (error != null) {
-                const tooltip: Tooltip = {
-                    pos,
-                    arrow: true,
-                    create: () => {
-                        const dom = document.createElement('div');
-                        dom.className = 'cm-tooltip-cursor';
-                        dom.textContent = error.message();
-                        return { dom };
-                    },
-                };
-                return new CursorDiagnosticsState(buffers, tooltip);
-            }
-        }
         if (buffers.parsed) {
             const parsed = buffers.parsed.read();
-            const error = findErrorAtLocation(parsed, pos);
+            const error = findErrorAtCursor(parsed, pos);
             if (error != null) {
                 const tooltip: Tooltip = {
                     pos,
@@ -78,44 +64,9 @@ class CursorDiagnosticsState {
 
 function createDiagnosticsTooltip(state: EditorState, pos: number): Tooltip | null {
     const processor = state.field(DashQLProcessorPlugin);
-    const findErrorAtLocation = (
-        buffer: {
-            errors: (index: number, obj?: dashql.buffers.parser.Error) => dashql.buffers.parser.Error | null;
-            errorsLength: () => number;
-        },
-        cursor: number,
-    ) => {
-        const tmp = new dashql.buffers.parser.Error();
-        for (let i = 0; i < buffer.errorsLength(); ++i) {
-            const error = buffer.errors(i, tmp)!;
-            const errorLoc = error.textSpan()!;
-            const errorMatches = errorLoc.offset() <= cursor && errorLoc.offset() + errorLoc.length() >= cursor;
-            if (errorMatches) {
-                return error;
-            }
-        }
-        return null;
-    };
-
-    if (processor.scriptBuffers.scanned) {
-        const scanned = processor.scriptBuffers.scanned.read();
-        const error = findErrorAtLocation(scanned, pos);
-        if (error != null) {
-            return {
-                pos,
-                arrow: true,
-                create: () => {
-                    const dom = document.createElement('div');
-                    dom.className = 'cm-tooltip-cursor';
-                    dom.textContent = error.message();
-                    return { dom };
-                },
-            };
-        }
-    }
     if (processor.scriptBuffers.parsed) {
         const parsed = processor.scriptBuffers.parsed.read();
-        const error = findErrorAtLocation(parsed, pos);
+        const error = findErrorAtCursor(parsed, pos);
         if (error != null) {
             return {
                 pos,

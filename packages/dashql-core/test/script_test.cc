@@ -9,19 +9,11 @@ using namespace dashql;
 
 namespace {
 
-TEST(ScriptTest, ParsingBeforeScanning) {
+TEST(ScriptTest, ParseAutoScans) {
     Catalog catalog;
     Script script{catalog};
-    ASSERT_THROW(
-        {
-            try {
-                script.Parse();
-            } catch (const Exception& e) {
-                EXPECT_EQ(e.GetCode(), buffers::status::StatusCode::SCRIPT_NOT_SCANNED);
-                throw;
-            }
-        },
-        Exception);
+    script.InsertTextAt(0, "select 1");
+    ASSERT_NO_THROW(script.Parse());
 }
 
 TEST(ScriptTest, AnalyzingBeforeParsing) {

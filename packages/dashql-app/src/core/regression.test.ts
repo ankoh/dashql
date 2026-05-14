@@ -18,13 +18,11 @@ describe('Regression Tests ', () => {
         {
             const script = dql!.createScript(catalog);
             script.replaceText('select 1');
-            script.scan();
             script.parse();
         }
         {
             const script = dql!.createScript(catalog);
             script.replaceText('select 1');
-            script.scan();
             script.parse();
         }
     });

@@ -142,7 +142,6 @@ export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQ
         script,
         scriptAnalysis: {
             buffers: {
-                scanned: null,
                 parsed: null,
                 analyzed: null,
                 destroy: () => { },
@@ -200,7 +199,6 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 script,
                 scriptAnalysis: {
                     buffers: {
-                        scanned: null,
                         parsed: null,
                         analyzed: null,
                         destroy: () => { },
@@ -596,7 +594,6 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 script,
                 scriptAnalysis: {
                     buffers: {
-                        scanned: null,
                         parsed: null,
                         analyzed: null,
                         destroy: () => { },

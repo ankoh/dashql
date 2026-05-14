@@ -13,7 +13,6 @@ function createScriptData(script: core.DashQLScript, pageIndex: number, fileName
         script,
         scriptAnalysis: {
             buffers: {
-                scanned: null,
                 parsed: null,
                 analyzed: null,
                 destroy: () => { },

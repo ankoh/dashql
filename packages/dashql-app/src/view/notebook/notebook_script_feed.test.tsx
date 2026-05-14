@@ -66,7 +66,6 @@ function makeScriptData(scriptKey: number, text: string, pageIndex: number = -1,
         script: { toString: () => text } as any,
         scriptAnalysis: {
             buffers: {
-                scanned: null,
                 parsed: null,
                 analyzed: null,
                 destroy: () => { },

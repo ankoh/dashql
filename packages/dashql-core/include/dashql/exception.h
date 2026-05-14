@@ -41,8 +41,6 @@ class Exception : public std::exception {
                 return "Catalog is not matching";
             case buffers::status::StatusCode::CATALOG_ID_OUT_OF_SYNC:
                 return "Catalog id is out of sync";
-            case buffers::status::StatusCode::SCRIPT_NOT_SCANNED:
-                return "Script is not scanned";
             case buffers::status::StatusCode::SCRIPT_NOT_PARSED:
                 return "Script is not parsed";
             case buffers::status::StatusCode::SCRIPT_NOT_ANALYZED:

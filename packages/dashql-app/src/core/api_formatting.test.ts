@@ -23,7 +23,6 @@ describe('DashQL formatting', () => {
             20,
             4,
         );
-        script.scan();
         script.parse();
         const newScript = script.format(config, catalog);
         const newScriptText = newScript.toString();
@@ -43,7 +42,6 @@ describe('DashQL formatting', () => {
             20,
             4,
         );
-        script.scan();
         script.parse();
         const newScript = script.format(config, null);
         const newScriptText = newScript.toString();

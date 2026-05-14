@@ -461,7 +461,6 @@ table ScannedScript {
     external_id: uint32;
     line_breaks: [TextSpan];
     errors: [Error];
-    tokens: ScannerTokens;
     comments: [TextSpan];
 }
 
@@ -469,5 +468,9 @@ table ParsedScript {
     external_id: uint32;
     nodes: [Node];
     statements: [Statement];
-    errors: [Error];
+    scanner_errors: [Error];
+    parser_errors: [Error];
+    tokens: ScannerTokens;
+    line_breaks: [TextSpan];
+    comments: [TextSpan];
 }

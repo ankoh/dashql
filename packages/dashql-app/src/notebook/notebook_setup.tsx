@@ -20,7 +20,6 @@ export function useNotebookSetup(): NotebookSetup {
             script: mainScript,
             scriptAnalysis: {
                 buffers: {
-                    scanned: null,
                     parsed: null,
                     analyzed: null,
                     destroy: () => { },
