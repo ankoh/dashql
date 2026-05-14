@@ -130,7 +130,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                     if (conn.details.type == HYPER_CONNECTOR) {
                         const databaseName = ""; // XXX: Get from Hyper connection details
                         const schemas: string[] = []; // XXX
-                        await updatePgCatalog(sessionId, connDispatch, updateId, databaseName, schemas, executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
+                        await updatePgCatalog(traced, sessionId, connDispatch, updateId, databaseName, schemas, executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
                     } else {
                         throw new Error(
                             `cannot load pg_attribute catalog for ${conn.connectorInfo.names.displayShort} connections`,

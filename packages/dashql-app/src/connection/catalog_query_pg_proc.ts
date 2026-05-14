@@ -15,7 +15,7 @@ export type PgProcTable = arrow.Table<{
     function_kind: arrow.Utf8;
 }>;
 
-export function generateCatalogSQLFromPgProc(result: PgProcTable): string {
+export function generateCatalogSQLFromPgProc(result: PgProcTable, databaseName: string | null | undefined): string {
     const functions: FunctionMetadata[] = [];
 
     for (const batch of result.batches) {
@@ -32,10 +32,9 @@ export function generateCatalogSQLFromPgProc(result: PgProcTable): string {
             const returnType = colReturn.at(i);
             const kind = colKind.at(i);
 
-            if (!schemaName || !functionName || !returnType) {
+            if (!functionName) {
                 continue;
             }
-
             functions.push({
                 schemaName,
                 functionName,
@@ -46,14 +45,13 @@ export function generateCatalogSQLFromPgProc(result: PgProcTable): string {
         }
     }
 
-    return generateFunctionsSQL(functions);
+    return generateFunctionsSQL(databaseName, functions);
 }
 
 export async function queryPgProc(
     sessionId: string,
     connectionDispatch: DynamicConnectionDispatch,
     updateId: number,
-    schemaNames: string[],
     executor: QueryExecutor
 ): Promise<PgProcTable | null> {
     const query = `
@@ -65,9 +63,7 @@ export async function queryPgProc(
             p.prokind AS function_kind
         FROM pg_proc p
         JOIN pg_namespace n ON n.oid = p.pronamespace
-        WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
-          AND p.prokind IN ('f', 'a', 'w', 'p')
-        ${schemaNames.length > 0 ? `AND n.nspname IN ('${schemaNames.join("','")}')` : ''}
+        WHERE p.prokind IN ('f', 'a', 'w', 'p')
         ORDER BY n.nspname, p.proname
     `;
 

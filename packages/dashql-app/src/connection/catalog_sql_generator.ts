@@ -20,10 +20,7 @@ export interface SchemaMetadata {
     tables: TableMetadata[];
 }
 
-/// Quotes a SQL identifier using double quotes, escaping internal quotes.
-/// Handles special characters, spaces, and reserved words.
 export function quoteIdentifier(identifier: string): string {
-    // Escape any double quotes in the identifier by doubling them (SQL standard)
     const escaped = identifier.replace(/"/g, '""');
     return `"${escaped}"`;
 }
