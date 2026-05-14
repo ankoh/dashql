@@ -73,9 +73,9 @@ struct Completion {
         /// The combined more fine-granular candidate tags
         CandidateTags candidate_tags;
         /// The target text to replace
-        sx::parser::Location target_location;
+        sx::parser::SymbolSpan target_location;
         /// The target text to replace when adding a qualified text
-        sx::parser::Location target_location_qualified;
+        sx::parser::SymbolSpan target_location_qualified;
         /// The catalog objects
         IntrusiveList<CandidateCatalogObject> catalog_objects;
         /// The score (if computed)

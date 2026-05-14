@@ -15,10 +15,16 @@ namespace dashql::testing {
 ::testing::AssertionResult MatchesContent(c4::yml::ConstNodeRef have, c4::yml::ConstNodeRef expected_keymap);
 
 /// Encode a location into a YAML map node
-void EncodeLocationText(c4::yml::NodeRef n, buffers::parser::Location loc, std::string_view text,
+void EncodeLocationText(c4::yml::NodeRef n, buffers::parser::SymbolSpan loc, std::string_view text,
+                        const char* text_key = "text");
+/// Encode a text span into a YAML map node
+void EncodeLocationText(c4::yml::NodeRef n, buffers::parser::TextSpan loc, std::string_view text,
                         const char* text_key = "text");
 /// Encode a location into a YAML map node
-void EncodeLocationRange(c4::yml::NodeRef n, buffers::parser::Location loc, std::string_view text,
+void EncodeLocationRange(c4::yml::NodeRef n, buffers::parser::SymbolSpan loc, std::string_view text,
+                         const char* loc_key = "text");
+/// Encode a text span range into a YAML map node
+void EncodeLocationRange(c4::yml::NodeRef n, buffers::parser::TextSpan loc, std::string_view text,
                          const char* loc_key = "text");
 
 /// Encode an error (message + location).

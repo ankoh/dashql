@@ -82,7 +82,7 @@ void IdentifyColumnComputationsPass::Visit(std::span<const buffers::parser::Node
                             .left_expression_id = arg_exprs[0]->expression_id,
                             .right_expression_id = arg_exprs[1]->expression_id,
                         };
-                        auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
+                        auto& n = state.analyzed->AddExpression(node_id, node.symbol_span(), std::move(inner));
                         n.is_column_computation = true;
                         n.target_expression_id = arg_exprs[computation_target_idx]->expression_id;
                         state.SetDerivedForNode(node, n);

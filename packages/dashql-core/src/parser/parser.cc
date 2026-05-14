@@ -341,7 +341,7 @@ std::shared_ptr<ParsedScript> Parser::Parse(std::shared_ptr<ScannedScript> scann
             std::cout << buffers::parser::EnumNameAttributeKey(
                              static_cast<buffers::parser::AttributeKey>(elem.node.attribute_key()))
                       << " " << buffers::parser::EnumNameNodeType(elem.node.node_type()) << " "
-                      << scanned->GetInput().substr(elem.node.location().offset(), elem.node.location().length())
+                      << scanned->GetInput().substr(elem.node.symbol_span().offset(), elem.node.symbol_span().length())
                       << "\n"
                       << std::flush;
         });

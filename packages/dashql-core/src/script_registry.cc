@@ -229,7 +229,7 @@ flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> ScriptRegistry:
             auto& analyzed = analyzed_ref.get();
             auto& parsed = *analyzed.parsed_script;
             auto& scanned = *parsed.scanned_script;
-            auto snippet = ScriptSnippet::Extract(scanned.text_buffer, parsed.nodes, analyzed.node_markers,
+            auto snippet = ScriptSnippet::Extract(scanned.text_buffer, scanned, parsed.nodes, analyzed.node_markers,
                                                   root.ast_node_id, scanned.GetNames());
             addSnippetToGroup(std::move(snippet), filter_snippets);
         };
@@ -252,7 +252,7 @@ flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> ScriptRegistry:
             auto& analyzed = analyzed_ref.get();
             auto& parsed = *analyzed.parsed_script;
             auto& scanned = *parsed.scanned_script;
-            auto snippet = ScriptSnippet::Extract(scanned.text_buffer, parsed.nodes, analyzed.node_markers,
+            auto snippet = ScriptSnippet::Extract(scanned.text_buffer, scanned, parsed.nodes, analyzed.node_markers,
                                                   root.ast_node_id, scanned.GetNames());
             addSnippetToGroup(std::move(snippet), computation_snippets);
         };
@@ -278,7 +278,7 @@ void ScriptRegistry::CollectColumnFilters(QualifiedCatalogObjectID column_id,
         auto& parsed = *analyzed.parsed_script;
         auto& scanned = *parsed.scanned_script;
 
-        auto snippet = ScriptSnippet::Extract(scanned.text_buffer, parsed.nodes, analyzed.node_markers,
+        auto snippet = ScriptSnippet::Extract(scanned.text_buffer, scanned, parsed.nodes, analyzed.node_markers,
                                               root.ast_node_id, scanned.GetNames());
 
         addSnippetToGroup(std::move(snippet), out);
@@ -294,7 +294,7 @@ void ScriptRegistry::CollectColumnComputations(QualifiedCatalogObjectID column_i
         auto& parsed = *analyzed.parsed_script;
         auto& scanned = *parsed.scanned_script;
 
-        auto snippet = ScriptSnippet::Extract(scanned.text_buffer, parsed.nodes, analyzed.node_markers,
+        auto snippet = ScriptSnippet::Extract(scanned.text_buffer, scanned, parsed.nodes, analyzed.node_markers,
                                               root.ast_node_id, scanned.GetNames());
 
         addSnippetToGroup(std::move(snippet), out);

@@ -47,7 +47,8 @@ struct ScriptSnippet {
     flatbuffers::Offset<buffers::snippet::ScriptSnippet> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Extract a script snipped from an AST
-    static ScriptSnippet Extract(std::string_view text, std::span<const buffers::parser::Node> ast,
+    static ScriptSnippet Extract(std::string_view text, const class ScannedScript& scanned,
+                                 std::span<const buffers::parser::Node> ast,
                                  std::span<const buffers::analyzer::SemanticNodeMarkerType> ast_markers, size_t node_id,
                                  const NameRegistry& names);
 };

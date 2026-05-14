@@ -36,35 +36,35 @@ class Scanner {
     /// Temporary buffer to modify text across flex actions
     std::string temp_buffer;
     /// Begin of the active extended lexer rules
-    sx::parser::Location ext_begin;
+    sx::parser::SymbolSpan ext_begin;
     /// Nesting depth of the active extended lexer rules
     size_t ext_depth = 0;
 
     /// Read a parameter
     std::string_view GetInputData() const { return {input_data.data(), input_data.size()}; };
     /// Read a parameter
-    Parser::symbol_type ReadParameter(buffers::parser::Location loc);
+    Parser::symbol_type ReadParameter(buffers::parser::SymbolSpan loc);
     /// Read an integer
-    Parser::symbol_type ReadInteger(buffers::parser::Location loc);
+    Parser::symbol_type ReadInteger(buffers::parser::SymbolSpan loc);
     /// Read an identifier
-    Parser::symbol_type ReadIdentifier(buffers::parser::Location loc);
+    Parser::symbol_type ReadIdentifier(buffers::parser::SymbolSpan loc);
     /// Read a double-quoted identifier
-    Parser::symbol_type ReadDoubleQuotedIdentifier(buffers::parser::Location loc);
+    Parser::symbol_type ReadDoubleQuotedIdentifier(buffers::parser::SymbolSpan loc);
     /// Read a string literal
-    Parser::symbol_type ReadStringLiteral(buffers::parser::Location loc);
+    Parser::symbol_type ReadStringLiteral(buffers::parser::SymbolSpan loc);
     /// Read a hex literal
-    Parser::symbol_type ReadHexStringLiteral(buffers::parser::Location loc);
+    Parser::symbol_type ReadHexStringLiteral(buffers::parser::SymbolSpan loc);
     /// Read a hex literal
-    Parser::symbol_type ReadBitStringLiteral(buffers::parser::Location loc);
+    Parser::symbol_type ReadBitStringLiteral(buffers::parser::SymbolSpan loc);
 
     /// Add an error
-    void AddError(buffers::parser::Location location, const char* message);
+    void AddError(buffers::parser::SymbolSpan location, const char* message);
     /// Add an error
-    void AddError(buffers::parser::Location location, std::string&& message);
+    void AddError(buffers::parser::SymbolSpan location, std::string&& message);
     /// Add a line break
-    void AddLineBreak(buffers::parser::Location location);
+    void AddLineBreak(buffers::parser::SymbolSpan location);
     /// Add a comment
-    void AddComment(buffers::parser::Location location);
+    void AddComment(buffers::parser::SymbolSpan location);
 
    protected:
     /// Constructor

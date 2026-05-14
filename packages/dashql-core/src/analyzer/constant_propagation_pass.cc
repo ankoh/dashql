@@ -63,8 +63,8 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
             case NodeType::LITERAL_STRING: {
                 AnalyzedScript::Expression::Literal inner{
                     .literal_type = AnalysisState::GetLiteralType(node.node_type()),
-                    .raw_value = state.scanned.ReadTextAtLocation(node.location())};
-                auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
+                    .raw_value = state.scanned.ReadTextAtSymbolSpan(node.symbol_span())};
+                auto& n = state.analyzed->AddExpression(node_id, node.symbol_span(), std::move(inner));
                 n.is_constant_expression = true;
                 state.SetDerivedForNode(node, n);
                 state.MarkNode(node, getSemanticNodeMarkerForLiteral(node.node_type()));
@@ -109,7 +109,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                     };
                 }
 
-                auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
+                auto& n = state.analyzed->AddExpression(node_id, node.symbol_span(), std::move(inner));
                 n.is_constant_expression = true;
                 state.SetDerivedForNode(node, n);
                 state.MarkNode(node, SemanticNodeMarkerType::CONSTANT_EXPRESSION);
@@ -147,7 +147,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                                 .left_expression_id = const_args[0]->expression_id,
                                 .right_expression_id = const_args[1]->expression_id,
                             };
-                            auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
+                            auto& n = state.analyzed->AddExpression(node_id, node.symbol_span(), std::move(inner));
                             n.is_constant_expression = true;
                             state.SetDerivedForNode(node, n);
                             state.MarkNode(node, SemanticNodeMarkerType::CONSTANT_EXPRESSION);
@@ -169,7 +169,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                                 .left_expression_id = const_args[0]->expression_id,
                                 .right_expression_id = const_args[1]->expression_id,
                             };
-                            auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
+                            auto& n = state.analyzed->AddExpression(node_id, node.symbol_span(), std::move(inner));
                             n.is_constant_expression = true;
                             state.SetDerivedForNode(node, n);
                             state.MarkNode(node, SemanticNodeMarkerType::CONSTANT_EXPRESSION);

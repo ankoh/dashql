@@ -18,8 +18,13 @@ namespace dashql::testing {
 
 void operator<<(std::ostream& out, const ParserSnapshotTest& p) { out << p.name; }
 
-static void EncodeASTNode(c4::yml::NodeRef n, std::string_view text, std::span<const buffers::parser::Node> ast,
-                          size_t node_id) {
+static buffers::parser::TextSpan ResolveSpan(const ScannedScript* scanned, buffers::parser::SymbolSpan span) {
+    if (scanned) return scanned->ResolveTextSpan(span);
+    return buffers::parser::TextSpan(span.offset(), span.length());
+}
+
+static void EncodeASTNode(c4::yml::NodeRef n, std::string_view text, const ScannedScript* scanned,
+                          std::span<const buffers::parser::Node> ast, size_t node_id) {
     const auto* target = &ast[node_id];
     auto* node_type_tt = buffers::parser::NodeTypeTypeTable();
 
@@ -45,11 +50,11 @@ static void EncodeASTNode(c4::yml::NodeRef n, std::string_view text, std::span<c
         case buffers::parser::NodeType::LITERAL_INTEGER:
         case buffers::parser::NodeType::LITERAL_INTERVAL:
         case buffers::parser::NodeType::LITERAL_STRING: {
-            EncodeLocationText(n, target->location(), text);
+            EncodeLocationText(n, ResolveSpan(scanned, target->symbol_span()), text);
             break;
         }
         case buffers::parser::NodeType::ARRAY: {
-            EncodeLocationText(n, target->location(), text);
+            EncodeLocationText(n, ResolveSpan(scanned, target->symbol_span()), text);
             auto nodes_key = n.append_child();
             nodes_key << c4::yml::key("children");
             nodes_key |= c4::yml::SEQ;
@@ -57,14 +62,14 @@ static void EncodeASTNode(c4::yml::NodeRef n, std::string_view text, std::span<c
             for (size_t i = 0; i < target->children_count(); ++i) {
                 auto item = nodes_key.append_child();
                 item.set_type(c4::yml::MAP);
-                EncodeASTNode(item, text, ast, begin + i);
+                EncodeASTNode(item, text, scanned, ast, begin + i);
             }
             break;
         }
         default: {
             auto node_type_id = static_cast<uint32_t>(target->node_type());
             if (node_type_id > static_cast<uint32_t>(buffers::parser::NodeType::OBJECT_KEYS_)) {
-                EncodeLocationText(n, target->location(), text);
+                EncodeLocationText(n, ResolveSpan(scanned, target->symbol_span()), text);
                 auto nodes_key = n.append_child();
                 nodes_key << c4::yml::key("children");
                 nodes_key |= c4::yml::SEQ;
@@ -72,7 +77,7 @@ static void EncodeASTNode(c4::yml::NodeRef n, std::string_view text, std::span<c
                 for (size_t i = 0; i < target->children_count(); ++i) {
                     auto item = nodes_key.append_child();
                     item.set_type(c4::yml::MAP);
-                    EncodeASTNode(item, text, ast, begin + i);
+                    EncodeASTNode(item, text, scanned, ast, begin + i);
                 }
             } else if (node_type_id > static_cast<uint32_t>(buffers::parser::NodeType::ENUM_KEYS_)) {
                 n.append_child() << c4::yml::key("value") << std::string(dashql::parser::getEnumText(*target));
@@ -84,12 +89,20 @@ static void EncodeASTNode(c4::yml::NodeRef n, std::string_view text, std::span<c
     }
 }
 
+void ParserSnapshotTest::EncodeAST(c4::yml::NodeRef parent, std::string_view text, const ScannedScript& scanned,
+                                   std::span<const buffers::parser::Node> ast, size_t root_node_id) {
+    auto node_container = parent.append_child();
+    node_container << c4::yml::key("ast");
+    node_container |= c4::yml::MAP;
+    EncodeASTNode(node_container, text, &scanned, ast, root_node_id);
+}
+
 void ParserSnapshotTest::EncodeAST(c4::yml::NodeRef parent, std::string_view text,
                                    std::span<const buffers::parser::Node> ast, size_t root_node_id) {
     auto node_container = parent.append_child();
     node_container << c4::yml::key("ast");
     node_container |= c4::yml::MAP;
-    EncodeASTNode(node_container, text, ast, root_node_id);
+    EncodeASTNode(node_container, text, nullptr, ast, root_node_id);
 }
 
 void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript& scanned, const ParsedScript& parsed,
@@ -108,7 +121,7 @@ void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript
         stmt.append_child() << c4::yml::key("type") << std::string(stmt_type_tt->names[static_cast<uint16_t>(s.type)]);
         stmt.append_child() << c4::yml::key("ast-begin") << s.nodes_begin;
         stmt.append_child() << c4::yml::key("ast-size") << s.node_count;
-        ParserSnapshotTest::EncodeAST(stmt, text, nodes, s.root);
+        ParserSnapshotTest::EncodeAST(stmt, text, scanned, nodes, s.root);
     }
 
     auto scanner_errors_node = root.append_child();
@@ -128,7 +141,7 @@ void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript
         auto err_node = parser_errors_node.append_child();
         err_node.set_type(c4::yml::MAP);
         err_node.append_child() << c4::yml::key("message") << err_msg;
-        EncodeLocationText(err_node, err_loc, text);
+        EncodeLocationText(err_node, scanned.ResolveTextSpan(err_loc), text);
     }
 
     auto line_breaks_node = root.append_child();

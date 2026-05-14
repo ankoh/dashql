@@ -109,7 +109,7 @@ struct NAryExpression {
     /// The expression pool
     Pool& expression_pool;
     /// The location
-    buffers::parser::Location location;
+    buffers::parser::SymbolSpan location;
     /// The expression operator
     buffers::parser::ExpressionOperator op;
     /// The expression operator node
@@ -118,7 +118,7 @@ struct NAryExpression {
     WeakUniquePtr<NodeList> args;
 
     /// Constructor
-    NAryExpression(Pool& pool, buffers::parser::Location loc, buffers::parser::ExpressionOperator op,
+    NAryExpression(Pool& pool, buffers::parser::SymbolSpan loc, buffers::parser::ExpressionOperator op,
                    buffers::parser::Node node, WeakUniquePtr<NodeList> args);
     /// Destructor
     ~NAryExpression();

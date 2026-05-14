@@ -276,7 +276,7 @@ void Formatter::IdentifyParentheses(size_t node_id) {
 }
 
 FmtReg Formatter::FormatLeaf(const buffers::parser::Node& node) {
-    return fmt.Text(scanned.ReadTextAtLocation(node.location()));
+    return fmt.Text(scanned.ReadTextAtSymbolSpan(node.symbol_span()));
 }
 
 FmtReg Formatter::FormatUnimplemented(const buffers::parser::Node& node) {

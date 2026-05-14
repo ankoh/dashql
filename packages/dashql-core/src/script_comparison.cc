@@ -33,9 +33,9 @@ static size_t ScriptsAreEqualImpl(std::string_view left_text, std::span<const bu
                 if constexpr (!SkipNamesAndLiterals) {
                     // Note that this is strictly speaking a little too lax.
                     // We ignore the rabbit hole of value interpretation here.
-                    auto value_left = left_text.substr(node_left.location().offset(), node_left.location().length());
+                    auto value_left = left_text.substr(node_left.symbol_span().offset(), node_left.symbol_span().length());
                     auto value_right =
-                        right_text.substr(node_right.location().offset(), node_right.location().length());
+                        right_text.substr(node_right.symbol_span().offset(), node_right.symbol_span().length());
                     equal &= value_left == value_right;
                 }
                 break;

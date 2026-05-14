@@ -146,8 +146,8 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
                 auto& error = state.analyzed->errors.emplace_back();
                 error.error_type = buffers::analyzer::AnalyzerErrorType::DUPLICATE_TABLE_ALIAS;
                 error.ast_node_id = table_ref.ast_node_id;
-                error.location =
-                    std::make_unique<buffers::parser::Location>(state.parsed.nodes[table_ref.ast_node_id].location());
+                error.symbol_span =
+                    std::make_unique<buffers::parser::SymbolSpan>(state.parsed.nodes[table_ref.ast_node_id].symbol_span());
 
                 std::string tmp;
                 std::string_view alias_text = alias;
@@ -255,8 +255,8 @@ void NameResolutionPass::ResolveColumnRefsInScope(AnalyzedScript::NameScope& sco
                     auto& error = state.analyzed->errors.back();
                     error.error_type = buffers::analyzer::AnalyzerErrorType::COLUMN_REF_AMBIGUOUS;
                     error.ast_node_id = expr.ast_node_id;
-                    error.location =
-                        std::make_unique<buffers::parser::Location>(state.parsed.nodes[expr.ast_node_id].location());
+                    error.symbol_span =
+                        std::make_unique<buffers::parser::SymbolSpan>(state.parsed.nodes[expr.ast_node_id].symbol_span());
 
                     // Construct the error message
                     // Note that we deliberately do not use std::stringstream here since clang is then baking in fd
@@ -374,7 +374,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                         .ast_scope_root = std::nullopt,
                         .resolved_column = std::nullopt,
                     };
-                    auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(column_ref));
+                    auto& n = state.analyzed->AddExpression(node_id, node.symbol_span(), std::move(column_ref));
                     // Mark column refs as (identity) computation
                     n.is_column_computation = true;
                     node_state.column_references.PushBack(n);
@@ -396,13 +396,13 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                     if (name.has_value()) {
                         // Read a table alias
                         std::string_view alias_str;
-                        std::optional<std::pair<std::reference_wrapper<RegisteredName>, sx::parser::Location>> alias =
+                        std::optional<std::pair<std::reference_wrapper<RegisteredName>, sx::parser::SymbolSpan>> alias =
                             std::nullopt;
                         if (alias_node && alias_node->node_type() == buffers::parser::NodeType::NAME) {
                             auto& a = state.scanned.GetNames().At(alias_node->children_begin_or_value());
                             a.coarse_analyzer_tags |= buffers::analyzer::NameTag::TABLE_ALIAS;
                             alias_str = a;
-                            alias = {a, alias_node->location()};
+                            alias = {a, alias_node->symbol_span()};
                         }
                         // Add table reference
                         auto& n = state.analyzed->table_references.PushBack(AnalyzedScript::TableReference(alias));
@@ -411,7 +411,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                             ExternalObjectID{state.catalog_entry_id,
                                              static_cast<uint32_t>(state.analyzed->table_references.GetSize() - 1)};
                         n.ast_node_id = node_id;
-                        n.location = state.parsed.nodes[node_id].location();
+                        n.location = state.parsed.nodes[node_id].symbol_span();
                         n.ast_statement_id = std::nullopt;
                         n.ast_scope_root = std::nullopt;
                         n.inner = AnalyzedScript::TableReference::RelationExpression{
@@ -511,7 +511,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                     decl.is_aggregate = (is_aggregate_node != nullptr);
                     // Read return type text from the AST node location
                     if (returns_node) {
-                        decl.return_type = state.scanned.ReadTextAtLocation(returns_node->location());
+                        decl.return_type = state.scanned.ReadTextAtSymbolSpan(returns_node->symbol_span());
                     }
                     // Read parameters
                     if (params_node && params_node->node_type() == buffers::parser::NodeType::ARRAY) {
@@ -527,7 +527,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                                 auto& param_name = state.scanned.GetNames().At(param_name_node->children_begin_or_value());
                                 std::string_view param_type_text;
                                 if (param_type_node) {
-                                    param_type_text = state.scanned.ReadTextAtLocation(param_type_node->location());
+                                    param_type_text = state.scanned.ReadTextAtSymbolSpan(param_type_node->symbol_span());
                                 }
                                 decl.params.emplace_back(&param_node - state.ast.data(), param_name, param_type_text);
                             }

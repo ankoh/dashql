@@ -26,7 +26,7 @@ static size_t ComputeScriptSignatureImpl(std::string_view text, std::span<const 
                 if constexpr (!SkipNamesAndLiterals) {
                     // Note that this is strictly speaking a little too lax.
                     // We ignore the rabbit hole of value interpretation here.
-                    auto value = text.substr(node.location().offset(), node.location().length());
+                    auto value = text.substr(node.symbol_span().offset(), node.symbol_span().length());
                     hash_combine(v, StringHasher::Hash(value));
                 }
                 break;

@@ -117,7 +117,7 @@ table TableReference {
     // The root of the scope where this table reference is live
     ast_scope_root: uint32;
     // The location
-    location: parser.Location;
+    symbol_span: parser.SymbolSpan;
     // The name of the table that is referenced
     table_name: QualifiedTableName;
     // The alias name
@@ -167,7 +167,7 @@ struct ConstantExpression {
     // The id of the statement that contains this constant expression
     ast_statement_id: uint32;
     // The location
-    location: parser.Location;
+    symbol_span: parser.SymbolSpan;
     /// The filter expression
     expression_id: uint32;
 }
@@ -178,7 +178,7 @@ struct ColumnFilter {
     // The id of the statement that contains the table reference
     ast_statement_id: uint32;
     // The location
-    location: parser.Location;
+    symbol_span: parser.SymbolSpan;
     /// The root expression id
     root_expression_id: uint32;
     /// The column reference expression id
@@ -191,7 +191,7 @@ struct ColumnComputation {
     // The id of the statement that contains the table reference
     ast_statement_id: uint32;
     // The location
-    location: parser.Location;
+    symbol_span: parser.SymbolSpan;
     /// The root expression id
     root_expression_id: uint32;
     /// The column reference expression id
@@ -258,7 +258,7 @@ table AnalyzerError {
     /// The ast node id
     ast_node_id: uint32;
     /// The text location, in case the user doesn't want to carry around the ast
-    location: parser.Location;
+    symbol_span: parser.SymbolSpan;
     /// The error message
     message: string;
 }

@@ -77,9 +77,9 @@ table CompletionCandidate {
     /// The coarse-granular analyzer tags
     name_tags: uint8;
     /// The text to replace
-    target_location: parser.Location;
+    target_location: parser.SymbolSpan;
     /// The qualified text to replace
-    target_location_qualified: parser.Location;
+    target_location_qualified: parser.SymbolSpan;
     /// The display text
     display_text: string;
     /// The completion text.

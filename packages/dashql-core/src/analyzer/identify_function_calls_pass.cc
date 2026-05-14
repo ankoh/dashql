@@ -106,7 +106,7 @@ void IdentifyFunctionCallsPass::Visit(std::span<const buffers::parser::Node> mor
                 func_call.arguments = args;
             }
 
-            auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(func_call));
+            auto& n = state.analyzed->AddExpression(node_id, node.symbol_span(), std::move(func_call));
             state.SetDerivedForNode(node, n);
         }
     }

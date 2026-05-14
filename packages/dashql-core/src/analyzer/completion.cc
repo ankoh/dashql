@@ -230,7 +230,7 @@ void Completion::FindCandidatesForNamePath() {
     // The cursor location
     auto cursor_location = target_scanner_symbol->text_offset;
     // Read the name path
-    sx::parser::Location name_path_loc;
+    sx::parser::SymbolSpan name_path_loc;
     auto name_path_buffer = cursor.ReadCursorNamePath(name_path_loc);
     std::span<ScriptCursor::NameComponent> name_path = name_path_buffer;
 
@@ -245,17 +245,20 @@ void Completion::FindCandidatesForNamePath() {
 
     // Last text prefix
     std::string_view last_text_prefix;
-    uint32_t truncate_at = name_path_loc.offset() + name_path_loc.length();
+    auto& scan = *cursor.script.scanned_script;
+    auto name_path_ts = scan.ResolveTextSpan(name_path_loc);
+    uint32_t truncate_at = name_path_ts.offset() + name_path_ts.length();
     for (; name_count < name_path.size(); ++name_count) {
+        auto comp_ts = scan.ResolveTextSpan(name_path[name_count].loc);
         if (name_path[name_count].type == ScriptCursor::NameComponentType::TrailingDot) {
-            truncate_at = name_path[name_count].loc.offset() + 1;
+            truncate_at = comp_ts.offset() + 1;
             break;
         }
         if (name_path[name_count].type != ScriptCursor::NameComponentType::Name) {
-            truncate_at = name_path[name_count].loc.offset();
+            truncate_at = comp_ts.offset();
             break;
         }
-        if ((name_path[name_count].loc.offset() + name_path[name_count].loc.length()) < cursor_location) {
+        if ((comp_ts.offset() + comp_ts.length()) < cursor_location) {
             ++sealed;
         } else {
             // The cursor points into a name?
@@ -265,24 +268,24 @@ void Completion::FindCandidatesForNamePath() {
             //  foo.bar.something
             //              ^ if the cursor points to t, we'll complete "some"
             //
-            auto last_loc = name_path[name_count].loc;
-            auto last_text = cursor.script.scanned_script->ReadTextAtLocation(last_loc);
+            auto last_text = scan.ReadTextAtSymbolSpan(name_path[name_count].loc);
             auto last_content =
                 std::find_if(last_text.begin(), last_text.end(), is_no_double_quote) - last_text.begin();
-            auto last_content_ofs = last_loc.offset() + last_content;
+            auto last_content_ofs = comp_ts.offset() + last_content;
             auto last_prefix_length = std::max<size_t>(cursor_location, last_content_ofs) - last_content_ofs;
             last_text_prefix = last_text.substr(last_content, last_prefix_length);
 
             // Truncate when replacing
-            truncate_at = last_loc.offset();
+            truncate_at = comp_ts.offset();
             break;
         }
     }
     name_path = name_path.subspan(0, name_count);
 
-    // Determine text to replace
-    sx::parser::Location replace_text_at{
-        truncate_at, std::max<uint32_t>(name_path_loc.offset() + name_path_loc.length(), truncate_at) - truncate_at};
+    // Determine text ranges to replace (text-offset-based SymbolSpans for the editor)
+    sx::parser::SymbolSpan replace_text_at{
+        truncate_at, std::max<uint32_t>(name_path_ts.offset() + name_path_ts.length(), truncate_at) - truncate_at};
+    sx::parser::SymbolSpan name_path_text_loc{name_path_ts.offset(), name_path_ts.length()};
 
     // Is the path empty?
     // Nothing to complete then.
@@ -440,7 +443,7 @@ void Completion::FindCandidatesForNamePath() {
             auto& candidate_object = iter->second.get();
             candidate_object.candidate_tags |= dot_candidate.candidate_tags;
             candidate_object.candidate.target_location = replace_text_at;
-            candidate_object.candidate.target_location_qualified = name_path_loc;
+            candidate_object.candidate.target_location_qualified = name_path_text_loc;
             assert(candidate_object.candidate.completion_text == dot_candidate.name);
 
         } else {
@@ -462,7 +465,7 @@ void Completion::FindCandidatesForNamePath() {
                 auto& existing = iter->second.get();
                 // Fix text replacement
                 existing.target_location = replace_text_at;
-                existing.target_location_qualified = name_path_loc;
+                existing.target_location_qualified = name_path_text_loc;
                 // Allocate the candidate object
                 auto& co = candidate_objects.PushBack(CandidateCatalogObject{
                     .candidate = existing,
@@ -483,7 +486,7 @@ void Completion::FindCandidatesForNamePath() {
                     .coarse_name_tags = dot_candidate.name_tags,
                     .candidate_tags = dot_candidate.candidate_tags,
                     .target_location = replace_text_at,
-                    .target_location_qualified = name_path_loc,
+                    .target_location_qualified = name_path_text_loc,
                     .catalog_objects = {},
                 });
                 candidates_by_name.insert({c.completion_text, c});
@@ -525,7 +528,8 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
             case Relative::END_OF_SYMBOL: {
                 auto symbol_ofs = target_symbol->symbol.location.offset();
                 auto symbol_prefix = std::max<uint32_t>(target_symbol->text_offset, symbol_ofs) - symbol_ofs;
-                auto symbol_text = cursor.script.scanned_script->ReadTextAtLocation(target_symbol->symbol.location);
+                auto symbol_text = cursor.script.scanned_script->ReadTextAtTextSpan(
+                    sx::parser::TextSpan(target_symbol->symbol.location.offset(), target_symbol->symbol.location.length()));
                 auto symbol_text_trimmed = trim_view({symbol_text.data(), symbol_prefix}, is_no_double_quote);
                 fuzzy_ci_string_view ci_symbol_text{symbol_text_trimmed.data(), symbol_text_trimmed.length()};
                 // Is substring?
@@ -568,7 +572,8 @@ void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& inde
     auto symbol_ofs = target_symbol->symbol.location.offset();
     auto safe_cursor_offset =
         std::min(std::max<uint32_t>(symbol_ofs, cursor_offset), symbol_ofs + target_symbol->symbol.location.length());
-    auto symbol_text = cursor.script.scanned_script->ReadTextAtLocation(target_symbol->symbol.location);
+    auto symbol_text = cursor.script.scanned_script->ReadTextAtTextSpan(
+        sx::parser::TextSpan(target_symbol->symbol.location.offset(), target_symbol->symbol.location.length()));
     auto symbol_prefix =
         std::min<uint32_t>(std::max<uint32_t>(safe_cursor_offset, symbol_ofs) - symbol_ofs, symbol_text.size());
     auto symbol_text_trimmed = trim_view({symbol_text.data(), symbol_prefix}, is_no_double_quote);
@@ -1212,31 +1217,33 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
     return completion;
 }
 
-static std::pair<sx::parser::Location, sx::parser::Location> getNameUnderCursorOrLast(
-    std::span<ScriptCursor::NameComponent> path, size_t offset) {
+static std::pair<sx::parser::SymbolSpan, sx::parser::SymbolSpan> getNameUnderCursorOrLast(
+    const ScannedScript& scanned, std::span<ScriptCursor::NameComponent> path, size_t offset) {
     if (path.empty()) {
         return {{}, {}};
     }
-    sx::parser::Location target_loc = path.back().loc;
+    auto back_ts = scanned.ResolveTextSpan(path.back().loc);
+    sx::parser::SymbolSpan target_loc(back_ts.offset(), back_ts.length());
     size_t path_begin = std::numeric_limits<size_t>::max();
     size_t path_end = 0;
     for (auto component : path) {
-        size_t begin = component.loc.offset();
-        size_t end = component.loc.offset() + component.loc.length();
+        auto ts = scanned.ResolveTextSpan(component.loc);
+        size_t begin = ts.offset();
+        size_t end = ts.offset() + ts.length();
         if (begin <= offset && end > offset) {
-            target_loc = component.loc;
+            target_loc = sx::parser::SymbolSpan(ts.offset(), ts.length());
         }
         path_begin = std::min(path_begin, begin);
         path_end = std::max(path_end, end);
     }
-    sx::parser::Location path_loc(path_begin, path_end - path_begin);
+    sx::parser::SymbolSpan path_loc(path_begin, path_end - path_begin);
     return {target_loc, path_loc};
 }
 
 static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLocation(
     flatbuffers::FlatBufferBuilder& builder, const buffers::completion::Completion& completion, size_t candidate_idx,
-    std::optional<size_t> qualified_object_idx, sx::parser::Location target_location,
-    sx::parser::Location target_location_qualified) {
+    std::optional<size_t> qualified_object_idx, sx::parser::SymbolSpan target_location,
+    sx::parser::SymbolSpan target_location_qualified) {
     auto candidate = completion.candidates()->Get(candidate_idx);
 
     // Pack display and completion text
@@ -1375,9 +1382,9 @@ CompletionPtr Completion::SelectCandidate(flatbuffers::FlatBufferBuilder& builde
     switch (completion.strategy()) {
         case buffers::completion::CompletionStrategy::COLUMN_REF:
             if (std::holds_alternative<ScriptCursor::ColumnRefContext>(cursor.context)) {
-                sx::parser::Location name_path_loc;
+                sx::parser::SymbolSpan name_path_loc;
                 auto name_path_buffer = cursor.ReadCursorNamePath(name_path_loc);
-                auto [cursor_loc, path_loc] = getNameUnderCursorOrLast(name_path_buffer, cursor.text_offset);
+                auto [cursor_loc, path_loc] = getNameUnderCursorOrLast(*cursor.script.scanned_script, name_path_buffer, cursor.text_offset);
                 auto ofs =
                     selectCandidateAtLocation(builder, completion, candidate_idx, std::nullopt, cursor_loc, path_loc);
                 return ofs;
@@ -1389,9 +1396,9 @@ CompletionPtr Completion::SelectCandidate(flatbuffers::FlatBufferBuilder& builde
         case buffers::completion::CompletionStrategy::TABLE_REF:
             if (std::holds_alternative<ScriptCursor::TableRefContext>(cursor.context)) {
                 // Read the name path
-                sx::parser::Location name_path_loc;
+                sx::parser::SymbolSpan name_path_loc;
                 auto name_path_buffer = cursor.ReadCursorNamePath(name_path_loc);
-                auto [cursor_loc, path_loc] = getNameUnderCursorOrLast(name_path_buffer, cursor.text_offset);
+                auto [cursor_loc, path_loc] = getNameUnderCursorOrLast(*cursor.script.scanned_script, name_path_buffer, cursor.text_offset);
                 auto ofs =
                     selectCandidateAtLocation(builder, completion, candidate_idx, std::nullopt, cursor_loc, path_loc);
                 return ofs;

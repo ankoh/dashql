@@ -6,7 +6,7 @@ namespace dashql {
 ScriptCursor::ScriptCursor(const Script& script, size_t text_offset)
     : script(script), text_offset(text_offset), context(std::monostate{}) {}
 
-std::vector<ScriptCursor::NameComponent> ScriptCursor::ReadCursorNamePath(sx::parser::Location& name_path_loc) const {
+std::vector<ScriptCursor::NameComponent> ScriptCursor::ReadCursorNamePath(sx::parser::SymbolSpan& name_path_loc) const {
     auto& nodes = script.parsed_script->nodes;
 
     std::optional<uint32_t> name_ast_node_id = std::visit(
@@ -36,7 +36,7 @@ std::vector<ScriptCursor::NameComponent> ScriptCursor::ReadCursorNamePath(sx::pa
     if (node.node_type() != buffers::parser::NodeType::ARRAY) {
         return {};
     }
-    name_path_loc = node.location();
+    name_path_loc = node.symbol_span();
 
     // Get the child nodes
     auto children =
@@ -51,7 +51,7 @@ std::vector<ScriptCursor::NameComponent> ScriptCursor::ReadCursorNamePath(sx::pa
             case buffers::parser::NodeType::NAME: {
                 auto& name = script.scanned_script->GetNames().At(child.children_begin_or_value());
                 components.push_back(NameComponent{
-                    .loc = child.location(),
+                    .loc = child.symbol_span(),
                     .type = NameComponentType::Name,
                     .name = name,
                 });
@@ -59,21 +59,21 @@ std::vector<ScriptCursor::NameComponent> ScriptCursor::ReadCursorNamePath(sx::pa
             }
             case buffers::parser::NodeType::OBJECT_SQL_INDIRECTION_STAR:
                 components.push_back(NameComponent{
-                    .loc = child.location(),
+                    .loc = child.symbol_span(),
                     .type = NameComponentType::Star,
                     .name = std::nullopt,
                 });
                 break;
             case buffers::parser::NodeType::OBJECT_SQL_INDIRECTION_INDEX:
                 components.push_back(NameComponent{
-                    .loc = child.location(),
+                    .loc = child.symbol_span(),
                     .type = NameComponentType::Index,
                     .name = std::nullopt,
                 });
                 break;
             case buffers::parser::NodeType::OBJECT_EXT_TRAILING_DOT:
                 components.push_back(NameComponent{
-                    .loc = child.location(),
+                    .loc = child.symbol_span(),
                     .type = NameComponentType::TrailingDot,
                     .name = std::nullopt,
                 });
@@ -142,7 +142,8 @@ std::unique_ptr<ScriptCursor> ScriptCursor::Place(const Script& script, size_t t
                                         bool at_alias = false;
                                         if (table_ref.alias.has_value()) {
                                             auto& [alias_name, alias_loc] = table_ref.alias.value();
-                                            at_alias = text_offset >= alias_loc.offset();
+                                            auto alias_ts = script.scanned_script->ResolveTextSpan(alias_loc);
+                                            at_alias = text_offset >= alias_ts.offset();
                                         }
                                         cursor->context =
                                             TableRefContext{table_ref.table_reference_id.GetObject(), at_alias};

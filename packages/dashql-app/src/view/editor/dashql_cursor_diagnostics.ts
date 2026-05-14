@@ -29,7 +29,7 @@ class CursorDiagnosticsState {
             const tmp = new dashql.buffers.parser.Error();
             for (let i = 0; i < buffer.errorsLength(); ++i) {
                 const error = buffer.errors(i, tmp)!;
-                const errorLoc = error.location()!;
+                const errorLoc = error.textSpan()!;
                 const errorMatches = errorLoc.offset() <= cursor && errorLoc.offset() + errorLoc.length() >= cursor;
                 if (errorMatches) {
                     return error;
@@ -88,7 +88,7 @@ function createDiagnosticsTooltip(state: EditorState, pos: number): Tooltip | nu
         const tmp = new dashql.buffers.parser.Error();
         for (let i = 0; i < buffer.errorsLength(); ++i) {
             const error = buffer.errors(i, tmp)!;
-            const errorLoc = error.location()!;
+            const errorLoc = error.textSpan()!;
             const errorMatches = errorLoc.offset() <= cursor && errorLoc.offset() + errorLoc.length() >= cursor;
             if (errorMatches) {
                 return error;

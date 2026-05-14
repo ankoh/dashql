@@ -57,7 +57,7 @@ const GutterState: StateField<State> = StateField.define<State>({
             const tmp = new dashql.buffers.parser.Error();
             for (let i = 0; i < buffer.errorsLength(); ++i) {
                 const error = buffer.errors(i, tmp)!;
-                const loc = error.location()!;
+                const loc = error.textSpan()!;
                 const line = transaction.state.doc.lineAt(loc.offset());
                 out.add(line.from);
             }

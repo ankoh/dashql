@@ -33,7 +33,7 @@ WeakUniquePtr<NodeList> ParseContext::List(std::initializer_list<buffers::parser
 /// Process a new node
 NodeID ParseContext::AddNode(buffers::parser::Node node) {
     auto node_id = nodes.GetSize();
-    nodes.PushBack(buffers::parser::Node(node.location(), node.node_type(), node.attribute_key(), node_id,
+    nodes.PushBack(buffers::parser::Node(node.symbol_span(), node.node_type(), node.attribute_key(), node_id,
                                          node.children_begin_or_value(), node.children_count()));
 
     // Set parent reference
@@ -41,7 +41,7 @@ NodeID ParseContext::AddNode(buffers::parser::Node node) {
         static_cast<uint16_t>(node.node_type()) > static_cast<uint16_t>(buffers::parser::NodeType::OBJECT_KEYS_)) {
         nodes.ForEachIn(node.children_begin_or_value(), node.children_count(),
                         [node_id](size_t child_id, buffers::parser::Node& n) {
-                            n = buffers::parser::Node(n.location(), n.node_type(), n.attribute_key(), node_id,
+                            n = buffers::parser::Node(n.symbol_span(), n.node_type(), n.attribute_key(), node_id,
                                                       n.children_begin_or_value(), n.children_count());
                         });
     }
@@ -49,7 +49,7 @@ NodeID ParseContext::AddNode(buffers::parser::Node node) {
 }
 
 /// Flatten an expression
-std::optional<ExpressionVariant> ParseContext::TryMerge(buffers::parser::Location loc, buffers::parser::Node op_node,
+std::optional<ExpressionVariant> ParseContext::TryMerge(buffers::parser::SymbolSpan loc, buffers::parser::Node op_node,
                                                         std::span<ExpressionVariant> args) {
     // Function is not an expression operator?
     if (op_node.node_type() != buffers::parser::NodeType::ENUM_SQL_EXPRESSION_OPERATOR) {
@@ -88,7 +88,7 @@ std::optional<ExpressionVariant> ParseContext::TryMerge(buffers::parser::Locatio
 }
 
 /// Add an array
-buffers::parser::Node ParseContext::Array(buffers::parser::Location loc, WeakUniquePtr<NodeList>&& values,
+buffers::parser::Node ParseContext::Array(buffers::parser::SymbolSpan loc, WeakUniquePtr<NodeList>&& values,
                                           bool null_if_empty, bool shrink_location) {
     auto begin = nodes.GetSize();
     for (auto iter = values->front(); iter; iter = iter->next) {
@@ -101,17 +101,17 @@ buffers::parser::Node ParseContext::Array(buffers::parser::Location loc, WeakUni
         return Null();
     }
     if (n > 0 && shrink_location) {
-        auto fstBegin = nodes[begin].location().offset();
+        auto fstBegin = nodes[begin].symbol_span().offset();
         auto& lst = nodes.GetLast();
-        auto lstEnd = lst.location().offset() + lst.location().length();
-        loc = buffers::parser::Location(fstBegin, lstEnd - fstBegin);
+        auto lstEnd = lst.symbol_span().offset() + lst.symbol_span().length();
+        loc = buffers::parser::SymbolSpan(fstBegin, lstEnd - fstBegin);
     }
     return buffers::parser::Node(loc, buffers::parser::NodeType::ARRAY, buffers::parser::AttributeKey::NONE, NO_PARENT,
                                  begin, n);
 }
 
 /// Add an array
-buffers::parser::Node ParseContext::Array(buffers::parser::Location loc, std::span<ExpressionVariant> exprs,
+buffers::parser::Node ParseContext::Array(buffers::parser::SymbolSpan loc, std::span<ExpressionVariant> exprs,
                                           bool null_if_empty, bool shrink_location) {
     auto nodes = List();
     for (auto& expr : exprs) {
@@ -138,31 +138,31 @@ buffers::parser::Node ParseContext::Expression(ExpressionVariant&& expr) {
 }
 
 /// Read a name from a keyword
-buffers::parser::Node ParseContext::NameFromKeyword(buffers::parser::Location loc, std::string_view text) {
+buffers::parser::Node ParseContext::NameFromKeyword(buffers::parser::SymbolSpan loc, std::string_view text) {
     auto id = program.RegisterKeywordAsName(text, loc);
     return buffers::parser::Node(loc, buffers::parser::NodeType::NAME, buffers::parser::AttributeKey::NONE, NO_PARENT,
                                  id, 0);
 }
 
 /// Read a name from a string literal
-buffers::parser::Node ParseContext::NameFromStringLiteral(buffers::parser::Location loc) {
-    auto text = program.ReadTextAtLocation(loc);
+buffers::parser::Node ParseContext::NameFromStringLiteral(buffers::parser::SymbolSpan loc) {
+    auto text = program.ReadTextAtSymbolSpan(loc);
     auto trimmed = trim_view(text, is_no_double_quote);
-    auto& name = program.name_registry.Register(trimmed, loc);
+    auto& name = program.name_registry.Register(trimmed, buffers::parser::TextSpan(loc.offset(), loc.length()));
     return buffers::parser::Node(loc, buffers::parser::NodeType::NAME, buffers::parser::AttributeKey::NONE, NO_PARENT,
                                  name.name_id, 0);
 }
 
 /// Mark a trailing dot
-buffers::parser::Node ParseContext::TrailingDot(buffers::parser::Location loc) {
+buffers::parser::Node ParseContext::TrailingDot(buffers::parser::SymbolSpan loc) {
     AddError(loc, "name has a trailing dot");
     return buffers::parser::Node(loc, buffers::parser::NodeType::OBJECT_EXT_TRAILING_DOT,
                                  buffers::parser::AttributeKey::NONE, NO_PARENT, 0, 0);
 }
 
 /// Read a float type
-buffers::parser::NumericType ParseContext::ReadFloatType(buffers::parser::Location bitsLoc) {
-    auto text = program.ReadTextAtLocation(bitsLoc);
+buffers::parser::NumericType ParseContext::ReadFloatType(buffers::parser::SymbolSpan bitsLoc) {
+    auto text = program.ReadTextAtSymbolSpan(bitsLoc);
     int64_t bits = 0;
     std::from_chars(text.data(), text.data() + text.size(), bits);
     if (bits < 1) {
@@ -178,7 +178,7 @@ buffers::parser::NumericType ParseContext::ReadFloatType(buffers::parser::Locati
 }
 
 /// Add an object
-buffers::parser::Node ParseContext::Object(buffers::parser::Location loc, buffers::parser::NodeType type,
+buffers::parser::Node ParseContext::Object(buffers::parser::SymbolSpan loc, buffers::parser::NodeType type,
                                            WeakUniquePtr<NodeList>&& attr_list, bool null_if_empty,
                                            bool shrink_location) {
     // Add the nodes
@@ -195,10 +195,10 @@ buffers::parser::Node ParseContext::Object(buffers::parser::Location loc, buffer
     }
     // Shrink location?
     if (n > 0 && shrink_location) {
-        auto fstBegin = nodes[begin].location().offset();
+        auto fstBegin = nodes[begin].symbol_span().offset();
         auto& lst = nodes.GetLast();
-        auto lstEnd = lst.location().offset() + lst.location().length();
-        loc = buffers::parser::Location(fstBegin, lstEnd - fstBegin);
+        auto lstEnd = lst.symbol_span().offset() + lst.symbol_span().length();
+        loc = buffers::parser::SymbolSpan(fstBegin, lstEnd - fstBegin);
     }
     return buffers::parser::Node(loc, type, buffers::parser::AttributeKey::NONE, NO_PARENT, begin, n);
 }
@@ -256,7 +256,7 @@ void ParseContext::AddStatement(buffers::parser::Node node) {
 void ParseContext::ResetStatement() { current_statement.nodes_begin = nodes.GetSize(); }
 
 /// Add an error
-void ParseContext::AddError(buffers::parser::Location loc, const std::string& message) {
+void ParseContext::AddError(buffers::parser::SymbolSpan loc, const std::string& message) {
     errors.push_back({loc, message});
 }
 

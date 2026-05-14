@@ -1,5 +1,5 @@
 import * as buffers from './buffers.js';
-import { findTokensAtLocation } from './tokens.js';
+import { resolveSymbolSpan, findTokensAtTextSpan } from './tokens.js';
 
 export function formatQualifiedTableName(q: buffers.analyzer.QualifiedTableName): string {
     const schema = q.schemaName();
@@ -38,22 +38,24 @@ export function columnFilterFromText(
     filter: buffers.analyzer.ColumnFilter,
     tmpExpr: buffers.algebra.Expression,
 ): ColumnFilterSummary | null {
-    const filterLoc = filter.location();
+    const filterSpan = filter.symbolSpan();
     const colExpr = analyzed.expressions(filter.columnReferenceExpressionId(), tmpExpr);
-    if (!filterLoc || !colExpr?.location()) return null;
-    const colLoc = colExpr.location()!;
+    if (!filterSpan || !colExpr?.symbolSpan()) return null;
+    const colSpan = colExpr.symbolSpan()!;
 
     const tokens = scanned.tokens();
     if (!tokens) return null;
-    const [filterFirst, filterEnd] = findTokensAtLocation(tokens, filterLoc);
+    const filterTs = resolveSymbolSpan(tokens, filterSpan);
+    const colTs = resolveSymbolSpan(tokens, colSpan);
+    const [filterFirst, filterEnd] = findTokensAtTextSpan(tokens, filterTs.offset, filterTs.length);
     if (filterFirst >= filterEnd) return null;
 
     let filterText = '';
     let columnRefStart = 0;
     let columnRefLength = 0;
     let seenColStart = false;
-    const colStart = colLoc.offset();
-    const colEnd = colLoc.offset() + colLoc.length();
+    const colStart = colTs.offset;
+    const colEnd = colTs.offset + colTs.length;
 
     for (let i = filterFirst; i < filterEnd; ++i) {
         const to = tokens.tokenOffsets(i) ?? 0;

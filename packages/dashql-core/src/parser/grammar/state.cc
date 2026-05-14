@@ -6,7 +6,7 @@ namespace dashql {
 namespace parser {
 
 /// Constructor
-NAryExpression::NAryExpression(Pool& pool, buffers::parser::Location loc, buffers::parser::ExpressionOperator op, buffers::parser::Node node,
+NAryExpression::NAryExpression(Pool& pool, buffers::parser::SymbolSpan loc, buffers::parser::ExpressionOperator op, buffers::parser::Node node,
                                WeakUniquePtr<NodeList> args)
     : expression_pool(pool), location(loc), op(op), opNode(node), args(std::move(args)) {}
 /// Destructor

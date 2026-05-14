@@ -48,6 +48,23 @@ ScannedScript::ScannedScript(std::string text, TextVersion text_version, Catalog
     text_buffer[text_buffer.size() - 2] = 0;
 }
 
+/// Resolve a token-index SymbolSpan to a text-positional TextSpan
+buffers::parser::TextSpan ScannedScript::ResolveTextSpan(buffers::parser::SymbolSpan span) const {
+    if (span.length() == 0) {
+        if (span.offset() >= symbols.GetSize()) {
+            return buffers::parser::TextSpan(
+                static_cast<uint32_t>(text_buffer.size() > 2 ? text_buffer.size() - 2 : 0), 0);
+        }
+        auto& sym = symbols[span.offset()];
+        return buffers::parser::TextSpan(sym.location.offset(), 0);
+    }
+    auto& first = symbols[span.offset()];
+    auto& last = symbols[span.offset() + span.length() - 1];
+    uint32_t begin = first.location.offset();
+    uint32_t end = last.location.offset() + last.location.length();
+    return buffers::parser::TextSpan(begin, end - begin);
+}
+
 /// Find a token at a text offset
 ScannedScript::LocationInfo ScannedScript::FindSymbol(size_t text_offset) {
     using RelativePosition = ScannedScript::LocationInfo::RelativePosition;
@@ -155,7 +172,7 @@ flatbuffers::Offset<buffers::parser::ScannedScript> ScannedScript::Pack(flatbuff
     out.errors.reserve(errors.size());
     for (auto& [loc, msg] : errors) {
         auto err = std::make_unique<buffers::parser::ErrorT>();
-        err->location = std::make_unique<buffers::parser::Location>(loc);
+        err->text_span = std::make_unique<buffers::parser::TextSpan>(loc.offset(), loc.length());
         err->message = msg;
         out.errors.push_back(std::move(err));
     }
@@ -181,11 +198,13 @@ std::optional<std::pair<size_t, size_t>> ParsedScript::FindNodeAtOffset(size_t t
     if (statements.empty()) {
         return std::nullopt;
     }
+    auto& scan = *scanned_script;
     // Find statement that includes the text offset by searching the predecessor of the first statement after the text
     // offset
     size_t statement_id = 0;
     for (; statement_id < statements.size(); ++statement_id) {
-        if (nodes[statements[statement_id].root].location().offset() > text_offset) {
+        auto ts = scan.ResolveTextSpan(nodes[statements[statement_id].root].symbol_span());
+        if (ts.offset() > text_offset) {
             break;
         }
     }
@@ -208,8 +227,9 @@ std::optional<std::pair<size_t, size_t>> ParsedScript::FindNodeAtOffset(size_t t
         std::optional<size_t> child_end_plus_1;
         for (size_t i = 0; i < node.children_count(); ++i) {
             auto ci = node.children_begin_or_value() + i;
-            auto node_begin = nodes[ci].location().offset();
-            auto node_end = node_begin + nodes[ci].location().length();
+            auto ts = scan.ResolveTextSpan(nodes[ci].symbol_span());
+            auto node_begin = ts.offset();
+            auto node_end = node_begin + ts.length();
             // Includes the offset?
             // Note that we want an exact match here since AST nodes will include "holes".
             // For example, a select clause does not emit a node for a FROM keyword.
@@ -249,7 +269,7 @@ flatbuffers::Offset<buffers::parser::ParsedScript> ParsedScript::Pack(flatbuffer
     out.errors.reserve(errors.size());
     for (auto& [loc, msg] : errors) {
         auto err = std::make_unique<buffers::parser::ErrorT>();
-        err->location = std::make_unique<buffers::parser::Location>(loc);
+        err->text_span = std::make_unique<buffers::parser::TextSpan>(loc.offset(), loc.length());
         err->message = msg;
         out.errors.push_back(std::move(err));
     }
@@ -374,7 +394,7 @@ flatbuffers::Offset<buffers::analyzer::TableReference> AnalyzedScript::TableRefe
     out.add_ast_node_id(ast_node_id);
     out.add_ast_statement_id(ast_statement_id.value_or(PROTO_NULL_U32));
     if (location.has_value()) {
-        out.add_location(&location.value());
+        out.add_symbol_span(&location.value());
     }
     out.add_table_name(table_name_ofs);
     if (alias.has_value()) {
@@ -518,7 +538,7 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
     out.add_ast_node_id(ast_node_id);
     out.add_ast_statement_id(ast_statement_id.value_or(PROTO_NULL_U32));
     if (location.has_value()) {
-        out.add_location(&location.value());
+        out.add_symbol_span(&location.value());
     }
     if (inner_type.has_value()) {
         out.add_inner_type(inner_type.value());

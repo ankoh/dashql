@@ -2,7 +2,8 @@ include "dashql/parsed_script_enums.fbs";
 
 namespace dashql.buffers.parser;
 
-struct Location { offset: uint32; length: uint32; }
+struct SymbolSpan { offset: uint32; length: uint32; }
+struct TextSpan { offset: uint32; length: uint32; }
 
 enum NodeType: uint16 {
     NONE = 0,
@@ -413,7 +414,7 @@ enum StatementType: uint8 {
 }
 
 struct Node {
-    location: Location;
+    symbol_span: SymbolSpan;
     node_type: NodeType = NONE;
     attribute_key: AttributeKey = NONE;
     parent: uint32 = 0;
@@ -422,7 +423,7 @@ struct Node {
 }
 
 table Error {
-    location: Location;
+    text_span: TextSpan;
     message: string;
 }
 
@@ -458,10 +459,10 @@ table ScannerTokens {
 
 table ScannedScript {
     external_id: uint32;
-    line_breaks: [Location];
+    line_breaks: [TextSpan];
     errors: [Error];
     tokens: ScannerTokens;
-    comments: [Location];
+    comments: [TextSpan];
 }
 
 table ParsedScript {

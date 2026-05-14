@@ -58,7 +58,9 @@ static void writeTables(c4::yml::NodeRef root, const AnalyzedScript& target) {
         std::string table_name{table_decl.table_name.table_name.get().text};
         yml_tbl.append_child() << c4::yml::key("name") << table_name;
         assert(table_decl.ast_node_id.has_value());
-        EncodeLocationText(yml_tbl, target.parsed_script->nodes[*table_decl.ast_node_id].location(),
+        EncodeLocationText(yml_tbl,
+                           target.parsed_script->scanned_script->ResolveTextSpan(
+                               target.parsed_script->nodes[*table_decl.ast_node_id].symbol_span()),
                            target.parsed_script->scanned_script->GetInput());
         // Write child columns
         auto columns_node = yml_tbl.append_child();
@@ -79,7 +81,9 @@ static void writeTables(c4::yml::NodeRef root, const AnalyzedScript& target) {
                 yml_col.append_child() << c4::yml::key("name") << "?";
             }
             if (auto node_id = column_decl.ast_node_id; node_id.has_value()) {
-                EncodeLocationText(yml_col, target.parsed_script->nodes[*node_id].location(),
+                EncodeLocationText(yml_col,
+                                   target.parsed_script->scanned_script->ResolveTextSpan(
+                                       target.parsed_script->nodes[*node_id].symbol_span()),
                                    target.parsed_script->scanned_script->GetInput());
             }
         }
@@ -153,7 +157,7 @@ void AnalyzerSnapshotTest::EncodeSnippet(c4::yml::NodeRef parent, const Analyzed
     auto& script_ast = parsed.GetNodes();
     auto& script_markers = analyzed.node_markers;
 
-    auto snippet = ScriptSnippet::Extract(script_text, script_ast, script_markers, root_node_id, scanned.name_registry);
+    auto snippet = ScriptSnippet::Extract(script_text, scanned, script_ast, script_markers, root_node_id, scanned.name_registry);
     auto sig_masked = snippet.ComputeSignature(true);
     auto sig_unmasked = snippet.ComputeSignature(false);
 
@@ -192,7 +196,9 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
         error_node.append_child() << c4::yml::key("type")
                                   << std::string(buffers::analyzer::EnumNameAnalyzerErrorType(error.error_type));
         error_node.append_child() << c4::yml::key("message") << error.message;
-        EncodeLocationText(error_node, *error.location, script.parsed_script->scanned_script->GetInput());
+        EncodeLocationText(error_node,
+                           script.parsed_script->scanned_script->ResolveTextSpan(*error.symbol_span),
+                           script.parsed_script->scanned_script->GetInput());
     }
     // Write table references
     if (!script.table_references.IsEmpty()) {
@@ -230,7 +236,9 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
             if (ref.ast_statement_id.has_value()) {
                 yml_ref.append_child() << c4::yml::key("statement-id") << *ref.ast_statement_id;
             }
-            EncodeLocationText(yml_ref, script.parsed_script->nodes[ref.ast_node_id].location(),
+            EncodeLocationText(yml_ref,
+                               script.parsed_script->scanned_script->ResolveTextSpan(
+                                   script.parsed_script->nodes[ref.ast_node_id].symbol_span()),
                                script.parsed_script->scanned_script->GetInput());
         });
     }
@@ -341,7 +349,9 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
             if (ref.ast_statement_id.has_value()) {
                 yml_ref.append_child() << c4::yml::key("statement-id") << *ref.ast_statement_id;
             }
-            EncodeLocationText(yml_ref, script.parsed_script->nodes[ref.ast_node_id].location(),
+            EncodeLocationText(yml_ref,
+                               script.parsed_script->scanned_script->ResolveTextSpan(
+                                   script.parsed_script->nodes[ref.ast_node_id].symbol_span()),
                                script.parsed_script->scanned_script->GetInput());
         });
     }
@@ -355,7 +365,9 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
             auto yml_ref = list_node.append_child();
             yml_ref.set_type(c4::yml::MAP);
             yml_ref.append_child() << c4::yml::key("expression") << constant.root.get().expression_id;
-            EncodeLocationText(yml_ref, script.parsed_script->nodes[constant.root.get().ast_node_id].location(),
+            EncodeLocationText(yml_ref,
+                               script.parsed_script->scanned_script->ResolveTextSpan(
+                                   script.parsed_script->nodes[constant.root.get().ast_node_id].symbol_span()),
                                script.parsed_script->scanned_script->GetInput());
             if (!constant.root.get().IsLiteral()) {
                 EncodeSnippet(yml_ref, script, constant.root.get().ast_node_id);

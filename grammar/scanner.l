@@ -43,14 +43,14 @@ namespace sx = buffers;
     yyg->yy_hold_char = *yy_cp; \
     *yy_cp = '\0'; \
     yyg->yy_c_buf_p = yy_cp; \
-    loc = sx::parser::Location(yy_bp - YY_CURRENT_BUFFER_LVALUE->yy_ch_buf, yyleng); \
+    loc = sx::parser::SymbolSpan(yy_bp - YY_CURRENT_BUFFER_LVALUE->yy_ch_buf, yyleng); \
 }
 
 // The user action is run whenever a token is matched
 #define YY_USER_ACTION { \
     for (yy_size_t i = 0; i < static_cast<yy_size_t>(yyleng); ++i) { \
         if (yytext[i] == '\n') { \
-            ctx.AddLineBreak(sx::parser::Location(loc.offset() + i, 1)); \
+            ctx.AddLineBreak(sx::parser::SymbolSpan(loc.offset() + i, 1)); \
         } \
     } \
 }
@@ -58,7 +58,7 @@ namespace sx = buffers;
 // Return EOF token in yyterminate
 #define yyterminate() return Parser::make_EOF(loc)
 
-using YYLTYPE = sx::parser::Location;
+using YYLTYPE = sx::parser::SymbolSpan;
 using YYSTYPE = dashql::parser::Parser::symbol_type;
 
 %}
@@ -317,7 +317,7 @@ other           .
 
 Scanner& ctx = *dashql_yyget_extra(yyscanner);
 
-sx::parser::Location loc;
+sx::parser::SymbolSpan loc;
 auto& ext_begin = ctx.ext_begin;
 auto& ext_depth = ctx.ext_depth;
 (void)ctx.GetInputData();  // Available for debugging
@@ -339,7 +339,7 @@ auto& ext_depth = ctx.ext_depth;
 {xbstart}       { ext_begin = loc; BEGIN(xb); }
 <xb>{quotestop} { BEGIN(INITIAL); return ctx.ReadBitStringLiteral(Loc({ext_begin, loc})); }
 <xb>{quotefail} {
-                    auto literal_end = buffers::parser::Location(loc.offset(), 1);
+                    auto literal_end = buffers::parser::SymbolSpan(loc.offset(), 1);
                     yyless(1);
                     BEGIN(INITIAL);
                     return ctx.ReadBitStringLiteral(Loc({ext_begin, literal_end}));
@@ -352,7 +352,7 @@ auto& ext_depth = ctx.ext_depth;
 {xhstart}       { ext_begin = loc; BEGIN(xh); }
 <xh>{quotestop} { BEGIN(INITIAL); return ctx.ReadHexStringLiteral(Loc({ext_begin, loc})); }
 <xh>{quotefail} {
-                    auto literal_end = buffers::parser::Location(loc.offset(), 1);
+                    auto literal_end = buffers::parser::SymbolSpan(loc.offset(), 1);
                     yyless(1);
                     BEGIN(INITIAL);
                     return ctx.ReadHexStringLiteral(Loc({ext_begin, literal_end}));
@@ -363,7 +363,7 @@ auto& ext_depth = ctx.ext_depth;
 {xqstart}       { ext_begin = loc; BEGIN(xq); }
 <xq>{quotestop} { BEGIN(INITIAL); return ctx.ReadStringLiteral(Loc({ext_begin, loc})); }
 <xq>{quotefail} {
-                    auto literal_end = buffers::parser::Location(loc.offset(), 1);
+                    auto literal_end = buffers::parser::SymbolSpan(loc.offset(), 1);
                     yyless(1);
                     BEGIN(INITIAL);
                     return ctx.ReadStringLiteral(Loc({ext_begin, literal_end}));
@@ -387,7 +387,7 @@ auto& ext_depth = ctx.ext_depth;
 {raw_typecast}      { return Parser::make_TYPECAST(loc); }
 {raw_dot_dot}       { return Parser::make_DOT_DOT(loc); }
 {raw_dot}           { return Parser::make_DOT(loc); }
-{raw_dot_trailing}  { return Parser::make_DOT_TRAILING(buffers::parser::Location(loc.offset(), 1)); }
+{raw_dot_trailing}  { return Parser::make_DOT_TRAILING(buffers::parser::SymbolSpan(loc.offset(), 1)); }
 {colon_equals}      { return Parser::make_COLON_EQUALS(loc); }
 {equals_greater}    { return Parser::make_EQUALS_GREATER(loc); }
 {less_equals}       { return Parser::make_LESS_EQUALS(loc); }

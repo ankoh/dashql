@@ -52,13 +52,33 @@ export function findTokensInRange(hl: buffers.parser.ScannerTokens, begin: numbe
     return [lb, ub];
 }
 
-export function findTokensAtLocation(
+export function resolveSymbolSpan(
+    tokens: buffers.parser.ScannerTokens,
+    span: buffers.parser.SymbolSpan,
+): { offset: number; length: number } {
+    if (span.length() === 0) {
+        if (span.offset() >= tokens.tokenOffsetsLength()) {
+            return { offset: 0, length: 0 };
+        }
+        return { offset: tokens.tokenOffsets(span.offset()) ?? 0, length: 0 };
+    }
+    const first = span.offset();
+    const last = first + span.length() - 1;
+    const begin = tokens.tokenOffsets(first) ?? 0;
+    const lastOffset = tokens.tokenOffsets(last) ?? 0;
+    const lastLen = tokens.tokenLengths(last) ?? 0;
+    const end = lastOffset + lastLen;
+    return { offset: begin, length: end - begin };
+}
+
+export function findTokensAtTextSpan(
     hl: buffers.parser.ScannerTokens,
-    location: buffers.parser.Location,
+    offset: number,
+    length: number,
 ): [number, number] {
     if (!hl || hl.tokenOffsetsLength() === 0) return [0, 0];
-    const begin = location.offset();
-    const end = location.offset() + location.length();
+    const begin = offset;
+    const end = offset + length;
     const [lb, ub] = findTokensInRange(hl, begin, end);
     return [lb, ub];
 }

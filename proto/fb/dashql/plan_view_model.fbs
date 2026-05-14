@@ -144,7 +144,7 @@ struct PlanOperator {
     /// The path in the parent node
     parent_path: uint32;
     /// The source location (if any)
-    source_location: parser.Location;
+    source_location: parser.SymbolSpan;
 
     /// The begin of the child operators
     children_begin: uint32;

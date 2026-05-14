@@ -75,7 +75,7 @@ constexpr size_t YAML_MAX_DEPTH = 128;
     return ::testing::AssertionFailure() << err.str();
 }
 
-void EncodeLocationText(c4::yml::NodeRef n, buffers::parser::Location loc, std::string_view text,
+void EncodeLocationText(c4::yml::NodeRef n, buffers::parser::SymbolSpan loc, std::string_view text,
                         const char* text_key) {
     size_t offset = loc.offset();
     size_t length = loc.length();
@@ -94,7 +94,7 @@ void EncodeLocationText(c4::yml::NodeRef n, buffers::parser::Location loc, std::
     text_node.set_val_style(c4::yml::VAL_DQUO);  // always emit as quoted string (e.g. "1")
 }
 
-void EncodeLocationRange(c4::yml::NodeRef n, buffers::parser::Location loc, std::string_view text,
+void EncodeLocationRange(c4::yml::NodeRef n, buffers::parser::SymbolSpan loc, std::string_view text,
                          const char* loc_key) {
     auto begin = loc.offset();
     auto end = loc.offset() + loc.length();
@@ -107,9 +107,19 @@ void EncodeLocationRange(c4::yml::NodeRef n, buffers::parser::Location loc, std:
     loc_node.append_child() << end;
 }
 
+void EncodeLocationText(c4::yml::NodeRef n, buffers::parser::TextSpan loc, std::string_view text,
+                        const char* text_key) {
+    EncodeLocationText(n, buffers::parser::SymbolSpan(loc.offset(), loc.length()), text, text_key);
+}
+
+void EncodeLocationRange(c4::yml::NodeRef n, buffers::parser::TextSpan loc, std::string_view text,
+                         const char* loc_key) {
+    EncodeLocationRange(n, buffers::parser::SymbolSpan(loc.offset(), loc.length()), text, loc_key);
+}
+
 void EncodeError(c4::yml::NodeRef n, const buffers::parser::ErrorT& err, std::string_view text) {
     n.append_child() << c4::yml::key("message") << err.message;
-    EncodeLocationText(n, *err.location, text);
+    EncodeLocationText(n, *err.text_span, text);
 }
 
 void InjectBlankLinesInSnapshot(std::string& yaml) {
