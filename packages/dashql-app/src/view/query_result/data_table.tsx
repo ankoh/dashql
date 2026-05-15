@@ -28,6 +28,8 @@ interface Props {
     table: TableComputationState;
     dispatchComputation: Dispatch<ComputationAction>;
     debugMode: boolean;
+    maxRows?: number;
+    columnHeader?: TableColumnHeader;
 }
 
 const MIN_GRID_HEIGHT = 200;
@@ -75,11 +77,10 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     const visibleRowIdTable = computationState.orderingTable?.dataTable ?? computationState.filterTable?.dataTable ?? null;
     const gridContainerElement = React.useRef(null);
     const gridContainerSize = observeSize(gridContainerElement);
-    const gridContainerHeight = Math.max(gridContainerSize?.height ?? 0, MIN_GRID_HEIGHT);
     const gridContainerWidth = Math.max(gridContainerSize?.width ?? 0, MIN_GRID_WIDTH);
-    const columnHeader = (config?.settings?.enableTableColumnPlots ?? false)
+    const columnHeader = props.columnHeader ?? ((config?.settings?.enableTableColumnPlots ?? false)
         ? TableColumnHeader.WithColumnPlots
-        : TableColumnHeader.OnlyColumnName;
+        : TableColumnHeader.OnlyColumnName);
 
     // Get the row-id indirection column from ordering or filtering
     const visibleRowIds = React.useMemo<arrow.Vector<arrow.Int> | null>(() => {
@@ -104,7 +105,9 @@ export const DataTable: React.FC<Props> = (props: Props) => {
 
     // Data row count. Headers are rendered separately via portals
     // When an indirection table is active, show only the derived visible rows
-    const dataRowCount = visibleRowIds?.length ?? dataTable.numRows ?? 0;
+    const totalRowCount = visibleRowIds?.length ?? dataTable.numRows ?? 0;
+    const dataRowCount = props.maxRows != null ? Math.min(totalRowCount, props.maxRows) : totalRowCount;
+    const isTruncated = props.maxRows != null && totalRowCount > dataRowCount;
     // Header configuration
     const headerRowCount = columnHeader === TableColumnHeader.WithColumnPlots ? 2 : 1;
 
@@ -441,6 +444,9 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     const headerHeight = columnHeader === TableColumnHeader.WithColumnPlots
         ? COLUMN_HEADER_HEIGHT + COLUMN_HEADER_PLOTS_HEIGHT
         : COLUMN_HEADER_HEIGHT;
+    const gridContainerHeight = props.maxRows != null
+        ? headerHeight + dataRowCount * ROW_HEIGHT
+        : Math.max(gridContainerSize?.height ?? 0, MIN_GRID_HEIGHT);
     const visiblePlotColumns = React.useMemo(() => {
         const visibility = Array.from({ length: gridLayout.columnCount }, () => false);
         if (gridLayout.columnCount === 0) {
@@ -683,23 +689,30 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     };
 
     return (
-        <div className={classNames(styles.root, props.className)} ref={gridContainerElement}>
-            <Grid
-                gridRef={setGridApi}
-                style={{ width: gridContainerWidth, height: gridContainerHeight }}
-                columnCount={gridLayout.columnCount}
-                columnWidth={getColumnWidth}
-                rowCount={dataRowCount}
-                rowHeight={ROW_HEIGHT}
-                onCellsRendered={onCellsRendered}
-                overscanCount={OVERSCAN_ROW_COUNT}
-                cellComponent={DataCell}
-                cellProps={gridData}
-                className={styles.data_grid}
-            />
-            {renderStickyHeadersIntoPortal()}
-            {renderStickyColumnsIntoPortal()}
-            {renderSkeletonsIntoPortal()}
+        <div className={classNames(styles.root, props.className)}>
+            <div className={styles.grid_container} ref={gridContainerElement}>
+                <Grid
+                    gridRef={setGridApi}
+                    style={{ width: gridContainerWidth, height: gridContainerHeight }}
+                    columnCount={gridLayout.columnCount}
+                    columnWidth={getColumnWidth}
+                    rowCount={dataRowCount}
+                    rowHeight={ROW_HEIGHT}
+                    onCellsRendered={onCellsRendered}
+                    overscanCount={OVERSCAN_ROW_COUNT}
+                    cellComponent={DataCell}
+                    cellProps={gridData}
+                    className={styles.data_grid}
+                />
+                {renderStickyHeadersIntoPortal()}
+                {renderStickyColumnsIntoPortal()}
+                {renderSkeletonsIntoPortal()}
+            </div>
+            {isTruncated && (
+                <div className={styles.truncation_bar}>
+                    Showing {dataRowCount} of {totalRowCount} rows
+                </div>
+            )}
         </div>
     );
 };

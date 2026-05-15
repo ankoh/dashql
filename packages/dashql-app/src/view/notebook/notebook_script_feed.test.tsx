@@ -58,6 +58,13 @@ vi.mock('../internals/trace_log_viewer.js', async () => {
             React.createElement('div', { 'data-testid': 'trace-log-viewer', 'data-trace-id': props.traceId }),
     };
 });
+vi.mock('./feed_entry_footer.js', async () => {
+    const React = await import('react');
+    return {
+        FeedEntryFooter: (props: { traceId?: number }) =>
+            React.createElement('div', { 'data-testid': 'trace-log-viewer', 'data-trace-id': props.traceId }),
+    };
+});
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
 

@@ -26,7 +26,7 @@ import { useScrollbarWidth } from '../../utils/scrollbar.js';
 import { SegmentedControl, SegmentedControlSize } from '../foundations/segmented_control.js';
 import { NotebookScriptName } from './notebook_script_name.js';
 import { useQueryState } from '../../connection/query_executor.js';
-import { TraceLogViewer } from '../internals/trace_log_viewer.js';
+import { FeedEntryFooter } from './feed_entry_footer.js';
 
 interface FeedScrollTarget {
     entryIndex: number;
@@ -179,7 +179,12 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, entryIndex,
             </div>
             {queryState != null && (
                 <div className={styles.feed_entry_execution_footer}>
-                    <TraceLogViewer traceId={queryState.traceId} height={96} />
+                    <FeedEntryFooter
+                        sessionId={sessionId}
+                        queryId={queryState.queryId}
+                        traceId={queryState.traceId}
+                        queryState={queryState}
+                    />
                 </div>
             )}
         </motion.div>

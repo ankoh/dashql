@@ -3,11 +3,14 @@ import * as styles from './query_result_view.module.css';
 
 import { QueryExecutionState } from '../../connection/query_execution_state.js';
 import { DataTable } from './data_table.js';
+import { TableColumnHeader } from './data_table_cell.js';
 import { useComputationRegistry } from '../../compute/computation_registry.js';
 
 interface Props {
     query: QueryExecutionState | null;
     debugMode: boolean;
+    maxRows?: number;
+    columnHeader?: TableColumnHeader;
 }
 
 export function QueryResultView(props: Props) {
@@ -30,6 +33,8 @@ export function QueryResultView(props: Props) {
                 table={tableComputation}
                 dispatchComputation={computationDispatch}
                 debugMode={props.debugMode}
+                maxRows={props.maxRows}
+                columnHeader={props.columnHeader}
             />
         </div>
     );
