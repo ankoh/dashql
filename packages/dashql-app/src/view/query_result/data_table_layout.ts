@@ -45,7 +45,7 @@ function computeColumnCount(columnGroups: ColumnGroup[], showMetaColumns: boolea
     return columnCount;
 }
 
-export function computeTableLayout(formatter: ArrowTableFormatter, state: TableComputationState, showSystemColumns: boolean, headerRowCount: number): DataTableLayout {
+export function computeTableLayout(formatter: ArrowTableFormatter, state: TableComputationState, showSystemColumns: boolean, headerRowCount: number, containerWidth: number = 0): DataTableLayout {
     // Allocate column offsets
     let columnCount = computeColumnCount(state.columnGroups, showSystemColumns);
     const columnFields = new Uint32Array(columnCount);
@@ -151,6 +151,26 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
     }
     columnOffsets[nextDisplayColumn] = nextDisplayOffset;
 
+    // If columns don't fill the container, distribute extra space across data columns (not row-number columns)
+    if (containerWidth > 0 && nextDisplayOffset < containerWidth) {
+        let dataColumnCount = 0;
+        for (let i = 0; i < nextDisplayColumn; ++i) {
+            if (state.columnGroups[columnGroupByColumnIndex[i]].type !== ROWNUMBER_COLUMN) {
+                dataColumnCount++;
+            }
+        }
+        if (dataColumnCount > 0) {
+            const extraPerColumn = (containerWidth - nextDisplayOffset) / dataColumnCount;
+            let accumulatedExtra = 0;
+            for (let i = 0; i < nextDisplayColumn; ++i) {
+                if (state.columnGroups[columnGroupByColumnIndex[i]].type !== ROWNUMBER_COLUMN) {
+                    accumulatedExtra += extraPerColumn;
+                }
+                columnOffsets[i + 1] += accumulatedExtra;
+            }
+        }
+    }
+
     return {
         columnCount,
         arrowFieldByColumnIndex: columnFields,
@@ -168,7 +188,7 @@ export function skipTableLayoutUpdate(old: DataTableLayout, next: DataTableLayou
     }
     for (let i = 0; i < old.columnXOffsets.length; ++i) {
         const delta = next.columnXOffsets[i] - old.columnXOffsets[i];
-        if (delta > 0.01) {
+        if (Math.abs(delta) > 0.01) {
             return false;
         }
     }

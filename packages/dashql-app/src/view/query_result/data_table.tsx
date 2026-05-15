@@ -15,7 +15,7 @@ import { OrderByConstraint } from '../../sql/sqlframe_builder.js';
 import { ColumnAggregationTask, ORDINAL_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableFilteringTask, TableOrderingTask, TableAggregation, TaskStatus, WithFilter } from '../../compute/computation_types.js';
 import { buildSkeletonStyle, DataCell, DataCellData, HeaderNameCell, HeaderPlotsCell, SkeletonOverlay, TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';
-import { computeTableLayout, DataTableLayout, skipTableLayoutUpdate } from './data_table_layout.js';
+import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
 import { computeFilteredColumnAggregatesDispatched, filterTableDispatched, sortTableDispatched } from '../../compute/computation_logic.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { useAppConfig } from '../../app_config.js';
@@ -117,27 +117,25 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     }, [dataTable]);
 
     // Determine grid dimensions and column widths
-    const [gridLayout, setGridLayout] = React.useState<DataTableLayout>({
-        columnCount: 0,
-        arrowFieldByColumnIndex: new Uint32Array(),
-        columnXOffsets: new Float64Array([0]),
-        columnAggregateByColumnIndex: new Int32Array(),
-        columnGroupByColumnIndex: new Uint32Array(),
-        isSystemColumn: new Uint8Array(),
-        headerRowCount
-    });
-    React.useEffect(() => {
-        if (tableFormatter) {
-            const newGridLayout = computeTableLayout(tableFormatter, computationState, props.debugMode, headerRowCount);
-            if (!skipTableLayoutUpdate(gridLayout, newGridLayout)) {
-                setGridLayout(newGridLayout);
-            }
+    const gridLayout = React.useMemo<DataTableLayout>(() => {
+        if (!tableFormatter) {
+            return {
+                columnCount: 0,
+                arrowFieldByColumnIndex: new Uint32Array(),
+                columnXOffsets: new Float64Array([0]),
+                columnAggregateByColumnIndex: new Int32Array(),
+                columnGroupByColumnIndex: new Uint32Array(),
+                isSystemColumn: new Uint8Array(),
+                headerRowCount
+            };
         }
+        return computeTableLayout(tableFormatter, computationState, props.debugMode, headerRowCount, gridContainerWidth);
     }, [
-        gridLayout,
         computationState.columnGroups,
         tableFormatter,
         props.debugMode,
+        gridContainerWidth,
+        headerRowCount,
     ]);
 
     // Compute helper to resolve column widths
@@ -417,26 +415,18 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     ]);
     gridDataRef.current = gridData;
 
-    // Listen to rendering events to check if the column widths changed and track visible rows
+    // Listen to rendering events to track visible rows
     const onCellsRendered = React.useCallback((
         _visibleCells: { rowStartIndex: number; rowStopIndex: number },
         allCells: { rowStartIndex: number; rowStopIndex: number }
     ) => {
-        // Check if we need to update the grid layout
-        if (gridApi && tableFormatter) {
-            const newGridColumns = computeTableLayout(tableFormatter, computationState, props.debugMode, headerRowCount);
-            if (!skipTableLayoutUpdate(gridLayout, newGridColumns)) {
-                setGridLayout(newGridColumns);
-            }
-        }
-        // Update visible rows for sticky column virtualization
         setVisibleRows(prev => {
             if (prev.start === allCells.rowStartIndex && prev.stop === allCells.rowStopIndex) {
-                return prev; // Avoid unnecessary re-renders
+                return prev;
             }
             return { start: allCells.rowStartIndex, stop: allCells.rowStopIndex };
         });
-    }, [gridLayout, tableFormatter, props.debugMode, gridApi]);
+    }, []);
 
     // Compute grid dimensions
     const totalColumnsWidth = gridLayout.columnXOffsets[gridLayout.columnCount] ?? 0;
@@ -690,6 +680,11 @@ export const DataTable: React.FC<Props> = (props: Props) => {
 
     return (
         <div className={classNames(styles.root, props.className)}>
+            {isTruncated && (
+                <div className={styles.truncation_bar}>
+                    Showing {dataRowCount} of {totalRowCount} rows
+                </div>
+            )}
             <div className={styles.grid_container} ref={gridContainerElement}>
                 <Grid
                     gridRef={setGridApi}
@@ -708,11 +703,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 {renderStickyColumnsIntoPortal()}
                 {renderSkeletonsIntoPortal()}
             </div>
-            {isTruncated && (
-                <div className={styles.truncation_bar}>
-                    Showing {dataRowCount} of {totalRowCount} rows
-                </div>
-            )}
         </div>
     );
 };

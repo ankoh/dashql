@@ -10,6 +10,8 @@ import { TableColumnHeader } from '../query_result/data_table_cell.js';
 import { useComputationRegistry } from '../../compute/computation_registry.js';
 import { VerticalTabs, VerticalTabVariant, type VerticalTabProps } from '../foundations/vertical_tabs.js';
 
+const FEED_LIMIT_RESULT_ROWS = 8;
+
 const enum FooterTab {
     Log = 0,
     Table = 1,
@@ -65,7 +67,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
             <TraceLogViewer traceId={props.traceId} height={96} />
         ),
         [FooterTab.Table]: () => (
-            <QueryResultView query={props.queryState} debugMode={false} maxRows={10} columnHeader={TableColumnHeader.OnlyColumnName} />
+            <QueryResultView query={props.queryState} debugMode={false} maxRows={FEED_LIMIT_RESULT_ROWS} columnHeader={TableColumnHeader.OnlyColumnName} />
         ),
     }), [props.traceId, props.queryState]);
 

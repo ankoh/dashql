@@ -228,7 +228,7 @@
     font-size: 0.8rem;
     color: hsl(210, 10%, 50%);
     background-color: var(--data_table_bg_header);
-    border-top: 1px solid rgb(210, 210, 210);
+    border-bottom: 1px solid rgb(210, 210, 210);
 }
 
 /* Single-element skeleton overlay with shimmer effect */
