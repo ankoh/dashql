@@ -36,6 +36,7 @@ interface DetectedFormats {
         formattedText: string | null;
         formattedScript: dashql.DashQLScript | null;
         catalog: dashql.DashQLCatalog;
+        hasErrors: boolean;
     } | null;
 }
 
@@ -61,6 +62,9 @@ function detectFormats(core: dashql.DashQL | null, value: string | null): Detect
             script = core.createScript(catalog);
             script.insertTextAt(0, value);
             script.parse();
+            const parsed = script.getParsed();
+            const hasErrors = parsed != null && (parsed.read().scannerErrorsLength() > 0 || parsed.read().parserErrorsLength() > 0);
+            parsed?.destroy();
             let formattedText: string | null = null;
             try {
                 const config = new dashql.buffers.formatting.FormattingConfigT(
@@ -75,7 +79,7 @@ function detectFormats(core: dashql.DashQL | null, value: string | null): Detect
             } catch {
                 // Format failed, but parse succeeded
             }
-            result.sql = { originalText: value, originalScript: script, formattedText, formattedScript, catalog };
+            result.sql = { originalText: value, originalScript: script, formattedText, formattedScript, catalog, hasErrors };
             return result;
         } catch {
             // Not valid SQL — destroy everything
@@ -97,7 +101,7 @@ function destroyFormats(formats: DetectedFormats) {
 }
 
 function pickDefaultMode(formats: DetectedFormats): FormatMode {
-    if (formats.sql != null) return FormatMode.SQL;
+    if (formats.sql != null && !formats.sql.hasErrors) return FormatMode.SQL;
     if (formats.json != null) return FormatMode.JSON;
     return FormatMode.Raw;
 }
@@ -109,10 +113,7 @@ function getAvailableModes(formats: DetectedFormats): FormatMode[] {
     return modes;
 }
 
-// ---------------------------------------------------------------------------
-// Read-only CodeMirror sub-view (no syntax highlighting)
-// ---------------------------------------------------------------------------
-
+/// Read-only CodeMirror sub-view (no syntax highlighting)
 function ReadonlyTextView(props: { text: string }) {
     const [view, setView] = React.useState<EditorView | null>(null);
     const readonlyExtensions = React.useMemo(() => createReadonlyCodeMirrorExtensions(), []);
@@ -131,10 +132,6 @@ function ReadonlyTextView(props: { text: string }) {
     );
 }
 
-// ---------------------------------------------------------------------------
-// SQL CodeMirror sub-view (with DashQL syntax highlighting)
-// ---------------------------------------------------------------------------
-
 const PencilAIIcon = SymbolIcon('pencil_ai_16');
 
 interface SqlTextViewProps {
@@ -144,6 +141,7 @@ interface SqlTextViewProps {
     formattedScript: dashql.DashQLScript | null;
 }
 
+// SQL CodeMirror sub-view (with DashQL syntax highlighting)
 function SqlTextView(props: SqlTextViewProps) {
     const [view, setView] = React.useState<EditorView | null>(null);
     const readonlyExtensions = React.useMemo(() => createReadonlyCodeMirrorExtensions(), []);
@@ -172,7 +170,7 @@ function SqlTextView(props: SqlTextViewProps) {
                         scriptCursor: null,
                         scriptCompletion: null,
                         derivedFocus: null,
-                        onUpdate: () => {},
+                        onUpdate: () => { },
                     }),
                 ],
             });
@@ -206,9 +204,6 @@ function SqlTextView(props: SqlTextViewProps) {
     );
 }
 
-// ---------------------------------------------------------------------------
-// Public interface
-// ---------------------------------------------------------------------------
 
 export interface CellDetailOverlayProps {
     isOpen: boolean;
@@ -220,19 +215,21 @@ export interface CellDetailOverlayProps {
     onNavigate: (delta: number) => void;
 }
 
+/// Public interface
 export function CellDetailOverlay(props: CellDetailOverlayProps) {
     if (!props.isOpen) return null;
     return <CellDetailOverlayInner {...props} />;
 }
 
-// ---------------------------------------------------------------------------
-// Inner component — only mounted when overlay is open
-// ---------------------------------------------------------------------------
 
+const EMPTY_FORMATS: DetectedFormats = { json: null, sql: null };
+
+/// Inner component — only mounted when overlay is open
 function CellDetailOverlayInner(props: CellDetailOverlayProps) {
     const coreSetup = useDashQLCoreSetup();
     const [core, setCore] = React.useState<dashql.DashQL | null>(null);
-    const [activeMode, setActiveMode] = React.useState<FormatMode>(FormatMode.Raw);
+    const [formats, setFormats] = React.useState<DetectedFormats>(EMPTY_FORMATS);
+    const [selectedFormat, setSelectedFormat] = React.useState<FormatMode>(FormatMode.Raw);
     const prevFormatsRef = React.useRef<DetectedFormats | null>(null);
 
     React.useEffect(() => {
@@ -243,13 +240,14 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
         return () => { cancelled = true; };
     }, [coreSetup]);
 
-    const formats = React.useMemo<DetectedFormats>(() => {
+    React.useEffect(() => {
         if (prevFormatsRef.current != null) {
             destroyFormats(prevFormatsRef.current);
         }
         const f = detectFormats(core, props.formattedValue);
         prevFormatsRef.current = f;
-        return f;
+        setFormats(f);
+        setSelectedFormat(pickDefaultMode(f));
     }, [props.formattedValue, core]);
 
     React.useEffect(() => {
@@ -263,12 +261,8 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
 
     const availableModes = React.useMemo(() => getAvailableModes(formats), [formats]);
 
-    React.useEffect(() => {
-        setActiveMode(pickDefaultMode(formats));
-    }, [formats]);
-
     const onSegmentChange = React.useCallback((index: number) => {
-        setActiveMode(availableModes[index]);
+        setSelectedFormat(availableModes[index]);
     }, [availableModes]);
 
     const rawText = props.formattedValue ?? 'NULL';
@@ -303,7 +297,7 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
                                 {availableModes.map(mode => (
                                     <SegmentedControl.Button
                                         key={mode}
-                                        selected={mode === activeMode}
+                                        selected={mode === selectedFormat}
                                     >
                                         {FORMAT_LABELS[mode]}
                                     </SegmentedControl.Button>
@@ -311,18 +305,18 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
                             </SegmentedControl>
                         )}
                     </div>
-                    <div className={`${styles.body} ${activeMode === FormatMode.JSON ? styles.body_padded : ''}`}>
-                        {activeMode === FormatMode.Raw && (
+                    <div className={`${styles.body} ${selectedFormat === FormatMode.JSON ? styles.body_padded : ''}`}>
+                        {selectedFormat === FormatMode.Raw && (
                             <ReadonlyTextView text={rawText} />
                         )}
-                        {activeMode === FormatMode.JSON && formats.json != null && (
+                        {selectedFormat === FormatMode.JSON && formats.json != null && (
                             <JsonView
                                 value={formats.json}
                                 collapsed={2}
                                 shortenTextAfterLength={100}
                             />
                         )}
-                        {activeMode === FormatMode.SQL && formats.sql != null && (
+                        {selectedFormat === FormatMode.SQL && formats.sql != null && (
                             <SqlTextView
                                 originalText={formats.sql.originalText}
                                 originalScript={formats.sql.originalScript}
