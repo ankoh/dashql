@@ -13,6 +13,7 @@ import { CodeMirror, createReadonlyCodeMirrorExtensions } from '../editor/codemi
 import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../editor/dashql_processor.js';
 import { Overlay, OverlaySize } from '../foundations/overlay.js';
 import { useDashQLCoreSetup } from '../../core_provider.js';
+import { useKeyEvents } from '../../utils/key_events.js';
 
 enum FormatMode {
     Raw = 0,
@@ -264,6 +265,27 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
     const onSegmentChange = React.useCallback((index: number) => {
         setSelectedFormat(availableModes[index]);
     }, [availableModes]);
+
+    useKeyEvents(React.useMemo(() => [
+        {
+            key: 'ArrowUp',
+            callback: (e: KeyboardEvent) => {
+                e.preventDefault();
+                if (props.dataRow > 0) {
+                    props.onNavigate(-1);
+                }
+            },
+        },
+        {
+            key: 'ArrowDown',
+            callback: (e: KeyboardEvent) => {
+                e.preventDefault();
+                if (props.dataRow < props.maxRow) {
+                    props.onNavigate(1);
+                }
+            },
+        },
+    ], [props.dataRow, props.maxRow, props.onNavigate]));
 
     const rawText = props.formattedValue ?? 'NULL';
 
