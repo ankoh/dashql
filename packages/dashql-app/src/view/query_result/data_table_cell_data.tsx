@@ -24,6 +24,7 @@ export interface DataCellData {
     rightmostVisibleColumn: number;
     onMouseEnter: (event: React.PointerEvent<HTMLDivElement>) => void;
     onMouseLeave: (event: React.PointerEvent<HTMLDivElement>) => void;
+    onClick: (event: React.MouseEvent<HTMLDivElement>) => void;
 }
 
 export function DataCell(props: CellComponentProps<DataCellData>): React.ReactElement | null {
@@ -106,6 +107,7 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
                 data-table-row={dataRow}
                 onMouseEnter={props.onMouseEnter}
                 onMouseLeave={props.onMouseLeave}
+                onClick={props.onClick}
             >
                 {isNull ? "NULL" : formatted}
             </div>

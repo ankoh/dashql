@@ -18,6 +18,7 @@ import { classNames } from '../../utils/classnames.js';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
 import { computeFilteredColumnAggregatesDispatched, filterTableDispatched, sortTableDispatched } from '../../compute/computation_logic.js';
 import { observeSize } from '../foundations/size_observer.js';
+import { CellDetailOverlay } from './cell_detail_overlay.js';
 import { useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 
@@ -376,6 +377,32 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         forceUpdate();
     }, []);
 
+    // Cell detail overlay state
+    const [cellDetail, setCellDetail] = React.useState<{
+        dataRow: number;
+        fieldId: number;
+        formattedValue: string | null;
+        columnName: string | null;
+    } | null>(null);
+    const onClickCell: React.MouseEventHandler<HTMLDivElement> = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+        const dataRow = Number.parseInt(event.currentTarget.dataset["tableRow"]!);
+        const fieldId = Number.parseInt(event.currentTarget.dataset["tableCol"]!);
+        const field = computationState.dataTable.schema.fields[fieldId];
+        if (field == null || (field.type.typeId !== arrow.Type.Utf8 && field.type.typeId !== arrow.Type.LargeUtf8)) return;
+        const formattedValue = tableFormatter.getValue(dataRow, fieldId);
+        const columnName = field.name ?? null;
+        setCellDetail({ dataRow, fieldId, formattedValue, columnName });
+    }, [tableFormatter, computationState.dataTable]);
+    const onNavigateCell = React.useCallback((delta: number) => {
+        setCellDetail(prev => {
+            if (prev == null) return null;
+            const newRow = prev.dataRow + delta;
+            if (newRow < 0 || newRow >= dataRowCount) return prev;
+            const formattedValue = tableFormatter.getValue(newRow, prev.fieldId);
+            return { ...prev, dataRow: newRow, formattedValue };
+        });
+    }, [tableFormatter, dataRowCount]);
+
     // Maintain a rendering context for data cells.
     // This context is passed to grid elements as item data.
     // We use a ref to avoid recreating the inner grid element type when data changes.
@@ -388,6 +415,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         tableFormatter: tableFormatter,
         onMouseEnter: onMouseEnterCell,
         onMouseLeave: onMouseLeaveCell,
+        onClick: onClickCell,
         table: computationState.dataTable,
         focusedRow: focusedCells.current?.row ?? null,
         focusedField: focusedCells.current?.field ?? null,
@@ -404,6 +432,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         // Stable callbacks (empty deps) - included for correctness but won't cause re-renders
         onMouseEnterCell,
         onMouseLeaveCell,
+        onClickCell,
         // Note: focusedCells is a ref, reading it here won't trigger re-renders
         // but the value will be fresh when gridData is created
     ]);
@@ -697,6 +726,15 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 {renderStickyColumnsIntoPortal()}
                 {renderSkeletonsIntoPortal()}
             </div>
+            <CellDetailOverlay
+                isOpen={cellDetail != null}
+                onClose={() => setCellDetail(null)}
+                formattedValue={cellDetail?.formattedValue ?? null}
+                columnName={cellDetail?.columnName ?? null}
+                dataRow={cellDetail?.dataRow ?? 0}
+                maxRow={dataRowCount - 1}
+                onNavigate={onNavigateCell}
+            />
         </div>
     );
 };

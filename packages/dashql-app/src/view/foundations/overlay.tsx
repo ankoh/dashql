@@ -143,6 +143,7 @@ export interface OverlayProps {
     maxWidth?: OverlaySize;
     maxHeight?: OverlaySize;
     anchorSide?: AnchorSide;
+    centered?: boolean;
     children?: React.ReactNode;
     role?: React.AriaRole;
 }
@@ -185,22 +186,28 @@ export const Overlay = React.forwardRef((props: OverlayProps, forwardedRef: Reac
         )
     }, [props.anchorSide, props.visibility])
 
+    const overlay = (
+        <div
+            className={classNames(styles.overlay, width, height, minWidth, maxWidth, maxHeight)}
+            ref={overlayRef}
+            role={props.role}
+            style={props.centered ? undefined : {
+                position: props.position,
+                top: props.top,
+                right: props.right,
+                bottom: props.bottom,
+                left: props.left
+            }}
+        >
+            {props.children}
+        </div>
+    );
+
     return (
         <Portal containerName={props.portalContainerName}>
-            <div
-                className={classNames(styles.overlay, width, height, minWidth, maxWidth, maxHeight)}
-                ref={overlayRef}
-                role={props.role}
-                style={{
-                    position: props.position,
-                    top: props.top,
-                    right: props.right,
-                    bottom: props.bottom,
-                    left: props.left
-                }}
-            >
-                {props.children}
-            </div>
+            {props.centered ? (
+                <div className={styles.centered_container}>{overlay}</div>
+            ) : overlay}
         </Portal>
     );
 });
