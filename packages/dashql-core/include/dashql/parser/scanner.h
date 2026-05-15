@@ -50,6 +50,8 @@ class Scanner {
     Parser::symbol_type ReadIdentifier(buffers::parser::SymbolSpan loc);
     /// Read a double-quoted identifier
     Parser::symbol_type ReadDoubleQuotedIdentifier(buffers::parser::SymbolSpan loc);
+    /// Read a backtick-quoted identifier
+    Parser::symbol_type ReadBacktickQuotedIdentifier(buffers::parser::SymbolSpan loc);
     /// Read a string literal
     Parser::symbol_type ReadStringLiteral(buffers::parser::SymbolSpan loc);
     /// Read a hex literal

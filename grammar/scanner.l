@@ -95,6 +95,7 @@ using YYSTYPE = dashql::parser::Parser::symbol_type;
  *  <xb> bit string literal
  *  <xc> extended C-style comments
  *  <xd> delimited identifiers (double-quoted identifiers)
+ *  <xbt> backtick-quoted identifiers
  *  <xh> hexadecimal numeric string
  *  <xq> standard quoted strings
  *
@@ -103,6 +104,7 @@ using YYSTYPE = dashql::parser::Parser::symbol_type;
  */
 
 %x xb
+%x xbt
 %x xc
 %x xd
 %x xh
@@ -194,6 +196,15 @@ xdstop          {dquote}
 xddouble        {dquote}{dquote}
 xdinside        [^"]+
 
+/* Backtick quote
+ * MySQL/Spark-style identifier quoting.
+ */
+backtick        \`
+xbtstart        {backtick}
+xbtstop         {backtick}
+xbtdouble       {backtick}{backtick}
+xbtinside       [^`]+
+
 /* C-style comments
  *
  * The "extended comment" syntax closely resembles allowable operator syntax.
@@ -273,7 +284,7 @@ raw_equals      \=
 raw_question_mark \?
 raw_dollar      \$
 
-op_chars        [\~\!\@\#\^\&\|\`\+\-\*\/\%\<\>\=]
+op_chars        [\~\!\@\#\^\&\|\+\-\*\/\%\<\>\=]
 operator        {op_chars}+
 
 /* we no longer allow unary minus in numbers.
@@ -384,6 +395,18 @@ auto& ext_depth = ctx.ext_depth;
                 }
 <xd><<EOF>>     { ctx.AddError(Loc({ ext_begin, loc }), "unterminated delimited identifier"); BEGIN(INITIAL); }
 
+
+{xbtstart}      { ext_begin = loc; BEGIN(xbt); }
+<xbt>{xbtdouble}
+<xbt>{xbtinside}
+<xbt>{xbtstop}  {
+                    auto xbtloc = Loc({ ext_begin, loc });
+                    if (xbtloc.length() == 2) { ctx.AddError(xbtloc, "zero-length backtick-quoted identifier"); }
+                    BEGIN(INITIAL);
+                    return ctx.ReadBacktickQuotedIdentifier(Loc({ext_begin, loc}));
+                }
+<xbt><<EOF>>    { ctx.AddError(Loc({ ext_begin, loc }), "unterminated backtick-quoted identifier"); BEGIN(INITIAL); }
+
 {raw_typecast}      { return Parser::make_TYPECAST(loc); }
 {raw_dot_dot}       { return Parser::make_DOT_DOT(loc); }
 {raw_dot}           { return Parser::make_DOT(loc); }
@@ -447,7 +470,7 @@ auto& ext_depth = ctx.ext_depth;
                     while (nchars > 1 && (yytext[nchars - 1] == '+' || yytext[nchars - 1] == '-')) {
                         int ic;
                         for (ic = nchars - 2; ic >= 0; ic--) {
-                            if (strchr("~!@#^&|`?%", yytext[ic]))
+                            if (strchr("~!@#^&|?%", yytext[ic]))
                                 break;
                         }
                         if (ic >= 0)

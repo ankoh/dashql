@@ -90,6 +90,14 @@ Parser::symbol_type Scanner::ReadDoubleQuotedIdentifier(buffers::parser::SymbolS
     size_t id = output->name_registry.Register(trimmed, buffers::parser::TextSpan(loc.offset(), loc.length())).name_id;
     return Parser::make_IDENT(id, loc);
 }
+/// Read a backtick quoted identifier
+Parser::symbol_type Scanner::ReadBacktickQuotedIdentifier(buffers::parser::SymbolSpan loc) {
+    auto text = GetInputData().substr(loc.offset(), loc.length());
+    auto trimmed = trim_view_right(text, is_no_space);
+    trimmed = trim_view(trimmed, is_no_backtick);
+    size_t id = output->name_registry.Register(trimmed, buffers::parser::TextSpan(loc.offset(), loc.length())).name_id;
+    return Parser::make_IDENT(id, loc);
+}
 
 /// Read a string literal
 Parser::symbol_type Scanner::ReadStringLiteral(buffers::parser::SymbolSpan loc) {
