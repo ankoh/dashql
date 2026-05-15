@@ -44,5 +44,6 @@ INSTANTIATE_TEST_SUITE_P(TPCDS, ParserSnapshotTestSuite, ::testing::ValuesIn(Par
 INSTANTIATE_TEST_SUITE_P(TPCH, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("tpch.yaml")), ParserSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Trino, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("trino.yaml")), ParserSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Explain, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("ext_explain.yaml")), ParserSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Backticks, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("backticks.yaml")), ParserSnapshotTest::TestPrinter());
 
 }  // namespace
