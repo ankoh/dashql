@@ -19,6 +19,14 @@
     font-family: 'Roboto Mono';
 }
 
+.cm-tooltip-cursor-diagnostics {
+    padding: 4px 8px;
+    font-size: 0.85rem;
+    color: var(--dashql-text-color, #333);
+    white-space: pre-wrap;
+    max-width: 400px;
+}
+
 .cm-completion-hint {
     color: var(--dashql-completion-hint-color, #666) !important;
     opacity: 0.6;

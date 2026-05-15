@@ -1,117 +1,94 @@
 import * as dashql from '../../core/index.js';
 
 import { Tooltip, showTooltip } from '@codemirror/view';
-import { Transaction, StateField, EditorState } from '@codemirror/state';
+import { Transaction, StateField } from '@codemirror/state';
 
 import { DashQLCompletionStatus, DashQLProcessorPlugin, DashQLScriptBuffers } from './dashql_processor.js';
 
-function findErrorAtCursor(
-    parsed: dashql.buffers.parser.ParsedScript,
-    cursor: number,
-): dashql.buffers.parser.Error | null {
-    const tmp = new dashql.buffers.parser.Error();
-    for (let i = 0; i < parsed.scannerErrorsLength(); ++i) {
-        const error = parsed.scannerErrors(i, tmp)!;
-        const loc = error.textSpan()!;
-        if (loc.offset() <= cursor && loc.offset() + loc.length() >= cursor) {
-            return error;
-        }
-    }
-    for (let i = 0; i < parsed.parserErrorsLength(); ++i) {
-        const error = parsed.parserErrors(i, tmp)!;
-        const loc = error.textSpan()!;
-        if (loc.offset() <= cursor && loc.offset() + loc.length() >= cursor) {
-            return error;
-        }
-    }
-    return null;
+interface CursorError {
+    message: string;
+    from: number;
+    to: number;
 }
 
-class CursorDiagnosticsState {
-    public readonly buffers: DashQLScriptBuffers;
-    public readonly tooltip: Tooltip;
-
-    constructor(buffers: DashQLScriptBuffers, tooltip: Tooltip) {
-        this.buffers = buffers;
-        this.tooltip = tooltip;
-    }
-
-    public equals(other: CursorDiagnosticsState): boolean {
-        return this.buffers == other.buffers && this.tooltip.pos == other.tooltip.pos;
-    }
-
-    static tryCreate(buffers: DashQLScriptBuffers, pos: number): (CursorDiagnosticsState | null) {
-        if (buffers.parsed) {
-            const parsed = buffers.parsed.read();
-            const error = findErrorAtCursor(parsed, pos);
-            if (error != null) {
-                const tooltip: Tooltip = {
-                    pos,
-                    arrow: true,
-                    create: () => {
-                        const dom = document.createElement('div');
-                        dom.className = 'cm-tooltip-cursor';
-                        dom.textContent = error.message();
-                        return { dom };
-                    },
-                };
-                return new CursorDiagnosticsState(buffers, tooltip);
+function findErrorAtCursor(buffers: DashQLScriptBuffers, cursor: number): CursorError | null {
+    const parsed = buffers.parsed?.read() ?? null;
+    if (parsed) {
+        const tmp = new dashql.buffers.parser.Error();
+        for (let i = 0; i < parsed.scannerErrorsLength(); ++i) {
+            const error = parsed.scannerErrors(i, tmp)!;
+            const loc = error.textSpan()!;
+            if (loc.offset() <= cursor && loc.offset() + loc.length() >= cursor) {
+                return { message: error.message()!, from: loc.offset(), to: loc.offset() + loc.length() };
             }
         }
-        return null;
+        for (let i = 0; i < parsed.parserErrorsLength(); ++i) {
+            const error = parsed.parserErrors(i, tmp)!;
+            const loc = error.textSpan()!;
+            if (loc.offset() <= cursor && loc.offset() + loc.length() >= cursor) {
+                return { message: error.message()!, from: loc.offset(), to: loc.offset() + loc.length() };
+            }
+        }
     }
-}
-
-function createDiagnosticsTooltip(state: EditorState, pos: number): Tooltip | null {
-    const processor = state.field(DashQLProcessorPlugin);
-    if (processor.scriptBuffers.parsed) {
-        const parsed = processor.scriptBuffers.parsed.read();
-        const error = findErrorAtCursor(parsed, pos);
-        if (error != null) {
-            return {
-                pos,
-                arrow: true,
-                create: () => {
-                    const dom = document.createElement('div');
-                    dom.className = 'cm-tooltip-cursor';
-                    dom.textContent = error.message();
-                    return { dom };
-                },
-            };
+    const analyzed = buffers.analyzed?.read() ?? null;
+    if (analyzed) {
+        const tmp = new dashql.buffers.analyzer.AnalyzerError();
+        for (let i = 0; i < analyzed.errorsLength(); ++i) {
+            const error = analyzed.errors(i, tmp)!;
+            const loc = error.textSpan();
+            if (!loc) continue;
+            if (loc.offset() <= cursor && loc.offset() + loc.length() >= cursor) {
+                return { message: error.message()!, from: loc.offset(), to: loc.offset() + loc.length() };
+            }
         }
     }
     return null;
 }
 
-const CursorDiagnosticsField = StateField.define<CursorDiagnosticsState | null>({
-    create: () => null,
-    update: (prevState: CursorDiagnosticsState | null, transaction: Transaction) => {
-        // Is there any cursor?
-        const sel = transaction.selection?.ranges ?? [];
-        if (sel.length == 0) {
-            return null;
-        }
-        const pos = sel[0].head;
+function createTooltip(error: CursorError): Tooltip {
+    return {
+        pos: error.from,
+        end: error.to,
+        arrow: true,
+        create: () => {
+            const dom = document.createElement('div');
+            dom.className = 'cm-tooltip-cursor-diagnostics';
+            dom.textContent = error.message;
+            return { dom };
+        },
+    };
+}
 
-        // Get the script buffers
+interface CursorDiagnosticsSnapshot {
+    buffers: DashQLScriptBuffers;
+    pos: number;
+    tooltip: Tooltip | null;
+}
+
+const CursorDiagnosticsField = StateField.define<CursorDiagnosticsSnapshot>({
+    create: () => ({ buffers: { parsed: null, analyzed: null, destroy: () => {} }, pos: -1, tooltip: null }),
+    update: (prev: CursorDiagnosticsSnapshot, transaction: Transaction) => {
+        const pos = transaction.state.selection.main.head;
         const processor = transaction.state.field(DashQLProcessorPlugin);
-        if (processor.scriptBuffers == null) {
-            return null;
+        const buffers = processor.scriptBuffers;
+
+        // Nothing changed?
+        if (buffers === prev.buffers && pos === prev.pos) {
+            return prev;
         }
 
-        // Ongoing completion?
+        // Hide tooltip during active completion
         if (processor.scriptCompletion?.status == DashQLCompletionStatus.AVAILABLE) {
-            return null;
+            return { buffers, pos, tooltip: null };
         }
 
-        // Create new diagnostics
-        const nextState = CursorDiagnosticsState.tryCreate(processor.scriptBuffers, pos);
-        if (prevState == null || nextState == null) {
-            return nextState;
-        }
-        return nextState.equals(prevState) ? prevState : nextState;
+        const error = findErrorAtCursor(buffers, pos);
+        return { buffers, pos, tooltip: error ? createTooltip(error) : null };
     },
-    provide: f => showTooltip.computeN([f], state => [state.field(f)?.tooltip ?? null]),
+    provide: f => showTooltip.computeN([f], state => {
+        const tooltip = state.field(f).tooltip;
+        return tooltip ? [tooltip] : [];
+    }),
 });
 
 export const DashQLCursorDiagnosticsPlugin = [CursorDiagnosticsField];
