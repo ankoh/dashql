@@ -18,13 +18,11 @@ export function QueryResultView(props: Props) {
 
     // Query is null?
     if (props.query == null) {
-        console.log("QUERY NULL");
         return <div />;
     }
     // Resolve the table computation
     const tableComputation = computationState.tableComputations[props.query.queryId] ?? null;
     if (tableComputation == null) {
-        console.log("TABLE COMPUTATION NULL");
         return <div />;
     }
     // Toggle data info

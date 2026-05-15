@@ -342,9 +342,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     }, [computationState, dispatchComputation]);
     const orderByColumn = React.useCallback((fieldId: number) => {
         const fieldName = dataTable.schema.fields[fieldId].name;
-        // #region agent log
-        fetch('http://127.0.0.1:7811/ingest/16055d45-76fb-4065-93a4-f78ad4e545c4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b4feb0'},body:JSON.stringify({sessionId:'b4feb0',runId:'pre-fix',hypothesisId:'H1',location:'data_table.tsx:249',message:'Order by requested from header control',data:{tableId:computationState.tableId,versionFilter:computationState.version.filter,fieldId,fieldName,hasDataFrame:computationState.dataFrame!=null,hasFilterTable:computationState.filterTable!=null,filterVersion:computationState.filterTable?.version.filter??null},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         const orderingConstraints: OrderByConstraint[] = [{
             field: fieldName,
             ascending: true,
@@ -362,9 +359,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 orderingConstraints
             };
             void sortTableDispatched(orderingTask, dispatchComputation);
-            // #region agent log
-            fetch('http://127.0.0.1:7811/ingest/16055d45-76fb-4065-93a4-f78ad4e545c4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b4feb0'},body:JSON.stringify({sessionId:'b4feb0',runId:'pre-fix',hypothesisId:'H2',location:'data_table.tsx:266',message:'Order task dispatched',data:{tableId:orderingTask.tableId,versionFilter:orderingTask.tableVersion.filter,orderingField:orderingTask.orderingConstraints[0]?.field,hasFilterTable:computationState.filterTable!=null,filterVersion:computationState.filterTable?.version.filter??null},timestamp:Date.now()})}).catch(()=>{});
-            // #endregion
         }
     }, [computationState, dispatchComputation, logger]);
 
