@@ -22,12 +22,25 @@ interface FeedEntryFooterProps {
     queryState: QueryExecutionState;
 }
 
-export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
-    const [selectedTab, setSelectedTab] = React.useState<FooterTab>(FooterTab.Log);
+function useHasResult(queryState: QueryExecutionState, queryId: number): boolean {
     const [computationState] = useComputationRegistry();
+    return queryState.status === QueryExecutionStatus.SUCCEEDED
+        && computationState.tableComputations[queryId] != null;
+}
 
-    const hasResult = props.queryState.status === QueryExecutionStatus.SUCCEEDED
-        && computationState.tableComputations[props.queryId] != null;
+export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
+    const hasResult = useHasResult(props.queryState, props.queryId);
+    const [selectedTab, setSelectedTab] = React.useState<FooterTab>(
+        () => hasResult ? FooterTab.Table : FooterTab.Log
+    );
+
+    const prevHasResult = React.useRef(hasResult);
+    React.useEffect(() => {
+        if (hasResult && !prevHasResult.current) {
+            setSelectedTab(FooterTab.Table);
+        }
+        prevHasResult.current = hasResult;
+    }, [hasResult]);
 
     const tabProps = React.useMemo<Record<FooterTab, VerticalTabProps>>(() => ({
         [FooterTab.Log]: {

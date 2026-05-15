@@ -66,6 +66,11 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, entryIndex,
     const EyeIcon: Icon = SymbolIcon(isFocused ? 'eye_16' : 'eye_closed_16');
     const PencilIcon: Icon = SymbolIcon('pencil_16');
     const queryState = useQueryState(sessionId, scriptData?.latestQueryId ?? null);
+    console.log({
+        sessionId, entryIndex,
+        latestQueryId: scriptData?.latestQueryId,
+        queryState
+    });
     const [isReady, setIsReady] = React.useState(false);
     const [isEditing, setIsEditing] = React.useState(false);
     const [draftFileName, setDraftFileName] = React.useState(scriptFileName);
@@ -88,16 +93,6 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, entryIndex,
     const cancelEdit = React.useCallback(() => {
         setIsEditing(false);
     }, []);
-
-    const handleEditKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            saveEdit();
-        } else if (event.key === 'Escape') {
-            event.preventDefault();
-            cancelEdit();
-        }
-    }, [saveEdit, cancelEdit]);
 
     React.useEffect(() => {
         if (isEditing && editInputRef.current) {

@@ -403,7 +403,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             return {
                 ...state,
                 tableComputations: {
-                    ...tableState,
+                    ...state.tableComputations,
                     [tableId]: {
                         ...tableState,
                         columnAggregates,
@@ -470,7 +470,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             return {
                 ...state,
                 tableComputations: {
-                    ...tableState,
+                    ...state.tableComputations,
                     [tableId]: {
                         ...tableState,
                         filteredColumnAggregates,
