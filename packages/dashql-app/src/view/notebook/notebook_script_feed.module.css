@@ -131,7 +131,7 @@
     max-width: var(--notebook_list_entry_max_width);
     overflow: hidden;
     display: grid;
-    grid-template-rows: 40px 1fr;
+    grid-template-rows: 40px 1fr auto;
 }
 
 .feed_entry_action_bar {
@@ -216,4 +216,10 @@
 
 .script_preview_editor :global(.cm-scroller) {
     overflow-y: auto;
+}
+
+.feed_entry_execution_footer {
+    background-color: var(--notebook_feed_entry_headerbar_background);
+    border-top: 1px solid var(--log_border_color);
+    overflow: hidden;
 }

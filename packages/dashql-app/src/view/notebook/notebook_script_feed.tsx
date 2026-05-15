@@ -25,6 +25,8 @@ import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { useScrollbarWidth } from '../../utils/scrollbar.js';
 import { SegmentedControl, SegmentedControlSize } from '../foundations/segmented_control.js';
 import { NotebookScriptName } from './notebook_script_name.js';
+import { useQueryState } from '../../connection/query_executor.js';
+import { TraceLogViewer } from '../internals/trace_log_viewer.js';
 
 interface FeedScrollTarget {
     entryIndex: number;
@@ -45,6 +47,7 @@ const FEED_EDGE_PADDING = 8;
 const FEED_BOTTOM_FADE_HEIGHT = 24;
 
 interface CollapsedScriptCardProps {
+    sessionId: string;
     entryIndex: number;
     isFocused: boolean;
     scriptData: ScriptData | undefined;
@@ -58,10 +61,11 @@ interface CollapsedScriptCardProps {
     onRename: (entryIndex: number, fileName: string) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, onFocus, onExpand, onDelete, onRename }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, entryIndex, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, onFocus, onExpand, onDelete, onRename }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const EyeIcon: Icon = SymbolIcon(isFocused ? 'eye_16' : 'eye_closed_16');
     const PencilIcon: Icon = SymbolIcon('pencil_16');
+    const queryState = useQueryState(sessionId, scriptData?.latestQueryId ?? null);
     const [isReady, setIsReady] = React.useState(false);
     const [isEditing, setIsEditing] = React.useState(false);
     const [draftFileName, setDraftFileName] = React.useState(scriptFileName);
@@ -173,11 +177,17 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, isFocused,
             <div className={styles.feed_body} onPointerDownCapture={handlePreviewPointerDown}>
                 {scriptData != null ? <ScriptPreview className={styles.script_preview_editor} scriptData={scriptData} onReady={setIsReady} /> : null}
             </div>
+            {queryState != null && (
+                <div className={styles.feed_entry_execution_footer}>
+                    <TraceLogViewer traceId={queryState.traceId} height={96} />
+                </div>
+            )}
         </motion.div>
     );
 };
 
 interface ScriptFeedRowProps {
+    sessionId: string;
     entries: ReturnType<typeof getSelectedPageEntries>;
     scripts: NotebookState['scripts'];
     folderName: string;
@@ -194,7 +204,7 @@ interface ScriptFeedRowProps {
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { entries, scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, onFocus, onExpand, onDelete, onRename, onHeightMeasured } = props;
+    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, onFocus, onExpand, onDelete, onRename, onHeightMeasured } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -229,6 +239,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                 className={styles.feed_list_item}
             >
                 <ScriptCard
+                    sessionId={sessionId}
                     entryIndex={entryIndex}
                     isFocused={entryIndex === focusedEntryIndex}
                     scriptData={scriptData}
@@ -386,6 +397,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const focusedEntryIndex = props.notebook.notebookUserFocus.entryInPage;
     const canDelete = props.notebook.notebookPages.length > 1 || entries.length > 1;
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
+        sessionId: props.notebook.sessionId,
         entries,
         scripts: props.notebook.scripts,
         folderName,
