@@ -151,7 +151,7 @@ async function restoreNotebook(
         scripts,
         notebookPages,
         uncommittedScriptId: uncommittedKey,
-        notebookUserFocus: { pageIndex: 0, entryInPage: 0 },
+        notebookUserFocus: { pageIndex: 0, entryInPage: 0, interactionCounter: 0 },
         semanticUserFocus: null,
     };
 

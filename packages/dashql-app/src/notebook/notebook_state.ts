@@ -29,6 +29,8 @@ export interface NotebookUserFocus {
     pageIndex: number;
     /// The selected entry index within the selected page
     entryInPage: number;
+    /// Monotonic counter incremented only by explicit navigation (Next/Prev Script/Page), used to trigger auto-scroll
+    interactionCounter: number;
 }
 
 /// The state of the notebook
@@ -177,7 +179,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const entryInPage = Math.min(state.notebookUserFocus.entryInPage, maxEntry);
             return {
                 ...clearSemanticUserFocus(state),
-                notebookUserFocus: { pageIndex, entryInPage },
+                notebookUserFocus: { pageIndex, entryInPage, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
         }
         case CREATE_PAGE: {
@@ -225,7 +227,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     [scriptKey]: scriptData,
                 },
                 notebookPages: newPages,
-                notebookUserFocus: { pageIndex: newPages.length - 1, entryInPage: 0 },
+                notebookUserFocus: { pageIndex: newPages.length - 1, entryInPage: 0, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
 
             storage?.write(
@@ -267,7 +269,8 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     notebookPages: newPages,
                     notebookUserFocus: {
                         pageIndex: newPageIndex,
-                        entryInPage: 0
+                        entryInPage: 0,
+                        interactionCounter: state.notebookUserFocus.interactionCounter + 1,
                     }
                 })
             };
@@ -286,7 +289,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const entryInPage = Math.min(state.notebookUserFocus.entryInPage, maxEntry);
             return {
                 ...clearSemanticUserFocus(state),
-                notebookUserFocus: { pageIndex: nextPageIndex, entryInPage },
+                notebookUserFocus: { pageIndex: nextPageIndex, entryInPage, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
         }
         case SELECT_PREV_PAGE: {
@@ -296,7 +299,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const entryInPage = Math.min(state.notebookUserFocus.entryInPage, maxEntry);
             return {
                 ...clearSemanticUserFocus(state),
-                notebookUserFocus: { pageIndex: prevPageIndex, entryInPage },
+                notebookUserFocus: { pageIndex: prevPageIndex, entryInPage, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
         }
         case SELECT_NEXT_ENTRY: {
@@ -304,13 +307,13 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const nextEntry = Math.max(Math.min(state.notebookUserFocus.entryInPage + 1, entries.length - 1), 0);
             return {
                 ...clearSemanticUserFocus(state),
-                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: nextEntry },
+                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: nextEntry, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
         }
         case SELECT_PREV_ENTRY:
             return {
                 ...clearSemanticUserFocus(state),
-                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: Math.max(state.notebookUserFocus.entryInPage - 1, 0) },
+                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: Math.max(state.notebookUserFocus.entryInPage - 1, 0), interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
         case SELECT_ENTRY: {
             const entries = getSelectedPageEntries(state);
@@ -541,7 +544,8 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                         notebookPages: newPages,
                         notebookUserFocus: {
                             pageIndex: newPageIndex,
-                            entryInPage: 0
+                            entryInPage: 0,
+                            interactionCounter: state.notebookUserFocus.interactionCounter + 1,
                         }
                     })
                 };

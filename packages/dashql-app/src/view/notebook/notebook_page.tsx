@@ -152,7 +152,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             return;
         }
         requestFeedScroll(notebook.notebookUserFocus.entryInPage);
-    }, [notebook, notebook?.notebookUserFocus.entryInPage, notebook?.notebookUserFocus.pageIndex, requestFeedScroll, showDetails]);
+    }, [notebook?.notebookUserFocus.interactionCounter, requestFeedScroll, showDetails]);
 
     React.useEffect(() => {
         if (route.sessionId === null) {
