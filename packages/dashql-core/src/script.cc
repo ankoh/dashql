@@ -277,7 +277,8 @@ flatbuffers::Offset<buffers::parser::ParsedScript> ParsedScript::Pack(flatbuffer
     out.parser_errors.reserve(errors.size());
     for (auto& [loc, msg] : errors) {
         auto err = std::make_unique<buffers::parser::ErrorT>();
-        err->text_span = std::make_unique<buffers::parser::TextSpan>(loc.offset(), loc.length());
+        err->symbol_span = std::make_unique<buffers::parser::SymbolSpan>(loc);
+        err->text_span = std::make_unique<buffers::parser::TextSpan>(scanned_script->ResolveTextSpan(loc));
         err->message = msg;
         out.parser_errors.push_back(std::move(err));
     }

@@ -429,6 +429,7 @@ struct Node {
 
 table Error {
     text_span: TextSpan;
+    symbol_span: SymbolSpan;
     message: string;
 }
 

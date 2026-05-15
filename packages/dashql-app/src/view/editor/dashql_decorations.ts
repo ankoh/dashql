@@ -73,15 +73,13 @@ function buildDecorationsFromErrors(
     }
     if (analyzed !== null) {
         // Analyzer errors
-        const tokens = parsed?.tokens() ?? null;
         for (let i = 0; i < analyzed.errorsLength(); ++i) {
             const error = analyzed.errors(i, tmpAnalyzerError)!;
-            const span = error.symbolSpan();
-            if (!span || !tokens) continue;
-            const ts = dashql.resolveSymbolSpan(tokens, span);
+            const loc = error.textSpan();
+            if (!loc) continue;
             decorations.push({
-                from: ts.offset,
-                to: ts.offset + ts.length,
+                from: loc.offset(),
+                to: loc.offset() + loc.length(),
                 decoration: ErrorDecoration,
             });
         }

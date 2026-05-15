@@ -257,8 +257,10 @@ table AnalyzerError {
     error_type: AnalyzerErrorType;
     /// The ast node id
     ast_node_id: uint32;
-    /// The text location, in case the user doesn't want to carry around the ast
+    /// The symbol location
     symbol_span: parser.SymbolSpan;
+    /// The text location
+    text_span: parser.TextSpan;
     /// The error message
     message: string;
 }

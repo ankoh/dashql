@@ -146,8 +146,9 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
                 auto& error = state.analyzed->errors.emplace_back();
                 error.error_type = buffers::analyzer::AnalyzerErrorType::DUPLICATE_TABLE_ALIAS;
                 error.ast_node_id = table_ref.ast_node_id;
-                error.symbol_span =
-                    std::make_unique<buffers::parser::SymbolSpan>(state.parsed.nodes[table_ref.ast_node_id].symbol_span());
+                auto sym_span = state.parsed.nodes[table_ref.ast_node_id].symbol_span();
+                error.symbol_span = std::make_unique<buffers::parser::SymbolSpan>(sym_span);
+                error.text_span = std::make_unique<buffers::parser::TextSpan>(state.scanned.ResolveTextSpan(sym_span));
 
                 std::string tmp;
                 std::string_view alias_text = alias;
@@ -255,8 +256,9 @@ void NameResolutionPass::ResolveColumnRefsInScope(AnalyzedScript::NameScope& sco
                     auto& error = state.analyzed->errors.back();
                     error.error_type = buffers::analyzer::AnalyzerErrorType::COLUMN_REF_AMBIGUOUS;
                     error.ast_node_id = expr.ast_node_id;
-                    error.symbol_span =
-                        std::make_unique<buffers::parser::SymbolSpan>(state.parsed.nodes[expr.ast_node_id].symbol_span());
+                    auto sym_span = state.parsed.nodes[expr.ast_node_id].symbol_span();
+                    error.symbol_span = std::make_unique<buffers::parser::SymbolSpan>(sym_span);
+                    error.text_span = std::make_unique<buffers::parser::TextSpan>(state.scanned.ResolveTextSpan(sym_span));
 
                     // Construct the error message
                     // Note that we deliberately do not use std::stringstream here since clang is then baking in fd
