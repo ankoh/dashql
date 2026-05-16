@@ -74,7 +74,7 @@ describe('Completion Hint', () => {
             value: {
                 at: text.length,
                 text: "A\"",
-                textAnchor: TextAnchor.Right,
+                textAnchor: TextAnchor.Left,
             }
         });
     });

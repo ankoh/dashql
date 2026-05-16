@@ -22,8 +22,9 @@
     display: grid;
     grid-template-rows: max-content max-content;
     grid-template-columns: 28px auto;
-    padding-top: 2px;
-    padding-bottom: 2px;
+    row-gap: 2px;
+    padding-top: 4px;
+    padding-bottom: 4px;
 }
 .candidate_container:not(:first-child)::before {
     content: '';
@@ -60,6 +61,7 @@
 
     padding-left: 4px;
     padding-right: 8px;
+    font-family: 'Roboto Mono';
 }
 
 .info_container {

@@ -1,7 +1,5 @@
 import * as dashql from '../../core/index.js';
 
-import * as meyers from '../../utils/diff.js';
-
 import { ChangeSpec, Text } from '@codemirror/state';
 import { VariantKind } from '../../utils/index.js';
 import { DashQLCompletionState } from './dashql_processor.js';
@@ -46,33 +44,41 @@ interface RemoveTextPatch {
     length: number;
 }
 
-/// Given two strings, derive the required patches to get from `have` to `want`
-function computeDiff(at: number, have: string, want: string, hintType: CompletionPatchTarget, cursor: number): CompletionPatch[] {
+/// Given two strings, derive the required patches to get from `have` to `want`.
+/// If `have` is a proper substring of `want`, emit before/after inserts around it.
+/// Otherwise, delete `have` entirely and insert `want`.
+export function completionDiff(at: number, have: string, want: string, target: CompletionPatchTarget, cursor: number): CompletionPatch[] {
     const out: CompletionPatch[] = [];
-
-    // XXX This is a candidate for offloading to WebAssembly
-    for (const [haveFrom, haveTo, wantFrom, wantTo] of meyers.diff(have, want)) {
-        if (haveFrom != haveTo) {
+    const idx = have.length > 0 ? want.indexOf(have) : -1;
+    if (idx >= 0) {
+        if (idx > 0) {
             out.push({
-                target: hintType,
-                type: PATCH_DELETE_TEXT,
-                value: {
-                    at: at + haveFrom,
-                    length: haveTo - haveFrom,
-                }
-            })
-        }
-        if (wantFrom != wantTo) {
-            out.push({
-                target: hintType,
+                target,
                 type: PATCH_INSERT_TEXT,
-                value: {
-                    at: at + haveTo,
-                    text: want.substring(wantFrom, wantTo),
-                    textAnchor: ((at + haveTo) < cursor) ? TextAnchor.Right : TextAnchor.Left,
-                }
-            })
+                value: { at, text: want.substring(0, idx), textAnchor: TextAnchor.Right },
+            });
         }
+        const after = idx + have.length;
+        if (after < want.length) {
+            out.push({
+                target,
+                type: PATCH_INSERT_TEXT,
+                value: { at: at + have.length, text: want.substring(after), textAnchor: TextAnchor.Left },
+            });
+        }
+    } else {
+        if (have.length > 0) {
+            out.push({
+                target,
+                type: PATCH_DELETE_TEXT,
+                value: { at, length: have.length },
+            });
+        }
+        out.push({
+            target,
+            type: PATCH_INSERT_TEXT,
+            value: { at: at + have.length, text: want, textAnchor: TextAnchor.Left },
+        });
     }
     return out;
 }
@@ -128,7 +134,7 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
 
         const candidateText = candidate.completionText()!;
         const currentText = text.sliceString(targetFrom, targetTo);
-        nextState.candidatePatch = computeDiff(targetFrom, currentText, candidateText, CompletionPatchTarget.Candidate, cursor);
+        nextState.candidatePatch = completionDiff(targetFrom, currentText, candidateText, CompletionPatchTarget.Candidate, cursor);
     }
 
     // Read catalog object
@@ -150,7 +156,7 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
         if (qualPrefix.length > 0) {
             let have = text.sliceString(qualifiedFrom, targetFrom);
             let want = qualPrefix.join(".") + ".";
-            let patch = computeDiff(qualifiedFrom, have, want, CompletionPatchTarget.CatalogObject, cursor);
+            let patch = completionDiff(qualifiedFrom, have, want, CompletionPatchTarget.CatalogObject, cursor);
             nextState.catalogObjectPatch = patch;
         }
 
@@ -159,7 +165,7 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
         if (qualSuffix.length > 0) {
             let have = text.sliceString(targetTo, qualifiedTo);
             let want = "." + qualSuffix.join(".");
-            let patch = computeDiff(targetTo, have, want, CompletionPatchTarget.CatalogObject, cursor);
+            let patch = completionDiff(targetTo, have, want, CompletionPatchTarget.CatalogObject, cursor);
             nextState.catalogObjectPatch = nextState.catalogObjectPatch.concat(patch);
         }
     }
