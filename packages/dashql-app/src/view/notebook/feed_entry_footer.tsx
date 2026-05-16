@@ -124,7 +124,14 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
         [FooterTab.Table]: () => (
             <>
                 <TabHeader title="Query Results" detail={rowCountDetail} onClick={props.onShowTable} />
-                <QueryResultView query={props.queryState} debugMode={false} maxRows={FEED_LIMIT_RESULT_ROWS} columnHeader={TableColumnHeader.OnlyColumnName} onShowTable={props.onShowTable} />
+                <QueryResultView
+                    query={props.queryState}
+                    debugMode={false}
+                    maxRows={FEED_LIMIT_RESULT_ROWS}
+                    columnHeader={TableColumnHeader.OnlyColumnName}
+                    cellBackground="var(--notebook_feed_entry_footer_background)"
+                    onShowTable={props.onShowTable}
+                />
             </>
         ),
     }), [props.traceId, props.queryState, rowCountDetail, lastLogAgo, props.onShowTable, props.onShowStatus]);

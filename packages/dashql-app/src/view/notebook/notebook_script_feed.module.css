@@ -3,6 +3,7 @@
 :root {
     --notebook_feed_preview_background: transparent;
     --notebook_feed_entry_headerbar_background: hsl(210, 29%, 98%);
+    --notebook_feed_entry_footer_background: hsl(210, 29%, 98%);
 }
 
 
@@ -221,4 +222,5 @@
 .feed_entry_execution_footer {
     border-top: 1px solid var(--log_border_color);
     overflow: hidden;
+    background-color: var(--notebook_feed_entry_footer_background);
 }

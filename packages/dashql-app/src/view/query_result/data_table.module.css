@@ -1,16 +1,9 @@
-:root {
-    --data_table_bg_header: white;
-    --data_table_bg_metadata: white;
-    --data_table_bg_corner: white;
-    --data_table_bg_header: white;
-    --data_table_bg_data: white;
-    --data_table_bg_plots: white;
+.root {
+    --data_table_bg: white;
     --data_table_bg_focus_primary: hsl(207.69, 20.63%, 90.59%);
     --data_table_bg_focus_secondary: hsl(207.69, 20.63%, 95.59%);
     --data_table_border_focus_primary: hsl(207.69, 20.63%, 80.59%);
-}
 
-.root {
     width: 100%;
     height: 100%;
     overflow: hidden;
@@ -42,11 +35,11 @@
 
 .sticky_column_container {
     /* Contains the sticky first column cells - uses CSS sticky */
-    background-color: var(--data_table_bg_header);
+    background-color: var(--data_table_bg);
 }
 
 .sticky_header_container {
-    background-color: var(--data_table_bg_header);
+    background-color: var(--data_table_bg);
 }
 
 .sticky_header_row {
@@ -55,7 +48,7 @@
 }
 
 .header_cell {
-    background-color: var(--data_table_bg_header);
+    background-color: var(--data_table_bg);
     border-right: 1px solid rgb(210, 210, 210);
     border-bottom: 1px solid rgb(210, 210, 210);
     box-sizing: border-box;
@@ -84,7 +77,7 @@
 }
 
 .header_metadata_cell {
-    background-color: var(--data_table_bg_metadata);
+    background-color: var(--data_table_bg);
 }
 
 .header_cell_name {
@@ -98,7 +91,7 @@
 }
 
 .header_corner_cell {
-    background-color: var(--data_table_bg_corner);
+    background-color: var(--data_table_bg);
     border-right: 1px solid rgb(210, 210, 210);
     border-bottom: 1px solid rgb(210, 210, 210);
     box-sizing: border-box;
@@ -114,7 +107,7 @@
 }
 
 .plots_cell {
-    background-color: var(--data_table_bg_plots);
+    background-color: var(--data_table_bg);
     border-right: 1px solid rgb(210, 210, 210);
     border-bottom: 1px solid rgb(210, 210, 210);
     box-sizing: border-box;
@@ -132,7 +125,7 @@
 }
 
 .plots_empty_cell {
-    background-color: var(--data_table_bg_metadata);
+    background-color: var(--data_table_bg);
 }
 
 .plots_progress {
@@ -150,7 +143,7 @@
 }
 
 .plots_corner_cell {
-    background-color: var(--data_table_bg_corner);
+    background-color: var(--data_table_bg);
     border-right: 1px solid rgb(210, 210, 210);
     border-bottom: 1px solid rgb(210, 210, 210);
     box-sizing: border-box;
@@ -166,7 +159,7 @@
 }
 
 .row_header_cell {
-    background-color: var(--data_table_bg_header);
+    background-color: var(--data_table_bg);
     border-right: 1px solid rgb(210, 210, 210);
     border-bottom: 1px solid rgb(210, 210, 210);
     box-sizing: border-box;
@@ -184,7 +177,7 @@
 }
 
 .data_cell {
-    background-color: var(--data_table_bg_data);
+    background-color: var(--data_table_bg);
     border-right: 1px solid rgb(210, 210, 210);
     border-bottom: 1px solid rgb(210, 210, 210);
     border-left: 1px solid transparent;
@@ -204,7 +197,7 @@
 }
 
 .data_cell_metadata {
-    background-color: var(--data_table_bg_metadata);
+    background-color: var(--data_table_bg);
 }
 
 .data_cell_null {

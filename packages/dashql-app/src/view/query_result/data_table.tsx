@@ -31,6 +31,7 @@ interface Props {
     debugMode: boolean;
     maxRows?: number;
     columnHeader?: TableColumnHeader;
+    cellBackground?: string;
     onShowTable?: () => void;
 }
 
@@ -704,7 +705,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     };
 
     return (
-        <div className={classNames(styles.root, props.className)}>
+        <div className={classNames(styles.root, props.className)} style={props.cellBackground ? { '--data_table_bg': props.cellBackground } as React.CSSProperties : undefined}>
             <div className={styles.grid_container} ref={gridContainerElement}>
                 <Grid
                     gridRef={setGridApi}
