@@ -222,6 +222,26 @@
     background-color: var(--data_table_bg_focus_secondary);
 }
 
+.data_cell_text {
+    flex: 1;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.format_bean {
+    flex-shrink: 0;
+    margin-left: 6px;
+    padding: 0 4px;
+    border-radius: 3px;
+    font-size: 0.65rem;
+    font-weight: 500;
+    line-height: 1.4;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    background: hsl(210, 15%, 93%);
+    color: hsl(210, 10%, 50%);
+}
+
 /* Single-element skeleton overlay with shimmer effect */
 .skeleton_overlay {
     background: linear-gradient(

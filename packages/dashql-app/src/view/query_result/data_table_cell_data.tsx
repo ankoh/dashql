@@ -7,6 +7,7 @@ import type { CellComponentProps } from 'react-window';
 import { ArrowTableFormatter } from './arrow_formatter.js';
 import { ColumnGroup } from '../../compute/computation_types.js';
 import { DataTableLayout } from './data_table_layout.js';
+import { peekFormat } from './format_peek.js';
 
 /// ---------------------------------------------------------------------------
 /// Data Cell
@@ -99,6 +100,10 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
             className += ` ${styles.data_cell_rightmost}`;
         }
 
+        const hint = !isNull && props.gridLayout.isTextColumn[props.columnIndex] === 1
+            ? peekFormat(formatted)
+            : null;
+
         return (
             <div
                 className={className}
@@ -109,7 +114,14 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
                 onMouseLeave={props.onMouseLeave}
                 onClick={props.onClick}
             >
-                {isNull ? "NULL" : formatted}
+                {hint != null ? (
+                    <>
+                        <span className={styles.data_cell_text}>{formatted}</span>
+                        <span className={styles.format_bean}>{hint}</span>
+                    </>
+                ) : (
+                    isNull ? "NULL" : formatted
+                )}
             </div>
         );
     }

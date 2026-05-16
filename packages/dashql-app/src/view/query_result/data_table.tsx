@@ -128,6 +128,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 columnAggregateByColumnIndex: new Int32Array(),
                 columnGroupByColumnIndex: new Uint32Array(),
                 isSystemColumn: new Uint8Array(),
+                isTextColumn: new Uint8Array(),
                 headerRowCount
             };
         }
