@@ -40,6 +40,8 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
     React.useEffect(() => {
         if (hasResult && !prevHasResult.current) {
             setSelectedTab(FooterTab.Table);
+        } else if (!hasResult && prevHasResult.current) {
+            setSelectedTab(FooterTab.Log);
         }
         prevHasResult.current = hasResult;
     }, [hasResult]);
