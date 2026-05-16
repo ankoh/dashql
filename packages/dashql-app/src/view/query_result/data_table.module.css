@@ -65,6 +65,14 @@
     padding-left: 8px;
 }
 
+.header_cell_clickable {
+    cursor: pointer;
+}
+
+.header_cell_clickable:hover {
+    background-color: hsl(210, 20%, 96%);
+}
+
 .header_cell_rightmost {
     border-right: 1px solid transparent;
     padding-right: 2px;
@@ -219,17 +227,6 @@
 
 .data_cell_focused_secondary {
     background-color: var(--data_table_bg_focus_secondary);
-}
-
-.truncation_bar {
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    color: hsl(210, 10%, 50%);
-    background-color: var(--data_table_bg_header);
-    border-bottom: 1px solid rgb(210, 210, 210);
 }
 
 /* Single-element skeleton overlay with shimmer effect */

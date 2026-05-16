@@ -11,6 +11,7 @@ interface Props {
     debugMode: boolean;
     maxRows?: number;
     columnHeader?: TableColumnHeader;
+    onShowTable?: () => void;
 }
 
 export function QueryResultView(props: Props) {
@@ -35,6 +36,7 @@ export function QueryResultView(props: Props) {
                 debugMode={props.debugMode}
                 maxRows={props.maxRows}
                 columnHeader={props.columnHeader}
+                onShowTable={props.onShowTable}
             />
         </div>
     );

@@ -40,11 +40,12 @@ export interface NotebookScriptDetailsProps {
     modifyNotebook: ModifyNotebook;
     connection: ConnectionState | null;
     hideDetails: () => void;
+    initialTab?: TabKey;
 }
 
 export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (props) => {
     const config = useAppConfig();
-    const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Editor);
+    const [selectedTab, selectTab] = React.useState<TabKey>(props.initialTab ?? TabKey.Editor);
     const [splitModeEnabled, setSplitModeEnabled] = React.useState<boolean>(false);
     const [splitTab, setSplitTab] = React.useState<TabKey | null>(null);
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);

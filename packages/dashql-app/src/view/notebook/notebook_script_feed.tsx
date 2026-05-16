@@ -27,6 +27,7 @@ import { SegmentedControl, SegmentedControlSize } from '../foundations/segmented
 import { NotebookScriptName } from './notebook_script_name.js';
 import { useQueryState } from '../../connection/query_executor.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
+import { TabKey as DetailsTabKey } from './notebook_script_details.js';
 
 interface FeedScrollTarget {
     entryIndex: number;
@@ -36,7 +37,7 @@ interface FeedScrollTarget {
 export interface NotebookScriptListProps {
     notebook: NotebookState;
     modifyNotebook: ModifyNotebook;
-    showDetails: () => void;
+    showDetails: (initialTab?: DetailsTabKey) => void;
     scrollTarget?: FeedScrollTarget | null;
     conn: ConnectionState | null;
     openConnectionOverlay: () => void;
@@ -59,9 +60,11 @@ interface CollapsedScriptCardProps {
     onExpand: (entryIndex: number) => void;
     onDelete: (entryIndex: number) => void;
     onRename: (entryIndex: number, fileName: string) => void;
+    onShowTable: (entryIndex: number) => void;
+    onShowStatus: (entryIndex: number) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, entryIndex, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, onFocus, onExpand, onDelete, onRename }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, entryIndex, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, onFocus, onExpand, onDelete, onRename, onShowTable, onShowStatus }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const EyeIcon: Icon = SymbolIcon(isFocused ? 'eye_16' : 'eye_closed_16');
     const PencilIcon: Icon = SymbolIcon('pencil_16');
@@ -174,6 +177,8 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, entryIndex,
                         queryId={queryState.queryId}
                         traceId={queryState.traceId}
                         queryState={queryState}
+                        onShowTable={() => onShowTable(entryIndex)}
+                        onShowStatus={() => onShowStatus(entryIndex)}
                     />
                 </div>
             )}
@@ -193,13 +198,15 @@ interface ScriptFeedRowProps {
     onExpand: (index: number) => void;
     onDelete: (index: number) => void;
     onRename: (index: number, fileName: string) => void;
+    onShowTable: (index: number) => void;
+    onShowStatus: (index: number) => void;
     onHeightMeasured: (index: number, height: number) => void;
     fillerRowHeight: number;
     heightsVersion: number;
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, onFocus, onExpand, onDelete, onRename, onHeightMeasured } = props;
+    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, onFocus, onExpand, onDelete, onRename, onShowTable, onShowStatus, onHeightMeasured } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -246,6 +253,8 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onExpand={onExpand}
                     onDelete={onDelete}
                     onRename={onRename}
+                    onShowTable={onShowTable}
+                    onShowStatus={onShowStatus}
                 />
             </div>
         </div>
@@ -268,6 +277,16 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const handleExpand = React.useCallback((entryIndex: number) => {
         props.modifyNotebook({ type: SELECT_ENTRY, value: entryIndex });
         props.showDetails();
+    }, [props.modifyNotebook, props.showDetails]);
+
+    const handleShowTable = React.useCallback((entryIndex: number) => {
+        props.modifyNotebook({ type: SELECT_ENTRY, value: entryIndex });
+        props.showDetails(DetailsTabKey.QueryResultView);
+    }, [props.modifyNotebook, props.showDetails]);
+
+    const handleShowStatus = React.useCallback((entryIndex: number) => {
+        props.modifyNotebook({ type: SELECT_ENTRY, value: entryIndex });
+        props.showDetails(DetailsTabKey.QueryStatusPanel);
     }, [props.modifyNotebook, props.showDetails]);
 
     const isDisconnected = props.conn?.connectionHealth !== ConnectionHealth.ONLINE;
@@ -403,10 +422,12 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onExpand: handleExpand,
         onDelete: handleDelete,
         onRename: handleRename,
+        onShowTable: handleShowTable,
+        onShowStatus: handleShowStatus,
         onHeightMeasured: handleHeightMeasured,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleShowTable, handleShowStatus, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container}>

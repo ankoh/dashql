@@ -22,16 +22,35 @@ interface FeedEntryFooterProps {
     queryId: number;
     traceId: number;
     queryState: QueryExecutionState;
+    onShowTable?: () => void;
+    onShowStatus?: () => void;
 }
 
-function useHasResult(queryState: QueryExecutionState, queryId: number): boolean {
+function useResultRowCount(queryState: QueryExecutionState, queryId: number): { hasResult: boolean; totalRows: number | null } {
     const [computationState] = useComputationRegistry();
-    return queryState.status === QueryExecutionStatus.SUCCEEDED
+    const hasResult = queryState.status === QueryExecutionStatus.SUCCEEDED
         && computationState.tableComputations[queryId] != null;
+    const totalRows = hasResult
+        ? (computationState.tableComputations[queryId]?.dataTable.numRows ?? null)
+        : null;
+    return { hasResult, totalRows };
 }
+
+interface TabHeaderProps {
+    title: string;
+    detail?: string | null;
+    onClick?: () => void;
+}
+
+const TabHeader: React.FC<TabHeaderProps> = ({ title, detail, onClick }) => (
+    <div className={onClick ? styles.tab_header_clickable : styles.tab_header} onClick={onClick}>
+        <span className={styles.tab_header_title}>{title}</span>
+        {detail && <span className={styles.tab_header_detail}>{detail}</span>}
+    </div>
+);
 
 export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
-    const hasResult = useHasResult(props.queryState, props.queryId);
+    const { hasResult, totalRows } = useResultRowCount(props.queryState, props.queryId);
     const [selectedTab, setSelectedTab] = React.useState<FooterTab>(
         () => hasResult ? FooterTab.Table : FooterTab.Log
     );
@@ -64,14 +83,27 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
         },
     }), [hasResult]);
 
+    const dataRowCount = totalRows != null ? Math.min(totalRows, FEED_LIMIT_RESULT_ROWS) : null;
+    const rowCountDetail = totalRows != null
+        ? (totalRows > FEED_LIMIT_RESULT_ROWS
+            ? `${dataRowCount} of ${totalRows} rows`
+            : `${totalRows} ${totalRows === 1 ? 'row' : 'rows'}`)
+        : null;
+
     const tabRenderers = React.useMemo(() => ({
         [FooterTab.Log]: () => (
-            <TraceLogViewer traceId={props.traceId} height={96} />
+            <>
+                <TabHeader title="Log" onClick={props.onShowStatus} />
+                <TraceLogViewer traceId={props.traceId} height={96} />
+            </>
         ),
         [FooterTab.Table]: () => (
-            <QueryResultView query={props.queryState} debugMode={false} maxRows={FEED_LIMIT_RESULT_ROWS} columnHeader={TableColumnHeader.OnlyColumnName} />
+            <>
+                <TabHeader title="Query Results" detail={rowCountDetail} onClick={props.onShowTable} />
+                <QueryResultView query={props.queryState} debugMode={false} maxRows={FEED_LIMIT_RESULT_ROWS} columnHeader={TableColumnHeader.OnlyColumnName} onShowTable={props.onShowTable} />
+            </>
         ),
-    }), [props.traceId, props.queryState]);
+    }), [props.traceId, props.queryState, rowCountDetail, props.onShowTable, props.onShowStatus]);
 
     return (
         <VerticalTabs

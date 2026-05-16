@@ -20,6 +20,7 @@ export interface HeaderNameCellProps {
     dataFrame: DataFrame | null;
     rightmostVisibleColumn: number;
     onOrderByColumn: (col: number) => void;
+    onShowTable?: () => void;
 }
 
 export function HeaderNameCell(props: HeaderNameCellProps): React.ReactElement {
@@ -31,13 +32,13 @@ export function HeaderNameCell(props: HeaderNameCellProps): React.ReactElement {
     if (props.columnIndex == 0) {
         // Corner cell (top-left)
         return (
-            <div className={styles.header_corner_cell} style={props.style}>
+            <div className={classNames(styles.header_corner_cell, { [styles.header_cell_clickable]: props.onShowTable != null })} style={props.style} onClick={props.onShowTable}>
                 <span className={styles.header_cell_actions}>
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
                         aria-label="sort-column"
-                        onClick={() => props.onOrderByColumn(fieldId)}
+                        onClick={(e) => { e.stopPropagation(); props.onOrderByColumn(fieldId); }}
                         disabled={props.dataFrame == null}
                     >
                         <svg width="16px" height="16px">
@@ -54,9 +55,11 @@ export function HeaderNameCell(props: HeaderNameCellProps): React.ReactElement {
             <div
                 className={classNames(styles.header_cell, {
                     [styles.header_metadata_cell]: props.gridLayout.isSystemColumn[props.columnIndex] == 1,
-                    [styles.header_cell_rightmost]: isRightmost
+                    [styles.header_cell_rightmost]: isRightmost,
+                    [styles.header_cell_clickable]: props.onShowTable != null,
                 })}
                 style={props.style}
+                onClick={props.onShowTable}
             >
                 <span className={styles.header_cell_name}>
                     {props.table.schema.fields[fieldId].name}
@@ -66,7 +69,7 @@ export function HeaderNameCell(props: HeaderNameCellProps): React.ReactElement {
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
                         aria-label="sort-column"
-                        onClick={() => props.onOrderByColumn(fieldId)}
+                        onClick={(e) => { e.stopPropagation(); props.onOrderByColumn(fieldId); }}
                         disabled={props.dataFrame == null}
                     >
                         <svg width="16px" height="16px">

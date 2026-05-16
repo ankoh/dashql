@@ -22,7 +22,7 @@ import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH, CHANGE_SESSION } fro
 import { CatalogSchemaView } from './catalog_schema_view.js';
 import { CatalogFunctionsView } from './catalog_functions_view.js';
 import { ConnectionCommandList, NotebookCommandList } from './notebook_command_lists.js';
-import { NotebookScriptDetails } from './notebook_script_details.js';
+import { NotebookScriptDetails, TabKey as DetailsTabKey } from './notebook_script_details.js';
 import { NotebookScriptFeed } from './notebook_script_feed.js';
 
 const LOG_CTX = 'notebook_page';
@@ -46,6 +46,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const [sharingIsOpen, setSharingIsOpen] = React.useState<boolean>(false);
     const [connectionOverlayOpen, setConnectionOverlayOpen] = React.useState<boolean>(false);
     const [showDetails, setShowDetails] = React.useState<boolean>(false);
+    const [detailsInitialTab, setDetailsInitialTab] = React.useState<DetailsTabKey | undefined>(undefined);
     const [feedScrollTarget, setFeedScrollTarget] = React.useState<FeedScrollTarget | null>(null);
     const [catalogTab, setCatalogTab] = React.useState<CatalogTab | null>(null);
     const [editingPageIndex, setEditingPageIndex] = React.useState<number | null>(null);
@@ -325,8 +326,8 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                         : catalogTab === 'functions' && conn
                             ? <CatalogFunctionsView connection={conn} />
                             : showDetails
-                                ? <NotebookScriptDetails notebook={notebook} modifyNotebook={modifyNotebook} connection={conn} hideDetails={() => setShowDetails(false)} />
-                                : <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} showDetails={() => setShowDetails(true)} scrollTarget={feedScrollTarget} conn={conn ?? null} openConnectionOverlay={() => setConnectionOverlayOpen(true)} />
+                                ? <NotebookScriptDetails notebook={notebook} modifyNotebook={modifyNotebook} connection={conn} hideDetails={() => { setShowDetails(false); setDetailsInitialTab(undefined); }} initialTab={detailsInitialTab} />
+                                : <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} showDetails={(initialTab?: DetailsTabKey) => { setDetailsInitialTab(initialTab); setShowDetails(true); }} scrollTarget={feedScrollTarget} conn={conn ?? null} openConnectionOverlay={() => setConnectionOverlayOpen(true)} />
                 }
             </div>
             <div className={styles.action_sidebar}>

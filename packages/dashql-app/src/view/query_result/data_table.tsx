@@ -31,6 +31,7 @@ interface Props {
     debugMode: boolean;
     maxRows?: number;
     columnHeader?: TableColumnHeader;
+    onShowTable?: () => void;
 }
 
 const MIN_GRID_HEIGHT = 200;
@@ -108,7 +109,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     // When an indirection table is active, show only the derived visible rows
     const totalRowCount = visibleRowIds?.length ?? dataTable.numRows ?? 0;
     const dataRowCount = props.maxRows != null ? Math.min(totalRowCount, props.maxRows) : totalRowCount;
-    const isTruncated = props.maxRows != null && totalRowCount > dataRowCount;
     // Header configuration
     const headerRowCount = columnHeader === TableColumnHeader.WithColumnPlots ? 2 : 1;
 
@@ -539,6 +539,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                             dataFrame={computationState.dataFrame}
                             rightmostVisibleColumn={gridLayout.columnCount - 1}
                             onOrderByColumn={orderByColumn}
+                            onShowTable={props.onShowTable}
                         />
                     </div>
                     {/* Other header cells */}
@@ -558,6 +559,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                                 dataFrame={computationState.dataFrame}
                                 rightmostVisibleColumn={gridLayout.columnCount - 1}
                                 onOrderByColumn={orderByColumn}
+                                onShowTable={props.onShowTable}
                             />
                         );
                     })}
@@ -703,11 +705,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
 
     return (
         <div className={classNames(styles.root, props.className)}>
-            {isTruncated && (
-                <div className={styles.truncation_bar}>
-                    Showing {dataRowCount} of {totalRowCount} rows
-                </div>
-            )}
             <div className={styles.grid_container} ref={gridContainerElement}>
                 <Grid
                     gridRef={setGridApi}
