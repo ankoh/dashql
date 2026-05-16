@@ -8,6 +8,8 @@ import { TraceLogViewer } from '../internals/trace_log_viewer.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { TableColumnHeader } from '../query_result/data_table_cell.js';
 import { useComputationRegistry } from '../../compute/computation_registry.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useRelativeTime } from '../../utils/time_format.js';
 import { VerticalTabs, VerticalTabVariant, type VerticalTabProps } from '../foundations/vertical_tabs.js';
 
 const FEED_LIMIT_RESULT_ROWS = 8;
@@ -36,6 +38,26 @@ function useResultRowCount(queryState: QueryExecutionState, queryId: number): { 
     return { hasResult, totalRows };
 }
 
+function useLastTraceTimestamp(traceId: number): number | null {
+    const logger = useLogger();
+    const [timestamp, setTimestamp] = React.useState<number | null>(() => {
+        const logs = logger.buffer.collectTraceLogs(traceId);
+        return logs.length > 0 ? logs[logs.length - 1].timestamp : null;
+    });
+
+    React.useEffect(() => {
+        const observer = (record: { timestamp: number }) => {
+            setTimestamp(record.timestamp);
+        };
+        logger.buffer.subscribeTrace(traceId, observer);
+        return () => {
+            logger.buffer.unsubscribeTrace(traceId, observer);
+        };
+    }, [traceId, logger]);
+
+    return timestamp;
+}
+
 interface TabHeaderProps {
     title: string;
     detail?: string | null;
@@ -51,6 +73,8 @@ const TabHeader: React.FC<TabHeaderProps> = ({ title, detail, onClick }) => (
 
 export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
     const { hasResult, totalRows } = useResultRowCount(props.queryState, props.queryId);
+    const lastLogTimestamp = useLastTraceTimestamp(props.traceId);
+    const lastLogAgo = useRelativeTime(lastLogTimestamp);
     const [selectedTab, setSelectedTab] = React.useState<FooterTab>(
         () => hasResult ? FooterTab.Table : FooterTab.Log
     );
@@ -93,7 +117,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
     const tabRenderers = React.useMemo(() => ({
         [FooterTab.Log]: () => (
             <>
-                <TabHeader title="Log" onClick={props.onShowStatus} />
+                <TabHeader title="Log" detail={lastLogAgo} onClick={props.onShowStatus} />
                 <TraceLogViewer traceId={props.traceId} height={96} />
             </>
         ),
@@ -103,7 +127,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 <QueryResultView query={props.queryState} debugMode={false} maxRows={FEED_LIMIT_RESULT_ROWS} columnHeader={TableColumnHeader.OnlyColumnName} onShowTable={props.onShowTable} />
             </>
         ),
-    }), [props.traceId, props.queryState, rowCountDetail, props.onShowTable, props.onShowStatus]);
+    }), [props.traceId, props.queryState, rowCountDetail, lastLogAgo, props.onShowTable, props.onShowStatus]);
 
     return (
         <VerticalTabs
