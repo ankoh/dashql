@@ -10,6 +10,9 @@
     font-size: 0.95rem;
     display: flex;
     flex-direction: column;
+
+    /* Collapse last row's bottom border with the container border */
+    margin-bottom: -1px;
 }
 
 .grid_container {
