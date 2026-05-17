@@ -14,9 +14,9 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
-        - score: 38
+        - score: 53
           value: select
-          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH]
           location: "select"
           location-qualified: "select"
           objects: []

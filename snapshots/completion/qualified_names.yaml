@@ -673,9 +673,9 @@ completion-snapshots:
       symbol: OBJECT_SQL_SELECT
       relative: END_OF_SYMBOL
       entries:
-        - score: 37
+        - score: 52
           value: limit
-          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH]
           location: "limit"
           location-qualified: "limit"
           objects: []

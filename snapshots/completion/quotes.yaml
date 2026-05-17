@@ -33,17 +33,17 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 55
+        - score: 70
           value: region
           name-tags: [TABLE_NAME]
-          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
           location: "region"
           location-qualified: "region"
           objects:
-            - score: 35
+            - score: 50
               type: table
               id: "256.65536.4294967296"
-              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
               qualified: region
               qualified-idx: 0
               prefer-qualified: 0
@@ -114,17 +114,17 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 55
+        - score: 70
           value: Region
           name-tags: [TABLE_NAME]
-          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
           location: "\"Region\""
           location-qualified: "\"Region\""
           objects:
-            - score: 35
+            - score: 50
               type: table
               id: "256.65536.4294967296"
-              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
               qualified: '"Region"'
               qualified-idx: 0
               prefer-qualified: 0

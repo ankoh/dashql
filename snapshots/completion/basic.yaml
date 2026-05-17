@@ -426,6 +426,12 @@ completion-snapshots:
               qualified: external_name1.external_name2
               qualified-idx: 1
               prefer-qualified: 0
+        - score: 50
+          value: external
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH]
+          location: "external_"
+          location-qualified: "external_"
+          objects: []
         - score: 45
           value: external_name1
           name-tags: [TABLE_NAME]
@@ -440,12 +446,6 @@ completion-snapshots:
               qualified: external_name1
               qualified-idx: 0
               prefer-qualified: 0
-        - score: 35
-          value: external
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "external_"
-          location-qualified: "external_"
-          objects: []
         - score: 3
           value: group
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]

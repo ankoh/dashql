@@ -37,6 +37,7 @@ static constexpr Completion::ScoreValueType NAME_TAG_LIKELY = 20;
 // Fine-granular score modifiers
 static constexpr Completion::ScoreValueType SUBSTRING_SCORE_MODIFIER = 30;         // User typed name substring
 static constexpr Completion::ScoreValueType PREFIX_SCORE_MODIFIER = 5;             // User typed name prefix
+static constexpr Completion::ScoreValueType EXACT_MATCH_SCORE_MODIFIER = 15;       // User typed exact name
 static constexpr Completion::ScoreValueType RESOLVING_TABLE_SCORE_MODIFIER = 5;    // Table is resolving unresolved
 static constexpr Completion::ScoreValueType UNRESOLVED_PEER_SCORE_MODIFIER = 1;    // Share unresolved table
 static constexpr Completion::ScoreValueType DOT_SCHEMA_SCORE_MODIFIER = 2;         // Dot completion for schema
@@ -52,6 +53,8 @@ static_assert((NAME_TAG_UNLIKELY + SUBSTRING_SCORE_MODIFIER) > NAME_TAG_LIKELY,
               "An unlikely name that is a substring outweighs a likely name");
 static_assert(IN_NAME_SCOPE_SCORE_MODIFIER > PREFIX_SCORE_MODIFIER,
               "Candidates being available in scope weighs more than being a prefix");
+static_assert(EXACT_MATCH_SCORE_MODIFIER > IN_NAME_SCOPE_SCORE_MODIFIER,
+              "An exact match outweighs being in scope");
 static_assert(SUBSTRING_SCORE_MODIFIER >
                   (IN_SAME_STATEMENT_SCORE_MODIFIER + IN_SAME_SCRIPT_SCORE_MODIFIER + IN_OTHER_SCRIPT_SCORE_MODIFIER),
               "Candidates that are used elsewhere are not higher scoring than a substring match");
@@ -70,6 +73,7 @@ Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags)
 
     score += ((tags & buffers::completion::CandidateTag::SUBSTRING_MATCH) != 0) * SUBSTRING_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::PREFIX_MATCH) != 0) * PREFIX_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::EXACT_MATCH) != 0) * EXACT_MATCH_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::RESOLVING_TABLE) != 0) * RESOLVING_TABLE_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::UNRESOLVED_PEER) != 0) * UNRESOLVED_PEER_SCORE_MODIFIER;
 
@@ -475,6 +479,9 @@ void Completion::FindCandidatesForNamePath() {
                     dot_candidate.candidate_tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
                     if (pos == 0) {
                         dot_candidate.candidate_tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
+                        if (last_text_prefix.size() == dot_candidate.name.size()) {
+                            dot_candidate.candidate_tags |= buffers::completion::CandidateTag::EXACT_MATCH;
+                        }
                     }
                 }
             }
@@ -556,6 +563,9 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
                     tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
                     if (pos == 0) {
                         tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
+                        if (ci_symbol_text.size() == ci_keyword_text.size()) {
+                            tags |= buffers::completion::CandidateTag::EXACT_MATCH;
+                        }
                     }
                 }
                 return tags;
@@ -627,6 +637,9 @@ void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& inde
                 candidate_tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
                 if (fuzzy_ci_string_view{name_info.text.data(), name_info.text.size()}.starts_with(ci_prefix_text)) {
                     candidate_tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
+                    if (ci_prefix_text.size() == name_info.text.size()) {
+                        candidate_tags |= buffers::completion::CandidateTag::EXACT_MATCH;
+                    }
                 }
                 break;
             default:
