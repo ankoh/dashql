@@ -1541,10 +1541,13 @@ std::string Formatter::Format(const buffers::formatting::FormattingConfigT& conf
     }
 
     PreparePrecedence();
+
     for (size_t i = 0; i < ast.size(); ++i) {
         IdentifyParentheses(ast.size() - 1 - i);
     }
+
     BuildDocs();
+
     return WriteOutput();
 }
 
