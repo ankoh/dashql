@@ -51,6 +51,7 @@ describe('Completion Hint', () => {
             catalogObjectPatch: [],
             templateId: 0,
             templatePatch: [],
+            templateCursorOffset: null,
         };
         completionState = computePatches(completionState, textBuffer, cursor.read().textOffset());
         const hints = deriveCompletionHints(completionState);
@@ -112,6 +113,7 @@ describe('Completion Hint', () => {
             catalogObjectPatch: [],
             templateId: 0,
             templatePatch: [],
+            templateCursorOffset: null,
         };
         completionState = computePatches(completionState, textBuffer, cursor.read().textOffset());
         const hints = deriveCompletionHints(completionState);
@@ -178,6 +180,7 @@ describe('Completion Hint', () => {
             catalogObjectPatch: [],
             templateId: 0,
             templatePatch: [],
+            templateCursorOffset: null,
         };
         completionState = computePatches(completionState, textBuffer, cursor.read().textOffset());
         const hints = deriveCompletionHints(completionState);

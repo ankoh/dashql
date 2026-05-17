@@ -172,6 +172,18 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
 
     const templateId = prevState.templateId;
     if (templateId >= catalogObject.scriptTemplatesLength()) {
+        if (updateFrom <= UpdatePatchStartingFrom.Template
+            && catalogObject.objectType() == dashql.buffers.completion.CompletionCandidateObjectType.FUNCTION) {
+            nextState = copyLazily(nextState, prevState);
+            nextState.templatePatch = [
+                {
+                    target: CompletionPatchTarget.Template,
+                    type: PATCH_INSERT_TEXT,
+                    value: { at: qualifiedTo, text: "()", textAnchor: TextAnchor.Left },
+                },
+            ];
+            nextState.templateCursorOffset = qualifiedTo + 1;
+        }
         return nextState;
     }
     const template = catalogObject.scriptTemplates(templateId)!;

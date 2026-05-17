@@ -54,6 +54,8 @@ export interface DashQLCompletionState {
     templateId: number;
     /// The patches to apply the template
     templatePatch: CompletionPatch[];
+    /// Override cursor position after applying template patch (absolute position in post-patch text)
+    templateCursorOffset: number | null;
 }
 
 /// A state that is pushed from the processor to the outside
@@ -285,6 +287,7 @@ function tryStartCompletion(state: DashQLProcessorState, prevState: DashQLProces
             catalogObjectPatch: [],
             templateId: 0,
             templatePatch: [],
+            templateCursorOffset: null,
         };
         state.scriptCompletion = computePatches(state.scriptCompletion, text, cursor, UpdatePatchStartingFrom.Candidate);
     }
@@ -440,6 +443,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                     candidatePatch: [],
                     catalogObjectPatch: [],
                     templatePatch: [],
+                    templateCursorOffset: null,
                 };
                 state.scriptCompletion = computePatches(state.scriptCompletion, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.CatalogObject);
             } else {
@@ -477,6 +481,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                     catalogObjectId: 0,
                     catalogObjectPatch: [],
                     templatePatch: [],
+                    templateCursorOffset: null,
                 };
                 state.scriptCompletion = computePatches(state.scriptCompletion, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.Template);
             } else {
@@ -509,7 +514,8 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                 status: DashQLCompletionStatus.SELECTED_TEMPLATE,
                 candidatePatch: [],
                 catalogObjectPatch: [],
-                templatePatch: []
+                templatePatch: [],
+                templateCursorOffset: null,
             };
         }
     }
