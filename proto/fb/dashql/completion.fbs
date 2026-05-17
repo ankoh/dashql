@@ -71,6 +71,7 @@ enum CandidateTag: uint32 {
     IN_SAME_SCRIPT = 65536,
     IN_OTHER_SCRIPT = 131072,
     EXACT_MATCH = 262144,
+    EXPECTED_KEYWORD_MATCH = 524288,
 }
 
 table CompletionCandidate {

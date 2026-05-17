@@ -76,6 +76,12 @@ completion-snapshots:
               qualified: iceberg.some_events.some_queries.event
               qualified-idx: 3
               prefer-qualified: 0
+        - score: 70
+          value: event
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "event"
+          location-qualified: "event"
+          objects: []
         - score: 65
           value: event_timestamp
           name-tags: [COLUMN_NAME]
@@ -90,10 +96,4 @@ completion-snapshots:
               qualified: iceberg.some_events.some_queries.event_timestamp
               qualified-idx: 3
               prefer-qualified: 0
-        - score: 50
-          value: event
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH]
-          location: "event"
-          location-qualified: "event"
-          objects: []
       text: "event"

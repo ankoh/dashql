@@ -59,15 +59,15 @@ completion-snapshots:
               qualified: similar_name_0.juice0
               qualified-idx: 1
               prefer-qualified: 0
-        - score: 35
+        - score: 55
           value: join
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "j"
           location-qualified: "j"
           objects: []
-        - score: 30
+        - score: 50
           value: object
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "j"
           location-qualified: "j"
           objects: []

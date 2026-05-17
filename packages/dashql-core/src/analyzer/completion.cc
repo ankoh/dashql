@@ -38,6 +38,7 @@ static constexpr Completion::ScoreValueType NAME_TAG_LIKELY = 20;
 static constexpr Completion::ScoreValueType SUBSTRING_SCORE_MODIFIER = 30;         // User typed name substring
 static constexpr Completion::ScoreValueType PREFIX_SCORE_MODIFIER = 5;             // User typed name prefix
 static constexpr Completion::ScoreValueType EXACT_MATCH_SCORE_MODIFIER = 15;       // User typed exact name
+static constexpr Completion::ScoreValueType EXPECTED_KEYWORD_MATCH_MODIFIER = 20;  // Expected keyword matches input
 static constexpr Completion::ScoreValueType RESOLVING_TABLE_SCORE_MODIFIER = 5;    // Table is resolving unresolved
 static constexpr Completion::ScoreValueType UNRESOLVED_PEER_SCORE_MODIFIER = 1;    // Share unresolved table
 static constexpr Completion::ScoreValueType DOT_SCHEMA_SCORE_MODIFIER = 2;         // Dot completion for schema
@@ -74,6 +75,7 @@ Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags)
     score += ((tags & buffers::completion::CandidateTag::SUBSTRING_MATCH) != 0) * SUBSTRING_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::PREFIX_MATCH) != 0) * PREFIX_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::EXACT_MATCH) != 0) * EXACT_MATCH_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::EXPECTED_KEYWORD_MATCH) != 0) * EXPECTED_KEYWORD_MATCH_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::RESOLVING_TABLE) != 0) * RESOLVING_TABLE_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::UNRESOLVED_PEER) != 0) * UNRESOLVED_PEER_SCORE_MODIFIER;
 
@@ -561,6 +563,7 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
                 // Is substring?
                 if (auto pos = ci_keyword_text.find(ci_symbol_text); pos != fuzzy_ci_string_view::npos) {
                     tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
+                    tags |= buffers::completion::CandidateTag::EXPECTED_KEYWORD_MATCH;
                     if (pos == 0) {
                         tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
                         if (ci_symbol_text.size() == ci_keyword_text.size()) {

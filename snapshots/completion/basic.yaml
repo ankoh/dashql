@@ -106,6 +106,12 @@ completion-snapshots:
       relative: END_OF_SYMBOL
       entries:
         - score: 55
+          value: schema
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "sch"
+          location-qualified: "sch"
+          objects: []
+        - score: 55
           value: schemaname
           name-tags: [SCHEMA_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
@@ -116,15 +122,9 @@ completion-snapshots:
               type: schema
               id: "256.65536"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
-        - score: 35
-          value: schema
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "sch"
-          location-qualified: "sch"
-          objects: []
-        - score: 35
+        - score: 55
           value: schemas
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "sch"
           location-qualified: "sch"
           objects: []
@@ -163,6 +163,12 @@ completion-snapshots:
       relative: END_OF_SYMBOL
       entries:
         - score: 55
+          value: following
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "fo"
+          location-qualified: "fo"
+          objects: []
+        - score: 55
           value: foo
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
@@ -176,15 +182,9 @@ completion-snapshots:
               qualified: foo
               qualified-idx: 0
               prefer-qualified: 0
-        - score: 35
-          value: following
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "fo"
-          location-qualified: "fo"
-          objects: []
-        - score: 35
+        - score: 55
           value: for
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "fo"
           location-qualified: "fo"
           objects: []
@@ -412,6 +412,12 @@ completion-snapshots:
       symbol: NAME
       relative: MID_OF_SYMBOL
       entries:
+        - score: 70
+          value: external
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "external_"
+          location-qualified: "external_"
+          objects: []
         - score: 65
           value: external_name2
           name-tags: [COLUMN_NAME]
@@ -426,12 +432,6 @@ completion-snapshots:
               qualified: external_name1.external_name2
               qualified-idx: 1
               prefer-qualified: 0
-        - score: 50
-          value: external
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH]
-          location: "external_"
-          location-qualified: "external_"
-          objects: []
         - score: 45
           value: external_name1
           name-tags: [TABLE_NAME]

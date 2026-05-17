@@ -39,37 +39,21 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 55
-          value: casesensitive_table
-          name-tags: [TABLE_NAME]
-          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "cas"
-          location-qualified: "cas"
-          objects:
-            - score: 35
-              type: table
-              id: "256.65536.4294967297"
-              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
-              qualified: casesensitive_table
-              qualified-idx: 0
-              prefer-qualified: 0
-        - score: 55
-          value: CaSeSeNsItIvE_TaBlE
-          name-tags: [TABLE_NAME]
-          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "cas"
-          location-qualified: "cas"
-          objects:
-            - score: 35
-              type: table
-              id: "256.65536.4294967296"
-              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
-              qualified: '"CaSeSeNsItIvE_TaBlE"'
-              qualified-idx: 0
-              prefer-qualified: 0
-        - score: 37
+        - score: 57
           value: cast
-          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "cas"
+          location-qualified: "cas"
+          objects: []
+        - score: 55
+          value: cascade
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "cas"
+          location-qualified: "cas"
+          objects: []
+        - score: 55
+          value: cascaded
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "cas"
           location-qualified: "cas"
           objects: []
@@ -115,37 +99,21 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 55
-          value: Casesensitive
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "cas"
-          location-qualified: "cas"
-          objects:
-            - score: 35
-              type: column
-              id: "256.65536.4294967296.0"
-              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
-              qualified: foo0."Casesensitive"
-              qualified-idx: 1
-              prefer-qualified: 0
-        - score: 55
-          value: casesensitive
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "cas"
-          location-qualified: "cas"
-          objects:
-            - score: 35
-              type: column
-              id: "256.65536.4294967297.0"
-              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
-              qualified: foo1.casesensitive
-              qualified-idx: 1
-              prefer-qualified: 0
-        - score: 37
+        - score: 57
           value: case
-          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "cas"
+          location-qualified: "cas"
+          objects: []
+        - score: 57
+          value: cast
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "cas"
+          location-qualified: "cas"
+          objects: []
+        - score: 55
+          value: cascade
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "cas"
           location-qualified: "cas"
           objects: []
