@@ -20,7 +20,7 @@ import {
     RECEIVED_ACCESS_TOKEN,
 } from './trino_connection_state.js';
 import { Dispatch } from '../../utils/index.js';
-import { LoggableException, Logger } from '../../platform/logger/logger.js';
+import { LoggableException, Logger, stringifyError } from '../../platform/logger/logger.js';
 import { RESET_CONNECTION } from '../connection_state.js';
 import { TrinoApiClientInterface, TrinoApiEndpoint } from './trino_api_client.js';
 import { TrinoChannel, TrinoChannelInterface } from './trino_channel.js';
@@ -334,7 +334,7 @@ async function setupTrinoConnectionOAuth(
                 },
             });
         } else {
-            logger.error("Failed OAuth flow", { "error": error.toString() }, LOG_CTX);
+            logger.error("Failed OAuth flow", { "error": stringifyError(error) }, LOG_CTX);
             modifyState({
                 type: OAUTH_FAILED,
                 value: {

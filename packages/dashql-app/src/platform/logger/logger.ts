@@ -20,6 +20,20 @@ export class LogStatistics {
     }
 }
 
+export function stringifyError(e: unknown): string {
+    if (e instanceof Error) {
+        return e.message;
+    }
+    if (e && typeof e === 'object') {
+        try {
+            return JSON.stringify(e);
+        } catch {
+            return Object.prototype.toString.call(e);
+        }
+    }
+    return String(e);
+}
+
 const CONTEXT_KEY = "context";
 
 /// Helper to parse string to number safely
@@ -188,7 +202,7 @@ export abstract class Logger {
         if (error instanceof LoggableException) {
             this.error(error.message, error.keyValues, error.target);
         } else {
-            this.error(error.toString(), {});
+            this.error(stringifyError(error), {});
         }
         if (pipeToConsole) {
             console.log(error);
@@ -244,7 +258,7 @@ export class TracedLogger {
         if (error instanceof LoggableException) {
             this.error(error.message, error.keyValues, error.target);
         } else {
-            this.error(error.toString(), {});
+            this.error(stringifyError(error), {});
         }
         if (pipeToConsole) {
             console.log(error);

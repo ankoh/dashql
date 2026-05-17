@@ -1,7 +1,7 @@
 import * as Immutable from 'immutable';
 import * as dashql from '../../core/index.js';
 
-import { Logger } from '../logger/logger.js';
+import { Logger, stringifyError } from '../logger/logger.js';
 import { VariantKind } from '../../utils/index.js';
 import { NotebookState } from '../../notebook/notebook_state.js';
 import { ConnectionState } from '../../connection/connection_state.js';
@@ -154,7 +154,7 @@ export class StorageWriter {
         } catch (e: any) {
             this.logger.error("executing write task failed", {
                 key: key,
-                error: e.toString()
+                error: stringifyError(e)
             })
             task.resolveLatestTask(false);
         }

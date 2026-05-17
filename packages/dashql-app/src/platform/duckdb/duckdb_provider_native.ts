@@ -1,4 +1,5 @@
 import type { Logger } from '../logger/logger.js';
+import { stringifyError } from '../logger/logger.js';
 
 import { DuckDB } from './duckdb_api.js';
 import { NativeDuckDB } from './duckdb_native_api.js';
@@ -18,7 +19,7 @@ export async function setupNativeDuckDB(context: string, logger: Logger): Promis
     } catch (e: any) {
         const initEnd = performance.now();
         logger.error("Instantiating native duckdb failed", {
-            "error": e.toString(),
+            "error": stringifyError(e),
             "duration": Math.floor(initEnd - initStart).toString()
         }, "webdb");
         console.error(e);

@@ -29,7 +29,7 @@ import { PlatformType } from '../../platform/platform_type.js';
 import { SalesforceConnectorConfig } from '../connector_configs.js';
 import { collectSalesforceAuthInfo, SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
 import { Dispatch } from '../../utils/variant.js';
-import { Logger } from '../../platform/logger/logger.js';
+import { Logger, stringifyError } from '../../platform/logger/logger.js';
 import { PlatformEventListener } from '../../platform/events/event_listener.js';
 import { RESET_CONNECTION } from './../connection_state.js';
 import { AttachedDatabase, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '../../connection/hyper/hyperdb_grpc_client.js';
@@ -288,7 +288,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
                 value: error,
             });
         } else if (error instanceof Error) {
-            logger.error("Failed OAuth flow", { "error": error.toString() }, LOG_CTX);
+            logger.error("Failed OAuth flow", { "error": stringifyError(error) }, LOG_CTX);
             modifyState({
                 type: SETUP_FAILED,
                 value: {

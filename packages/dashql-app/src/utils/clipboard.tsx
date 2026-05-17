@@ -3,6 +3,7 @@ import * as React from 'react';
 import { CheckIcon, CopyIcon, Icon } from '@primer/octicons-react';
 
 import { useLogger } from '../platform/logger/logger_provider.js';
+import { stringifyError } from '../platform/logger/logger.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../view/foundations/button.js';
 
 const DEFAULT_COPY_TIMEOUT = 2000;
@@ -34,7 +35,7 @@ export function CopyToClipboardButton(props: Props): React.ReactElement {
             logger.error("Copied to clipboard", { "chars": value.length.toString() }, props.logContext);
             setLastCopied(Date.now());
         } catch (e: any) {
-            logger.error("Copying failed", { "error": e.toString() }, props.logContext);
+            logger.error("Copying failed", { "error": stringifyError(e) }, props.logContext);
         }
     }, [setLastCopied, props.value]);
 

@@ -7,7 +7,7 @@ import { DataFrame } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
 import { COLUMN_AGGREGATION_SUCCEEDED, ComputationAction, UNREGISTER_SCHEDULER_TASK, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, TABLE_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, UPDATE_SCHEDULER_TASK } from './computation_state.js';
 import { Dispatch, VariantKind } from '../utils/variant.js';
-import { LoggableException, Logger } from '../platform/logger/logger.js';
+import { LoggableException, Logger, stringifyError } from '../platform/logger/logger.js';
 import { createTrace } from '../platform/logger/trace_context.js';
 import { TaskStatus, TableFilteringTask, TableOrderingTask, TableAggregationTask, FilterTable, OrderingTable, TableAggregation, ColumnGroup, SystemColumnComputationTask, ColumnAggregationTask, ColumnAggregationVariant, TaskProgress, WithFilter, WithFilterEpoch } from "./computation_types.js";
 import { useComputationRegistry } from "./computation_registry.js";
@@ -174,7 +174,7 @@ export async function processTask(task: TaskVariant, dispatchComputation: Dispat
     } catch (e: any) {
         let loggable: LoggableException = (e instanceof LoggableException)
             ? e
-            : new LoggableException("Failed to execute task", { error: e.toString() }, LOG_CTX);
+            : new LoggableException("Failed to execute task", { error: stringifyError(e) }, LOG_CTX);
 
         // Mark the task as failed
         progress = {

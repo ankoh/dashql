@@ -30,7 +30,7 @@ import { UpdateValueList, ValueListBuilder } from '../../view/foundations/value_
 import { useAnyConnectionNotebook } from './connection_notebook.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { SegmentedControl } from '../foundations/segmented_control.js';
-import { LoggableException } from '../../platform/logger/logger.js';
+import { LoggableException, stringifyError } from '../../platform/logger/logger.js';
 
 const LOG_CTX = "trino_connector";
 
@@ -310,7 +310,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
             } else {
                 logger.error("Error while setting up trino connection", {
                     authType: (pageState.newParams.auth?.authType ?? 0).toString(),
-                    error: error.toString()
+                    error: stringifyError(error)
                 }, LOG_CTX);
             }
         }

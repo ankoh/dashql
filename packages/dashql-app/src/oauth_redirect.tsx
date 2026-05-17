@@ -19,7 +19,7 @@ import { CopyToClipboardButton } from './utils/clipboard.js';
 import { DASHQL_VERSION } from './globals.js';
 import { GitHubTheme } from './github_theme.js';
 import { InternalsViewerOverlay } from './view/internals/internals_overlay.js';
-import { Logger } from './platform/logger/logger.js';
+import { Logger, stringifyError } from './platform/logger/logger.js';
 import { LoggerProvider, useLogger } from './platform/logger/logger_provider.js';
 import { Result, RESULT_ERROR, RESULT_OK } from './utils/result.js';
 import { TextField, TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_WARNING } from './view/foundations/text_field.js';
@@ -385,7 +385,7 @@ const OAuthFailed: React.FC<OAuthFailedProps> = (props: OAuthFailedProps) => {
                 <div className={baseStyles.card_header}>
                     <div>Authorization Failed</div>
                 </div>
-                {props.error.toString()}
+                {stringifyError(props.error)}
             </div>
         </div>
     );
@@ -410,7 +410,7 @@ const RedirectPage: React.FC<RedirectPageProps> = (_props: RedirectPageProps) =>
         } catch (e: any) {
             return {
                 type: RESULT_ERROR,
-                error: new Error(e.toString()),
+                error: new Error(stringifyError(e)),
             };
         }
     }, [state]);

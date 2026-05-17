@@ -39,6 +39,7 @@ import { NotebookCommands } from './notebook/notebook_commands.js';
 import { NotebookPage } from './view/notebook/notebook_page.js';
 import { NotebookStateRegistry } from './notebook/notebook_state_registry.js';
 import { getGlobalLogger, LoggerProvider } from './platform/logger/logger_provider.js';
+import { stringifyError } from './platform/logger/logger.js';
 import { DuckDBProvider } from './platform/duckdb/duckdb_provider.js';
 import { isDebugBuild } from './globals.js';
 
@@ -135,7 +136,7 @@ function logRecoverableReactError(error: unknown, errorInfo: React.ErrorInfo) {
     console.log(error);
     console.log(errorInfo.componentStack);
     logger.info("React encountered a recoverable error", {
-        error: error?.toString(),
+        error: stringifyError(error),
         stack: errorInfo.componentStack,
     }, LOG_CTX);
 

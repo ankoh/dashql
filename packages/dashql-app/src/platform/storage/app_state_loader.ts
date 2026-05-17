@@ -1,5 +1,6 @@
 import type { DashQL } from '../../core/api.js';
 import type { Logger } from '../logger/logger.js';
+import { stringifyError } from '../logger/logger.js';
 import { ProgressCounter } from '../../utils/progress.js';
 import type { ConnectionState } from '../../connection/connection_state.js';
 import type { NotebookState, ScriptData as NotebookScriptData } from '../../notebook/notebook_state.js';
@@ -305,20 +306,10 @@ async function restoreSession(
     } catch (catalogError) {
         const catalogDuration = performance.now() - catalogStartTime;
 
-        // Extract error details
-        let errorMsg: string;
-        if (catalogError instanceof Error) {
-            errorMsg = catalogError.message;
-        } else if (catalogError && typeof catalogError === 'object') {
-            errorMsg = JSON.stringify(catalogError, null, 2);
-        } else {
-            errorMsg = String(catalogError);
-        }
-
         logger.warn("Failed to restore catalog, will refresh on connect", {
             sessionId,
             durationMs: catalogDuration.toFixed(2),
-            error: errorMsg
+            error: stringifyError(catalogError)
         }, LOG_CTX);
 
         // Catalog restoration is non-critical - connection is still usable
@@ -363,25 +354,11 @@ async function restoreSession(
     } catch (notebookError) {
         const notebookDuration = performance.now() - notebookStartTime;
 
-        // Extract error details - WebAssembly exceptions need special handling
-        let errorMsg: string;
-        let errorStack: string | undefined;
-        if (notebookError instanceof Error) {
-            errorMsg = notebookError.message;
-            errorStack = notebookError.stack;
-        } else if (notebookError && typeof notebookError === 'object') {
-            // Try to extract properties from WebAssembly.Exception or other objects
-            errorMsg = JSON.stringify(notebookError, null, 2);
-            errorStack = (notebookError as any).stack;
-        } else {
-            errorMsg = String(notebookError);
-        }
-
         logger.error("Failed to restore notebook", {
             sessionId,
             durationMs: notebookDuration.toFixed(2),
-            error: errorMsg,
-            stack: errorStack?.substring(0, 500) // Limit stack trace length
+            error: stringifyError(notebookError),
+            stack: (notebookError instanceof Error ? notebookError.stack : (notebookError as any)?.stack)?.substring(0, 500)
         }, LOG_CTX);
 
         restoreNotebooks.addFailed();
@@ -484,7 +461,7 @@ export async function restoreAppState(
                     index: `${i + 1}/${sessions.length}`,
                     sessionPath: sessionEntry.path,
                     durationMs: sessionDuration.toFixed(2),
-                    error: error instanceof Error ? error.message : String(error)
+                    error: stringifyError(error)
                 }, LOG_CTX);
 
                 restoreConnections.addFailed();
@@ -500,7 +477,7 @@ export async function restoreAppState(
         }
     } catch (manifestError) {
         logger.warn("Failed to load manifest, starting with empty state", {
-            error: manifestError instanceof Error ? manifestError.message : String(manifestError)
+            error: stringifyError(manifestError)
         }, LOG_CTX);
     }
 

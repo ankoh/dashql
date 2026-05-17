@@ -2,7 +2,7 @@ import * as dashql from './core/index.js';
 import * as React from 'react';
 
 import { useLogger } from './platform/logger/logger_provider.js';
-import { TracedLogger } from './platform/logger/logger.js';
+import { TracedLogger, stringifyError } from './platform/logger/logger.js';
 import { createTrace } from './platform/logger/trace_context.js';
 
 // Asset import: dedicated alias so WASM resolves independently from API (Bazel: DASHQL_CORE_WASM_PATH; local: core dist).
@@ -124,7 +124,7 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
             } catch (e: any) {
                 const initEnd = performance.now();
                 traced.error("Failed to instantiate core", {
-                    "error": e.toString(),
+                    "error": stringifyError(e),
                     "duration": Math.floor(initEnd - initStart).toString()
                 }, "core");
                 console.error(e);

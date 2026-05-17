@@ -8,6 +8,7 @@ import { EditorView } from '@codemirror/view';
 import { useAppConfig } from '../../app_config.js';
 import type { ScriptData } from '../../notebook/notebook_state.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
+import { stringifyError } from '../../platform/logger/logger.js';
 import { CodeMirror } from '../editor/codemirror.js';
 import { DashQLScannerDecorationUpdateEffect, DashQLStandaloneScannerDecorationPlugin } from '../editor/dashql_decorations_standalone.js';
 
@@ -47,7 +48,7 @@ function readScriptText(script: core.DashQLScript, logger: ReturnType<typeof use
     } catch (e: any) {
         logger.warn('Failed to read script preview text', {
             scriptKey: scriptKey.toString(),
-            error: `${e}`,
+            error: stringifyError(e),
         }, logCtx);
         return null;
     }
@@ -75,7 +76,7 @@ function formatPreviewScript(
     } catch (e: any) {
         logger.warn('Failed to format script preview, using raw script text', {
             scriptKey: scriptKey.toString(),
-            error: `${e}`,
+            error: stringifyError(e),
             maxWidth: maxWidth.toString(),
         }, LOG_CTX);
         return null;
@@ -93,7 +94,7 @@ function formatPreviewScript(
     } catch (e: any) {
         logger.warn('Failed to analyze formatted script preview', {
             scriptKey: scriptKey.toString(),
-            error: `${e}`,
+            error: stringifyError(e),
             maxWidth: maxWidth.toString(),
         }, LOG_CTX);
         return null;

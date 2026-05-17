@@ -4,7 +4,7 @@ import { check, DownloadEvent, Update } from '@tauri-apps/plugin-updater';
 
 import { useLogger } from '../logger/logger_provider.js';
 import { awaitAndSet, Result, RESULT_OK } from '../../utils/result.js';
-import { Logger } from '../logger/logger.js';
+import { Logger, stringifyError } from '../logger/logger.js';
 import { loadReleaseManifest, ReleaseChannel, ReleaseManifest } from './web_version_check.js';
 import { DASHQL_CANARY_RELEASE_MANIFEST, DASHQL_STABLE_RELEASE_MANIFEST } from '../../globals.js';
 import { STABLE_RELEASE_MANIFEST_CTX, STABLE_UPDATE_MANIFEST_CTX, CANARY_RELEASE_MANIFEST_CTX, CANARY_UPDATE_MANIFEST_CTX, VERSION_CHECK_CTX, VersionCheckStatusCode, InstallableUpdate, InstallationStatusSetter, InstallationStatusCode, InstallationState, INSTALLATION_STATUS_CTX } from './version_check.js';
@@ -64,7 +64,7 @@ class InstallableTauriUpdate implements InstallableUpdate {
                 }
             });
         } catch (e: unknown) {
-            const err = e instanceof Error ? e : new Error(e?.toString());
+            const err = e instanceof Error ? e : new Error(stringifyError(e));
             this.setInstallationState(s => {
                 return {
                     update: this,
@@ -93,9 +93,9 @@ async function checkChannelUpdates(channel: ReleaseChannel, setInstallationStatu
         logger.info(`Checking for channel updates succeeded`, { "channel": channel, "duration": Math.floor(end - start).toString() }, "version_check");
         return update == null ? null : new InstallableTauriUpdate(update, setInstallationStatus, logger);
     } catch (e: any) {
-        const err = e instanceof Error ? e : new Error(e?.toString());
+        const err = e instanceof Error ? e : new Error(stringifyError(e));
         const end = performance.now();
-        logger.error(`Checking for channel updates failed`, { "channel": channel, "duration": Math.floor(end - start).toString(), "error": e.toString() }, "version_check");
+        logger.error(`Checking for channel updates failed`, { "channel": channel, "duration": Math.floor(end - start).toString(), "error": stringifyError(e) }, "version_check");
         throw err;
     }
 }
