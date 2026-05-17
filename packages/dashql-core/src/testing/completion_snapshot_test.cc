@@ -143,6 +143,15 @@ void CompletionSnapshotTest::EncodeCompletion(c4::yml::NodeRef root, const Compl
                     id_node.set_val_style(c4::yml::VAL_DQUO);  // quote so YAML does not parse as float
                     break;
                 }
+                case dashql::CatalogObjectType::FunctionDeclaration: {
+                    auto* f = static_cast<const CatalogEntry::FunctionDeclaration*>(&obj);
+                    auto [db_id, schema_id] = f->catalog_schema_id.UnpackSchemaID();
+                    yml_obj.append_child() << c4::yml::key("type") << "function";
+                    auto id_node = yml_obj.append_child();
+                    id_node << c4::yml::key("id") << std::format("{}.{}.{}", db_id, schema_id, f->GetFunctionID().Pack());
+                    id_node.set_val_style(c4::yml::VAL_DQUO);
+                    break;
+                }
                 default:
                     assert(false);
             }

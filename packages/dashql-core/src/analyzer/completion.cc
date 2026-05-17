@@ -186,6 +186,22 @@ bool doNotCompleteSymbol(parser::Parser::symbol_type& sym) {
 
 }  // namespace
 
+std::span<std::string_view> Completion::GetQualifiedFunctionName(const CatalogEntry::QualifiedFunctionName& name) {
+    std::vector<std::string_view> names;
+    names.reserve(3);
+    if (!name.database_name.get().text.empty()) {
+        names.push_back(name.database_name.get().text);
+        names.push_back(name.schema_name.get().text);
+        names.push_back(name.function_name.get().text);
+    } else if (!name.schema_name.get().text.empty()) {
+        names.push_back(name.schema_name.get().text);
+        names.push_back(name.function_name.get().text);
+    } else if (!name.function_name.get().text.empty()) {
+        names.push_back(name.function_name.get().text);
+    }
+    return top_candidate_names.PushBack(std::move(names));
+}
+
 std::span<std::string_view> Completion::GetQualifiedTableName(const CatalogEntry::QualifiedTableName& name) {
     std::vector<std::string_view> names;
     names.reserve(3);
@@ -947,6 +963,14 @@ void Completion::QualifyTopCandidates() {
                     co.qualified_name_target_idx = co.qualified_name.size() - 1;
                     break;
                 }
+                case CatalogObjectType::FunctionDeclaration: {
+                    auto& func = co.catalog_object.CastUnsafe<CatalogEntry::FunctionDeclaration>();
+
+                    // Derive qualified function name
+                    co.qualified_name = GetQualifiedFunctionName(func.function_name);
+                    co.qualified_name_target_idx = co.qualified_name.size() - 1;
+                    break;
+                }
                 default:
                     break;
             }
@@ -1547,6 +1571,13 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
                     obj.add_catalog_table_id(table_id.Pack());
                     obj.add_table_column_id(column_idx);
                     obj.add_referenced_catalog_version(table.catalog_version);
+                    break;
+                }
+                case CatalogObjectType::FunctionDeclaration: {
+                    auto& func = o.CastUnsafe<CatalogEntry::FunctionDeclaration>();
+                    auto [db_id, schema_id] = func.catalog_schema_id.UnpackSchemaID();
+                    obj.add_catalog_database_id(db_id);
+                    obj.add_catalog_schema_id(schema_id);
                     break;
                 }
                 case CatalogObjectType::Deferred: {

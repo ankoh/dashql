@@ -507,8 +507,10 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 auto func_name = state.ReadQualifiedFunctionName(name_node);
                 if (func_name.has_value()) {
                     auto schema_id = RegisterSchema(func_name->database_name, func_name->schema_name);
+                    ExternalObjectID catalog_function_id{
+                        state.catalog_entry_id, static_cast<uint32_t>(state.analyzed->function_declarations.GetSize())};
                     auto& decl = state.analyzed->function_declarations.PushBack(
-                        CatalogEntry::FunctionDeclaration(schema_id, func_name.value()));
+                        CatalogEntry::FunctionDeclaration(schema_id, catalog_function_id, func_name.value()));
                     decl.ast_node_id = node_id;
                     decl.is_aggregate = (is_aggregate_node != nullptr);
                     // Read return type text from the AST node location
@@ -536,6 +538,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                         }
                     }
                     func_name->function_name.get().coarse_analyzer_tags |= buffers::analyzer::NameTag::FUNCTION_NAME;
+                    func_name->function_name.get().resolved_objects.PushBack(decl);
                 }
                 break;
             }

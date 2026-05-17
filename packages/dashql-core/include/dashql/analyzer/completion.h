@@ -133,6 +133,8 @@ struct Completion {
     /// The top candidate names
     ChunkBuffer<std::vector<std::string_view>, 16> top_candidate_names;
 
+    /// Store the qualified function name
+    std::span<std::string_view> GetQualifiedFunctionName(const CatalogEntry::QualifiedFunctionName& name);
     /// Store the qualified table name
     std::span<std::string_view> GetQualifiedTableName(const CatalogEntry::QualifiedTableName& name);
     /// Store the qualified column name

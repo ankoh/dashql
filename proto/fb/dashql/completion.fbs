@@ -8,7 +8,8 @@ enum CompletionCandidateObjectType: uint8 {
     DATABASE = 1,
     SCHEMA = 2,
     TABLE = 3,
-    COLUMN = 4
+    COLUMN = 4,
+    FUNCTION = 5
 }
 
 table CompletionCandidateObject {

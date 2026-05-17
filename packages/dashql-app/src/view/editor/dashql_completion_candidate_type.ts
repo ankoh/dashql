@@ -5,6 +5,7 @@ export enum CompletionCandidateType {
     SCHEMA = 2,
     TABLE = 3,
     COLUMN = 4,
+    FUNCTION = 5,
 }
 
 export const CANDIDATE_TYPE_SYMBOL_TEXT: string[] = [
@@ -13,6 +14,7 @@ export const CANDIDATE_TYPE_SYMBOL_TEXT: string[] = [
     "NS",
     "TBL",
     "COL",
+    "FN",
 ];
 
 export const CANDIDATE_TYPE_SYMBOL_BACKGROUND: string[] = [
@@ -21,6 +23,7 @@ export const CANDIDATE_TYPE_SYMBOL_BACKGROUND: string[] = [
     "#000",
     "#5B18A3",
     "#DD1141",
+    "#0E7A00",
 ];
 
 export function getCandidateTypeSymbolText(type: CompletionCandidateType) {

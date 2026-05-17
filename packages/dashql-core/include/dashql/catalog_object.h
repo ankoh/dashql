@@ -13,6 +13,7 @@ enum CatalogObjectType {
     SchemaReference = 2,
     TableDeclaration = 3,
     ColumnDeclaration = 4,
+    FunctionDeclaration = 5,
 };
 static_assert(static_cast<uint8_t>(buffers::completion::CompletionCandidateObjectType::COLUMN) ==
               CatalogObjectType::ColumnDeclaration);
@@ -22,11 +23,14 @@ static_assert(static_cast<uint8_t>(buffers::completion::CompletionCandidateObjec
               CatalogObjectType::SchemaReference);
 static_assert(static_cast<uint8_t>(buffers::completion::CompletionCandidateObjectType::TABLE) ==
               CatalogObjectType::TableDeclaration);
+static_assert(static_cast<uint8_t>(buffers::completion::CompletionCandidateObjectType::FUNCTION) ==
+              CatalogObjectType::FunctionDeclaration);
 
 using CatalogDatabaseID = uint32_t;
 using CatalogSchemaID = uint32_t;
 using CatalogEntryID = uint32_t;
 using CatalogTableID = ExternalObjectID;
+using CatalogFunctionID = ExternalObjectID;
 using CatalogVersion = uint32_t;
 
 /// An id for a catalog object
@@ -69,6 +73,10 @@ struct QualifiedCatalogObjectID {
     static QualifiedCatalogObjectID TableColumn(CatalogTableID table_id, uint32_t column_id) {
         return QualifiedCatalogObjectID(CatalogObjectType::ColumnDeclaration, table_id.Pack(), column_id);
     }
+    /// A function
+    static QualifiedCatalogObjectID Function(CatalogFunctionID function_id) {
+        return QualifiedCatalogObjectID(CatalogObjectType::FunctionDeclaration, function_id.Pack());
+    }
     /// Unpack a database id
     CatalogDatabaseID UnpackDatabaseID() const {
         assert(type == CatalogObjectType::DatabaseReference);
@@ -88,6 +96,11 @@ struct QualifiedCatalogObjectID {
     std::pair<CatalogTableID, uint32_t> UnpackTableColumnID() const {
         assert(type == CatalogObjectType::ColumnDeclaration);
         return {CatalogTableID::Unpack(part0), part1};
+    }
+    /// Unpack a function id
+    CatalogFunctionID UnpackFunctionID() const {
+        assert(type == CatalogObjectType::FunctionDeclaration);
+        return CatalogFunctionID::Unpack(part0);
     }
 
     /// Equality operator

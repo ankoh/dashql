@@ -347,7 +347,14 @@ completion-snapshots:
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "mys"
           location-qualified: "mys"
-          objects: []
+          objects:
+            - score: 35
+              type: function
+              id: "256.65536.4294967296"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: mysum
+              qualified-idx: 0
+              prefer-qualified: 0
         - score: 3
           value: from
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]

@@ -182,7 +182,7 @@ class CatalogEntry {
             : ast_node_id(ast_node_id), param_name(param_name), param_type(param_type) {}
     };
     /// A function declaration
-    struct FunctionDeclaration {
+    struct FunctionDeclaration : public CatalogObject {
         /// The catalog schema id
         QualifiedCatalogObjectID catalog_schema_id;
         /// Is aggregate
@@ -199,8 +199,11 @@ class CatalogEntry {
         std::string_view return_type;
 
         /// Constructor
-        FunctionDeclaration(QualifiedCatalogObjectID schema, QualifiedFunctionName name)
-            : catalog_schema_id(schema), function_name(std::move(name)) {}
+        FunctionDeclaration(QualifiedCatalogObjectID schema, CatalogFunctionID function_id, QualifiedFunctionName name)
+            : CatalogObject(QualifiedCatalogObjectID::Function(function_id)),
+              catalog_schema_id(schema), function_name(std::move(name)) {}
+        /// Get the function id
+        CatalogFunctionID GetFunctionID() const { return object_id.UnpackFunctionID(); }
         /// Pack as FlatBuffer
         flatbuffers::Offset<buffers::analyzer::FunctionDeclaration> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     };

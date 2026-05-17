@@ -478,6 +478,8 @@ export function deriveFocusFromCompletionCandidates(
                 candidateObject.referencedCatalogVersion(),
             );
             break;
+        case dashql.buffers.completion.CompletionCandidateObjectType.FUNCTION:
+            break;
     }
     return focus;
 }
