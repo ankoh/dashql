@@ -93,6 +93,7 @@ static constexpr NameScoringTable NAME_SCORE_DEFAULTS{{
     {buffers::analyzer::NameTag::TABLE_NAME, NAME_TAG_LIKELY},
     {buffers::analyzer::NameTag::TABLE_ALIAS, NAME_TAG_LIKELY},
     {buffers::analyzer::NameTag::COLUMN_NAME, NAME_TAG_LIKELY},
+    {buffers::analyzer::NameTag::FUNCTION_NAME, NAME_TAG_LIKELY},
 }};
 
 static constexpr NameScoringTable NAME_SCORE_TABLE_REF{{
@@ -102,6 +103,7 @@ static constexpr NameScoringTable NAME_SCORE_TABLE_REF{{
     {buffers::analyzer::NameTag::TABLE_NAME, NAME_TAG_LIKELY},
     {buffers::analyzer::NameTag::TABLE_ALIAS, NAME_TAG_UNLIKELY},
     {buffers::analyzer::NameTag::COLUMN_NAME, NAME_TAG_UNLIKELY},
+    {buffers::analyzer::NameTag::FUNCTION_NAME, NAME_TAG_UNLIKELY},
 }};
 
 static constexpr NameScoringTable NAME_SCORE_COLUMN_REF{{
@@ -111,6 +113,7 @@ static constexpr NameScoringTable NAME_SCORE_COLUMN_REF{{
     {buffers::analyzer::NameTag::TABLE_NAME, NAME_TAG_UNLIKELY},
     {buffers::analyzer::NameTag::TABLE_ALIAS, NAME_TAG_LIKELY},
     {buffers::analyzer::NameTag::COLUMN_NAME, NAME_TAG_LIKELY},
+    {buffers::analyzer::NameTag::FUNCTION_NAME, NAME_TAG_UNLIKELY},
 }};
 
 /// We use a prevalence score to rank keywords by popularity.
@@ -858,7 +861,9 @@ void Completion::SelectTopCandidates() {
         }
 
         // Determine overall candidate score
-        Completion::ScoreValueType object_score = !candidate_objects.empty() ? candidate_objects.back().score : 0;
+        Completion::ScoreValueType object_score = !candidate_objects.empty()
+            ? candidate_objects.back().score
+            : computeCandidateScore(candidate.candidate_tags);
         Completion::ScoreValueType candidate_score = base_score + object_score;
         candidate.score = candidate_score;
 

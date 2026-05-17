@@ -78,6 +78,19 @@ completion-snapshots:
         index: 3
     completions:
       limit: 3
+  # Complete function name after "select mys"
+  - name: complete_function_name
+    catalog:
+      script:
+        input: create function mysum(x int) returns int;
+    editor:
+      input: select mys
+    cursor:
+      search:
+        text: mys
+        index: 3
+    completions:
+      limit: 3
   # Complete with external name remapping (cursor script=1)
   - name: remap_external_names
     catalog:

@@ -316,6 +316,52 @@ completion-snapshots:
               prefer-qualified: 0
       text: "tab"
 
+  - name: complete_function_name
+    catalog:
+      script:
+        input: create function mysum(x int) returns int;
+        catalog-id: 1
+        errors: []
+    editor:
+      input: select mys
+      catalog-id: 2
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "mys"
+    cursor:
+      search:
+        text: mys
+        index: 3
+    completions:
+      limit: 3
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 45
+          value: mysum
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "mys"
+          location-qualified: "mys"
+          objects: []
+        - score: 3
+          value: from
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "mys"
+          location-qualified: "mys"
+          objects: []
+        - score: 3
+          value: group
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "mys"
+          location-qualified: "mys"
+          objects: []
+      text: "mys"
+
   - name: remap_external_names
     catalog:
       script:

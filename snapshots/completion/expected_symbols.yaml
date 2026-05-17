@@ -123,6 +123,13 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
+        - score: 55
+          value: foo
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "f"
+          location-qualified: "f"
+          objects: []
         - score: 38
           value: from
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
@@ -131,12 +138,6 @@ completion-snapshots:
           objects: []
         - score: 35
           value: fetch
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "f"
-          location-qualified: "f"
-          objects: []
-        - score: 35
-          value: for
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "f"
           location-qualified: "f"

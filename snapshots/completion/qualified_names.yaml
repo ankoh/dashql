@@ -275,15 +275,17 @@ completion-snapshots:
               qualified: db0.schema1."AmbiguousCrossSchema".attr1
               qualified-idx: 3
               prefer-qualified: 1
-        - score: 35
-          value: attribute
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+        - score: 40
+          value: AmbiguousAttribute1
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH]
           location: "attr"
           location-qualified: "attr"
           objects: []
-        - score: 30
-          value: xmlattributes
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+        - score: 40
+          value: AmbiguousAttribute2
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH]
           location: "attr"
           location-qualified: "attr"
           objects: []
