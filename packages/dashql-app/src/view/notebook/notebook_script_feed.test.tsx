@@ -50,6 +50,7 @@ vi.mock('../../connection/query_executor.js', () => ({
         if (queryId == null) return null;
         return mockState.queryStates.get(queryId) ?? null;
     },
+    useQueryExecutor: () => vi.fn(),
 }));
 vi.mock('../internals/trace_log_viewer.js', async () => {
     const React = await import('react');
