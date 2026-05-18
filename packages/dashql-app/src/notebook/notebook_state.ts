@@ -5,7 +5,7 @@ import { analyzeScript, DashQLCompletionState, DashQLProcessorUpdateOut, DashQLS
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, SemanticUserFocus } from './focus.js';
 import { ConnectorInfo } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
-import { REPLACE_NOTEBOOK, CREATE_NOTEBOOK_PAGE, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK_PAGE, DELETE_NOTEBOOK_SCRIPT, groupNotebookWrites, groupPageWrites, groupScriptDeletes, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK_SCRIPT } from '../platform/storage/storage_writer.js';
+import { REPLACE_NOTEBOOK, CREATE_NOTEBOOK_PAGE, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK_PAGE, DELETE_NOTEBOOK_SCRIPT, groupDraftWrites, groupNotebookWrites, groupPageWrites, groupScriptDeletes, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK_DRAFT, WRITE_NOTEBOOK_SCRIPT } from '../platform/storage/storage_writer.js';
 import { NotebookStateWithoutId } from './notebook_state_registry.js';
 import { Logger } from '../platform/logger/logger.js';
 import { NotebookScriptAnnotations, NotebookPage, NotebookPageScript, NotebookMetadata as NotebookMetadataType, createEmptyAnnotations, createPageScript, generateScriptFileName } from './notebook_types.js';
@@ -466,12 +466,19 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const scriptData = nextState.scripts[scriptKey];
             if (scriptData) {
                 const sql = scriptData.script.toString();
-
-                storage?.write(
-                    groupScriptWrites(nextState.sessionId, scriptData.folderName, scriptData.fileName),
-                    { type: WRITE_NOTEBOOK_SCRIPT, value: [nextState.sessionId, scriptData.folderName, scriptData.fileName, sql] },
-                    DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
-                );
+                if (scriptData.folderName === '' || scriptData.fileName === '') {
+                    storage?.write(
+                        groupDraftWrites(nextState.sessionId),
+                        { type: WRITE_NOTEBOOK_DRAFT, value: [nextState.sessionId, sql] },
+                        DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                    );
+                } else {
+                    storage?.write(
+                        groupScriptWrites(nextState.sessionId, scriptData.folderName, scriptData.fileName),
+                        { type: WRITE_NOTEBOOK_SCRIPT, value: [nextState.sessionId, scriptData.folderName, scriptData.fileName, sql] },
+                        DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                    );
+                }
             }
             return nextState;
         }
@@ -788,6 +795,11 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             storage?.write(
                 groupScriptWrites(next.sessionId, page.folderName, fileName),
                 { type: WRITE_NOTEBOOK_SCRIPT, value: [next.sessionId, page.folderName, fileName, sql] },
+                DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+            );
+            storage?.write(
+                groupDraftWrites(next.sessionId),
+                { type: WRITE_NOTEBOOK_DRAFT, value: [next.sessionId, ''] },
                 DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
             );
             return next;

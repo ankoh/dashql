@@ -20,6 +20,7 @@ export const WRITE_SESSION_CATALOG_SCRIPT = Symbol('WRITE_SESSION_CATALOG_SCRIPT
 export const WRITE_SESSION_FUNCTION_SCRIPT = Symbol('WRITE_SESSION_FUNCTION_SCRIPT');
 export const REPLACE_NOTEBOOK = Symbol('REPLACE_NOTEBOOK');
 export const WRITE_NOTEBOOK_SCRIPT = Symbol('WRITE_NOTEBOOK_SCRIPT');
+export const WRITE_NOTEBOOK_DRAFT = Symbol('WRITE_NOTEBOOK_DRAFT');
 export const CREATE_NOTEBOOK_PAGE = Symbol('CREATE_NOTEBOOK_PAGE');
 export const DELETE_NOTEBOOK_PAGE = Symbol('DELETE_NOTEBOOK_PAGE');
 export const DELETE_SESSION = Symbol('DELETE_SESSION');
@@ -31,7 +32,8 @@ export type StorageWriteTaskVariant =
     | VariantKind<typeof WRITE_SESSION_CATALOG_SCRIPT, [string, dashql.DashQLScript]>
     | VariantKind<typeof WRITE_SESSION_FUNCTION_SCRIPT, [string, dashql.DashQLScript]>
     | VariantKind<typeof REPLACE_NOTEBOOK, NotebookState>
-    | VariantKind<typeof WRITE_NOTEBOOK_SCRIPT, [string, string, string, string]>  // sessionPath, folderName (empty=draft), fileName (empty=draft), sql
+    | VariantKind<typeof WRITE_NOTEBOOK_SCRIPT, [string, string, string, string]>  // sessionPath, folderName, fileName, sql
+    | VariantKind<typeof WRITE_NOTEBOOK_DRAFT, [string, string]>  // sessionPath, sql
     | VariantKind<typeof CREATE_NOTEBOOK_PAGE, [string, string, { scriptId: number, fileName: string, sql: string }[]]>  // sessionPath, pageName, scripts
     | VariantKind<typeof DELETE_NOTEBOOK_PAGE, [string, string]>  // sessionPath, pageName
     | VariantKind<typeof DELETE_SESSION, string>
@@ -45,8 +47,9 @@ export const groupSessionSchemaWrites = (sessionPath: string) => `${sessionPath}
 export const groupSessionFunctionWrites = (sessionPath: string) => `${sessionPath}/dashql-functions.sql`;
 export const groupNotebookWrites = (sessionPath: string) => `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}`;
 export const groupPageWrites = (sessionPath: string, pageName: string) => `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${pageName}`;
+export const groupDraftWrites = (sessionPath: string) => `${sessionPath}/notebook/dashql-draft.sql`;
 export const groupScriptWrites = (sessionPath: string, folderName: string, fileName: string) =>
-    (folderName === '' || fileName === '') ? `${sessionPath}/notebook/dashql-draft.sql` : `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${folderName}/${fileName}`;
+    `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${folderName}/${fileName}`;
 export const groupScriptDeletes = (sessionPath: string, pageName: string, scriptName: string) =>
     `delete:${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${scriptName}`;
 
@@ -345,26 +348,30 @@ export class StorageWriter {
                 this.logger.info("Writing notebook script", {
                     key,
                     sessionPath,
-                    folder: folderName || 'draft',
-                    file: fileName || 'draft',
+                    folder: folderName,
+                    file: fileName,
                 }, LOG_CTX);
 
                 const timeBefore = new Date();
-
-                let actualPath: string;
-                if (folderName === '' || fileName === '') {
-                    // Draft script (empty folder/file name)
-                    await this.backend.saveNotebookScriptDraft(sessionPath, sql);
-                    actualPath = `${sessionPath}/notebook/dashql-draft.sql`;
-                } else {
-                    // Committed script in a page
-                    await this.backend.saveNotebookScript(sessionPath, folderName, fileName, sql);
-                    actualPath = `${sessionPath}/notebook/${folderName}/${fileName}`;
-                }
-
+                await this.backend.saveNotebookScript(sessionPath, folderName, fileName, sql);
+                const actualPath = `${sessionPath}/notebook/${folderName}/${fileName}`;
                 const timeAfter = new Date();
-                const writeDuration = timeAfter.getTime() - timeBefore.getTime();
-                this.registerWrite(actualPath, sql.length, writeDuration);
+                this.registerWrite(actualPath, sql.length, timeAfter.getTime() - timeBefore.getTime());
+                break;
+            }
+            case WRITE_NOTEBOOK_DRAFT: {
+                const [sessionPath, sql] = task.value;
+
+                this.logger.info("Writing notebook draft", {
+                    key,
+                    sessionPath,
+                }, LOG_CTX);
+
+                const timeBefore = new Date();
+                await this.backend.saveNotebookScriptDraft(sessionPath, sql);
+                const actualPath = `${sessionPath}/notebook/dashql-draft.sql`;
+                const timeAfter = new Date();
+                this.registerWrite(actualPath, sql.length, timeAfter.getTime() - timeBefore.getTime());
                 break;
             }
             case DELETE_SESSION:
