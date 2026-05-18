@@ -162,6 +162,14 @@ export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQ
     return [scriptKey, scriptData];
 }
 
+function uniqueFolderName(baseName: string, pages: NotebookPage[], excludeIndex: number = -1): string {
+    const existing = new Set(pages.filter((_, i) => i !== excludeIndex).map(p => p.folderName));
+    if (!existing.has(baseName)) return baseName;
+    let suffix = 2;
+    while (existing.has(`${baseName} ${suffix}`)) suffix++;
+    return `${baseName} ${suffix}`;
+}
+
 enum FocusUpdate {
     Clear,
     UpdateFromCursor,
@@ -183,9 +191,9 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             };
         }
         case CREATE_PAGE: {
-            // Create a new page
+            const folderName = uniqueFolderName('Untitled', state.notebookPages);
             const newPage: NotebookPage = {
-                folderName: 'Untitled',
+                folderName,
                 scripts: [],
             };
 
@@ -214,7 +222,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 latestQueryId: null,
                 pageIndex: newPageIndex,
                 fileName: fileName,
-                folderName: 'Untitled',
+                folderName,
             };
 
             const entry = createPageScript(scriptKey, fileName);
@@ -692,11 +700,12 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
         }
 
         case UPDATE_PAGE_FOLDER_NAME: {
-            const { pageIndex, folderName } = action.value;
+            const { pageIndex, folderName: requestedName } = action.value;
             if (pageIndex < 0 || pageIndex >= state.notebookPages.length) {
                 console.warn("Update references invalid page index");
                 return state;
             }
+            const folderName = uniqueFolderName(requestedName, state.notebookPages, pageIndex);
             const oldFolderName = state.notebookPages[pageIndex].folderName;
             const newPages = [...state.notebookPages];
             newPages[pageIndex] = { ...newPages[pageIndex], folderName };
