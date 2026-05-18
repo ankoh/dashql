@@ -14,8 +14,9 @@ import type { RowComponentProps } from 'react-window';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
-import { getSelectedPageEntries, getUncommittedScriptData, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
-import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
+import { getSelectedPageEntries, getUncommittedScriptData, REGISTER_QUERY, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
+import { QueryType } from '../../connection/query_execution_state.js';
+import { useQueryExecutor, useQueryState } from '../../connection/query_executor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { ScriptEditor } from './script_editor.js';
 import { ScriptPreview } from './notebook_script_preview.js';
@@ -25,7 +26,6 @@ import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { useScrollbarWidth } from '../../utils/scrollbar.js';
 import { SegmentedControl, SegmentedControlSize } from '../foundations/segmented_control.js';
 import { NotebookScriptName } from './notebook_script_name.js';
-import { useQueryState } from '../../connection/query_executor.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
 import { TabKey as DetailsTabKey } from './notebook_script_details.js';
 
@@ -291,7 +291,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
 
     const isDisconnected = props.conn?.connectionHealth !== ConnectionHealth.ONLINE;
     const openConnectionOverlay = props.openConnectionOverlay;
-    const notebookCommand = useNotebookCommandDispatch();
+    const executeQuery = useQueryExecutor();
 
     const [executeOnSend, setExecuteOnSend] = React.useState(false);
     React.useEffect(() => {
@@ -304,11 +304,32 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
 
     const handleSend = React.useCallback(() => {
         pendingScrollToBottomRef.current = true;
+        const notebook = props.notebook;
+        const scriptKey = notebook.uncommittedScriptId;
+        const scriptData = notebook.scripts[scriptKey];
+        const mainScriptText = scriptData?.script.toString() ?? '';
         props.modifyNotebook({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
-        if (executeOnSend && !isDisconnected) {
-            notebookCommand(NotebookCommandType.ExecuteEditorQuery);
+        if (executeOnSend && !isDisconnected && mainScriptText.trim().length > 0) {
+            const pageIndex = notebook.notebookUserFocus.pageIndex;
+            const page = notebook.notebookPages[pageIndex];
+            const entryInPage = page ? page.scripts.length : 0;
+            const [queryId] = executeQuery(notebook.sessionId, {
+                query: mainScriptText,
+                analyzeResults: true,
+                metadata: {
+                    queryType: QueryType.USER_PROVIDED,
+                    title: "Notebook Query",
+                    description: null,
+                    issuer: "Query Execution Command",
+                    userProvided: true
+                }
+            });
+            props.modifyNotebook({
+                type: REGISTER_QUERY,
+                value: [pageIndex, entryInPage, scriptKey, queryId]
+            });
         }
-    }, [props.modifyNotebook, executeOnSend, isDisconnected, notebookCommand]);
+    }, [props.notebook, props.modifyNotebook, executeOnSend, isDisconnected, executeQuery]);
 
     const handleDelete = React.useCallback((entryIndex: number) => {
         props.modifyNotebook({ type: DELETE_NOTEBOOK_ENTRY, value: entryIndex });
