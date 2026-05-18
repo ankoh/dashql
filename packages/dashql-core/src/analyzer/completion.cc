@@ -39,6 +39,7 @@ static constexpr Completion::ScoreValueType SUBSTRING_SCORE_MODIFIER = 30;      
 static constexpr Completion::ScoreValueType PREFIX_SCORE_MODIFIER = 5;             // User typed name prefix
 static constexpr Completion::ScoreValueType EXACT_MATCH_SCORE_MODIFIER = 15;       // User typed exact name
 static constexpr Completion::ScoreValueType EXPECTED_KEYWORD_MATCH_MODIFIER = 20;  // Expected keyword matches input
+static constexpr Completion::ScoreValueType THROUGH_CATALOG_SCORE_MODIFIER = 2;    // Candidate comes from the catalog
 static constexpr Completion::ScoreValueType RESOLVING_TABLE_SCORE_MODIFIER = 5;    // Table is resolving unresolved
 static constexpr Completion::ScoreValueType UNRESOLVED_PEER_SCORE_MODIFIER = 1;    // Share unresolved table
 static constexpr Completion::ScoreValueType DOT_SCHEMA_SCORE_MODIFIER = 2;         // Dot completion for schema
@@ -65,6 +66,8 @@ static_assert(IN_NAME_SCOPE_SCORE_MODIFIER >
 static_assert(RESOLVING_TABLE_SCORE_MODIFIER >
                   (IN_SAME_STATEMENT_SCORE_MODIFIER + IN_SAME_SCRIPT_SCORE_MODIFIER + IN_OTHER_SCRIPT_SCORE_MODIFIER),
               "Resolving unresolved columns outweighs being referenced elsewhere");
+static_assert((NAME_TAG_LIKELY + THROUGH_CATALOG_SCORE_MODIFIER) > EXPECTED_KEYWORD_MATCH_MODIFIER,
+              "A likely catalog name with prefix match outranks an expected keyword with prefix match");
 
 Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags) {
     Completion::ScoreValueType score = 0;
@@ -76,6 +79,7 @@ Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags)
     score += ((tags & buffers::completion::CandidateTag::PREFIX_MATCH) != 0) * PREFIX_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::EXACT_MATCH) != 0) * EXACT_MATCH_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::EXPECTED_KEYWORD_MATCH) != 0) * EXPECTED_KEYWORD_MATCH_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::THROUGH_CATALOG) != 0) * THROUGH_CATALOG_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::RESOLVING_TABLE) != 0) * RESOLVING_TABLE_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::UNRESOLVED_PEER) != 0) * UNRESOLVED_PEER_SCORE_MODIFIER;
 

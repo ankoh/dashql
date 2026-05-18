@@ -33,28 +33,28 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 70
+        - score: 72
           value: region
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
           location: "region"
           location-qualified: "region"
           objects:
-            - score: 50
+            - score: 52
               type: table
               id: "256.65536.4294967296"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
               qualified: region
               qualified-idx: 0
               prefer-qualified: 0
-        - score: 50
+        - score: 52
           value: r_regionkey
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "region"
           location-qualified: "region"
           objects:
-            - score: 40
+            - score: 42
               type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
@@ -114,28 +114,28 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 70
+        - score: 72
           value: Region
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
           location: "\"Region\""
           location-qualified: "\"Region\""
           objects:
-            - score: 50
+            - score: 52
               type: table
               id: "256.65536.4294967296"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
               qualified: '"Region"'
               qualified-idx: 0
               prefer-qualified: 0
-        - score: 50
+        - score: 52
           value: r_regionkey
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "\"Region\""
           location-qualified: "\"Region\""
           objects:
-            - score: 40
+            - score: 42
               type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]

@@ -62,14 +62,14 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 80
+        - score: 82
           value: event
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
           location: "event"
           location-qualified: "event"
           objects:
-            - score: 60
+            - score: 62
               type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
@@ -82,14 +82,14 @@ completion-snapshots:
           location: "event"
           location-qualified: "event"
           objects: []
-        - score: 65
+        - score: 67
           value: event_timestamp
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "event"
           location-qualified: "event"
           objects:
-            - score: 45
+            - score: 47
               type: column
               id: "256.65536.4294967296.1"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
