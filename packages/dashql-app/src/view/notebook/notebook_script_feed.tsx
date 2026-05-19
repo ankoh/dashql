@@ -23,7 +23,6 @@ import { ScriptPreview } from './notebook_script_preview.js';
 import { observeSize } from '../foundations/size_observer.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
-import { useScrollbarWidth } from '../../utils/scrollbar.js';
 import { SegmentedControl, SegmentedControlSize } from '../foundations/segmented_control.js';
 import { NotebookScriptName } from './notebook_script_name.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
@@ -265,7 +264,6 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const config = useAppConfig();
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
     const entries = getSelectedPageEntries(props.notebook);
-    const scrollbarWidth = useScrollbarWidth();
     const pendingScrollToBottomRef = React.useRef(false);
     const [composeEditorView, setComposeEditorView] = React.useState<EditorView | null>(null);
     const [inputMode, setInputMode] = React.useState<number>(0); // 0 = SQL, 1 = Natural Language
@@ -406,23 +404,21 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         });
     }, [entries.length, listRef, props.scrollTarget]);
 
-    // Check if scrollbar is actually visible by comparing scroller size to container
-    const [isScrollbarVisible, setIsScrollbarVisible] = React.useState(false);
+    // Measure the actual scrollbar inset from the scroller element directly,
+    // rather than relying on a static measurement that can be wrong when macOS
+    // switches between overlay and non-overlay scrollbar styles.
+    const [composeScrollbarInset, setComposeScrollbarInset] = React.useState(0);
     React.useEffect(() => {
         const listContainer = listContainerRef.current;
         if (!listContainer) {
             return;
         }
-        // The react-window scroller is the first child div
         const scroller = listContainer.firstElementChild as HTMLElement | null;
         if (!scroller) {
             return;
         }
-        const hasOverflow = scroller.scrollHeight > scroller.clientHeight;
-        setIsScrollbarVisible(hasOverflow);
+        setComposeScrollbarInset(scroller.offsetWidth - scroller.clientWidth);
     }, [listHeight, fillerRowHeight, entries.length, heightsVersion]);
-
-    const composeScrollbarInset = isScrollbarVisible ? scrollbarWidth : 0;
 
     // Get folder name from current page
     const selectedPage = props.notebook.notebookPages[props.notebook.notebookUserFocus.pageIndex];
