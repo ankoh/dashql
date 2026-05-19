@@ -212,9 +212,8 @@ export const NavBar = (): React.ReactElement => {
             <div className={styles.version_container}>
                 <InternalsButton />
                 <VersionButton />
-                {isBrowser
-                    ? <OpenIn label="Open in App" url={setupUrl?.toString()} icon={`${symbols}#download_desktop`} newWindow={false} state={route} />
-                    : <OpenIn label="Open in Browser" url={setupUrl?.toString()} icon={`${symbols}#upload_browser`} newWindow={true} state={route} />
+                {isBrowser &&
+                    <OpenIn label="Open in App" url={setupUrl?.toString()} icon={`${symbols}#download_desktop`} newWindow={false} state={route} />
                 }
             </div>
         </div>
