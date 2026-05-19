@@ -404,9 +404,6 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         });
     }, [entries.length, listRef, props.scrollTarget]);
 
-    // Measure the actual scrollbar inset from the scroller element directly,
-    // rather than relying on a static measurement that can be wrong when macOS
-    // switches between overlay and non-overlay scrollbar styles.
     const [composeScrollbarInset, setComposeScrollbarInset] = React.useState(0);
     React.useEffect(() => {
         const listContainer = listContainerRef.current;
@@ -417,7 +414,11 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         if (!scroller) {
             return;
         }
-        setComposeScrollbarInset(scroller.offsetWidth - scroller.clientWidth);
+        const measure = () => setComposeScrollbarInset(scroller.offsetWidth - scroller.clientWidth);
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(scroller);
+        return () => observer.disconnect();
     }, [listHeight, fillerRowHeight, entries.length, heightsVersion]);
 
     // Get folder name from current page
