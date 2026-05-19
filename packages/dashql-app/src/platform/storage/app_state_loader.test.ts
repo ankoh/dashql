@@ -29,6 +29,8 @@ describe('restoreAppState', () => {
             deleteSession: vi.fn(),
             loadSessionSchema: vi.fn(),
             saveSessionSchema: vi.fn(),
+            loadSessionFunctions: vi.fn().mockResolvedValue(null),
+            saveSessionFunctions: vi.fn(),
             loadNotebookPages: vi.fn(),
             createNotebookPage: vi.fn(),
             deleteNotebookPage: vi.fn(),
@@ -380,9 +382,9 @@ describe('restoreAppState', () => {
         const connection = result.connectionStates.get('schema-uuid')!;
         expect(connection.catalogUpdates.restoredAt).not.toBeNull();
 
-        // Verify catalogScript was updated with schema
-        expect(connection.catalogScript.replaceText).toHaveBeenCalledWith(schemaSQL);
-        expect(connection.catalogScript.analyze).toHaveBeenCalled();
+        // Verify catalogRelationScript was updated with schema
+        expect(connection.catalogRelationScript.replaceText).toHaveBeenCalledWith(schemaSQL);
+        expect(connection.catalogRelationScript.analyze).toHaveBeenCalled();
         expect(connection.catalog.loadScript).toHaveBeenCalled();
     });
 

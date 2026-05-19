@@ -3,6 +3,7 @@
 :root {
     --notebook_feed_preview_background: transparent;
     --notebook_feed_entry_headerbar_background: hsl(210, 29%, 98%);
+    --notebook_feed_entry_footer_background: hsl(210, 29%, 98%);
 }
 
 
@@ -25,7 +26,7 @@
     width: 100%;
     box-sizing: border-box;
     justify-content: center;
-    padding: 8px 16px;
+    padding: 16px 16px;
 }
 
 .feed_list_filler {
@@ -131,7 +132,7 @@
     max-width: var(--notebook_list_entry_max_width);
     overflow: hidden;
     display: grid;
-    grid-template-rows: 40px 1fr;
+    grid-template-rows: 40px 1fr auto;
 }
 
 .feed_entry_action_bar {
@@ -216,4 +217,10 @@
 
 .script_preview_editor :global(.cm-scroller) {
     overflow-y: auto;
+}
+
+.feed_entry_execution_footer {
+    border-top: 1px solid var(--log_border_color);
+    overflow: hidden;
+    background-color: var(--notebook_feed_entry_footer_background);
 }

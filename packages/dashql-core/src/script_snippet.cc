@@ -1,18 +1,19 @@
 #include "dashql/script_snippet.h"
 
 #include "dashql/buffers/index_generated.h"
+#include "dashql/script.h"
 #include "dashql/script_comparison.h"
 
 namespace dashql {
 
 using Node = buffers::parser::Node;
 
-static buffers::parser::Location patchLocation(buffers::parser::Location loc, size_t snippet_offset,
-                                               size_t snippet_size) {
-    assert(loc.offset() >= snippet_offset);
-    assert((loc.offset() - snippet_offset + loc.length()) <= snippet_size);
-    loc.mutate_offset(loc.offset() - snippet_offset);
-    return loc;
+static buffers::parser::SymbolSpan patchLocation(const ScannedScript& scanned, buffers::parser::SymbolSpan sym_span,
+                                                 size_t snippet_text_offset, size_t snippet_text_size) {
+    auto ts = scanned.ResolveTextSpan(sym_span);
+    assert(ts.offset() >= snippet_text_offset);
+    assert((ts.offset() - snippet_text_offset + ts.length()) <= snippet_text_size);
+    return buffers::parser::SymbolSpan(ts.offset() - snippet_text_offset, ts.length());
 }
 
 // Equals other snippet?
@@ -62,12 +63,10 @@ flatbuffers::Offset<buffers::snippet::ScriptSnippet> ScriptSnippet::Copy(
     return snippet_builder.Finish();
 }
 
-ScriptSnippet ScriptSnippet::Extract(std::string_view text, std::span<const buffers::parser::Node> ast,
+ScriptSnippet ScriptSnippet::Extract(std::string_view text, const ScannedScript& scanned,
+                                     std::span<const buffers::parser::Node> ast,
                                      std::span<const buffers::analyzer::SemanticNodeMarkerType> ast_markers,
                                      size_t root_node_id, const NameRegistry& names) {
-    // XXX This function is currently copying text text of the node-root as is.
-    //     What we should do instead is assemble a cleaned-up text based on the scanner tokens.
-
     // Return an empty snippet for invalid node ids
     if (root_node_id >= ast.size()) {
         return {};
@@ -77,16 +76,17 @@ ScriptSnippet ScriptSnippet::Extract(std::string_view text, std::span<const buff
     std::unordered_map<size_t, size_t> translated_names_by_id;
     std::vector<std::pair<size_t, buffers::analyzer::SemanticNodeMarkerType>> node_markers;
 
-    // Prepare patching locations
+    // Resolve root node symbol span to text coordinates
     const buffers::parser::Node& root_node = ast[root_node_id];
-    size_t snippet_offset = root_node.location().offset();
-    size_t snippet_size = root_node.location().length();
+    auto root_ts = scanned.ResolveTextSpan(root_node.symbol_span());
+    size_t snippet_offset = root_ts.offset();
+    size_t snippet_size = root_ts.length();
 
     // Write the root node
     ScriptSnippet out;
     out.text = text.substr(snippet_offset, snippet_size);
     {
-        Node out_root{patchLocation(root_node.location(), snippet_offset, snippet_size),
+        Node out_root{patchLocation(scanned, root_node.symbol_span(), snippet_offset, snippet_size),
                       root_node.node_type(),
                       buffers::parser::AttributeKey::NONE,
                       0,
@@ -134,7 +134,7 @@ ScriptSnippet ScriptSnippet::Extract(std::string_view text, std::span<const buff
                     source_node.children_begin_or_value() + source_node.children_count() - 1 - i;
                 auto& child_node = ast[child_source_node_id];
                 uint32_t parent_id = static_cast<uint32_t>(output_node_id);
-                Node out_child{patchLocation(child_node.location(), snippet_offset, snippet_size),
+                Node out_child{patchLocation(scanned, child_node.symbol_span(), snippet_offset, snippet_size),
                                child_node.node_type(),
                                child_node.attribute_key(),
                                parent_id,

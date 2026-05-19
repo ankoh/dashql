@@ -19,6 +19,8 @@ describe('importSessionFromZip', () => {
             deleteSession: vi.fn(),
             loadSessionSchema: vi.fn(),
             saveSessionSchema: vi.fn(),
+            loadSessionFunctions: vi.fn(),
+            saveSessionFunctions: vi.fn(),
             loadNotebookPages: vi.fn(),
             createNotebookPage: vi.fn(),
             deleteNotebookPage: vi.fn(),

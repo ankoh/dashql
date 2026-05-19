@@ -50,7 +50,7 @@ describe('createDefaultNotebook', () => {
 
         expect(allocateNotebookState).toHaveBeenCalledTimes(1);
         expect(notebook.notebookPages).toHaveLength(1);
-        expect(notebook.notebookUserFocus).toEqual({ pageIndex: 0, entryInPage: 0 });
+        expect(notebook.notebookUserFocus).toEqual({ pageIndex: 0, entryInPage: 0, interactionCounter: 0 });
 
         const queryPage = notebook.notebookPages[0];
         expect(queryPage.scripts).toHaveLength(1);

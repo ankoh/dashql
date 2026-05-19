@@ -31,14 +31,12 @@ describe('DashQL Cursor', () => {
         script.insertTextAt(0, scriptText);
         script.analyze();
 
-        const scannedBuffer = script.getScanned();
         const parsedBuffer = script.getParsed();
         const analyzedBuffer = script.getAnalyzed();
-        const scanned = scannedBuffer.read();
         const parsed = parsedBuffer.read();
         const tmpCursor = new dashql.buffers.cursor.ScriptCursor();
 
-        const scannerTokens = scanned.tokens()!;
+        const scannerTokens = parsed.tokens()!;
         expect(scannerTokens).not.toBeNull();
         const scannerTokenOffsets = scannerTokens.tokenOffsetsArray()!;
         const scannerTokenLengths = scannerTokens.tokenLengthsArray()!;
@@ -59,7 +57,6 @@ describe('DashQL Cursor', () => {
             cursorBuffer.destroy();
             analyzedBuffer.destroy();
             parsedBuffer.destroy();
-            scannedBuffer.destroy();
         };
 
         test(script, 0, {

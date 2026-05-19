@@ -1,0 +1,5 @@
+%type <buffers::parser::Node> sql_create_function_stmt;
+%type <buffers::parser::Node> sql_function_param;
+%type <buffers::parser::Node> sql_function_param_type;
+%type <WeakUniquePtr<NodeList>> sql_function_param_list;
+%type <WeakUniquePtr<NodeList>> sql_opt_function_param_list;

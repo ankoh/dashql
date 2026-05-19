@@ -25,9 +25,12 @@ struct ParserSnapshotTest {
     /// Node id of this parser-snapshot entry (expected = tree->ref(node_id)["expected"])
     c4::yml::id_type node_id = c4::yml::NONE;
 
-    /// Encode AST nodes into a YAML parent (adds "nodes" sequence with node maps)
-    static void EncodeAST(c4::yml::NodeRef parent, std::string_view text, std::span<const buffers::parser::Node> ast,
-                          size_t root_node_id);
+    /// Encode AST nodes into a YAML parent (resolves token-index SymbolSpans through scanned script)
+    static void EncodeAST(c4::yml::NodeRef parent, std::string_view text, const ScannedScript& scanned,
+                          std::span<const buffers::parser::Node> ast, size_t root_node_id);
+    /// Encode AST nodes where SymbolSpans are already text-offset-based (e.g. snippets)
+    static void EncodeAST(c4::yml::NodeRef parent, std::string_view text,
+                          std::span<const buffers::parser::Node> ast, size_t root_node_id);
     /// Encode script result into a YAML map (statements, scanner-errors, parser-errors, line-breaks, comments)
     static void EncodeScript(c4::yml::NodeRef root, const ScannedScript& scanned, const ParsedScript& parsed,
                              std::string_view text);

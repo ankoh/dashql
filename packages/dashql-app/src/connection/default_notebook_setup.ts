@@ -13,7 +13,6 @@ function createScriptData(script: core.DashQLScript, pageIndex: number, fileName
         script,
         scriptAnalysis: {
             buffers: {
-                scanned: null,
                 parsed: null,
                 analyzed: null,
                 destroy: () => { },
@@ -73,7 +72,7 @@ export function createDefaultNotebook(
             },
         ],
         uncommittedScriptId: uncommittedKey,
-        notebookUserFocus: { pageIndex: 0, entryInPage: 0 },
+        notebookUserFocus: { pageIndex: 0, entryInPage: 0, interactionCounter: 0 },
         semanticUserFocus: null,
     };
 

@@ -20,7 +20,6 @@ export function useNotebookSetup(): NotebookSetup {
             script: mainScript,
             scriptAnalysis: {
                 buffers: {
-                    scanned: null,
                     parsed: null,
                     analyzed: null,
                     destroy: () => { },
@@ -55,7 +54,7 @@ export function useNotebookSetup(): NotebookSetup {
             },
             notebookPages: [defaultPage],
             uncommittedScriptId: uncommittedKey,
-            notebookUserFocus: { pageIndex: 0, entryInPage: 0 },
+            notebookUserFocus: { pageIndex: 0, entryInPage: 0, interactionCounter: 0 },
             semanticUserFocus: null,
         });
         return notebook;

@@ -121,9 +121,10 @@ extern "C" void dashql_script_format(FFIResult* result, Script* script, size_t d
     // Format the script
     auto text = script->Format(config, parse_if_outdated);
 
-    std::optional<Catalog> ad_hoc_catalog;
+    // Use the provided catalog, or fall back to the source script's catalog.
+    // The returned Script holds a reference to the catalog, so it must outlive the Script.
     if (catalog == nullptr) {
-        catalog = &ad_hoc_catalog.emplace();
+        catalog = &script->catalog;
     }
 
     // Construct a new script from the text

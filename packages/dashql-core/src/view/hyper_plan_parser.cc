@@ -39,7 +39,7 @@ struct ParserDFSNode {
     /// The already emitted children
     IntrusiveList<PlanViewModel::ParsedOperatorNode> child_operators;
     /// The source location
-    std::optional<dashql::buffers::parser::Location> source_location = std::nullopt;
+    std::optional<dashql::buffers::parser::SymbolSpan> source_location = std::nullopt;
 
     /// Constructor
     ParserDFSNode(rapidjson::Value& json_value, std::optional<size_t> parent_node_index,
@@ -186,7 +186,7 @@ void PlanViewModel::ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]
                             auto posBegin = iterBegin->IsNumber() ? iterBegin->GetUint() : 0;
                             auto posEnd = iterEnd->IsNumber() ? iterEnd->GetUint() : 0;
                             pending[current_index].source_location =
-                                dashql::buffers::parser::Location(posBegin, std::max(posEnd, posBegin) - posBegin);
+                                dashql::buffers::parser::SymbolSpan(posBegin, std::max(posEnd, posBegin) - posBegin);
                         }
                     } else {
                         // Remember as attribute

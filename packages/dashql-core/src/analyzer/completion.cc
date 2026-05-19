@@ -37,6 +37,9 @@ static constexpr Completion::ScoreValueType NAME_TAG_LIKELY = 20;
 // Fine-granular score modifiers
 static constexpr Completion::ScoreValueType SUBSTRING_SCORE_MODIFIER = 30;         // User typed name substring
 static constexpr Completion::ScoreValueType PREFIX_SCORE_MODIFIER = 5;             // User typed name prefix
+static constexpr Completion::ScoreValueType EXACT_MATCH_SCORE_MODIFIER = 15;       // User typed exact name
+static constexpr Completion::ScoreValueType EXPECTED_KEYWORD_MATCH_MODIFIER = 20;  // Expected keyword matches input
+static constexpr Completion::ScoreValueType THROUGH_CATALOG_SCORE_MODIFIER = 2;    // Candidate comes from the catalog
 static constexpr Completion::ScoreValueType RESOLVING_TABLE_SCORE_MODIFIER = 5;    // Table is resolving unresolved
 static constexpr Completion::ScoreValueType UNRESOLVED_PEER_SCORE_MODIFIER = 1;    // Share unresolved table
 static constexpr Completion::ScoreValueType DOT_SCHEMA_SCORE_MODIFIER = 2;         // Dot completion for schema
@@ -52,6 +55,8 @@ static_assert((NAME_TAG_UNLIKELY + SUBSTRING_SCORE_MODIFIER) > NAME_TAG_LIKELY,
               "An unlikely name that is a substring outweighs a likely name");
 static_assert(IN_NAME_SCOPE_SCORE_MODIFIER > PREFIX_SCORE_MODIFIER,
               "Candidates being available in scope weighs more than being a prefix");
+static_assert(EXACT_MATCH_SCORE_MODIFIER > IN_NAME_SCOPE_SCORE_MODIFIER,
+              "An exact match outweighs being in scope");
 static_assert(SUBSTRING_SCORE_MODIFIER >
                   (IN_SAME_STATEMENT_SCORE_MODIFIER + IN_SAME_SCRIPT_SCORE_MODIFIER + IN_OTHER_SCRIPT_SCORE_MODIFIER),
               "Candidates that are used elsewhere are not higher scoring than a substring match");
@@ -61,6 +66,8 @@ static_assert(IN_NAME_SCOPE_SCORE_MODIFIER >
 static_assert(RESOLVING_TABLE_SCORE_MODIFIER >
                   (IN_SAME_STATEMENT_SCORE_MODIFIER + IN_SAME_SCRIPT_SCORE_MODIFIER + IN_OTHER_SCRIPT_SCORE_MODIFIER),
               "Resolving unresolved columns outweighs being referenced elsewhere");
+static_assert((NAME_TAG_LIKELY + THROUGH_CATALOG_SCORE_MODIFIER) > EXPECTED_KEYWORD_MATCH_MODIFIER,
+              "A likely catalog name with prefix match outranks an expected keyword with prefix match");
 
 Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags) {
     Completion::ScoreValueType score = 0;
@@ -70,6 +77,9 @@ Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags)
 
     score += ((tags & buffers::completion::CandidateTag::SUBSTRING_MATCH) != 0) * SUBSTRING_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::PREFIX_MATCH) != 0) * PREFIX_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::EXACT_MATCH) != 0) * EXACT_MATCH_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::EXPECTED_KEYWORD_MATCH) != 0) * EXPECTED_KEYWORD_MATCH_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::THROUGH_CATALOG) != 0) * THROUGH_CATALOG_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::RESOLVING_TABLE) != 0) * RESOLVING_TABLE_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::UNRESOLVED_PEER) != 0) * UNRESOLVED_PEER_SCORE_MODIFIER;
 
@@ -93,6 +103,7 @@ static constexpr NameScoringTable NAME_SCORE_DEFAULTS{{
     {buffers::analyzer::NameTag::TABLE_NAME, NAME_TAG_LIKELY},
     {buffers::analyzer::NameTag::TABLE_ALIAS, NAME_TAG_LIKELY},
     {buffers::analyzer::NameTag::COLUMN_NAME, NAME_TAG_LIKELY},
+    {buffers::analyzer::NameTag::FUNCTION_NAME, NAME_TAG_LIKELY},
 }};
 
 static constexpr NameScoringTable NAME_SCORE_TABLE_REF{{
@@ -102,6 +113,7 @@ static constexpr NameScoringTable NAME_SCORE_TABLE_REF{{
     {buffers::analyzer::NameTag::TABLE_NAME, NAME_TAG_LIKELY},
     {buffers::analyzer::NameTag::TABLE_ALIAS, NAME_TAG_UNLIKELY},
     {buffers::analyzer::NameTag::COLUMN_NAME, NAME_TAG_UNLIKELY},
+    {buffers::analyzer::NameTag::FUNCTION_NAME, NAME_TAG_UNLIKELY},
 }};
 
 static constexpr NameScoringTable NAME_SCORE_COLUMN_REF{{
@@ -111,6 +123,7 @@ static constexpr NameScoringTable NAME_SCORE_COLUMN_REF{{
     {buffers::analyzer::NameTag::TABLE_NAME, NAME_TAG_UNLIKELY},
     {buffers::analyzer::NameTag::TABLE_ALIAS, NAME_TAG_LIKELY},
     {buffers::analyzer::NameTag::COLUMN_NAME, NAME_TAG_LIKELY},
+    {buffers::analyzer::NameTag::FUNCTION_NAME, NAME_TAG_UNLIKELY},
 }};
 
 /// We use a prevalence score to rank keywords by popularity.
@@ -183,6 +196,22 @@ bool doNotCompleteSymbol(parser::Parser::symbol_type& sym) {
 
 }  // namespace
 
+std::span<std::string_view> Completion::GetQualifiedFunctionName(const CatalogEntry::QualifiedFunctionName& name) {
+    std::vector<std::string_view> names;
+    names.reserve(3);
+    if (!name.database_name.get().text.empty()) {
+        names.push_back(name.database_name.get().text);
+        names.push_back(name.schema_name.get().text);
+        names.push_back(name.function_name.get().text);
+    } else if (!name.schema_name.get().text.empty()) {
+        names.push_back(name.schema_name.get().text);
+        names.push_back(name.function_name.get().text);
+    } else if (!name.function_name.get().text.empty()) {
+        names.push_back(name.function_name.get().text);
+    }
+    return top_candidate_names.PushBack(std::move(names));
+}
+
 std::span<std::string_view> Completion::GetQualifiedTableName(const CatalogEntry::QualifiedTableName& name) {
     std::vector<std::string_view> names;
     names.reserve(3);
@@ -230,7 +259,7 @@ void Completion::FindCandidatesForNamePath() {
     // The cursor location
     auto cursor_location = target_scanner_symbol->text_offset;
     // Read the name path
-    sx::parser::Location name_path_loc;
+    sx::parser::SymbolSpan name_path_loc;
     auto name_path_buffer = cursor.ReadCursorNamePath(name_path_loc);
     std::span<ScriptCursor::NameComponent> name_path = name_path_buffer;
 
@@ -245,17 +274,20 @@ void Completion::FindCandidatesForNamePath() {
 
     // Last text prefix
     std::string_view last_text_prefix;
-    uint32_t truncate_at = name_path_loc.offset() + name_path_loc.length();
+    auto& scan = *cursor.script.scanned_script;
+    auto name_path_ts = scan.ResolveTextSpan(name_path_loc);
+    uint32_t truncate_at = name_path_ts.offset() + name_path_ts.length();
     for (; name_count < name_path.size(); ++name_count) {
+        auto comp_ts = scan.ResolveTextSpan(name_path[name_count].loc);
         if (name_path[name_count].type == ScriptCursor::NameComponentType::TrailingDot) {
-            truncate_at = name_path[name_count].loc.offset() + 1;
+            truncate_at = comp_ts.offset() + 1;
             break;
         }
         if (name_path[name_count].type != ScriptCursor::NameComponentType::Name) {
-            truncate_at = name_path[name_count].loc.offset();
+            truncate_at = comp_ts.offset();
             break;
         }
-        if ((name_path[name_count].loc.offset() + name_path[name_count].loc.length()) < cursor_location) {
+        if ((comp_ts.offset() + comp_ts.length()) < cursor_location) {
             ++sealed;
         } else {
             // The cursor points into a name?
@@ -265,24 +297,24 @@ void Completion::FindCandidatesForNamePath() {
             //  foo.bar.something
             //              ^ if the cursor points to t, we'll complete "some"
             //
-            auto last_loc = name_path[name_count].loc;
-            auto last_text = cursor.script.scanned_script->ReadTextAtLocation(last_loc);
+            auto last_text = scan.ReadTextAtSymbolSpan(name_path[name_count].loc);
             auto last_content =
                 std::find_if(last_text.begin(), last_text.end(), is_no_double_quote) - last_text.begin();
-            auto last_content_ofs = last_loc.offset() + last_content;
+            auto last_content_ofs = comp_ts.offset() + last_content;
             auto last_prefix_length = std::max<size_t>(cursor_location, last_content_ofs) - last_content_ofs;
             last_text_prefix = last_text.substr(last_content, last_prefix_length);
 
             // Truncate when replacing
-            truncate_at = last_loc.offset();
+            truncate_at = comp_ts.offset();
             break;
         }
     }
     name_path = name_path.subspan(0, name_count);
 
-    // Determine text to replace
-    sx::parser::Location replace_text_at{
-        truncate_at, std::max<uint32_t>(name_path_loc.offset() + name_path_loc.length(), truncate_at) - truncate_at};
+    // Determine text ranges to replace (text-offset-based SymbolSpans for the editor)
+    sx::parser::SymbolSpan replace_text_at{
+        truncate_at, std::max<uint32_t>(name_path_ts.offset() + name_path_ts.length(), truncate_at) - truncate_at};
+    sx::parser::SymbolSpan name_path_text_loc{name_path_ts.offset(), name_path_ts.length()};
 
     // Is the path empty?
     // Nothing to complete then.
@@ -440,7 +472,7 @@ void Completion::FindCandidatesForNamePath() {
             auto& candidate_object = iter->second.get();
             candidate_object.candidate_tags |= dot_candidate.candidate_tags;
             candidate_object.candidate.target_location = replace_text_at;
-            candidate_object.candidate.target_location_qualified = name_path_loc;
+            candidate_object.candidate.target_location_qualified = name_path_text_loc;
             assert(candidate_object.candidate.completion_text == dot_candidate.name);
 
         } else {
@@ -453,6 +485,9 @@ void Completion::FindCandidatesForNamePath() {
                     dot_candidate.candidate_tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
                     if (pos == 0) {
                         dot_candidate.candidate_tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
+                        if (last_text_prefix.size() == dot_candidate.name.size()) {
+                            dot_candidate.candidate_tags |= buffers::completion::CandidateTag::EXACT_MATCH;
+                        }
                     }
                 }
             }
@@ -462,7 +497,7 @@ void Completion::FindCandidatesForNamePath() {
                 auto& existing = iter->second.get();
                 // Fix text replacement
                 existing.target_location = replace_text_at;
-                existing.target_location_qualified = name_path_loc;
+                existing.target_location_qualified = name_path_text_loc;
                 // Allocate the candidate object
                 auto& co = candidate_objects.PushBack(CandidateCatalogObject{
                     .candidate = existing,
@@ -483,7 +518,7 @@ void Completion::FindCandidatesForNamePath() {
                     .coarse_name_tags = dot_candidate.name_tags,
                     .candidate_tags = dot_candidate.candidate_tags,
                     .target_location = replace_text_at,
-                    .target_location_qualified = name_path_loc,
+                    .target_location_qualified = name_path_text_loc,
                     .catalog_objects = {},
                 });
                 candidates_by_name.insert({c.completion_text, c});
@@ -525,14 +560,19 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
             case Relative::END_OF_SYMBOL: {
                 auto symbol_ofs = target_symbol->symbol.location.offset();
                 auto symbol_prefix = std::max<uint32_t>(target_symbol->text_offset, symbol_ofs) - symbol_ofs;
-                auto symbol_text = cursor.script.scanned_script->ReadTextAtLocation(target_symbol->symbol.location);
+                auto symbol_text = cursor.script.scanned_script->ReadTextAtTextSpan(
+                    sx::parser::TextSpan(target_symbol->symbol.location.offset(), target_symbol->symbol.location.length()));
                 auto symbol_text_trimmed = trim_view({symbol_text.data(), symbol_prefix}, is_no_double_quote);
                 fuzzy_ci_string_view ci_symbol_text{symbol_text_trimmed.data(), symbol_text_trimmed.length()};
                 // Is substring?
                 if (auto pos = ci_keyword_text.find(ci_symbol_text); pos != fuzzy_ci_string_view::npos) {
                     tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
+                    tags |= buffers::completion::CandidateTag::EXPECTED_KEYWORD_MATCH;
                     if (pos == 0) {
                         tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
+                        if (ci_symbol_text.size() == ci_keyword_text.size()) {
+                            tags |= buffers::completion::CandidateTag::EXACT_MATCH;
+                        }
                     }
                 }
                 return tags;
@@ -568,7 +608,8 @@ void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& inde
     auto symbol_ofs = target_symbol->symbol.location.offset();
     auto safe_cursor_offset =
         std::min(std::max<uint32_t>(symbol_ofs, cursor_offset), symbol_ofs + target_symbol->symbol.location.length());
-    auto symbol_text = cursor.script.scanned_script->ReadTextAtLocation(target_symbol->symbol.location);
+    auto symbol_text = cursor.script.scanned_script->ReadTextAtTextSpan(
+        sx::parser::TextSpan(target_symbol->symbol.location.offset(), target_symbol->symbol.location.length()));
     auto symbol_prefix =
         std::min<uint32_t>(std::max<uint32_t>(safe_cursor_offset, symbol_ofs) - symbol_ofs, symbol_text.size());
     auto symbol_text_trimmed = trim_view({symbol_text.data(), symbol_prefix}, is_no_double_quote);
@@ -603,6 +644,9 @@ void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& inde
                 candidate_tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
                 if (fuzzy_ci_string_view{name_info.text.data(), name_info.text.size()}.starts_with(ci_prefix_text)) {
                     candidate_tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
+                    if (ci_prefix_text.size() == name_info.text.size()) {
+                        candidate_tags |= buffers::completion::CandidateTag::EXACT_MATCH;
+                    }
                 }
                 break;
             default:
@@ -853,7 +897,9 @@ void Completion::SelectTopCandidates() {
         }
 
         // Determine overall candidate score
-        Completion::ScoreValueType object_score = !candidate_objects.empty() ? candidate_objects.back().score : 0;
+        Completion::ScoreValueType object_score = !candidate_objects.empty()
+            ? candidate_objects.back().score
+            : computeCandidateScore(candidate.candidate_tags);
         Completion::ScoreValueType candidate_score = base_score + object_score;
         candidate.score = candidate_score;
 
@@ -934,6 +980,14 @@ void Completion::QualifyTopCandidates() {
 
                     // Derive qualified table name
                     co.qualified_name = GetQualifiedTableName(table.table_name);
+                    co.qualified_name_target_idx = co.qualified_name.size() - 1;
+                    break;
+                }
+                case CatalogObjectType::FunctionDeclaration: {
+                    auto& func = co.catalog_object.CastUnsafe<CatalogEntry::FunctionDeclaration>();
+
+                    // Derive qualified function name
+                    co.qualified_name = GetQualifiedFunctionName(func.function_name);
                     co.qualified_name_target_idx = co.qualified_name.size() - 1;
                     break;
                 }
@@ -1212,31 +1266,33 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
     return completion;
 }
 
-static std::pair<sx::parser::Location, sx::parser::Location> getNameUnderCursorOrLast(
-    std::span<ScriptCursor::NameComponent> path, size_t offset) {
+static std::pair<sx::parser::SymbolSpan, sx::parser::SymbolSpan> getNameUnderCursorOrLast(
+    const ScannedScript& scanned, std::span<ScriptCursor::NameComponent> path, size_t offset) {
     if (path.empty()) {
         return {{}, {}};
     }
-    sx::parser::Location target_loc = path.back().loc;
+    auto back_ts = scanned.ResolveTextSpan(path.back().loc);
+    sx::parser::SymbolSpan target_loc(back_ts.offset(), back_ts.length());
     size_t path_begin = std::numeric_limits<size_t>::max();
     size_t path_end = 0;
     for (auto component : path) {
-        size_t begin = component.loc.offset();
-        size_t end = component.loc.offset() + component.loc.length();
+        auto ts = scanned.ResolveTextSpan(component.loc);
+        size_t begin = ts.offset();
+        size_t end = ts.offset() + ts.length();
         if (begin <= offset && end > offset) {
-            target_loc = component.loc;
+            target_loc = sx::parser::SymbolSpan(ts.offset(), ts.length());
         }
         path_begin = std::min(path_begin, begin);
         path_end = std::max(path_end, end);
     }
-    sx::parser::Location path_loc(path_begin, path_end - path_begin);
+    sx::parser::SymbolSpan path_loc(path_begin, path_end - path_begin);
     return {target_loc, path_loc};
 }
 
 static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLocation(
     flatbuffers::FlatBufferBuilder& builder, const buffers::completion::Completion& completion, size_t candidate_idx,
-    std::optional<size_t> qualified_object_idx, sx::parser::Location target_location,
-    sx::parser::Location target_location_qualified) {
+    std::optional<size_t> qualified_object_idx, sx::parser::SymbolSpan target_location,
+    sx::parser::SymbolSpan target_location_qualified) {
     auto candidate = completion.candidates()->Get(candidate_idx);
 
     // Pack display and completion text
@@ -1375,9 +1431,9 @@ CompletionPtr Completion::SelectCandidate(flatbuffers::FlatBufferBuilder& builde
     switch (completion.strategy()) {
         case buffers::completion::CompletionStrategy::COLUMN_REF:
             if (std::holds_alternative<ScriptCursor::ColumnRefContext>(cursor.context)) {
-                sx::parser::Location name_path_loc;
+                sx::parser::SymbolSpan name_path_loc;
                 auto name_path_buffer = cursor.ReadCursorNamePath(name_path_loc);
-                auto [cursor_loc, path_loc] = getNameUnderCursorOrLast(name_path_buffer, cursor.text_offset);
+                auto [cursor_loc, path_loc] = getNameUnderCursorOrLast(*cursor.script.scanned_script, name_path_buffer, cursor.text_offset);
                 auto ofs =
                     selectCandidateAtLocation(builder, completion, candidate_idx, std::nullopt, cursor_loc, path_loc);
                 return ofs;
@@ -1389,9 +1445,9 @@ CompletionPtr Completion::SelectCandidate(flatbuffers::FlatBufferBuilder& builde
         case buffers::completion::CompletionStrategy::TABLE_REF:
             if (std::holds_alternative<ScriptCursor::TableRefContext>(cursor.context)) {
                 // Read the name path
-                sx::parser::Location name_path_loc;
+                sx::parser::SymbolSpan name_path_loc;
                 auto name_path_buffer = cursor.ReadCursorNamePath(name_path_loc);
-                auto [cursor_loc, path_loc] = getNameUnderCursorOrLast(name_path_buffer, cursor.text_offset);
+                auto [cursor_loc, path_loc] = getNameUnderCursorOrLast(*cursor.script.scanned_script, name_path_buffer, cursor.text_offset);
                 auto ofs =
                     selectCandidateAtLocation(builder, completion, candidate_idx, std::nullopt, cursor_loc, path_loc);
                 return ofs;
@@ -1535,6 +1591,13 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
                     obj.add_catalog_table_id(table_id.Pack());
                     obj.add_table_column_id(column_idx);
                     obj.add_referenced_catalog_version(table.catalog_version);
+                    break;
+                }
+                case CatalogObjectType::FunctionDeclaration: {
+                    auto& func = o.CastUnsafe<CatalogEntry::FunctionDeclaration>();
+                    auto [db_id, schema_id] = func.catalog_schema_id.UnpackSchemaID();
+                    obj.add_catalog_database_id(db_id);
+                    obj.add_catalog_schema_id(schema_id);
                     break;
                 }
                 case CatalogObjectType::Deferred: {

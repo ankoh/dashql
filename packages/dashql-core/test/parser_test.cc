@@ -29,7 +29,7 @@ TEST(ParserTest, FindNodeAtOffset) {
     };
     /// Test if ast node matches
     auto test_node_at_offset = [&](size_t text_offset, size_t expected_statement_id,
-                                   buffers::parser::NodeType expect_node_type, sx::parser::Location expect_loc) {
+                                   buffers::parser::NodeType expect_node_type, sx::parser::SymbolSpan expect_loc) {
         auto result = script->FindNodeAtOffset(text_offset);
         ASSERT_TRUE(result.has_value()) << "offset=" << text_offset;
         auto [statement_id, node_id] = *result;
@@ -37,15 +37,15 @@ TEST(ParserTest, FindNodeAtOffset) {
         ASSERT_LT(node_id, script->nodes.size());
         auto& node = script->nodes[node_id];
         ASSERT_EQ(node.node_type(), expect_node_type);
-        ASSERT_EQ(node.location().offset(), expect_loc.offset());
-        ASSERT_EQ(node.location().length(), expect_loc.length());
+        ASSERT_EQ(node.symbol_span().offset(), expect_loc.offset());
+        ASSERT_EQ(node.symbol_span().length(), expect_loc.length());
     };
 
     parse("select 1");
-    test_node_at_offset(0, 0, buffers::parser::NodeType::OBJECT_SQL_SELECT, sx::parser::Location(0, 8));
-    test_node_at_offset(1, 0, buffers::parser::NodeType::OBJECT_SQL_SELECT, sx::parser::Location(0, 8));
-    test_node_at_offset(2, 0, buffers::parser::NodeType::OBJECT_SQL_SELECT, sx::parser::Location(0, 8));
-    test_node_at_offset(7, 0, buffers::parser::NodeType::LITERAL_INTEGER, sx::parser::Location(7, 1));
+    test_node_at_offset(0, 0, buffers::parser::NodeType::OBJECT_SQL_SELECT, sx::parser::SymbolSpan(0, 2));
+    test_node_at_offset(1, 0, buffers::parser::NodeType::OBJECT_SQL_SELECT, sx::parser::SymbolSpan(0, 2));
+    test_node_at_offset(2, 0, buffers::parser::NodeType::OBJECT_SQL_SELECT, sx::parser::SymbolSpan(0, 2));
+    test_node_at_offset(7, 0, buffers::parser::NodeType::LITERAL_INTEGER, sx::parser::SymbolSpan(1, 1));
 }
 
 }  // namespace

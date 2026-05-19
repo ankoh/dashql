@@ -7,7 +7,7 @@ import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUM
 import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SCHEDULE_TASK } from './computation_state.js';
 import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderingTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, WithFilter, WithFilterEpoch, ComputationStateVersion } from './computation_types.js';
 import { Dispatch } from '../utils/variant.js';
-import { LoggableException, LoggerLike } from '../platform/logger/logger.js';
+import { LoggableException, LoggerLike, stringifyError } from '../platform/logger/logger.js';
 import { assert } from '../utils/assert.js';
 import { SQLFrame } from '../sql/sqlframe_builder.js';
 import { DuckDB } from '../platform/duckdb/duckdb_api.js';
@@ -186,7 +186,7 @@ export async function computeSystemColumns(task: SystemColumnComputationTask, lo
         if (error instanceof LoggableException) {
             throw error;
         } else {
-            throw new LoggableException("Failed to precompute column", { "error": error.toString() }, LOG_CTX);
+            throw new LoggableException("Failed to precompute column", { "error": stringifyError(error) }, LOG_CTX);
         }
     }
 }
@@ -434,7 +434,7 @@ export async function sortTable(task: TableOrderingTask, logger: LoggerLike): Pr
         if (error instanceof LoggableException) {
             throw error;
         } else {
-            throw new LoggableException(`Sorting table failed`, { "error": error.toString() }, LOG_CTX);
+            throw new LoggableException(`Sorting table failed`, { "error": stringifyError(error) }, LOG_CTX);
         }
     }
 }
@@ -493,7 +493,7 @@ export async function filterTable(task: TableFilteringTask, logger: LoggerLike):
         if (error instanceof LoggableException) {
             throw error;
         } else {
-            throw new LoggableException(`Failed to filter table`, { "error": error.toString() }, LOG_CTX);
+            throw new LoggableException(`Failed to filter table`, { "error": stringifyError(error) }, LOG_CTX);
         }
     }
 }
@@ -545,7 +545,7 @@ export async function computeTableAggregates(task: TableAggregationTask, logger:
         } else {
             throw new LoggableException("computing aggregate failed", {
                 "table": task.tableId.toString(),
-                "error": error.toString()
+                "error": stringifyError(error)
             }, LOG_CTX);
         }
     }
@@ -877,7 +877,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
         } else {
             const exception = new LoggableException("Computing column aggregate failed", {
                 "table": task.tableId.toString(),
-                "error": error.toString(),
+                "error": stringifyError(error),
             }, LOG_CTX);
             logger.exception(exception);
             throw exception;
@@ -1051,7 +1051,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
                 "table": task.tableId.toString(),
                 "columnIndex": task.columnId.toString(),
                 "columnName": task.columnEntry.value.inputFieldName,
-                "error": error.toString(),
+                "error": stringifyError(error),
             }, LOG_CTX);
             logger.exception(exception);
             throw exception;

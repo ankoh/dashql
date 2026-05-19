@@ -33,14 +33,14 @@ completion-snapshots:
       symbol: OBJECT_EXT_TRAILING_DOT
       relative: END_OF_SYMBOL
       entries:
-        - score: 22
+        - score: 24
           value: schemaname
           name-tags: [SCHEMA_NAME]
           candidate-tags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
           location: ""
           location-qualified: "dbname."
           objects:
-            - score: 2
+            - score: 4
               type: schema
               id: "256.65536"
               candidate-tags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
@@ -113,14 +113,14 @@ completion-snapshots:
       symbol: NAME
       relative: BEGIN_OF_SYMBOL
       entries:
-        - score: 22
+        - score: 24
           value: schemaname
           name-tags: [SCHEMA_NAME]
           candidate-tags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
           location: "sch"
           location-qualified: "dbname.sch"
           objects:
-            - score: 2
+            - score: 4
               type: schema
               id: "256.65536"
               candidate-tags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
@@ -159,14 +159,14 @@ completion-snapshots:
       symbol: NAME
       relative: BEGIN_OF_SYMBOL
       entries:
-        - score: 22
+        - score: 24
           value: schemaname
           name-tags: [SCHEMA_NAME]
           candidate-tags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
           location: "\"sch\""
           location-qualified: "dbname.\"sch\""
           objects:
-            - score: 2
+            - score: 4
               type: schema
               id: "256.65536"
               candidate-tags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]

@@ -168,7 +168,7 @@ table Expression {
     // The id of the statement that contains the expression
     ast_statement_id: uint32;
     // The location
-    location: parser.Location;
+    symbol_span: parser.SymbolSpan;
     /// The inner type
     inner: ExpressionSubType;
     /// Is the expression constant?

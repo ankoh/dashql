@@ -20,7 +20,7 @@ export function readColumnIdentifierSnippet(snippet: dashql.buffers.snippet.Scri
     for (let mi = 0; mi < markers.length; ++mi) {
         if (markers[mi] == dashql.buffers.analyzer.SemanticNodeMarkerType.COLUMN_REFERENCE) {
             const node = snippet.nodes(mi, tmpNode)!;
-            const nodeLoc = node.location()!;
+            const nodeLoc = node.symbolSpan()!;
             textBefore = text.substring(0, nodeLoc.offset());
             textAfter = text.substring(nodeLoc.offset() + nodeLoc.length());
         }

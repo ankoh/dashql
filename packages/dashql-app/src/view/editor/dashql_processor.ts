@@ -15,8 +15,6 @@ export interface DashQLProcessorConfig {
 export type DashQLScriptKey = number;
 /// A collection of FlatBuffers for a script
 export interface DashQLScriptBuffers {
-    /// The scanned script
-    scanned: dashql.FlatBufferPtr<dashql.buffers.parser.ScannedScript> | null;
     /// The parsed script
     parsed: dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript> | null;
     /// The analyzed script
@@ -56,6 +54,8 @@ export interface DashQLCompletionState {
     templateId: number;
     /// The patches to apply the template
     templatePatch: CompletionPatch[];
+    /// Override cursor position after applying template patch (absolute position in post-patch text)
+    templateCursorOffset: number | null;
 }
 
 /// A state that is pushed from the processor to the outside
@@ -92,23 +92,18 @@ export function analyzeScript(script: dashql.DashQLScript): DashQLScriptBuffers 
     try {
         script.analyze();
 
-        const scanned = script.getScanned();
         const parsed = script.getParsed();
         const analyzed = script.getAnalyzed();
-        return { scanned, parsed, analyzed, destroy: destroyBuffers };
+        return { parsed, analyzed, destroy: destroyBuffers };
 
     } catch (e: any) {
         console.error(e);
     }
-    return { scanned: null, parsed: null, analyzed: null, destroy: destroyBuffers };
+    return { parsed: null, analyzed: null, destroy: destroyBuffers };
 }
 
 /// Destory the buffers
 const destroyBuffers = (state: DashQLScriptBuffers) => {
-    if (state.scanned != null) {
-        state.scanned.destroy();
-        state.scanned = null;
-    }
     if (state.parsed != null) {
         state.parsed.destroy();
         state.parsed = null;
@@ -163,7 +158,6 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
             scriptKey: 0,
             script: null,
             scriptBuffers: {
-                scanned: null,
                 parsed: null,
                 analyzed: null,
                 destroy: destroyBuffers,
@@ -293,6 +287,7 @@ function tryStartCompletion(state: DashQLProcessorState, prevState: DashQLProces
             catalogObjectPatch: [],
             templateId: 0,
             templatePatch: [],
+            templateCursorOffset: null,
         };
         state.scriptCompletion = computePatches(state.scriptCompletion, text, cursor, UpdatePatchStartingFrom.Candidate);
     }
@@ -448,6 +443,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                     candidatePatch: [],
                     catalogObjectPatch: [],
                     templatePatch: [],
+                    templateCursorOffset: null,
                 };
                 state.scriptCompletion = computePatches(state.scriptCompletion, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.CatalogObject);
             } else {
@@ -485,6 +481,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                     catalogObjectId: 0,
                     catalogObjectPatch: [],
                     templatePatch: [],
+                    templateCursorOffset: null,
                 };
                 state.scriptCompletion = computePatches(state.scriptCompletion, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.Template);
             } else {
@@ -517,7 +514,8 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                 status: DashQLCompletionStatus.SELECTED_TEMPLATE,
                 candidatePatch: [],
                 catalogObjectPatch: [],
-                templatePatch: []
+                templatePatch: [],
+                templateCursorOffset: null,
             };
         }
     }

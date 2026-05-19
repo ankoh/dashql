@@ -1,3 +1,10 @@
+export interface DockerContainerPort {
+    PrivatePort: number;
+    PublicPort?: number;
+    Type: string;
+    IP?: string;
+}
+
 export interface DockerContainerSummary {
     Id: string;
     Names: string[];
@@ -5,6 +12,20 @@ export interface DockerContainerSummary {
     State: string;
     Status: string;
     Labels: Record<string, string>;
+    Ports: DockerContainerPort[];
+}
+
+/// Hyper's default in-container gRPC port; matches docker_create_panel.tsx HYPER_GRPC_PORT.
+const HYPER_GRPC_PRIVATE_PORT = 7484;
+
+/// Pick the host-side TCP port that exposes Hyper.
+/// Prefers the entry whose PrivatePort is 7484; otherwise returns the first TCP entry's PublicPort.
+/// Returns null if no TCP port is published.
+export function pickHyperPort(c: DockerContainerSummary): number | null {
+    const tcpPorts = (c.Ports ?? []).filter(p => p.Type === 'tcp' && p.PublicPort != null);
+    if (tcpPorts.length === 0) return null;
+    const preferred = tcpPorts.find(p => p.PrivatePort === HYPER_GRPC_PRIVATE_PORT);
+    return (preferred ?? tcpPorts[0]).PublicPort ?? null;
 }
 
 export interface DockerCreateContainerSpec {

@@ -7,6 +7,7 @@ namespace dashql {
 
 inline bool is_no_quote(unsigned char c) { return c != '\''; }
 inline bool is_no_double_quote(unsigned char c) { return c != '\"'; }
+inline bool is_no_backtick(unsigned char c) { return c != '`'; }
 inline bool is_no_space(unsigned char c) { return c != ' ' && c != '\n'; }
 
 template <typename Fn> inline void trim_left(std::string &s, Fn keep_char) {

@@ -128,7 +128,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -158,7 +158,7 @@ parser-snapshots:
                                 text: "55"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -188,7 +188,7 @@ parser-snapshots:
                                 text: "25"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -218,7 +218,7 @@ parser-snapshots:
                                 text: "10"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -248,7 +248,7 @@ parser-snapshots:
                                 text: "25"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -271,7 +271,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -301,7 +301,7 @@ parser-snapshots:
                                 text: "10"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -336,7 +336,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -366,7 +366,7 @@ parser-snapshots:
                                 text: "23"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -418,7 +418,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -448,7 +448,7 @@ parser-snapshots:
                                 text: "25"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -478,7 +478,7 @@ parser-snapshots:
                                 text: "40"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -501,7 +501,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -531,7 +531,7 @@ parser-snapshots:
                                 text: "15"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -566,7 +566,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -596,7 +596,7 @@ parser-snapshots:
                                 text: "101"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -648,7 +648,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -671,7 +671,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -694,7 +694,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -729,7 +729,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -759,7 +759,7 @@ parser-snapshots:
                                 text: "199"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -813,7 +813,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -843,7 +843,7 @@ parser-snapshots:
                                 text: "25"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -873,7 +873,7 @@ parser-snapshots:
                                 text: "40"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -896,7 +896,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -926,7 +926,7 @@ parser-snapshots:
                                 text: "15"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -961,7 +961,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -991,7 +991,7 @@ parser-snapshots:
                                 text: "10"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1021,7 +1021,7 @@ parser-snapshots:
                                 text: "117"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1073,7 +1073,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1096,7 +1096,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1126,7 +1126,7 @@ parser-snapshots:
                                 text: "1"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1161,7 +1161,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1188,7 +1188,7 @@ parser-snapshots:
                                 text: "date"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1218,7 +1218,7 @@ parser-snapshots:
                                 text: "15"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1248,7 +1248,7 @@ parser-snapshots:
                                 text: "15"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1271,7 +1271,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1301,7 +1301,7 @@ parser-snapshots:
                                 text: "79"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1353,7 +1353,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1376,7 +1376,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1399,7 +1399,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1422,7 +1422,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1457,7 +1457,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1492,7 +1492,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1527,7 +1527,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1562,7 +1562,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1592,7 +1592,7 @@ parser-snapshots:
                                 text: "1"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1622,7 +1622,7 @@ parser-snapshots:
                                 text: "1"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1649,7 +1649,7 @@ parser-snapshots:
                                 text: "date"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1676,7 +1676,7 @@ parser-snapshots:
                                 text: "date"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1703,7 +1703,7 @@ parser-snapshots:
                                 text: "date"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1733,7 +1733,7 @@ parser-snapshots:
                                 text: "25"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1763,7 +1763,7 @@ parser-snapshots:
                                 text: "10"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1793,7 +1793,7 @@ parser-snapshots:
                                 text: "44"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1847,7 +1847,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1877,7 +1877,7 @@ parser-snapshots:
                                 text: "25"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1900,7 +1900,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1930,7 +1930,7 @@ parser-snapshots:
                                 text: "152"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -1982,7 +1982,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2012,7 +2012,7 @@ parser-snapshots:
                                 text: "25"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2042,7 +2042,7 @@ parser-snapshots:
                                 text: "152"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2202,7 +2202,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2232,7 +2232,7 @@ parser-snapshots:
                                 text: "55"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2262,7 +2262,7 @@ parser-snapshots:
                                 text: "25"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2292,7 +2292,7 @@ parser-snapshots:
                                 text: "10"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2322,7 +2322,7 @@ parser-snapshots:
                                 text: "25"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2345,7 +2345,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2375,7 +2375,7 @@ parser-snapshots:
                                 text: "10"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2410,7 +2410,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2440,7 +2440,7 @@ parser-snapshots:
                                 text: "23"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2492,7 +2492,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2522,7 +2522,7 @@ parser-snapshots:
                                 text: "25"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2552,7 +2552,7 @@ parser-snapshots:
                                 text: "40"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2575,7 +2575,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2605,7 +2605,7 @@ parser-snapshots:
                                 text: "15"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2640,7 +2640,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2670,7 +2670,7 @@ parser-snapshots:
                                 text: "101"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2722,7 +2722,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2745,7 +2745,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2768,7 +2768,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2803,7 +2803,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2833,7 +2833,7 @@ parser-snapshots:
                                 text: "199"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2887,7 +2887,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2917,7 +2917,7 @@ parser-snapshots:
                                 text: "25"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2947,7 +2947,7 @@ parser-snapshots:
                                 text: "40"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -2970,7 +2970,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3000,7 +3000,7 @@ parser-snapshots:
                                 text: "15"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3035,7 +3035,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3065,7 +3065,7 @@ parser-snapshots:
                                 text: "10"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3095,7 +3095,7 @@ parser-snapshots:
                                 text: "117"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3147,7 +3147,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3170,7 +3170,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3200,7 +3200,7 @@ parser-snapshots:
                                 text: "1"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3235,7 +3235,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3262,7 +3262,7 @@ parser-snapshots:
                                 text: "date"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3292,7 +3292,7 @@ parser-snapshots:
                                 text: "15"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3322,7 +3322,7 @@ parser-snapshots:
                                 text: "15"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3345,7 +3345,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3375,7 +3375,7 @@ parser-snapshots:
                                 text: "79"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3427,7 +3427,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3450,7 +3450,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3473,7 +3473,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3496,7 +3496,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3531,7 +3531,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3566,7 +3566,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3601,7 +3601,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3636,7 +3636,7 @@ parser-snapshots:
                                     text: "2"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3666,7 +3666,7 @@ parser-snapshots:
                                 text: "1"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3696,7 +3696,7 @@ parser-snapshots:
                                 text: "1"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3723,7 +3723,7 @@ parser-snapshots:
                                 text: "date"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3750,7 +3750,7 @@ parser-snapshots:
                                 text: "date"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3777,7 +3777,7 @@ parser-snapshots:
                                 text: "date"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3807,7 +3807,7 @@ parser-snapshots:
                                 text: "25"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3837,7 +3837,7 @@ parser-snapshots:
                                 text: "10"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3867,7 +3867,7 @@ parser-snapshots:
                                 text: "44"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3921,7 +3921,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3951,7 +3951,7 @@ parser-snapshots:
                                 text: "25"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -3974,7 +3974,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -4004,7 +4004,7 @@ parser-snapshots:
                                 text: "152"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -4056,7 +4056,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -4086,7 +4086,7 @@ parser-snapshots:
                                 text: "25"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
@@ -4116,7 +4116,7 @@ parser-snapshots:
                                 text: "152"
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null"
+                        text: "not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"

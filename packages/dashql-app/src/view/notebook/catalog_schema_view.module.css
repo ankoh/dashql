@@ -3,5 +3,5 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: var(--notebook_details_actionbar_background);
+    background-color: white;
 }

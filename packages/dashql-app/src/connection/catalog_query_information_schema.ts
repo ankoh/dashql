@@ -4,7 +4,7 @@ import * as dashql from '../core/index.js';
 import { QueryExecutor } from './query_executor.js';
 import { QueryExecutionArgs } from './query_execution_args.js';
 import { DynamicConnectionDispatch } from "./connection_registry.js";
-import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY, SET_CATALOG_SCRIPT } from "./connection_state.js";
+import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY } from "./connection_state.js";
 import { QueryType } from "./query_execution_state.js";
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from "./catalog_update_state.js";
 import { generateSchemaSQL, generateCatalogScriptHeader, CatalogSource, type ColumnMetadata } from './catalog_sql_generator.js';
@@ -136,7 +136,8 @@ export async function updateInformationSchemaCatalog(
     executor: QueryExecutor,
     catalog: dashql.DashQLCatalog,
     dql: dashql.DashQL,
-    catalogScript: dashql.DashQLScript
+    catalogRelationScript: dashql.DashQLScript,
+    _catalogFunctionScript: dashql.DashQLScript
 ): Promise<void> {
     // Query the information schema. If the query errors it throws and propagates
     // to the caller so we never overwrite the existing catalog script with partial data.
@@ -160,14 +161,14 @@ export async function updateInformationSchemaCatalog(
     });
 
     // Update script content
-    catalogScript.replaceText(`${header}${catalogSQL}`);
-    catalogScript.analyze();
+    catalogRelationScript.replaceText(`${header}${catalogSQL}`);
+    catalogRelationScript.analyze();
 
     // Drop old script from catalog if loaded, then reload
     try {
-        catalog.dropScript(catalogScript);
+        catalog.dropScript(catalogRelationScript);
     } catch (e) {
         // Script may not have been loaded yet - ignore error
     }
-    catalog.loadScript(catalogScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    catalog.loadScript(catalogRelationScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
 }

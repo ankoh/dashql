@@ -36,6 +36,8 @@ class NullStorageBackend {
     async deleteSession(): Promise<void> { }
     async loadSessionSchema(): Promise<string | null> { return null; }
     async saveSessionSchema(): Promise<void> { }
+    async loadSessionFunctions(): Promise<string | null> { return null; }
+    async saveSessionFunctions(): Promise<void> { }
     async loadNotebookPages(): Promise<any[]> { return []; }
     async createNotebookPage(): Promise<void> { }
     async deleteNotebookPage(): Promise<void> { }
@@ -100,7 +102,7 @@ function buildState(): NotebookState {
             },
         ],
         uncommittedScriptId: uncommittedKey,
-        notebookUserFocus: { pageIndex: 0, entryInPage: 0 },
+        notebookUserFocus: { pageIndex: 0, entryInPage: 0, interactionCounter: 0 },
         semanticUserFocus: null,
     };
 }
@@ -153,7 +155,7 @@ describe('SELECT_NEXT_ENTRY', () => {
         const s0 = buildState();
         const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null }); // now 2 entries, focus=1
         const s2 = reduce(
-            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 0 } },
+            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 0, interactionCounter: 0 } },
             { type: SELECT_NEXT_ENTRY, value: null },
         );
         expect(s2.notebookUserFocus.entryInPage).toBe(1);
@@ -171,7 +173,7 @@ describe('SELECT_PREV_ENTRY', () => {
         const s0 = buildState();
         const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
         const s2 = reduce(
-            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 1 } },
+            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 1, interactionCounter: 0 } },
             { type: SELECT_PREV_ENTRY, value: null },
         );
         expect(s2.notebookUserFocus.entryInPage).toBe(0);
@@ -189,7 +191,7 @@ describe('SELECT_ENTRY', () => {
         const s0 = buildState();
         const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
         const s2 = reduce(
-            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 0 } },
+            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 0, interactionCounter: 0 } },
             { type: SELECT_ENTRY, value: 1 },
         );
         expect(s2.notebookUserFocus.entryInPage).toBe(1);
@@ -293,7 +295,7 @@ describe('DELETE_NOTEBOOK_ENTRY', () => {
         const s0 = buildState();
         const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
         const s2 = reduce(
-            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 1 } },
+            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 1, interactionCounter: 0 } },
             { type: DELETE_NOTEBOOK_ENTRY, value: 0 },
         );
         expect(s2.notebookUserFocus.entryInPage).toBe(0);
@@ -303,7 +305,7 @@ describe('DELETE_NOTEBOOK_ENTRY', () => {
         const s0 = buildState();
         const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
         const s2 = reduce(
-            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 1 } },
+            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 1, interactionCounter: 0 } },
             { type: DELETE_NOTEBOOK_ENTRY, value: 1 },
         );
         expect(s2.notebookUserFocus.entryInPage).toBe(0);
@@ -315,7 +317,7 @@ describe('DELETE_NOTEBOOK_ENTRY', () => {
         const deletedScriptId = s1.notebookPages[0].scripts[1].scriptId;
         expect(s1.scripts[deletedScriptId]).toBeDefined();
         const next = reduce(
-            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 0 } },
+            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 0, interactionCounter: 0 } },
             { type: DELETE_NOTEBOOK_ENTRY, value: 1 },
         );
         expect(next.scripts[deletedScriptId]).toBeUndefined();
@@ -384,7 +386,7 @@ describe('REORDER_NOTEBOOK_ENTRIES', () => {
         const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
         // Focus on entry 0, move it to index 1
         const s2 = reduce(
-            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 0 } },
+            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 0, interactionCounter: 0 } },
             { type: REORDER_NOTEBOOK_ENTRIES, value: { oldIndex: 0, newIndex: 1 } },
         );
         expect(s2.notebookUserFocus.entryInPage).toBe(1);

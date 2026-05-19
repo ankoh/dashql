@@ -7,6 +7,7 @@ import type { DetailedError } from '../connection_types.js';
 
 import { VariantKind } from '../../utils/variant.js';
 import { SalesforceDatabaseChannel } from './salesforce_api_client.js';
+import { isNativePlatform } from '../../platform/native_globals.js';
 import { CONNECTOR_INFOS, ConnectorType, SALESFORCE_DATA_CLOUD_CONNECTOR } from '../connector_info.js';
 import {
     ConnectionHealth,
@@ -40,7 +41,7 @@ export function createSalesforceConnectionStateDetails(params?: connection.Sales
     return {
         proto: {
             setupTimings: {},
-            setupParams: params ?? { hyperProtocol: "V3_HTTP", instanceUrl: "", appConsumerKey: "", appConsumerSecret: "", login: "" }
+            setupParams: params ?? { hyperProtocol: isNativePlatform() ? "V3_GRPC" : "V3_HTTP", instanceUrl: "", appConsumerKey: "", appConsumerSecret: "", login: "" }
         },
         channel: null
     };

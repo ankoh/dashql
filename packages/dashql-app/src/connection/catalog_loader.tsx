@@ -16,7 +16,7 @@ import { useQueryExecutor } from './query_executor.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { createTrace } from '../platform/logger/trace_context.js';
 import { updateInformationSchemaCatalog } from './catalog_query_information_schema.js';
-import { updatePgAttributeSchemaCatalog } from './catalog_query_pg_attribute.js';
+import { updatePgCatalog } from './catalog_query_pg_attribute.js';
 import { updateDemoSchemaCatalog } from './dataless/dataless_demo_catalog.js';
 import { useConnectionNotebookDispatch } from '../notebook/notebook_state_registry.js';
 import { CATALOG_DID_UPDATE } from '../notebook/notebook_state.js';
@@ -111,11 +111,11 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                         case TRINO_CONNECTOR: {
                             const catalog = conn.details.value.proto.setupParams?.catalogName ?? "";
                             const schemas = conn.details.value.proto.setupParams?.schemaNames ?? [];
-                            await updateInformationSchemaCatalog(sessionId, connDispatch, updateId, catalog, schemas, executor, conn.catalog, conn.instance, conn.catalogScript);
+                            await updateInformationSchemaCatalog(sessionId, connDispatch, updateId, catalog, schemas, executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
                             break;
                         }
                         case DATALESS_CONNECTOR: {
-                            await updateDemoSchemaCatalog(sessionId, connDispatch, updateId, conn.catalog, conn.instance, conn.catalogScript);
+                            await updateDemoSchemaCatalog(sessionId, connDispatch, updateId, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
                             break;
                         }
                         default:
@@ -130,7 +130,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                     if (conn.details.type == HYPER_CONNECTOR) {
                         const databaseName = ""; // XXX: Get from Hyper connection details
                         const schemas: string[] = []; // XXX
-                        await updatePgAttributeSchemaCatalog(sessionId, connDispatch, updateId, databaseName, schemas, executor, conn.catalog, conn.instance, conn.catalogScript);
+                        await updatePgCatalog(traced, sessionId, connDispatch, updateId, databaseName, schemas, executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
                     } else {
                         throw new Error(
                             `cannot load pg_attribute catalog for ${conn.connectorInfo.names.displayShort} connections`,
@@ -141,8 +141,8 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                 // Update the catalog by querying the Salesforce Metadata Service?
                 case CatalogResolver.SALESFORCE_METDATA_API: {
                     if (conn.details.type == SALESFORCE_DATA_CLOUD_CONNECTOR) {
-                        const script = await updateSalesforceCatalog(conn.details.value, conn.catalog, conn.instance, conn.catalogScript, sfapi, abortController);
-                        if (conn.catalogScript !== script) {
+                        const script = await updateSalesforceCatalog(conn.details.value, conn.catalog, conn.instance, conn.catalogRelationScript, sfapi, abortController);
+                        if (conn.catalogRelationScript !== script) {
                             connDispatch(sessionId, {
                                 type: SET_CATALOG_SCRIPT,
                                 value: script

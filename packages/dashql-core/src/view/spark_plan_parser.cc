@@ -193,10 +193,10 @@ void PlanViewModel::ParseSparkPlan(std::string_view plan, std::unique_ptr<char[]
                     operator_stack.pop_back();
                 }
 
-                std::optional<buffers::parser::Location> source_location = std::nullopt;
+                std::optional<buffers::parser::SymbolSpan> source_location = std::nullopt;
                 if (!content.empty()) {
                     auto offset = static_cast<uint32_t>(content.data() - input_buffer.get());
-                    source_location = buffers::parser::Location(offset, static_cast<uint32_t>(content.size()));
+                    source_location = buffers::parser::SymbolSpan(offset, static_cast<uint32_t>(content.size()));
                 }
 
                 auto& parsed = parsed_operators.PushBack(ParsedOperatorNode{

@@ -17,9 +17,10 @@ import { DockerCreateContainerSpec } from '../../platform/docker/docker_types.js
 const DEFAULT_REPOSITORY = 'ankoh/hyperdb';
 const HYPER_GRPC_PORT = '7484';
 const FIXED_HYPER_CMD: readonly string[] = [
-    'shell',
+    'run',
     '--no-password',
     '--skip-license=1',
+    '--restrict_dmv_access=false',
     '--init-user=tableau_internal_user',
     '--log_config=cerr,json,all',
     `--listen-connection=tcp.grpc://0.0.0.0:${HYPER_GRPC_PORT}`,
@@ -29,6 +30,7 @@ interface Props {
     onBack: () => void;
     onClose: () => void;
     onCreated: () => void | Promise<void>;
+    hideHeader?: boolean;
 }
 
 type Step = 0 | 1 | 2;
@@ -161,21 +163,23 @@ export const DockerCreatePanel: React.FC<Props> = (props: Props) => {
     };
 
     return (
-        <div className={styles.root}>
-            <div className={styles.header}>
-                <div className={styles.header_left}>
-                    <div className={styles.title}>Docker</div>
+        <div className={props.hideHeader ? styles.root_no_header : styles.root}>
+            {!props.hideHeader && (
+                <div className={styles.header}>
+                    <div className={styles.header_left}>
+                        <div className={styles.title}>Docker</div>
+                    </div>
+                    <div className={styles.header_actions}>
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-label="close-overlay"
+                            onClick={props.onClose}
+                        >
+                            <XIcon />
+                        </IconButton>
+                    </div>
                 </div>
-                <div className={styles.header_actions}>
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        aria-label="close-overlay"
-                        onClick={props.onClose}
-                    >
-                        <XIcon />
-                    </IconButton>
-                </div>
-            </div>
+            )}
             <div className={styles.wizard_toolbar}>
                 <IconButton
                     variant={ButtonVariant.Invisible}

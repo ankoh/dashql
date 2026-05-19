@@ -117,13 +117,37 @@ table TableReference {
     // The root of the scope where this table reference is live
     ast_scope_root: uint32;
     // The location
-    location: parser.Location;
+    symbol_span: parser.SymbolSpan;
     // The name of the table that is referenced
     table_name: QualifiedTableName;
     // The alias name
     alias_name: string;
     /// The resolved relation
     resolved_table: ResolvedTable;
+}
+
+table FunctionParam {
+    // The id of the AST node
+    ast_node_id: uint32;
+    // The parameter name
+    param_name: string;
+    // The parameter type name
+    param_type: string;
+}
+
+table FunctionDeclaration {
+    // The id of the AST node that created this function declaration
+    ast_node_id: uint32;
+    // The id of the statement that created the function declaration
+    ast_statement_id: uint32;
+    // Is this an aggregate function?
+    is_aggregate: bool = false;
+    // The name of the function
+    function_name: QualifiedFunctionName;
+    // The function parameters
+    params: [FunctionParam];
+    // The return type name
+    return_type: string;
 }
 
 table FunctionReference {
@@ -143,7 +167,7 @@ struct ConstantExpression {
     // The id of the statement that contains this constant expression
     ast_statement_id: uint32;
     // The location
-    location: parser.Location;
+    symbol_span: parser.SymbolSpan;
     /// The filter expression
     expression_id: uint32;
 }
@@ -154,7 +178,7 @@ struct ColumnFilter {
     // The id of the statement that contains the table reference
     ast_statement_id: uint32;
     // The location
-    location: parser.Location;
+    symbol_span: parser.SymbolSpan;
     /// The root expression id
     root_expression_id: uint32;
     /// The column reference expression id
@@ -167,7 +191,7 @@ struct ColumnComputation {
     // The id of the statement that contains the table reference
     ast_statement_id: uint32;
     // The location
-    location: parser.Location;
+    symbol_span: parser.SymbolSpan;
     /// The root expression id
     root_expression_id: uint32;
     /// The column reference expression id
@@ -233,8 +257,10 @@ table AnalyzerError {
     error_type: AnalyzerErrorType;
     /// The ast node id
     ast_node_id: uint32;
-    /// The text location, in case the user doesn't want to carry around the ast
-    location: parser.Location;
+    /// The symbol location
+    symbol_span: parser.SymbolSpan;
+    /// The text location
+    text_span: parser.TextSpan;
     /// The error message
     message: string;
 }
@@ -301,4 +327,7 @@ table AnalyzedScript {
 
     // The function references
     function_references: [FunctionReference];
+
+    // The function declarations
+    function_declarations: [FunctionDeclaration];
 }

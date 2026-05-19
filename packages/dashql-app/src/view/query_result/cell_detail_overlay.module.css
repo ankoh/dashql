@@ -1,0 +1,127 @@
+.modal {
+    display: grid;
+    grid-template-columns: 1fr max-content;
+    min-height: 200px;
+    overflow: hidden;
+}
+
+/* Main content area (left of sidebar) */
+.main {
+    grid-column: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* Right sidebar with close + arrow buttons */
+.sidebar {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 40px;
+    border-left: 1px solid var(--border_color_primary);
+    flex-shrink: 0;
+}
+
+.sidebar_top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px;
+}
+
+.sidebar_bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px;
+    gap: 4px;
+}
+
+/* Header bar with segmented control */
+.header {
+    display: flex;
+    align-items: center;
+    height: 44px;
+    padding: 0 8px;
+    border-bottom: 1px solid var(--border_color_primary);
+    flex-shrink: 0;
+    gap: 8px;
+}
+
+.header_title {
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+    font-size: 0.9rem;
+    overflow: hidden;
+    white-space: nowrap;
+    min-width: 0;
+    flex-shrink: 1;
+}
+
+.header_title_label {
+    font-weight: 500;
+    color: hsl(210, 10%, 40%);
+}
+
+.header_title_bracket {
+    font-weight: 400;
+    color: hsl(210, 10%, 55%);
+}
+
+.header_title_index {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: hsl(210, 10%, 30%);
+}
+
+.header_title_dot {
+    font-weight: 400;
+    color: hsl(210, 10%, 55%);
+}
+
+.header_title_field {
+    font-weight: 600;
+    color: hsl(210, 10%, 30%);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.header_spacer {
+    flex: 1;
+}
+
+/* Body content */
+.body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+.body_padded {
+    padding: 12px 16px;
+}
+
+.codemirror_container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.pretty_toggle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+}
+
+.codemirror_container :global(.cm-editor) {
+    height: 100%;
+}
+
+.codemirror_container :global(.cm-scroller) {
+    overflow: auto;
+}

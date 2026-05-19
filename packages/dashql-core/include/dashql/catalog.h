@@ -169,6 +169,45 @@ class CatalogEntry {
         }
     };
 
+    /// A function parameter
+    struct FunctionParam {
+        /// The AST node id
+        std::optional<uint32_t> ast_node_id;
+        /// The parameter name
+        std::reference_wrapper<RegisteredName> param_name;
+        /// The parameter type text
+        std::string_view param_type;
+        /// Constructor
+        FunctionParam(std::optional<uint32_t> ast_node_id, RegisteredName& param_name, std::string_view param_type)
+            : ast_node_id(ast_node_id), param_name(param_name), param_type(param_type) {}
+    };
+    /// A function declaration
+    struct FunctionDeclaration : public CatalogObject {
+        /// The catalog schema id
+        QualifiedCatalogObjectID catalog_schema_id;
+        /// Is aggregate
+        bool is_aggregate = false;
+        /// The AST node id
+        uint32_t ast_node_id = std::numeric_limits<uint32_t>::max();
+        /// The AST statement id
+        std::optional<uint32_t> ast_statement_id;
+        /// The function name
+        QualifiedFunctionName function_name;
+        /// The parameters
+        std::vector<FunctionParam> params;
+        /// The return type text
+        std::string_view return_type;
+
+        /// Constructor
+        FunctionDeclaration(QualifiedCatalogObjectID schema, CatalogFunctionID function_id, QualifiedFunctionName name)
+            : CatalogObject(QualifiedCatalogObjectID::Function(function_id)),
+              catalog_schema_id(schema), function_name(std::move(name)) {}
+        /// Get the function id
+        CatalogFunctionID GetFunctionID() const { return object_id.UnpackFunctionID(); }
+        /// Pack as FlatBuffer
+        flatbuffers::Offset<buffers::analyzer::FunctionDeclaration> Pack(flatbuffers::FlatBufferBuilder& builder) const;
+    };
+
     /// Forward declare the table
     struct TableDeclaration;
     /// A table column
@@ -318,6 +357,14 @@ class CatalogEntry {
     /// During SQL completion, we also want to find out what tables a column *might* come from.
     /// This is a more costly completion since a columns names might occur in many tables which are not yet in scope.
     std::unordered_multimap<std::string_view, std::reference_wrapper<const TableColumn>> table_columns_by_name;
+    /// The function declarations
+    ChunkBuffer<FunctionDeclaration, 16> function_declarations;
+    /// Functions indexed by qualified name
+    std::unordered_map<QualifiedFunctionName::Key, std::reference_wrapper<const FunctionDeclaration>, TupleHasher>
+        functions_by_qualified_name;
+    /// Functions by unqualified name
+    std::unordered_multimap<std::string_view, std::reference_wrapper<const FunctionDeclaration>>
+        functions_by_unqualified_name;
     /// The name search index.
     /// This name search index stores suffixes of all registered names.
     std::optional<CatalogEntry::NameSearchIndex> name_search_index;
@@ -344,6 +391,10 @@ class CatalogEntry {
     auto& GetTablesByName() const { return tables_by_qualified_name; }
     /// Get the table columns by name
     auto& GetTableColumnsByName() const { return table_columns_by_name; }
+    /// Get the function declarations
+    auto& GetFunctions() const { return function_declarations; }
+    /// Get the functions by qualified name
+    auto& GetFunctionsByName() const { return functions_by_qualified_name; }
 
     /// Describe the catalog entry
     virtual flatbuffers::Offset<buffers::catalog::CatalogEntry> DescribeEntry(

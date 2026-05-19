@@ -132,6 +132,7 @@ export function AnchoredOverlay(args: AnchoredOverlayProps) {
                     ignoreClickRefs={[anchorRef]}
                     onEscape={onEscape}
                     role="none"
+                    preventFocusOnOpen
                     visibility={position ? OverlayVisibility.Visible : OverlayVisibility.Hidden}
                     height={args.height}
                     width={args.width}

@@ -144,7 +144,7 @@
     },
     "HyperProtocol": {
       "type": "string",
-      "enum": ["V3_GRPC", "V3_HTTP"],
+      "enum": ["V3_DOCKER", "V3_GRPC", "V3_HTTP"],
       "description": "The Hyper connection protocol"
     },
     "HyperConnectionParams": {

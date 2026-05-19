@@ -26,6 +26,7 @@ const mockState = vi.hoisted(() => ({
         capture?: boolean;
         callback: (event: KeyboardEvent) => void;
     }>,
+    queryStates: new Map<number, { traceId: number; status: number }>(),
 }));
 vi.mock('react-window', async () => fakeReactWindowModule(await import('react'), mockState.scrollToRowMock));
 vi.mock('./script_editor.js', async () => fakeScriptEditorModule(await import('react'), mockState));
@@ -44,6 +45,27 @@ vi.mock('../../notebook/notebook_commands.js', () => ({
     NotebookCommandType: { ExecuteEditorQuery: 1 },
     useNotebookCommandDispatch: () => () => { },
 }));
+vi.mock('../../connection/query_executor.js', () => ({
+    useQueryState: (_sessionId: string | null, queryId: number | null) => {
+        if (queryId == null) return null;
+        return mockState.queryStates.get(queryId) ?? null;
+    },
+    useQueryExecutor: () => vi.fn(),
+}));
+vi.mock('../internals/trace_log_viewer.js', async () => {
+    const React = await import('react');
+    return {
+        TraceLogViewer: (props: { traceId?: number; height?: number }) =>
+            React.createElement('div', { 'data-testid': 'trace-log-viewer', 'data-trace-id': props.traceId }),
+    };
+});
+vi.mock('./feed_entry_footer.js', async () => {
+    const React = await import('react');
+    return {
+        FeedEntryFooter: (props: { traceId?: number }) =>
+            React.createElement('div', { 'data-testid': 'trace-log-viewer', 'data-trace-id': props.traceId }),
+    };
+});
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
 
@@ -66,7 +88,6 @@ function makeScriptData(scriptKey: number, text: string, pageIndex: number = -1,
         script: { toString: () => text } as any,
         scriptAnalysis: {
             buffers: {
-                scanned: null,
                 parsed: null,
                 analyzed: null,
                 destroy: () => { },
@@ -109,6 +130,7 @@ function createNotebookState(): NotebookState {
         notebookUserFocus: {
             pageIndex: 0,
             entryInPage: 0,
+            interactionCounter: 0,
         },
         semanticUserFocus: null,
     };
@@ -144,6 +166,7 @@ describe('NotebookScriptFeed', () => {
         mockState.scrollToRowMock.mockReset();
         mockState.composeEditorFocused = true;
         mockState.keyHandlers = [];
+        mockState.queryStates.clear();
     });
 
     afterEach(() => {
@@ -314,6 +337,46 @@ describe('NotebookScriptFeed', () => {
             index: 2,
             align: 'start',
         });
+    });
+
+    it('does not show execution footer when latestQueryId is null', () => {
+        renderFeed({
+            notebook: createNotebookState(),
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+        const viewers = container.querySelectorAll('[data-testid="trace-log-viewer"]');
+        expect(viewers.length).toBe(0);
+    });
+
+    it('shows execution footer when a query is running', () => {
+        mockState.queryStates.set(42, { traceId: 100, status: 4 /* RUNNING */ });
+        const notebook = createNotebookState();
+        notebook.scripts[101] = { ...notebook.scripts[101], latestQueryId: 42 };
+        renderFeed({
+            notebook,
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+        const viewers = container.querySelectorAll('[data-testid="trace-log-viewer"]');
+        expect(viewers.length).toBe(1);
+        expect(viewers[0].getAttribute('data-trace-id')).toBe('100');
+    });
+
+    it('keeps execution footer after query succeeds', () => {
+        mockState.queryStates.set(42, { traceId: 100, status: 9 /* SUCCEEDED */ });
+        const notebook = createNotebookState();
+        notebook.scripts[101] = { ...notebook.scripts[101], latestQueryId: 42 };
+        renderFeed({
+            notebook,
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+        const viewers = container.querySelectorAll('[data-testid="trace-log-viewer"]');
+        expect(viewers.length).toBe(1);
     });
 
     it('scrolls to the bottom after send once the promoted entry appears', () => {

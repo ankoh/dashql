@@ -18,7 +18,7 @@ namespace parser {
 
 /// Helper to configure an attribute node
 inline buffers::parser::Node Attr(buffers::parser::AttributeKey key, buffers::parser::Node node) {
-    return buffers::parser::Node(node.location(), node.node_type(), key, node.parent(), node.children_begin_or_value(),
+    return buffers::parser::Node(node.symbol_span(), node.node_type(), key, node.parent(), node.children_begin_or_value(),
                        node.children_count());
 }
 /// Helper to concatenate lists
@@ -49,23 +49,23 @@ inline WeakUniquePtr<NodeList> Concat(WeakUniquePtr<NodeList>&& v0, WeakUniquePt
 
 /// Create a null node
 inline buffers::parser::Node Null() {
-    return buffers::parser::Node(buffers::parser::Location(), buffers::parser::NodeType::NONE, buffers::parser::AttributeKey::NONE, NO_PARENT, 0, 0);
+    return buffers::parser::Node(buffers::parser::SymbolSpan(), buffers::parser::NodeType::NONE, buffers::parser::AttributeKey::NONE, NO_PARENT, 0, 0);
 }
 /// Create a name from an identifier
-inline buffers::parser::Node Operator(buffers::parser::Location loc) {
+inline buffers::parser::Node Operator(buffers::parser::SymbolSpan loc) {
     return buffers::parser::Node(loc, buffers::parser::NodeType::OPERATOR, buffers::parser::AttributeKey::NONE, NO_PARENT, 0, 0);
 }
 /// Create a name from an identifier
-inline buffers::parser::Node NameFromIdentifier(buffers::parser::Location loc, size_t value) {
+inline buffers::parser::Node NameFromIdentifier(buffers::parser::SymbolSpan loc, size_t value) {
     return buffers::parser::Node(loc, buffers::parser::NodeType::NAME, buffers::parser::AttributeKey::NONE, NO_PARENT, value, 0);
 }
 /// Create a bool node
-inline buffers::parser::Node Bool(buffers::parser::Location loc, bool v) {
+inline buffers::parser::Node Bool(buffers::parser::SymbolSpan loc, bool v) {
     return buffers::parser::Node(loc, buffers::parser::NodeType::BOOL, buffers::parser::AttributeKey::NONE, NO_PARENT, static_cast<uint32_t>(v), 0);
 }
 
 /// Create a constant inline
-inline buffers::parser::Node Const(buffers::parser::Location loc, buffers::parser::AConstType type) {
+inline buffers::parser::Node Const(buffers::parser::SymbolSpan loc, buffers::parser::AConstType type) {
     switch (type) {
         case buffers::parser::AConstType::NULL_:
             return buffers::parser::Node(loc, buffers::parser::NodeType::LITERAL_NULL, buffers::parser::AttributeKey::NONE, NO_PARENT, 0, 0);
@@ -82,7 +82,7 @@ inline buffers::parser::Node Const(buffers::parser::Location loc, buffers::parse
 }
 
 /// Create indirection
-inline buffers::parser::Node IndirectionIndex(ParseContext& driver, buffers::parser::Location loc, buffers::parser::Node index) {
+inline buffers::parser::Node IndirectionIndex(ParseContext& driver, buffers::parser::SymbolSpan loc, buffers::parser::Node index) {
     return driver.Object(loc, buffers::parser::NodeType::OBJECT_SQL_INDIRECTION_INDEX,
                          {
                              Attr(Key::SQL_INDIRECTION_INDEX_VALUE, index),
@@ -90,7 +90,7 @@ inline buffers::parser::Node IndirectionIndex(ParseContext& driver, buffers::par
 }
 
 /// Create indirection
-inline buffers::parser::Node IndirectionIndex(ParseContext& driver, buffers::parser::Location loc, buffers::parser::Node lower_bound,
+inline buffers::parser::Node IndirectionIndex(ParseContext& driver, buffers::parser::SymbolSpan loc, buffers::parser::Node lower_bound,
                                     buffers::parser::Node upper_bound) {
     return driver.Object(loc, buffers::parser::NodeType::OBJECT_SQL_INDIRECTION_INDEX,
                          {
@@ -100,7 +100,7 @@ inline buffers::parser::Node IndirectionIndex(ParseContext& driver, buffers::par
 }
 
 /// Create a temp table name
-inline buffers::parser::Node Into(ParseContext& driver, buffers::parser::Location loc, buffers::parser::Node type, buffers::parser::Node name) {
+inline buffers::parser::Node Into(ParseContext& driver, buffers::parser::SymbolSpan loc, buffers::parser::Node type, buffers::parser::Node name) {
     return driver.Object(loc, buffers::parser::NodeType::OBJECT_SQL_INTO,
                          {
                              Attr(Key::SQL_TEMP_TYPE, type),
@@ -109,7 +109,7 @@ inline buffers::parser::Node Into(ParseContext& driver, buffers::parser::Locatio
 }
 
 /// Create a column ref
-inline buffers::parser::Node ColumnRef(ParseContext& driver, buffers::parser::Location loc, WeakUniquePtr<NodeList>&& path) {
+inline buffers::parser::Node ColumnRef(ParseContext& driver, buffers::parser::SymbolSpan loc, WeakUniquePtr<NodeList>&& path) {
     auto path_nodes = driver.Array(loc, std::move(path));
     return driver.Object(loc, buffers::parser::NodeType::OBJECT_SQL_COLUMN_REF,
                          {
@@ -118,12 +118,12 @@ inline buffers::parser::Node ColumnRef(ParseContext& driver, buffers::parser::Lo
 }
 
 /// Add an expression without arguments
-inline buffers::parser::Node Expr(ParseContext& driver, buffers::parser::Location loc, buffers::parser::Node func) {
+inline buffers::parser::Node Expr(ParseContext& driver, buffers::parser::SymbolSpan loc, buffers::parser::Node func) {
     return driver.Object(loc, buffers::parser::NodeType::OBJECT_SQL_NARY_EXPRESSION, {Attr(Key::SQL_EXPRESSION_OPERATOR, func)});
 }
 
 /// Add an unary expression
-inline buffers::parser::Node Expr(ParseContext& driver, buffers::parser::Location loc, buffers::parser::Node func, ExpressionVariant arg) {
+inline buffers::parser::Node Expr(ParseContext& driver, buffers::parser::SymbolSpan loc, buffers::parser::Node func, ExpressionVariant arg) {
     std::array<ExpressionVariant, 1> args{std::move(arg)};
     return driver.Object(loc, buffers::parser::NodeType::OBJECT_SQL_NARY_EXPRESSION,
                          {
@@ -134,7 +134,7 @@ inline buffers::parser::Node Expr(ParseContext& driver, buffers::parser::Locatio
 
 enum PostFixTag { PostFix };
 /// Add an unary expression
-inline ExpressionVariant Expr(ParseContext& driver, buffers::parser::Location loc, buffers::parser::Node func, ExpressionVariant arg,
+inline ExpressionVariant Expr(ParseContext& driver, buffers::parser::SymbolSpan loc, buffers::parser::Node func, ExpressionVariant arg,
                               PostFixTag) {
     std::array<ExpressionVariant, 1> args{std::move(arg)};
     if (auto expr = driver.TryMerge(loc, func, args); expr.has_value()) {
@@ -149,7 +149,7 @@ inline ExpressionVariant Expr(ParseContext& driver, buffers::parser::Location lo
 }
 
 /// Add a binary expression
-inline ExpressionVariant Expr(ParseContext& driver, buffers::parser::Location loc, buffers::parser::Node func, ExpressionVariant left,
+inline ExpressionVariant Expr(ParseContext& driver, buffers::parser::SymbolSpan loc, buffers::parser::Node func, ExpressionVariant left,
                               ExpressionVariant right) {
     std::array<ExpressionVariant, 2> args{std::move(left), std::move(right)};
     if (auto expr = driver.TryMerge(loc, func, args); expr.has_value()) {
@@ -163,7 +163,7 @@ inline ExpressionVariant Expr(ParseContext& driver, buffers::parser::Location lo
 }
 
 /// Add a ternary expression
-inline ExpressionVariant Expr(ParseContext& driver, buffers::parser::Location loc, buffers::parser::Node func, ExpressionVariant arg0,
+inline ExpressionVariant Expr(ParseContext& driver, buffers::parser::SymbolSpan loc, buffers::parser::Node func, ExpressionVariant arg0,
                               ExpressionVariant arg1, ExpressionVariant arg2) {
     std::array<ExpressionVariant, 3> args{std::move(arg0), std::move(arg1), std::move(arg2)};
     if (auto expr = driver.TryMerge(loc, func, args); expr.has_value()) {
@@ -177,7 +177,7 @@ inline ExpressionVariant Expr(ParseContext& driver, buffers::parser::Location lo
 }
 
 /// Negate an expression
-inline ExpressionVariant Negate(ParseContext& driver, buffers::parser::Location loc, buffers::parser::Location loc_minus,
+inline ExpressionVariant Negate(ParseContext& driver, buffers::parser::SymbolSpan loc, buffers::parser::SymbolSpan loc_minus,
                                 ExpressionVariant value) {
     // XXX If node_type == OBJECT_SQL_CONST inspect the attributes and expand the value
 
@@ -190,7 +190,7 @@ inline ExpressionVariant Negate(ParseContext& driver, buffers::parser::Location 
                          });
 }
 /// Negate a value
-inline buffers::parser::Node Negate(ParseContext& driver, buffers::parser::Location loc, buffers::parser::Location loc_minus, buffers::parser::Node value) {
+inline buffers::parser::Node Negate(ParseContext& driver, buffers::parser::SymbolSpan loc, buffers::parser::SymbolSpan loc_minus, buffers::parser::Node value) {
     // XXX If node_type == OBJECT_SQL_CONST inspect the attributes and expand the value
 
     // Otherwise fall back to an unary negation
@@ -211,7 +211,7 @@ inline buffers::parser::JoinType Merge(buffers::parser::JoinType left, buffers::
 }
 
 /// Add a vararg field
-inline buffers::parser::Node VarArgField(ParseContext& driver, buffers::parser::Location loc, WeakUniquePtr<NodeList>&& path,
+inline buffers::parser::Node VarArgField(ParseContext& driver, buffers::parser::SymbolSpan loc, WeakUniquePtr<NodeList>&& path,
                                buffers::parser::Node value) {
     auto root = value;
     for (auto iter = path->back(); iter; iter = iter->prev) {
@@ -256,8 +256,8 @@ inline std::pair<buffers::parser::VisGeom, bool> LookupGeom(std::string_view low
 
 /// Resolve a bare identifier (e.g. "point", "line") to a VisGeom enum node.
 /// Unknown identifiers yield Null() and a parse diagnostic.
-inline buffers::parser::Node GeomEnum(ParseContext& driver, buffers::parser::Location loc) {
-    auto text = driver.GetProgram().ReadTextAtLocation(loc);
+inline buffers::parser::Node GeomEnum(ParseContext& driver, buffers::parser::SymbolSpan loc) {
+    auto text = driver.GetProgram().ReadTextAtSymbolSpan(loc);
     std::string lowered;
     lowered.reserve(text.size());
     for (char c : text) {
@@ -286,8 +286,8 @@ inline std::pair<buffers::parser::VisProjectType, bool> LookupProjectType(std::s
 
 /// Resolve a bare identifier to a VisProjectType enum node.
 /// Unknown identifiers yield Null() and a parse diagnostic.
-inline buffers::parser::Node ProjectTypeEnum(ParseContext& driver, buffers::parser::Location loc) {
-    auto text = driver.GetProgram().ReadTextAtLocation(loc);
+inline buffers::parser::Node ProjectTypeEnum(ParseContext& driver, buffers::parser::SymbolSpan loc) {
+    auto text = driver.GetProgram().ReadTextAtSymbolSpan(loc);
     std::string lowered;
     lowered.reserve(text.size());
     for (char c : text) {

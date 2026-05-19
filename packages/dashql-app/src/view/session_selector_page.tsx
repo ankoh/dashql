@@ -156,8 +156,7 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
             return;
         }
 
-        // Get first available connector (prefer Salesforce)
-        const connectorType = ConnectorType.SALESFORCE_DATA_CLOUD;
+        const connectorType = ConnectorType.HYPER;
         const connectorInfo = CONNECTOR_INFOS[connectorType];
 
         // Create default connection parameters
@@ -280,8 +279,9 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
                                 <div className={baseStyles.card_actions}>
                                     <div className={baseStyles.card_actions_right}>
                                         <IconButton
-                                            variant={ButtonVariant.Invisible}
+                                            variant={isEditMode ? ButtonVariant.Default : ButtonVariant.Invisible}
                                             aria-label={isEditMode ? 'Done removing' : 'Remove sessions'}
+                                            aria-pressed={isEditMode}
                                             onClick={() => setIsEditMode(!isEditMode)}
                                         >
                                             {isEditMode

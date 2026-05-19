@@ -18,8 +18,8 @@ describe('DashQL Scanner', () => {
     it(`Character Sequence`, () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);
-        const tmp = new dashql.buffers.parser.ScannedScript();
 
+        const tmpParsed = new dashql.buffers.parser.ParsedScript();
         let size = 0;
         const add = (
             t: string,
@@ -29,12 +29,12 @@ describe('DashQL Scanner', () => {
             expectedBreaks: number[],
         ) => {
             script.insertTextAt(size++, t);
-            script.scan();
-            const result = script.getScanned();
-            const scanned = result.read(tmp);
+            script.analyze();
+            const result = script.getParsed();
+            const parsed = result.read(tmpParsed);
 
-            expect(scanned.tokens()).toBeTruthy();
-            const hl = scanned.tokens()!;
+            expect(parsed.tokens()).toBeTruthy();
+            const hl = parsed.tokens()!;
             expect(hl.tokenOffsetsArray()).toBeTruthy();
             expect(hl.tokenLengthsArray()).toBeTruthy();
             expect(hl.tokenTypesArray()).toBeTruthy();
@@ -67,12 +67,12 @@ describe('DashQL Scanner', () => {
                 const catalog = dql!.createCatalog();
                 const script = dql!.createScript(catalog);
                 script.insertTextAt(0, text);
-                script.scan();
-                const scanResult = script.getScanned();
-                const scannedScript = scanResult.read();
-                expect(scannedScript.tokens()).toBeTruthy();
+                script.analyze();
+                const parseResult = script.getParsed();
+                const parsedScript = parseResult.read();
+                expect(parsedScript.tokens()).toBeTruthy();
 
-                const hl = scannedScript.tokens();
+                const hl = parsedScript.tokens();
                 expect(hl).toBeTruthy();
                 expect(hl!.tokenOffsetsArray()).toBeTruthy();
                 expect(hl!.tokenLengthsArray()).toBeTruthy();

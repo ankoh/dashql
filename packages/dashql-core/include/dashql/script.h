@@ -29,7 +29,8 @@ struct Analyzer;
 struct Completion;
 
 using Key = buffers::parser::AttributeKey;
-using Location = buffers::parser::Location;
+using SymbolSpan = buffers::parser::SymbolSpan;
+using TextSpan = buffers::parser::TextSpan;
 using NameID = uint32_t;
 using NodeID = uint32_t;
 using ColumnID = uint32_t;
@@ -49,11 +50,11 @@ class ScannedScript {
     TextVersion text_version;
 
     /// The scanner errors
-    std::vector<std::pair<buffers::parser::Location, std::string>> errors;
+    std::vector<std::pair<buffers::parser::TextSpan, std::string>> errors;
     /// The line breaks
-    std::vector<buffers::parser::Location> line_breaks;
+    std::vector<buffers::parser::TextSpan> line_breaks;
     /// The comments
-    std::vector<buffers::parser::Location> comments;
+    std::vector<buffers::parser::TextSpan> comments;
 
     /// The name pool
     StringPool<1024> name_pool;
@@ -78,12 +79,19 @@ class ScannedScript {
     auto& GetNames() { return name_registry; }
 
     /// Register a keyword as name
-    NameID RegisterKeywordAsName(std::string_view s, sx::parser::Location location) {
-        return name_registry.Register(s, location).name_id;
+    NameID RegisterKeywordAsName(std::string_view s, sx::parser::SymbolSpan location) {
+        return name_registry.Register(s, sx::parser::TextSpan(location.offset(), location.length())).name_id;
     }
-    /// Read a text at a location
-    std::string_view ReadTextAtLocation(sx::parser::Location loc) const {
-        return std::string_view{text_buffer}.substr(loc.offset(), loc.length());
+    /// Resolve a token-index SymbolSpan to a text-positional TextSpan
+    sx::parser::TextSpan ResolveTextSpan(sx::parser::SymbolSpan span) const;
+    /// Read the text at a symbol span (resolves through tokens)
+    std::string_view ReadTextAtSymbolSpan(sx::parser::SymbolSpan span) const {
+        auto ts = ResolveTextSpan(span);
+        return std::string_view{text_buffer}.substr(ts.offset(), ts.length());
+    }
+    /// Read the text at a text span
+    std::string_view ReadTextAtTextSpan(sx::parser::TextSpan span) const {
+        return std::string_view{text_buffer}.substr(span.offset(), span.length());
     }
 
     /// A symbol location info
@@ -127,8 +135,6 @@ class ScannedScript {
     };
     /// Find token at text offset
     LocationInfo FindSymbol(size_t text_offset);
-    /// Pack syntax tokens
-    std::unique_ptr<buffers::parser::ScannerTokensT> PackTokens();
     /// Pack scanned program
     flatbuffers::Offset<buffers::parser::ScannedScript> Pack(flatbuffers::FlatBufferBuilder& builder);
 };
@@ -158,7 +164,7 @@ class ParsedScript {
     /// The statements
     std::vector<Statement> statements;
     /// The parser errors
-    std::vector<std::pair<buffers::parser::Location, std::string>> errors;
+    std::vector<std::pair<buffers::parser::SymbolSpan, std::string>> errors;
 
    public:
     /// Constructor
@@ -168,6 +174,8 @@ class ParsedScript {
     auto& GetNodes() const { return nodes; }
     /// Resolve statement and ast node at a text offset
     std::optional<std::pair<size_t, size_t>> FindNodeAtOffset(size_t text_offset) const;
+    /// Pack syntax tokens (uses AST to correct keyword-as-identifier types)
+    std::unique_ptr<buffers::parser::ScannerTokensT> PackTokens();
     /// Build the script
     flatbuffers::Offset<buffers::parser::ParsedScript> Pack(flatbuffers::FlatBufferBuilder& builder);
 };
@@ -205,19 +213,19 @@ class AnalyzedScript : public CatalogEntry {
         /// The AST node id in the target script
         uint32_t ast_node_id;
         /// The location in the target script
-        std::optional<sx::parser::Location> location;
+        std::optional<sx::parser::SymbolSpan> location;
         /// The AST statement id in the target script
         std::optional<uint32_t> ast_statement_id;
         /// The AST scope root in the target script
         std::optional<uint32_t> ast_scope_root;
         /// The alias name, may refer to different catalog entry
         /// We track alias locations explicitly since we want to treat aliases differently during completion.
-        std::optional<std::pair<std::reference_wrapper<RegisteredName>, sx::parser::Location>> alias;
+        std::optional<std::pair<std::reference_wrapper<RegisteredName>, sx::parser::SymbolSpan>> alias;
         /// The inner relation type
         std::variant<std::monostate, RelationExpression> inner;
 
         /// Constructor
-        TableReference(std::optional<std::pair<std::reference_wrapper<RegisteredName>, sx::parser::Location>> alias)
+        TableReference(std::optional<std::pair<std::reference_wrapper<RegisteredName>, sx::parser::SymbolSpan>> alias)
             : alias(alias) {}
         /// Pack as FlatBuffer
         flatbuffers::Offset<buffers::analyzer::TableReference> Pack(flatbuffers::FlatBufferBuilder& builder) const;
@@ -331,7 +339,7 @@ class AnalyzedScript : public CatalogEntry {
         /// The AST node id in the target script
         uint32_t ast_node_id;
         /// The location in the target script
-        std::optional<sx::parser::Location> location;
+        std::optional<sx::parser::SymbolSpan> location;
         /// The AST statement id in the target script
         std::optional<uint32_t> ast_statement_id;
         /// The inner expression type
@@ -474,7 +482,7 @@ class AnalyzedScript : public CatalogEntry {
     AnalyzedScript(std::shared_ptr<ParsedScript> parsed, Catalog& catalog);
 
     /// Helper to add an expression
-    template <typename Inner> Expression& AddExpression(size_t node_id, Location location, Inner&& inner) {
+    template <typename Inner> Expression& AddExpression(size_t node_id, SymbolSpan location, Inner&& inner) {
         auto& n = expressions.PushBack(AnalyzedScript::Expression());
         n.buffer_index = expressions.GetSize() - 1;
         n.expression_id = static_cast<uint32_t>(expressions.GetSize() - 1);
@@ -517,7 +525,7 @@ struct ScriptCursor {
     /// A name component
     struct NameComponent {
         /// The location
-        sx::parser::Location loc;
+        sx::parser::SymbolSpan loc;
         /// The component type
         NameComponentType type;
         /// The name (if any)
@@ -545,7 +553,7 @@ struct ScriptCursor {
     /// Move the cursor to a script at a position
     ScriptCursor(const Script& script, size_t text_offset);
     /// Read the name path of the current cursor
-    std::vector<NameComponent> ReadCursorNamePath(sx::parser::Location& name_path_loc) const;
+    std::vector<NameComponent> ReadCursorNamePath(sx::parser::SymbolSpan& name_path_loc) const;
 
     /// Pack the cursor info
     flatbuffers::Offset<buffers::cursor::ScriptCursor> Pack(flatbuffers::FlatBufferBuilder& builder) const;

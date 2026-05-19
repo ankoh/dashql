@@ -28,6 +28,18 @@ impl Default for DockerProxy {
 }
 
 #[derive(Debug, Deserialize, serde::Serialize)]
+pub struct ContainerPort {
+    #[serde(rename = "PrivatePort")]
+    pub private_port: u16,
+    #[serde(rename = "PublicPort", default)]
+    pub public_port: Option<u16>,
+    #[serde(rename = "Type")]
+    pub r#type: String,
+    #[serde(rename = "IP", default)]
+    pub ip: Option<String>,
+}
+
+#[derive(Debug, Deserialize, serde::Serialize)]
 pub struct ContainerSummary {
     #[serde(rename = "Id")]
     pub id: String,
@@ -41,6 +53,8 @@ pub struct ContainerSummary {
     pub status: String,
     #[serde(rename = "Labels", default)]
     pub labels: std::collections::HashMap<String, String>,
+    #[serde(rename = "Ports", default)]
+    pub ports: Vec<ContainerPort>,
 }
 
 impl DockerProxy {

@@ -14,6 +14,18 @@
     overflow: hidden;
 }
 
+.centered_container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
 .width_s     { width: 256px; }
 .width_m     { width: 320px; }
 .width_l     { width: 480px; }

@@ -52,11 +52,13 @@ struct Formatter {
     void PreparePrecedence();
     void IdentifyParentheses(size_t node_id);
     void BuildDocs();
+    void MarkExplainInnerStatementRoot(size_t root_id);
 
     FmtReg FormatNode(size_t node_id);
     FmtReg FormatArray(const buffers::parser::Node& node);
     FmtReg FormatSelect(size_t node_id);
     FmtReg FormatCreate(size_t node_id);
+    FmtReg FormatExplain(size_t node_id);
     FmtReg FormatResultTarget(const buffers::parser::Node& node);
     FmtReg FormatTableRef(const buffers::parser::Node& node);
     FmtReg FormatGroupByItem(const buffers::parser::Node& node);

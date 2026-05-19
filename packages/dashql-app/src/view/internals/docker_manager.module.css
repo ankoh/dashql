@@ -8,6 +8,13 @@
     height: 100%;
 }
 
+.root_no_header {
+    display: grid;
+    grid-template-rows: max-content 1fr;
+    min-height: 0;
+    height: 100%;
+}
+
 .header {
     grid-row: 1;
     width: 100%;
@@ -56,34 +63,50 @@
     padding: 24px;
 }
 
+.loading_state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.loading_spinner {
+    width: 32px;
+    height: 20px;
+}
+
 .container_card {
     border: 1px solid var(--border_color_primary);
     border-radius: var(--border_radius);
-    padding: 12px;
+    padding: 8px;
     display: grid;
-    grid-template-columns: 1fr max-content;
-    grid-template-rows: auto auto;
-    column-gap: 12px;
-    row-gap: 8px;
+    grid-template-columns: max-content 1fr max-content;
+    column-gap: 8px;
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.container_status {
+    grid-row: 1;
+    grid-column: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
 }
 
 .container_meta {
-    grid-column: 1;
-    grid-row: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
+    display: grid;
+    grid-template-rows: 1fr 1fr;
 }
 
-.container_name {
+.container_meta_name {
     font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.container_image {
+.container_meta_image {
     color: #6e7781;
     font-family: 'Roboto Mono';
     font-size: 0.8rem;
@@ -92,25 +115,9 @@
     white-space: nowrap;
 }
 
-.status_pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    background: #f6f8fa;
-    border: 1px solid var(--border_color_primary);
-    width: fit-content;
-}
-
-.status_pill.running {
-    background: rgba(46, 160, 67, 0.2);
-    border-color: rgba(46, 160, 67, 0.5);
-}
-
 .actions {
-    grid-column: 2;
-    grid-row: 1 / span 1;
+    grid-row: 1;
+    grid-column: 3;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -134,7 +141,7 @@
 
 .log_overlay_title {
     flex: 1;
-    font-size: 1rem;
+    font-size: 0.9rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -148,6 +155,19 @@
     position: relative;
     font-family: 'Roboto Mono';
     font-size: 0.65rem;
+}
+
+.log_loading {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.log_loading_spinner {
+    width: 32px;
+    height: 20px;
 }
 
 .log_row {
@@ -181,7 +201,6 @@
 
 /* Create panel */
 .create_root {
-    grid-row: 3;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -191,19 +210,33 @@
     overflow-y: auto;
 }
 
+.root > .create_root {
+    grid-row: 3;
+}
+
+.root_no_header > .create_root {
+    grid-row: 2;
+}
+
 /* Step 1 (tag selection) takes over the body region directly; no padding/gap
    so the virtualized list can sit flush against the wizard toolbar. */
 .create_root_flush {
-    grid-row: 3;
     display: block;
     height: 100%;
     min-height: 0;
     overflow: hidden;
 }
 
+.root > .create_root_flush {
+    grid-row: 3;
+}
+
+.root_no_header > .create_root_flush {
+    grid-row: 2;
+}
+
 /* Wizard sub-toolbar (cancel | step indicator | next) */
 .wizard_toolbar {
-    grid-row: 2;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -211,6 +244,14 @@
     padding: 0 12px;
     height: 40px;
     border-bottom: 1px solid var(--border_color_primary);
+}
+
+.root > .wizard_toolbar {
+    grid-row: 2;
+}
+
+.root_no_header > .wizard_toolbar {
+    grid-row: 1;
 }
 
 .wizard_toolbar_left {

@@ -13,6 +13,9 @@ import { createDatalessConnectionParamsSignature } from './dataless/dataless_con
 import { createTrinoConnectionParamsSignature } from './trino/trino_connection_params.js';
 import { createTrinoConnectionStateDetails } from './trino/trino_connection_state.js';
 import { newConnectionSignature, ConnectionSignatureMap } from './connection_signature.js';
+import { generateCatalogScriptHeader, CatalogSource } from './catalog_sql_generator.js';
+import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
+import { isNativePlatform } from '../platform/native_globals.js';
 
 // Re-export connection param types from JSON Schema
 export type ConnectionParams = app_session.ConnectionParams;
@@ -70,7 +73,10 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: Conn
     const sig = computeNewConnectionSignatureFromDetails(details);
 
     const catalog = dql.createCatalog();
-    const catalogScript = dql.createScript(catalog);
+    const catalogRelationScript = dql.createScript(catalog);
+    catalogRelationScript.replaceText(generateCatalogScriptHeader(CatalogSource.Unknown));
+    const catalogFunctionScript = dql.createScript(catalog);
+    catalogFunctionScript.replaceText(generateFunctionScriptHeader(CatalogSource.Unknown));
     return {
         instance: dql,
         active: false,
@@ -88,7 +94,8 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: Conn
             lastFullRefresh: null,
             restoredAt: null,
         },
-        catalogScript,
+        catalogRelationScript,
+        catalogFunctionScript,
         snapshotQueriesActiveFinished: 1,
         queriesActive: new Map(),
         queriesActiveOrdered: [],
@@ -102,9 +109,9 @@ export function createDefaultConnectionParamsForConnector(connector: ConnectorIn
         case ConnectorType.DATALESS:
             return { dataless: {} };
         case ConnectorType.HYPER:
-            return { hyper: { protocol: 'V3_HTTP', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } };
+            return { hyper: { protocol: isNativePlatform() ? 'V3_DOCKER' : 'V3_HTTP', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } };
         case ConnectorType.SALESFORCE_DATA_CLOUD:
-            return { salesforce: { hyperProtocol: 'V3_HTTP', instanceUrl: '', appConsumerKey: '', appConsumerSecret: '', login: '' } };
+            return { salesforce: { hyperProtocol: isNativePlatform() ? 'V3_GRPC' : 'V3_HTTP', instanceUrl: '', appConsumerKey: '', appConsumerSecret: '', login: '' } };
         case ConnectorType.TRINO:
             return { trino: { endpoint: '', catalogName: '', auth: { authType: 'AUTH_BASIC' } } };
     }

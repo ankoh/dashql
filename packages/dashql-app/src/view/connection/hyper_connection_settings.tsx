@@ -6,10 +6,15 @@ import * as style from './connection_settings.module.css';
 
 import {
     ChecklistIcon,
+    CircleSlashIcon,
+    DashIcon,
     DatabaseIcon,
     FileBadgeIcon,
     KeyIcon,
+    PlusIcon,
 } from '@primer/octicons-react';
+
+import { ButtonVariant, IconButton } from '../foundations/button.js';
 
 import { classNames } from '../../utils/classnames.js';
 import { KeyValueTextField, TextField } from '../foundations/text_field.js';
@@ -27,6 +32,7 @@ import { useAnyConnectionNotebook } from './connection_notebook.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
 import { isNativePlatform } from '../../platform/native_globals.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
+import { HyperDockerPanelMode, HyperDockerSettingsPanel } from './hyper_docker_settings.js';
 
 const LOG_CTX = "hyper_connector";
 
@@ -43,7 +49,7 @@ interface PageState {
 function buildPageStateFromParams(params: connection.HyperConnectionParams | undefined): PageState {
     const metadataDetails = (params?.metadata as { details?: Record<string, string> } | undefined)?.details;
     return {
-        protocol: params?.protocol ?? "V3_HTTP",
+        protocol: params?.protocol ?? (isNativePlatform() ? "V3_DOCKER" : "V3_HTTP"),
         endpoint: params?.endpoint ?? "http://localhost:7484",
         mTlsKeyPath: params?.tls?.clientKeyPath ?? "",
         mTlsPubPath: params?.tls?.clientCertPath ?? "",
@@ -93,8 +99,12 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
 
     const protocol = pageState.protocol;
 
-    // gRPC requires the native platform
-    const wrongPlatform = protocol === "V3_GRPC" && !isNativePlatform();
+    // Docker and direct gRPC both require the native platform
+    const wrongPlatform = (protocol === "V3_GRPC" || protocol === "V3_DOCKER") && !isNativePlatform();
+    const isDocker = protocol === "V3_DOCKER";
+    const protocols: connection.HyperProtocol[] = isNativePlatform()
+        ? ["V3_DOCKER", "V3_GRPC", "V3_HTTP"]
+        : ["V3_GRPC", "V3_HTTP"];
     const setProtocol = (v: connection.HyperProtocol) => setPageState(s => ({ ...s, protocol: v }));
     const setEndpoint = (v: string) => setPageState(s => ({ ...s, endpoint: v }));
     const setMTLSKeyPath = (v: string) => setPageState(s => ({ ...s, mTlsKeyPath: v }));
@@ -103,6 +113,10 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const modifyAttachedDbs: Dispatch<UpdateKeyValueList> = (action: UpdateKeyValueList) => setPageState(s => ({ ...s, attachedDatabases: action(s.attachedDatabases) }));
     const modifyGrpcMetadata: Dispatch<UpdateKeyValueList> = (action: UpdateKeyValueList) => setPageState(s => ({ ...s, gRPCMetadata: action(s.gRPCMetadata) }));
     const isGrpc = protocol === "V3_GRPC";
+
+    // Docker panel state — lifted so the +/− IconButtons can live in the connection header.
+    const [dockerMode, setDockerMode] = React.useState<HyperDockerPanelMode>('list');
+    const [dockerEditMode, setDockerEditMode] = React.useState(false);
 
     // Helper to setup the connection
     const setupParams = React.useMemo<connection.HyperConnectionParams>(() => ({
@@ -187,15 +201,46 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                 connector={connectorInfo}
                 connection={connectionState}
                 wrongPlatform={wrongPlatform}
-                setupConnection={setupConnection}
-                cancelSetup={cancelSetup}
-                resetSetup={resetSetup}
+                setupConnection={isDocker ? undefined : setupConnection}
+                cancelSetup={isDocker ? undefined : cancelSetup}
+                resetSetup={isDocker ? undefined : resetSetup}
                 notebook={connectionNotebook}
                 protocol={protocol}
+                protocols={protocols}
                 onProtocolChange={setProtocol}
                 freezeInput={freezeInput}
                 onClose={props.onClose}
+                trailingStatusActions={isDocker && dockerMode === 'list' && (
+                    <>
+                        <IconButton
+                            variant={dockerEditMode ? ButtonVariant.Default : ButtonVariant.Invisible}
+                            aria-label={dockerEditMode ? 'Done removing' : 'Remove containers'}
+                            aria-pressed={dockerEditMode}
+                            onClick={() => setDockerEditMode(v => !v)}
+                        >
+                            {dockerEditMode ? <CircleSlashIcon /> : <DashIcon />}
+                        </IconButton>
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Create container"
+                            description="Create a new container"
+                            onClick={() => setDockerMode('create')}
+                        >
+                            <PlusIcon />
+                        </IconButton>
+                    </>
+                )}
             />
+            {isDocker ? (
+                <HyperDockerSettingsPanel
+                    sessionId={props.sessionId}
+                    freezeInput={freezeInput}
+                    mode={dockerMode}
+                    setMode={setDockerMode}
+                    isEditMode={dockerEditMode}
+                    onClose={props.onClose}
+                />
+            ) : (
             <div className={style.body_container}>
                 <div className={style.section}>
                     <div className={classNames(style.section_layout, style.body_section_layout)}>
@@ -272,6 +317,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                     </div>
                 </div>
             </div>
+            )}
         </ div>
     );
 };

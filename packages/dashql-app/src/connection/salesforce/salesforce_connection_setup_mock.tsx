@@ -18,7 +18,7 @@ import {
 import { generatePKCEChallenge } from '../../utils/pkce.js';
 import { sleep } from '../../utils/sleep.js';
 import { Dispatch } from '../../utils/variant.js';
-import { Logger } from '../../platform/logger/logger.js';
+import { Logger, stringifyError } from '../../platform/logger/logger.js';
 import { SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
 import { SalesforceSetupApi } from './salesforce_connection_setup.js';
 import { SalesforceConnectorConfig } from '../connector_configs.js';
@@ -147,7 +147,7 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
                 value: error.message,
             });
         } else if (error instanceof Error) {
-            logger.error("Oauth flow failed", { "error": error.toString() });
+            logger.error("Oauth flow failed", { "error": stringifyError(error) });
             updateState({
                 type: SETUP_FAILED,
                 value: {

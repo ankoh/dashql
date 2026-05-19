@@ -15,9 +15,10 @@ import { OrderByConstraint } from '../../sql/sqlframe_builder.js';
 import { ColumnAggregationTask, ORDINAL_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableFilteringTask, TableOrderingTask, TableAggregation, TaskStatus, WithFilter } from '../../compute/computation_types.js';
 import { buildSkeletonStyle, DataCell, DataCellData, HeaderNameCell, HeaderPlotsCell, SkeletonOverlay, TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';
-import { computeTableLayout, DataTableLayout, skipTableLayoutUpdate } from './data_table_layout.js';
+import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
 import { computeFilteredColumnAggregatesDispatched, filterTableDispatched, sortTableDispatched } from '../../compute/computation_logic.js';
 import { observeSize } from '../foundations/size_observer.js';
+import { CellDetailOverlay } from './cell_detail_overlay.js';
 import { useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 
@@ -28,6 +29,10 @@ interface Props {
     table: TableComputationState;
     dispatchComputation: Dispatch<ComputationAction>;
     debugMode: boolean;
+    maxRows?: number;
+    columnHeader?: TableColumnHeader;
+    cellBackground?: string;
+    onShowTable?: () => void;
 }
 
 const MIN_GRID_HEIGHT = 200;
@@ -75,11 +80,10 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     const visibleRowIdTable = computationState.orderingTable?.dataTable ?? computationState.filterTable?.dataTable ?? null;
     const gridContainerElement = React.useRef(null);
     const gridContainerSize = observeSize(gridContainerElement);
-    const gridContainerHeight = Math.max(gridContainerSize?.height ?? 0, MIN_GRID_HEIGHT);
     const gridContainerWidth = Math.max(gridContainerSize?.width ?? 0, MIN_GRID_WIDTH);
-    const columnHeader = (config?.settings?.enableTableColumnPlots ?? false)
+    const columnHeader = props.columnHeader ?? ((config?.settings?.enableTableColumnPlots ?? false)
         ? TableColumnHeader.WithColumnPlots
-        : TableColumnHeader.OnlyColumnName;
+        : TableColumnHeader.OnlyColumnName);
 
     // Get the row-id indirection column from ordering or filtering
     const visibleRowIds = React.useMemo<arrow.Vector<arrow.Int> | null>(() => {
@@ -104,7 +108,8 @@ export const DataTable: React.FC<Props> = (props: Props) => {
 
     // Data row count. Headers are rendered separately via portals
     // When an indirection table is active, show only the derived visible rows
-    const dataRowCount = visibleRowIds?.length ?? dataTable.numRows ?? 0;
+    const totalRowCount = visibleRowIds?.length ?? dataTable.numRows ?? 0;
+    const dataRowCount = props.maxRows != null ? Math.min(totalRowCount, props.maxRows) : totalRowCount;
     // Header configuration
     const headerRowCount = columnHeader === TableColumnHeader.WithColumnPlots ? 2 : 1;
 
@@ -114,27 +119,26 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     }, [dataTable]);
 
     // Determine grid dimensions and column widths
-    const [gridLayout, setGridLayout] = React.useState<DataTableLayout>({
-        columnCount: 0,
-        arrowFieldByColumnIndex: new Uint32Array(),
-        columnXOffsets: new Float64Array([0]),
-        columnAggregateByColumnIndex: new Int32Array(),
-        columnGroupByColumnIndex: new Uint32Array(),
-        isSystemColumn: new Uint8Array(),
-        headerRowCount
-    });
-    React.useEffect(() => {
-        if (tableFormatter) {
-            const newGridLayout = computeTableLayout(tableFormatter, computationState, props.debugMode, headerRowCount);
-            if (!skipTableLayoutUpdate(gridLayout, newGridLayout)) {
-                setGridLayout(newGridLayout);
-            }
+    const gridLayout = React.useMemo<DataTableLayout>(() => {
+        if (!tableFormatter) {
+            return {
+                columnCount: 0,
+                arrowFieldByColumnIndex: new Uint32Array(),
+                columnXOffsets: new Float64Array([0]),
+                columnAggregateByColumnIndex: new Int32Array(),
+                columnGroupByColumnIndex: new Uint32Array(),
+                isSystemColumn: new Uint8Array(),
+                isTextColumn: new Uint8Array(),
+                headerRowCount
+            };
         }
+        return computeTableLayout(tableFormatter, computationState, props.debugMode, headerRowCount, gridContainerWidth);
     }, [
-        gridLayout,
         computationState.columnGroups,
         tableFormatter,
         props.debugMode,
+        gridContainerWidth,
+        headerRowCount,
     ]);
 
     // Compute helper to resolve column widths
@@ -341,9 +345,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     }, [computationState, dispatchComputation]);
     const orderByColumn = React.useCallback((fieldId: number) => {
         const fieldName = dataTable.schema.fields[fieldId].name;
-        // #region agent log
-        fetch('http://127.0.0.1:7811/ingest/16055d45-76fb-4065-93a4-f78ad4e545c4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b4feb0'},body:JSON.stringify({sessionId:'b4feb0',runId:'pre-fix',hypothesisId:'H1',location:'data_table.tsx:249',message:'Order by requested from header control',data:{tableId:computationState.tableId,versionFilter:computationState.version.filter,fieldId,fieldName,hasDataFrame:computationState.dataFrame!=null,hasFilterTable:computationState.filterTable!=null,filterVersion:computationState.filterTable?.version.filter??null},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         const orderingConstraints: OrderByConstraint[] = [{
             field: fieldName,
             ascending: true,
@@ -361,9 +362,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 orderingConstraints
             };
             void sortTableDispatched(orderingTask, dispatchComputation);
-            // #region agent log
-            fetch('http://127.0.0.1:7811/ingest/16055d45-76fb-4065-93a4-f78ad4e545c4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b4feb0'},body:JSON.stringify({sessionId:'b4feb0',runId:'pre-fix',hypothesisId:'H2',location:'data_table.tsx:266',message:'Order task dispatched',data:{tableId:orderingTask.tableId,versionFilter:orderingTask.tableVersion.filter,orderingField:orderingTask.orderingConstraints[0]?.field,hasFilterTable:computationState.filterTable!=null,filterVersion:computationState.filterTable?.version.filter??null},timestamp:Date.now()})}).catch(()=>{});
-            // #endregion
         }
     }, [computationState, dispatchComputation, logger]);
 
@@ -381,6 +379,32 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         forceUpdate();
     }, []);
 
+    // Cell detail overlay state
+    const [cellDetail, setCellDetail] = React.useState<{
+        dataRow: number;
+        fieldId: number;
+        formattedValue: string | null;
+        columnName: string | null;
+    } | null>(null);
+    const onClickCell: React.MouseEventHandler<HTMLDivElement> = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+        const dataRow = Number.parseInt(event.currentTarget.dataset["tableRow"]!);
+        const fieldId = Number.parseInt(event.currentTarget.dataset["tableCol"]!);
+        const field = computationState.dataTable.schema.fields[fieldId];
+        if (field == null || (field.type.typeId !== arrow.Type.Utf8 && field.type.typeId !== arrow.Type.LargeUtf8)) return;
+        const formattedValue = tableFormatter.getValue(dataRow, fieldId);
+        const columnName = field.name ?? null;
+        setCellDetail({ dataRow, fieldId, formattedValue, columnName });
+    }, [tableFormatter, computationState.dataTable]);
+    const onNavigateCell = React.useCallback((delta: number) => {
+        setCellDetail(prev => {
+            if (prev == null) return null;
+            const newRow = prev.dataRow + delta;
+            if (newRow < 0 || newRow >= dataRowCount) return prev;
+            const formattedValue = tableFormatter.getValue(newRow, prev.fieldId);
+            return { ...prev, dataRow: newRow, formattedValue };
+        });
+    }, [tableFormatter, dataRowCount]);
+
     // Maintain a rendering context for data cells.
     // This context is passed to grid elements as item data.
     // We use a ref to avoid recreating the inner grid element type when data changes.
@@ -393,6 +417,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         tableFormatter: tableFormatter,
         onMouseEnter: onMouseEnterCell,
         onMouseLeave: onMouseLeaveCell,
+        onClick: onClickCell,
         table: computationState.dataTable,
         focusedRow: focusedCells.current?.row ?? null,
         focusedField: focusedCells.current?.field ?? null,
@@ -409,31 +434,24 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         // Stable callbacks (empty deps) - included for correctness but won't cause re-renders
         onMouseEnterCell,
         onMouseLeaveCell,
+        onClickCell,
         // Note: focusedCells is a ref, reading it here won't trigger re-renders
         // but the value will be fresh when gridData is created
     ]);
     gridDataRef.current = gridData;
 
-    // Listen to rendering events to check if the column widths changed and track visible rows
+    // Listen to rendering events to track visible rows
     const onCellsRendered = React.useCallback((
         _visibleCells: { rowStartIndex: number; rowStopIndex: number },
         allCells: { rowStartIndex: number; rowStopIndex: number }
     ) => {
-        // Check if we need to update the grid layout
-        if (gridApi && tableFormatter) {
-            const newGridColumns = computeTableLayout(tableFormatter, computationState, props.debugMode, headerRowCount);
-            if (!skipTableLayoutUpdate(gridLayout, newGridColumns)) {
-                setGridLayout(newGridColumns);
-            }
-        }
-        // Update visible rows for sticky column virtualization
         setVisibleRows(prev => {
             if (prev.start === allCells.rowStartIndex && prev.stop === allCells.rowStopIndex) {
-                return prev; // Avoid unnecessary re-renders
+                return prev;
             }
             return { start: allCells.rowStartIndex, stop: allCells.rowStopIndex };
         });
-    }, [gridLayout, tableFormatter, props.debugMode, gridApi]);
+    }, []);
 
     // Compute grid dimensions
     const totalColumnsWidth = gridLayout.columnXOffsets[gridLayout.columnCount] ?? 0;
@@ -441,6 +459,9 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     const headerHeight = columnHeader === TableColumnHeader.WithColumnPlots
         ? COLUMN_HEADER_HEIGHT + COLUMN_HEADER_PLOTS_HEIGHT
         : COLUMN_HEADER_HEIGHT;
+    const gridContainerHeight = props.maxRows != null
+        ? headerHeight + dataRowCount * ROW_HEIGHT
+        : Math.max(gridContainerSize?.height ?? 0, MIN_GRID_HEIGHT);
     const visiblePlotColumns = React.useMemo(() => {
         const visibility = Array.from({ length: gridLayout.columnCount }, () => false);
         if (gridLayout.columnCount === 0) {
@@ -520,6 +541,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                             dataFrame={computationState.dataFrame}
                             rightmostVisibleColumn={gridLayout.columnCount - 1}
                             onOrderByColumn={orderByColumn}
+                            onShowTable={props.onShowTable}
                         />
                     </div>
                     {/* Other header cells */}
@@ -539,6 +561,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                                 dataFrame={computationState.dataFrame}
                                 rightmostVisibleColumn={gridLayout.columnCount - 1}
                                 onOrderByColumn={orderByColumn}
+                                onShowTable={props.onShowTable}
                             />
                         );
                     })}
@@ -683,23 +706,34 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     };
 
     return (
-        <div className={classNames(styles.root, props.className)} ref={gridContainerElement}>
-            <Grid
-                gridRef={setGridApi}
-                style={{ width: gridContainerWidth, height: gridContainerHeight }}
-                columnCount={gridLayout.columnCount}
-                columnWidth={getColumnWidth}
-                rowCount={dataRowCount}
-                rowHeight={ROW_HEIGHT}
-                onCellsRendered={onCellsRendered}
-                overscanCount={OVERSCAN_ROW_COUNT}
-                cellComponent={DataCell}
-                cellProps={gridData}
-                className={styles.data_grid}
+        <div className={classNames(styles.root, props.className)} style={props.cellBackground ? { '--data_table_bg': props.cellBackground } as React.CSSProperties : undefined}>
+            <div className={styles.grid_container} ref={gridContainerElement}>
+                <Grid
+                    gridRef={setGridApi}
+                    style={{ width: gridContainerWidth, height: gridContainerHeight }}
+                    columnCount={gridLayout.columnCount}
+                    columnWidth={getColumnWidth}
+                    rowCount={dataRowCount}
+                    rowHeight={ROW_HEIGHT}
+                    onCellsRendered={onCellsRendered}
+                    overscanCount={OVERSCAN_ROW_COUNT}
+                    cellComponent={DataCell}
+                    cellProps={gridData}
+                    className={styles.data_grid}
+                />
+                {renderStickyHeadersIntoPortal()}
+                {renderStickyColumnsIntoPortal()}
+                {renderSkeletonsIntoPortal()}
+            </div>
+            <CellDetailOverlay
+                isOpen={cellDetail != null}
+                onClose={() => setCellDetail(null)}
+                formattedValue={cellDetail?.formattedValue ?? null}
+                columnName={cellDetail?.columnName ?? null}
+                dataRow={cellDetail?.dataRow ?? 0}
+                maxRow={dataRowCount - 1}
+                onNavigate={onNavigateCell}
             />
-            {renderStickyHeadersIntoPortal()}
-            {renderStickyColumnsIntoPortal()}
-            {renderSkeletonsIntoPortal()}
         </div>
     );
 };

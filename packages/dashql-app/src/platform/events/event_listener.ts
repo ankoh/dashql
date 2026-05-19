@@ -2,7 +2,7 @@ import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 import * as buf from "@bufbuild/protobuf";
 
 import { BASE64URL_CODEC } from '../../utils/base64.js';
-import { Logger } from '../logger/logger.js';
+import { Logger, stringifyError } from '../logger/logger.js';
 import { PlatformDragDropEventVariant, SETUP_SESSION, SetupEventVariant } from './event.js';
 
 const LOG_CTX = "event_listener";
@@ -228,7 +228,7 @@ export abstract class PlatformEventListener {
                     return;
                 }
             } catch (e: any) {
-                this.logger.warn("Failed to parse deep link", { "error": e.toString() }, LOG_CTX);
+                this.logger.warn("Failed to parse deep link", { "error": stringifyError(e) }, LOG_CTX);
                 return;
             }
         } else if (BASE64URL_CODEC.isValidBase64(pastedText.trim())) {

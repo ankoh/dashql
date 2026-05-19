@@ -1,3 +1,5 @@
+import * as arrow from 'apache-arrow';
+
 import { TableComputationState } from "../../compute/computation_state.js";
 import { ArrowTableFormatter } from "./arrow_formatter.js";
 import { ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN } from "../../compute/computation_types.js";
@@ -9,6 +11,7 @@ export interface DataTableLayout {
     columnAggregateByColumnIndex: Int32Array;
     columnGroupByColumnIndex: Uint32Array;
     isSystemColumn: Uint8Array;
+    isTextColumn: Uint8Array;
     headerRowCount: number;
 }
 
@@ -45,7 +48,7 @@ function computeColumnCount(columnGroups: ColumnGroup[], showMetaColumns: boolea
     return columnCount;
 }
 
-export function computeTableLayout(formatter: ArrowTableFormatter, state: TableComputationState, showSystemColumns: boolean, headerRowCount: number): DataTableLayout {
+export function computeTableLayout(formatter: ArrowTableFormatter, state: TableComputationState, showSystemColumns: boolean, headerRowCount: number, containerWidth: number = 0): DataTableLayout {
     // Allocate column offsets
     let columnCount = computeColumnCount(state.columnGroups, showSystemColumns);
     const columnFields = new Uint32Array(columnCount);
@@ -53,6 +56,7 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
     const columnAggregateIndex = new Int32Array(columnCount);
     const columnGroupByColumnIndex = new Uint32Array(columnCount);
     const isSystemColumn = new Uint8Array(columnCount);
+    const isTextColumn = new Uint8Array(columnCount);
     const tableSchema = state.dataTable.schema;
 
     // Index table fields by name
@@ -151,6 +155,34 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
     }
     columnOffsets[nextDisplayColumn] = nextDisplayOffset;
 
+    // Mark text columns for format peek hints
+    for (let i = 0; i < nextDisplayColumn; ++i) {
+        const typeId = tableSchema.fields[columnFields[i]].type.typeId;
+        if (typeId === arrow.Type.Utf8 || typeId === arrow.Type.LargeUtf8) {
+            isTextColumn[i] = 1;
+        }
+    }
+
+    // If columns don't fill the container, distribute extra space across data columns (not row-number columns)
+    if (containerWidth > 0 && nextDisplayOffset < containerWidth) {
+        let dataColumnCount = 0;
+        for (let i = 0; i < nextDisplayColumn; ++i) {
+            if (state.columnGroups[columnGroupByColumnIndex[i]].type !== ROWNUMBER_COLUMN) {
+                dataColumnCount++;
+            }
+        }
+        if (dataColumnCount > 0) {
+            const extraPerColumn = (containerWidth - nextDisplayOffset) / dataColumnCount;
+            let accumulatedExtra = 0;
+            for (let i = 0; i < nextDisplayColumn; ++i) {
+                if (state.columnGroups[columnGroupByColumnIndex[i]].type !== ROWNUMBER_COLUMN) {
+                    accumulatedExtra += extraPerColumn;
+                }
+                columnOffsets[i + 1] += accumulatedExtra;
+            }
+        }
+    }
+
     return {
         columnCount,
         arrowFieldByColumnIndex: columnFields,
@@ -158,6 +190,7 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
         columnAggregateByColumnIndex: columnAggregateIndex,
         columnGroupByColumnIndex: columnGroupByColumnIndex,
         isSystemColumn: isSystemColumn,
+        isTextColumn: isTextColumn,
         headerRowCount
     };
 }
@@ -168,7 +201,7 @@ export function skipTableLayoutUpdate(old: DataTableLayout, next: DataTableLayou
     }
     for (let i = 0; i < old.columnXOffsets.length; ++i) {
         const delta = next.columnXOffsets[i] - old.columnXOffsets[i];
-        if (delta > 0.01) {
+        if (Math.abs(delta) > 0.01) {
             return false;
         }
     }

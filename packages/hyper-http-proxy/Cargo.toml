@@ -7,7 +7,7 @@ rust-version = "1.70"
 publish = false
 
 [build-dependencies.tonic-prost-build]
-version = "0.14.5"
+version = "0.14.6"
 
 [dependencies]
 anyhow = "1.0.102"
@@ -50,7 +50,7 @@ version = "^0.14.6"
 features = ["tls-ring", "tls-native-roots"]
 
 [dependencies.tonic-prost]
-version = "0.14.5"
+version = "0.14.6"
 
 [dev-dependencies]
 tokio-stream = { version = "0.1.18", features = ["net"] }

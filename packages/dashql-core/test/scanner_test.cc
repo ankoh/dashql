@@ -19,9 +19,9 @@ namespace {
 
 static void match_tokens(const void* data, const std::vector<uint32_t>& offsets, const std::vector<uint32_t>& lengths,
                          const std::vector<ScannerToken>& types, const std::vector<uint32_t>& breaks) {
-    auto scanned = flatbuffers::GetRoot<buffers::parser::ScannedScript>(data);
-    buffers::parser::ScannedScriptT unpacked;
-    scanned->UnPackTo(&unpacked);
+    auto parsed = flatbuffers::GetRoot<buffers::parser::ParsedScript>(data);
+    buffers::parser::ParsedScriptT unpacked;
+    parsed->UnPackTo(&unpacked);
     ASSERT_EQ(unpacked.tokens->token_offsets, offsets);
     ASSERT_EQ(unpacked.tokens->token_lengths, lengths);
     ASSERT_EQ(unpacked.tokens->token_types, types);
@@ -40,12 +40,12 @@ TEST(ScannerTest, InsertChars) {
     auto add_char = [&](char c, std::vector<uint32_t> offsets, std::vector<uint32_t> lengths,
                         std::vector<buffers::parser::ScannerTokenType> types, std::vector<uint32_t> breaks) {
         dashql_script_insert_char_at(script, size++, c);
-        dashql_script_scan(script);  // throws on error
+        dashql_script_analyze(script, true);
 
-        FFIResult scanned_result;
-        dashql_script_get_scanned(&scanned_result, script);
-        match_tokens(scanned_result.data_ptr, offsets, lengths, types, breaks);
-        dashql_delete_owner(scanned_result.owner_ptr, scanned_result.owner_deleter);
+        FFIResult parsed_result;
+        dashql_script_get_parsed(&parsed_result, script);
+        match_tokens(parsed_result.data_ptr, offsets, lengths, types, breaks);
+        dashql_delete_owner(parsed_result.owner_ptr, parsed_result.owner_deleter);
     };
 
     add_char('s', {0}, {1}, {ScannerToken::IDENTIFIER}, {});
@@ -70,9 +70,11 @@ TEST(ScannerTest, FindTokenAtOffset) {
         buffer.Insert(0, text);
         script = parser::Scanner::Scan(buffer, 0, external_id);
     };
-    // Test if token types match
+    // Parse and test if token types match
+    std::shared_ptr<ParsedScript> parsed;
     auto test_tokens = [&](std::initializer_list<buffers::parser::ScannerTokenType> tokens) {
-        auto packed = script->PackTokens();
+        parsed = parser::Parser::Parse(script);
+        auto packed = parsed->PackTokens();
         std::vector<buffers::parser::ScannerTokenType> have_types{std::move(tokens)};
         ASSERT_EQ(packed->token_types, have_types);
     };
@@ -224,7 +226,8 @@ TEST(ScannerTest, TrailingComments) {
         --
     )SQL");
     auto scanned = parser::Scanner::Scan(buffer, 0, 0);
-    auto packed = scanned->PackTokens();
+    auto parsed = parser::Parser::Parse(scanned);
+    auto packed = parsed->PackTokens();
     ASSERT_EQ(packed->token_types.size(), 3);
 }
 

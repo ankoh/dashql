@@ -14,17 +14,19 @@ import type { RowComponentProps } from 'react-window';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
-import { getSelectedPageEntries, getUncommittedScriptData, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
-import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
+import { getSelectedPageEntries, getUncommittedScriptData, REGISTER_QUERY, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
+import { QueryType } from '../../connection/query_execution_state.js';
+import { useQueryExecutor, useQueryState } from '../../connection/query_executor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { ScriptEditor } from './script_editor.js';
 import { ScriptPreview } from './notebook_script_preview.js';
 import { observeSize } from '../foundations/size_observer.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
-import { useScrollbarWidth } from '../../utils/scrollbar.js';
 import { SegmentedControl, SegmentedControlSize } from '../foundations/segmented_control.js';
 import { NotebookScriptName } from './notebook_script_name.js';
+import { FeedEntryFooter } from './feed_entry_footer.js';
+import { TabKey as DetailsTabKey } from './notebook_script_details.js';
 
 interface FeedScrollTarget {
     entryIndex: number;
@@ -34,7 +36,7 @@ interface FeedScrollTarget {
 export interface NotebookScriptListProps {
     notebook: NotebookState;
     modifyNotebook: ModifyNotebook;
-    showDetails: () => void;
+    showDetails: (initialTab?: DetailsTabKey) => void;
     scrollTarget?: FeedScrollTarget | null;
     conn: ConnectionState | null;
     openConnectionOverlay: () => void;
@@ -45,6 +47,7 @@ const FEED_EDGE_PADDING = 8;
 const FEED_BOTTOM_FADE_HEIGHT = 24;
 
 interface CollapsedScriptCardProps {
+    sessionId: string;
     entryIndex: number;
     isFocused: boolean;
     scriptData: ScriptData | undefined;
@@ -56,12 +59,15 @@ interface CollapsedScriptCardProps {
     onExpand: (entryIndex: number) => void;
     onDelete: (entryIndex: number) => void;
     onRename: (entryIndex: number, fileName: string) => void;
+    onShowTable: (entryIndex: number) => void;
+    onShowStatus: (entryIndex: number) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, onFocus, onExpand, onDelete, onRename }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, entryIndex, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, onFocus, onExpand, onDelete, onRename, onShowTable, onShowStatus }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const EyeIcon: Icon = SymbolIcon(isFocused ? 'eye_16' : 'eye_closed_16');
     const PencilIcon: Icon = SymbolIcon('pencil_16');
+    const queryState = useQueryState(sessionId, scriptData?.latestQueryId ?? null);
     const [isReady, setIsReady] = React.useState(false);
     const [isEditing, setIsEditing] = React.useState(false);
     const [draftFileName, setDraftFileName] = React.useState(scriptFileName);
@@ -84,16 +90,6 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, isFocused,
     const cancelEdit = React.useCallback(() => {
         setIsEditing(false);
     }, []);
-
-    const handleEditKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            saveEdit();
-        } else if (event.key === 'Escape') {
-            event.preventDefault();
-            cancelEdit();
-        }
-    }, [saveEdit, cancelEdit]);
 
     React.useEffect(() => {
         if (isEditing && editInputRef.current) {
@@ -173,11 +169,24 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, isFocused,
             <div className={styles.feed_body} onPointerDownCapture={handlePreviewPointerDown}>
                 {scriptData != null ? <ScriptPreview className={styles.script_preview_editor} scriptData={scriptData} onReady={setIsReady} /> : null}
             </div>
+            {queryState != null && (
+                <div className={styles.feed_entry_execution_footer}>
+                    <FeedEntryFooter
+                        sessionId={sessionId}
+                        queryId={queryState.queryId}
+                        traceId={queryState.traceId}
+                        queryState={queryState}
+                        onShowTable={() => onShowTable(entryIndex)}
+                        onShowStatus={() => onShowStatus(entryIndex)}
+                    />
+                </div>
+            )}
         </motion.div>
     );
 };
 
 interface ScriptFeedRowProps {
+    sessionId: string;
     entries: ReturnType<typeof getSelectedPageEntries>;
     scripts: NotebookState['scripts'];
     folderName: string;
@@ -188,13 +197,15 @@ interface ScriptFeedRowProps {
     onExpand: (index: number) => void;
     onDelete: (index: number) => void;
     onRename: (index: number, fileName: string) => void;
+    onShowTable: (index: number) => void;
+    onShowStatus: (index: number) => void;
     onHeightMeasured: (index: number, height: number) => void;
     fillerRowHeight: number;
     heightsVersion: number;
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { entries, scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, onFocus, onExpand, onDelete, onRename, onHeightMeasured } = props;
+    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, onFocus, onExpand, onDelete, onRename, onShowTable, onShowStatus, onHeightMeasured } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -229,6 +240,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                 className={styles.feed_list_item}
             >
                 <ScriptCard
+                    sessionId={sessionId}
                     entryIndex={entryIndex}
                     isFocused={entryIndex === focusedEntryIndex}
                     scriptData={scriptData}
@@ -240,6 +252,8 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onExpand={onExpand}
                     onDelete={onDelete}
                     onRename={onRename}
+                    onShowTable={onShowTable}
+                    onShowStatus={onShowStatus}
                 />
             </div>
         </div>
@@ -250,7 +264,6 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const config = useAppConfig();
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
     const entries = getSelectedPageEntries(props.notebook);
-    const scrollbarWidth = useScrollbarWidth();
     const pendingScrollToBottomRef = React.useRef(false);
     const [composeEditorView, setComposeEditorView] = React.useState<EditorView | null>(null);
     const [inputMode, setInputMode] = React.useState<number>(0); // 0 = SQL, 1 = Natural Language
@@ -264,9 +277,19 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         props.showDetails();
     }, [props.modifyNotebook, props.showDetails]);
 
+    const handleShowTable = React.useCallback((entryIndex: number) => {
+        props.modifyNotebook({ type: SELECT_ENTRY, value: entryIndex });
+        props.showDetails(DetailsTabKey.QueryResultView);
+    }, [props.modifyNotebook, props.showDetails]);
+
+    const handleShowStatus = React.useCallback((entryIndex: number) => {
+        props.modifyNotebook({ type: SELECT_ENTRY, value: entryIndex });
+        props.showDetails(DetailsTabKey.QueryStatusPanel);
+    }, [props.modifyNotebook, props.showDetails]);
+
     const isDisconnected = props.conn?.connectionHealth !== ConnectionHealth.ONLINE;
     const openConnectionOverlay = props.openConnectionOverlay;
-    const notebookCommand = useNotebookCommandDispatch();
+    const executeQuery = useQueryExecutor();
 
     const [executeOnSend, setExecuteOnSend] = React.useState(false);
     React.useEffect(() => {
@@ -279,11 +302,32 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
 
     const handleSend = React.useCallback(() => {
         pendingScrollToBottomRef.current = true;
+        const notebook = props.notebook;
+        const scriptKey = notebook.uncommittedScriptId;
+        const scriptData = notebook.scripts[scriptKey];
+        const mainScriptText = scriptData?.script.toString() ?? '';
         props.modifyNotebook({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
-        if (executeOnSend && !isDisconnected) {
-            notebookCommand(NotebookCommandType.ExecuteEditorQuery);
+        if (executeOnSend && !isDisconnected && mainScriptText.trim().length > 0) {
+            const pageIndex = notebook.notebookUserFocus.pageIndex;
+            const page = notebook.notebookPages[pageIndex];
+            const entryInPage = page ? page.scripts.length : 0;
+            const [queryId] = executeQuery(notebook.sessionId, {
+                query: mainScriptText,
+                analyzeResults: true,
+                metadata: {
+                    queryType: QueryType.USER_PROVIDED,
+                    title: "Notebook Query",
+                    description: null,
+                    issuer: "Query Execution Command",
+                    userProvided: true
+                }
+            });
+            props.modifyNotebook({
+                type: REGISTER_QUERY,
+                value: [pageIndex, entryInPage, scriptKey, queryId]
+            });
         }
-    }, [props.modifyNotebook, executeOnSend, isDisconnected, notebookCommand]);
+    }, [props.notebook, props.modifyNotebook, executeOnSend, isDisconnected, executeQuery]);
 
     const handleDelete = React.useCallback((entryIndex: number) => {
         props.modifyNotebook({ type: DELETE_NOTEBOOK_ENTRY, value: entryIndex });
@@ -360,23 +404,21 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         });
     }, [entries.length, listRef, props.scrollTarget]);
 
-    // Check if scrollbar is actually visible by comparing scroller size to container
-    const [isScrollbarVisible, setIsScrollbarVisible] = React.useState(false);
+    // Measure the actual scrollbar inset from the scroller element directly,
+    // rather than relying on a static measurement that can be wrong when macOS
+    // switches between overlay and non-overlay scrollbar styles.
+    const [composeScrollbarInset, setComposeScrollbarInset] = React.useState(0);
     React.useEffect(() => {
         const listContainer = listContainerRef.current;
         if (!listContainer) {
             return;
         }
-        // The react-window scroller is the first child div
         const scroller = listContainer.firstElementChild as HTMLElement | null;
         if (!scroller) {
             return;
         }
-        const hasOverflow = scroller.scrollHeight > scroller.clientHeight;
-        setIsScrollbarVisible(hasOverflow);
+        setComposeScrollbarInset(scroller.offsetWidth - scroller.clientWidth);
     }, [listHeight, fillerRowHeight, entries.length, heightsVersion]);
-
-    const composeScrollbarInset = isScrollbarVisible ? scrollbarWidth : 0;
 
     // Get folder name from current page
     const selectedPage = props.notebook.notebookPages[props.notebook.notebookUserFocus.pageIndex];
@@ -386,6 +428,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const focusedEntryIndex = props.notebook.notebookUserFocus.entryInPage;
     const canDelete = props.notebook.notebookPages.length > 1 || entries.length > 1;
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
+        sessionId: props.notebook.sessionId,
         entries,
         scripts: props.notebook.scripts,
         folderName,
@@ -396,10 +439,12 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onExpand: handleExpand,
         onDelete: handleDelete,
         onRename: handleRename,
+        onShowTable: handleShowTable,
+        onShowStatus: handleShowStatus,
         onHeightMeasured: handleHeightMeasured,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleShowTable, handleShowStatus, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container}>

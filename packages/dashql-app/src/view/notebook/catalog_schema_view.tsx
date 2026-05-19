@@ -3,7 +3,6 @@ import * as detailStyles from './notebook_script_details.module.css';
 import * as styles from './catalog_schema_view.module.css';
 
 import { EditorView } from '@codemirror/view';
-import { motion, AnimatePresence } from 'framer-motion';
 
 import { LockIcon } from '@primer/octicons-react';
 
@@ -11,33 +10,31 @@ import { ConnectionState } from '../../connection/connection_state.js';
 import { CodeMirror, createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, analyzeScript, DashQLScriptBuffers } from '../editor/dashql_processor.js';
 import { NotebookScriptName } from './notebook_script_name.js';
+import type { DashQLScript } from '../../core/api.js';
 
-export interface CatalogSchemaViewProps {
-    connection: ConnectionState;
+interface CatalogScriptCardProps {
+    script: DashQLScript;
+    fileName: string;
+    lastFullRefresh: number | null;
 }
 
-export const CatalogSchemaView: React.FC<CatalogSchemaViewProps> = (props) => {
+const CatalogScriptCard: React.FC<CatalogScriptCardProps> = (props) => {
     const [view, setView] = React.useState<EditorView | null>(null);
     const prevTextRef = React.useRef<string>('');
     const prevBuffersRef = React.useRef<DashQLScriptBuffers | null>(null);
+    const readonlyExtensions = React.useMemo(() => createReadonlyCodeMirrorExtensions(), []);
 
-    const catalogScript = props.connection.catalogScript;
-    const lastFullRefresh = props.connection.catalogUpdates.lastFullRefresh;
-
-    // Update editor content and decorations when the catalog script changes
     React.useEffect(() => {
         if (view == null) return;
-        const text = catalogScript.toString();
+        const text = props.script.toString();
         if (text === prevTextRef.current) return;
         prevTextRef.current = text;
 
-        // Replace the document text
         view.dispatch({
             changes: { from: 0, to: view.state.doc.length, insert: text },
         });
 
-        // Analyze the script and push buffers for decorations
-        const buffers = analyzeScript(catalogScript);
+        const buffers = analyzeScript(props.script);
         prevBuffersRef.current?.destroy(prevBuffersRef.current);
         prevBuffersRef.current = buffers;
 
@@ -46,8 +43,8 @@ export const CatalogSchemaView: React.FC<CatalogSchemaViewProps> = (props) => {
                 DashQLUpdateEffect.of({
                     config: {},
                     scriptRegistry: null,
-                    scriptKey: catalogScript.getCatalogEntryId(),
-                    script: catalogScript,
+                    scriptKey: props.script.getCatalogEntryId(),
+                    script: props.script,
                     scriptBuffers: buffers,
                     scriptCursor: null,
                     scriptCompletion: null,
@@ -56,9 +53,8 @@ export const CatalogSchemaView: React.FC<CatalogSchemaViewProps> = (props) => {
                 }),
             ],
         });
-    }, [view, lastFullRefresh, catalogScript]);
+    }, [view, props.lastFullRefresh, props.script]);
 
-    // Cleanup buffers on unmount
     React.useEffect(() => {
         return () => {
             prevBuffersRef.current?.destroy(prevBuffersRef.current);
@@ -66,25 +62,36 @@ export const CatalogSchemaView: React.FC<CatalogSchemaViewProps> = (props) => {
         };
     }, []);
 
-    const readonlyExtensions = React.useMemo(() => createReadonlyCodeMirrorExtensions(), []);
+    return (
+        <div key={props.fileName} className={detailStyles.entry_body_card}>
+            <div className={detailStyles.entry_card_container}>
+                <div className={detailStyles.entry_card_action_bar}>
+                    <div className={detailStyles.entry_card_file_name}>
+                        <NotebookScriptName folder=".." file={props.fileName} icon={<LockIcon size={12} />} />
+                    </div>
+                </div>
+                <div className={styles.entry_card_editor}>
+                    <CodeMirror ref={setView} extensions={readonlyExtensions} />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export interface CatalogSchemaViewProps {
+    connection: ConnectionState;
+}
+
+export const CatalogSchemaView: React.FC<CatalogSchemaViewProps> = (props) => {
+    const lastFullRefresh = props.connection.catalogUpdates.lastFullRefresh;
 
     return (
         <div className={detailStyles.entry_body_container}>
-            <div
-                key="catalog-schema"
-                className={detailStyles.entry_body_card}
-            >
-                <div className={detailStyles.entry_card_container}>
-                    <div className={detailStyles.entry_card_action_bar}>
-                        <div className={detailStyles.entry_card_file_name}>
-                            <NotebookScriptName folder=".." file="dashql-schema.sql" icon={<LockIcon size={12} />} />
-                        </div>
-                    </div>
-                    <div className={styles.entry_card_editor}>
-                        <CodeMirror ref={setView} extensions={readonlyExtensions} />
-                    </div>
-                </div>
-            </div>
+            <CatalogScriptCard
+                script={props.connection.catalogRelationScript}
+                fileName="dashql-relations.sql"
+                lastFullRefresh={lastFullRefresh}
+            />
         </div>
     );
 };

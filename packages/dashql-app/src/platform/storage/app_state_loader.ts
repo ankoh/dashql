@@ -1,5 +1,6 @@
 import type { DashQL } from '../../core/api.js';
 import type { Logger } from '../logger/logger.js';
+import { stringifyError } from '../logger/logger.js';
 import { ProgressCounter } from '../../utils/progress.js';
 import type { ConnectionState } from '../../connection/connection_state.js';
 import type { NotebookState, ScriptData as NotebookScriptData } from '../../notebook/notebook_state.js';
@@ -84,7 +85,6 @@ async function restoreNotebook(
                 script,
                 scriptAnalysis: {
                     buffers: {
-                        scanned: null,
                         parsed: null,
                         analyzed: null,
                         destroy: () => { },
@@ -152,7 +152,7 @@ async function restoreNotebook(
         scripts,
         notebookPages,
         uncommittedScriptId: uncommittedKey,
-        notebookUserFocus: { pageIndex: 0, entryInPage: 0 },
+        notebookUserFocus: { pageIndex: 0, entryInPage: 0, interactionCounter: 0 },
         semanticUserFocus: null,
     };
 
@@ -250,21 +250,21 @@ async function restoreSession(
                 schemaLength: schemaSQL.length.toString()
             }, LOG_CTX);
 
-            const { catalog, catalogScript } = connectionState;
+            const { catalog, catalogRelationScript } = connectionState;
 
             // Apply schema to catalog script
             logger.info("Analyzing catalog schema", { sessionId }, LOG_CTX);
-            catalogScript.replaceText(schemaSQL);
-            catalogScript.analyze();
+            catalogRelationScript.replaceText(schemaSQL);
+            catalogRelationScript.analyze();
 
             // Load into catalog (drop old first if exists)
             logger.info("Loading catalog schema into catalog", { sessionId }, LOG_CTX);
             try {
-                catalog.dropScript(catalogScript);
+                catalog.dropScript(catalogRelationScript);
             } catch (e) {
                 // Script not loaded yet, ignore
             }
-            catalog.loadScript(catalogScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+            catalog.loadScript(catalogRelationScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
 
             // Mark as restored
             connectionState.catalogUpdates.restoredAt = new Date();
@@ -279,24 +279,37 @@ async function restoreSession(
             logger.info("No catalog schema found for session", { sessionId }, LOG_CTX);
         }
 
+        // Load function catalog SQL from storage
+        const functionsSQL = await backend.loadSessionFunctions(sessionPath);
+        if (functionsSQL && functionsSQL.trim().length > 0) {
+            logger.info("Catalog functions loaded", {
+                sessionId,
+                functionsLength: functionsSQL.length.toString()
+            }, LOG_CTX);
+
+            const { catalog, catalogFunctionScript } = connectionState;
+
+            catalogFunctionScript.replaceText(functionsSQL);
+            catalogFunctionScript.analyze();
+
+            try {
+                catalog.dropScript(catalogFunctionScript);
+            } catch (e) {
+                // Script not loaded yet, ignore
+            }
+            catalog.loadScript(catalogFunctionScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+
+            logger.info("Catalog functions restored", { sessionId }, LOG_CTX);
+        }
+
         restoreCatalogs.addSucceeded();
     } catch (catalogError) {
         const catalogDuration = performance.now() - catalogStartTime;
 
-        // Extract error details
-        let errorMsg: string;
-        if (catalogError instanceof Error) {
-            errorMsg = catalogError.message;
-        } else if (catalogError && typeof catalogError === 'object') {
-            errorMsg = JSON.stringify(catalogError, null, 2);
-        } else {
-            errorMsg = String(catalogError);
-        }
-
         logger.warn("Failed to restore catalog, will refresh on connect", {
             sessionId,
             durationMs: catalogDuration.toFixed(2),
-            error: errorMsg
+            error: stringifyError(catalogError)
         }, LOG_CTX);
 
         // Catalog restoration is non-critical - connection is still usable
@@ -341,25 +354,11 @@ async function restoreSession(
     } catch (notebookError) {
         const notebookDuration = performance.now() - notebookStartTime;
 
-        // Extract error details - WebAssembly exceptions need special handling
-        let errorMsg: string;
-        let errorStack: string | undefined;
-        if (notebookError instanceof Error) {
-            errorMsg = notebookError.message;
-            errorStack = notebookError.stack;
-        } else if (notebookError && typeof notebookError === 'object') {
-            // Try to extract properties from WebAssembly.Exception or other objects
-            errorMsg = JSON.stringify(notebookError, null, 2);
-            errorStack = (notebookError as any).stack;
-        } else {
-            errorMsg = String(notebookError);
-        }
-
         logger.error("Failed to restore notebook", {
             sessionId,
             durationMs: notebookDuration.toFixed(2),
-            error: errorMsg,
-            stack: errorStack?.substring(0, 500) // Limit stack trace length
+            error: stringifyError(notebookError),
+            stack: (notebookError instanceof Error ? notebookError.stack : (notebookError as any)?.stack)?.substring(0, 500)
         }, LOG_CTX);
 
         restoreNotebooks.addFailed();
@@ -462,7 +461,7 @@ export async function restoreAppState(
                     index: `${i + 1}/${sessions.length}`,
                     sessionPath: sessionEntry.path,
                     durationMs: sessionDuration.toFixed(2),
-                    error: error instanceof Error ? error.message : String(error)
+                    error: stringifyError(error)
                 }, LOG_CTX);
 
                 restoreConnections.addFailed();
@@ -478,7 +477,7 @@ export async function restoreAppState(
         }
     } catch (manifestError) {
         logger.warn("Failed to load manifest, starting with empty state", {
-            error: manifestError instanceof Error ? manifestError.message : String(manifestError)
+            error: stringifyError(manifestError)
         }, LOG_CTX);
     }
 

@@ -1,20 +1,24 @@
-:root {
-    --data_table_bg_header: white;
-    --data_table_bg_metadata: white;
-    --data_table_bg_corner: white;
-    --data_table_bg_header: white;
-    --data_table_bg_data: white;
-    --data_table_bg_plots: white;
+.root {
+    --data_table_bg: white;
     --data_table_bg_focus_primary: hsl(207.69, 20.63%, 90.59%);
     --data_table_bg_focus_secondary: hsl(207.69, 20.63%, 95.59%);
-    --data_table_border_focus_primary: hsl(207.69, 20.63%, 80.59%);
-}
 
-.root {
     width: 100%;
     height: 100%;
     overflow: hidden;
     font-size: 0.95rem;
+    display: flex;
+    flex-direction: column;
+
+    /* Collapse last row's bottom border with the container border */
+    margin-bottom: -1px;
+}
+
+.grid_container {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    overflow: hidden;
 }
 
 .data_grid {
@@ -33,11 +37,11 @@
 
 .sticky_column_container {
     /* Contains the sticky first column cells - uses CSS sticky */
-    background-color: var(--data_table_bg_header);
+    background-color: var(--data_table_bg);
 }
 
 .sticky_header_container {
-    background-color: var(--data_table_bg_header);
+    background-color: var(--data_table_bg);
 }
 
 .sticky_header_row {
@@ -46,7 +50,7 @@
 }
 
 .header_cell {
-    background-color: var(--data_table_bg_header);
+    background-color: var(--data_table_bg);
     border-right: 1px solid rgb(210, 210, 210);
     border-bottom: 1px solid rgb(210, 210, 210);
     box-sizing: border-box;
@@ -54,6 +58,14 @@
     align-items: center;
     justify-content: start;
     padding-left: 8px;
+}
+
+.header_cell_clickable {
+    cursor: pointer;
+}
+
+.header_cell_clickable:hover {
+    background-color: hsl(210, 20%, 96%);
 }
 
 .header_cell_rightmost {
@@ -67,7 +79,7 @@
 }
 
 .header_metadata_cell {
-    background-color: var(--data_table_bg_metadata);
+    background-color: var(--data_table_bg);
 }
 
 .header_cell_name {
@@ -81,7 +93,7 @@
 }
 
 .header_corner_cell {
-    background-color: var(--data_table_bg_corner);
+    background-color: var(--data_table_bg);
     border-right: 1px solid rgb(210, 210, 210);
     border-bottom: 1px solid rgb(210, 210, 210);
     box-sizing: border-box;
@@ -97,7 +109,7 @@
 }
 
 .plots_cell {
-    background-color: var(--data_table_bg_plots);
+    background-color: var(--data_table_bg);
     border-right: 1px solid rgb(210, 210, 210);
     border-bottom: 1px solid rgb(210, 210, 210);
     box-sizing: border-box;
@@ -115,7 +127,7 @@
 }
 
 .plots_empty_cell {
-    background-color: var(--data_table_bg_metadata);
+    background-color: var(--data_table_bg);
 }
 
 .plots_progress {
@@ -133,7 +145,7 @@
 }
 
 .plots_corner_cell {
-    background-color: var(--data_table_bg_corner);
+    background-color: var(--data_table_bg);
     border-right: 1px solid rgb(210, 210, 210);
     border-bottom: 1px solid rgb(210, 210, 210);
     box-sizing: border-box;
@@ -149,7 +161,7 @@
 }
 
 .row_header_cell {
-    background-color: var(--data_table_bg_header);
+    background-color: var(--data_table_bg);
     border-right: 1px solid rgb(210, 210, 210);
     border-bottom: 1px solid rgb(210, 210, 210);
     box-sizing: border-box;
@@ -167,7 +179,7 @@
 }
 
 .data_cell {
-    background-color: var(--data_table_bg_data);
+    background-color: var(--data_table_bg);
     border-right: 1px solid rgb(210, 210, 210);
     border-bottom: 1px solid rgb(210, 210, 210);
     border-left: 1px solid transparent;
@@ -177,6 +189,7 @@
     align-items: center;
     padding-left: 8px;
     padding-right: 8px;
+    cursor: pointer;
 
     text-wrap: nowrap;
     overflow: hidden;
@@ -186,7 +199,7 @@
 }
 
 .data_cell_metadata {
-    background-color: var(--data_table_bg_metadata);
+    background-color: var(--data_table_bg);
 }
 
 .data_cell_null {
@@ -199,16 +212,30 @@
 
 .data_cell_focused_primary {
     background-color: var(--data_table_bg_focus_primary);
-    border: 1px solid var(--data_table_border_focus_primary);
-    z-index: 1;
-}
-
-.data_cell_focused_primary.data_cell_rightmost {
-    border-right: 1px solid var(--data_table_border_focus_primary);
 }
 
 .data_cell_focused_secondary {
     background-color: var(--data_table_bg_focus_secondary);
+}
+
+.data_cell_text {
+    flex: 1;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.format_bean {
+    flex-shrink: 0;
+    margin-left: 6px;
+    padding: 0 4px;
+    border-radius: 3px;
+    font-size: 0.65rem;
+    font-weight: 500;
+    line-height: 1.4;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    background: hsl(210, 15%, 93%);
+    color: hsl(210, 10%, 50%);
 }
 
 /* Single-element skeleton overlay with shimmer effect */

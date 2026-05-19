@@ -1,6 +1,8 @@
 import * as React from 'react';
 import * as styles from './notebook_script_details.module.css';
+import * as dashql from '../../core/index.js';
 import { EditorView } from '@codemirror/view';
+import { EditorState, EditorSelection } from '@codemirror/state';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import icons from '@ankoh/dashql-svg-symbols';
@@ -8,6 +10,7 @@ import icons from '@ankoh/dashql-svg-symbols';
 import type { Icon } from '@primer/octicons-react';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
+import { ButtonGroup } from '../foundations/button_group.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
@@ -22,6 +25,8 @@ import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
 import { NotebookScriptName } from './notebook_script_name.js';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
+import { createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
+import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../editor/dashql_processor.js';
 
 const AUTO_VSPLIT_MIN_HEIGHT = 720;
 
@@ -40,15 +45,21 @@ export interface NotebookScriptDetailsProps {
     modifyNotebook: ModifyNotebook;
     connection: ConnectionState | null;
     hideDetails: () => void;
+    initialTab?: TabKey;
 }
 
 export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (props) => {
     const config = useAppConfig();
-    const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Editor);
+    const [selectedTab, selectTab] = React.useState<TabKey>(props.initialTab ?? TabKey.Editor);
     const [splitModeEnabled, setSplitModeEnabled] = React.useState<boolean>(false);
     const [splitTab, setSplitTab] = React.useState<TabKey | null>(null);
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
     const [hasAutoEnabledSplit, setHasAutoEnabledSplit] = React.useState<boolean>(false);
+    const [formatPending, setFormatPending] = React.useState(false);
+    const savedEditorStateRef = React.useRef<EditorState | null>(null);
+    const formattedTextRef = React.useRef<string | null>(null);
+    const formatPreviewBuffersRef = React.useRef<DashQLScriptBuffers | null>(null);
+    const formatPreviewScriptRef = React.useRef<dashql.DashQLScript | null>(null);
     const containerRef = React.useRef<HTMLDivElement>(null);
 
     const notebookEntry = getSelectedEntry(props.notebook);
@@ -65,6 +76,9 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
         : Math.max(0, Math.min(props.notebook.notebookUserFocus.entryInPage, pageEntries.length - 1));
 
     const PencilIcon: Icon = SymbolIcon('pencil_16');
+    const PencilAIIcon: Icon = SymbolIcon('pencil_ai_16');
+    const CheckIcon: Icon = SymbolIcon('check_16');
+    const FormatXIcon: Icon = SymbolIcon('x_16');
     const [isEditingName, setIsEditingName] = React.useState(false);
     const [draftFileName, setDraftFileName] = React.useState(scriptFileName);
     const editInputRef = React.useRef<HTMLInputElement>(null);
@@ -96,7 +110,118 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
 
     React.useEffect(() => {
         setIsEditingName(false);
+        if (formatPending) {
+            formatPreviewBuffersRef.current?.destroy(formatPreviewBuffersRef.current);
+            formatPreviewBuffersRef.current = null;
+            formatPreviewScriptRef.current?.ptr.destroy();
+            formatPreviewScriptRef.current = null;
+            savedEditorStateRef.current = null;
+            formattedTextRef.current = null;
+            setFormatPending(false);
+        }
     }, [notebookEntry?.scriptId]);
+
+    const handleFormat = React.useCallback(() => {
+        if (editorView == null || scriptData == null) return;
+        try {
+            const config = new dashql.buffers.formatting.FormattingConfigT(
+                dashql.buffers.formatting.FormattingDialect.DUCKDB,
+                dashql.buffers.formatting.FormattingMode.PRETTY,
+                80,
+                4,
+            );
+            const formattedScript = scriptData.script.format(config, null);
+            const formattedText = formattedScript.toString();
+
+            const currentText = editorView.state.doc.toString();
+            if (formattedText === currentText) {
+                formattedScript.ptr.destroy();
+                return;
+            }
+
+            formattedScript.parse();
+            const previewBuffers = analyzeScript(formattedScript);
+
+            savedEditorStateRef.current = editorView.state;
+            formattedTextRef.current = formattedText;
+            formatPreviewBuffersRef.current?.destroy(formatPreviewBuffersRef.current);
+            formatPreviewBuffersRef.current = previewBuffers;
+            formatPreviewScriptRef.current?.ptr.destroy();
+            formatPreviewScriptRef.current = formattedScript;
+
+            const readonlyExtensions = createReadonlyCodeMirrorExtensions();
+            const previewState = EditorState.create({
+                doc: formattedText,
+                extensions: readonlyExtensions,
+            });
+            editorView.setState(previewState);
+            editorView.contentDOM.blur();
+
+            editorView.dispatch({
+                effects: [
+                    DashQLUpdateEffect.of({
+                        config: {},
+                        scriptRegistry: null,
+                        scriptKey: formattedScript.getCatalogEntryId(),
+                        script: formattedScript,
+                        scriptBuffers: previewBuffers,
+                        scriptCursor: null,
+                        scriptCompletion: null,
+                        derivedFocus: null,
+                        onUpdate: () => { },
+                    }),
+                ],
+            });
+
+            setFormatPending(true);
+        } catch {
+            // Format failed
+        }
+    }, [editorView, scriptData]);
+
+    const handleFormatAccept = React.useCallback(() => {
+        if (editorView == null || savedEditorStateRef.current == null || formattedTextRef.current == null) return;
+
+        document.getSelection()?.removeAllRanges();
+        editorView.setState(savedEditorStateRef.current);
+        editorView.dispatch({
+            changes: { from: 0, to: editorView.state.doc.length, insert: formattedTextRef.current },
+            selection: EditorSelection.cursor(0),
+        });
+
+        formatPreviewBuffersRef.current?.destroy(formatPreviewBuffersRef.current);
+        formatPreviewBuffersRef.current = null;
+        formatPreviewScriptRef.current?.ptr.destroy();
+        formatPreviewScriptRef.current = null;
+        savedEditorStateRef.current = null;
+        formattedTextRef.current = null;
+        setFormatPending(false);
+    }, [editorView]);
+
+    const handleFormatCancel = React.useCallback(() => {
+        if (editorView == null || savedEditorStateRef.current == null) return;
+
+        document.getSelection()?.removeAllRanges();
+        editorView.setState(savedEditorStateRef.current);
+        editorView.dispatch({
+            selection: EditorSelection.cursor(0),
+        });
+
+        formatPreviewBuffersRef.current?.destroy(formatPreviewBuffersRef.current);
+        formatPreviewBuffersRef.current = null;
+        formatPreviewScriptRef.current?.ptr.destroy();
+        formatPreviewScriptRef.current = null;
+        savedEditorStateRef.current = null;
+        formattedTextRef.current = null;
+        setFormatPending(false);
+    }, [editorView]);
+
+    React.useEffect(() => {
+        return () => {
+            formatPreviewBuffersRef.current?.destroy(formatPreviewBuffersRef.current);
+            formatPreviewScriptRef.current?.ptr.destroy();
+        };
+    }, []);
 
     const activeQueryId = scriptData?.latestQueryId ?? null;
     const activeQueryState = useQueryState(props.notebook?.sessionId ?? null, activeQueryId);
@@ -396,11 +521,42 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                             ]}
                             tabRenderers={{
                                 [TabKey.Editor]: _props => (
-                                    <ScriptEditor
-                                        sessionId={props.notebook.sessionId}
-                                        scriptKey={notebookEntry.scriptId}
-                                        setView={setEditorView}
-                                    />
+                                    <div className={styles.editor_container}>
+                                        <ScriptEditor
+                                            sessionId={props.notebook.sessionId}
+                                            scriptKey={notebookEntry.scriptId}
+                                            setView={setEditorView}
+                                        />
+                                        <div className={styles.format_toggle}>
+                                            {!formatPending && (
+                                                <IconButton
+                                                    variant={ButtonVariant.Invisible}
+                                                    onClick={handleFormat}
+                                                    aria-label="Pretty format"
+                                                >
+                                                    <PencilAIIcon />
+                                                </IconButton>
+                                            )}
+                                            {formatPending && (
+                                                <ButtonGroup>
+                                                    <IconButton
+                                                        variant={ButtonVariant.Default}
+                                                        onClick={handleFormatAccept}
+                                                        aria-label="Accept format"
+                                                    >
+                                                        <CheckIcon />
+                                                    </IconButton>
+                                                    <IconButton
+                                                        variant={ButtonVariant.Default}
+                                                        onClick={handleFormatCancel}
+                                                        aria-label="Cancel format"
+                                                    >
+                                                        <FormatXIcon />
+                                                    </IconButton>
+                                                </ButtonGroup>
+                                            )}
+                                        </div>
+                                    </div>
                                 ),
                                 [TabKey.QueryStatusPanel]: _props => (
                                     <QueryStatusPanel query={activeQueryState} />

@@ -1,8 +1,10 @@
 import {
     DEBOUNCE_DURATION_SESSION_WRITE,
     groupSessionSchemaWrites,
+    groupSessionFunctionWrites,
     StorageWriter,
     WRITE_SESSION_CATALOG_SCRIPT,
+    WRITE_SESSION_FUNCTION_SCRIPT,
 } from '../platform/storage/storage_writer.js';
 import {
     CATALOG_UPDATE_CANCELLED,
@@ -184,7 +186,12 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
             if (newState.active) {
                 storage.write(
                     groupSessionSchemaWrites(newState.sessionId),
-                    { type: WRITE_SESSION_CATALOG_SCRIPT, value: [newState.sessionId, newState.catalogScript] },
+                    { type: WRITE_SESSION_CATALOG_SCRIPT, value: [newState.sessionId, newState.catalogRelationScript] },
+                    DEBOUNCE_DURATION_SESSION_WRITE,
+                );
+                storage.write(
+                    groupSessionFunctionWrites(newState.sessionId),
+                    { type: WRITE_SESSION_FUNCTION_SCRIPT, value: [newState.sessionId, newState.catalogFunctionScript] },
                     DEBOUNCE_DURATION_SESSION_WRITE,
                 );
             }

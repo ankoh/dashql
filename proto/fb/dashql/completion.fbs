@@ -8,7 +8,8 @@ enum CompletionCandidateObjectType: uint8 {
     DATABASE = 1,
     SCHEMA = 2,
     TABLE = 3,
-    COLUMN = 4
+    COLUMN = 4,
+    FUNCTION = 5
 }
 
 table CompletionCandidateObject {
@@ -69,6 +70,8 @@ enum CandidateTag: uint32 {
     IN_SAME_STATEMENT = 32768,
     IN_SAME_SCRIPT = 65536,
     IN_OTHER_SCRIPT = 131072,
+    EXACT_MATCH = 262144,
+    EXPECTED_KEYWORD_MATCH = 524288,
 }
 
 table CompletionCandidate {
@@ -77,9 +80,9 @@ table CompletionCandidate {
     /// The coarse-granular analyzer tags
     name_tags: uint8;
     /// The text to replace
-    target_location: parser.Location;
+    target_location: parser.SymbolSpan;
     /// The qualified text to replace
-    target_location_qualified: parser.Location;
+    target_location_qualified: parser.SymbolSpan;
     /// The display text
     display_text: string;
     /// The completion text.

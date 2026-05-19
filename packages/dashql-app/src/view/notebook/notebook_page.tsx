@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './notebook_page.module.css';
 
-import { DatabaseIcon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
+import { LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
 
 import * as ActionList from '../foundations/action_list.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
@@ -20,11 +20,14 @@ import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH, CHANGE_SESSION } from '../../router.js';
 
 import { CatalogSchemaView } from './catalog_schema_view.js';
+import { CatalogFunctionsView } from './catalog_functions_view.js';
 import { ConnectionCommandList, NotebookCommandList } from './notebook_command_lists.js';
-import { NotebookScriptDetails } from './notebook_script_details.js';
+import { NotebookScriptDetails, TabKey as DetailsTabKey } from './notebook_script_details.js';
 import { NotebookScriptFeed } from './notebook_script_feed.js';
 
 const LOG_CTX = 'notebook_page';
+
+type CatalogTab = 'relations' | 'functions';
 
 interface FeedScrollTarget {
     entryIndex: number;
@@ -43,8 +46,9 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const [sharingIsOpen, setSharingIsOpen] = React.useState<boolean>(false);
     const [connectionOverlayOpen, setConnectionOverlayOpen] = React.useState<boolean>(false);
     const [showDetails, setShowDetails] = React.useState<boolean>(false);
+    const [detailsInitialTab, setDetailsInitialTab] = React.useState<DetailsTabKey | undefined>(undefined);
     const [feedScrollTarget, setFeedScrollTarget] = React.useState<FeedScrollTarget | null>(null);
-    const [schemaTabSelected, setSchemaTabSelected] = React.useState<boolean>(false);
+    const [catalogTab, setCatalogTab] = React.useState<CatalogTab | null>(null);
     const [editingPageIndex, setEditingPageIndex] = React.useState<number | null>(null);
     const [editingPageTitle, setEditingPageTitle] = React.useState<string>("");
     const editInputRef = React.useRef<HTMLInputElement>(null);
@@ -113,8 +117,8 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 ctrlKey: false,
                 callback: () => {
                     if (editingPageIndex !== null) return;
-                    if (schemaTabSelected) {
-                        setSchemaTabSelected(false);
+                    if (catalogTab != null) {
+                        setCatalogTab(null);
                         setShowDetails(false);
                         if (notebook && notebook.notebookUserFocus.pageIndex !== 0 && notebook.notebookPages.length > 0) {
                             modifyNotebook({ type: SELECT_PAGE, value: 0 });
@@ -126,7 +130,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 },
             },
         ],
-        [schemaTabSelected, showDetails, editingPageIndex, notebook, modifyNotebook, navigate],
+        [catalogTab, showDetails, editingPageIndex, notebook, modifyNotebook, navigate],
     );
     useKeyEvents(keyHandlers);
 
@@ -149,7 +153,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             return;
         }
         requestFeedScroll(notebook.notebookUserFocus.entryInPage);
-    }, [notebook, notebook?.notebookUserFocus.entryInPage, notebook?.notebookUserFocus.pageIndex, requestFeedScroll, showDetails]);
+    }, [notebook?.notebookUserFocus.interactionCounter, requestFeedScroll, showDetails]);
 
     React.useEffect(() => {
         if (route.sessionId === null) {
@@ -183,7 +187,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 <div className={styles.header_action_container}>
                     <div>
                         <ButtonGroup>
-                            {!schemaTabSelected && (
+                            {catalogTab == null && (
                                 <IconButton
                                     variant={ButtonVariant.Default}
                                     aria-label="Execute Query"
@@ -219,7 +223,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             <div className={styles.page_tabs_container}>
                 <div className={styles.page_tabs} role="tablist" aria-label="Notebook pages">
                     {notebook.notebookPages.map((page, index) => {
-                        const isSelected = !schemaTabSelected && index === notebook.notebookUserFocus.pageIndex;
+                        const isSelected = catalogTab == null && index === notebook.notebookUserFocus.pageIndex;
                         const isEditing = editingPageIndex === index;
                         const label = page.folderName || `Page ${index + 1}`;
 
@@ -232,7 +236,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                                 className={isSelected ? styles.page_tab_selected : styles.page_tab}
                                 onClick={() => {
                                     if (isEditing) return; // Don't change page while editing
-                                    setSchemaTabSelected(false);
+                                    setCatalogTab(null);
                                     if (isSelected) {
                                         setShowDetails(false);
                                     } else {
@@ -281,7 +285,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                         aria-label="Add page"
                         onClick={() => {
                             modifyNotebook({ type: CREATE_PAGE, value: null });
-                            setSchemaTabSelected(false);
+                            setCatalogTab(null);
                             setShowDetails(false);
                         }}
                     >
@@ -289,16 +293,27 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     </button>
                     {conn && (
                         <div
-                            className={schemaTabSelected ? styles.catalog_tab_selected : styles.catalog_tab}
+                            className={catalogTab === 'relations' ? styles.catalog_tab_selected : styles.catalog_tab}
                             onClick={() => {
-                                setSchemaTabSelected(true);
+                                setCatalogTab('relations');
                                 setShowDetails(true);
                             }}
                         >
                             <div className={styles.page_tab_button}>
-                                <div className={styles.catalog_tab_icon}>
-                                    <DatabaseIcon size={14} />
-                                </div>
+                                <span className={styles.page_tab_label}>relations</span>
+                            </div>
+                        </div>
+                    )}
+                    {conn && (
+                        <div
+                            className={catalogTab === 'functions' ? styles.functions_tab_selected : styles.functions_tab}
+                            onClick={() => {
+                                setCatalogTab('functions');
+                                setShowDetails(true);
+                            }}
+                        >
+                            <div className={styles.page_tab_button}>
+                                <span className={styles.page_tab_label}>functions</span>
                             </div>
                         </div>
                     )}
@@ -306,11 +321,13 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             </div>
             <div className={styles.body_container} id="notebook-body" role="tabpanel" aria-labelledby={notebook.notebookPages.length > 0 ? `notebook-page-tab-${notebook.notebookUserFocus.pageIndex}` : undefined}>
                 {
-                    schemaTabSelected && conn
+                    catalogTab === 'relations' && conn
                         ? <CatalogSchemaView connection={conn} />
-                        : showDetails
-                            ? <NotebookScriptDetails notebook={notebook} modifyNotebook={modifyNotebook} connection={conn} hideDetails={() => setShowDetails(false)} />
-                            : <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} showDetails={() => setShowDetails(true)} scrollTarget={feedScrollTarget} conn={conn ?? null} openConnectionOverlay={() => setConnectionOverlayOpen(true)} />
+                        : catalogTab === 'functions' && conn
+                            ? <CatalogFunctionsView connection={conn} />
+                            : showDetails
+                                ? <NotebookScriptDetails notebook={notebook} modifyNotebook={modifyNotebook} connection={conn} hideDetails={() => { setShowDetails(false); setDetailsInitialTab(undefined); }} initialTab={detailsInitialTab} />
+                                : <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} showDetails={(initialTab?: DetailsTabKey) => { setDetailsInitialTab(initialTab); setShowDetails(true); }} scrollTarget={feedScrollTarget} conn={conn ?? null} openConnectionOverlay={() => setConnectionOverlayOpen(true)} />
                 }
             </div>
             <div className={styles.action_sidebar}>

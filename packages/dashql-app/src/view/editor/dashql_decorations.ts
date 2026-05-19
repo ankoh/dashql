@@ -43,31 +43,27 @@ function buildDecorationsFromErrors(
     const builder = new RangeSetBuilder<Decoration>();
     const decorations: DecorationInfo[] = [];
 
-    const scanned = scriptBuffers.scanned?.read() ?? null;
     const parsed = scriptBuffers.parsed?.read() ?? null;
     const analyzed = scriptBuffers.analyzed?.read() ?? null;
 
-    const tmpLoc = new dashql.buffers.parser.Location();
     const tmpError = new dashql.buffers.parser.Error();
     const tmpAnalyzerError = new dashql.buffers.analyzer.AnalyzerError();
 
-    // Are there any scanner errors?
-    if (scanned != null) {
-        for (let i = 0; i < scanned.errorsLength(); ++i) {
-            const error = scanned.errors(i, tmpError)!;
-            const loc = error.location(tmpLoc)!;
+    if (parsed != null) {
+        // Scanner errors
+        for (let i = 0; i < parsed.scannerErrorsLength(); ++i) {
+            const error = parsed.scannerErrors(i, tmpError)!;
+            const loc = error.textSpan()!;
             decorations.push({
                 from: loc.offset(),
                 to: loc.offset() + loc.length(),
                 decoration: ErrorDecoration,
             });
         }
-    }
-    // Are there any parser errors?
-    if (parsed !== null) {
-        for (let i = 0; i < parsed.errorsLength(); ++i) {
-            const error = parsed.errors(i, tmpError)!;
-            const loc = error.location(tmpLoc)!;
+        // Parser errors
+        for (let i = 0; i < parsed.parserErrorsLength(); ++i) {
+            const error = parsed.parserErrors(i, tmpError)!;
+            const loc = error.textSpan()!;
             decorations.push({
                 from: loc.offset(),
                 to: loc.offset() + loc.length(),
@@ -76,10 +72,11 @@ function buildDecorationsFromErrors(
         }
     }
     if (analyzed !== null) {
-        // Are there any analyzer errors?
+        // Analyzer errors
         for (let i = 0; i < analyzed.errorsLength(); ++i) {
             const error = analyzed.errors(i, tmpAnalyzerError)!;
-            const loc = error.location(tmpLoc)!;
+            const loc = error.textSpan();
+            if (!loc) continue;
             decorations.push({
                 from: loc.offset(),
                 to: loc.offset() + loc.length(),
@@ -106,44 +103,51 @@ function buildDecorationsFromAnalysis(
     const decorations: DecorationInfo[] = [];
 
     if (analyzed !== null) {
-        // Decorate unresolved tables
-        const tmpTableRef = new dashql.buffers.analyzer.TableReference();
-        for (let i = 0; i < analyzed.tableReferencesLength(); ++i) {
-            const tableRef = analyzed.tableReferences(i, tmpTableRef)!;
-            const loc = tableRef.location()!;
-            if (tableRef.resolvedTable() == null) {
-                decorations.push({
-                    from: loc.offset(),
-                    to: loc.offset() + loc.length(),
-                    decoration: UnresolvedTableReferenceDecoration,
-                });
-            } else {
-                decorations.push({
-                    from: loc.offset(),
-                    to: loc.offset() + loc.length(),
-                    decoration: ResolvedTableReferenceDecoration,
-                });
-            }
-        }
-        // Decorate unresolved columns
-        const tmpColRef = new dashql.buffers.algebra.ColumnRefExpression();
-        for (let i = 0; i < analyzed.expressionsLength(); ++i) {
-            const expr = analyzed.expressions(i)!;
-            if (expr.innerType() == dashql.buffers.algebra.ExpressionSubType.ColumnRefExpression) {
-                const colRef: dashql.buffers.algebra.ColumnRefExpression = expr.inner(tmpColRef)!;
-                const loc = expr.location()!;
-                if (colRef.resolvedColumn() == null) {
+        const tokens = scriptBuffers.parsed?.read()?.tokens() ?? null;
+        if (tokens) {
+            // Decorate unresolved tables
+            const tmpTableRef = new dashql.buffers.analyzer.TableReference();
+            for (let i = 0; i < analyzed.tableReferencesLength(); ++i) {
+                const tableRef = analyzed.tableReferences(i, tmpTableRef)!;
+                const span = tableRef.symbolSpan();
+                if (!span) continue;
+                const ts = dashql.resolveSymbolSpan(tokens, span);
+                if (tableRef.resolvedTable() == null) {
                     decorations.push({
-                        from: loc.offset(),
-                        to: loc.offset() + loc.length(),
-                        decoration: UnresolvedColumnReferenceDecoration,
+                        from: ts.offset,
+                        to: ts.offset + ts.length,
+                        decoration: UnresolvedTableReferenceDecoration,
                     });
                 } else {
                     decorations.push({
-                        from: loc.offset(),
-                        to: loc.offset() + loc.length(),
-                        decoration: ResolvedColumnReferenceDecoration,
+                        from: ts.offset,
+                        to: ts.offset + ts.length,
+                        decoration: ResolvedTableReferenceDecoration,
                     });
+                }
+            }
+            // Decorate unresolved columns
+            const tmpColRef = new dashql.buffers.algebra.ColumnRefExpression();
+            for (let i = 0; i < analyzed.expressionsLength(); ++i) {
+                const expr = analyzed.expressions(i)!;
+                if (expr.innerType() == dashql.buffers.algebra.ExpressionSubType.ColumnRefExpression) {
+                    const colRef: dashql.buffers.algebra.ColumnRefExpression = expr.inner(tmpColRef)!;
+                    const span = expr.symbolSpan();
+                    if (!span) continue;
+                    const ts = dashql.resolveSymbolSpan(tokens, span);
+                    if (colRef.resolvedColumn() == null) {
+                        decorations.push({
+                            from: ts.offset,
+                            to: ts.offset + ts.length,
+                            decoration: UnresolvedColumnReferenceDecoration,
+                        });
+                    } else {
+                        decorations.push({
+                            from: ts.offset,
+                            to: ts.offset + ts.length,
+                            decoration: ResolvedColumnReferenceDecoration,
+                        });
+                    }
                 }
             }
         }
@@ -173,7 +177,8 @@ function buildDecorationsFromFocus(
     const tmpNamedExpr = new dashql.buffers.algebra.Expression();
     const tmpTblRef = new dashql.buffers.analyzer.TableReference();
     const tmpNode = new dashql.buffers.parser.Node();
-    const tmpLoc = new dashql.buffers.parser.Location();
+    const tokens = scriptBuffers.parsed?.read()?.tokens() ?? null;
+    if (!tokens) return builder.finish();
 
     // Build decorations for column refs of targeting the primary table
     for (const [refId, focusType] of derivedFocus?.scriptColumnRefs ?? []) {
@@ -195,10 +200,11 @@ function buildDecorationsFromFocus(
             continue;
         }
         const astNode = parsed.nodes(astNodeId, tmpNode);
-        const loc = astNode?.location(tmpLoc) ?? null;
-        if (loc == null) {
+        const span = astNode?.symbolSpan() ?? null;
+        if (span == null) {
             continue;
         }
+        const ts = dashql.resolveSymbolSpan(tokens, span);
 
         // Get decoration
         let decoration: Decoration;
@@ -211,9 +217,9 @@ function buildDecorationsFromFocus(
                 break;
         }
         decorations.push({
-            from: loc.offset(),
-            to: loc.offset() + loc.length(),
-            decoration: decoration, // XXX more specific
+            from: ts.offset,
+            to: ts.offset + ts.length,
+            decoration: decoration,
         });
     }
 
@@ -237,10 +243,11 @@ function buildDecorationsFromFocus(
             continue;
         }
         const astNode = parsed.nodes(astNodeId, tmpNode);
-        const loc = astNode?.location(tmpLoc) ?? null;
-        if (loc == null) {
+        const span = astNode?.symbolSpan() ?? null;
+        if (span == null) {
             continue;
         }
+        const ts = dashql.resolveSymbolSpan(tokens, span);
 
         // Get decoration
         let decoration: Decoration;
@@ -253,8 +260,8 @@ function buildDecorationsFromFocus(
                 break;
         }
         decorations.push({
-            from: loc.offset(),
-            to: loc.offset() + loc.length(),
+            from: ts.offset,
+            to: ts.offset + ts.length,
             decoration: decoration,
         });
     }
@@ -287,7 +294,6 @@ const ScannerDecorationField: StateField<ScriptDecorationState> = StateField.def
         const config: ScriptDecorationState = {
             decorations: new RangeSetBuilder<Decoration>().finish(),
             scriptBuffers: {
-                scanned: null,
                 parsed: null,
                 analyzed: null,
                 destroy: () => { },
@@ -297,17 +303,16 @@ const ScannerDecorationField: StateField<ScriptDecorationState> = StateField.def
     },
     // Mirror the DashQL state
     update: (state: ScriptDecorationState, transaction: Transaction) => {
-        // Scanned program untouched?
         const processor = transaction.state.field(DashQLProcessorPlugin);
-        if (processor.scriptBuffers.scanned === state.scriptBuffers.scanned) {
+        if (processor.scriptBuffers.parsed === state.scriptBuffers.parsed) {
             return state;
         }
         // Rebuild decorations
         const s = { ...state };
-        s.scriptBuffers.scanned = processor.scriptBuffers.scanned;
+        s.scriptBuffers.parsed = processor.scriptBuffers.parsed;
         s.decorations = (new RangeSetBuilder<Decoration>()).finish();
-        if (s.scriptBuffers.scanned) {
-            s.decorations = buildDecorationsFromTokens(transaction.state, s.scriptBuffers.scanned);
+        if (s.scriptBuffers.parsed) {
+            s.decorations = buildDecorationsFromTokens(transaction.state, s.scriptBuffers.parsed);
         }
         return s;
     },
@@ -319,7 +324,6 @@ const ErrorDecorationField: StateField<ScriptDecorationState> = StateField.defin
         const config: ScriptDecorationState = {
             decorations: new RangeSetBuilder<Decoration>().finish(),
             scriptBuffers: {
-                scanned: null,
                 parsed: null,
                 analyzed: null,
                 destroy: () => { },
@@ -346,7 +350,6 @@ const AnalyzerDecorationsField: StateField<ScriptDecorationState> = StateField.d
         const config: ScriptDecorationState = {
             decorations: new RangeSetBuilder<Decoration>().finish(),
             scriptBuffers: {
-                scanned: null,
                 parsed: null,
                 analyzed: null,
                 destroy: () => { },
@@ -384,7 +387,6 @@ const FocusDecorationField: StateField<FocusDecorationState> = StateField.define
             scriptKey: null,
             decorations: new RangeSetBuilder<Decoration>().finish(),
             scriptBuffers: {
-                scanned: null,
                 parsed: null,
                 analyzed: null,
                 destroy: () => { },
@@ -400,7 +402,6 @@ const FocusDecorationField: StateField<FocusDecorationState> = StateField.define
         const processor = transaction.state.field(DashQLProcessorPlugin);
         if (
             processor.scriptKey === state.scriptKey &&
-            processor.scriptBuffers.scanned === state.scriptBuffers.scanned &&
             processor.scriptBuffers.parsed === state.scriptBuffers.parsed &&
             processor.scriptBuffers.analyzed === state.scriptBuffers.analyzed &&
             processor.scriptCursor === state.scriptCursor &&
@@ -411,7 +412,6 @@ const FocusDecorationField: StateField<FocusDecorationState> = StateField.define
         // Rebuild decorations
         const s = { ...state };
         s.scriptKey = processor.scriptKey;
-        s.scriptBuffers.scanned = processor.scriptBuffers.scanned;
         s.scriptBuffers.parsed = processor.scriptBuffers.parsed;
         s.scriptBuffers.analyzed = processor.scriptBuffers.analyzed;
         s.scriptCursor = processor.scriptCursor;

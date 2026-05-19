@@ -2,7 +2,8 @@ include "dashql/parsed_script_enums.fbs";
 
 namespace dashql.buffers.parser;
 
-struct Location { offset: uint32; length: uint32; }
+struct SymbolSpan { offset: uint32; length: uint32; }
+struct TextSpan { offset: uint32; length: uint32; }
 
 enum NodeType: uint16 {
     NONE = 0,
@@ -114,10 +115,13 @@ enum NodeType: uint16 {
     OBJECT_SQL_TYPENAME,
     OBJECT_SQL_TYPETEST_EXPRESSION,
     OBJECT_SQL_VIEW,
+    OBJECT_SQL_CREATE_FUNCTION,
+    OBJECT_SQL_FUNCTION_PARAM,
     OBJECT_SQL_WINDOW_BOUND,
     OBJECT_SQL_WINDOW_DEF,
     OBJECT_SQL_WINDOW_FRAME,
     OBJECT_SQL_WITH,
+    OBJECT_EXT_EXPLAIN,
 
     OBJECT_EXT_SET,
     OBJECT_EXT_TRAILING_DOT,
@@ -345,6 +349,13 @@ enum AttributeKey: uint16 {
     SQL_VIEW_NAME,
     SQL_VIEW_STATEMENT,
     SQL_VIEW_TEMP,
+
+    SQL_CREATE_FUNCTION_NAME,
+    SQL_CREATE_FUNCTION_PARAMS,
+    SQL_CREATE_FUNCTION_RETURNS,
+    SQL_CREATE_FUNCTION_IS_AGGREGATE,
+    SQL_FUNCTION_PARAM_NAME,
+    SQL_FUNCTION_PARAM_TYPE,
     SQL_WINDOW_BOUND_DIRECTION,
     SQL_WINDOW_BOUND_MODE,
     SQL_WINDOW_BOUND_VALUE,
@@ -356,6 +367,9 @@ enum AttributeKey: uint16 {
     SQL_WINDOW_FRAME_NAME,
     SQL_WINDOW_FRAME_ORDER,
     SQL_WINDOW_FRAME_PARTITION,
+
+    EXT_EXPLAIN_STATEMENT,
+    EXT_EXPLAIN_OPTIONS,
 
     EXT_SET_VARARGS,
     EXT_VARARG_ARRAY_VALUES,
@@ -400,10 +414,12 @@ enum StatementType: uint8 {
     SELECT,
     SET,
     VIS_VISUALISE,
+    CREATE_FUNCTION,
+    EXPLAIN,
 }
 
 struct Node {
-    location: Location;
+    symbol_span: SymbolSpan;
     node_type: NodeType = NONE;
     attribute_key: AttributeKey = NONE;
     parent: uint32 = 0;
@@ -412,7 +428,8 @@ struct Node {
 }
 
 table Error {
-    location: Location;
+    text_span: TextSpan;
+    symbol_span: SymbolSpan;
     message: string;
 }
 
@@ -448,15 +465,18 @@ table ScannerTokens {
 
 table ScannedScript {
     external_id: uint32;
-    line_breaks: [Location];
+    line_breaks: [TextSpan];
     errors: [Error];
-    tokens: ScannerTokens;
-    comments: [Location];
+    comments: [TextSpan];
 }
 
 table ParsedScript {
     external_id: uint32;
     nodes: [Node];
     statements: [Statement];
-    errors: [Error];
+    scanner_errors: [Error];
+    parser_errors: [Error];
+    tokens: ScannerTokens;
+    line_breaks: [TextSpan];
+    comments: [TextSpan];
 }

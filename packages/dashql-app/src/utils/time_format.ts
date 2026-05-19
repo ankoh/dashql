@@ -1,3 +1,5 @@
+import * as React from 'react';
+
 /**
  * Format a timestamp as relative time (e.g., "2 hours ago", "Yesterday")
  */
@@ -38,4 +40,22 @@ export function formatRelativeTime(date: Date | string | null | undefined): stri
         const years = Math.floor(diffDay / 365);
         return years === 1 ? '1 year ago' : `${years} years ago`;
     }
+}
+
+export function useRelativeTime(timestamp: number | null, intervalMs = 15_000): string | null {
+    const [label, setLabel] = React.useState<string | null>(
+        () => timestamp != null ? formatRelativeTime(new Date(timestamp)) : null
+    );
+
+    React.useEffect(() => {
+        if (timestamp == null) {
+            setLabel(null);
+            return;
+        }
+        setLabel(formatRelativeTime(new Date(timestamp)));
+        const id = setInterval(() => setLabel(formatRelativeTime(new Date(timestamp))), intervalMs);
+        return () => clearInterval(id);
+    }, [timestamp, intervalMs]);
+
+    return label;
 }

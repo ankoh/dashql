@@ -6,7 +6,8 @@ export const STORAGE_MANIFEST_FILE = 'dashql-manifest.json';
 export const STORAGE_SESSIONS_FOLDER = 'sessions';
 export const STORAGE_SESSION_FILE = 'dashql-session.json';
 export const STORAGE_NOTEBOOK_FOLDER = 'notebook';
-export const STORAGE_SCRIPT_SCHEMA = 'dashql-schema.sql';
+export const STORAGE_SCRIPT_SCHEMA = 'dashql-relations.sql';
+export const STORAGE_SCRIPT_FUNCTIONS = 'dashql-functions.sql';
 export const STORAGE_SCRIPT_DRAFT = 'dashql-draft.sql';
 export const STORAGE_SCRIPT_EXTENSION = '.sql';
 
@@ -50,6 +51,11 @@ export interface StorageBackend {
     loadSessionSchema(sessionPath: string): Promise<string | null>;
     /// Save session catalog schema SQL
     saveSessionSchema(sessionPath: string, sql: string): Promise<void>;
+
+    /// Load session catalog functions SQL
+    loadSessionFunctions(sessionPath: string): Promise<string | null>;
+    /// Save session catalog functions SQL
+    saveSessionFunctions(sessionPath: string, sql: string): Promise<void>;
 
     /// Load notebook pages
     loadNotebookPages(sessionPath: string): Promise<PageData[]>;

@@ -142,7 +142,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     // switch, async storage hydration, or an action like RESET that swaps
     // the wrapper state).
     const buildPageState = (params: connection.SalesforceConnectionParams | undefined): PageState => ({
-        hyperProtocol: params?.hyperProtocol ?? "V3_HTTP",
+        hyperProtocol: params?.hyperProtocol ?? (isNativePlatform() ? "V3_GRPC" : "V3_HTTP"),
         instanceUrl: params?.instanceUrl ?? "",
         appConsumerKey: params?.appConsumerKey ?? "",
     });
@@ -292,6 +292,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
                 resetSetup={resetSetup}
                 notebook={connectionNotebook}
                 protocol={hyperProtocol}
+                protocols={["V3_GRPC", "V3_HTTP"]}
                 onProtocolChange={setHyperProtocol}
                 freezeInput={freezeInput}
                 onClose={props.onClose}

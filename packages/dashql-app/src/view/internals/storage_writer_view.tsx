@@ -209,14 +209,18 @@ export function StorageWriterView(props: { onClose: () => void; }) {
                     </div>
                 </div>
                 <div className={styles.stat_grid_container} ref={containerRef}>
-                    <List
-                        listRef={listRef}
-                        style={{ width: containerWidth, height: containerHeight }}
-                        rowCount={entries.length}
-                        rowHeight={() => ROW_HEIGHT}
-                        rowComponent={StorageWriterRow}
-                        rowProps={rowProps}
-                    />
+                    {entries.length === 0 ? (
+                        <div className={styles.empty_state}>Nothing to see here</div>
+                    ) : (
+                        <List
+                            listRef={listRef}
+                            style={{ width: containerWidth, height: containerHeight }}
+                            rowCount={entries.length}
+                            rowHeight={() => ROW_HEIGHT}
+                            rowComponent={StorageWriterRow}
+                            rowProps={rowProps}
+                        />
+                    )}
                 </div>
             </div>
             <AnchoredOverlay

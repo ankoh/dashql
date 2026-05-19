@@ -151,11 +151,12 @@ function onTab(view: EditorView) {
         case DashQLCompletionStatus.SELECTED_CATALOG_OBJECT: {
             // Try to complete the template
             if (processor.scriptCompletion.templatePatch.length > 0) {
+                const cursorOverride = processor.scriptCompletion.templateCursorOffset;
                 view.dispatch({
                     changes: applyCompletion(processor.scriptCompletion.templatePatch),
                     effects: DashQLCompletionSelectTemplateEffect.of(null),
                     selection: {
-                        anchor: updateCursorWithCompletion(
+                        anchor: cursorOverride ?? updateCursorWithCompletion(
                             processor.scriptCompletion.templatePatch,
                             view.state.selection.main.anchor
                         )

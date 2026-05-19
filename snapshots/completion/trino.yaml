@@ -62,43 +62,38 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 65
+        - score: 82
           value: event
           name-tags: [COLUMN_NAME]
-          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
           location: "event"
           location-qualified: "event"
           objects:
-            - score: 45
+            - score: 62
               type: column
               id: "256.65536.4294967296.0"
-              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
               qualified: iceberg.some_events.some_queries.event
               qualified-idx: 3
               prefer-qualified: 0
-        - score: 65
+        - score: 70
+          value: event
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "event"
+          location-qualified: "event"
+          objects: []
+        - score: 67
           value: event_timestamp
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "event"
           location-qualified: "event"
           objects:
-            - score: 45
+            - score: 47
               type: column
               id: "256.65536.4294967296.1"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: iceberg.some_events.some_queries.event_timestamp
               qualified-idx: 3
               prefer-qualified: 0
-        - score: 40
-          value: some_events
-          name-tags: [SCHEMA_NAME]
-          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
-          location: "event"
-          location-qualified: "event"
-          objects:
-            - score: 30
-              type: schema
-              id: "256.65536"
-              candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
       text: "event"

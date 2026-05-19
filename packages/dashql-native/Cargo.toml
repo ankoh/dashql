@@ -10,7 +10,7 @@ version = "2.5.6"
 features = []
 
 [build-dependencies.tonic-prost-build]
-version = "0.14.5"
+version = "0.14.6"
 features = []
 
 [dependencies]
@@ -64,7 +64,7 @@ version = "^0.14.6"
 features = ["tls-ring"]
 
 [dependencies.tonic-prost]
-version = "0.14.5"
+version = "0.14.6"
 
 [dependencies.serde]
 version = "1.0.228"

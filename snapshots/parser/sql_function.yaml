@@ -1,0 +1,334 @@
+parser-snapshots:
+
+  - name: create_function_basic
+    input: |-
+      create function foo(a int, b varchar) returns varchar
+    expected:
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 16
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun..ns varchar"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "foo"
+                children:
+                  - type: NAME
+                    text: "foo"
+              - key: SQL_CREATE_FUNCTION_PARAMS
+                type: ARRAY
+                text: "(a int, b varchar)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "a int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "b varchar"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "b"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar"
+                            children:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "varchar"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: OBJECT_SQL_CHARACTER_TYPE
+                    text: "varchar"
+                    children:
+                      - key: SQL_CHARACTER_TYPE
+                        type: ENUM_SQL_CHARACTER_TYPE
+                        value: VARCHAR
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: create_function_no_params
+    input: |-
+      create function foo() returns int
+    expected:
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 5
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun..eturns int"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "foo"
+                children:
+                  - type: NAME
+                    text: "foo"
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "int"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: ENUM_SQL_NUMERIC_TYPE
+                    value: INT4
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: create_function_any_type
+    input: |-
+      create function foo(a any) returns any
+    expected:
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 12
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun..eturns any"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "foo"
+                children:
+                  - type: NAME
+                    text: "foo"
+              - key: SQL_CREATE_FUNCTION_PARAMS
+                type: ARRAY
+                text: "(a any)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "a any"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "any"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_GENERIC_TYPE
+                            text: "any"
+                            children:
+                              - key: SQL_GENERIC_TYPE_NAME
+                                type: NAME
+                                text: "any"
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "any"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: OBJECT_SQL_GENERIC_TYPE
+                    text: "any"
+                    children:
+                      - key: SQL_GENERIC_TYPE_NAME
+                        type: NAME
+                        text: "any"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: create_aggregate_basic
+    input: |-
+      create aggregate foo(a int) returns varchar
+    expected:
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 12
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create agg..ns varchar"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "foo"
+                children:
+                  - type: NAME
+                    text: "foo"
+              - key: SQL_CREATE_FUNCTION_PARAMS
+                type: ARRAY
+                text: "(a int)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "a int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "varchar"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: OBJECT_SQL_CHARACTER_TYPE
+                    text: "varchar"
+                    children:
+                      - key: SQL_CHARACTER_TYPE
+                        type: ENUM_SQL_CHARACTER_TYPE
+                        value: VARCHAR
+              - key: SQL_CREATE_FUNCTION_IS_AGGREGATE
+                type: BOOL
+                value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: create_function_qualified
+    input: |-
+      create function myschema.foo(a int) returns int
+    expected:
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 11
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun..eturns int"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "myschema.foo"
+                children:
+                  - type: NAME
+                    text: "myschema"
+                  - type: NAME
+                    text: "foo"
+              - key: SQL_CREATE_FUNCTION_PARAMS
+                type: ARRAY
+                text: "(a int)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "a int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "int"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: ENUM_SQL_NUMERIC_TYPE
+                    value: INT4
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: create_function_many_params
+    input: |-
+      create function bar(x int, y int, z varchar) returns int
+    expected:
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 19
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun..eturns int"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "bar"
+                children:
+                  - type: NAME
+                    text: "bar"
+              - key: SQL_CREATE_FUNCTION_PARAMS
+                type: ARRAY
+                text: "(x int, y ..z varchar)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "x int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "x"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "y int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "y"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "z varchar"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "z"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar"
+                            children:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "int"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: ENUM_SQL_NUMERIC_TYPE
+                    value: INT4
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []

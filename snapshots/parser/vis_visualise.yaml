@@ -149,7 +149,7 @@ parser-snapshots:
                                 text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW point"
+                text: "DRAW point"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW point"
@@ -232,7 +232,7 @@ parser-snapshots:
                                 text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW line"
+                text: "DRAW line"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW line"
@@ -276,7 +276,7 @@ parser-snapshots:
                             text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW point"
+                text: "DRAW point"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW point"
@@ -324,7 +324,7 @@ parser-snapshots:
                             text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW line"
+                text: "DRAW line"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW line"
@@ -354,7 +354,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW point"
+                text: "DRAW point"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW point"
@@ -411,7 +411,7 @@ parser-snapshots:
                                 text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW li..enue AS y)"
+                text: "DRAW line ..enue AS y)"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW line ..enue AS y)"
@@ -508,7 +508,7 @@ parser-snapshots:
                                 text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW ba..nue > 100)"
+                text: "DRAW bar F..nue > 100)"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW bar F..nue > 100)"
@@ -627,7 +627,7 @@ parser-snapshots:
                                 text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW li.. date ASC)"
+                text: "DRAW line .. date ASC)"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW line .. date ASC)"
@@ -745,7 +745,7 @@ parser-snapshots:
                                 text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW ba..=> 'blue')"
+                text: "DRAW bar F..=> 'blue')"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW bar F..=> 'blue')"
@@ -865,7 +865,7 @@ parser-snapshots:
                                 text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW co..enue AS y)"
+                text: "DRAW col F..enue AS y)"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW col F..enue AS y)"
@@ -967,7 +967,7 @@ parser-snapshots:
                                 text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW li..size => 2)"
+                text: "DRAW line ..size => 2)"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW line ..size => 2)"
@@ -1097,7 +1097,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW li..ROM sales)"
+                text: "DRAW line ..ROM sales)"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW line ..ROM sales)"
@@ -1208,7 +1208,7 @@ parser-snapshots:
                                 text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW li..size => 4)"
+                text: "DRAW line ..size => 4)"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW line ..enue AS y)"
@@ -1367,7 +1367,7 @@ parser-snapshots:
                                 text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW li.. BY region"
+                text: "DRAW line .. BY region"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW line .. BY region"
@@ -1493,7 +1493,7 @@ parser-snapshots:
                                 text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW li..size => 2)"
+                text: "DRAW line ..size => 2)"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW line ..size => 2)"
@@ -1586,7 +1586,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  SCALE x"
+                text: "SCALE x"
                 children:
                   - type: OBJECT_VIS_SCALE
                     text: "SCALE x"
@@ -1615,7 +1615,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  SCALE c..ntinuous x"
+                text: "SCALE continuous x"
                 children:
                   - type: OBJECT_VIS_SCALE
                     text: "SCALE continuous x"
@@ -1648,7 +1648,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  SCALE d..0, 20, 30]"
+                text: "SCALE disc..0, 20, 30]"
                 children:
                   - type: OBJECT_VIS_SCALE
                     text: "SCALE disc..0, 20, 30]"
@@ -1709,7 +1709,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  SCALE c..M [0, 100]"
+                text: "SCALE cont..M [0, 100]"
                 children:
                   - type: OBJECT_VIS_SCALE
                     text: "SCALE cont..M [0, 100]"
@@ -1754,7 +1754,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  SCALE c..O [0, 500]"
+                text: "SCALE cont..O [0, 500]"
                 children:
                   - type: OBJECT_VIS_SCALE
                     text: "SCALE cont..O [0, 500]"
@@ -1800,7 +1800,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  SCALE b..'viridis')"
+                text: "SCALE binn..'viridis')"
                 children:
                   - type: OBJECT_VIS_SCALE
                     text: "SCALE binn..'viridis')"
@@ -1847,7 +1847,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  SCALE o..dinal fill"
+                text: "SCALE ordinal fill"
                 children:
                   - type: OBJECT_VIS_SCALE
                     text: "SCALE ordinal fill"
@@ -1880,7 +1880,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  SCALE i..ntity size"
+                text: "SCALE identity size"
                 children:
                   - type: OBJECT_VIS_SCALE
                     text: "SCALE identity size"
@@ -1914,7 +1914,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  SCALE d..'bar' end)"
+                text: "SCALE disc..'bar' end)"
                 children:
                   - type: OBJECT_VIS_SCALE
                     text: "SCALE disc..'bar' end)"
@@ -1991,7 +1991,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  SCALE c..og10(v)) x"
+                text: "SCALE cont..og10(v)) x"
                 children:
                   - type: OBJECT_VIS_SCALE
                     text: "SCALE cont..og10(v)) x"
@@ -2061,7 +2061,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  SCALE b..s => 10) y"
+                text: "SCALE binn..s => 10) y"
                 children:
                   - type: OBJECT_VIS_SCALE
                     text: "SCALE binn..s => 10) y"
@@ -2107,7 +2107,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  SCALE c..> log10) x"
+                text: "SCALE cont..> log10) x"
                 children:
                   - type: OBJECT_VIS_SCALE
                     text: "SCALE cont..> log10) x"
@@ -2193,7 +2193,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  SCALE c..> log10) x"
+                text: "SCALE cont..> log10) x"
                 children:
                   - type: OBJECT_VIS_SCALE
                     text: "SCALE cont..> log10) x"
@@ -2306,7 +2306,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  FACET region"
+                text: "FACET region"
                 children:
                   - type: OBJECT_VIS_FACET
                     text: "FACET region"
@@ -2338,7 +2338,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  FACET r..iscal_year"
+                text: "FACET regi..iscal_year"
                 children:
                   - type: OBJECT_VIS_FACET
                     text: "FACET regi..iscal_year"
@@ -2377,7 +2377,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  FACET r..=> 'free')"
+                text: "FACET regi..=> 'free')"
                 children:
                   - type: OBJECT_VIS_FACET
                     text: "FACET regi..=> 'free')"
@@ -2423,7 +2423,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  PROJECT TO polar"
+                text: "PROJECT TO polar"
                 children:
                   - type: OBJECT_VIS_PROJECT
                     text: "PROJECT TO polar"
@@ -2453,7 +2453,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  PROJECT.. cartesian"
+                text: "PROJECT x,.. cartesian"
                 children:
                   - type: OBJECT_VIS_PROJECT
                     text: "PROJECT x,.. cartesian"
@@ -2492,7 +2492,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  PROJECT.. 'Europe')"
+                text: "PROJECT TO.. 'Europe')"
                 children:
                   - type: OBJECT_VIS_PROJECT
                     text: "PROJECT TO.. 'Europe')"
@@ -2536,7 +2536,7 @@ parser-snapshots:
             children:
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  LABEL U.. 'FY2026')"
+                text: "LABEL USIN.. 'FY2026')"
                 children:
                   - type: OBJECT_VIS_LABEL
                     text: "LABEL USIN.. 'FY2026')"
@@ -2612,7 +2612,7 @@ parser-snapshots:
                                 text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW hi..ount AS y)"
+                text: "DRAW histo..ount AS y)"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW histo..ount AS y)"
@@ -2715,7 +2715,7 @@ parser-snapshots:
                                 text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW hi..t AS fill)"
+                text: "DRAW histo..t AS fill)"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW histo..t AS fill)"
@@ -2835,7 +2835,7 @@ parser-snapshots:
                                 text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW hi..idth => 5)"
+                text: "DRAW histo..idth => 5)"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW histo..idth => 5)"
@@ -2955,7 +2955,7 @@ parser-snapshots:
                                 text: "sales"
               - key: VIS_VISUALISE_CLAUSES
                 type: ARRAY
-                text: "\n  DRAW po..> 'Sales')"
+                text: "DRAW point..> 'Sales')"
                 children:
                   - type: OBJECT_VIS_LAYER
                     text: "DRAW point..enue AS y)"

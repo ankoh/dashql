@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="misc/logo-dashql-glyphs/app_icons_mac.iconset/icon_512x512@2x.png" width=100>
+  <img src="misc/logo-dashql-glyphs/logo.png" width=100>
 </p>
 <p align="center">
   <a href="https://github.com/ankoh/dashql/actions/workflows/on_push_main.yml"><img src="https://github.com/ankoh/dashql/actions/workflows/on_push_main.yml/badge.svg?branch=main" /></a>
@@ -25,10 +25,14 @@ This encoding is compact and efficient for simple passes, but is not directly su
 ### Building
 
 ```
-# Dev server with HMR for anything bundled with Vite.
-# dashql-native:dev connects to dashql-app:dev, so run them in separate terminals.
-bazel run //packages/dashql-app:dev     # Run HMR dev server
-bazel run //packages/dashql-native:dev  # Native -> dashql-app:dev
+# Dev server with for Vite in the browser.
+# We don't support HMR in the browser since pthread web-workers + HMR crash Chrome.
+bazel run //packages/dashql-app:dev
+
+# Dev server for dashql-native:dev.
+# dashql-app:dev_native supports HMR for the Tauri WebView.
+bazel run //packages/dashql-app:dev_native
+bazel run //packages/dashql-native:dev
 
 # If you need demangled wasm stacktraces, run with
 bazel run --config=debug //packages/dashql-app:dev

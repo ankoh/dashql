@@ -1,0 +1,36 @@
+parser-snapshots:
+  - name: backtick_column_alias
+    input: |
+      select 1 as `one`
+  - name: backtick_table_alias
+    input: |
+      select * from foo as `bar`
+  - name: backtick_table_name
+    input: |
+      select * from `my_table`
+  - name: backtick_qualified_name
+    input: |
+      select `schema`.`table` from `schema`.`table`
+  - name: backtick_column_name
+    input: |
+      select `col_a`, `col_b` from t
+  - name: backtick_mixed_quoting
+    input: |
+      select `a`, "b", c from t
+  - name: backtick_reserved_word
+    input: |
+      select `select`, `from` from t
+  - name: backtick_spaces_in_name
+    input: |
+      select `my column` from `my table`
+  - name: backtick_numeric_name
+    input: |
+      select 1 as `1`
+  - name: backtick_escaped_backtick
+    input: |
+      select 1 as `a``b`
+  - name: backtick_cast_alias
+    input: |
+      SELECT CAST('1' AS INTEGER) AS `1` FROM (
+        SELECT CAST('true' AS BOOLEAN) AS `table_2_const_1`
+      ) AS `table_2`

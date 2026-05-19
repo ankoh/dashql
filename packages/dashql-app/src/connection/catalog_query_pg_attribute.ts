@@ -4,10 +4,15 @@ import * as dashql from '../core/index.js';
 import { QueryExecutor } from './query_executor.js';
 import { QueryExecutionArgs } from './query_execution_args.js';
 import { DynamicConnectionDispatch } from './connection_registry.js';
-import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY, SET_CATALOG_SCRIPT } from "./connection_state.js";
+import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY } from "./connection_state.js";
 import { QueryType } from './query_execution_state.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from "./catalog_update_state.js";
 import { generateSchemaSQL, generateCatalogScriptHeader, CatalogSource, type ColumnMetadata } from './catalog_sql_generator.js';
+import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
+import { queryPgProc, generateCatalogSQLFromPgProc } from './catalog_query_pg_proc.js';
+import { type LoggerLike } from '../platform/logger/logger.js';
+
+const LOG_CTX = "catalog_pg";
 
 export type PgAttributeColumnsTable = arrow.Table<{
     table_schema: arrow.Utf8;
@@ -142,7 +147,8 @@ export async function queryPgAttribute(
     return queryResult;
 }
 
-export async function updatePgAttributeSchemaCatalog(
+async function updatePgSchemaScript(
+    logger: LoggerLike,
     sessionId: string,
     connectionDispatch: DynamicConnectionDispatch,
     updateId: number,
@@ -150,39 +156,88 @@ export async function updatePgAttributeSchemaCatalog(
     schemaNames: string[],
     executor: QueryExecutor,
     catalog: dashql.DashQLCatalog,
-    dql: dashql.DashQL,
-    catalogScript: dashql.DashQLScript
+    catalogRelationScript: dashql.DashQLScript
 ): Promise<void> {
-    // Query pg_attribute. If the query errors it throws and propagates to the
-    // caller so we never overwrite the existing catalog script with partial data.
     const queryResult = await queryPgAttribute(sessionId, connectionDispatch, updateId, databaseName, schemaNames, executor);
     if (queryResult == null || queryResult.numRows === 0) {
         return;
     }
 
-    // Generate SQL from query results before touching the script so an empty
-    // result (after row-level filtering) doesn't clobber a restored catalog.
     const header = generateCatalogScriptHeader(CatalogSource.PgClass);
     const catalogSQL = generateCatalogSQLFromPgAttribute(queryResult, databaseName);
-    if (catalogSQL.length === 0) {
-        return;
-    }
 
-    // Mark loading started
     connectionDispatch(sessionId, {
         type: CATALOG_UPDATE_SCHEMA_SCRIPT,
         value: [updateId]
     });
 
-    // Update script content
-    catalogScript.replaceText(`${header}${catalogSQL}`);
-    catalogScript.analyze();
+    catalogRelationScript.replaceText(`${header}${catalogSQL}`);
+    catalogRelationScript.analyze();
 
-    // Drop old script from catalog if loaded, then reload
+    const tableCount = catalogRelationScript.getAnalyzed().read().tablesLength();
+    logger.info("Collected tables from pg_attribute", {
+        "updateId": updateId.toString(),
+        "tables": tableCount.toString(),
+    }, LOG_CTX);
+
     try {
-        catalog.dropScript(catalogScript);
+        catalog.dropScript(catalogRelationScript);
     } catch (e) {
         // Script may not have been loaded yet - ignore error
     }
-    catalog.loadScript(catalogScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    catalog.loadScript(catalogRelationScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+}
+
+async function updatePgFunctionScript(
+    logger: LoggerLike,
+    sessionId: string,
+    connectionDispatch: DynamicConnectionDispatch,
+    updateId: number,
+    databaseName: string,
+    executor: QueryExecutor,
+    catalog: dashql.DashQLCatalog,
+    catalogFunctionScript: dashql.DashQLScript
+): Promise<void> {
+    const queryResult = await queryPgProc(sessionId, connectionDispatch, updateId, executor);
+    if (queryResult == null || queryResult.numRows === 0) {
+        return;
+    }
+
+    const header = generateFunctionScriptHeader(CatalogSource.PgClass);
+    const functionSQL = generateCatalogSQLFromPgProc(queryResult, databaseName);
+
+    catalogFunctionScript.replaceText(`${header}${functionSQL}`);
+    catalogFunctionScript.analyze();
+
+    const functionCount = catalogFunctionScript.getParsed().read().statementsLength();
+    logger.info("Collected functions from pg_proc", {
+        "updateId": updateId.toString(),
+        "functions": functionCount.toString(),
+    }, LOG_CTX);
+
+    try {
+        catalog.dropScript(catalogFunctionScript);
+    } catch (e) {
+        // Script may not have been loaded yet - ignore error
+    }
+    catalog.loadScript(catalogFunctionScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+}
+
+export async function updatePgCatalog(
+    logger: LoggerLike,
+    sessionId: string,
+    connectionDispatch: DynamicConnectionDispatch,
+    updateId: number,
+    databaseName: string,
+    schemaNames: string[],
+    executor: QueryExecutor,
+    catalog: dashql.DashQLCatalog,
+    _dql: dashql.DashQL,
+    catalogRelationScript: dashql.DashQLScript,
+    catalogFunctionScript: dashql.DashQLScript
+): Promise<void> {
+    await Promise.all([
+        updatePgSchemaScript(logger, sessionId, connectionDispatch, updateId, databaseName, schemaNames, executor, catalog, catalogRelationScript),
+        updatePgFunctionScript(logger, sessionId, connectionDispatch, updateId, databaseName, executor, catalog, catalogFunctionScript),
+    ]);
 }

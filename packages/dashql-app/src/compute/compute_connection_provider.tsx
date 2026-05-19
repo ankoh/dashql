@@ -3,6 +3,7 @@ import * as React from 'react';
 import { DuckDB } from '../platform/duckdb/duckdb_api.js';
 import { useDuckDBSetup } from '../platform/duckdb/duckdb_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
+import { stringifyError } from '../platform/logger/logger.js';
 
 const COMPUTE_DB_CTX = React.createContext<DuckDB | null>(null);
 
@@ -24,7 +25,7 @@ export const ComputeConnectionProvider: React.FC<Props> = (props: Props) => {
                     setDuckdb(webdb);
                 }
             } catch (e: any) {
-                logger.error("Failed to create compute database", { error: e.toString() }, "compute");
+                logger.error("Failed to create compute database", { error: stringifyError(e) }, "compute");
             }
         };
         init();

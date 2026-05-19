@@ -1,4 +1,5 @@
 import type { Logger } from '../logger/logger.js';
+import { stringifyError } from '../logger/logger.js';
 
 import { DuckDB } from './duckdb_api.js';
 import { WebDuckDB } from './duckdb_web_api.js';
@@ -48,7 +49,7 @@ export async function setupWebDuckDB(context: string, logger: Logger): Promise<D
     } catch (e: any) {
         const initEnd = performance.now();
         logger.error("Instantiating webdb failed", {
-            "error": e.toString(),
+            "error": stringifyError(e),
             "duration": Math.floor(initEnd - initStart).toString()
         }, "webdb");
         console.error(e);

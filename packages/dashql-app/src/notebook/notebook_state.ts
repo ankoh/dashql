@@ -5,7 +5,7 @@ import { analyzeScript, DashQLCompletionState, DashQLProcessorUpdateOut, DashQLS
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, SemanticUserFocus } from './focus.js';
 import { ConnectorInfo } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
-import { REPLACE_NOTEBOOK, CREATE_NOTEBOOK_PAGE, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK_PAGE, DELETE_NOTEBOOK_SCRIPT, groupNotebookWrites, groupPageWrites, groupScriptDeletes, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK_SCRIPT } from '../platform/storage/storage_writer.js';
+import { REPLACE_NOTEBOOK, CREATE_NOTEBOOK_PAGE, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK_PAGE, DELETE_NOTEBOOK_SCRIPT, groupDraftWrites, groupNotebookWrites, groupPageWrites, groupScriptDeletes, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK_DRAFT, WRITE_NOTEBOOK_SCRIPT } from '../platform/storage/storage_writer.js';
 import { NotebookStateWithoutId } from './notebook_state_registry.js';
 import { Logger } from '../platform/logger/logger.js';
 import { NotebookScriptAnnotations, NotebookPage, NotebookPageScript, NotebookMetadata as NotebookMetadataType, createEmptyAnnotations, createPageScript, generateScriptFileName } from './notebook_types.js';
@@ -29,6 +29,8 @@ export interface NotebookUserFocus {
     pageIndex: number;
     /// The selected entry index within the selected page
     entryInPage: number;
+    /// Monotonic counter incremented only by explicit navigation (Next/Prev Script/Page), used to trigger auto-scroll
+    interactionCounter: number;
 }
 
 /// The state of the notebook
@@ -142,7 +144,6 @@ export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQ
         script,
         scriptAnalysis: {
             buffers: {
-                scanned: null,
                 parsed: null,
                 analyzed: null,
                 destroy: () => { },
@@ -159,6 +160,14 @@ export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQ
         folderName,
     };
     return [scriptKey, scriptData];
+}
+
+function uniqueFolderName(baseName: string, pages: NotebookPage[], excludeIndex: number = -1): string {
+    const existing = new Set(pages.filter((_, i) => i !== excludeIndex).map(p => p.folderName));
+    if (!existing.has(baseName)) return baseName;
+    let suffix = 2;
+    while (existing.has(`${baseName} ${suffix}`)) suffix++;
+    return `${baseName} ${suffix}`;
 }
 
 enum FocusUpdate {
@@ -178,13 +187,13 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const entryInPage = Math.min(state.notebookUserFocus.entryInPage, maxEntry);
             return {
                 ...clearSemanticUserFocus(state),
-                notebookUserFocus: { pageIndex, entryInPage },
+                notebookUserFocus: { pageIndex, entryInPage, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
         }
         case CREATE_PAGE: {
-            // Create a new page
+            const folderName = uniqueFolderName('Untitled', state.notebookPages);
             const newPage: NotebookPage = {
-                folderName: 'Untitled',
+                folderName,
                 scripts: [],
             };
 
@@ -200,7 +209,6 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 script,
                 scriptAnalysis: {
                     buffers: {
-                        scanned: null,
                         parsed: null,
                         analyzed: null,
                         destroy: () => { },
@@ -214,7 +222,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 latestQueryId: null,
                 pageIndex: newPageIndex,
                 fileName: fileName,
-                folderName: 'Untitled',
+                folderName,
             };
 
             const entry = createPageScript(scriptKey, fileName);
@@ -227,7 +235,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     [scriptKey]: scriptData,
                 },
                 notebookPages: newPages,
-                notebookUserFocus: { pageIndex: newPages.length - 1, entryInPage: 0 },
+                notebookUserFocus: { pageIndex: newPages.length - 1, entryInPage: 0, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
 
             storage?.write(
@@ -269,7 +277,8 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     notebookPages: newPages,
                     notebookUserFocus: {
                         pageIndex: newPageIndex,
-                        entryInPage: 0
+                        entryInPage: 0,
+                        interactionCounter: state.notebookUserFocus.interactionCounter + 1,
                     }
                 })
             };
@@ -288,7 +297,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const entryInPage = Math.min(state.notebookUserFocus.entryInPage, maxEntry);
             return {
                 ...clearSemanticUserFocus(state),
-                notebookUserFocus: { pageIndex: nextPageIndex, entryInPage },
+                notebookUserFocus: { pageIndex: nextPageIndex, entryInPage, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
         }
         case SELECT_PREV_PAGE: {
@@ -298,7 +307,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const entryInPage = Math.min(state.notebookUserFocus.entryInPage, maxEntry);
             return {
                 ...clearSemanticUserFocus(state),
-                notebookUserFocus: { pageIndex: prevPageIndex, entryInPage },
+                notebookUserFocus: { pageIndex: prevPageIndex, entryInPage, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
         }
         case SELECT_NEXT_ENTRY: {
@@ -306,13 +315,13 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const nextEntry = Math.max(Math.min(state.notebookUserFocus.entryInPage + 1, entries.length - 1), 0);
             return {
                 ...clearSemanticUserFocus(state),
-                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: nextEntry },
+                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: nextEntry, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
         }
         case SELECT_PREV_ENTRY:
             return {
                 ...clearSemanticUserFocus(state),
-                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: Math.max(state.notebookUserFocus.entryInPage - 1, 0) },
+                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: Math.max(state.notebookUserFocus.entryInPage - 1, 0), interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
         case SELECT_ENTRY: {
             const entries = getSelectedPageEntries(state);
@@ -457,12 +466,19 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const scriptData = nextState.scripts[scriptKey];
             if (scriptData) {
                 const sql = scriptData.script.toString();
-
-                storage?.write(
-                    groupScriptWrites(nextState.sessionId, scriptData.folderName, scriptData.fileName),
-                    { type: WRITE_NOTEBOOK_SCRIPT, value: [nextState.sessionId, scriptData.folderName, scriptData.fileName, sql] },
-                    DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
-                );
+                if (scriptData.folderName === '' || scriptData.fileName === '') {
+                    storage?.write(
+                        groupDraftWrites(nextState.sessionId),
+                        { type: WRITE_NOTEBOOK_DRAFT, value: [nextState.sessionId, sql] },
+                        DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                    );
+                } else {
+                    storage?.write(
+                        groupScriptWrites(nextState.sessionId, scriptData.folderName, scriptData.fileName),
+                        { type: WRITE_NOTEBOOK_SCRIPT, value: [nextState.sessionId, scriptData.folderName, scriptData.fileName, sql] },
+                        DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                    );
+                }
             }
             return nextState;
         }
@@ -543,7 +559,8 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                         notebookPages: newPages,
                         notebookUserFocus: {
                             pageIndex: newPageIndex,
-                            entryInPage: 0
+                            entryInPage: 0,
+                            interactionCounter: state.notebookUserFocus.interactionCounter + 1,
                         }
                     })
                 };
@@ -596,7 +613,6 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 script,
                 scriptAnalysis: {
                     buffers: {
-                        scanned: null,
                         parsed: null,
                         analyzed: null,
                         destroy: () => { },
@@ -691,11 +707,12 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
         }
 
         case UPDATE_PAGE_FOLDER_NAME: {
-            const { pageIndex, folderName } = action.value;
+            const { pageIndex, folderName: requestedName } = action.value;
             if (pageIndex < 0 || pageIndex >= state.notebookPages.length) {
                 console.warn("Update references invalid page index");
                 return state;
             }
+            const folderName = uniqueFolderName(requestedName, state.notebookPages, pageIndex);
             const oldFolderName = state.notebookPages[pageIndex].folderName;
             const newPages = [...state.notebookPages];
             newPages[pageIndex] = { ...newPages[pageIndex], folderName };
@@ -778,6 +795,11 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             storage?.write(
                 groupScriptWrites(next.sessionId, page.folderName, fileName),
                 { type: WRITE_NOTEBOOK_SCRIPT, value: [next.sessionId, page.folderName, fileName, sql] },
+                DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+            );
+            storage?.write(
+                groupDraftWrites(next.sessionId),
+                { type: WRITE_NOTEBOOK_DRAFT, value: [next.sessionId, ''] },
                 DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
             );
             return next;

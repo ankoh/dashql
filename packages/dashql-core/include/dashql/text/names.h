@@ -23,7 +23,7 @@ struct RegisteredName {
     /// The text
     std::string_view text;
     /// The location (if any)
-    sx::parser::Location location;
+    sx::parser::TextSpan location;
     /// The occurences
     size_t occurrences;
     /// The coarse name tags resolved by the Analyzer.
@@ -68,7 +68,7 @@ struct NameRegistry {
     /// Get the name
     const RegisteredName& At(RegisteredNameID name_id) const;
     /// Register a name
-    RegisteredName& Register(std::string_view s, sx::parser::Location location = sx::parser::Location(),
+    RegisteredName& Register(std::string_view s, sx::parser::TextSpan location = sx::parser::TextSpan(),
                              sx::analyzer::NameTag tag = sx::analyzer::NameTag::NONE);
     /// Register a name
     RegisteredName& Register(std::string_view s, NameTags tags);

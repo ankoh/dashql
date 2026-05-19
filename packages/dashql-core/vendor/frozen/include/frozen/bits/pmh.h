@@ -176,7 +176,7 @@ template <std::size_t M, class Hasher> struct pmh_tables : private Hasher {
             }
         }
         for (size_t i = 0; i < second_table_.size(); ++i) {
-            auto entry = second_table_[i];
+            [[maybe_unused]] auto entry = second_table_[i];
             assert(entry <= N);
         }
     }

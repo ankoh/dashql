@@ -27,8 +27,8 @@ for (const [_token, tag] of PROTO_TAG_MAPPING) {
 
 export function buildDecorationsFromTokens(
     state: EditorState,
-    scanned: dashql.FlatBufferPtr<dashql.buffers.parser.ScannedScript>,
-    tmp: dashql.buffers.parser.ScannedScript = new dashql.buffers.parser.ScannedScript(),
+    parsed: dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript>,
+    tmp: dashql.buffers.parser.ParsedScript = new dashql.buffers.parser.ParsedScript(),
 ): DecorationSet {
     const decorations: Map<Tag, Decoration> = new Map();
     for (const tag of CODEMIRROR_TAGS_USED) {
@@ -41,8 +41,8 @@ export function buildDecorationsFromTokens(
     }
 
     const builder = new RangeSetBuilder<Decoration>();
-    const scan = scanned.read(tmp);
-    const tokens = scan.tokens();
+    const script = parsed.read(tmp);
+    const tokens = script.tokens();
     if (tokens && tokens.tokenOffsetsArray()) {
         const tokenOffsets = tokens.tokenOffsetsArray()!;
         const tokenLengths = tokens.tokenLengthsArray()!;
@@ -62,32 +62,32 @@ export function buildDecorationsFromTokens(
 
 interface ScannerDecorationOnlyState {
     decorations: DecorationSet;
-    scanned: dashql.FlatBufferPtr<dashql.buffers.parser.ScannedScript> | null;
+    parsed: dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript> | null;
 }
 
-export const DashQLScannerDecorationUpdateEffect: StateEffectType<dashql.FlatBufferPtr<dashql.buffers.parser.ScannedScript> | null> =
-    StateEffect.define<dashql.FlatBufferPtr<dashql.buffers.parser.ScannedScript> | null>();
+export const DashQLScannerDecorationUpdateEffect: StateEffectType<dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript> | null> =
+    StateEffect.define<dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript> | null>();
 
 const StandaloneScannerDecorationField: StateField<ScannerDecorationOnlyState> = StateField.define<ScannerDecorationOnlyState>({
     create: () => ({
         decorations: new RangeSetBuilder<Decoration>().finish(),
-        scanned: null,
+        parsed: null,
     }),
     update: (state: ScannerDecorationOnlyState, transaction: Transaction) => {
-        let scanned = state.scanned;
+        let parsed = state.parsed;
         for (const effect of transaction.effects) {
             if (effect.is(DashQLScannerDecorationUpdateEffect)) {
-                scanned = effect.value;
+                parsed = effect.value;
             }
         }
-        if (scanned === state.scanned) {
+        if (parsed === state.parsed) {
             return state;
         }
         return {
-            scanned,
-            decorations: scanned == null
+            parsed,
+            decorations: parsed == null
                 ? new RangeSetBuilder<Decoration>().finish()
-                : buildDecorationsFromTokens(transaction.state, scanned),
+                : buildDecorationsFromTokens(transaction.state, parsed),
         };
     },
 });

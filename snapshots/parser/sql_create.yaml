@@ -345,7 +345,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " deferrable"
+                        text: "deferrable"
                         children:
                           - type: ENUM_SQL_CONSTRAINT_ATTRIBUTE
                             value: DEFERRABLE
@@ -391,7 +391,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " collate \"de_DE\""
+                        text: "collate \"de_DE\""
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "collate \"de_DE\""
@@ -543,7 +543,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " constrain..a not null"
+                        text: "constraint..a not null"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "constraint..a not null"
@@ -596,7 +596,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " primary key"
+                        text: "primary key"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "primary key"
@@ -646,7 +646,7 @@ parser-snapshots:
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
-                        text: " not null ..default 42"
+                        text: "not null default 42"
                         children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"

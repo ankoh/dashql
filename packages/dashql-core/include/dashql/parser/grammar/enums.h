@@ -13,7 +13,7 @@ constexpr uint32_t NO_PARENT = std::numeric_limits<uint32_t>::max();
 using ExprFunc = buffers::parser::ExpressionOperator;
 
 #define X(ENUM_TYPE, NODE_TYPE)                                                                      \
-    inline buffers::parser::Node Enum(buffers::parser::Location loc, ENUM_TYPE e) {                  \
+    inline buffers::parser::Node Enum(buffers::parser::SymbolSpan loc, ENUM_TYPE e) {                  \
         return buffers::parser::Node(loc, NODE_TYPE, buffers::parser::AttributeKey::NONE, NO_PARENT, \
                                      static_cast<uint32_t>(e), 0);                                   \
     }

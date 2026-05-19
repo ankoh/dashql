@@ -19,20 +19,24 @@ namespace dashql {
 namespace parser {
 
 /// Add an error
-void Scanner::AddError(buffers::parser::Location location, const char* message) {
-    output->errors.push_back({location, message});
+void Scanner::AddError(buffers::parser::SymbolSpan location, const char* message) {
+    output->errors.push_back({buffers::parser::TextSpan(location.offset(), location.length()), message});
 }
 /// Add an error
-void Scanner::AddError(buffers::parser::Location location, std::string&& message) {
-    output->errors.push_back({location, std::move(message)});
+void Scanner::AddError(buffers::parser::SymbolSpan location, std::string&& message) {
+    output->errors.push_back({buffers::parser::TextSpan(location.offset(), location.length()), std::move(message)});
 }
 /// Add a line break
-void Scanner::AddLineBreak(buffers::parser::Location location) { output->line_breaks.push_back(location); }
+void Scanner::AddLineBreak(buffers::parser::SymbolSpan location) {
+    output->line_breaks.push_back(buffers::parser::TextSpan(location.offset(), location.length()));
+}
 /// Add a comment
-void Scanner::AddComment(buffers::parser::Location location) { output->comments.push_back(location); }
+void Scanner::AddComment(buffers::parser::SymbolSpan location) {
+    output->comments.push_back(buffers::parser::TextSpan(location.offset(), location.length()));
+}
 
 /// Read a parameter
-Parser::symbol_type Scanner::ReadParameter(buffers::parser::Location loc) {
+Parser::symbol_type Scanner::ReadParameter(buffers::parser::SymbolSpan loc) {
     auto text = GetInputData().substr(loc.offset(), loc.length());
     int64_t value;
     auto result = std::from_chars(text.data(), text.data() + text.size(), value);
@@ -43,7 +47,7 @@ Parser::symbol_type Scanner::ReadParameter(buffers::parser::Location loc) {
 }
 
 /// Read an integer
-Parser::symbol_type Scanner::ReadInteger(buffers::parser::Location loc) {
+Parser::symbol_type Scanner::ReadInteger(buffers::parser::SymbolSpan loc) {
     auto text = GetInputData().substr(loc.offset(), loc.length());
     int64_t value;
     auto result = std::from_chars(text.data(), text.data() + text.size(), value);
@@ -55,7 +59,7 @@ Parser::symbol_type Scanner::ReadInteger(buffers::parser::Location loc) {
 }
 
 /// Read an unquoted identifier
-Parser::symbol_type Scanner::ReadIdentifier(buffers::parser::Location loc) {
+Parser::symbol_type Scanner::ReadIdentifier(buffers::parser::SymbolSpan loc) {
     auto text = GetInputData().substr(loc.offset(), loc.length());
     // Convert to lower-case
     temp_buffer = text;
@@ -73,37 +77,45 @@ Parser::symbol_type Scanner::ReadIdentifier(buffers::parser::Location loc) {
     if (!all_lower) {
         owned = output->name_pool.AllocateCopy(temp_buffer);
     }
-    size_t id = output->name_registry.Register(owned, loc).name_id;
+    size_t id = output->name_registry.Register(owned, buffers::parser::TextSpan(loc.offset(), loc.length())).name_id;
     return Parser::make_IDENT(id, loc);
 }
 /// Read a double quoted identifier
-Parser::symbol_type Scanner::ReadDoubleQuotedIdentifier(buffers::parser::Location loc) {
+Parser::symbol_type Scanner::ReadDoubleQuotedIdentifier(buffers::parser::SymbolSpan loc) {
     auto text = GetInputData().substr(loc.offset(), loc.length());
     // Trim spaces & quotes
     auto trimmed = trim_view_right(text, is_no_space);
     trimmed = trim_view(trimmed, is_no_double_quote);
     // Add string to dictionary
-    size_t id = output->name_registry.Register(trimmed, loc).name_id;
+    size_t id = output->name_registry.Register(trimmed, buffers::parser::TextSpan(loc.offset(), loc.length())).name_id;
+    return Parser::make_IDENT(id, loc);
+}
+/// Read a backtick quoted identifier
+Parser::symbol_type Scanner::ReadBacktickQuotedIdentifier(buffers::parser::SymbolSpan loc) {
+    auto text = GetInputData().substr(loc.offset(), loc.length());
+    auto trimmed = trim_view_right(text, is_no_space);
+    trimmed = trim_view(trimmed, is_no_backtick);
+    size_t id = output->name_registry.Register(trimmed, buffers::parser::TextSpan(loc.offset(), loc.length())).name_id;
     return Parser::make_IDENT(id, loc);
 }
 
 /// Read a string literal
-Parser::symbol_type Scanner::ReadStringLiteral(buffers::parser::Location loc) {
+Parser::symbol_type Scanner::ReadStringLiteral(buffers::parser::SymbolSpan loc) {
     auto text = GetInputData().substr(loc.offset(), loc.length());
     auto trimmed = trim_view_right(text, is_no_space);
-    return Parser::make_SCONST(sx::parser::Location(loc.offset(), trimmed.size()));
+    return Parser::make_SCONST(sx::parser::SymbolSpan(loc.offset(), trimmed.size()));
 }
 /// Read a hex string literal
-Parser::symbol_type Scanner::ReadHexStringLiteral(buffers::parser::Location loc) {
+Parser::symbol_type Scanner::ReadHexStringLiteral(buffers::parser::SymbolSpan loc) {
     auto text = GetInputData().substr(loc.offset(), loc.length());
     auto trimmed = trim_view_right(text, is_no_space);
-    return Parser::make_XCONST(sx::parser::Location(loc.offset(), trimmed.size()));
+    return Parser::make_XCONST(sx::parser::SymbolSpan(loc.offset(), trimmed.size()));
 }
 /// Read a bit string literal
-Parser::symbol_type Scanner::ReadBitStringLiteral(buffers::parser::Location loc) {
+Parser::symbol_type Scanner::ReadBitStringLiteral(buffers::parser::SymbolSpan loc) {
     auto text = GetInputData().substr(loc.offset(), loc.length());
     auto trimmed = trim_view_right(text, is_no_space);
-    return Parser::make_BCONST(sx::parser::Location(loc.offset(), trimmed.size()));
+    return Parser::make_BCONST(sx::parser::SymbolSpan(loc.offset(), trimmed.size()));
 }
 
 /// Scan input and produce all tokens

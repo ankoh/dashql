@@ -244,14 +244,18 @@ export function QueryViewer(props: { onClose: () => void }) {
                     </div>
                 </div>
                 <div className={styles.query_grid_container} ref={containerRef}>
-                    <List
-                        listRef={listRef}
-                        style={{ width: containerWidth, height: containerHeight }}
-                        rowCount={entries.length}
-                        rowHeight={() => ROW_HEIGHT}
-                        rowComponent={QueryRow}
-                        rowProps={rowProps}
-                    />
+                    {entries.length === 0 ? (
+                        <div className={styles.empty_state}>Nothing to see here</div>
+                    ) : (
+                        <List
+                            listRef={listRef}
+                            style={{ width: containerWidth, height: containerHeight }}
+                            rowCount={entries.length}
+                            rowHeight={() => ROW_HEIGHT}
+                            rowComponent={QueryRow}
+                            rowProps={rowProps}
+                        />
+                    )}
                 </div>
             </div>
             <AnchoredOverlay

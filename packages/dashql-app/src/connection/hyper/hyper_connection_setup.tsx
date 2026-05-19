@@ -10,7 +10,7 @@ import {
     HYPER_CHANNEL_SETUP_STARTED,
     HyperConnectorAction,
 } from './hyper_connection_state.js';
-import { Logger } from '../../platform/logger/logger.js';
+import { Logger, stringifyError } from '../../platform/logger/logger.js';
 import { HyperConnectorConfig } from '../connector_configs.js';
 import { Dispatch } from '../../utils/index.js';
 import {
@@ -63,7 +63,7 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
             updateState({
                 type: HYPER_CHANNEL_SETUP_CANCELLED,
                 value: {
-                    message: error.toString()
+                    message: stringifyError(error)
                 },
             });
         } else if (error instanceof Error) {
@@ -112,7 +112,7 @@ export const HyperSetupProvider: React.FC<Props> = (props: Props) => {
             });
         };
         return { setup, reset };
-    }, [connectorConfig]);
+    }, [connectorConfig, hyperClient, logger]);
 
     return (
         <SETUP_CTX.Provider value={api} > {props.children} </SETUP_CTX.Provider>
