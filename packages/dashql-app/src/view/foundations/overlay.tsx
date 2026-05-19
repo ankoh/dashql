@@ -173,19 +173,20 @@ export const Overlay = React.forwardRef((props: OverlayProps, forwardedRef: Reac
         preventFocusOnOpen: props.preventFocusOnOpen,
     });
 
-    // JS animation is required because Safari does not allow css animations to start paused and then run
     React.useLayoutEffect(() => {
-        const { x, y } = getSlideAnimationStartingVector(props.anchorSide)
-        if ((!x && !y) || !overlayRef.current?.animate || props.visibility === OverlayVisibility.Hidden) {
+        if (!overlayRef.current?.animate || props.visibility === OverlayVisibility.Hidden) {
             return
         }
-        overlayRef.current.animate(
-            { transform: [`translate(${SLIDE_ANIMATION_DISTANCE * x}px, ${SLIDE_ANIMATION_DISTANCE * y}px)`, `translate(0, 0)`] },
-            {
-                duration: 200,
-                easing: "cubic-bezier(0.33, 1, 0.68, 1)",
-            },
-        )
+        const { x, y } = getSlideAnimationStartingVector(props.anchorSide);
+        if (x || y) {
+            overlayRef.current.animate(
+                { transform: [`translate(${SLIDE_ANIMATION_DISTANCE * x}px, ${SLIDE_ANIMATION_DISTANCE * y}px)`, `translate(0, 0)`] },
+                {
+                    duration: 200,
+                    easing: "cubic-bezier(0.33, 1, 0.68, 1)",
+                },
+            )
+        }
     }, [props.anchorSide, props.visibility])
 
     const overlay = (

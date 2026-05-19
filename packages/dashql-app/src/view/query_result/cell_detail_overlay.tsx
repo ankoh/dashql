@@ -302,11 +302,11 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
                 <div className={styles.main}>
                     <div className={styles.header}>
                         <span className={styles.header_title}>
-                            <span className={styles.header_title_label}>Data</span>
-                            <span className={styles.header_title_bracket}>[</span>
+                            <span className={styles.header_title_label}>row</span>
+                            <span className={styles.header_title_equal}>=</span>
                             <span className={styles.header_title_index}>{props.dataRow}</span>
-                            <span className={styles.header_title_bracket}>]</span>
-                            <span className={styles.header_title_dot}>.</span>
+                            <span className={styles.header_title_label}>field</span>
+                            <span className={styles.header_title_equal}>=</span>
                             <span className={styles.header_title_field}>{props.columnName ?? 'value'}</span>
                         </span>
                         <div className={styles.header_spacer} />

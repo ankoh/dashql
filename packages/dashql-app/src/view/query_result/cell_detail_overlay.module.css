@@ -45,7 +45,7 @@
     display: flex;
     align-items: center;
     height: 44px;
-    padding: 0 8px;
+    padding: 0 8px 0px 12px;
     border-bottom: 1px solid var(--border_color_primary);
     flex-shrink: 0;
     gap: 8px;
@@ -66,8 +66,13 @@
     font-weight: 500;
     color: hsl(210, 10%, 40%);
 }
+.header_title_label:not(:first-child) {
+    font-weight: 500;
+    color: hsl(210, 10%, 40%);
+    margin-left: 8px;
+}
 
-.header_title_bracket {
+.header_title_equal {
     font-weight: 400;
     color: hsl(210, 10%, 55%);
 }

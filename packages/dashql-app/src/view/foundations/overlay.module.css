@@ -8,10 +8,18 @@
        flush against the window chrome. */
     max-width: calc(100vw - 32px);
     max-height: calc(100vh - 32px);
-    animation: overlay-appear 200ms cubic-bezier(0.33, 1, 0.68, 1);
     border-radius: 12px;
     border: 1px solid var(--border_color_primary);
     overflow: hidden;
+}
+
+.centered_container .overlay {
+    animation: overlay-pop-in 200ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+@keyframes overlay-pop-in {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
 }
 
 .centered_container {
