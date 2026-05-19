@@ -19,7 +19,7 @@ import { ButtonVariant, IconButton } from '../foundations/button.js';
 import { classNames } from '../../utils/classnames.js';
 import { KeyValueTextField, TextField } from '../foundations/text_field.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { useHyperDatabaseClient } from '../../connection/hyper/hyperdb_grpc_client_provider.js';
+import { useHyperGrpcClient, useHyperHttpClient } from '../../connection/hyper/hyperdb_grpc_client_provider.js';
 import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../foundations/keyvalue_list.js';
 import { Dispatch } from '../../utils/variant.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
@@ -69,7 +69,8 @@ interface Props {
 
 export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
-    const hyperClient = useHyperDatabaseClient();
+    const grpcClient = useHyperGrpcClient();
+    const httpClient = useHyperHttpClient();
     const hyperSetup = useHyperSetup();
     const queryExecutor = useQueryExecutor();
 
@@ -139,7 +140,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const setupAbortController = React.useRef<AbortController | null>(null);
     const setupConnection = async () => {
         // Is there a Hyper client?
-        if (hyperClient == null || hyperSetup == null) {
+        if ((!grpcClient && !httpClient) || hyperSetup == null) {
             logger.error("Hyper connector is unavailable", {}, LOG_CTX);
             return;
         }

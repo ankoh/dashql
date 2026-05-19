@@ -72,7 +72,7 @@ const DEFAULT_EXPIRATION_TIME_MS = 2 * 60 * 60 * 1000;
 const OAUTH_POPUP_NAME = 'DashQL OAuth';
 const OAUTH_POPUP_SETTINGS = 'toolbar=no, menubar=no, width=600, height=700, top=100, left=100';
 
-export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, platformType: PlatformType, apiClient: SalesforceApiClientInterface, hyperClient: HyperDatabaseClient, appEvents: PlatformEventListener, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
+export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, platformType: PlatformType, apiClient: SalesforceApiClientInterface, grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, appEvents: PlatformEventListener, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
     let hyperChannel: HyperDatabaseChannel;
     let sfChannel: SalesforceDatabaseChannel;
     let oauthPopup: Window | null = null;
@@ -268,7 +268,9 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         };
 
         // Create the channel
-        hyperChannel = await hyperClient.connect(connParams, connectionContext);
+        const client = connParams.protocol === 'V3_HTTP' ? httpClient : grpcClient;
+        if (!client) throw new Error(`No client available for protocol ${connParams.protocol}`);
+        hyperChannel = await client.connect(connParams, connectionContext);
         sfChannel = new SalesforceDatabaseChannel(apiClient, coreAccessToken, dcToken, hyperChannel);
         abortSignal.throwIfAborted();
 
@@ -308,9 +310,9 @@ export interface SalesforceSetupApi {
     reset(dispatch: Dispatch<SalesforceConnectionStateAction>): Promise<void>
 }
 
-export function createSalesforceSetup(hyperClient: HyperDatabaseClient, salesforceApi: SalesforceApiClientInterface, platformType: PlatformType, appEvents: PlatformEventListener, config: SalesforceConnectorConfig, logger: Logger): (SalesforceSetupApi | null) {
+export function createSalesforceSetup(grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, salesforceApi: SalesforceApiClientInterface, platformType: PlatformType, appEvents: PlatformEventListener, config: SalesforceConnectorConfig, logger: Logger): (SalesforceSetupApi | null) {
     const setup = async (updateState: Dispatch<SalesforceConnectionStateAction>, params: connection.SalesforceConnectionParams, abort: AbortSignal) => {
-        return setupSalesforceConnection(updateState, logger, params, config, platformType, salesforceApi, hyperClient, appEvents, abort);
+        return setupSalesforceConnection(updateState, logger, params, config, platformType, salesforceApi, grpcClient, httpClient, appEvents, abort);
     };
     const reset = async (updateState: Dispatch<SalesforceConnectionStateAction>) => {
         updateState({

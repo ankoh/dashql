@@ -12,7 +12,7 @@ import { RectangleWaveSpinner } from '../foundations/spinners.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { useDockerClient } from '../../platform/docker/docker_client_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { useHyperDatabaseClient } from '../../connection/hyper/hyperdb_grpc_client_provider.js';
+import { useHyperGrpcClient } from '../../connection/hyper/hyperdb_grpc_client_provider.js';
 import { useHyperSetup } from '../../connection/hyper/hyper_connection_setup.js';
 import { useQueryExecutor } from '../../connection/query_executor.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
@@ -54,7 +54,7 @@ function endpointForPort(port: number): string {
 export const HyperDockerSettingsPanel: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const dockerClient = useDockerClient();
-    const hyperClient = useHyperDatabaseClient();
+    const grpcClient = useHyperGrpcClient();
     const hyperSetup = useHyperSetup();
     const queryExecutor = useQueryExecutor();
     const [connectionState, dispatchConnectionState] = useConnectionState(props.sessionId);
@@ -168,7 +168,7 @@ export const HyperDockerSettingsPanel: React.FC<Props> = (props: Props) => {
     };
 
     const handleConnect = async (c: DockerContainerSummary) => {
-        if (hyperClient == null || hyperSetup == null) {
+        if (grpcClient == null || hyperSetup == null) {
             logger.error('Hyper connector is unavailable', {}, LOG_CTX);
             return;
         }

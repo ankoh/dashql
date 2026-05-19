@@ -11,19 +11,30 @@ type Props = {
     children: React.ReactElement;
 };
 
-const CLIENT_CTX = React.createContext<HyperDatabaseClient | null>(null);
-export const useHyperDatabaseClient = () => React.useContext(CLIENT_CTX);
+const GRPC_CLIENT_CTX = React.createContext<HyperDatabaseClient | null>(null);
+const HTTP_CLIENT_CTX = React.createContext<HyperDatabaseClient | null>(null);
+
+export const useHyperGrpcClient = () => React.useContext(GRPC_CLIENT_CTX);
+export const useHyperHttpClient = () => React.useContext(HTTP_CLIENT_CTX);
 
 export const HyperDatabaseClientProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const httpClient = useHttpClient();
-    const [client, setClient] = React.useState<HyperDatabaseClient | null>(null);
+    const [grpcClient, setGrpcClient] = React.useState<HyperDatabaseClient | null>(null);
+    const [httpHyperClient, setHttpHyperClient] = React.useState<HyperDatabaseClient | null>(null);
     React.useEffect(() => {
         if (isNativePlatform()) {
-            setClient(new NativeHyperDatabaseClient({ proxyEndpoint: new URL("dashql-native://localhost") }, logger));
-        } else if (httpClient) {
-            setClient(new WebHyperDatabaseClient(httpClient, logger));
+            setGrpcClient(new NativeHyperDatabaseClient({ proxyEndpoint: new URL("dashql-native://localhost") }, logger));
+        }
+        if (httpClient) {
+            setHttpHyperClient(new WebHyperDatabaseClient(httpClient, logger));
         }
     }, [httpClient]);
-    return <CLIENT_CTX.Provider value={client}>{props.children}</CLIENT_CTX.Provider>;
+    return (
+        <GRPC_CLIENT_CTX.Provider value={grpcClient}>
+            <HTTP_CLIENT_CTX.Provider value={httpHyperClient}>
+                {props.children}
+            </HTTP_CLIENT_CTX.Provider>
+        </GRPC_CLIENT_CTX.Provider>
+    );
 };

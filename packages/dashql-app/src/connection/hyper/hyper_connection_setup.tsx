@@ -20,12 +20,21 @@ import {
 } from '../../connection/hyper/hyperdb_grpc_client.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useAppConfig } from '../../app_config.js';
-import { useHyperDatabaseClient } from '../../connection/hyper/hyperdb_grpc_client_provider.js';
+import { useHyperGrpcClient, useHyperHttpClient } from '../../connection/hyper/hyperdb_grpc_client_provider.js';
 import { RESET_CONNECTION } from '../connection_state.js';
 
 const LOG_CTX = "hyper_setup";
 
-export async function setupHyperConnection(updateState: Dispatch<HyperConnectorAction>, logger: Logger, params: connection.HyperConnectionParams, _config: HyperConnectorConfig, client: HyperDatabaseClient, abortSignal: AbortSignal): Promise<HyperDatabaseChannel | null> {
+function resolveClient(protocol: connection.HyperProtocol, grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null): HyperDatabaseClient {
+    if (protocol === 'V3_HTTP') {
+        if (!httpClient) throw new Error("HTTP client is not available");
+        return httpClient;
+    }
+    if (!grpcClient) throw new Error(`gRPC client is not available (required for protocol ${protocol})`);
+    return grpcClient;
+}
+
+export async function setupHyperConnection(updateState: Dispatch<HyperConnectorAction>, logger: Logger, params: connection.HyperConnectionParams, _config: HyperConnectorConfig, grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, abortSignal: AbortSignal): Promise<HyperDatabaseChannel | null> {
     let channel: HyperDatabaseChannel;
     try {
         // Start the channel setup
@@ -34,6 +43,8 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
             value: params,
         });
         abortSignal.throwIfAborted()
+
+        const client = resolveClient(params.protocol, grpcClient, httpClient);
 
         // Static connection context.
         // The direct gRPC Hyper connector never changes the headers it injects.
@@ -96,14 +107,15 @@ export const HyperSetupProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const appConfig = useAppConfig();
     const connectorConfig = appConfig?.connectors?.hyper ?? null;
-    const hyperClient = useHyperDatabaseClient();
+    const grpcClient = useHyperGrpcClient();
+    const httpClient = useHyperHttpClient();
 
     const api = React.useMemo<HyperSetupApi | null>(() => {
-        if (!connectorConfig || !hyperClient) {
+        if (!connectorConfig || (!grpcClient && !httpClient)) {
             return null;
         }
         const setup = async (dispatch: Dispatch<HyperConnectorAction>, params: connection.HyperConnectionParams, abort: AbortSignal) => {
-            return await setupHyperConnection(dispatch, logger, params, connectorConfig, hyperClient, abort);
+            return await setupHyperConnection(dispatch, logger, params, connectorConfig, grpcClient, httpClient, abort);
         };
         const reset = async (dispatch: Dispatch<HyperConnectorAction>) => {
             dispatch({
@@ -112,7 +124,7 @@ export const HyperSetupProvider: React.FC<Props> = (props: Props) => {
             });
         };
         return { setup, reset };
-    }, [connectorConfig, hyperClient, logger]);
+    }, [connectorConfig, grpcClient, httpClient, logger]);
 
     return (
         <SETUP_CTX.Provider value={api} > {props.children} </SETUP_CTX.Provider>

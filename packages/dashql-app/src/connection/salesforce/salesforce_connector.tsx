@@ -7,7 +7,7 @@ import { SalesforceSetupApi, createSalesforceSetup } from './salesforce_connecti
 import { useAppConfig } from '../../app_config.js';
 import { useHttpClient } from '../../platform/http/http_client_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { useHyperDatabaseClient } from '../../connection/hyper/hyperdb_grpc_client_provider.js';
+import { useHyperGrpcClient, useHyperHttpClient } from '../../connection/hyper/hyperdb_grpc_client_provider.js';
 import { usePlatformType } from '../../platform/platform_type.js';
 import { usePlatformEventListener } from '../../platform/events/event_listener_provider.js';
 
@@ -24,7 +24,8 @@ export const SalesforceConnector: React.FC<Props> = (props: Props) => {
     const config = useAppConfig();
     const connectorConfig = config?.connectors?.salesforce;
     const httpClient = useHttpClient();
-    const hyperClient = useHyperDatabaseClient();
+    const grpcClient = useHyperGrpcClient();
+    const hyperHttpClient = useHyperHttpClient();
     const platformType = usePlatformType();
     const appEvents = usePlatformEventListener();
 
@@ -35,14 +36,14 @@ export const SalesforceConnector: React.FC<Props> = (props: Props) => {
             const api = new SalesforceAPIClientMock(connectorConfig.mock);
             const setup = mockSalesforceSetup(api, connectorConfig, logger);
             return [api, setup];
-        } else if (!httpClient || !hyperClient) {
+        } else if (!httpClient || (!grpcClient && !hyperHttpClient)) {
             return [null, null];
         } else {
             const api = new SalesforceApiClient(logger, httpClient);
-            const setup = createSalesforceSetup(hyperClient, api, platformType, appEvents, connectorConfig, logger);
+            const setup = createSalesforceSetup(grpcClient, hyperHttpClient, api, platformType, appEvents, connectorConfig, logger);
             return [api, setup];
         }
-    }, [connectorConfig, httpClient, hyperClient, platformType, appEvents]);
+    }, [connectorConfig, httpClient, grpcClient, hyperHttpClient, platformType, appEvents]);
 
     return (
         <API_CTX.Provider value={api}>
