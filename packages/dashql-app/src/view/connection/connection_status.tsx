@@ -45,16 +45,16 @@ export const ConnectionStatus = React.forwardRef<HTMLButtonElement, ButtonProps>
         }
     };
 
-    const ConnectorIconVisual = () => (
+    const ConnectorIconVisual = React.useCallback(() => (
         <svg width="16" height="16">
             <use xlinkHref={`${symbols}#${connectorIcon}`} />
         </svg>
-    );
-    const StatusDotVisual = () => (
+    ), [connectorIcon]);
+    const StatusDotVisual = React.useCallback(() => (
         <svg width="8" height="8" xmlns="http://www.w3.org/2000/svg">
             <circle cx="4" cy="4" r="4" fill={connStatusColor} />
         </svg>
-    );
+    ), [connStatusColor]);
 
     return (
         <Button
