@@ -21,6 +21,7 @@ import { observeSize } from '../foundations/size_observer.js';
 import { CellDetailOverlay } from './cell_detail_overlay.js';
 import { useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useScrollbarHeight } from '../../utils/scrollbar.js';
 
 const LOG_CTX = 'data_table';
 
@@ -459,8 +460,10 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     const headerHeight = columnHeader === TableColumnHeader.WithColumnPlots
         ? COLUMN_HEADER_HEIGHT + COLUMN_HEADER_PLOTS_HEIGHT
         : COLUMN_HEADER_HEIGHT;
+    const scrollbarHeight = useScrollbarHeight();
+    const needsHorizontalScroll = totalColumnsWidth > gridContainerWidth;
     const gridContainerHeight = props.maxRows != null
-        ? headerHeight + dataRowCount * ROW_HEIGHT
+        ? headerHeight + dataRowCount * ROW_HEIGHT + (needsHorizontalScroll ? scrollbarHeight : 0)
         : Math.max(gridContainerSize?.height ?? 0, MIN_GRID_HEIGHT);
     const visiblePlotColumns = React.useMemo(() => {
         const visibility = Array.from({ length: gridLayout.columnCount }, () => false);
@@ -710,7 +713,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
             <div className={styles.grid_container} ref={gridContainerElement}>
                 <Grid
                     gridRef={setGridApi}
-                    style={{ width: gridContainerWidth, height: gridContainerHeight }}
+                    style={{ width: gridContainerWidth, height: gridContainerHeight, overflowY: props.maxRows != null ? 'hidden' : undefined }}
                     columnCount={gridLayout.columnCount}
                     columnWidth={getColumnWidth}
                     rowCount={dataRowCount}
