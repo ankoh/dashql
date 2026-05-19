@@ -20,4 +20,5 @@ export const DashQLReadonlyExtensions = [
     DashQLProcessorPlugin,
     DashQLDecorationPlugin,
     DashQLCursorDiagnosticsPlugin,
+    DashQLGutterPlugin,
 ];
