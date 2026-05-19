@@ -15,6 +15,7 @@ interface Props {
     selectedConnectorType: ConnectorType;
     setSelectedConnectorType: (type: ConnectorType) => void;
     onClose?: () => void;
+    lockConnectorType?: boolean;
 }
 
 export const ConnectorConfigTabs: React.FC<Props> = (props: Props) => {
@@ -39,7 +40,7 @@ export const ConnectorConfigTabs: React.FC<Props> = (props: Props) => {
     CONNECTOR_TYPES.forEach(connectorType => {
         const info = CONNECTOR_INFOS[connectorType];
         const isCurrentConnection = conn?.connectorInfo.connectorType === connectorType;
-        const isDisabled = isOnline && !isCurrentConnection;
+        const isDisabled = (isOnline || props.lockConnectorType) && !isCurrentConnection;
 
         tabProps[connectorType] = {
             tabId: connectorType,

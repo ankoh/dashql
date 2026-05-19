@@ -8,7 +8,8 @@ import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 import { ButtonVariant, IconButton } from './foundations/button.js';
 import { DASHQL_VERSION } from '../globals.js';
-import { SELECT_SESSION, useRouterNavigate } from '../router.js';
+import { SELECT_SESSION, BEGIN_SESSION_SETUP, CANCEL_SESSION_SETUP, SKIP_SESSION_SETUP, useRouteContext, useRouterNavigate } from '../router.js';
+import { SessionSetupStatus } from '../session_setup_status.js';
 import { ConnectionRegistry, useDynamicConnectionDispatch } from '../connection/connection_registry.js';
 import { DELETE_CONNECTION } from '../connection/connection_state.js';
 import { TrashIcon, CircleSlashIcon, DashIcon, PlusIcon } from '@primer/octicons-react';
@@ -58,7 +59,8 @@ const LIST_WIDTH = 400; // Width of the list to accommodate long paths
 
 export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
     const navigate = useRouterNavigate();
-    const [configSessionId, setConfigSessionId] = React.useState<string | null>(null);
+    const routeContext = useRouteContext();
+    const configSessionId = routeContext.sessionSetupStatus === SessionSetupStatus.CONFIGURING ? routeContext.sessionId : null;
     const [isEditMode, setIsEditMode] = React.useState(false);
     const [showInternals, setShowInternals] = React.useState<boolean>(false);
     const [_registry, connectionDispatch] = useDynamicConnectionDispatch();
@@ -144,11 +146,19 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
     }, [props.connectionRegistry, props.notebookRegistry]);
 
     const onSessionClick = React.useCallback((sessionId: string) => {
-        navigate({
-            type: SELECT_SESSION,
-            value: sessionId,
-        });
-    }, [navigate]);
+        const conn = props.connectionRegistry.connectionMap.get(sessionId);
+
+        // Skip card for DATALESS connectors or already-ONLINE connections
+        if (!conn ||
+            conn.connectorInfo.connectorType === ConnectorType.DATALESS ||
+            conn.connectionHealth === ConnectionHealth.ONLINE) {
+            navigate({ type: SELECT_SESSION, value: sessionId });
+            return;
+        }
+
+        // Show the connection card for disconnected sessions
+        navigate({ type: BEGIN_SESSION_SETUP, value: sessionId });
+    }, [navigate, props.connectionRegistry]);
 
     const handleCreateNewSession = React.useCallback(() => {
         if (!props.core) {
@@ -173,28 +183,34 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
         const allocatedConnection = props.allocateConnection(stateWithoutId);
 
         // Show configuration card — notebook is created later when the connection goes online
-        setConfigSessionId(allocatedConnection.sessionId);
-    }, [props]);
+        navigate({ type: BEGIN_SESSION_SETUP, value: allocatedConnection.sessionId });
+    }, [props, navigate]);
 
     const handleBack = React.useCallback(() => {
-        // Cleanup the connection if health is NOT_STARTED
         if (configSessionId) {
             const conn = props.connectionRegistry.connectionMap.get(configSessionId);
-            if (conn?.connectionHealth === ConnectionHealth.NOT_STARTED) {
+            // Only cleanup if this was a NEW session (not yet persisted)
+            if (conn?.connectionHealth === ConnectionHealth.NOT_STARTED && !conn.active) {
                 connectionDispatch(configSessionId, { type: DELETE_CONNECTION, value: null });
             }
         }
-        setConfigSessionId(null);
-    }, [configSessionId, props.connectionRegistry, connectionDispatch]);
+        navigate({ type: CANCEL_SESSION_SETUP, value: null });
+    }, [configSessionId, props.connectionRegistry, connectionDispatch, navigate]);
 
     const handleConnected = React.useCallback((sessionId: string) => {
         const conn = props.connectionRegistry.connectionMap.get(sessionId);
         if (conn) {
-            props.setupNotebook(conn);
+            const existingNotebook = props.notebookRegistry.notebookMap.get(sessionId);
+            if (!existingNotebook) {
+                props.setupNotebook(conn);
+            }
         }
-        setConfigSessionId(null);
         navigate({ type: SELECT_SESSION, value: sessionId });
-    }, [navigate, props.connectionRegistry, props.setupNotebook]);
+    }, [navigate, props.connectionRegistry, props.notebookRegistry, props.setupNotebook]);
+
+    const handleSkip = React.useCallback(() => {
+        navigate({ type: SKIP_SESSION_SETUP, value: null });
+    }, [navigate]);
 
     const handleDeleteSession = React.useCallback(async (sessionId: string, sessionPath: string, connectorType: ConnectorType) => {
         // Delete from storage
@@ -231,6 +247,8 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
                             sessionId={configSessionId}
                             onBack={handleBack}
                             onConnected={handleConnected}
+                            onSkip={props.connectionRegistry.connectionMap.get(configSessionId)?.active ? handleSkip : undefined}
+                            headerTitle={props.connectionRegistry.connectionMap.get(configSessionId)?.active ? "Connect" : undefined}
                         />
                     ) : (
                         <div className={`${baseStyles.card} ${styles.card_wrapper}`}>

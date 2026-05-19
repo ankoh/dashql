@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { AppLoadingStatus } from './app_loading_status.js';
+import { SessionSetupStatus } from './session_setup_status.js';
 import { FINISH_SETUP, SELECT_SESSION, useRouteContext, useRouterNavigate } from './router.js';
 import { isDebugBuild } from './globals.js';
 import { useConnectionRegistry, useConnectionStateAllocator, useDynamicConnectionDispatch } from './connection/connection_registry.js';
@@ -205,8 +206,9 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
         run();
     }, [config]);
 
-    // Setup done but no session selected? Show session selector
-    if (routeContext.appLoadingStatus == AppLoadingStatus.SETUP_DONE && routeContext.sessionId === null) {
+    // Setup done but no session selected, or session setup in progress? Show session selector
+    if (routeContext.appLoadingStatus == AppLoadingStatus.SETUP_DONE &&
+        (routeContext.sessionId === null || routeContext.sessionSetupStatus === SessionSetupStatus.CONFIGURING)) {
         return <SessionSelectorPage
             connectionRegistry={connReg}
             notebookRegistry={notebookReg}

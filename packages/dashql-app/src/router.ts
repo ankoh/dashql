@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useLocation, useNavigate } from "react-router-dom";
 import { VariantKind } from "./utils/variant.js";
 import { AppLoadingStatus } from './app_loading_status.js';
+import { SessionSetupStatus } from './session_setup_status.js';
 import { LoggableException } from './platform/logger/logger.js';
 
 export interface RouteContext {
@@ -11,6 +12,8 @@ export interface RouteContext {
     confirmedFinishedSetup: boolean;
     /// The focused session id (replaces both connectionId and notebookId)
     sessionId: string | null;
+    /// The session setup status
+    sessionSetupStatus: SessionSetupStatus;
 }
 
 export const NOTEBOOK_PATH = Symbol("NAVIGATE_NOTEBOOK");
@@ -20,6 +23,9 @@ export const CONFIRM_FINISHED_SETUP = Symbol("CONFIRM_FINISHED_SETUP");
 export const SKIP_SETUP = Symbol("SKIP_SETUP");
 export const SELECT_SESSION = Symbol("SELECT_SESSION");
 export const CHANGE_SESSION = Symbol("CHANGE_SESSION");
+export const BEGIN_SESSION_SETUP = Symbol("BEGIN_SESSION_SETUP");
+export const CANCEL_SESSION_SETUP = Symbol("CANCEL_SESSION_SETUP");
+export const SKIP_SESSION_SETUP = Symbol("SKIP_SESSION_SETUP");
 
 export type RouteTarget =
     VariantKind<typeof NOTEBOOK_PATH, string | null>
@@ -29,6 +35,9 @@ export type RouteTarget =
     | VariantKind<typeof SKIP_SETUP, null>
     | VariantKind<typeof SELECT_SESSION, string>
     | VariantKind<typeof CHANGE_SESSION, null>
+    | VariantKind<typeof BEGIN_SESSION_SETUP, string>
+    | VariantKind<typeof CANCEL_SESSION_SETUP, null>
+    | VariantKind<typeof SKIP_SESSION_SETUP, null>
     ;
 
 export function useRouteContext() {
@@ -39,9 +48,13 @@ export function useRouteContext() {
             appLoadingStatus: AppLoadingStatus.NOT_STARTED,
             confirmedFinishedSetup: false,
             sessionId: null,
+            sessionSetupStatus: SessionSetupStatus.NONE,
         };
     } else {
-        return route;
+        return {
+            ...route,
+            sessionSetupStatus: route.sessionSetupStatus ?? SessionSetupStatus.NONE,
+        };
     }
 }
 
@@ -80,6 +93,7 @@ export function useRouterNavigate() {
                         appLoadingStatus: AppLoadingStatus.SETUP_DONE,
                         confirmedFinishedSetup: false,
                         sessionId: null,
+                        sessionSetupStatus: SessionSetupStatus.NONE,
                     }
                 });
                 break;
@@ -88,6 +102,7 @@ export function useRouterNavigate() {
                     state: {
                         ...context,
                         sessionId: route.value,
+                        sessionSetupStatus: SessionSetupStatus.NONE,
                     }
                 });
                 break;
@@ -96,6 +111,33 @@ export function useRouterNavigate() {
                     state: {
                         ...context,
                         sessionId: null,
+                        sessionSetupStatus: SessionSetupStatus.NONE,
+                    }
+                });
+                break;
+            case BEGIN_SESSION_SETUP:
+                navigate(location.pathname, {
+                    state: {
+                        ...context,
+                        sessionId: route.value,
+                        sessionSetupStatus: SessionSetupStatus.CONFIGURING,
+                    }
+                });
+                break;
+            case CANCEL_SESSION_SETUP:
+                navigate(location.pathname, {
+                    state: {
+                        ...context,
+                        sessionId: null,
+                        sessionSetupStatus: SessionSetupStatus.NONE,
+                    }
+                });
+                break;
+            case SKIP_SESSION_SETUP:
+                navigate(location.pathname, {
+                    state: {
+                        ...context,
+                        sessionSetupStatus: SessionSetupStatus.NONE,
                     }
                 });
                 break;

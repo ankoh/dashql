@@ -1,9 +1,9 @@
 import * as React from 'react';
 import * as styles from '../internals/docker_manager.module.css';
 
-import { PlugIcon, TrashIcon, XIcon } from '@primer/octicons-react';
+import { TrashIcon, XIcon } from '@primer/octicons-react';
 
-import { ButtonVariant, IconButton } from '../foundations/button.js';
+import { Button, ButtonVariant, IconButton } from '../foundations/button.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
 import { OverlaySize } from '../foundations/overlay.js';
 import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
@@ -425,14 +425,13 @@ const HyperContainerCard: React.FC<HyperContainerCardProps> = (props) => {
 function renderConnectButton(props: HyperContainerCardProps, isRunning: boolean): React.ReactElement {
     const disabled = !isRunning || props.port == null || props.busy || props.freezeInput;
     return (
-        <IconButton
+        <Button
             variant={ButtonVariant.Invisible}
             aria-label="Connect to container"
-            description="Connect"
             onClick={props.onConnect}
             disabled={disabled}
         >
-            <PlugIcon />
-        </IconButton>
+            Connect
+        </Button>
     );
 }

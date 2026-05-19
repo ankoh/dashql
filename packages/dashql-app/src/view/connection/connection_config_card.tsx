@@ -5,7 +5,7 @@ import * as baseStyles from '../banner_page.module.css';
 import * as styles from './connection_config_card.module.css';
 
 import { ChevronLeftIcon } from '@primer/octicons-react';
-import { IconButton, ButtonVariant } from '../foundations/button.js';
+import { Button, IconButton, ButtonVariant } from '../foundations/button.js';
 import { ConnectorConfigTabs } from './connector_config_tabs.js';
 import { ConnectorType } from '../../connection/connector_info.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
@@ -17,6 +17,8 @@ interface Props {
     sessionId: string;
     onBack: () => void;
     onConnected: (sessionId: string) => void;
+    onSkip?: () => void;
+    headerTitle?: string;
 }
 
 export const ConnectionConfigCard: React.FC<Props> = (props: Props) => {
@@ -67,7 +69,7 @@ export const ConnectionConfigCard: React.FC<Props> = (props: Props) => {
                     >
                         <ChevronLeftIcon size={16} />
                     </IconButton>
-                    Configure Connection
+                    {props.headerTitle ?? "Configure Connection"}
                 </div>
                 <div className={baseStyles.card_header_right_container}>
                     <InternalsViewerOverlay
@@ -78,6 +80,11 @@ export const ConnectionConfigCard: React.FC<Props> = (props: Props) => {
                         align={AnchorAlignment.End}
                         anchorOffset={16}
                     />
+                    {props.onSkip && (
+                        <Button variant={ButtonVariant.Invisible} onClick={props.onSkip}>
+                            Skip
+                        </Button>
+                    )}
                 </div>
             </div>
             <div className={`${baseStyles.card_section} ${styles.card_body}`}>
@@ -85,6 +92,7 @@ export const ConnectionConfigCard: React.FC<Props> = (props: Props) => {
                     sessionId={props.sessionId}
                     selectedConnectorType={selectedConnectorType}
                     setSelectedConnectorType={setSelectedConnectorType}
+                    lockConnectorType={!!props.onSkip}
                 />
             </div>
         </div>
