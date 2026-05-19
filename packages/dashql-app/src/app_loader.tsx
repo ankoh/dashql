@@ -23,6 +23,18 @@ import { useNotebookRegistry } from './notebook/notebook_state_registry.js';
 import { useDemoNotebookSetup } from './connection/dataless/dataless_notebook.js';
 import { useDuckDBSetup } from './platform/duckdb/duckdb_provider.js';
 
+async function loadFonts(): Promise<void> {
+    await Promise.all([
+        document.fonts.load("300 16px 'Roboto'"),
+        document.fonts.load("400 16px 'Roboto'"),
+        document.fonts.load("500 16px 'Roboto'"),
+        document.fonts.load("700 16px 'Roboto'"),
+        document.fonts.load("400 16px 'Roboto Mono'"),
+        document.fonts.load("500 16px 'Roboto Mono'"),
+        document.fonts.load("700 16px 'Roboto Mono'"),
+    ]);
+}
+
 interface Props { }
 
 export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React.PropsWithChildren<Props>) => {
@@ -146,6 +158,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             const [core] = await Promise.all([
                 setupCore("app_setup"),
                 setupWebDB("app_setup"),
+                loadFonts(),
             ]);
 
             const coreDuration = performance.now() - coreStartTime;
