@@ -406,7 +406,7 @@ visualize-snapshots:
       {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
         "data": {
-          "name": "(SELECT category, revenue FROM sales)"
+          "name": "<sql>"
         },
         "mark": "bar",
         "encoding": {
@@ -421,7 +421,7 @@ visualize-snapshots:
         }
       }
     roundtrip: |-
-      VISUALIZE (SELECT category, revenue FROM sales) AS (
+      VISUALIZE "<sql>" AS (
         mark => bar,
         encoding => (
           x => (field => category, type => nominal),
@@ -570,5 +570,66 @@ visualize-snapshots:
         encoding => (
           x => (field => revenue, type => quantitative, bin => true),
           y => (field => category, type => nominal)
+        )
+      );
+
+  - name: vis_scale_domain_range
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => point,
+          encoding => (
+            x => (field => revenue, type => quantitative, scale => (domain => [0, 1000], range => [0, 500]))
+          )
+        );
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "name": "sales"
+        },
+        "mark": "point",
+        "encoding": {
+          "x": {
+            "field": "revenue",
+            "type": "quantitative",
+            "scale": {
+              "domain": [
+                0,
+                1000
+              ],
+              "range": [
+                0,
+                500
+              ]
+            }
+          }
+        }
+      }
+    roundtrip: |-
+      VISUALIZE sales AS (
+        mark => point,
+        encoding => (
+          x => (field => revenue, type => quantitative, scale => (domain => [0, 1000], range => [0, 500]))
         )
       );

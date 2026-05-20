@@ -71,7 +71,56 @@ std::string ResolveFieldName(const AnalyzedScript& script, uint32_t expression_i
 }
 
 template <typename W>
-void WriteScale(W& writer, const VisScale& s) {
+void WriteArrayNode(W& writer, uint32_t node_id, const AnalyzedScript& script) {
+    auto& node = script.parsed_script->nodes[node_id];
+    // node is OBJECT_EXT_VARARG_ARRAY; find ARRAY child with key EXT_VARARG_ARRAY_VALUES
+    const buffers::parser::Node* array_node = nullptr;
+    for (size_t i = 0; i < node.children_count(); ++i) {
+        auto& child = script.parsed_script->nodes[node.children_begin_or_value() + i];
+        if (child.attribute_key() == buffers::parser::AttributeKey::EXT_VARARG_ARRAY_VALUES) {
+            array_node = &child;
+            break;
+        }
+    }
+    if (!array_node) {
+        writer.StartArray();
+        writer.EndArray();
+        return;
+    }
+    writer.StartArray();
+    auto input = script.parsed_script->scanned_script->GetInput();
+    for (size_t i = 0; i < array_node->children_count(); ++i) {
+        auto& elem = script.parsed_script->nodes[array_node->children_begin_or_value() + i];
+        auto span = script.parsed_script->scanned_script->ResolveTextSpan(elem.symbol_span());
+        std::string text(input.substr(span.offset(), span.length()));
+        if (elem.node_type() == buffers::parser::NodeType::LITERAL_INTEGER ||
+            elem.node_type() == buffers::parser::NodeType::LITERAL_FLOAT ||
+            elem.node_type() == buffers::parser::NodeType::OBJECT_SQL_NARY_EXPRESSION) {
+            char* end = nullptr;
+            double val = std::strtod(text.c_str(), &end);
+            if (end && *end == '\0') {
+                if (elem.node_type() == buffers::parser::NodeType::LITERAL_INTEGER && val == static_cast<int64_t>(val)) {
+                    writer.Int64(static_cast<int64_t>(val));
+                } else {
+                    writer.Double(val);
+                }
+            } else {
+                writer.String(text.c_str());
+            }
+        } else if (elem.node_type() == buffers::parser::NodeType::LITERAL_STRING) {
+            if (text.size() >= 2 && text.front() == '\'' && text.back() == '\'') {
+                text = text.substr(1, text.size() - 2);
+            }
+            writer.String(text.c_str());
+        } else {
+            writer.String(text.c_str());
+        }
+    }
+    writer.EndArray();
+}
+
+template <typename W>
+void WriteScale(W& writer, const VisScale& s, const AnalyzedScript& script) {
     writer.StartObject();
     if (s.type.has_value()) {
         auto* tt = buffers::parser::VisScaleTypeTypeTable();
@@ -133,6 +182,69 @@ void WriteScale(W& writer, const VisScale& s) {
     if (s.align.has_value()) {
         writer.Key("align");
         writer.Double(*s.align);
+    }
+    if (s.domain_node_id.has_value()) {
+        writer.Key("domain");
+        WriteArrayNode(writer, *s.domain_node_id, script);
+    }
+    if (s.domain_min_node_id.has_value()) {
+        writer.Key("domainMin");
+        auto& node = script.parsed_script->nodes[*s.domain_min_node_id];
+        auto span = script.parsed_script->scanned_script->ResolveTextSpan(node.symbol_span());
+        auto input = script.parsed_script->scanned_script->GetInput();
+        std::string text(input.substr(span.offset(), span.length()));
+        char* end = nullptr;
+        double val = std::strtod(text.c_str(), &end);
+        if (end && *end == '\0') writer.Double(val);
+        else writer.String(text.c_str());
+    }
+    if (s.domain_max_node_id.has_value()) {
+        writer.Key("domainMax");
+        auto& node = script.parsed_script->nodes[*s.domain_max_node_id];
+        auto span = script.parsed_script->scanned_script->ResolveTextSpan(node.symbol_span());
+        auto input = script.parsed_script->scanned_script->GetInput();
+        std::string text(input.substr(span.offset(), span.length()));
+        char* end = nullptr;
+        double val = std::strtod(text.c_str(), &end);
+        if (end && *end == '\0') writer.Double(val);
+        else writer.String(text.c_str());
+    }
+    if (s.domain_mid_node_id.has_value()) {
+        writer.Key("domainMid");
+        auto& node = script.parsed_script->nodes[*s.domain_mid_node_id];
+        auto span = script.parsed_script->scanned_script->ResolveTextSpan(node.symbol_span());
+        auto input = script.parsed_script->scanned_script->GetInput();
+        std::string text(input.substr(span.offset(), span.length()));
+        char* end = nullptr;
+        double val = std::strtod(text.c_str(), &end);
+        if (end && *end == '\0') writer.Double(val);
+        else writer.String(text.c_str());
+    }
+    if (s.range_node_id.has_value()) {
+        writer.Key("range");
+        WriteArrayNode(writer, *s.range_node_id, script);
+    }
+    if (s.range_min_node_id.has_value()) {
+        writer.Key("rangeMin");
+        auto& node = script.parsed_script->nodes[*s.range_min_node_id];
+        auto span = script.parsed_script->scanned_script->ResolveTextSpan(node.symbol_span());
+        auto input = script.parsed_script->scanned_script->GetInput();
+        std::string text(input.substr(span.offset(), span.length()));
+        char* end = nullptr;
+        double val = std::strtod(text.c_str(), &end);
+        if (end && *end == '\0') writer.Double(val);
+        else writer.String(text.c_str());
+    }
+    if (s.range_max_node_id.has_value()) {
+        writer.Key("rangeMax");
+        auto& node = script.parsed_script->nodes[*s.range_max_node_id];
+        auto span = script.parsed_script->scanned_script->ResolveTextSpan(node.symbol_span());
+        auto input = script.parsed_script->scanned_script->GetInput();
+        std::string text(input.substr(span.offset(), span.length()));
+        char* end = nullptr;
+        double val = std::strtod(text.c_str(), &end);
+        if (end && *end == '\0') writer.Double(val);
+        else writer.String(text.c_str());
     }
     if (s.name.has_value()) {
         writer.Key("name");
@@ -310,14 +422,18 @@ std::string GenerateVegaLiteSpec(const VisualizationSpec& spec, const AnalyzedSc
     writer.String("https://vega.github.io/schema/vega-lite/v5.json");
 
     if (spec.source_node_id.has_value()) {
-        auto span = script.parsed_script->scanned_script->ResolveTextSpan(
-            script.parsed_script->nodes[*spec.source_node_id].symbol_span());
-        auto input = script.parsed_script->scanned_script->GetInput();
-        std::string source_text(input.substr(span.offset(), span.length()));
+        auto& source_node = script.parsed_script->nodes[*spec.source_node_id];
         writer.Key("data");
         writer.StartObject();
         writer.Key("name");
-        writer.String(source_text.c_str());
+        if (source_node.node_type() == buffers::parser::NodeType::OBJECT_SQL_SELECT) {
+            writer.String("<sql>");
+        } else {
+            auto span = script.parsed_script->scanned_script->ResolveTextSpan(source_node.symbol_span());
+            auto input = script.parsed_script->scanned_script->GetInput();
+            std::string source_text(input.substr(span.offset(), span.length()));
+            writer.String(source_text.c_str());
+        }
         writer.EndObject();
     }
 
@@ -374,7 +490,7 @@ std::string GenerateVegaLiteSpec(const VisualizationSpec& spec, const AnalyzedSc
             }
             if (channel.scale.has_value()) {
                 writer.Key("scale");
-                WriteScale(writer, *channel.scale);
+                WriteScale(writer, *channel.scale, script);
             }
             if (channel.axis.has_value()) {
                 writer.Key("axis");

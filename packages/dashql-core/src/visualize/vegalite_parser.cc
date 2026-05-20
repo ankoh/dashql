@@ -132,6 +132,29 @@ void AppendChannel(std::string& out, const std::string& channel_name, const rapi
                 }
             } else if (it->value.IsString()) {
                 sub += it->value.GetString();
+            } else if (it->value.IsArray()) {
+                sub += "[";
+                for (rapidjson::SizeType ai = 0; ai < it->value.Size(); ++ai) {
+                    if (ai > 0) sub += ", ";
+                    auto& elem = it->value[ai];
+                    if (elem.IsInt()) {
+                        sub += std::to_string(elem.GetInt());
+                    } else if (elem.IsDouble()) {
+                        auto v = elem.GetDouble();
+                        if (v == static_cast<int64_t>(v)) {
+                            sub += std::to_string(static_cast<int64_t>(v));
+                        } else {
+                            sub += std::to_string(v);
+                        }
+                    } else if (elem.IsString()) {
+                        sub += "'";
+                        sub += elem.GetString();
+                        sub += "'";
+                    } else if (elem.IsBool()) {
+                        sub += elem.GetBool() ? "true" : "false";
+                    }
+                }
+                sub += "]";
             }
         }
         sub += ")";
@@ -171,9 +194,24 @@ std::string ParseVegaLiteToVisualize(const std::string& vegalite_json) {
         mark = doc["mark"].GetString();
     }
 
+    auto is_simple_ident = [](const std::string& s) {
+        if (s.empty()) return false;
+        if (!std::isalpha(static_cast<unsigned char>(s[0])) && s[0] != '_') return false;
+        for (char c : s) {
+            if (!std::isalnum(static_cast<unsigned char>(c)) && c != '_') return false;
+        }
+        return true;
+    };
+
     std::string result = "VISUALIZE ";
     if (!source.empty()) {
-        result += source;
+        if (is_simple_ident(source)) {
+            result += source;
+        } else {
+            result += '"';
+            result += source;
+            result += '"';
+        }
         result += " ";
     }
     result += "AS (\n";
