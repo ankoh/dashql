@@ -227,7 +227,7 @@ analyzer-snapshots:
         VISUALIZE sales AS (
           mark => bar,
           encoding => (
-            x => (field => category, type => nominal, axis => (labelangle => -45))
+            x => (field => category, type => nominal, axis => (label_angle => -45))
           )
         );
       catalog-id: 2

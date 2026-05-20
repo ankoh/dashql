@@ -69,10 +69,10 @@ VISUALIZE sales AS (
 The `encoding` key introduces a level-2 list of channel definitions. Each
 channel is keyed by one of 34 channel keywords:
 
-**Positional:** `x`, `y`, `x2`, `y2`, `xoffset`, `yoffset`
+**Positional:** `x`, `y`, `x2`, `y2`, `x_offset`, `y_offset`
 
-**Color:** `color`, `fill`, `stroke`, `fillopacity`, `strokeopacity`,
-`strokewidth`, `strokedash`, `opacity`
+**Color:** `color`, `fill`, `stroke`, `fill_opacity`, `stroke_opacity`,
+`stroke_width`, `stroke_dash`, `opacity`
 
 **Mark properties:** `size`, `shape`, `angle`
 
@@ -107,9 +107,9 @@ encoding => (
 )
 ```
 
-**Field-def keys:** `field`, `type`, `bin`, `aggregate`, `timeunit`, `sort`,
-`stack`, `impute`, `condition`, `title`, `bandposition`, `datum`, `value`,
-`format`, `formattype`, `scale`, `axis`, `legend`
+**Field-def keys:** `field`, `type`, `bin`, `aggregate`, `time_unit`, `sort`,
+`stack`, `impute`, `condition`, `title`, `band_position`, `datum`, `value`,
+`format`, `format_type`, `scale`, `axis`, `legend`
 
 ### Field types
 
@@ -130,9 +130,9 @@ x => (field => revenue, type => quantitative, scale => (type => log, zero => fal
 `linear`, `log`, `pow`, `sqrt`, `symlog`, `identity`, `sequential`, `time`,
 `utc`, `quantile`, `quantize`, `threshold`, `ordinal`, `band`, `point`
 
-**Scale keys:** `type`, `domain`, `domainmin`, `domainmax`, `domainmid`,
-`range`, `rangemin`, `rangemax`, `scheme`, `interpolate`, `nice`, `zero`,
-`clamp`, `padding`, `paddinginner`, `paddingouter`, `reverse`, `round`,
+**Scale keys:** `type`, `domain`, `domain_min`, `domain_max`, `domain_mid`,
+`range`, `range_min`, `range_max`, `scheme`, `interpolate`, `nice`, `zero`,
+`clamp`, `padding`, `padding_inner`, `padding_outer`, `reverse`, `round`,
 `exponent`, `bins`, `name`
 
 ## Axis configuration
@@ -140,12 +140,12 @@ x => (field => revenue, type => quantitative, scale => (type => log, zero => fal
 The `axis` key inside a field definition introduces a level-4 nested object:
 
 ```sql
-x => (field => category, type => nominal, axis => (labelangle => -45, grid => false))
+x => (field => category, type => nominal, axis => (label_angle => -45, grid => false))
 ```
 
-**Axis keys:** `orient`, `format`, `formattype`, `grid`, `ticks`, `tickcount`,
-`ticksize`, `labelangle`, `labelfontsize`, `labeloverlap`, `direction`,
-`offset`, `values`, `zindex`, `title`, `domain`, `name`
+**Axis keys:** `orient`, `format`, `format_type`, `grid`, `ticks`, `tick_count`,
+`tick_size`, `label_angle`, `label_font_size`, `label_overlap`, `direction`,
+`offset`, `values`, `z_index`, `title`, `domain`, `name`
 
 ## Legend configuration
 
@@ -155,8 +155,8 @@ The `legend` key inside a field definition introduces a level-4 nested object:
 color => (field => category, type => nominal, legend => (orient => right, title => 'Category'))
 ```
 
-**Legend keys:** `type`, `orient`, `format`, `formattype`, `direction`,
-`title`, `values`, `padding`, `offset`, `zindex`, `name`
+**Legend keys:** `type`, `orient`, `format`, `format_type`, `direction`,
+`title`, `values`, `padding`, `offset`, `z_index`, `name`
 
 ## Top-level spec keys
 

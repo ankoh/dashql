@@ -18,10 +18,10 @@ static const std::unordered_map<std::string_view, std::string_view> VEGALITE_TO_
     {"color", "color"},
     {"fill", "fill"},
     {"stroke", "stroke"},
-    {"fillOpacity", "fillopacity"},
-    {"strokeOpacity", "strokeopacity"},
-    {"strokeWidth", "strokewidth"},
-    {"strokeDash", "strokedash"},
+    {"fillOpacity", "fill_opacity"},
+    {"strokeOpacity", "stroke_opacity"},
+    {"strokeWidth", "stroke_width"},
+    {"strokeDash", "stroke_dash"},
     {"opacity", "opacity"},
     {"size", "size"},
     {"shape", "shape"},
@@ -44,8 +44,8 @@ static const std::unordered_map<std::string_view, std::string_view> VEGALITE_TO_
     {"longitude", "longitude"},
     {"latitude2", "latitude2"},
     {"longitude2", "longitude2"},
-    {"xOffset", "xoffset"},
-    {"yOffset", "yoffset"},
+    {"xOffset", "x_offset"},
+    {"yOffset", "y_offset"},
 };
 
 void AppendChannel(std::string& out, const std::string& channel_name, const rapidjson::Value& channel_obj,
@@ -94,7 +94,7 @@ void AppendChannel(std::string& out, const std::string& channel_name, const rapi
         }
     }
     if (channel_obj.HasMember("timeUnit") && channel_obj["timeUnit"].IsString()) {
-        parts.push_back(std::string("timeunit => ") + channel_obj["timeUnit"].GetString());
+        parts.push_back(std::string("time_unit => ") + channel_obj["timeUnit"].GetString());
     }
 
     auto write_sub_object = [&](const char* json_key, const char* dashql_key) {
@@ -107,10 +107,11 @@ void AppendChannel(std::string& out, const std::string& channel_name, const rapi
             first = false;
 
             std::string key_name = it->name.GetString();
-            // Convert camelCase JSON keys to lowercase DashQL keys
+            // Convert camelCase JSON keys to snake_case DashQL keys
             std::string lower_key;
             for (char c : key_name) {
                 if (std::isupper(c)) {
+                    if (!lower_key.empty()) lower_key += '_';
                     lower_key += std::tolower(c);
                 } else {
                     lower_key += c;

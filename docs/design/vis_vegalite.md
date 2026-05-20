@@ -106,7 +106,7 @@ Each channel's properties map directly:
 | `aggregate => sum` | `"aggregate": "sum"` |
 | `bin => true` | `"bin": true` |
 | `bin => (maxbins => 20)` | `"bin": { "maxbins": 20 }` |
-| `timeunit => month` | `"timeUnit": "month"` |
+| `time_unit => month` | `"timeUnit": "month"` |
 
 ### Scale
 
@@ -131,7 +131,7 @@ Scale properties emitted: `type`, `domain`, `domainMin`, `domainMax`,
 The `VisAxis` struct serializes under `"axis"`:
 
 ```sql
-axis => (labelangle => -45, grid => false)
+axis => (label_angle => -45, grid => false)
 ```
 
 ```json
@@ -202,7 +202,7 @@ yet handled by the reverse parser.
 ### Encoding channels
 
 Channel names are mapped from camelCase JSON keys to lowercase VISUALIZE
-keywords (e.g., `fillOpacity` -> `fillopacity`, `xOffset` -> `xoffset`).
+keywords (e.g., `fillOpacity` -> `fill_opacity`, `xOffset` -> `x_offset`).
 
 Each channel with an object value produces a field-def list:
 
@@ -283,11 +283,11 @@ This is correct — the shorthand is syntactic sugar that the analyzer resolves.
 
 ### Key naming convention
 
-VISUALIZE keywords are single lowercase tokens (`labelangle`, `fillopacity`,
-`strokewidth`). Vega-Lite uses camelCase (`labelAngle`, `fillOpacity`,
+VISUALIZE keywords use snake_case (`label_angle`, `fill_opacity`,
+`stroke_width`). Vega-Lite uses camelCase (`labelAngle`, `fillOpacity`,
 `strokeWidth`). The forward mapping is defined explicitly in lookup tables. The
-reverse mapping strips uppercase characters without inserting separators, which
-works for all current Vega-Lite property names.
+reverse mapping converts camelCase to snake_case by inserting an underscore
+before each uppercase letter and lowercasing it.
 
 ---
 
