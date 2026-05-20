@@ -44,11 +44,13 @@ parser-snapshots:
                     text: "mark => line"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "mark"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
-                        type: NAME
+                        type: ENUM_VIS_MARK_TYPE
                         text: "line"
+                        children: []
       scanner-errors: []
       parser-errors: []
       line-breaks: []
@@ -84,11 +86,13 @@ parser-snapshots:
                     text: "mark => bar"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "mark"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
-                        type: NAME
+                        type: ENUM_VIS_MARK_TYPE
                         text: "bar"
+                        children: []
       scanner-errors: []
       parser-errors: []
       line-breaks: []
@@ -128,11 +132,13 @@ parser-snapshots:
                     text: "mark => point"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "mark"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
-                        type: NAME
+                        type: ENUM_VIS_MARK_TYPE
                         text: "point"
+                        children: []
       scanner-errors: []
       parser-errors: []
       line-breaks: []
@@ -185,11 +191,13 @@ parser-snapshots:
                     text: "mark => line"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "mark"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
-                        type: NAME
+                        type: ENUM_VIS_MARK_TYPE
                         text: "line"
+                        children: []
       scanner-errors: []
       parser-errors: []
       line-breaks: []
@@ -225,17 +233,20 @@ parser-snapshots:
                     text: "mark => line"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "mark"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
-                        type: NAME
+                        type: ENUM_VIS_MARK_TYPE
                         text: "line"
+                        children: []
                   - type: OBJECT_EXT_VARARG_FIELD
                     text: "width => 800"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "width"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: LITERAL_INTEGER
                         text: "800"
@@ -243,8 +254,9 @@ parser-snapshots:
                     text: "height => 400"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "height"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: LITERAL_INTEGER
                         text: "400"
@@ -265,7 +277,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 26
+          ast-size: 24
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..nal)\n  )\n)"
@@ -288,17 +300,20 @@ parser-snapshots:
                     text: "mark => bar"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "mark"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
-                        type: NAME
+                        type: ENUM_VIS_MARK_TYPE
                         text: "bar"
+                        children: []
                   - type: OBJECT_EXT_VARARG_FIELD
                     text: "encoding =..minal)\n  )"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "encoding"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: OBJECT_EXT_VARARG_ARRAY
                         text: "encoding =..minal)\n  )"
@@ -325,8 +340,9 @@ parser-snapshots:
                                             text: "field => category"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "field"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_SQL_COLUMN_REF
                                                 text: "category"
@@ -341,18 +357,13 @@ parser-snapshots:
                                             text: "type => nominal"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "type"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
-                                                type: OBJECT_SQL_COLUMN_REF
+                                                type: ENUM_VIS_FIELD_TYPE
                                                 text: "nominal"
-                                                children:
-                                                  - key: SQL_COLUMN_REF_PATH
-                                                    type: ARRAY
-                                                    text: "nominal"
-                                                    children:
-                                                      - type: NAME
-                                                        text: "nominal"
+                                                children: []
       scanner-errors: []
       parser-errors: []
       line-breaks:
@@ -376,7 +387,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 40
+          ast-size: 36
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..ive)\n  )\n)"
@@ -399,17 +410,20 @@ parser-snapshots:
                     text: "mark => line"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "mark"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
-                        type: NAME
+                        type: ENUM_VIS_MARK_TYPE
                         text: "line"
+                        children: []
                   - type: OBJECT_EXT_VARARG_FIELD
                     text: "encoding =..ative)\n  )"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "encoding"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: OBJECT_EXT_VARARG_ARRAY
                         text: "encoding =..ative)\n  )"
@@ -436,8 +450,9 @@ parser-snapshots:
                                             text: "field => date"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "field"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_SQL_COLUMN_REF
                                                 text: "date"
@@ -452,18 +467,13 @@ parser-snapshots:
                                             text: "type => temporal"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "type"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
-                                                type: OBJECT_SQL_COLUMN_REF
+                                                type: ENUM_VIS_FIELD_TYPE
                                                 text: "temporal"
-                                                children:
-                                                  - key: SQL_COLUMN_REF_PATH
-                                                    type: ARRAY
-                                                    text: "temporal"
-                                                    children:
-                                                      - type: NAME
-                                                        text: "temporal"
+                                                children: []
                               - type: OBJECT_EXT_VARARG_FIELD
                                 text: "y => (fiel..ntitative)"
                                 children:
@@ -482,8 +492,9 @@ parser-snapshots:
                                             text: "field => revenue"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "field"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_SQL_COLUMN_REF
                                                 text: "revenue"
@@ -498,18 +509,13 @@ parser-snapshots:
                                             text: "type => qu..antitative"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "type"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
-                                                type: OBJECT_SQL_COLUMN_REF
+                                                type: ENUM_VIS_FIELD_TYPE
                                                 text: "quantitative"
-                                                children:
-                                                  - key: SQL_COLUMN_REF_PATH
-                                                    type: ARRAY
-                                                    text: "quantitative"
-                                                    children:
-                                                      - type: NAME
-                                                        text: "quantitative"
+                                                children: []
       scanner-errors: []
       parser-errors: []
       line-breaks:
@@ -532,7 +538,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 33
+          ast-size: 31
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..0]))\n  )\n)"
@@ -555,8 +561,9 @@ parser-snapshots:
                     text: "encoding =..100]))\n  )"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "encoding"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: OBJECT_EXT_VARARG_ARRAY
                         text: "encoding =..100]))\n  )"
@@ -583,8 +590,9 @@ parser-snapshots:
                                             text: "field => time"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "field"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_SQL_COLUMN_REF
                                                 text: "time"
@@ -599,24 +607,20 @@ parser-snapshots:
                                             text: "type => temporal"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "type"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
-                                                type: OBJECT_SQL_COLUMN_REF
+                                                type: ENUM_VIS_FIELD_TYPE
                                                 text: "temporal"
-                                                children:
-                                                  - key: SQL_COLUMN_REF_PATH
-                                                    type: ARRAY
-                                                    text: "temporal"
-                                                    children:
-                                                      - type: NAME
-                                                        text: "temporal"
+                                                children: []
                                           - type: OBJECT_EXT_VARARG_FIELD
                                             text: "scale => (.. [0, 100])"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "scale"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_EXT_VARARG_ARRAY
                                                 text: "scale => (.. [0, 100])"
@@ -629,8 +633,9 @@ parser-snapshots:
                                                         text: "domain => [0, 100]"
                                                         children:
                                                           - key: EXT_VARARG_FIELD_KEY
-                                                            type: NAME
+                                                            type: ENUM_VIS_SCALE_KEY
                                                             text: "domain"
+                                                            children: []
                                                           - key: EXT_VARARG_FIELD_VALUE
                                                             type: OBJECT_EXT_VARARG_ARRAY
                                                             text: "[0, 100]"
@@ -663,7 +668,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 33
+          ast-size: 31
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..se))\n  )\n)"
@@ -686,8 +691,9 @@ parser-snapshots:
                     text: "encoding =..alse))\n  )"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "encoding"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: OBJECT_EXT_VARARG_ARRAY
                         text: "encoding =..alse))\n  )"
@@ -714,8 +720,9 @@ parser-snapshots:
                                             text: "field => date"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "field"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_SQL_COLUMN_REF
                                                 text: "date"
@@ -730,24 +737,20 @@ parser-snapshots:
                                             text: "type => temporal"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "type"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
-                                                type: OBJECT_SQL_COLUMN_REF
+                                                type: ENUM_VIS_FIELD_TYPE
                                                 text: "temporal"
-                                                children:
-                                                  - key: SQL_COLUMN_REF_PATH
-                                                    type: ARRAY
-                                                    text: "temporal"
-                                                    children:
-                                                      - type: NAME
-                                                        text: "temporal"
+                                                children: []
                                           - type: OBJECT_EXT_VARARG_FIELD
                                             text: "axis => (f.. => false)"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "axis"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_EXT_VARARG_ARRAY
                                                 text: "axis => (f.. => false)"
@@ -760,8 +763,9 @@ parser-snapshots:
                                                         text: "format => '%Y'"
                                                         children:
                                                           - key: EXT_VARARG_FIELD_KEY
-                                                            type: NAME
+                                                            type: ENUM_VIS_AXIS_KEY
                                                             text: "format"
+                                                            children: []
                                                           - key: EXT_VARARG_FIELD_VALUE
                                                             type: LITERAL_STRING
                                                             text: "'%Y'"
@@ -769,8 +773,9 @@ parser-snapshots:
                                                         text: "grid => false"
                                                         children:
                                                           - key: EXT_VARARG_FIELD_KEY
-                                                            type: NAME
+                                                            type: ENUM_VIS_AXIS_KEY
                                                             text: "grid"
+                                                            children: []
                                                           - key: EXT_VARARG_FIELD_VALUE
                                                             type: BOOL
                                                             value: 0
@@ -794,7 +799,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 33
+          ast-size: 31
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..t'))\n  )\n)"
@@ -817,8 +822,9 @@ parser-snapshots:
                     text: "encoding =..ght'))\n  )"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "encoding"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: OBJECT_EXT_VARARG_ARRAY
                         text: "encoding =..ght'))\n  )"
@@ -831,8 +837,9 @@ parser-snapshots:
                                 text: "color => (.. 'right'))"
                                 children:
                                   - key: EXT_VARARG_FIELD_KEY
-                                    type: NAME
+                                    type: ENUM_VIS_ENCODING_CHANNEL
                                     text: "color"
+                                    children: []
                                   - key: EXT_VARARG_FIELD_VALUE
                                     type: OBJECT_EXT_VARARG_ARRAY
                                     text: "color => (.. 'right'))"
@@ -845,8 +852,9 @@ parser-snapshots:
                                             text: "field => region"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "field"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_SQL_COLUMN_REF
                                                 text: "region"
@@ -861,24 +869,20 @@ parser-snapshots:
                                             text: "type => nominal"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "type"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
-                                                type: OBJECT_SQL_COLUMN_REF
+                                                type: ENUM_VIS_FIELD_TYPE
                                                 text: "nominal"
-                                                children:
-                                                  - key: SQL_COLUMN_REF_PATH
-                                                    type: ARRAY
-                                                    text: "nominal"
-                                                    children:
-                                                      - type: NAME
-                                                        text: "nominal"
+                                                children: []
                                           - type: OBJECT_EXT_VARARG_FIELD
                                             text: "legend => ..> 'right')"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "legend"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_EXT_VARARG_ARRAY
                                                 text: "legend => ..> 'right')"
@@ -891,8 +895,9 @@ parser-snapshots:
                                                         text: "title => 'Region'"
                                                         children:
                                                           - key: EXT_VARARG_FIELD_KEY
-                                                            type: NAME
+                                                            type: ENUM_VIS_LEGEND_KEY
                                                             text: "title"
+                                                            children: []
                                                           - key: EXT_VARARG_FIELD_VALUE
                                                             type: LITERAL_STRING
                                                             text: "'Region'"
@@ -900,8 +905,9 @@ parser-snapshots:
                                                         text: "orient => 'right'"
                                                         children:
                                                           - key: EXT_VARARG_FIELD_KEY
-                                                            type: NAME
+                                                            type: ENUM_VIS_LEGEND_KEY
                                                             text: "orient"
+                                                            children: []
                                                           - key: EXT_VARARG_FIELD_VALUE
                                                             type: LITERAL_STRING
                                                             text: "'right'"
@@ -935,7 +941,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 47
+          ast-size: 45
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..   )\n  )\n)"
@@ -958,8 +964,9 @@ parser-snapshots:
                     text: "encoding =..\n    )\n  )"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "encoding"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: OBJECT_EXT_VARARG_ARRAY
                         text: "encoding =..\n    )\n  )"
@@ -986,8 +993,9 @@ parser-snapshots:
                                             text: "field => price"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "field"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_SQL_COLUMN_REF
                                                 text: "price"
@@ -1002,24 +1010,20 @@ parser-snapshots:
                                             text: "type => qu..antitative"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "type"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
-                                                type: OBJECT_SQL_COLUMN_REF
+                                                type: ENUM_VIS_FIELD_TYPE
                                                 text: "quantitative"
-                                                children:
-                                                  - key: SQL_COLUMN_REF_PATH
-                                                    type: ARRAY
-                                                    text: "quantitative"
-                                                    children:
-                                                      - type: NAME
-                                                        text: "quantitative"
+                                                children: []
                                           - type: OBJECT_EXT_VARARG_FIELD
                                             text: "scale => (..ue\n      )"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "scale"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_EXT_VARARG_ARRAY
                                                 text: "scale => (..ue\n      )"
@@ -1032,8 +1036,9 @@ parser-snapshots:
                                                         text: "type => log"
                                                         children:
                                                           - key: EXT_VARARG_FIELD_KEY
-                                                            type: NAME
+                                                            type: ENUM_VIS_SCALE_KEY
                                                             text: "type"
+                                                            children: []
                                                           - key: EXT_VARARG_FIELD_VALUE
                                                             type: OBJECT_SQL_COLUMN_REF
                                                             text: "log"
@@ -1048,8 +1053,9 @@ parser-snapshots:
                                                         text: "domain => [0, 1000]"
                                                         children:
                                                           - key: EXT_VARARG_FIELD_KEY
-                                                            type: NAME
+                                                            type: ENUM_VIS_SCALE_KEY
                                                             text: "domain"
+                                                            children: []
                                                           - key: EXT_VARARG_FIELD_VALUE
                                                             type: OBJECT_EXT_VARARG_ARRAY
                                                             text: "[0, 1000]"
@@ -1066,8 +1072,9 @@ parser-snapshots:
                                                         text: "nice => true"
                                                         children:
                                                           - key: EXT_VARARG_FIELD_KEY
-                                                            type: NAME
+                                                            type: ENUM_VIS_SCALE_KEY
                                                             text: "nice"
+                                                            children: []
                                                           - key: EXT_VARARG_FIELD_VALUE
                                                             type: BOOL
                                                             value: 1
@@ -1075,8 +1082,9 @@ parser-snapshots:
                                                         text: "zero => false"
                                                         children:
                                                           - key: EXT_VARARG_FIELD_KEY
-                                                            type: NAME
+                                                            type: ENUM_VIS_SCALE_KEY
                                                             text: "zero"
+                                                            children: []
                                                           - key: EXT_VARARG_FIELD_VALUE
                                                             type: BOOL
                                                             value: 0
@@ -1084,8 +1092,9 @@ parser-snapshots:
                                                         text: "clamp => true"
                                                         children:
                                                           - key: EXT_VARARG_FIELD_KEY
-                                                            type: NAME
+                                                            type: ENUM_VIS_SCALE_KEY
                                                             text: "clamp"
+                                                            children: []
                                                           - key: EXT_VARARG_FIELD_VALUE
                                                             type: BOOL
                                                             value: 1
@@ -1143,8 +1152,9 @@ parser-snapshots:
                     text: "encoding =..evenue\n  )"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "encoding"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: OBJECT_EXT_VARARG_ARRAY
                         text: "encoding =..evenue\n  )"
@@ -1209,7 +1219,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 54
+          ast-size: 48
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..nal)\n  )\n)"
@@ -1232,17 +1242,20 @@ parser-snapshots:
                     text: "mark => point"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "mark"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
-                        type: NAME
+                        type: ENUM_VIS_MARK_TYPE
                         text: "point"
+                        children: []
                   - type: OBJECT_EXT_VARARG_FIELD
                     text: "encoding =..minal)\n  )"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "encoding"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: OBJECT_EXT_VARARG_ARRAY
                         text: "encoding =..minal)\n  )"
@@ -1269,8 +1282,9 @@ parser-snapshots:
                                             text: "field => date"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "field"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_SQL_COLUMN_REF
                                                 text: "date"
@@ -1285,18 +1299,13 @@ parser-snapshots:
                                             text: "type => temporal"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "type"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
-                                                type: OBJECT_SQL_COLUMN_REF
+                                                type: ENUM_VIS_FIELD_TYPE
                                                 text: "temporal"
-                                                children:
-                                                  - key: SQL_COLUMN_REF_PATH
-                                                    type: ARRAY
-                                                    text: "temporal"
-                                                    children:
-                                                      - type: NAME
-                                                        text: "temporal"
+                                                children: []
                               - type: OBJECT_EXT_VARARG_FIELD
                                 text: "y => (fiel..ntitative)"
                                 children:
@@ -1315,8 +1324,9 @@ parser-snapshots:
                                             text: "field => revenue"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "field"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_SQL_COLUMN_REF
                                                 text: "revenue"
@@ -1331,24 +1341,20 @@ parser-snapshots:
                                             text: "type => qu..antitative"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "type"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
-                                                type: OBJECT_SQL_COLUMN_REF
+                                                type: ENUM_VIS_FIELD_TYPE
                                                 text: "quantitative"
-                                                children:
-                                                  - key: SQL_COLUMN_REF_PATH
-                                                    type: ARRAY
-                                                    text: "quantitative"
-                                                    children:
-                                                      - type: NAME
-                                                        text: "quantitative"
+                                                children: []
                               - type: OBJECT_EXT_VARARG_FIELD
                                 text: "color => (..> nominal)"
                                 children:
                                   - key: EXT_VARARG_FIELD_KEY
-                                    type: NAME
+                                    type: ENUM_VIS_ENCODING_CHANNEL
                                     text: "color"
+                                    children: []
                                   - key: EXT_VARARG_FIELD_VALUE
                                     type: OBJECT_EXT_VARARG_ARRAY
                                     text: "color => (..> nominal)"
@@ -1361,8 +1367,9 @@ parser-snapshots:
                                             text: "field => region"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "field"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_SQL_COLUMN_REF
                                                 text: "region"
@@ -1377,18 +1384,13 @@ parser-snapshots:
                                             text: "type => nominal"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "type"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
-                                                type: OBJECT_SQL_COLUMN_REF
+                                                type: ENUM_VIS_FIELD_TYPE
                                                 text: "nominal"
-                                                children:
-                                                  - key: SQL_COLUMN_REF_PATH
-                                                    type: ARRAY
-                                                    text: "nominal"
-                                                    children:
-                                                      - type: NAME
-                                                        text: "nominal"
+                                                children: []
       scanner-errors: []
       parser-errors: []
       line-breaks:
@@ -1433,8 +1435,9 @@ parser-snapshots:
                     text: "mark => (t..My Chart')"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "mark"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: OBJECT_EXT_VARARG_ARRAY
                         text: "(type => '..My Chart')"
@@ -1447,8 +1450,9 @@ parser-snapshots:
                                 text: "type => 'bar'"
                                 children:
                                   - key: EXT_VARARG_FIELD_KEY
-                                    type: NAME
+                                    type: ENUM_VIS_SPEC_KEY
                                     text: "type"
+                                    children: []
                                   - key: EXT_VARARG_FIELD_VALUE
                                     type: LITERAL_STRING
                                     text: "'bar'"
@@ -1456,8 +1460,9 @@ parser-snapshots:
                                 text: "title => 'My Chart'"
                                 children:
                                   - key: EXT_VARARG_FIELD_KEY
-                                    type: NAME
+                                    type: ENUM_VIS_SPEC_KEY
                                     text: "title"
+                                    children: []
                                   - key: EXT_VARARG_FIELD_VALUE
                                     type: LITERAL_STRING
                                     text: "'My Chart'"
@@ -1502,8 +1507,9 @@ parser-snapshots:
                     text: "encoding =..100]))\n  )"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "encoding"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: OBJECT_EXT_VARARG_ARRAY
                         text: "encoding =..100]))\n  )"
@@ -1530,8 +1536,9 @@ parser-snapshots:
                                             text: "scale => (.. 50, 100])"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "scale"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_EXT_VARARG_ARRAY
                                                 text: "scale => (.. 50, 100])"
@@ -1544,8 +1551,9 @@ parser-snapshots:
                                                         text: "domain => .., 50, 100]"
                                                         children:
                                                           - key: EXT_VARARG_FIELD_KEY
-                                                            type: NAME
+                                                            type: ENUM_VIS_SCALE_KEY
                                                             text: "domain"
+                                                            children: []
                                                           - key: EXT_VARARG_FIELD_VALUE
                                                             type: OBJECT_EXT_VARARG_ARRAY
                                                             text: "[0, 50, 100]"
@@ -1599,8 +1607,9 @@ parser-snapshots:
                     text: "width => 800"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "width"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: LITERAL_INTEGER
                         text: "800"
@@ -1608,8 +1617,9 @@ parser-snapshots:
                     text: "height => 400"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "height"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: LITERAL_INTEGER
                         text: "400"
@@ -1617,8 +1627,9 @@ parser-snapshots:
                     text: "padding => 20"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "padding"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: LITERAL_INTEGER
                         text: "20"
@@ -1644,7 +1655,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 89
+          ast-size: 83
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE .. Region'\n)"
@@ -1684,17 +1695,20 @@ parser-snapshots:
                     text: "mark => line"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "mark"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
-                        type: NAME
+                        type: ENUM_VIS_MARK_TYPE
                         text: "line"
+                        children: []
                   - type: OBJECT_EXT_VARARG_FIELD
                     text: "encoding =..ght'))\n  )"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "encoding"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: OBJECT_EXT_VARARG_ARRAY
                         text: "encoding =..ght'))\n  )"
@@ -1721,8 +1735,9 @@ parser-snapshots:
                                             text: "field => date"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "field"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_SQL_COLUMN_REF
                                                 text: "date"
@@ -1737,24 +1752,20 @@ parser-snapshots:
                                             text: "type => temporal"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "type"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
-                                                type: OBJECT_SQL_COLUMN_REF
+                                                type: ENUM_VIS_FIELD_TYPE
                                                 text: "temporal"
-                                                children:
-                                                  - key: SQL_COLUMN_REF_PATH
-                                                    type: ARRAY
-                                                    text: "temporal"
-                                                    children:
-                                                      - type: NAME
-                                                        text: "temporal"
+                                                children: []
                                           - type: OBJECT_EXT_VARARG_FIELD
                                             text: "axis => (f..> '%b %Y')"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "axis"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_EXT_VARARG_ARRAY
                                                 text: "axis => (f..> '%b %Y')"
@@ -1767,8 +1778,9 @@ parser-snapshots:
                                                         text: "format => '%b %Y'"
                                                         children:
                                                           - key: EXT_VARARG_FIELD_KEY
-                                                            type: NAME
+                                                            type: ENUM_VIS_AXIS_KEY
                                                             text: "format"
+                                                            children: []
                                                           - key: EXT_VARARG_FIELD_VALUE
                                                             type: LITERAL_STRING
                                                             text: "'%b %Y'"
@@ -1790,8 +1802,9 @@ parser-snapshots:
                                             text: "field => revenue"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "field"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_SQL_COLUMN_REF
                                                 text: "revenue"
@@ -1806,24 +1819,20 @@ parser-snapshots:
                                             text: "type => qu..antitative"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "type"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
-                                                type: OBJECT_SQL_COLUMN_REF
+                                                type: ENUM_VIS_FIELD_TYPE
                                                 text: "quantitative"
-                                                children:
-                                                  - key: SQL_COLUMN_REF_PATH
-                                                    type: ARRAY
-                                                    text: "quantitative"
-                                                    children:
-                                                      - type: NAME
-                                                        text: "quantitative"
+                                                children: []
                                           - type: OBJECT_EXT_VARARG_FIELD
                                             text: "scale => (..o => true)"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "scale"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_EXT_VARARG_ARRAY
                                                 text: "scale => (..o => true)"
@@ -1836,8 +1845,9 @@ parser-snapshots:
                                                         text: "zero => true"
                                                         children:
                                                           - key: EXT_VARARG_FIELD_KEY
-                                                            type: NAME
+                                                            type: ENUM_VIS_SCALE_KEY
                                                             text: "zero"
+                                                            children: []
                                                           - key: EXT_VARARG_FIELD_VALUE
                                                             type: BOOL
                                                             value: 1
@@ -1845,8 +1855,9 @@ parser-snapshots:
                                 text: "color => (.. 'right'))"
                                 children:
                                   - key: EXT_VARARG_FIELD_KEY
-                                    type: NAME
+                                    type: ENUM_VIS_ENCODING_CHANNEL
                                     text: "color"
+                                    children: []
                                   - key: EXT_VARARG_FIELD_VALUE
                                     type: OBJECT_EXT_VARARG_ARRAY
                                     text: "color => (.. 'right'))"
@@ -1859,8 +1870,9 @@ parser-snapshots:
                                             text: "field => region"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "field"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_SQL_COLUMN_REF
                                                 text: "region"
@@ -1875,24 +1887,20 @@ parser-snapshots:
                                             text: "type => nominal"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "type"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
-                                                type: OBJECT_SQL_COLUMN_REF
+                                                type: ENUM_VIS_FIELD_TYPE
                                                 text: "nominal"
-                                                children:
-                                                  - key: SQL_COLUMN_REF_PATH
-                                                    type: ARRAY
-                                                    text: "nominal"
-                                                    children:
-                                                      - type: NAME
-                                                        text: "nominal"
+                                                children: []
                                           - type: OBJECT_EXT_VARARG_FIELD
                                             text: "legend => ..> 'right')"
                                             children:
                                               - key: EXT_VARARG_FIELD_KEY
-                                                type: NAME
+                                                type: ENUM_VIS_FIELD_DEF_KEY
                                                 text: "legend"
+                                                children: []
                                               - key: EXT_VARARG_FIELD_VALUE
                                                 type: OBJECT_EXT_VARARG_ARRAY
                                                 text: "legend => ..> 'right')"
@@ -1905,8 +1913,9 @@ parser-snapshots:
                                                         text: "orient => 'right'"
                                                         children:
                                                           - key: EXT_VARARG_FIELD_KEY
-                                                            type: NAME
+                                                            type: ENUM_VIS_LEGEND_KEY
                                                             text: "orient"
+                                                            children: []
                                                           - key: EXT_VARARG_FIELD_VALUE
                                                             type: LITERAL_STRING
                                                             text: "'right'"
@@ -1914,8 +1923,9 @@ parser-snapshots:
                     text: "width => 800"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "width"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: LITERAL_INTEGER
                         text: "800"
@@ -1923,8 +1933,9 @@ parser-snapshots:
                     text: "height => 400"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "height"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: LITERAL_INTEGER
                         text: "400"
@@ -1932,8 +1943,9 @@ parser-snapshots:
                     text: "title => '..by Region'"
                     children:
                       - key: EXT_VARARG_FIELD_KEY
-                        type: NAME
+                        type: ENUM_VIS_SPEC_KEY
                         text: "title"
+                        children: []
                       - key: EXT_VARARG_FIELD_VALUE
                         type: LITERAL_STRING
                         text: "'Revenue by Region'"

@@ -64,13 +64,13 @@ vis_spec_list:
 
 opt_vis_spec_field:
     ENCODING EQUALS_GREATER LRB vis_encoding_list RRB {
-        $$ = VarArgField(ctx, @$, ctx.List({ ctx.NameFromKeyword(@1, $1) }),
+        $$ = VarArgField(ctx, @$, ctx.List({ Enum(@1, buffers::parser::VisSpecKey::ENCODING) }),
              ctx.Object(@$, buffers::parser::NodeType::OBJECT_EXT_VARARG_ARRAY, {
                  Attr(Key::EXT_VARARG_ARRAY_VALUES, ctx.Array(@4, std::move($4))),
              }));
     }
   | MARK EQUALS_GREATER vis_mark_value {
-        $$ = VarArgField(ctx, @$, ctx.List({ ctx.NameFromKeyword(@1, $1) }), $3);
+        $$ = VarArgField(ctx, @$, ctx.List({ Enum(@1, buffers::parser::VisSpecKey::MARK) }), $3);
     }
   | vis_spec_key EQUALS_GREATER vis_value {
         $$ = VarArgField(ctx, @$, ctx.List({ $1 }), $3);
@@ -80,24 +80,24 @@ opt_vis_spec_field:
 
 vis_spec_key:
     IDENT           { $$ = NameFromIdentifier(@1, $1); }
-  | LAYER           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | DATA_P          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | TRANSFORM       { $$ = ctx.NameFromKeyword(@1, $1); }
-  | PARAMS          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | PROJECTION      { $$ = ctx.NameFromKeyword(@1, $1); }
-  | AUTOSIZE        { $$ = ctx.NameFromKeyword(@1, $1); }
-  | RESOLVE         { $$ = ctx.NameFromKeyword(@1, $1); }
-  | DATASETS        { $$ = ctx.NameFromKeyword(@1, $1); }
-  | VIEW            { $$ = ctx.NameFromKeyword(@1, $1); }
-  | NAME_P          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | TITLE           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | WIDTH           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | HEIGHT          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | PADDING         { $$ = ctx.NameFromKeyword(@1, $1); }
-  | BACKGROUND      { $$ = ctx.NameFromKeyword(@1, $1); }
-  | FILTER          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | DESCRIBE        { $$ = ctx.NameFromKeyword(@1, $1); }
-  | TYPE_P          { $$ = ctx.NameFromKeyword(@1, $1); }
+  | LAYER           { $$ = Enum(@1, buffers::parser::VisSpecKey::LAYER); }
+  | DATA_P          { $$ = Enum(@1, buffers::parser::VisSpecKey::DATA); }
+  | TRANSFORM       { $$ = Enum(@1, buffers::parser::VisSpecKey::TRANSFORM); }
+  | PARAMS          { $$ = Enum(@1, buffers::parser::VisSpecKey::PARAMS); }
+  | PROJECTION      { $$ = Enum(@1, buffers::parser::VisSpecKey::PROJECTION); }
+  | AUTOSIZE        { $$ = Enum(@1, buffers::parser::VisSpecKey::AUTOSIZE); }
+  | RESOLVE         { $$ = Enum(@1, buffers::parser::VisSpecKey::RESOLVE); }
+  | DATASETS        { $$ = Enum(@1, buffers::parser::VisSpecKey::DATASETS); }
+  | VIEW            { $$ = Enum(@1, buffers::parser::VisSpecKey::VIEW); }
+  | NAME_P          { $$ = Enum(@1, buffers::parser::VisSpecKey::NAME); }
+  | TITLE           { $$ = Enum(@1, buffers::parser::VisSpecKey::TITLE); }
+  | WIDTH           { $$ = Enum(@1, buffers::parser::VisSpecKey::WIDTH); }
+  | HEIGHT          { $$ = Enum(@1, buffers::parser::VisSpecKey::HEIGHT); }
+  | PADDING         { $$ = Enum(@1, buffers::parser::VisSpecKey::PADDING); }
+  | BACKGROUND      { $$ = Enum(@1, buffers::parser::VisSpecKey::BACKGROUND); }
+  | FILTER          { $$ = Enum(@1, buffers::parser::VisSpecKey::FILTER); }
+  | DESCRIBE        { $$ = Enum(@1, buffers::parser::VisSpecKey::DESCRIPTION); }
+  | TYPE_P          { $$ = Enum(@1, buffers::parser::VisSpecKey::TYPE); }
     ;
 
 vis_mark_value:
@@ -113,21 +113,21 @@ vis_mark_value:
     ;
 
 vis_mark_type:
-    ARC             { $$ = ctx.NameFromKeyword(@1, $1); }
-  | AREA            { $$ = ctx.NameFromKeyword(@1, $1); }
-  | BAR             { $$ = ctx.NameFromKeyword(@1, $1); }
-  | BOXPLOT         { $$ = ctx.NameFromKeyword(@1, $1); }
-  | CIRCLE          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | GEOSHAPE        { $$ = ctx.NameFromKeyword(@1, $1); }
-  | IMAGE           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | LINE            { $$ = ctx.NameFromKeyword(@1, $1); }
-  | POINT           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | RECT            { $$ = ctx.NameFromKeyword(@1, $1); }
-  | RULE            { $$ = ctx.NameFromKeyword(@1, $1); }
-  | SQUARE          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | TEXT_P          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | TICK            { $$ = ctx.NameFromKeyword(@1, $1); }
-  | TRAIL           { $$ = ctx.NameFromKeyword(@1, $1); }
+    ARC             { $$ = Enum(@1, buffers::parser::VisMarkType::ARC); }
+  | AREA            { $$ = Enum(@1, buffers::parser::VisMarkType::AREA); }
+  | BAR             { $$ = Enum(@1, buffers::parser::VisMarkType::BAR); }
+  | BOXPLOT         { $$ = Enum(@1, buffers::parser::VisMarkType::BOXPLOT); }
+  | CIRCLE          { $$ = Enum(@1, buffers::parser::VisMarkType::CIRCLE); }
+  | GEOSHAPE        { $$ = Enum(@1, buffers::parser::VisMarkType::GEOSHAPE); }
+  | IMAGE           { $$ = Enum(@1, buffers::parser::VisMarkType::IMAGE); }
+  | LINE            { $$ = Enum(@1, buffers::parser::VisMarkType::LINE); }
+  | POINT           { $$ = Enum(@1, buffers::parser::VisMarkType::POINT); }
+  | RECT            { $$ = Enum(@1, buffers::parser::VisMarkType::RECT); }
+  | RULE            { $$ = Enum(@1, buffers::parser::VisMarkType::RULE); }
+  | SQUARE          { $$ = Enum(@1, buffers::parser::VisMarkType::SQUARE); }
+  | TEXT_P          { $$ = Enum(@1, buffers::parser::VisMarkType::TEXT); }
+  | TICK            { $$ = Enum(@1, buffers::parser::VisMarkType::TICK); }
+  | TRAIL           { $$ = Enum(@1, buffers::parser::VisMarkType::TRAIL); }
     ;
 
 // ---------------------------------------------------------------------------
@@ -153,37 +153,37 @@ opt_vis_encoding_field:
 
 vis_channel_key:
     IDENT             { $$ = NameFromIdentifier(@1, $1); }
-  | COLOR             { $$ = ctx.NameFromKeyword(@1, $1); }
-  | FILL              { $$ = ctx.NameFromKeyword(@1, $1); }
-  | STROKE            { $$ = ctx.NameFromKeyword(@1, $1); }
-  | FILLOPACITY       { $$ = ctx.NameFromKeyword(@1, $1); }
-  | STROKEOPACITY     { $$ = ctx.NameFromKeyword(@1, $1); }
-  | STROKEWIDTH       { $$ = ctx.NameFromKeyword(@1, $1); }
-  | STROKEDASH        { $$ = ctx.NameFromKeyword(@1, $1); }
-  | OPACITY           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | SIZE              { $$ = ctx.NameFromKeyword(@1, $1); }
-  | SHAPE             { $$ = ctx.NameFromKeyword(@1, $1); }
-  | ANGLE             { $$ = ctx.NameFromKeyword(@1, $1); }
-  | THETA             { $$ = ctx.NameFromKeyword(@1, $1); }
-  | THETA2            { $$ = ctx.NameFromKeyword(@1, $1); }
-  | RADIUS            { $$ = ctx.NameFromKeyword(@1, $1); }
-  | RADIUS2           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | DETAIL            { $$ = ctx.NameFromKeyword(@1, $1); }
-  | ORDER             { $$ = ctx.NameFromKeyword(@1, $1); }
-  | TOOLTIP           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | TEXT_P            { $$ = ctx.NameFromKeyword(@1, $1); }
-  | ROW               { $$ = ctx.NameFromKeyword(@1, $1); }
-  | COLUMN            { $$ = ctx.NameFromKeyword(@1, $1); }
-  | FACET             { $$ = ctx.NameFromKeyword(@1, $1); }
-  | HREF              { $$ = ctx.NameFromKeyword(@1, $1); }
-  | URL_P             { $$ = ctx.NameFromKeyword(@1, $1); }
-  | KEY               { $$ = ctx.NameFromKeyword(@1, $1); }
-  | LATITUDE          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | LONGITUDE         { $$ = ctx.NameFromKeyword(@1, $1); }
-  | LATITUDE2         { $$ = ctx.NameFromKeyword(@1, $1); }
-  | LONGITUDE2        { $$ = ctx.NameFromKeyword(@1, $1); }
-  | XOFFSET           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | YOFFSET           { $$ = ctx.NameFromKeyword(@1, $1); }
+  | COLOR             { $$ = Enum(@1, buffers::parser::VisEncodingChannel::COLOR); }
+  | FILL              { $$ = Enum(@1, buffers::parser::VisEncodingChannel::FILL); }
+  | STROKE            { $$ = Enum(@1, buffers::parser::VisEncodingChannel::STROKE); }
+  | FILLOPACITY       { $$ = Enum(@1, buffers::parser::VisEncodingChannel::FILL_OPACITY); }
+  | STROKEOPACITY     { $$ = Enum(@1, buffers::parser::VisEncodingChannel::STROKE_OPACITY); }
+  | STROKEWIDTH       { $$ = Enum(@1, buffers::parser::VisEncodingChannel::STROKE_WIDTH); }
+  | STROKEDASH        { $$ = Enum(@1, buffers::parser::VisEncodingChannel::STROKE_DASH); }
+  | OPACITY           { $$ = Enum(@1, buffers::parser::VisEncodingChannel::OPACITY); }
+  | SIZE              { $$ = Enum(@1, buffers::parser::VisEncodingChannel::SIZE); }
+  | SHAPE             { $$ = Enum(@1, buffers::parser::VisEncodingChannel::SHAPE); }
+  | ANGLE             { $$ = Enum(@1, buffers::parser::VisEncodingChannel::ANGLE); }
+  | THETA             { $$ = Enum(@1, buffers::parser::VisEncodingChannel::THETA); }
+  | THETA2            { $$ = Enum(@1, buffers::parser::VisEncodingChannel::THETA2); }
+  | RADIUS            { $$ = Enum(@1, buffers::parser::VisEncodingChannel::RADIUS); }
+  | RADIUS2           { $$ = Enum(@1, buffers::parser::VisEncodingChannel::RADIUS2); }
+  | DETAIL            { $$ = Enum(@1, buffers::parser::VisEncodingChannel::DETAIL); }
+  | ORDER             { $$ = Enum(@1, buffers::parser::VisEncodingChannel::ORDER); }
+  | TOOLTIP           { $$ = Enum(@1, buffers::parser::VisEncodingChannel::TOOLTIP); }
+  | TEXT_P            { $$ = Enum(@1, buffers::parser::VisEncodingChannel::TEXT); }
+  | ROW               { $$ = Enum(@1, buffers::parser::VisEncodingChannel::ROW); }
+  | COLUMN            { $$ = Enum(@1, buffers::parser::VisEncodingChannel::COLUMN); }
+  | FACET             { $$ = Enum(@1, buffers::parser::VisEncodingChannel::FACET); }
+  | HREF              { $$ = Enum(@1, buffers::parser::VisEncodingChannel::HREF); }
+  | URL_P             { $$ = Enum(@1, buffers::parser::VisEncodingChannel::URL); }
+  | KEY               { $$ = Enum(@1, buffers::parser::VisEncodingChannel::KEY); }
+  | LATITUDE          { $$ = Enum(@1, buffers::parser::VisEncodingChannel::LATITUDE); }
+  | LONGITUDE         { $$ = Enum(@1, buffers::parser::VisEncodingChannel::LONGITUDE); }
+  | LATITUDE2         { $$ = Enum(@1, buffers::parser::VisEncodingChannel::LATITUDE2); }
+  | LONGITUDE2        { $$ = Enum(@1, buffers::parser::VisEncodingChannel::LONGITUDE2); }
+  | XOFFSET           { $$ = Enum(@1, buffers::parser::VisEncodingChannel::X_OFFSET); }
+  | YOFFSET           { $$ = Enum(@1, buffers::parser::VisEncodingChannel::Y_OFFSET); }
     ;
 
 vis_encoding_value:
@@ -209,22 +209,25 @@ vis_fielddef_list:
 
 opt_vis_fielddef_field:
     SCALE_P EQUALS_GREATER LRB vis_scale_list RRB {
-        $$ = VarArgField(ctx, @$, ctx.List({ ctx.NameFromKeyword(@1, $1) }),
+        $$ = VarArgField(ctx, @$, ctx.List({ Enum(@1, buffers::parser::VisFieldDefKey::SCALE) }),
              ctx.Object(@$, buffers::parser::NodeType::OBJECT_EXT_VARARG_ARRAY, {
                  Attr(Key::EXT_VARARG_ARRAY_VALUES, ctx.Array(@4, std::move($4))),
              }));
     }
   | AXIS EQUALS_GREATER LRB vis_axis_list RRB {
-        $$ = VarArgField(ctx, @$, ctx.List({ ctx.NameFromKeyword(@1, $1) }),
+        $$ = VarArgField(ctx, @$, ctx.List({ Enum(@1, buffers::parser::VisFieldDefKey::AXIS) }),
              ctx.Object(@$, buffers::parser::NodeType::OBJECT_EXT_VARARG_ARRAY, {
                  Attr(Key::EXT_VARARG_ARRAY_VALUES, ctx.Array(@4, std::move($4))),
              }));
     }
   | LEGEND EQUALS_GREATER LRB vis_legend_list RRB {
-        $$ = VarArgField(ctx, @$, ctx.List({ ctx.NameFromKeyword(@1, $1) }),
+        $$ = VarArgField(ctx, @$, ctx.List({ Enum(@1, buffers::parser::VisFieldDefKey::LEGEND) }),
              ctx.Object(@$, buffers::parser::NodeType::OBJECT_EXT_VARARG_ARRAY, {
                  Attr(Key::EXT_VARARG_ARRAY_VALUES, ctx.Array(@4, std::move($4))),
              }));
+    }
+  | TYPE_P EQUALS_GREATER vis_field_type {
+        $$ = VarArgField(ctx, @$, ctx.List({ Enum(@1, buffers::parser::VisFieldDefKey::TYPE) }), $3);
     }
   | vis_fielddef_key EQUALS_GREATER vis_value {
         $$ = VarArgField(ctx, @$, ctx.List({ $1 }), $3);
@@ -234,21 +237,29 @@ opt_vis_fielddef_field:
 
 vis_fielddef_key:
     IDENT           { $$ = NameFromIdentifier(@1, $1); }
-  | FIELD           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | TYPE_P          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | BIN             { $$ = ctx.NameFromKeyword(@1, $1); }
-  | AGGREGATE       { $$ = ctx.NameFromKeyword(@1, $1); }
-  | TIMEUNIT        { $$ = ctx.NameFromKeyword(@1, $1); }
-  | SORT            { $$ = ctx.NameFromKeyword(@1, $1); }
-  | STACK           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | IMPUTE          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | CONDITION       { $$ = ctx.NameFromKeyword(@1, $1); }
-  | TITLE           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | BANDPOSITION    { $$ = ctx.NameFromKeyword(@1, $1); }
-  | DATUM           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | VALUE_P         { $$ = ctx.NameFromKeyword(@1, $1); }
-  | FORMAT          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | FORMATTYPE      { $$ = ctx.NameFromKeyword(@1, $1); }
+  | FIELD           { $$ = Enum(@1, buffers::parser::VisFieldDefKey::FIELD); }
+  | BIN             { $$ = Enum(@1, buffers::parser::VisFieldDefKey::BIN); }
+  | AGGREGATE       { $$ = Enum(@1, buffers::parser::VisFieldDefKey::AGGREGATE); }
+  | TIMEUNIT        { $$ = Enum(@1, buffers::parser::VisFieldDefKey::TIME_UNIT); }
+  | SORT            { $$ = Enum(@1, buffers::parser::VisFieldDefKey::SORT); }
+  | STACK           { $$ = Enum(@1, buffers::parser::VisFieldDefKey::STACK); }
+  | IMPUTE          { $$ = Enum(@1, buffers::parser::VisFieldDefKey::IMPUTE); }
+  | CONDITION       { $$ = Enum(@1, buffers::parser::VisFieldDefKey::CONDITION); }
+  | TITLE           { $$ = Enum(@1, buffers::parser::VisFieldDefKey::TITLE); }
+  | BANDPOSITION    { $$ = Enum(@1, buffers::parser::VisFieldDefKey::BAND_POSITION); }
+  | DATUM           { $$ = Enum(@1, buffers::parser::VisFieldDefKey::DATUM); }
+  | VALUE_P         { $$ = Enum(@1, buffers::parser::VisFieldDefKey::VALUE); }
+  | FORMAT          { $$ = Enum(@1, buffers::parser::VisFieldDefKey::FORMAT); }
+  | FORMATTYPE      { $$ = Enum(@1, buffers::parser::VisFieldDefKey::FORMAT_TYPE); }
+    ;
+
+vis_field_type:
+    NOMINAL         { $$ = Enum(@1, buffers::parser::VisFieldType::NOMINAL); }
+  | ORDINAL         { $$ = Enum(@1, buffers::parser::VisFieldType::ORDINAL); }
+  | QUANTITATIVE    { $$ = Enum(@1, buffers::parser::VisFieldType::QUANTITATIVE); }
+  | TEMPORAL        { $$ = Enum(@1, buffers::parser::VisFieldType::TEMPORAL); }
+  | GEOJSON         { $$ = Enum(@1, buffers::parser::VisFieldType::GEOJSON); }
+  | sql_a_expr_const { $$ = ctx.Expression(std::move($1)); }
     ;
 
 // ---------------------------------------------------------------------------
@@ -268,27 +279,27 @@ opt_vis_scale_field:
 
 vis_scale_key:
     IDENT           { $$ = NameFromIdentifier(@1, $1); }
-  | TYPE_P          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | DOMAIN_P        { $$ = ctx.NameFromKeyword(@1, $1); }
-  | DOMAINMIN       { $$ = ctx.NameFromKeyword(@1, $1); }
-  | DOMAINMAX       { $$ = ctx.NameFromKeyword(@1, $1); }
-  | DOMAINMID       { $$ = ctx.NameFromKeyword(@1, $1); }
-  | RANGE           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | RANGEMIN        { $$ = ctx.NameFromKeyword(@1, $1); }
-  | RANGEMAX        { $$ = ctx.NameFromKeyword(@1, $1); }
-  | SCHEME          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | INTERPOLATE     { $$ = ctx.NameFromKeyword(@1, $1); }
-  | NICE            { $$ = ctx.NameFromKeyword(@1, $1); }
-  | ZERO            { $$ = ctx.NameFromKeyword(@1, $1); }
-  | CLAMP           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | PADDING         { $$ = ctx.NameFromKeyword(@1, $1); }
-  | PADDINGINNER    { $$ = ctx.NameFromKeyword(@1, $1); }
-  | PADDINGOUTER    { $$ = ctx.NameFromKeyword(@1, $1); }
-  | REVERSE         { $$ = ctx.NameFromKeyword(@1, $1); }
-  | ROUND           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | EXPONENT        { $$ = ctx.NameFromKeyword(@1, $1); }
-  | BINS            { $$ = ctx.NameFromKeyword(@1, $1); }
-  | NAME_P          { $$ = ctx.NameFromKeyword(@1, $1); }
+  | TYPE_P          { $$ = Enum(@1, buffers::parser::VisScaleKey::TYPE); }
+  | DOMAIN_P        { $$ = Enum(@1, buffers::parser::VisScaleKey::DOMAIN_); }
+  | DOMAINMIN       { $$ = Enum(@1, buffers::parser::VisScaleKey::DOMAIN_MIN); }
+  | DOMAINMAX       { $$ = Enum(@1, buffers::parser::VisScaleKey::DOMAIN_MAX); }
+  | DOMAINMID       { $$ = Enum(@1, buffers::parser::VisScaleKey::DOMAIN_MID); }
+  | RANGE           { $$ = Enum(@1, buffers::parser::VisScaleKey::RANGE); }
+  | RANGEMIN        { $$ = Enum(@1, buffers::parser::VisScaleKey::RANGE_MIN); }
+  | RANGEMAX        { $$ = Enum(@1, buffers::parser::VisScaleKey::RANGE_MAX); }
+  | SCHEME          { $$ = Enum(@1, buffers::parser::VisScaleKey::SCHEME); }
+  | INTERPOLATE     { $$ = Enum(@1, buffers::parser::VisScaleKey::INTERPOLATE); }
+  | NICE            { $$ = Enum(@1, buffers::parser::VisScaleKey::NICE); }
+  | ZERO            { $$ = Enum(@1, buffers::parser::VisScaleKey::ZERO); }
+  | CLAMP           { $$ = Enum(@1, buffers::parser::VisScaleKey::CLAMP); }
+  | PADDING         { $$ = Enum(@1, buffers::parser::VisScaleKey::PADDING); }
+  | PADDINGINNER    { $$ = Enum(@1, buffers::parser::VisScaleKey::PADDING_INNER); }
+  | PADDINGOUTER    { $$ = Enum(@1, buffers::parser::VisScaleKey::PADDING_OUTER); }
+  | REVERSE         { $$ = Enum(@1, buffers::parser::VisScaleKey::REVERSE); }
+  | ROUND           { $$ = Enum(@1, buffers::parser::VisScaleKey::ROUND); }
+  | EXPONENT        { $$ = Enum(@1, buffers::parser::VisScaleKey::EXPONENT); }
+  | BINS            { $$ = Enum(@1, buffers::parser::VisScaleKey::BINS); }
+  | NAME_P          { $$ = Enum(@1, buffers::parser::VisScaleKey::NAME); }
     ;
 
 // ---------------------------------------------------------------------------
@@ -308,23 +319,23 @@ opt_vis_axis_field:
 
 vis_axis_key:
     IDENT           { $$ = NameFromIdentifier(@1, $1); }
-  | ORIENT          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | FORMAT          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | FORMATTYPE      { $$ = ctx.NameFromKeyword(@1, $1); }
-  | GRID            { $$ = ctx.NameFromKeyword(@1, $1); }
-  | TICKS           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | TICKCOUNT       { $$ = ctx.NameFromKeyword(@1, $1); }
-  | TICKSIZE        { $$ = ctx.NameFromKeyword(@1, $1); }
-  | LABELANGLE      { $$ = ctx.NameFromKeyword(@1, $1); }
-  | LABELFONTSIZE   { $$ = ctx.NameFromKeyword(@1, $1); }
-  | LABELOVERLAP    { $$ = ctx.NameFromKeyword(@1, $1); }
-  | DIRECTION       { $$ = ctx.NameFromKeyword(@1, $1); }
-  | OFFSET          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | VALUES          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | ZINDEX          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | TITLE           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | DOMAIN_P        { $$ = ctx.NameFromKeyword(@1, $1); }
-  | NAME_P          { $$ = ctx.NameFromKeyword(@1, $1); }
+  | ORIENT          { $$ = Enum(@1, buffers::parser::VisAxisKey::ORIENT); }
+  | FORMAT          { $$ = Enum(@1, buffers::parser::VisAxisKey::FORMAT); }
+  | FORMATTYPE      { $$ = Enum(@1, buffers::parser::VisAxisKey::FORMAT_TYPE); }
+  | GRID            { $$ = Enum(@1, buffers::parser::VisAxisKey::GRID); }
+  | TICKS           { $$ = Enum(@1, buffers::parser::VisAxisKey::TICKS); }
+  | TICKCOUNT       { $$ = Enum(@1, buffers::parser::VisAxisKey::TICK_COUNT); }
+  | TICKSIZE        { $$ = Enum(@1, buffers::parser::VisAxisKey::TICK_SIZE); }
+  | LABELANGLE      { $$ = Enum(@1, buffers::parser::VisAxisKey::LABEL_ANGLE); }
+  | LABELFONTSIZE   { $$ = Enum(@1, buffers::parser::VisAxisKey::LABEL_FONT_SIZE); }
+  | LABELOVERLAP    { $$ = Enum(@1, buffers::parser::VisAxisKey::LABEL_OVERLAP); }
+  | DIRECTION       { $$ = Enum(@1, buffers::parser::VisAxisKey::DIRECTION); }
+  | OFFSET          { $$ = Enum(@1, buffers::parser::VisAxisKey::OFFSET); }
+  | VALUES          { $$ = Enum(@1, buffers::parser::VisAxisKey::VALUES); }
+  | ZINDEX          { $$ = Enum(@1, buffers::parser::VisAxisKey::ZINDEX); }
+  | TITLE           { $$ = Enum(@1, buffers::parser::VisAxisKey::TITLE); }
+  | DOMAIN_P        { $$ = Enum(@1, buffers::parser::VisAxisKey::DOMAIN_); }
+  | NAME_P          { $$ = Enum(@1, buffers::parser::VisAxisKey::NAME); }
     ;
 
 // ---------------------------------------------------------------------------
@@ -344,17 +355,17 @@ opt_vis_legend_field:
 
 vis_legend_key:
     IDENT           { $$ = NameFromIdentifier(@1, $1); }
-  | TYPE_P          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | ORIENT          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | FORMAT          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | FORMATTYPE      { $$ = ctx.NameFromKeyword(@1, $1); }
-  | DIRECTION       { $$ = ctx.NameFromKeyword(@1, $1); }
-  | TITLE           { $$ = ctx.NameFromKeyword(@1, $1); }
-  | VALUES          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | PADDING         { $$ = ctx.NameFromKeyword(@1, $1); }
-  | OFFSET          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | ZINDEX          { $$ = ctx.NameFromKeyword(@1, $1); }
-  | NAME_P          { $$ = ctx.NameFromKeyword(@1, $1); }
+  | TYPE_P          { $$ = Enum(@1, buffers::parser::VisLegendKey::TYPE); }
+  | ORIENT          { $$ = Enum(@1, buffers::parser::VisLegendKey::ORIENT); }
+  | FORMAT          { $$ = Enum(@1, buffers::parser::VisLegendKey::FORMAT); }
+  | FORMATTYPE      { $$ = Enum(@1, buffers::parser::VisLegendKey::FORMAT_TYPE); }
+  | DIRECTION       { $$ = Enum(@1, buffers::parser::VisLegendKey::DIRECTION); }
+  | TITLE           { $$ = Enum(@1, buffers::parser::VisLegendKey::TITLE); }
+  | VALUES          { $$ = Enum(@1, buffers::parser::VisLegendKey::VALUES); }
+  | PADDING         { $$ = Enum(@1, buffers::parser::VisLegendKey::PADDING); }
+  | OFFSET          { $$ = Enum(@1, buffers::parser::VisLegendKey::OFFSET); }
+  | ZINDEX          { $$ = Enum(@1, buffers::parser::VisLegendKey::ZINDEX); }
+  | NAME_P          { $$ = Enum(@1, buffers::parser::VisLegendKey::NAME); }
     ;
 
 // ---------------------------------------------------------------------------

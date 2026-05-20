@@ -47,6 +47,15 @@ X(buffers::parser::WindowBoundDirection, buffers::parser::NodeType::ENUM_SQL_WIN
 X(buffers::parser::WindowBoundMode, buffers::parser::NodeType::ENUM_SQL_WINDOW_BOUND_MODE)
 X(buffers::parser::WindowExclusionMode, buffers::parser::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE)
 X(buffers::parser::WindowRangeMode, buffers::parser::NodeType::ENUM_SQL_WINDOW_RANGE_MODE)
+X(buffers::parser::VisSpecKey, buffers::parser::NodeType::ENUM_VIS_SPEC_KEY)
+X(buffers::parser::VisEncodingChannel, buffers::parser::NodeType::ENUM_VIS_ENCODING_CHANNEL)
+X(buffers::parser::VisFieldDefKey, buffers::parser::NodeType::ENUM_VIS_FIELD_DEF_KEY)
+X(buffers::parser::VisScaleKey, buffers::parser::NodeType::ENUM_VIS_SCALE_KEY)
+X(buffers::parser::VisAxisKey, buffers::parser::NodeType::ENUM_VIS_AXIS_KEY)
+X(buffers::parser::VisLegendKey, buffers::parser::NodeType::ENUM_VIS_LEGEND_KEY)
+X(buffers::parser::VisMarkType, buffers::parser::NodeType::ENUM_VIS_MARK_TYPE)
+X(buffers::parser::VisFieldType, buffers::parser::NodeType::ENUM_VIS_FIELD_TYPE)
+X(buffers::parser::VisScaleType, buffers::parser::NodeType::ENUM_VIS_SCALE_TYPE)
 #undef X
 
 const char* getEnumText(const buffers::parser::Node& target);
