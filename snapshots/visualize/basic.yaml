@@ -406,7 +406,7 @@ visualize-snapshots:
       {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
         "data": {
-          "name": "<sql>"
+          "$sql": "SELECT category, revenue FROM sales"
         },
         "mark": "bar",
         "encoding": {
@@ -421,7 +421,7 @@ visualize-snapshots:
         }
       }
     roundtrip: |-
-      VISUALIZE "<sql>" AS (
+      VISUALIZE (SELECT category, revenue FROM sales) AS (
         mark => bar,
         encoding => (
           x => (field => category, type => nominal),

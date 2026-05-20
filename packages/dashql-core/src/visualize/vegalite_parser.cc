@@ -183,9 +183,13 @@ std::string ParseVegaLiteToVisualize(const std::string& vegalite_json) {
     }
 
     std::string source;
+    bool source_is_sql = false;
     if (doc.HasMember("data") && doc["data"].IsObject()) {
         auto& data = doc["data"];
-        if (data.HasMember("name") && data["name"].IsString()) {
+        if (data.HasMember("$sql") && data["$sql"].IsString()) {
+            source = data["$sql"].GetString();
+            source_is_sql = true;
+        } else if (data.HasMember("name") && data["name"].IsString()) {
             source = data["name"].GetString();
         }
     }
@@ -206,7 +210,11 @@ std::string ParseVegaLiteToVisualize(const std::string& vegalite_json) {
 
     std::string result = "VISUALIZE ";
     if (!source.empty()) {
-        if (is_simple_ident(source)) {
+        if (source_is_sql) {
+            result += '(';
+            result += source;
+            result += ')';
+        } else if (is_simple_ident(source)) {
             result += source;
         } else {
             result += '"';

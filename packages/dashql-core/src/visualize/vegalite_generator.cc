@@ -423,15 +423,18 @@ std::string GenerateVegaLiteSpec(const VisualizationSpec& spec, const AnalyzedSc
 
     if (spec.source_node_id.has_value()) {
         auto& source_node = script.parsed_script->nodes[*spec.source_node_id];
+        auto span = script.parsed_script->scanned_script->ResolveTextSpan(source_node.symbol_span());
+        auto input = script.parsed_script->scanned_script->GetInput();
         writer.Key("data");
         writer.StartObject();
-        writer.Key("name");
         if (source_node.node_type() == buffers::parser::NodeType::OBJECT_SQL_SELECT) {
-            writer.String("<sql>");
+            // Strip the wrapping parentheses from the grammar rule: LRB sql_select_stmt RRB
+            std::string source_text(input.substr(span.offset() + 1, span.length() - 2));
+            writer.Key("$sql");
+            writer.String(source_text.c_str());
         } else {
-            auto span = script.parsed_script->scanned_script->ResolveTextSpan(source_node.symbol_span());
-            auto input = script.parsed_script->scanned_script->GetInput();
             std::string source_text(input.substr(span.offset(), span.length()));
+            writer.Key("name");
             writer.String(source_text.c_str());
         }
         writer.EndObject();
