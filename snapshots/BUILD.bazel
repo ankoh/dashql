@@ -16,5 +16,6 @@ snapshot_library(
         "//snapshots/plans/hyper/tests:files",
         "//snapshots/plans/spark/tests:files",
         "//snapshots/registry:files",
+        "//snapshots/visualize:files",
     ],
 )

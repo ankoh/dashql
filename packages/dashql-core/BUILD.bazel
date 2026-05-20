@@ -53,6 +53,8 @@ LIB_SRCS = [
     "src/view/plan_view_model.cc",
     "src/view/plan_layout.cc",
     "src/view/spark_plan_parser.cc",
+    "src/visualize/vegalite_generator.cc",
+    "src/visualize/vegalite_parser.cc",
 ]
 
 DASHQL_COPTS = [
@@ -247,6 +249,7 @@ test_utils_SRCS = [
     "src/testing/parser_snapshot_test.cc",
     "src/testing/plan_view_model_snapshot_test.cc",
     "src/testing/registry_snapshot_test.cc",
+    "src/testing/visualize_snapshot_test.cc",
     "src/testing/yaml_tests.cc",
 ]
 
@@ -289,6 +292,7 @@ TEST_SRCS = [
     "test/spark_plan_snapshot_test_suite.cc",
     "test/spark_plan_test.cc",
     "test/topk_test.cc",
+    "test/visualize_snapshot_test_suite.cc",
     "test/unification_test.cc",
     "test/catalog_test.cc",
 ]
@@ -431,6 +435,16 @@ cc_test(
         "test/spark_plan_test.cc",
     ],
     data = ["//snapshots/plans/spark/tests:files"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
+)
+cc_test(
+    name = "visualize_tests",
+    size = "small",
+    srcs = ["test/visualize_snapshot_test_suite.cc"],
+    data = ["//snapshots/visualize:files"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,

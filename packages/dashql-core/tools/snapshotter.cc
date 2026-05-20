@@ -22,6 +22,7 @@
 #include "dashql/testing/parser_snapshot_test.h"
 #include "dashql/testing/plan_view_model_snapshot_test.h"
 #include "dashql/testing/yaml_tests.h"
+#include "dashql/visualize/vegalite.h"
 #include "dashql/utils/string_trimming.h"
 #include "dashql/view/plan_view_model.h"
 #include "gflags/gflags.h"
@@ -32,7 +33,7 @@ using namespace dashql::testing;
 DEFINE_string(source_dir, "", "Source directory");
 DEFINE_string(
     filter, "",
-    "Snapshot category to update (parser, analyzer, completion, registry, formatter, plan_view_model). Empty = all.");
+    "Snapshot category to update (parser, analyzer, completion, registry, formatter, plan_view_model, visualize). Empty = all.");
 
 static void generate_parser_snapshots(const std::filesystem::path& snapshot_dir) {
     for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
@@ -740,6 +741,85 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
     }
 }
 
+static void generate_visualize_snapshots(const std::filesystem::path& snapshot_dir) {
+    for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
+        auto path = p.path();
+        if (path.extension() != ".yaml") continue;
+        if (path.stem().extension() != ".tpl") continue;
+
+        auto out = path;
+        out.replace_extension();
+        out.replace_extension(".yaml");
+
+        std::ifstream in(path, std::ios::in | std::ios::binary);
+        if (!in) {
+            std::cout << "[" << path.filename().string() << "] failed to read file" << std::endl;
+            continue;
+        }
+        std::stringstream buf;
+        buf << in.rdbuf();
+        std::string content = buf.str();
+
+        c4::yml::Tree tree;
+        c4::yml::parse_in_arena(c4::to_csubstr(content), &tree);
+        auto root = tree.rootref();
+        if (!root.has_child("visualize-snapshots")) {
+            std::cout << "[" << path.filename().string() << "] no visualize-snapshots key" << std::endl;
+            continue;
+        }
+
+        std::cout << "FILE " << out << std::endl;
+        auto snapshots = root["visualize-snapshots"];
+        for (auto test_node : snapshots.children()) {
+            if (!test_node.has_child("name")) continue;
+            c4::csubstr name_v = test_node["name"].val();
+            std::string name = name_v.str ? std::string(name_v.str, name_v.len) : std::string();
+            std::cout << "  TEST " << name << std::endl;
+
+            std::unique_ptr<Catalog> catalog;
+            std::vector<std::unique_ptr<Script>> catalog_scripts;
+            if (test_node.has_child("catalog")) {
+                auto catalog_node = tree.ref(test_node["catalog"].id());
+                catalog = read_catalog_yml(tree, catalog_node, catalog_scripts);
+            } else {
+                catalog = std::make_unique<Catalog>();
+            }
+            if (!test_node.has_child("script")) continue;
+            auto script_node = test_node["script"];
+            auto main_script = read_script_yml(script_node, *catalog);
+            if (!main_script) continue;
+
+            auto& analyzed = *main_script->analyzed_script;
+            if (analyzed.visualization_specs.IsEmpty()) continue;
+
+            auto& spec = analyzed.visualization_specs[0];
+            std::string vegalite_json = visualize::GenerateVegaLiteSpec(spec, analyzed);
+            std::string roundtrip = visualize::ParseVegaLiteToVisualize(vegalite_json);
+
+            auto test_ref = tree.ref(test_node.id());
+            if (test_ref.has_child("vegalite")) {
+                test_ref.remove_child("vegalite");
+            }
+            auto vl_node = test_ref.append_child();
+            vl_node << c4::yml::key("vegalite") << vegalite_json;
+            vl_node.set_val_style(c4::yml::VAL_LITERAL);
+
+            if (test_ref.has_child("roundtrip")) {
+                test_ref.remove_child("roundtrip");
+            }
+            auto rt_node = test_ref.append_child();
+            rt_node << c4::yml::key("roundtrip") << roundtrip;
+            rt_node.set_val_style(c4::yml::VAL_LITERAL);
+        }
+
+        c4::yml::NodeRef to_emit = tree.ref(tree.first_child(tree.root_id()));
+        std::string emitted = c4::yml::emitrs_yaml<std::string>(to_emit, c4::yml::EmitOptions().max_depth(128));
+        InjectBlankLinesInSnapshot(emitted);
+        std::ofstream outs(out, std::ofstream::out | std::ofstream::trunc);
+        outs << emitted;
+    }
+}
+
 int main(int argc, char* argv[]) {
     gflags::SetUsageMessage("Usage: ./snapshotter --source_dir <dir> [--filter <category>]");
     gflags::ParseCommandLineFlags(&argc, &argv, false);
@@ -759,5 +839,6 @@ int main(int argc, char* argv[]) {
         generate_hyper_plan_snapshots(source_dir / "snapshots" / "plans" / "hyper" / "tests");
     if (f.empty() || f == "spark_plan")
         generate_spark_plan_snapshots(source_dir / "snapshots" / "plans" / "spark" / "tests");
+    if (f.empty() || f == "visualize") generate_visualize_snapshots(source_dir / "snapshots" / "visualize");
     return 0;
 }
