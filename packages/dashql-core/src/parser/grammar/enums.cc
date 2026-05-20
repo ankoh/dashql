@@ -38,9 +38,6 @@ const char* getEnumText(const buffers::parser::Node& target) {
         X(ENUM_SQL_WINDOW_BOUND_MODE, WindowBoundModeTypeTable)
         X(ENUM_SQL_WINDOW_EXCLUSION_MODE, WindowExclusionModeTypeTable)
         X(ENUM_SQL_WINDOW_RANGE_MODE, WindowRangeModeTypeTable)
-        X(ENUM_VIS_GEOM, VisGeomTypeTable)
-        X(ENUM_VIS_SCALE_TYPE, VisScaleTypeTypeTable)
-        X(ENUM_VIS_PROJECT_TYPE, VisProjectTypeTypeTable)
 #undef X
 
         case buffers::parser::NodeType::ENUM_SQL_JOIN_TYPE: {

@@ -1,0 +1,129 @@
+parser-snapshots:
+  - name: vis_statement_visualise_empty
+    input: |
+      VISUALISE;
+  - name: vis_statement_visualize_empty
+    input: |
+      VISUALIZE;
+  - name: vis_statement_minimal_mark
+    input: |
+      VISUALIZE AS (mark => line);
+  - name: vis_statement_table_source
+    input: |
+      VISUALIZE sales AS (mark => bar);
+  - name: vis_statement_qualified_table_source
+    input: |
+      VISUALIZE warehouse.public.sales AS (mark => point);
+  - name: vis_statement_select_source
+    input: |
+      VISUALIZE (SELECT * FROM sales) AS (mark => line);
+  - name: vis_statement_multi_spec_keys
+    input: |
+      VISUALIZE sales AS (mark => line, width => 800, height => 400);
+  - name: vis_statement_encoding_single_channel
+    input: |
+      VISUALIZE sales AS (
+        mark => bar,
+        encoding => (
+          x => (field => category, type => nominal)
+        )
+      );
+  - name: vis_statement_encoding_two_channels
+    input: |
+      VISUALIZE sales AS (
+        mark => line,
+        encoding => (
+          x => (field => date, type => temporal),
+          y => (field => revenue, type => quantitative)
+        )
+      );
+  - name: vis_statement_encoding_with_scale
+    input: |
+      VISUALIZE sales AS (
+        encoding => (
+          x => (field => time, type => temporal, scale => (domain => [0, 100]))
+        )
+      );
+  - name: vis_statement_encoding_with_axis
+    input: |
+      VISUALIZE sales AS (
+        encoding => (
+          x => (field => date, type => temporal, axis => (format => '%Y', grid => false))
+        )
+      );
+  - name: vis_statement_encoding_with_legend
+    input: |
+      VISUALIZE sales AS (
+        encoding => (
+          color => (field => region, type => nominal, legend => (title => 'Region', orient => 'right'))
+        )
+      );
+  - name: vis_statement_scale_full
+    input: |
+      VISUALIZE sales AS (
+        encoding => (
+          x => (
+            field => price,
+            type => quantitative,
+            scale => (
+              type => log,
+              domain => [0, 1000],
+              nice => true,
+              zero => false,
+              clamp => true
+            )
+          )
+        )
+      );
+  - name: vis_statement_encoding_shorthand_value
+    input: |
+      VISUALIZE sales AS (
+        encoding => (
+          x => date,
+          y => revenue
+        )
+      );
+  - name: vis_statement_encoding_color_channel
+    input: |
+      VISUALIZE sales AS (
+        mark => point,
+        encoding => (
+          x => (field => date, type => temporal),
+          y => (field => revenue, type => quantitative),
+          color => (field => region, type => nominal)
+        )
+      );
+  - name: vis_statement_nested_object_value
+    input: |
+      VISUALIZE sales AS (
+        mark => (type => 'bar', title => 'My Chart')
+      );
+  - name: vis_statement_array_value
+    input: |
+      VISUALIZE sales AS (
+        encoding => (
+          x => (scale => (domain => [0, 50, 100]))
+        )
+      );
+  - name: vis_statement_numeric_values
+    input: |
+      VISUALIZE sales AS (width => 800, height => 400, padding => 20);
+  - name: vis_statement_full_pipeline
+    input: |
+      VISUALIZE (SELECT * FROM sales) AS (
+        mark => line,
+        encoding => (
+          x => (field => date, type => temporal, axis => (format => '%b %Y')),
+          y => (field => revenue, type => quantitative, scale => (zero => true)),
+          color => (field => region, type => nominal, legend => (orient => 'right'))
+        ),
+        width => 800,
+        height => 400,
+        title => 'Revenue by Region'
+      );
+  - name: vis_statement_keyword_collision_select
+    input: |
+      SELECT visualise, draw, scale FROM t;
+  - name: vis_statement_keyword_collision_vis_keywords_as_columns
+    input: |
+      SELECT mark, encoding, field, axis, legend FROM t;

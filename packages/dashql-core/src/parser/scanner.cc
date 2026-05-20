@@ -70,6 +70,9 @@ Parser::symbol_type Scanner::ReadIdentifier(buffers::parser::SymbolSpan loc) {
     }
     // Check if it's a keyword
     if (auto k = Keyword::Find(temp_buffer); !!k) {
+        if (k->category == KeywordCategory::VIS_UNRESERVED) {
+            output->name_registry.Register(k->name, buffers::parser::TextSpan(loc.offset(), loc.length()));
+        }
         return Parser::symbol_type(k->scanner_token, k->name, loc);
     }
     // Add string to dictionary

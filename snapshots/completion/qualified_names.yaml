@@ -547,6 +547,12 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
+        - score: 70
+          value: bar
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "bar"
+          location-qualified: "bar"
+          objects: []
         - score: 3
           value: group
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
@@ -555,12 +561,6 @@ completion-snapshots:
           objects: []
         - score: 3
           value: order
-          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          location: "bar"
-          location-qualified: "bar"
-          objects: []
-        - score: 3
-          value: where
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "bar"
           location-qualified: "bar"

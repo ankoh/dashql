@@ -58,6 +58,7 @@ DASHQL_COPTS = [
     "-std=c++20",
     "-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION",
     "-Wno-deprecated-declarations",
+    "-fconstexpr-steps=100000000",
 ]
 DASHQL_LINKOPTS = ["-std=c++20"]
 

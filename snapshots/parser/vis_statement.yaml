@@ -1,0 +1,2125 @@
+parser-snapshots:
+
+  - name: vis_statement_visualise_empty
+    input: |-
+      VISUALISE;
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
+      line-breaks: []
+      comments: []
+
+  - name: vis_statement_visualize_empty
+    input: |-
+      VISUALIZE;
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
+      line-breaks: []
+      comments: []
+
+  - name: vis_statement_minimal_mark
+    input: |-
+      VISUALIZE AS (mark => line);
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 5
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..k => line)"
+            children:
+              - key: VIS_VISUALISE_SPEC
+                type: ARRAY
+                text: "mark => line"
+                children:
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "mark => line"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "mark"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: NAME
+                        text: "line"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: vis_statement_table_source
+    input: |-
+      VISUALIZE sales AS (mark => bar);
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 8
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..rk => bar)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "sales"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "sales"
+                    children:
+                      - type: NAME
+                        text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: ARRAY
+                text: "mark => bar"
+                children:
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "mark => bar"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "mark"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: NAME
+                        text: "bar"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: vis_statement_qualified_table_source
+    input: |-
+      VISUALIZE warehouse.public.sales AS (mark => point);
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 10
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE .. => point)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "warehouse...blic.sales"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "warehouse...blic.sales"
+                    children:
+                      - type: NAME
+                        text: "warehouse"
+                      - type: NAME
+                        text: "public"
+                      - type: NAME
+                        text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: ARRAY
+                text: "mark => point"
+                children:
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "mark => point"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "mark"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: NAME
+                        text: "point"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: vis_statement_select_source
+    input: |-
+      VISUALIZE (SELECT * FROM sales) AS (mark => line);
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 13
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..k => line)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_SELECT
+                text: "(SELECT * ..ROM sales)"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "*"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
+                        text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: ARRAY
+                text: "mark => line"
+                children:
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "mark => line"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "mark"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: NAME
+                        text: "line"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: vis_statement_multi_spec_keys
+    input: |-
+      VISUALIZE sales AS (mark => line, width => 800, height => 400);
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 14
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..ht => 400)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "sales"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "sales"
+                    children:
+                      - type: NAME
+                        text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: ARRAY
+                text: "mark => li..ght => 400"
+                children:
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "mark => line"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "mark"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: NAME
+                        text: "line"
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "width => 800"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "width"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: LITERAL_INTEGER
+                        text: "800"
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "height => 400"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "height"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: LITERAL_INTEGER
+                        text: "400"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: vis_statement_encoding_single_channel
+    input: |-
+      VISUALIZE sales AS (
+        mark => bar,
+        encoding => (
+          x => (field => category, type => nominal)
+        )
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 26
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..nal)\n  )\n)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "sales"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "sales"
+                    children:
+                      - type: NAME
+                        text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: ARRAY
+                text: "mark => ba..minal)\n  )"
+                children:
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "mark => bar"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "mark"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: NAME
+                        text: "bar"
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "encoding =..minal)\n  )"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "encoding"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: OBJECT_EXT_VARARG_ARRAY
+                        text: "encoding =..minal)\n  )"
+                        children:
+                          - key: EXT_VARARG_ARRAY_VALUES
+                            type: ARRAY
+                            text: "x => (fiel..> nominal)"
+                            children:
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "x => (fiel..> nominal)"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "x"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: OBJECT_EXT_VARARG_ARRAY
+                                    text: "x => (fiel..> nominal)"
+                                    children:
+                                      - key: EXT_VARARG_ARRAY_VALUES
+                                        type: ARRAY
+                                        text: "field => c..=> nominal"
+                                        children:
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "field => category"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "field"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "category"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "category"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "category"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "type => nominal"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "type"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "nominal"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "nominal"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "nominal"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [20,21]
+        - text: [35,36]
+        - text: [51,52]
+        - text: [97,98]
+        - text: [101,102]
+      comments: []
+
+  - name: vis_statement_encoding_two_channels
+    input: |-
+      VISUALIZE sales AS (
+        mark => line,
+        encoding => (
+          x => (field => date, type => temporal),
+          y => (field => revenue, type => quantitative)
+        )
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 40
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..ive)\n  )\n)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "sales"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "sales"
+                    children:
+                      - type: NAME
+                        text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: ARRAY
+                text: "mark => li..ative)\n  )"
+                children:
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "mark => line"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "mark"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: NAME
+                        text: "line"
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "encoding =..ative)\n  )"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "encoding"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: OBJECT_EXT_VARARG_ARRAY
+                        text: "encoding =..ative)\n  )"
+                        children:
+                          - key: EXT_VARARG_ARRAY_VALUES
+                            type: ARRAY
+                            text: "x => (fiel..ntitative)"
+                            children:
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "x => (fiel.. temporal)"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "x"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: OBJECT_EXT_VARARG_ARRAY
+                                    text: "x => (fiel.. temporal)"
+                                    children:
+                                      - key: EXT_VARARG_ARRAY_VALUES
+                                        type: ARRAY
+                                        text: "field => d..> temporal"
+                                        children:
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "field => date"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "field"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "date"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "date"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "date"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "type => temporal"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "type"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "temporal"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "temporal"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "temporal"
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "y => (fiel..ntitative)"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "y"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: OBJECT_EXT_VARARG_ARRAY
+                                    text: "y => (fiel..ntitative)"
+                                    children:
+                                      - key: EXT_VARARG_ARRAY_VALUES
+                                        type: ARRAY
+                                        text: "field => r..antitative"
+                                        children:
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "field => revenue"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "field"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "revenue"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "revenue"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "revenue"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "type => qu..antitative"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "type"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "quantitative"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "quantitative"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "quantitative"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [20,21]
+        - text: [36,37]
+        - text: [52,53]
+        - text: [96,97]
+        - text: [146,147]
+        - text: [150,151]
+      comments: []
+
+  - name: vis_statement_encoding_with_scale
+    input: |-
+      VISUALIZE sales AS (
+        encoding => (
+          x => (field => time, type => temporal, scale => (domain => [0, 100]))
+        )
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 33
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..0]))\n  )\n)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "sales"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "sales"
+                    children:
+                      - type: NAME
+                        text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: ARRAY
+                text: "encoding =..100]))\n  )"
+                children:
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "encoding =..100]))\n  )"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "encoding"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: OBJECT_EXT_VARARG_ARRAY
+                        text: "encoding =..100]))\n  )"
+                        children:
+                          - key: EXT_VARARG_ARRAY_VALUES
+                            type: ARRAY
+                            text: "x => (fiel..[0, 100]))"
+                            children:
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "x => (fiel..[0, 100]))"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "x"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: OBJECT_EXT_VARARG_ARRAY
+                                    text: "x => (fiel..[0, 100]))"
+                                    children:
+                                      - key: EXT_VARARG_ARRAY_VALUES
+                                        type: ARRAY
+                                        text: "field => t.. [0, 100])"
+                                        children:
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "field => time"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "field"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "time"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "time"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "time"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "type => temporal"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "type"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "temporal"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "temporal"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "temporal"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "scale => (.. [0, 100])"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "scale"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_EXT_VARARG_ARRAY
+                                                text: "scale => (.. [0, 100])"
+                                                children:
+                                                  - key: EXT_VARARG_ARRAY_VALUES
+                                                    type: ARRAY
+                                                    text: "domain => [0, 100]"
+                                                    children:
+                                                      - type: OBJECT_EXT_VARARG_FIELD
+                                                        text: "domain => [0, 100]"
+                                                        children:
+                                                          - key: EXT_VARARG_FIELD_KEY
+                                                            type: NAME
+                                                            text: "domain"
+                                                          - key: EXT_VARARG_FIELD_VALUE
+                                                            type: OBJECT_EXT_VARARG_ARRAY
+                                                            text: "[0, 100]"
+                                                            children:
+                                                              - key: EXT_VARARG_ARRAY_VALUES
+                                                                type: ARRAY
+                                                                text: "[0, 100]"
+                                                                children:
+                                                                  - type: LITERAL_INTEGER
+                                                                    text: "0"
+                                                                  - type: LITERAL_INTEGER
+                                                                    text: "100"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [20,21]
+        - text: [36,37]
+        - text: [110,111]
+        - text: [114,115]
+      comments: []
+
+  - name: vis_statement_encoding_with_axis
+    input: |-
+      VISUALIZE sales AS (
+        encoding => (
+          x => (field => date, type => temporal, axis => (format => '%Y', grid => false))
+        )
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 33
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..se))\n  )\n)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "sales"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "sales"
+                    children:
+                      - type: NAME
+                        text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: ARRAY
+                text: "encoding =..alse))\n  )"
+                children:
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "encoding =..alse))\n  )"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "encoding"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: OBJECT_EXT_VARARG_ARRAY
+                        text: "encoding =..alse))\n  )"
+                        children:
+                          - key: EXT_VARARG_ARRAY_VALUES
+                            type: ARRAY
+                            text: "x => (fiel..=> false))"
+                            children:
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "x => (fiel..=> false))"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "x"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: OBJECT_EXT_VARARG_ARRAY
+                                    text: "x => (fiel..=> false))"
+                                    children:
+                                      - key: EXT_VARARG_ARRAY_VALUES
+                                        type: ARRAY
+                                        text: "field => d.. => false)"
+                                        children:
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "field => date"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "field"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "date"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "date"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "date"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "type => temporal"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "type"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "temporal"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "temporal"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "temporal"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "axis => (f.. => false)"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "axis"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_EXT_VARARG_ARRAY
+                                                text: "axis => (f.. => false)"
+                                                children:
+                                                  - key: EXT_VARARG_ARRAY_VALUES
+                                                    type: ARRAY
+                                                    text: "format => ..d => false"
+                                                    children:
+                                                      - type: OBJECT_EXT_VARARG_FIELD
+                                                        text: "format => '%Y'"
+                                                        children:
+                                                          - key: EXT_VARARG_FIELD_KEY
+                                                            type: NAME
+                                                            text: "format"
+                                                          - key: EXT_VARARG_FIELD_VALUE
+                                                            type: LITERAL_STRING
+                                                            text: "'%Y'"
+                                                      - type: OBJECT_EXT_VARARG_FIELD
+                                                        text: "grid => false"
+                                                        children:
+                                                          - key: EXT_VARARG_FIELD_KEY
+                                                            type: NAME
+                                                            text: "grid"
+                                                          - key: EXT_VARARG_FIELD_VALUE
+                                                            type: BOOL
+                                                            value: 0
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [20,21]
+        - text: [36,37]
+        - text: [120,121]
+        - text: [124,125]
+      comments: []
+
+  - name: vis_statement_encoding_with_legend
+    input: |-
+      VISUALIZE sales AS (
+        encoding => (
+          color => (field => region, type => nominal, legend => (title => 'Region', orient => 'right'))
+        )
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 33
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..t'))\n  )\n)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "sales"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "sales"
+                    children:
+                      - type: NAME
+                        text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: ARRAY
+                text: "encoding =..ght'))\n  )"
+                children:
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "encoding =..ght'))\n  )"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "encoding"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: OBJECT_EXT_VARARG_ARRAY
+                        text: "encoding =..ght'))\n  )"
+                        children:
+                          - key: EXT_VARARG_ARRAY_VALUES
+                            type: ARRAY
+                            text: "color => (.. 'right'))"
+                            children:
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "color => (.. 'right'))"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "color"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: OBJECT_EXT_VARARG_ARRAY
+                                    text: "color => (.. 'right'))"
+                                    children:
+                                      - key: EXT_VARARG_ARRAY_VALUES
+                                        type: ARRAY
+                                        text: "field => r..> 'right')"
+                                        children:
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "field => region"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "field"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "region"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "region"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "region"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "type => nominal"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "type"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "nominal"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "nominal"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "nominal"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "legend => ..> 'right')"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "legend"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_EXT_VARARG_ARRAY
+                                                text: "legend => ..> 'right')"
+                                                children:
+                                                  - key: EXT_VARARG_ARRAY_VALUES
+                                                    type: ARRAY
+                                                    text: "title => '..=> 'right'"
+                                                    children:
+                                                      - type: OBJECT_EXT_VARARG_FIELD
+                                                        text: "title => 'Region'"
+                                                        children:
+                                                          - key: EXT_VARARG_FIELD_KEY
+                                                            type: NAME
+                                                            text: "title"
+                                                          - key: EXT_VARARG_FIELD_VALUE
+                                                            type: LITERAL_STRING
+                                                            text: "'Region'"
+                                                      - type: OBJECT_EXT_VARARG_FIELD
+                                                        text: "orient => 'right'"
+                                                        children:
+                                                          - key: EXT_VARARG_FIELD_KEY
+                                                            type: NAME
+                                                            text: "orient"
+                                                          - key: EXT_VARARG_FIELD_VALUE
+                                                            type: LITERAL_STRING
+                                                            text: "'right'"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [20,21]
+        - text: [36,37]
+        - text: [134,135]
+        - text: [138,139]
+      comments: []
+
+  - name: vis_statement_scale_full
+    input: |-
+      VISUALIZE sales AS (
+        encoding => (
+          x => (
+            field => price,
+            type => quantitative,
+            scale => (
+              type => log,
+              domain => [0, 1000],
+              nice => true,
+              zero => false,
+              clamp => true
+            )
+          )
+        )
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 47
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..   )\n  )\n)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "sales"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "sales"
+                    children:
+                      - type: NAME
+                        text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: ARRAY
+                text: "encoding =..\n    )\n  )"
+                children:
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "encoding =..\n    )\n  )"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "encoding"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: OBJECT_EXT_VARARG_ARRAY
+                        text: "encoding =..\n    )\n  )"
+                        children:
+                          - key: EXT_VARARG_ARRAY_VALUES
+                            type: ARRAY
+                            text: "x => (\n   ..   )\n    )"
+                            children:
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "x => (\n   ..   )\n    )"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "x"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: OBJECT_EXT_VARARG_ARRAY
+                                    text: "x => (\n   ..   )\n    )"
+                                    children:
+                                      - key: EXT_VARARG_ARRAY_VALUES
+                                        type: ARRAY
+                                        text: "field => p..ue\n      )"
+                                        children:
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "field => price"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "field"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "price"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "price"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "price"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "type => qu..antitative"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "type"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "quantitative"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "quantitative"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "quantitative"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "scale => (..ue\n      )"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "scale"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_EXT_VARARG_ARRAY
+                                                text: "scale => (..ue\n      )"
+                                                children:
+                                                  - key: EXT_VARARG_ARRAY_VALUES
+                                                    type: ARRAY
+                                                    text: "type => lo..mp => true"
+                                                    children:
+                                                      - type: OBJECT_EXT_VARARG_FIELD
+                                                        text: "type => log"
+                                                        children:
+                                                          - key: EXT_VARARG_FIELD_KEY
+                                                            type: NAME
+                                                            text: "type"
+                                                          - key: EXT_VARARG_FIELD_VALUE
+                                                            type: OBJECT_SQL_COLUMN_REF
+                                                            text: "log"
+                                                            children:
+                                                              - key: SQL_COLUMN_REF_PATH
+                                                                type: ARRAY
+                                                                text: "log"
+                                                                children:
+                                                                  - type: NAME
+                                                                    text: "log"
+                                                      - type: OBJECT_EXT_VARARG_FIELD
+                                                        text: "domain => [0, 1000]"
+                                                        children:
+                                                          - key: EXT_VARARG_FIELD_KEY
+                                                            type: NAME
+                                                            text: "domain"
+                                                          - key: EXT_VARARG_FIELD_VALUE
+                                                            type: OBJECT_EXT_VARARG_ARRAY
+                                                            text: "[0, 1000]"
+                                                            children:
+                                                              - key: EXT_VARARG_ARRAY_VALUES
+                                                                type: ARRAY
+                                                                text: "[0, 1000]"
+                                                                children:
+                                                                  - type: LITERAL_INTEGER
+                                                                    text: "0"
+                                                                  - type: LITERAL_INTEGER
+                                                                    text: "1000"
+                                                      - type: OBJECT_EXT_VARARG_FIELD
+                                                        text: "nice => true"
+                                                        children:
+                                                          - key: EXT_VARARG_FIELD_KEY
+                                                            type: NAME
+                                                            text: "nice"
+                                                          - key: EXT_VARARG_FIELD_VALUE
+                                                            type: BOOL
+                                                            value: 1
+                                                      - type: OBJECT_EXT_VARARG_FIELD
+                                                        text: "zero => false"
+                                                        children:
+                                                          - key: EXT_VARARG_FIELD_KEY
+                                                            type: NAME
+                                                            text: "zero"
+                                                          - key: EXT_VARARG_FIELD_VALUE
+                                                            type: BOOL
+                                                            value: 0
+                                                      - type: OBJECT_EXT_VARARG_FIELD
+                                                        text: "clamp => true"
+                                                        children:
+                                                          - key: EXT_VARARG_FIELD_KEY
+                                                            type: NAME
+                                                            text: "clamp"
+                                                          - key: EXT_VARARG_FIELD_VALUE
+                                                            type: BOOL
+                                                            value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [20,21]
+        - text: [36,37]
+        - text: [47,48]
+        - text: [69,70]
+        - text: [97,98]
+        - text: [114,115]
+        - text: [135,136]
+        - text: [164,165]
+        - text: [186,187]
+        - text: [209,210]
+        - text: [231,232]
+        - text: [239,240]
+        - text: [245,246]
+        - text: [249,250]
+      comments: []
+
+  - name: vis_statement_encoding_shorthand_value
+    input: |-
+      VISUALIZE sales AS (
+        encoding => (
+          x => date,
+          y => revenue
+        )
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 19
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..enue\n  )\n)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "sales"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "sales"
+                    children:
+                      - type: NAME
+                        text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: ARRAY
+                text: "encoding =..evenue\n  )"
+                children:
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "encoding =..evenue\n  )"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "encoding"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: OBJECT_EXT_VARARG_ARRAY
+                        text: "encoding =..evenue\n  )"
+                        children:
+                          - key: EXT_VARARG_ARRAY_VALUES
+                            type: ARRAY
+                            text: "x => date,..=> revenue"
+                            children:
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "x => date"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "x"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "date"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "date"
+                                        children:
+                                          - type: NAME
+                                            text: "date"
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "y => revenue"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "y"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "revenue"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "revenue"
+                                        children:
+                                          - type: NAME
+                                            text: "revenue"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [20,21]
+        - text: [36,37]
+        - text: [51,52]
+        - text: [68,69]
+        - text: [72,73]
+      comments: []
+
+  - name: vis_statement_encoding_color_channel
+    input: |-
+      VISUALIZE sales AS (
+        mark => point,
+        encoding => (
+          x => (field => date, type => temporal),
+          y => (field => revenue, type => quantitative),
+          color => (field => region, type => nominal)
+        )
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 54
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..nal)\n  )\n)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "sales"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "sales"
+                    children:
+                      - type: NAME
+                        text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: ARRAY
+                text: "mark => po..minal)\n  )"
+                children:
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "mark => point"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "mark"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: NAME
+                        text: "point"
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "encoding =..minal)\n  )"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "encoding"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: OBJECT_EXT_VARARG_ARRAY
+                        text: "encoding =..minal)\n  )"
+                        children:
+                          - key: EXT_VARARG_ARRAY_VALUES
+                            type: ARRAY
+                            text: "x => (fiel..> nominal)"
+                            children:
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "x => (fiel.. temporal)"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "x"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: OBJECT_EXT_VARARG_ARRAY
+                                    text: "x => (fiel.. temporal)"
+                                    children:
+                                      - key: EXT_VARARG_ARRAY_VALUES
+                                        type: ARRAY
+                                        text: "field => d..> temporal"
+                                        children:
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "field => date"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "field"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "date"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "date"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "date"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "type => temporal"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "type"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "temporal"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "temporal"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "temporal"
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "y => (fiel..ntitative)"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "y"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: OBJECT_EXT_VARARG_ARRAY
+                                    text: "y => (fiel..ntitative)"
+                                    children:
+                                      - key: EXT_VARARG_ARRAY_VALUES
+                                        type: ARRAY
+                                        text: "field => r..antitative"
+                                        children:
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "field => revenue"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "field"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "revenue"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "revenue"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "revenue"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "type => qu..antitative"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "type"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "quantitative"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "quantitative"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "quantitative"
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "color => (..> nominal)"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "color"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: OBJECT_EXT_VARARG_ARRAY
+                                    text: "color => (..> nominal)"
+                                    children:
+                                      - key: EXT_VARARG_ARRAY_VALUES
+                                        type: ARRAY
+                                        text: "field => r..=> nominal"
+                                        children:
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "field => region"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "field"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "region"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "region"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "region"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "type => nominal"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "type"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "nominal"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "nominal"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "nominal"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [20,21]
+        - text: [37,38]
+        - text: [53,54]
+        - text: [97,98]
+        - text: [148,149]
+        - text: [196,197]
+        - text: [200,201]
+      comments: []
+
+  - name: vis_statement_nested_object_value
+    input: |-
+      VISUALIZE sales AS (
+        mark => (type => 'bar', title => 'My Chart')
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 15
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE .. Chart')\n)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "sales"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "sales"
+                    children:
+                      - type: NAME
+                        text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: ARRAY
+                text: "mark => (t..My Chart')"
+                children:
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "mark => (t..My Chart')"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "mark"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: OBJECT_EXT_VARARG_ARRAY
+                        text: "(type => '..My Chart')"
+                        children:
+                          - key: EXT_VARARG_ARRAY_VALUES
+                            type: ARRAY
+                            text: "type => 'b..'My Chart'"
+                            children:
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "type => 'bar'"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "type"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: LITERAL_STRING
+                                    text: "'bar'"
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "title => 'My Chart'"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "title"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: LITERAL_STRING
+                                    text: "'My Chart'"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [20,21]
+        - text: [67,68]
+      comments: []
+
+  - name: vis_statement_array_value
+    input: |-
+      VISUALIZE sales AS (
+        encoding => (
+          x => (scale => (domain => [0, 50, 100]))
+        )
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 24
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..0]))\n  )\n)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "sales"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "sales"
+                    children:
+                      - type: NAME
+                        text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: ARRAY
+                text: "encoding =..100]))\n  )"
+                children:
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "encoding =..100]))\n  )"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "encoding"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: OBJECT_EXT_VARARG_ARRAY
+                        text: "encoding =..100]))\n  )"
+                        children:
+                          - key: EXT_VARARG_ARRAY_VALUES
+                            type: ARRAY
+                            text: "x => (scal..50, 100]))"
+                            children:
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "x => (scal..50, 100]))"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "x"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: OBJECT_EXT_VARARG_ARRAY
+                                    text: "x => (scal..50, 100]))"
+                                    children:
+                                      - key: EXT_VARARG_ARRAY_VALUES
+                                        type: ARRAY
+                                        text: "scale => (.. 50, 100])"
+                                        children:
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "scale => (.. 50, 100])"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "scale"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_EXT_VARARG_ARRAY
+                                                text: "scale => (.. 50, 100])"
+                                                children:
+                                                  - key: EXT_VARARG_ARRAY_VALUES
+                                                    type: ARRAY
+                                                    text: "domain => .., 50, 100]"
+                                                    children:
+                                                      - type: OBJECT_EXT_VARARG_FIELD
+                                                        text: "domain => .., 50, 100]"
+                                                        children:
+                                                          - key: EXT_VARARG_FIELD_KEY
+                                                            type: NAME
+                                                            text: "domain"
+                                                          - key: EXT_VARARG_FIELD_VALUE
+                                                            type: OBJECT_EXT_VARARG_ARRAY
+                                                            text: "[0, 50, 100]"
+                                                            children:
+                                                              - key: EXT_VARARG_ARRAY_VALUES
+                                                                type: ARRAY
+                                                                text: "[0, 50, 100]"
+                                                                children:
+                                                                  - type: LITERAL_INTEGER
+                                                                    text: "0"
+                                                                  - type: LITERAL_INTEGER
+                                                                    text: "50"
+                                                                  - type: LITERAL_INTEGER
+                                                                    text: "100"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [20,21]
+        - text: [36,37]
+        - text: [81,82]
+        - text: [85,86]
+      comments: []
+
+  - name: vis_statement_numeric_values
+    input: |-
+      VISUALIZE sales AS (width => 800, height => 400, padding => 20);
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 14
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..ing => 20)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "sales"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "sales"
+                    children:
+                      - type: NAME
+                        text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: ARRAY
+                text: "width => 8..ding => 20"
+                children:
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "width => 800"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "width"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: LITERAL_INTEGER
+                        text: "800"
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "height => 400"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "height"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: LITERAL_INTEGER
+                        text: "400"
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "padding => 20"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "padding"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: LITERAL_INTEGER
+                        text: "20"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: vis_statement_full_pipeline
+    input: |-
+      VISUALIZE (SELECT * FROM sales) AS (
+        mark => line,
+        encoding => (
+          x => (field => date, type => temporal, axis => (format => '%b %Y')),
+          y => (field => revenue, type => quantitative, scale => (zero => true)),
+          color => (field => region, type => nominal, legend => (orient => 'right'))
+        ),
+        width => 800,
+        height => 400,
+        title => 'Revenue by Region'
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 89
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE .. Region'\n)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_SELECT
+                text: "(SELECT * ..ROM sales)"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "*"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
+                        text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: ARRAY
+                text: "mark => li..by Region'"
+                children:
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "mark => line"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "mark"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: NAME
+                        text: "line"
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "encoding =..ght'))\n  )"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "encoding"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: OBJECT_EXT_VARARG_ARRAY
+                        text: "encoding =..ght'))\n  )"
+                        children:
+                          - key: EXT_VARARG_ARRAY_VALUES
+                            type: ARRAY
+                            text: "x => (fiel.. 'right'))"
+                            children:
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "x => (fiel.. '%b %Y'))"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "x"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: OBJECT_EXT_VARARG_ARRAY
+                                    text: "x => (fiel.. '%b %Y'))"
+                                    children:
+                                      - key: EXT_VARARG_ARRAY_VALUES
+                                        type: ARRAY
+                                        text: "field => d..> '%b %Y')"
+                                        children:
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "field => date"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "field"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "date"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "date"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "date"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "type => temporal"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "type"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "temporal"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "temporal"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "temporal"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "axis => (f..> '%b %Y')"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "axis"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_EXT_VARARG_ARRAY
+                                                text: "axis => (f..> '%b %Y')"
+                                                children:
+                                                  - key: EXT_VARARG_ARRAY_VALUES
+                                                    type: ARRAY
+                                                    text: "format => '%b %Y'"
+                                                    children:
+                                                      - type: OBJECT_EXT_VARARG_FIELD
+                                                        text: "format => '%b %Y'"
+                                                        children:
+                                                          - key: EXT_VARARG_FIELD_KEY
+                                                            type: NAME
+                                                            text: "format"
+                                                          - key: EXT_VARARG_FIELD_VALUE
+                                                            type: LITERAL_STRING
+                                                            text: "'%b %Y'"
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "y => (fiel.. => true))"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "y"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: OBJECT_EXT_VARARG_ARRAY
+                                    text: "y => (fiel.. => true))"
+                                    children:
+                                      - key: EXT_VARARG_ARRAY_VALUES
+                                        type: ARRAY
+                                        text: "field => r..o => true)"
+                                        children:
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "field => revenue"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "field"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "revenue"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "revenue"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "revenue"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "type => qu..antitative"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "type"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "quantitative"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "quantitative"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "quantitative"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "scale => (..o => true)"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "scale"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_EXT_VARARG_ARRAY
+                                                text: "scale => (..o => true)"
+                                                children:
+                                                  - key: EXT_VARARG_ARRAY_VALUES
+                                                    type: ARRAY
+                                                    text: "zero => true"
+                                                    children:
+                                                      - type: OBJECT_EXT_VARARG_FIELD
+                                                        text: "zero => true"
+                                                        children:
+                                                          - key: EXT_VARARG_FIELD_KEY
+                                                            type: NAME
+                                                            text: "zero"
+                                                          - key: EXT_VARARG_FIELD_VALUE
+                                                            type: BOOL
+                                                            value: 1
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "color => (.. 'right'))"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "color"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: OBJECT_EXT_VARARG_ARRAY
+                                    text: "color => (.. 'right'))"
+                                    children:
+                                      - key: EXT_VARARG_ARRAY_VALUES
+                                        type: ARRAY
+                                        text: "field => r..> 'right')"
+                                        children:
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "field => region"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "field"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "region"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "region"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "region"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "type => nominal"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "type"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "nominal"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "nominal"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "nominal"
+                                          - type: OBJECT_EXT_VARARG_FIELD
+                                            text: "legend => ..> 'right')"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "legend"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_EXT_VARARG_ARRAY
+                                                text: "legend => ..> 'right')"
+                                                children:
+                                                  - key: EXT_VARARG_ARRAY_VALUES
+                                                    type: ARRAY
+                                                    text: "orient => 'right'"
+                                                    children:
+                                                      - type: OBJECT_EXT_VARARG_FIELD
+                                                        text: "orient => 'right'"
+                                                        children:
+                                                          - key: EXT_VARARG_FIELD_KEY
+                                                            type: NAME
+                                                            text: "orient"
+                                                          - key: EXT_VARARG_FIELD_VALUE
+                                                            type: LITERAL_STRING
+                                                            text: "'right'"
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "width => 800"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "width"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: LITERAL_INTEGER
+                        text: "800"
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "height => 400"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "height"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: LITERAL_INTEGER
+                        text: "400"
+                  - type: OBJECT_EXT_VARARG_FIELD
+                    text: "title => '..by Region'"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "title"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: LITERAL_STRING
+                        text: "'Revenue by Region'"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [36,37]
+        - text: [52,53]
+        - text: [68,69]
+        - text: [141,142]
+        - text: [217,218]
+        - text: [296,297]
+        - text: [301,302]
+        - text: [317,318]
+        - text: [334,335]
+        - text: [365,366]
+      comments: []
+
+  - name: vis_statement_keyword_collision_select
+    input: |-
+      SELECT visualise, draw, scale FROM t;
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 18
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT vis..ale FROM t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "visualise,..raw, scale"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "visualise"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "visualise"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "visualise"
+                            children:
+                              - type: NAME
+                                text: "visualise"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "draw"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "draw"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "draw"
+                            children:
+                              - type: NAME
+                                text: "draw"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "scale"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "scale"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "scale"
+                            children:
+                              - type: NAME
+                                text: "scale"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: vis_statement_keyword_collision_vis_keywords_as_columns
+    input: |-
+      SELECT mark, encoding, field, axis, legend FROM t;
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 26
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT mar..end FROM t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "mark, enco..is, legend"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "mark"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "mark"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "mark"
+                            children:
+                              - type: NAME
+                                text: "mark"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "encoding"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "encoding"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "encoding"
+                            children:
+                              - type: NAME
+                                text: "encoding"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "field"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "field"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "field"
+                            children:
+                              - type: NAME
+                                text: "field"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "axis"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "axis"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "axis"
+                            children:
+                              - type: NAME
+                                text: "axis"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "legend"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "legend"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "legend"
+                            children:
+                              - type: NAME
+                                text: "legend"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []

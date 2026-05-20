@@ -12,6 +12,7 @@ constexpr size_t KEYWORD_COUNT = 0
 #include "grammar_lists/sql_reserved_keywords.list"
 #include "grammar_lists/sql_type_func_keywords.list"
 #include "grammar_lists/sql_unreserved_keywords.list"
+#include "grammar_lists/vis_unreserved_keywords.list"
 #undef X
     ;
 
@@ -21,6 +22,7 @@ constexpr int64_t KEYWORD_MAX_SYMBOL_ID = std::max<int64_t>({
 #include "grammar_lists/sql_reserved_keywords.list"
 #include "grammar_lists/sql_type_func_keywords.list"
 #include "grammar_lists/sql_unreserved_keywords.list"
+#include "grammar_lists/vis_unreserved_keywords.list"
 #undef X
     0});
 constexpr size_t KEYWORD_SYMBOL_COUNT = KEYWORD_MAX_SYMBOL_ID + 1;
@@ -33,6 +35,7 @@ constexpr frozen::unordered_map<std::string_view, Keyword, KEYWORD_COUNT> KEYWOR
 #include "grammar_lists/sql_reserved_keywords.list"
 #include "grammar_lists/sql_type_func_keywords.list"
 #include "grammar_lists/sql_unreserved_keywords.list"
+#include "grammar_lists/vis_unreserved_keywords.list"
 #undef X
 };
 
@@ -56,6 +59,7 @@ const constexpr std::array<Keyword, KEYWORD_COUNT> SortKeywords() {
 #include "grammar_lists/sql_reserved_keywords.list"
 #include "grammar_lists/sql_type_func_keywords.list"
 #include "grammar_lists/sql_unreserved_keywords.list"
+#include "grammar_lists/vis_unreserved_keywords.list"
 #undef X
     };
     std::sort(keywords.begin(), keywords.end(), [](auto& l, auto& r) { return l.name < r.name; });
@@ -69,6 +73,7 @@ constexpr size_t MAX_KEYWORD_LENGTH = std::max<size_t>({
 #include "grammar_lists/sql_reserved_keywords.list"
 #include "grammar_lists/sql_type_func_keywords.list"
 #include "grammar_lists/sql_unreserved_keywords.list"
+#include "grammar_lists/vis_unreserved_keywords.list"
 #undef X
 });
 

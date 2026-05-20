@@ -8,7 +8,7 @@ namespace dashql {
 namespace parser {
 
 /// A keyword category
-enum class KeywordCategory { FLATSQL, SQL_COLUMN_NAME, SQL_RESERVED, SQL_TYPE_FUNC, SQL_UNRESERVED };
+enum class KeywordCategory { FLATSQL, SQL_COLUMN_NAME, SQL_RESERVED, SQL_TYPE_FUNC, SQL_UNRESERVED, VIS_UNRESERVED };
 
 /// A keyword
 struct Keyword {

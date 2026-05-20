@@ -297,7 +297,7 @@ completion-snapshots:
           location-qualified: "w"
           objects: []
         - score: 55
-          value: window
+          value: width
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "w"
           location-qualified: "w"
@@ -411,7 +411,7 @@ completion-snapshots:
           location-qualified: "gr"
           objects: []
         - score: 55
-          value: global
+          value: geojson
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "gr"
           location-qualified: "gr"
@@ -444,9 +444,9 @@ completion-snapshots:
           location: "group"
           location-qualified: "group"
           objects: []
-        - score: 3
-          value: order
-          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+        - score: 50
+          value: background
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "group"
           location-qualified: "group"
           objects: []
@@ -656,14 +656,14 @@ completion-snapshots:
           location-qualified: "li"
           objects: []
         - score: 55
-          value: listen
+          value: line
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "li"
           location-qualified: "li"
           objects: []
-        - score: 50
-          value: conflict
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+        - score: 55
+          value: listen
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "li"
           location-qualified: "li"
           objects: []

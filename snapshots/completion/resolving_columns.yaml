@@ -66,7 +66,7 @@ completion-snapshots:
           location-qualified: "j"
           objects: []
         - score: 50
-          value: object
+          value: geojson
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "j"
           location-qualified: "j"

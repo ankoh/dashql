@@ -11,6 +11,7 @@ static const buffers::parser::ScannerTokenType MapToken(parser::Parser::symbol_t
 #include "grammar_lists/sql_reserved_keywords.list"
 #include "grammar_lists/sql_type_func_keywords.list"
 #include "grammar_lists/sql_unreserved_keywords.list"
+#include "grammar_lists/vis_unreserved_keywords.list"
 #undef X
         case parser::Parser::symbol_kind_type::S_NULLS_LA:
         case parser::Parser::symbol_kind_type::S_NOT_LA:
