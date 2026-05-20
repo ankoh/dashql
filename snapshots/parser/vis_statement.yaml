@@ -255,7 +255,8 @@ parser-snapshots:
                     type: OBJECT_VIS_ENCODING
                     text: "encoding =..minal)\n  )"
                     children:
-                      - type: OBJECT_VIS_FIELD_DEF
+                      - key: VIS_ENCODING_X
+                        type: OBJECT_VIS_FIELD_DEF
                         text: "x => (fiel..> nominal)"
                         children:
                           - key: VIS_FIELD_DEF_FIELD
@@ -322,7 +323,8 @@ parser-snapshots:
                     type: OBJECT_VIS_ENCODING
                     text: "encoding =..ative)\n  )"
                     children:
-                      - type: OBJECT_VIS_FIELD_DEF
+                      - key: VIS_ENCODING_X
+                        type: OBJECT_VIS_FIELD_DEF
                         text: "x => (fiel.. temporal)"
                         children:
                           - key: VIS_FIELD_DEF_FIELD
@@ -339,7 +341,8 @@ parser-snapshots:
                             type: ENUM_VIS_FIELD_TYPE
                             text: "temporal"
                             children: []
-                      - type: OBJECT_VIS_FIELD_DEF
+                      - key: VIS_ENCODING_Y
+                        type: OBJECT_VIS_FIELD_DEF
                         text: "y => (fiel..ntitative)"
                         children:
                           - key: VIS_FIELD_DEF_FIELD
@@ -401,7 +404,8 @@ parser-snapshots:
                     type: OBJECT_VIS_ENCODING
                     text: "encoding =..100]))\n  )"
                     children:
-                      - type: OBJECT_VIS_FIELD_DEF
+                      - key: VIS_ENCODING_X
+                        type: OBJECT_VIS_FIELD_DEF
                         text: "x => (fiel..[0, 100]))"
                         children:
                           - key: VIS_FIELD_DEF_FIELD
@@ -477,7 +481,8 @@ parser-snapshots:
                     type: OBJECT_VIS_ENCODING
                     text: "encoding =..alse))\n  )"
                     children:
-                      - type: OBJECT_VIS_FIELD_DEF
+                      - key: VIS_ENCODING_X
+                        type: OBJECT_VIS_FIELD_DEF
                         text: "x => (fiel..=> false))"
                         children:
                           - key: VIS_FIELD_DEF_FIELD
@@ -605,7 +610,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 22
+          ast-size: 20
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..   )\n  )\n)"
@@ -628,7 +633,8 @@ parser-snapshots:
                     type: OBJECT_VIS_ENCODING
                     text: "encoding =..\n    )\n  )"
                     children:
-                      - type: OBJECT_VIS_FIELD_DEF
+                      - key: VIS_ENCODING_X
+                        type: OBJECT_VIS_FIELD_DEF
                         text: "x => (\n   ..   )\n    )"
                         children:
                           - key: VIS_FIELD_DEF_FIELD
@@ -650,15 +656,9 @@ parser-snapshots:
                             text: "scale => (..ue\n      )"
                             children:
                               - key: VIS_SCALE_TYPE
-                                type: OBJECT_SQL_COLUMN_REF
+                                type: ENUM_VIS_SCALE_TYPE
                                 text: "log"
-                                children:
-                                  - key: SQL_COLUMN_REF_PATH
-                                    type: ARRAY
-                                    text: "log"
-                                    children:
-                                      - type: NAME
-                                        text: "log"
+                                children: []
                               - key: VIS_SCALE_DOMAIN
                                 type: OBJECT_EXT_VARARG_ARRAY
                                 text: "[0, 1000]"
@@ -734,7 +734,8 @@ parser-snapshots:
                     type: OBJECT_VIS_ENCODING
                     text: "encoding =..evenue\n  )"
                     children:
-                      - type: OBJECT_SQL_COLUMN_REF
+                      - key: VIS_ENCODING_X
+                        type: OBJECT_SQL_COLUMN_REF
                         text: "date"
                         children:
                           - key: SQL_COLUMN_REF_PATH
@@ -743,7 +744,8 @@ parser-snapshots:
                             children:
                               - type: NAME
                                 text: "date"
-                      - type: OBJECT_SQL_COLUMN_REF
+                      - key: VIS_ENCODING_Y
+                        type: OBJECT_SQL_COLUMN_REF
                         text: "revenue"
                         children:
                           - key: SQL_COLUMN_REF_PATH
@@ -803,7 +805,8 @@ parser-snapshots:
                     type: OBJECT_VIS_ENCODING
                     text: "encoding =..minal)\n  )"
                     children:
-                      - type: OBJECT_VIS_FIELD_DEF
+                      - key: VIS_ENCODING_X
+                        type: OBJECT_VIS_FIELD_DEF
                         text: "x => (fiel.. temporal)"
                         children:
                           - key: VIS_FIELD_DEF_FIELD
@@ -820,7 +823,8 @@ parser-snapshots:
                             type: ENUM_VIS_FIELD_TYPE
                             text: "temporal"
                             children: []
-                      - type: OBJECT_VIS_FIELD_DEF
+                      - key: VIS_ENCODING_Y
+                        type: OBJECT_VIS_FIELD_DEF
                         text: "y => (fiel..ntitative)"
                         children:
                           - key: VIS_FIELD_DEF_FIELD
@@ -946,7 +950,8 @@ parser-snapshots:
                     type: OBJECT_VIS_ENCODING
                     text: "encoding =..100]))\n  )"
                     children:
-                      - type: OBJECT_VIS_FIELD_DEF
+                      - key: VIS_ENCODING_X
+                        type: OBJECT_VIS_FIELD_DEF
                         text: "x => (scal..50, 100]))"
                         children:
                           - key: VIS_FIELD_DEF_SCALE
@@ -1077,7 +1082,8 @@ parser-snapshots:
                     type: OBJECT_VIS_ENCODING
                     text: "encoding =..ght'))\n  )"
                     children:
-                      - type: OBJECT_VIS_FIELD_DEF
+                      - key: VIS_ENCODING_X
+                        type: OBJECT_VIS_FIELD_DEF
                         text: "x => (fiel.. '%b %Y'))"
                         children:
                           - key: VIS_FIELD_DEF_FIELD
@@ -1101,7 +1107,8 @@ parser-snapshots:
                               - key: VIS_AXIS_FORMAT
                                 type: LITERAL_STRING
                                 text: "'%b %Y'"
-                      - type: OBJECT_VIS_FIELD_DEF
+                      - key: VIS_ENCODING_Y
+                        type: OBJECT_VIS_FIELD_DEF
                         text: "y => (fiel.. => true))"
                         children:
                           - key: VIS_FIELD_DEF_FIELD

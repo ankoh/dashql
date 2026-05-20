@@ -142,6 +142,10 @@ opt_vis_encoding_field:
 
 vis_channel_key:
     IDENT             { $$ = Key::NONE; }
+  | X_P               { $$ = Key::VIS_ENCODING_X; }
+  | Y_P               { $$ = Key::VIS_ENCODING_Y; }
+  | X2                { $$ = Key::VIS_ENCODING_X2; }
+  | Y2                { $$ = Key::VIS_ENCODING_Y2; }
   | COLOR             { $$ = Key::VIS_ENCODING_COLOR; }
   | FILL              { $$ = Key::VIS_ENCODING_FILL; }
   | STROKE            { $$ = Key::VIS_ENCODING_STROKE; }
@@ -254,15 +258,36 @@ vis_scale_list:
     ;
 
 opt_vis_scale_field:
-    vis_scale_key EQUALS_GREATER vis_value {
+    TYPE_P EQUALS_GREATER vis_scale_type {
+        $$ = Attr(Key::VIS_SCALE_TYPE, $3);
+    }
+  | vis_scale_key EQUALS_GREATER vis_value {
         $$ = Attr($1, $3);
     }
   | %empty { $$ = Null(); }
     ;
 
+vis_scale_type:
+    LINEAR          { $$ = Enum(@1, buffers::parser::VisScaleType::LINEAR); }
+  | LOG_P           { $$ = Enum(@1, buffers::parser::VisScaleType::LOG); }
+  | POW             { $$ = Enum(@1, buffers::parser::VisScaleType::POW); }
+  | SQRT            { $$ = Enum(@1, buffers::parser::VisScaleType::SQRT); }
+  | SYMLOG          { $$ = Enum(@1, buffers::parser::VisScaleType::SYMLOG); }
+  | IDENTITY_P      { $$ = Enum(@1, buffers::parser::VisScaleType::IDENTITY); }
+  | SEQUENTIAL      { $$ = Enum(@1, buffers::parser::VisScaleType::SEQUENTIAL); }
+  | TIME            { $$ = Enum(@1, buffers::parser::VisScaleType::TIME); }
+  | UTC             { $$ = Enum(@1, buffers::parser::VisScaleType::UTC); }
+  | QUANTILE        { $$ = Enum(@1, buffers::parser::VisScaleType::QUANTILE); }
+  | QUANTIZE        { $$ = Enum(@1, buffers::parser::VisScaleType::QUANTIZE); }
+  | THRESHOLD       { $$ = Enum(@1, buffers::parser::VisScaleType::THRESHOLD); }
+  | ORDINAL         { $$ = Enum(@1, buffers::parser::VisScaleType::ORDINAL); }
+  | BAND            { $$ = Enum(@1, buffers::parser::VisScaleType::BAND); }
+  | POINT           { $$ = Enum(@1, buffers::parser::VisScaleType::POINT); }
+  | sql_a_expr_const { $$ = ctx.Expression(std::move($1)); }
+    ;
+
 vis_scale_key:
     IDENT           { $$ = Key::NONE; }
-  | TYPE_P          { $$ = Key::VIS_SCALE_TYPE; }
   | DOMAIN_P        { $$ = Key::VIS_SCALE_DOMAIN; }
   | DOMAINMIN       { $$ = Key::VIS_SCALE_DOMAIN_MIN; }
   | DOMAINMAX       { $$ = Key::VIS_SCALE_DOMAIN_MAX; }

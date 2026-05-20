@@ -21,6 +21,7 @@
 %type <WeakUniquePtr<NodeList>> vis_scale_list;
 %type <buffers::parser::Node> opt_vis_scale_field;
 %type <buffers::parser::AttributeKey> vis_scale_key;
+%type <buffers::parser::Node> vis_scale_type;
 
 %type <WeakUniquePtr<NodeList>> vis_axis_list;
 %type <buffers::parser::Node> opt_vis_axis_field;

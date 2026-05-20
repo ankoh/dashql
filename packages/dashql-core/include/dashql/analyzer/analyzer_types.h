@@ -277,4 +277,196 @@ struct ColumnFilter {
     std::reference_wrapper<Expression> column_ref;
 };
 
+/// Binning parameters for a quantitative field
+struct VisBin {
+    /// The AST node id of the bin value node
+    uint32_t ast_node_id = 0;
+    /// Whether the input data is already binned
+    std::optional<bool> binned;
+    /// An exact step size between bins
+    std::optional<double> step;
+    /// Maximum number of bins
+    std::optional<double> maxbins;
+    /// Minimum allowable step size
+    std::optional<double> minstep;
+    /// A value at which to anchor the bins
+    std::optional<double> anchor;
+    /// The number base for automatic bin determination (default 10)
+    std::optional<double> base;
+    /// Whether to use nice bin boundaries
+    std::optional<bool> nice;
+    /// AST node id for the extent array [min, max]
+    std::optional<uint32_t> extent_node_id;
+    /// AST node id for the divide array
+    std::optional<uint32_t> divide_node_id;
+    /// AST node id for the steps array
+    std::optional<uint32_t> steps_node_id;
+};
+
+/// A visualization scale definition
+struct VisScale {
+    /// The AST node id of the OBJECT_VIS_SCALE node
+    uint32_t ast_node_id = 0;
+    /// The scale type (linear, log, pow, sqrt, etc.)
+    std::optional<buffers::parser::VisScaleType> type;
+    /// AST node id for the domain value (array, expression, etc.)
+    std::optional<uint32_t> domain_node_id;
+    /// AST node id for the explicit domain minimum
+    std::optional<uint32_t> domain_min_node_id;
+    /// AST node id for the explicit domain maximum
+    std::optional<uint32_t> domain_max_node_id;
+    /// AST node id for the domain midpoint (diverging scales)
+    std::optional<uint32_t> domain_mid_node_id;
+    /// AST node id for the range value (array, expression, etc.)
+    std::optional<uint32_t> range_node_id;
+    /// AST node id for the explicit range minimum
+    std::optional<uint32_t> range_min_node_id;
+    /// AST node id for the explicit range maximum
+    std::optional<uint32_t> range_max_node_id;
+    /// The color scheme name for sequential/diverging scales
+    std::optional<std::string_view> scheme;
+    /// The interpolation method for the scale range
+    std::optional<std::string_view> interpolate;
+    /// Whether to extend the domain to nice round values
+    std::optional<bool> nice;
+    /// Whether to include zero in the domain
+    std::optional<bool> zero;
+    /// Whether to clamp output to the range
+    std::optional<bool> clamp;
+    /// Padding applied to both ends of the domain (band/point scales)
+    std::optional<double> padding;
+    /// Inner padding between bands (band scales)
+    std::optional<double> padding_inner;
+    /// Outer padding before first and after last band (band scales)
+    std::optional<double> padding_outer;
+    /// Whether to reverse the scale range
+    std::optional<bool> reverse;
+    /// Whether to round output values to integers
+    std::optional<bool> round;
+    /// The exponent for pow scales
+    std::optional<double> exponent;
+    /// The logarithm base for log scales (default 10)
+    std::optional<double> base;
+    /// The symlog constant determining slope around zero
+    std::optional<double> constant;
+    /// The alignment of steps within the range (band/point scales, 0-1)
+    std::optional<double> align;
+    /// AST node id for the bins array (quantize scales)
+    std::optional<uint32_t> bins_node_id;
+    /// A named reference for this scale
+    std::optional<std::string_view> name;
+};
+
+/// A visualization axis definition
+struct VisAxis {
+    /// The AST node id of the OBJECT_VIS_AXIS node
+    uint32_t ast_node_id = 0;
+    /// The axis orientation (top, bottom, left, right)
+    std::optional<std::string_view> orient;
+    /// The format string for axis labels
+    std::optional<std::string_view> format;
+    /// The format type (number, time, utc)
+    std::optional<std::string_view> format_type;
+    /// Whether to draw grid lines
+    std::optional<bool> grid;
+    /// Whether to draw tick marks
+    std::optional<bool> ticks;
+    /// The desired number of ticks
+    std::optional<double> tick_count;
+    /// The size of tick marks in pixels
+    std::optional<double> tick_size;
+    /// The rotation angle of axis labels in degrees
+    std::optional<double> label_angle;
+    /// The font size of axis labels in pixels
+    std::optional<double> label_font_size;
+    /// The strategy for overlapping labels (greedy, parity)
+    std::optional<std::string_view> label_overlap;
+    /// The direction of the axis (horizontal, vertical)
+    std::optional<std::string_view> direction;
+    /// The offset in pixels from the chart edge
+    std::optional<double> offset;
+    /// AST node id for explicit tick values array
+    std::optional<uint32_t> values_node_id;
+    /// The z-index for layering
+    std::optional<int32_t> zindex;
+    /// The axis title text
+    std::optional<std::string_view> title;
+    /// Whether to draw the axis domain line
+    std::optional<bool> domain;
+    /// A named reference for this axis
+    std::optional<std::string_view> name;
+};
+
+/// A visualization legend definition
+struct VisLegend {
+    /// The AST node id of the OBJECT_VIS_LEGEND node
+    uint32_t ast_node_id = 0;
+    /// The legend type (symbol, gradient)
+    std::optional<std::string_view> type;
+    /// The legend orientation (left, right, top, bottom, etc.)
+    std::optional<std::string_view> orient;
+    /// The format string for legend labels
+    std::optional<std::string_view> format;
+    /// The format type (number, time, utc)
+    std::optional<std::string_view> format_type;
+    /// The layout direction of legend entries (horizontal, vertical)
+    std::optional<std::string_view> direction;
+    /// The legend title text
+    std::optional<std::string_view> title;
+    /// AST node id for explicit legend values array
+    std::optional<uint32_t> values_node_id;
+    /// Padding around the legend in pixels
+    std::optional<double> padding;
+    /// Offset from the default position in pixels
+    std::optional<double> offset;
+    /// The z-index for layering
+    std::optional<int32_t> zindex;
+    /// A named reference for this legend
+    std::optional<std::string_view> name;
+};
+
+/// A visualization encoding channel
+struct VisEncodingChannel {
+    /// The channel attribute key (VIS_ENCODING_X, VIS_ENCODING_Y, etc.)
+    buffers::parser::AttributeKey channel_key = buffers::parser::AttributeKey::NONE;
+    /// The AST node id of the OBJECT_VIS_FIELD_DEF or shorthand column ref
+    uint32_t ast_node_id = 0;
+    /// The resolved field expression id (from field => column_ref)
+    std::optional<uint32_t> field_expression_id;
+    /// The field type (nominal, ordinal, quantitative, temporal, geojson)
+    std::optional<buffers::parser::VisFieldType> field_type;
+    /// The aggregate function name (sum, mean, count, etc.)
+    std::optional<std::string_view> aggregate;
+    /// The bin parameters (present if binning is enabled)
+    std::optional<VisBin> bin;
+    /// The time unit for temporal fields (year, month, day, etc.)
+    std::optional<std::string_view> time_unit;
+    /// The scale definition for this channel
+    std::optional<VisScale> scale;
+    /// The axis definition for this channel
+    std::optional<VisAxis> axis;
+    /// The legend definition for this channel
+    std::optional<VisLegend> legend;
+};
+
+/// A visualization specification
+struct VisualizationSpec {
+    /// The AST node id of the OBJECT_VIS_VISUALISE root
+    uint32_t ast_node_id = 0;
+    /// The statement id containing this visualization
+    std::optional<uint32_t> ast_statement_id;
+    /// The mark type (bar, line, point, area, etc.)
+    std::optional<buffers::parser::VisMarkType> mark_type;
+    /// The AST node id of the data source (table ref or SELECT subquery)
+    std::optional<uint32_t> source_node_id;
+    /// The encoding channels mapping data fields to visual properties
+    std::vector<VisEncodingChannel> encoding_channels;
+    /// The chart title
+    std::optional<std::string_view> title;
+    /// The chart width in pixels
+    std::optional<int64_t> width;
+    /// The chart height in pixels
+    std::optional<int64_t> height;
+};
+
 }  // namespace dashql

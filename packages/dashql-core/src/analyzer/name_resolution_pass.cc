@@ -453,6 +453,12 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 break;
             }
 
+            case buffers::parser::NodeType::OBJECT_VIS_VISUALISE: {
+                MergeChildStates(node_state, node);
+                CreateScope(node_state, node_id);
+                break;
+            }
+
             case buffers::parser::NodeType::OBJECT_SQL_CREATE: {
                 auto [name_node, elements_node] =
                     state.GetAttributes<AttributeKey::SQL_CREATE_TABLE_NAME, AttributeKey::SQL_CREATE_TABLE_ELEMENTS>(

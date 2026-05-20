@@ -13,6 +13,7 @@ struct ConstantPropagationPass;
 struct IdentifyColumnFiltersPass;
 struct IdentifyColumnComputationsPass;
 struct IdentifyFunctionCallsPass;
+struct AnalyzeVisualizationPass;
 class ScannedScript;
 class ParsedScript;
 
@@ -35,6 +36,8 @@ struct Analyzer {
     std::unique_ptr<IdentifyColumnComputationsPass> identify_projections;
     /// The pass to identify filters
     std::unique_ptr<IdentifyColumnFiltersPass> identify_filters;
+    /// The pass to analyze visualization specs
+    std::unique_ptr<AnalyzeVisualizationPass> analyze_visualization;
 
    public:
     /// Constructor

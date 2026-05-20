@@ -662,7 +662,7 @@ completion-snapshots:
           location-qualified: "li"
           objects: []
         - score: 55
-          value: listen
+          value: linear
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "li"
           location-qualified: "li"

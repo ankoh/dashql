@@ -18,6 +18,7 @@ cc_library(
 
 LIB_SRCS = [
     "src/analyzer/analysis_state.cc",
+    "src/analyzer/analyze_visualization_pass.cc",
     "src/analyzer/analyzer.cc",
     "src/analyzer/completion.cc",
     "src/analyzer/constant_propagation_pass.cc",

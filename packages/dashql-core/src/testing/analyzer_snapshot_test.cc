@@ -398,6 +398,224 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
             EncodeSnippet(yml_ref, script, filter.root.get().ast_node_id);
         });
     }
+    // Write visualization specs
+    if (!script.visualization_specs.IsEmpty()) {
+        auto list_node = out.append_child();
+        list_node << c4::yml::key("visualizations");
+        list_node |= c4::yml::SEQ;
+        script.visualization_specs.ForEach([&](size_t _i, const AnalyzedScript::VisualizationSpec& spec) {
+            auto yml_ref = list_node.append_child();
+            yml_ref.set_type(c4::yml::MAP);
+            if (spec.ast_statement_id.has_value()) {
+                yml_ref.append_child() << c4::yml::key("statement-id") << *spec.ast_statement_id;
+            }
+            if (spec.mark_type.has_value()) {
+                auto* tt = buffers::parser::VisMarkTypeTypeTable();
+                yml_ref.append_child()
+                    << c4::yml::key("mark") << std::string(tt->names[static_cast<uint8_t>(*spec.mark_type)]);
+            }
+            if (spec.source_node_id.has_value()) {
+                EncodeLocationText(yml_ref,
+                                   script.parsed_script->scanned_script->ResolveTextSpan(
+                                       script.parsed_script->nodes[*spec.source_node_id].symbol_span()),
+                                   script.parsed_script->scanned_script->GetInput(), "source");
+            }
+            if (spec.title.has_value())
+                yml_ref.append_child() << c4::yml::key("title") << std::string(*spec.title);
+            if (spec.width.has_value())
+                yml_ref.append_child() << c4::yml::key("width") << *spec.width;
+            if (spec.height.has_value())
+                yml_ref.append_child() << c4::yml::key("height") << *spec.height;
+            if (!spec.encoding_channels.empty()) {
+                auto channels_node = yml_ref.append_child();
+                channels_node << c4::yml::key("encodings");
+                channels_node |= c4::yml::SEQ;
+                auto* key_tt = buffers::parser::AttributeKeyTypeTable();
+                for (auto& channel : spec.encoding_channels) {
+                    auto ch_node = channels_node.append_child();
+                    ch_node.set_type(c4::yml::MAP);
+                    ch_node.append_child()
+                        << c4::yml::key("channel")
+                        << std::string(key_tt->names[static_cast<uint16_t>(channel.channel_key)]);
+                    if (channel.field_expression_id.has_value()) {
+                        ch_node.append_child() << c4::yml::key("field-expr") << *channel.field_expression_id;
+                    }
+                    if (channel.field_type.has_value()) {
+                        auto* ft_tt = buffers::parser::VisFieldTypeTypeTable();
+                        ch_node.append_child()
+                            << c4::yml::key("field-type")
+                            << std::string(ft_tt->names[static_cast<uint8_t>(*channel.field_type)]);
+                    }
+                    if (channel.bin.has_value()) {
+                        auto bin_node = ch_node.append_child();
+                        bin_node << c4::yml::key("bin");
+                        bin_node |= c4::yml::MAP;
+                        auto& b = *channel.bin;
+                        if (b.binned.has_value())
+                            bin_node.append_child() << c4::yml::key("binned") << c4::fmt::boolalpha(*b.binned);
+                        if (b.step.has_value())
+                            bin_node.append_child() << c4::yml::key("step") << *b.step;
+                        if (b.maxbins.has_value())
+                            bin_node.append_child() << c4::yml::key("maxbins") << *b.maxbins;
+                        if (b.minstep.has_value())
+                            bin_node.append_child() << c4::yml::key("minstep") << *b.minstep;
+                        if (b.anchor.has_value())
+                            bin_node.append_child() << c4::yml::key("anchor") << *b.anchor;
+                        if (b.base.has_value())
+                            bin_node.append_child() << c4::yml::key("base") << *b.base;
+                        if (b.nice.has_value())
+                            bin_node.append_child() << c4::yml::key("nice") << c4::fmt::boolalpha(*b.nice);
+                        if (b.extent_node_id.has_value())
+                            bin_node.append_child() << c4::yml::key("extent-node-id") << *b.extent_node_id;
+                        if (b.divide_node_id.has_value())
+                            bin_node.append_child() << c4::yml::key("divide-node-id") << *b.divide_node_id;
+                        if (b.steps_node_id.has_value())
+                            bin_node.append_child() << c4::yml::key("steps-node-id") << *b.steps_node_id;
+                    }
+                    if (channel.aggregate.has_value()) {
+                        ch_node.append_child() << c4::yml::key("aggregate") << std::string(*channel.aggregate);
+                    }
+                    if (channel.time_unit.has_value()) {
+                        ch_node.append_child() << c4::yml::key("time-unit") << std::string(*channel.time_unit);
+                    }
+                    if (channel.scale.has_value()) {
+                        auto scale_node = ch_node.append_child();
+                        scale_node << c4::yml::key("scale");
+                        scale_node |= c4::yml::MAP;
+                        auto& s = *channel.scale;
+                        if (s.type.has_value()) {
+                            auto* tt = buffers::parser::VisScaleTypeTypeTable();
+                            scale_node.append_child()
+                                << c4::yml::key("type")
+                                << std::string(tt->names[static_cast<uint8_t>(*s.type)]);
+                        }
+                        if (s.zero.has_value())
+                            scale_node.append_child() << c4::yml::key("zero") << c4::fmt::boolalpha(*s.zero);
+                        if (s.nice.has_value())
+                            scale_node.append_child() << c4::yml::key("nice") << c4::fmt::boolalpha(*s.nice);
+                        if (s.clamp.has_value())
+                            scale_node.append_child() << c4::yml::key("clamp") << c4::fmt::boolalpha(*s.clamp);
+                        if (s.reverse.has_value())
+                            scale_node.append_child()
+                                << c4::yml::key("reverse") << c4::fmt::boolalpha(*s.reverse);
+                        if (s.round.has_value())
+                            scale_node.append_child() << c4::yml::key("round") << c4::fmt::boolalpha(*s.round);
+                        if (s.scheme.has_value())
+                            scale_node.append_child() << c4::yml::key("scheme") << std::string(*s.scheme);
+                        if (s.interpolate.has_value())
+                            scale_node.append_child()
+                                << c4::yml::key("interpolate") << std::string(*s.interpolate);
+                        if (s.exponent.has_value())
+                            scale_node.append_child() << c4::yml::key("exponent") << *s.exponent;
+                        if (s.base.has_value())
+                            scale_node.append_child() << c4::yml::key("base") << *s.base;
+                        if (s.constant.has_value())
+                            scale_node.append_child() << c4::yml::key("constant") << *s.constant;
+                        if (s.align.has_value())
+                            scale_node.append_child() << c4::yml::key("align") << *s.align;
+                        if (s.padding.has_value())
+                            scale_node.append_child() << c4::yml::key("padding") << *s.padding;
+                        if (s.padding_inner.has_value())
+                            scale_node.append_child() << c4::yml::key("padding-inner") << *s.padding_inner;
+                        if (s.padding_outer.has_value())
+                            scale_node.append_child() << c4::yml::key("padding-outer") << *s.padding_outer;
+                        if (s.domain_node_id.has_value())
+                            scale_node.append_child() << c4::yml::key("domain-node-id") << *s.domain_node_id;
+                        if (s.domain_min_node_id.has_value())
+                            scale_node.append_child() << c4::yml::key("domain-min-node-id") << *s.domain_min_node_id;
+                        if (s.domain_max_node_id.has_value())
+                            scale_node.append_child() << c4::yml::key("domain-max-node-id") << *s.domain_max_node_id;
+                        if (s.domain_mid_node_id.has_value())
+                            scale_node.append_child() << c4::yml::key("domain-mid-node-id") << *s.domain_mid_node_id;
+                        if (s.range_node_id.has_value())
+                            scale_node.append_child() << c4::yml::key("range-node-id") << *s.range_node_id;
+                        if (s.range_min_node_id.has_value())
+                            scale_node.append_child() << c4::yml::key("range-min-node-id") << *s.range_min_node_id;
+                        if (s.range_max_node_id.has_value())
+                            scale_node.append_child() << c4::yml::key("range-max-node-id") << *s.range_max_node_id;
+                        if (s.bins_node_id.has_value())
+                            scale_node.append_child() << c4::yml::key("bins-node-id") << *s.bins_node_id;
+                        if (s.name.has_value())
+                            scale_node.append_child() << c4::yml::key("name") << std::string(*s.name);
+                    }
+                    if (channel.axis.has_value()) {
+                        auto axis_node = ch_node.append_child();
+                        axis_node << c4::yml::key("axis");
+                        axis_node |= c4::yml::MAP;
+                        auto& a = *channel.axis;
+                        if (a.orient.has_value())
+                            axis_node.append_child() << c4::yml::key("orient") << std::string(*a.orient);
+                        if (a.title.has_value())
+                            axis_node.append_child() << c4::yml::key("title") << std::string(*a.title);
+                        if (a.grid.has_value())
+                            axis_node.append_child() << c4::yml::key("grid") << c4::fmt::boolalpha(*a.grid);
+                        if (a.ticks.has_value())
+                            axis_node.append_child() << c4::yml::key("ticks") << c4::fmt::boolalpha(*a.ticks);
+                        if (a.domain.has_value())
+                            axis_node.append_child()
+                                << c4::yml::key("domain") << c4::fmt::boolalpha(*a.domain);
+                        if (a.label_angle.has_value())
+                            axis_node.append_child() << c4::yml::key("label-angle") << *a.label_angle;
+                        if (a.label_font_size.has_value())
+                            axis_node.append_child() << c4::yml::key("label-font-size") << *a.label_font_size;
+                        if (a.tick_count.has_value())
+                            axis_node.append_child() << c4::yml::key("tick-count") << *a.tick_count;
+                        if (a.tick_size.has_value())
+                            axis_node.append_child() << c4::yml::key("tick-size") << *a.tick_size;
+                        if (a.offset.has_value())
+                            axis_node.append_child() << c4::yml::key("offset") << *a.offset;
+                        if (a.format.has_value())
+                            axis_node.append_child() << c4::yml::key("format") << std::string(*a.format);
+                        if (a.format_type.has_value())
+                            axis_node.append_child()
+                                << c4::yml::key("format-type") << std::string(*a.format_type);
+                        if (a.direction.has_value())
+                            axis_node.append_child()
+                                << c4::yml::key("direction") << std::string(*a.direction);
+                        if (a.label_overlap.has_value())
+                            axis_node.append_child()
+                                << c4::yml::key("label-overlap") << std::string(*a.label_overlap);
+                        if (a.zindex.has_value())
+                            axis_node.append_child() << c4::yml::key("zindex") << *a.zindex;
+                        if (a.values_node_id.has_value())
+                            axis_node.append_child() << c4::yml::key("values-node-id") << *a.values_node_id;
+                        if (a.name.has_value())
+                            axis_node.append_child() << c4::yml::key("name") << std::string(*a.name);
+                    }
+                    if (channel.legend.has_value()) {
+                        auto legend_node = ch_node.append_child();
+                        legend_node << c4::yml::key("legend");
+                        legend_node |= c4::yml::MAP;
+                        auto& l = *channel.legend;
+                        if (l.type.has_value())
+                            legend_node.append_child() << c4::yml::key("type") << std::string(*l.type);
+                        if (l.orient.has_value())
+                            legend_node.append_child() << c4::yml::key("orient") << std::string(*l.orient);
+                        if (l.title.has_value())
+                            legend_node.append_child() << c4::yml::key("title") << std::string(*l.title);
+                        if (l.direction.has_value())
+                            legend_node.append_child()
+                                << c4::yml::key("direction") << std::string(*l.direction);
+                        if (l.format.has_value())
+                            legend_node.append_child() << c4::yml::key("format") << std::string(*l.format);
+                        if (l.format_type.has_value())
+                            legend_node.append_child()
+                                << c4::yml::key("format-type") << std::string(*l.format_type);
+                        if (l.padding.has_value())
+                            legend_node.append_child() << c4::yml::key("padding") << *l.padding;
+                        if (l.offset.has_value())
+                            legend_node.append_child() << c4::yml::key("offset") << *l.offset;
+                        if (l.zindex.has_value())
+                            legend_node.append_child() << c4::yml::key("zindex") << *l.zindex;
+                        if (l.values_node_id.has_value())
+                            legend_node.append_child() << c4::yml::key("values-node-id") << *l.values_node_id;
+                        if (l.name.has_value())
+                            legend_node.append_child() << c4::yml::key("name") << std::string(*l.name);
+                    }
+                }
+            }
+        });
+    }
 }
 
 struct AnalyzerSnapshotFile {

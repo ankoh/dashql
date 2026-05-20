@@ -194,6 +194,8 @@ class AnalyzedScript : public CatalogEntry {
     using ConstantExpression = dashql::ConstantExpression;
     using ColumnComputation = dashql::ColumnComputation;
     using ColumnFilter = dashql::ColumnFilter;
+    using VisEncodingChannel = dashql::VisEncodingChannel;
+    using VisualizationSpec = dashql::VisualizationSpec;
 
     /// The parsed script
     std::shared_ptr<ParsedScript> parsed_script;
@@ -226,6 +228,9 @@ class AnalyzedScript : public CatalogEntry {
     ChunkBuffer<ColumnComputation, 16> column_computations;
     /// The column filters in the script
     ChunkBuffer<ColumnFilter, 16> column_filters;
+
+    /// The visualization specs in the script
+    ChunkBuffer<VisualizationSpec, 4> visualization_specs;
 
     /// The column computations indexed by the catalog entry.
     /// This index is used to quickly resolve column computations in this script through catalog ids.

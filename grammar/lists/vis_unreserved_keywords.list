@@ -27,6 +27,12 @@ X(VIS_UNRESERVED, "square",         SQUARE)
 X(VIS_UNRESERVED, "tick",           TICK)
 X(VIS_UNRESERVED, "trail",          TRAIL)
 
+// Vega-Lite encoding channels (positional)
+X(VIS_UNRESERVED, "x",              X_P)
+X(VIS_UNRESERVED, "x2",            X2)
+X(VIS_UNRESERVED, "y",              Y_P)
+X(VIS_UNRESERVED, "y2",            Y2)
+
 // Vega-Lite encoding channels
 X(VIS_UNRESERVED, "angle",          ANGLE)
 X(VIS_UNRESERVED, "color",          COLOR)
@@ -95,6 +101,20 @@ X(VIS_UNRESERVED, "reverse",        REVERSE)
 X(VIS_UNRESERVED, "round",          ROUND)
 X(VIS_UNRESERVED, "scheme",         SCHEME)
 X(VIS_UNRESERVED, "zero",           ZERO)
+
+// Vega-Lite scale type values
+X(VIS_UNRESERVED, "band",           BAND)
+X(VIS_UNRESERVED, "diverging",      DIVERGING)
+X(VIS_UNRESERVED, "linear",         LINEAR)
+X(VIS_UNRESERVED, "log",            LOG_P)
+X(VIS_UNRESERVED, "pow",            POW)
+X(VIS_UNRESERVED, "quantile",       QUANTILE)
+X(VIS_UNRESERVED, "quantize",       QUANTIZE)
+X(VIS_UNRESERVED, "sequential",     SEQUENTIAL)
+X(VIS_UNRESERVED, "sqrt",           SQRT)
+X(VIS_UNRESERVED, "symlog",         SYMLOG)
+X(VIS_UNRESERVED, "threshold",      THRESHOLD)
+X(VIS_UNRESERVED, "utc",            UTC)
 
 // Vega-Lite axis/legend properties
 X(VIS_UNRESERVED, "direction",      DIRECTION)

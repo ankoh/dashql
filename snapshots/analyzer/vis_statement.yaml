@@ -1,0 +1,608 @@
+analyzer-snapshots:
+
+  - name: vis_basic_mark
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE sales AS (mark => bar);
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      visualizations:
+        - statement-id: 0
+          mark: BAR
+          source: "sales"
+
+  - name: vis_encoding_field_type
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => bar,
+          encoding => (
+            x => (field => category, type => nominal)
+          )
+        );
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "category"
+      visualizations:
+        - statement-id: 0
+          mark: BAR
+          source: "sales"
+          encodings:
+            - channel: VIS_ENCODING_X
+              field-expr: 0
+              field-type: NOMINAL
+
+  - name: vis_encoding_two_channels
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => line,
+          encoding => (
+            x => (field => date, type => temporal),
+            y => (field => revenue, type => quantitative)
+          )
+        );
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "date"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          statement-id: 0
+          text: "revenue"
+      visualizations:
+        - statement-id: 0
+          mark: LINE
+          source: "sales"
+          encodings:
+            - channel: VIS_ENCODING_X
+              field-expr: 0
+              field-type: TEMPORAL
+            - channel: VIS_ENCODING_Y
+              field-expr: 1
+              field-type: QUANTITATIVE
+
+  - name: vis_encoding_with_scale
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => point,
+          encoding => (
+            x => (field => revenue, type => quantitative, scale => (type => log, zero => false))
+          )
+        );
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          statement-id: 0
+          text: "revenue"
+      visualizations:
+        - statement-id: 0
+          mark: POINT
+          source: "sales"
+          encodings:
+            - channel: VIS_ENCODING_X
+              field-expr: 0
+              field-type: QUANTITATIVE
+              scale:
+                type: LOG
+                zero: false
+
+  - name: vis_encoding_with_axis
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => bar,
+          encoding => (
+            x => (field => category, type => nominal, axis => (labelangle => -45))
+          )
+        );
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "category"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "45"
+      constants:
+        - expression: 1
+          text: "45"
+      visualizations:
+        - statement-id: 0
+          mark: BAR
+          source: "sales"
+          encodings:
+            - channel: VIS_ENCODING_X
+              field-expr: 0
+              field-type: NOMINAL
+              axis:
+                label-angle: -45
+
+  - name: vis_encoding_color
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => bar,
+          encoding => (
+            x => (field => category, type => nominal),
+            y => (field => revenue, type => quantitative),
+            color => (field => category, type => nominal)
+          )
+        );
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "category"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          statement-id: 0
+          text: "revenue"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "category"
+      visualizations:
+        - statement-id: 0
+          mark: BAR
+          source: "sales"
+          encodings:
+            - channel: VIS_ENCODING_X
+              field-expr: 0
+              field-type: NOMINAL
+            - channel: VIS_ENCODING_Y
+              field-expr: 1
+              field-type: QUANTITATIVE
+            - channel: VIS_ENCODING_COLOR
+              field-expr: 2
+              field-type: NOMINAL
+
+  - name: vis_shorthand_encoding
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => line,
+          encoding => (
+            x => date,
+            y => revenue
+          )
+        );
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "date"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          statement-id: 0
+          text: "revenue"
+      visualizations:
+        - statement-id: 0
+          mark: LINE
+          source: "sales"
+          encodings:
+            - channel: VIS_ENCODING_X
+              field-expr: 0
+            - channel: VIS_ENCODING_Y
+              field-expr: 1
+
+  - name: vis_select_source
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE (SELECT category, revenue FROM sales) AS (
+          mark => bar,
+          encoding => (
+            x => (field => category, type => nominal),
+            y => (field => revenue, type => quantitative)
+          )
+        );
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "category"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          statement-id: 0
+          text: "revenue"
+        - expression-idx: 2
+          type: colref/unresolved
+          statement-id: 0
+          text: "category"
+        - expression-idx: 3
+          type: colref/unresolved
+          statement-id: 0
+          text: "revenue"
+      visualizations:
+        - statement-id: 0
+          mark: BAR
+          source: "(SELECT ca..ROM sales)"
+          encodings:
+            - channel: VIS_ENCODING_X
+              field-expr: 2
+              field-type: NOMINAL
+            - channel: VIS_ENCODING_Y
+              field-expr: 3
+              field-type: QUANTITATIVE
+
+  - name: vis_no_source
+    script:
+      input: |
+        VISUALIZE AS (
+          mark => line,
+          encoding => (
+            x => (field => date, type => temporal)
+          )
+        );
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "date"
+      visualizations:
+        - statement-id: 0
+          mark: LINE
+          encodings:
+            - channel: VIS_ENCODING_X
+              field-expr: 0
+              field-type: TEMPORAL
+
+  - name: vis_aggregate
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => bar,
+          encoding => (
+            x => (field => category, type => nominal),
+            y => (field => revenue, type => quantitative, aggregate => sum)
+          )
+        );
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "category"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          statement-id: 0
+          text: "revenue"
+        - expression-idx: 2
+          type: colref/unresolved
+          statement-id: 0
+          text: "sum"
+      visualizations:
+        - statement-id: 0
+          mark: BAR
+          source: "sales"
+          encodings:
+            - channel: VIS_ENCODING_X
+              field-expr: 0
+              field-type: NOMINAL
+            - channel: VIS_ENCODING_Y
+              field-expr: 1
+              field-type: QUANTITATIVE
+              aggregate: sum
+
+  - name: vis_bin
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => bar,
+          encoding => (
+            x => (field => revenue, type => quantitative, bin => true),
+            y => (field => category, type => nominal)
+          )
+        );
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          statement-id: 0
+          text: "revenue"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "category"
+      visualizations:
+        - statement-id: 0
+          mark: BAR
+          source: "sales"
+          encodings:
+            - channel: VIS_ENCODING_X
+              field-expr: 0
+              field-type: QUANTITATIVE
+              bin: {}
+            - channel: VIS_ENCODING_Y
+              field-expr: 1
+              field-type: NOMINAL

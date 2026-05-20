@@ -1,5 +1,6 @@
 #include "dashql/analyzer/analyzer.h"
 
+#include "dashql/analyzer/analyze_visualization_pass.h"
 #include "dashql/analyzer/constant_propagation_pass.h"
 #include "dashql/analyzer/identify_column_computations_pass.h"
 #include "dashql/analyzer/identify_column_filters_pass.h"
@@ -20,11 +21,13 @@ Analyzer::Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog)
       identify_function_calls(std::make_unique<IdentifyFunctionCallsPass>(state)),
       identify_constants(std::make_unique<ConstantPropagationPass>(state)),
       identify_projections(std::make_unique<IdentifyColumnComputationsPass>(state)),
-      identify_filters(std::make_unique<IdentifyColumnFiltersPass>(state)) {}
+      identify_filters(std::make_unique<IdentifyColumnFiltersPass>(state)),
+      analyze_visualization(std::make_unique<AnalyzeVisualizationPass>(state)) {}
 
 std::shared_ptr<AnalyzedScript> Analyzer::Execute() {
     std::initializer_list<std::reference_wrapper<PassManager::LTRPass>> scan1{
-        *name_resolution, *identify_function_calls, *identify_constants, *identify_projections, *identify_filters,
+        *name_resolution,    *identify_function_calls, *identify_constants,
+        *identify_projections, *identify_filters,       *analyze_visualization,
     };
     pass_manager.Execute(state, scan1);
     return state.analyzed;
