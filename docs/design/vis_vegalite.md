@@ -1,431 +1,318 @@
-# VISUALISE ↔ Vega-Lite mapping
+# VISUALIZE <-> Vega-Lite translation
 
-Both dashql's `VISUALISE` and Vega-Lite implement Wilkinson's Grammar of
-Graphics, so the concepts translate directionally. This document records the
-mapping in both directions, identifies where translation is mechanical, where
-it requires inference, and where it is impossible.
+dashql's `VISUALIZE` syntax mirrors Vega-Lite's JSON structure, making
+bidirectional translation largely mechanical. This document records the mapping,
+identifies where the translation is direct, and where information is lost.
 
-## Forward: VISUALISE → Vega-Lite
+## Forward: VISUALIZE -> Vega-Lite
+
+The analyzer pass (`AnalyzeVisualizationPass`) walks the parsed AST and builds
+a `VisualizationSpec` struct. The Vega-Lite generator
+(`vegalite_generator.cc`) serializes that struct to JSON.
 
 ### Data source
 
-The `VISUALISE` head carries an optional SQL input:
-
 ```sql
-VISUALISE (SELECT region, revenue FROM sales WHERE fy = 2026)
-VISUALISE TABLE warehouse.public.sales
+VISUALIZE sales AS (mark => bar);
+VISUALIZE (SELECT category, revenue FROM sales) AS (mark => bar);
 ```
 
-Neither form has a direct Vega-Lite counterpart. Vega-Lite expects data to be
-present in the spec as inline values, a URL, or a named dataset. The practical
-approach for a query tool is to **execute the SQL and pass the result as inline
-`data.values`**, or to assign a named dataset in the embedding environment and
-reference it.
+For table references, the table name is emitted as `data.name`. For SELECT
+subqueries, the placeholder `"<sql>"` is used since the query text is not a
+valid dataset name:
 
-Where a `DRAW` clause carries its own `FROM (...)`, the same applies — execute
-the subquery and attach the result to that layer's `data` field. When a layer
-inherits the global source, it references the same dataset.
+```json
+{ "data": { "name": "sales" } }
+{ "data": { "name": "<sql>" } }
+```
 
-Joins, CTEs, and window functions inside the subquery are opaque from
-Vega-Lite's perspective; they must be resolved by executing SQL before the
-spec is built.
+When the source is omitted, no `data` field is emitted. The embedding
+environment is expected to resolve dataset names and execute any SQL queries
+before rendering.
 
-### DRAW → mark + encoding
+### Mark
 
-Each `DRAW` clause becomes one entry in a `layer` array (or the top-level
-`mark`/`encoding` pair when there is only one layer):
+The `VisMarkType` enum value is lowercased to produce the Vega-Lite mark
+string:
 
-| VISUALISE geom | Vega-Lite `mark.type` |
-|---|---|
-| `point` | `"point"` |
-| `line` | `"line"` |
+| VISUALIZE | Vega-Lite |
+|-----------|-----------|
 | `bar` | `"bar"` |
+| `line` | `"line"` |
+| `point` | `"point"` |
 | `area` | `"area"` |
-| `text` | `"text"` |
-| `label` | `"text"` |
+| `arc` | `"arc"` |
+| `rect` | `"rect"` |
 | `rule` | `"rule"` |
-| `segment` / `arrow` | `"rule"` (no direct arrow equivalent) |
-| `tile` | `"rect"` |
-| `polygon` | `"geoshape"` (approximate) |
-| `ribbon` | `"area"` |
-| `histogram` | `"bar"` + `transform: [{bin: true, …}]` |
-| `density` | `"area"` + `transform: [{density: …}]` |
-| `smooth` | `"line"` + `transform: [{loess: …}]` |
-| `boxplot` | `"boxplot"` (composite mark) |
-| `violin` | `"violin"` (Vega, not Vega-Lite; requires custom spec) |
-| `errorbar` | `"errorbar"` (composite mark) |
-| `path` | `"line"` with `order` encoding |
+| `tick` | `"tick"` |
+| `text` | `"text"` |
+| `circle` | `"circle"` |
+| `square` | `"square"` |
+| `geoshape` | `"geoshape"` |
+| `image` | `"image"` |
+| `trail` | `"trail"` |
+| `boxplot` | `"boxplot"` |
 
-Column aliases in the `FROM (SELECT … AS aesthetic …)` subquery become the
-`encoding` channel names. A column aliased as `x` maps to `encoding.x.field`,
-`y` to `encoding.y.field`, `color` to `encoding.color.field`, etc.:
+### Encoding channels
+
+Each `VisEncodingChannel` in the spec maps to a Vega-Lite encoding field:
+
+| Attribute key | Vega-Lite channel |
+|---------------|-------------------|
+| `VIS_ENCODING_X` | `"x"` |
+| `VIS_ENCODING_Y` | `"y"` |
+| `VIS_ENCODING_X2` | `"x2"` |
+| `VIS_ENCODING_Y2` | `"y2"` |
+| `VIS_ENCODING_COLOR` | `"color"` |
+| `VIS_ENCODING_FILL` | `"fill"` |
+| `VIS_ENCODING_STROKE` | `"stroke"` |
+| `VIS_ENCODING_FILL_OPACITY` | `"fillOpacity"` |
+| `VIS_ENCODING_STROKE_OPACITY` | `"strokeOpacity"` |
+| `VIS_ENCODING_STROKE_WIDTH` | `"strokeWidth"` |
+| `VIS_ENCODING_STROKE_DASH` | `"strokeDash"` |
+| `VIS_ENCODING_OPACITY` | `"opacity"` |
+| `VIS_ENCODING_SIZE` | `"size"` |
+| `VIS_ENCODING_SHAPE` | `"shape"` |
+| `VIS_ENCODING_ANGLE` | `"angle"` |
+| `VIS_ENCODING_THETA` | `"theta"` |
+| `VIS_ENCODING_THETA2` | `"theta2"` |
+| `VIS_ENCODING_RADIUS` | `"radius"` |
+| `VIS_ENCODING_RADIUS2` | `"radius2"` |
+| `VIS_ENCODING_DETAIL` | `"detail"` |
+| `VIS_ENCODING_ORDER` | `"order"` |
+| `VIS_ENCODING_TOOLTIP` | `"tooltip"` |
+| `VIS_ENCODING_TEXT` | `"text"` |
+| `VIS_ENCODING_ROW` | `"row"` |
+| `VIS_ENCODING_COLUMN` | `"column"` |
+| `VIS_ENCODING_FACET` | `"facet"` |
+| `VIS_ENCODING_HREF` | `"href"` |
+| `VIS_ENCODING_URL` | `"url"` |
+| `VIS_ENCODING_KEY` | `"key"` |
+| `VIS_ENCODING_LATITUDE` | `"latitude"` |
+| `VIS_ENCODING_LONGITUDE` | `"longitude"` |
+| `VIS_ENCODING_LATITUDE2` | `"latitude2"` |
+| `VIS_ENCODING_LONGITUDE2` | `"longitude2"` |
+| `VIS_ENCODING_X_OFFSET` | `"xOffset"` |
+| `VIS_ENCODING_Y_OFFSET` | `"yOffset"` |
+
+### Field definitions
+
+Each channel's properties map directly:
+
+| VISUALIZE property | Vega-Lite JSON key |
+|--------------------|--------------------|
+| `field => <col>` | `"field": "<col>"` |
+| `type => quantitative` | `"type": "quantitative"` |
+| `aggregate => sum` | `"aggregate": "sum"` |
+| `bin => true` | `"bin": true` |
+| `bin => (maxbins => 20)` | `"bin": { "maxbins": 20 }` |
+| `timeunit => month` | `"timeUnit": "month"` |
+
+### Scale
+
+The `VisScale` struct serializes to a JSON object under the channel's `"scale"`
+key. Scale type enum values are lowercased:
 
 ```sql
-DRAW point FROM (SELECT date AS x, revenue AS y, region AS color)
+scale => (type => log, zero => false)
 ```
 
 ```json
-{
-  "mark": "point",
-  "encoding": {
-    "x": { "field": "x" },
-    "y": { "field": "y" },
-    "color": { "field": "color" }
-  }
-}
+"scale": { "type": "log", "zero": false }
 ```
 
-**Aesthetic → encoding channel table:**
+Scale properties emitted: `type`, `domain`, `domainMin`, `domainMax`,
+`domainMid`, `range`, `rangeMin`, `rangeMax`, `zero`, `nice`, `clamp`,
+`reverse`, `round`, `scheme`, `interpolate`, `exponent`, `base`, `constant`,
+`padding`, `paddingInner`, `paddingOuter`, `align`, `name`.
 
-| VISUALISE aesthetic | Vega-Lite channel |
-|---|---|
-| `x`, `y` | `x`, `y` |
-| `xmin`, `xmax`, `ymin`, `ymax` | `x2`, `y2` (paired with `x`/`y`) |
-| `xend`, `yend` | `x2`, `y2` |
-| `color` / `colour` | `color` |
-| `fill` | `fill` |
-| `stroke` | `stroke` |
-| `opacity` | `opacity` |
-| `size` | `size` |
-| `shape` | `shape` |
-| `label` | `text` |
-| `angle` | `angle` |
-| `theta` / `radius` (via `PROJECT TO polar`) | `theta`, `radius` |
+### Axis
 
-**USING options → mark properties:**
-
-Layer-level `USING (key => value, …)` options that represent constant
-aesthetics (not data-driven) become properties on the `mark` object:
+The `VisAxis` struct serializes under `"axis"`:
 
 ```sql
-DRAW bar USING (opacity => 0.7, fill => '#4682b4')
+axis => (labelangle => -45, grid => false)
 ```
 
 ```json
-{ "mark": { "type": "bar", "opacity": 0.7, "fill": "#4682b4" } }
+"axis": { "labelAngle": -45.0, "grid": false }
 ```
 
-**PARTITION BY:**
+Axis properties emitted: `orient`, `title`, `format`, `formatType`, `grid`,
+`ticks`, `domain`, `tickCount`, `tickSize`, `labelAngle`, `labelFontSize`,
+`labelOverlap`, `direction`, `offset`, `zIndex`, `name`.
 
-`PARTITION BY col, …` declares grouping columns that have no dedicated
-Vega-Lite slot. The right target depends on the geom:
+### Legend
 
-- For `line` / `area` / `path`: emit as `encoding.detail.field` (draws a
-  separate path per group without adding a visual channel).
-- For marks where grouping should be visible (color-coded groups), the column
-  should be aliased to `color` in the SELECT instead.
-- When there are multiple partition columns, use `encoding.detail` with a
-  combined expression (`calculate` transform) or emit multiple `detail`
-  entries (Vega-Lite accepts an array).
-
-**REMAP:**
-
-`REMAP (stat_col AS aesthetic, …)` renames columns produced by a statistical
-transform. These become `calculate` transforms that derive new fields:
+The `VisLegend` struct serializes under `"legend"`:
 
 ```sql
-DRAW histogram FROM (SELECT age) REMAP (count AS y)
+legend => (orient => right, title => 'Category')
 ```
 
 ```json
-{
-  "transform": [
-    { "bin": true, "field": "age", "as": "age_binned" },
-    { "aggregate": [{ "op": "count", "as": "count" }], "groupby": ["age_binned"] },
-    { "calculate": "datum.count", "as": "y" }
-  ]
-}
+"legend": { "orient": "right", "title": "Category" }
 ```
 
-### SCALE → encoding scale / axis
+Legend properties emitted: `type`, `orient`, `title`, `format`, `formatType`,
+`direction`, `padding`, `offset`, `zIndex`, `name`.
 
-A `SCALE` clause targets one aesthetic and controls how data values map to
-visual values.
+### Top-level properties
 
-**Scale type mapping:**
+| VISUALIZE key | Vega-Lite JSON |
+|---------------|----------------|
+| `title => 'Sales'` | `"title": "Sales"` |
+| `width => 800` | `"width": 800` |
+| `height => 400` | `"height": 400` |
 
-| VISUALISE `SCALE` type | Vega-Lite `scale.type` |
-|---|---|
-| `continuous` | `"linear"` (default; implicit) |
-| `discrete` | `"ordinal"` |
-| `binned` | `"bin-ordinal"` |
-| `ordinal` | `"ordinal"` |
-| `identity` | `"identity"` |
-
-**FROM / TO → domain / range:**
-
-```sql
-SCALE x FROM [0, 100] TO [0, 500]
-```
-
-```json
-{ "encoding": { "x": { "scale": { "domain": [0, 100], "range": [0, 500] } } } }
-```
-
-**Lambda projections — the hard case:**
-
-```sql
-SCALE continuous(lambda v: log10(v)) x
-SCALE continuous(lambda v: sqrt(v)) y
-SCALE continuous(lambda v: pow(v, 2)) size
-```
-
-Vega-Lite has no lambda slots. The strategy is:
-
-1. **Pattern-match known transforms** to a named `scale.type`:
-   - `log10(v)` → `"scale": { "type": "log", "base": 10 }`
-   - `log(v)` / `ln(v)` → `"scale": { "type": "log", "base": 2.718… }`
-   - `sqrt(v)` → `"scale": { "type": "sqrt" }`
-   - `pow(v, e)` → `"scale": { "type": "pow", "exponent": e }`
-2. **Arbitrary lambdas** that don't match: emit a `calculate` transform that
-   applies the expression to the source field, producing a new derived field,
-   then encode that derived field. The field name in `encoding` changes; the
-   original name is lost.
-
-**FORMAT lambda → axis.labelExpr:**
-
-```sql
-SCALE x FORMAT (lambda v: v * 1000)
-```
-
-Vega-Lite's `axis.labelExpr` accepts Vega expression syntax (not SQL). Simple
-arithmetic is expressible; SQL-specific functions (`DATE_TRUNC`, `CAST`, etc.)
-are not. The translator can emit `labelExpr` for numeric arithmetic and signal
-a gap for anything else.
-
-**USING on SCALE → axis / legend properties:**
-
-```sql
-SCALE x USING (labels => 'scientific')
-```
-
-These map to `axis.format` / `legend.format` / `axis.grid` etc. The mapping
-is key-by-key and requires a defined vocabulary.
-
-### FACET → facet encoding
-
-```sql
-FACET region BY fiscal_year USING (scales => 'free')
-```
-
-```json
-{
-  "facet": {
-    "row": { "field": "region" },
-    "column": { "field": "fiscal_year" }
-  },
-  "resolve": { "scale": { "x": "independent", "y": "independent" } }
-}
-```
-
-A 1D `FACET region` (no `BY`) wraps the spec in a `facet` with only a `row`
-(or `column`, depending on desired layout). The `scales => 'free'` option maps
-to `resolve.scale.x/y: "independent"`.
-
-### PROJECT → coordinate system
-
-| VISUALISE `PROJECT TO` type | Vega-Lite equivalent |
-|---|---|
-| `cartesian` | Default; no action needed |
-| `flip` | Swap `x` and `y` encoding channels |
-| `polar` | Change geom to `arc`, remap `x → theta`, `y → radius` |
-| Geographic projections (`mercator`, etc.) | `"projection": { "type": "…" }` on a `geoshape` spec |
-
-`flip` and `polar` require restructuring the encoding, not just adding a
-property. Geographic project types that happen to match Vega-Lite's built-in
-projection names can be emitted directly; others are unrepresentable.
-
-### LABEL → title / axis titles
-
-```sql
-LABEL USING (title => 'Sales by Region', subtitle => 'FY2026', x => 'Date', y => 'Revenue ($)')
-```
-
-```json
-{
-  "title": { "text": "Sales by Region", "subtitle": "FY2026" },
-  "encoding": {
-    "x": { "title": "Date" },
-    "y": { "title": "Revenue ($)" }
-  }
-}
-```
-
-Aesthetic-keyed entries in `LABEL USING` become `encoding.<channel>.title`.
+The `$schema` key is always emitted pointing to Vega-Lite v5.
 
 ---
 
-## Reverse: Vega-Lite → VISUALISE
+## Reverse: Vega-Lite -> VISUALIZE
+
+The reverse parser (`vegalite_parser.cc`) reads a Vega-Lite JSON string and
+produces a VISUALIZE statement string.
 
 ### Data source
 
-Vega-Lite data sources have no SQL equivalent in dashql:
+| Vega-Lite `data` form | VISUALIZE output |
+|-----------------------|------------------|
+| `"data": { "name": "sales" }` | `VISUALIZE sales AS (...)` |
+| `"data": { "name": "<sql>" }` | `VISUALIZE "<sql>" AS (...)` |
+| No data field | `VISUALIZE AS (...)` |
+| `"data": { "url": "..." }` | Not handled (source omitted) |
+| `"data": { "values": [...] }` | Not handled (source omitted) |
 
-| Vega-Lite `data` form | VISUALISE mapping |
-|---|---|
-| `data.url: "file.csv"` | Not representable; drop or stub as `TABLE <name>` |
-| `data.values: [{…}, …]` | Not representable; must be loaded into a table first |
-| Named dataset (`data.name`) | Map to `TABLE <name>` if the name corresponds to a known relation |
-| Generator (sequence, graticule) | Not representable |
+### Mark
 
-The importer must document what it drops.
-
-### mark → DRAW geom
-
-Reverse of the forward table. Composite marks (`boxplot`, `errorbar`,
-`violin`) round-trip cleanly. Marks with no `VISUALISE` geom (`geoshape`,
-`image`) are unrepresentable.
-
-### encoding → SELECT aliases + SCALE
-
-Each channel with a `field` entry becomes a `SELECT field AS channel` alias:
+The mark string is emitted directly as a keyword:
 
 ```json
-{
-  "encoding": {
-    "x": { "field": "date", "type": "temporal" },
-    "y": { "field": "revenue", "type": "quantitative" }
-  }
-}
+{ "mark": "bar" }
 ```
 
 ```sql
-DRAW line FROM (SELECT date AS x, revenue AS y)
+VISUALIZE AS (mark => bar);
 ```
 
-The Vega-Lite `type` annotation maps to a `SCALE` clause:
+Object-form marks (`{ "mark": { "type": "bar", "opacity": 0.7 } }`) are not
+yet handled by the reverse parser.
 
-| Vega-Lite `type` | VISUALISE `SCALE` type |
-|---|---|
-| `"quantitative"` | `continuous` (or omit — it's the default) |
-| `"ordinal"` | `ordinal` |
-| `"nominal"` | `discrete` |
-| `"temporal"` | `continuous` (no dedicated temporal scale type in dashql yet) |
+### Encoding channels
 
-When `encoding.x.scale.type` is set explicitly, that overrides the type
-inference above.
+Channel names are mapped from camelCase JSON keys to lowercase VISUALIZE
+keywords (e.g., `fillOpacity` -> `fillopacity`, `xOffset` -> `xoffset`).
 
-**Constant channel values** (`"value": …` rather than `"field": …`) become
-`USING (aesthetic => value)` on the `DRAW` clause.
-
-### transform → SQL or lost
-
-Vega-Lite transforms that can be expressed in SQL are pushed into the `FROM
-(SELECT …)` subquery:
-
-| Vega-Lite transform | SQL equivalent |
-|---|---|
-| `{ "filter": "datum.x > 0" }` | `WHERE x > 0` |
-| `{ "calculate": "datum.a + datum.b", "as": "c" }` | `SELECT a + b AS c` |
-| `{ "aggregate": [{ "op": "sum", "field": "v", "as": "total" }], "groupby": ["g"] }` | `SELECT g, SUM(v) AS total GROUP BY g` |
-| `{ "bin": true, "field": "x" }` | `WIDTH_BUCKET(x, …)` or equivalent |
-| `{ "timeUnit": "year", "field": "date", "as": "year" }` | `DATE_TRUNC('year', date) AS year` |
-| `{ "sample": n }` | `LIMIT n` (approximate; sample semantics differ) |
-
-Transforms without SQL equivalents — `{ "fold" }`, `{ "flatten" }`,
-`{ "pivot" }`, `{ "impute" }`, `{ "density" }`, `{ "loess" }`,
-`{ "regression" }`, `{ "quantile" }`, `{ "stack" }`, `{ "window" }` — are
-either unrepresentable or require non-standard SQL extensions. The importer
-should warn and retain these as comments or drop them.
-
-### facet → FACET
+Each channel with an object value produces a field-def list:
 
 ```json
-{
-  "facet": {
-    "row": { "field": "region" },
-    "column": { "field": "fiscal_year" }
-  }
-}
+"x": { "field": "date", "type": "temporal", "scale": { "type": "log" } }
 ```
 
 ```sql
-FACET region BY fiscal_year
+x => (field => date, type => temporal, scale => (type => log))
 ```
 
-`row`-only facets become `FACET col`. `column`-only facets also become
-`FACET col` (dashql's single-identifier form; directionality is a rendering
-hint). `resolve.scale.x/y: "independent"` becomes `USING (scales => 'free')`.
+Properties handled in reverse: `field`, `type`, `aggregate`, `bin`,
+`timeUnit`, `scale`, `axis`, `legend`.
 
-### Structural Vega-Lite forms with no VISUALISE equivalent
+### Sub-objects (scale, axis, legend)
 
-| Vega-Lite form | Status |
-|---|---|
-| `hconcat` / `vconcat` / `concat` | Layout operators; no dashql equivalent |
-| `repeat` | No dashql equivalent |
-| `selection` / `params` (interactions) | No dashql concept |
-| `config` (global theme) | No dashql equivalent |
-| `resolve` (cross-layer scale sharing) | Partially: `USING (scales => …)` on `FACET` only |
-| `encoding.tooltip` | No dashql aesthetic |
-| `encoding.href` | No dashql aesthetic |
-| `encoding.key` | No dashql aesthetic |
-| `encoding.order` (for stacking/path order) | Partially: `ORDER BY` in the inner SELECT |
-| `projection` on `geoshape` | No dashql `PROJECT` equivalent for geographic types |
+The reverse parser iterates object members, lowercases camelCase keys (by
+stripping uppercase without inserting separators), and emits `key => value`
+pairs.
+
+### Top-level properties
+
+`title`, `width`, and `height` are round-tripped when present.
 
 ---
 
-## Lossy cases summary
+## Roundtrip fidelity
 
-### Forward (VISUALISE → Vega-Lite), information lost or approximated
+The snapshot tests (`snapshots/visualize/basic.yaml`) verify roundtrip
+correctness: parse VISUALIZE -> analyze -> generate Vega-Lite -> parse back to
+VISUALIZE. The roundtrip is tested for:
 
-| Situation | What happens |
-|---|---|
-| Arbitrary lambda projection | Pattern-match to named scale type; fallback to `calculate` transform |
-| `FORMAT (lambda v: sql_expr)` | Translated to `axis.labelExpr` for simple arithmetic; dropped otherwise |
-| `PARTITION BY` | Emitted as `encoding.detail`; grouping intent may not match |
-| `REMAP` | Becomes a `calculate` transform; aesthetics rename via derived field |
-| `PROJECT TO polar` | Mark restructured to `arc`; channel mapping changes |
-| SQL-heavy FROM clauses | Executed before spec generation; result passed as inline data |
-| `VISUALISE TABLE name` | Table is treated as external data; must be available in embedding env |
+- Basic mark-only specs
+- Field type annotations
+- Multi-channel encoding
+- Scale configuration (type, zero, nice, etc.)
+- Axis configuration (labelAngle, grid, etc.)
+- Color encoding
+- Shorthand encoding (bare column reference)
+- Subquery data sources
+- No-source specs
+- Aggregate functions
+- Bin configuration
 
-### Reverse (Vega-Lite → VISUALISE), information lost or dropped
+### Shorthand normalization
 
-| Situation | What happens |
-|---|---|
-| `data.url` / `data.values` / generator | Dropped; must be loaded into SQL table manually |
-| `selection` / `params` | Dropped; no dashql interaction model |
-| `config` | Dropped; no dashql styling |
-| `hconcat` / `vconcat` / `repeat` | Not translatable; importer should error or warn |
-| `transform: [fold, flatten, pivot, impute, …]` | Dropped with warning |
-| `encoding.tooltip` / `.href` / `.key` | Dropped |
-| `type: "temporal"` | Mapped to `continuous`; temporal semantics lost |
-| `resolve` across layers | Dropped (only `FACET USING (scales => …)` is representable) |
+The shorthand `x => date` normalizes to `x => (field => date)` on roundtrip.
+This is correct — the shorthand is syntactic sugar that the analyzer resolves.
 
 ---
 
-## Implementation sketch
+## Current limitations
 
-### VISUALISE → Vega-Lite
+### Not yet supported in Vega-Lite generation
 
-A translator would walk the parsed AST (`OBJECT_VIS_VISUALISE` and its
-children) and build a Vega-Lite spec object:
+| Feature | Status |
+|---------|--------|
+| `layer` (multi-layer specs) | Parsed but not emitted |
+| `transform` | Parsed but not emitted |
+| `params` / selections | Parsed but not emitted |
+| `projection` | Parsed but not emitted |
+| `resolve` | Parsed but not emitted |
+| Object-form mark | Grammar supports it; generator emits string only |
+| `condition` on encoding | Parsed but not emitted |
 
-1. **Execute SQL** — run the `VIS_VISUALISE_SELECT` query (and each
-   `VIS_LAYER_SELECT`) and attach results as named inline datasets.
-2. **Emit layers** — for each `OBJECT_VIS_LAYER`, emit a `mark`/`encoding`
-   pair; collect into `layer[]` if there are multiple.
-3. **Emit scales** — for each `OBJECT_VIS_SCALE`, locate the matching
-   encoding channel and add `scale`, `axis`, or `legend` properties.
-4. **Emit facet** — if an `OBJECT_VIS_FACET` is present, wrap the spec in a
-   `facet` object.
-5. **Emit title** — map `VIS_LABEL_USING` entries to `title` and per-channel
-   `title` fields.
-6. **Handle lambdas** — pattern-match projection lambdas; emit `calculate`
-   transforms for unrecognized forms.
+### Not yet supported in reverse parsing
 
-### Vega-Lite → VISUALISE
+| Feature | Status |
+|---------|--------|
+| `"data": { "url" }` / `"values"` | Dropped |
+| Object-form mark | Not handled |
+| `layer` array | Not handled |
+| `hconcat` / `vconcat` / `concat` | Not handled |
+| `repeat` | Not handled |
+| `selection` / `params` | Not handled |
+| `config` | Not handled |
+| `transform` array | Not handled |
 
-A reverse translator would:
+### Key naming convention
 
-1. **Identify layers** — a top-level `mark`/`encoding` becomes a single
-   `DRAW`; a `layer` array becomes multiple `DRAW` clauses; `facet` wraps
-   the whole statement.
-2. **Build SELECT aliases** — for each `field`-type channel, add
-   `field AS channel` to the subquery's select list.
-3. **Emit SCALE clauses** — from `type`, `scale.type`, `scale.domain`,
-   `scale.range`.
-4. **Map transforms** — SQL-expressible transforms go into the subquery;
-   the rest are dropped with a warning.
-5. **Emit LABEL** — from `title`, `subtitle`, and per-channel `title` fields.
-6. **Report dropped features** — collect everything that could not be
-   represented and surface it to the user.
+VISUALIZE keywords are single lowercase tokens (`labelangle`, `fillopacity`,
+`strokewidth`). Vega-Lite uses camelCase (`labelAngle`, `fillOpacity`,
+`strokeWidth`). The forward mapping is defined explicitly in lookup tables. The
+reverse mapping strips uppercase characters without inserting separators, which
+works for all current Vega-Lite property names.
+
+---
+
+## Implementation
+
+### Forward pipeline
+
+```
+SQL text
+  -> Parser (ext_visualize.y)
+  -> AST (OBJECT_VIS_VISUALISE tree)
+  -> Analyzer (AnalyzeVisualizationPass)
+  -> VisualizationSpec struct
+  -> Generator (vegalite_generator.cc)
+  -> Vega-Lite JSON string
+```
+
+### Reverse pipeline
+
+```
+Vega-Lite JSON string
+  -> Parser (vegalite_parser.cc, RapidJSON)
+  -> VISUALIZE SQL string
+```
+
+The reverse path is a direct JSON-to-text translation. It does not go through
+the AST or analyzer — it produces a SQL string that can be re-parsed by the
+forward pipeline.
