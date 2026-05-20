@@ -4,27 +4,21 @@
 // Shape:
 //
 //   VISUALIZE <table-ref> AS (
-//       mark => 'line',
+//       mark => line,
 //       encoding => (
 //           x => (field => time, type => temporal, scale => (domain => [0, 100]))
 //       ),
 //       width => 800
 //   )
 //
-// 4-level structured grammar for autocompletion:
-//   Level 1: Top-level spec properties (mark, encoding, width, ...)
-//   Level 2: Encoding channel names (x, y, color, ...)
-//   Level 3: Field definition properties (field, type, scale, axis, ...)
-//   Level 4: Scale/Axis/Legend properties (domain, range, scheme, ...)
+// 4-level structured grammar with dedicated object types and attribute keys:
+//   Level 1: OBJECT_VIS_SPEC — top-level spec properties
+//   Level 2: OBJECT_VIS_ENCODING — encoding channel definitions
+//   Level 3: OBJECT_VIS_FIELD_DEF — field definition properties
+//   Level 4: OBJECT_VIS_SCALE / OBJECT_VIS_AXIS / OBJECT_VIS_LEGEND
 //
 // Each level has its own key rule so bison reports level-appropriate expected
-// symbols for autocompletion. Structural keys (ENCODING, SCALE_P, AXIS, LEGEND)
-// get dedicated productions that explicitly descend into the next level.
-//
-// Nested object values re-enter vis_spec_list (level 1) so autocompletion
-// suggests top-level spec keys. The vis_encoding_value rule omits the
-// nested-object production to avoid reduce/reduce with the structural
-// channel path at level 2.
+// symbols for autocompletion.
 
 vis_visualise_keyword:
     VISUALISE  { $$ = $1; }
@@ -39,7 +33,8 @@ vis_visualise_stmt:
         }
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_VISUALISE, {
             Attr(Key::VIS_VISUALISE_SELECT, $2),
-            Attr(Key::VIS_VISUALISE_SPEC, ctx.Array(@5, std::move($5))),
+            Attr(Key::VIS_VISUALISE_SPEC,
+                 ctx.Object(@5, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($5), false)),
         }, false);
     }
     ;
@@ -64,40 +59,38 @@ vis_spec_list:
 
 opt_vis_spec_field:
     ENCODING EQUALS_GREATER LRB vis_encoding_list RRB {
-        $$ = VarArgField(ctx, @$, ctx.List({ Enum(@1, buffers::parser::VisSpecKey::ENCODING) }),
-             ctx.Object(@$, buffers::parser::NodeType::OBJECT_EXT_VARARG_ARRAY, {
-                 Attr(Key::EXT_VARARG_ARRAY_VALUES, ctx.Array(@4, std::move($4))),
-             }));
+        $$ = Attr(Key::VIS_SPEC_ENCODING,
+             ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_ENCODING, std::move($4), false));
     }
   | MARK EQUALS_GREATER vis_mark_value {
-        $$ = VarArgField(ctx, @$, ctx.List({ Enum(@1, buffers::parser::VisSpecKey::MARK) }), $3);
+        $$ = Attr(Key::VIS_SPEC_MARK, $3);
     }
   | vis_spec_key EQUALS_GREATER vis_value {
-        $$ = VarArgField(ctx, @$, ctx.List({ $1 }), $3);
+        $$ = Attr($1, $3);
     }
   | %empty { $$ = Null(); }
     ;
 
 vis_spec_key:
-    IDENT           { $$ = NameFromIdentifier(@1, $1); }
-  | LAYER           { $$ = Enum(@1, buffers::parser::VisSpecKey::LAYER); }
-  | DATA_P          { $$ = Enum(@1, buffers::parser::VisSpecKey::DATA); }
-  | TRANSFORM       { $$ = Enum(@1, buffers::parser::VisSpecKey::TRANSFORM); }
-  | PARAMS          { $$ = Enum(@1, buffers::parser::VisSpecKey::PARAMS); }
-  | PROJECTION      { $$ = Enum(@1, buffers::parser::VisSpecKey::PROJECTION); }
-  | AUTOSIZE        { $$ = Enum(@1, buffers::parser::VisSpecKey::AUTOSIZE); }
-  | RESOLVE         { $$ = Enum(@1, buffers::parser::VisSpecKey::RESOLVE); }
-  | DATASETS        { $$ = Enum(@1, buffers::parser::VisSpecKey::DATASETS); }
-  | VIEW            { $$ = Enum(@1, buffers::parser::VisSpecKey::VIEW); }
-  | NAME_P          { $$ = Enum(@1, buffers::parser::VisSpecKey::NAME); }
-  | TITLE           { $$ = Enum(@1, buffers::parser::VisSpecKey::TITLE); }
-  | WIDTH           { $$ = Enum(@1, buffers::parser::VisSpecKey::WIDTH); }
-  | HEIGHT          { $$ = Enum(@1, buffers::parser::VisSpecKey::HEIGHT); }
-  | PADDING         { $$ = Enum(@1, buffers::parser::VisSpecKey::PADDING); }
-  | BACKGROUND      { $$ = Enum(@1, buffers::parser::VisSpecKey::BACKGROUND); }
-  | FILTER          { $$ = Enum(@1, buffers::parser::VisSpecKey::FILTER); }
-  | DESCRIBE        { $$ = Enum(@1, buffers::parser::VisSpecKey::DESCRIPTION); }
-  | TYPE_P          { $$ = Enum(@1, buffers::parser::VisSpecKey::TYPE); }
+    IDENT           { $$ = Key::NONE; }
+  | LAYER           { $$ = Key::VIS_SPEC_LAYER; }
+  | DATA_P          { $$ = Key::VIS_SPEC_DATA; }
+  | TRANSFORM       { $$ = Key::VIS_SPEC_TRANSFORM; }
+  | PARAMS          { $$ = Key::VIS_SPEC_PARAMS; }
+  | PROJECTION      { $$ = Key::VIS_SPEC_PROJECTION; }
+  | AUTOSIZE        { $$ = Key::VIS_SPEC_AUTOSIZE; }
+  | RESOLVE         { $$ = Key::VIS_SPEC_RESOLVE; }
+  | DATASETS        { $$ = Key::VIS_SPEC_DATASETS; }
+  | VIEW            { $$ = Key::VIS_SPEC_VIEW; }
+  | NAME_P          { $$ = Key::VIS_SPEC_NAME; }
+  | TITLE           { $$ = Key::VIS_SPEC_TITLE; }
+  | WIDTH           { $$ = Key::VIS_SPEC_WIDTH; }
+  | HEIGHT          { $$ = Key::VIS_SPEC_HEIGHT; }
+  | PADDING         { $$ = Key::VIS_SPEC_PADDING; }
+  | BACKGROUND      { $$ = Key::VIS_SPEC_BACKGROUND; }
+  | FILTER          { $$ = Key::VIS_SPEC_FILTER; }
+  | DESCRIBE        { $$ = Key::VIS_SPEC_DESCRIPTION; }
+  | TYPE_P          { $$ = Key::VIS_SPEC_TYPE; }
     ;
 
 vis_mark_value:
@@ -105,9 +98,7 @@ vis_mark_value:
         $$ = $1;
     }
   | LRB vis_spec_list RRB {
-        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_EXT_VARARG_ARRAY, {
-            Attr(Key::EXT_VARARG_ARRAY_VALUES, ctx.Array(@2, std::move($2))),
-        });
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($2), false);
     }
   | sql_a_expr_const { $$ = ctx.Expression(std::move($1)); }
     ;
@@ -140,50 +131,48 @@ vis_encoding_list:
 
 opt_vis_encoding_field:
     vis_channel_key EQUALS_GREATER LRB vis_fielddef_list RRB {
-        $$ = VarArgField(ctx, @$, ctx.List({ $1 }),
-             ctx.Object(@$, buffers::parser::NodeType::OBJECT_EXT_VARARG_ARRAY, {
-                 Attr(Key::EXT_VARARG_ARRAY_VALUES, ctx.Array(@4, std::move($4))),
-             }));
+        $$ = Attr($1,
+             ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_FIELD_DEF, std::move($4), false));
     }
   | vis_channel_key EQUALS_GREATER vis_encoding_value {
-        $$ = VarArgField(ctx, @$, ctx.List({ $1 }), $3);
+        $$ = Attr($1, $3);
     }
   | %empty { $$ = Null(); }
     ;
 
 vis_channel_key:
-    IDENT             { $$ = NameFromIdentifier(@1, $1); }
-  | COLOR             { $$ = Enum(@1, buffers::parser::VisEncodingChannel::COLOR); }
-  | FILL              { $$ = Enum(@1, buffers::parser::VisEncodingChannel::FILL); }
-  | STROKE            { $$ = Enum(@1, buffers::parser::VisEncodingChannel::STROKE); }
-  | FILLOPACITY       { $$ = Enum(@1, buffers::parser::VisEncodingChannel::FILL_OPACITY); }
-  | STROKEOPACITY     { $$ = Enum(@1, buffers::parser::VisEncodingChannel::STROKE_OPACITY); }
-  | STROKEWIDTH       { $$ = Enum(@1, buffers::parser::VisEncodingChannel::STROKE_WIDTH); }
-  | STROKEDASH        { $$ = Enum(@1, buffers::parser::VisEncodingChannel::STROKE_DASH); }
-  | OPACITY           { $$ = Enum(@1, buffers::parser::VisEncodingChannel::OPACITY); }
-  | SIZE              { $$ = Enum(@1, buffers::parser::VisEncodingChannel::SIZE); }
-  | SHAPE             { $$ = Enum(@1, buffers::parser::VisEncodingChannel::SHAPE); }
-  | ANGLE             { $$ = Enum(@1, buffers::parser::VisEncodingChannel::ANGLE); }
-  | THETA             { $$ = Enum(@1, buffers::parser::VisEncodingChannel::THETA); }
-  | THETA2            { $$ = Enum(@1, buffers::parser::VisEncodingChannel::THETA2); }
-  | RADIUS            { $$ = Enum(@1, buffers::parser::VisEncodingChannel::RADIUS); }
-  | RADIUS2           { $$ = Enum(@1, buffers::parser::VisEncodingChannel::RADIUS2); }
-  | DETAIL            { $$ = Enum(@1, buffers::parser::VisEncodingChannel::DETAIL); }
-  | ORDER             { $$ = Enum(@1, buffers::parser::VisEncodingChannel::ORDER); }
-  | TOOLTIP           { $$ = Enum(@1, buffers::parser::VisEncodingChannel::TOOLTIP); }
-  | TEXT_P            { $$ = Enum(@1, buffers::parser::VisEncodingChannel::TEXT); }
-  | ROW               { $$ = Enum(@1, buffers::parser::VisEncodingChannel::ROW); }
-  | COLUMN            { $$ = Enum(@1, buffers::parser::VisEncodingChannel::COLUMN); }
-  | FACET             { $$ = Enum(@1, buffers::parser::VisEncodingChannel::FACET); }
-  | HREF              { $$ = Enum(@1, buffers::parser::VisEncodingChannel::HREF); }
-  | URL_P             { $$ = Enum(@1, buffers::parser::VisEncodingChannel::URL); }
-  | KEY               { $$ = Enum(@1, buffers::parser::VisEncodingChannel::KEY); }
-  | LATITUDE          { $$ = Enum(@1, buffers::parser::VisEncodingChannel::LATITUDE); }
-  | LONGITUDE         { $$ = Enum(@1, buffers::parser::VisEncodingChannel::LONGITUDE); }
-  | LATITUDE2         { $$ = Enum(@1, buffers::parser::VisEncodingChannel::LATITUDE2); }
-  | LONGITUDE2        { $$ = Enum(@1, buffers::parser::VisEncodingChannel::LONGITUDE2); }
-  | XOFFSET           { $$ = Enum(@1, buffers::parser::VisEncodingChannel::X_OFFSET); }
-  | YOFFSET           { $$ = Enum(@1, buffers::parser::VisEncodingChannel::Y_OFFSET); }
+    IDENT             { $$ = Key::NONE; }
+  | COLOR             { $$ = Key::VIS_ENCODING_COLOR; }
+  | FILL              { $$ = Key::VIS_ENCODING_FILL; }
+  | STROKE            { $$ = Key::VIS_ENCODING_STROKE; }
+  | FILLOPACITY       { $$ = Key::VIS_ENCODING_FILL_OPACITY; }
+  | STROKEOPACITY     { $$ = Key::VIS_ENCODING_STROKE_OPACITY; }
+  | STROKEWIDTH       { $$ = Key::VIS_ENCODING_STROKE_WIDTH; }
+  | STROKEDASH        { $$ = Key::VIS_ENCODING_STROKE_DASH; }
+  | OPACITY           { $$ = Key::VIS_ENCODING_OPACITY; }
+  | SIZE              { $$ = Key::VIS_ENCODING_SIZE; }
+  | SHAPE             { $$ = Key::VIS_ENCODING_SHAPE; }
+  | ANGLE             { $$ = Key::VIS_ENCODING_ANGLE; }
+  | THETA             { $$ = Key::VIS_ENCODING_THETA; }
+  | THETA2            { $$ = Key::VIS_ENCODING_THETA2; }
+  | RADIUS            { $$ = Key::VIS_ENCODING_RADIUS; }
+  | RADIUS2           { $$ = Key::VIS_ENCODING_RADIUS2; }
+  | DETAIL            { $$ = Key::VIS_ENCODING_DETAIL; }
+  | ORDER             { $$ = Key::VIS_ENCODING_ORDER; }
+  | TOOLTIP           { $$ = Key::VIS_ENCODING_TOOLTIP; }
+  | TEXT_P            { $$ = Key::VIS_ENCODING_TEXT; }
+  | ROW               { $$ = Key::VIS_ENCODING_ROW; }
+  | COLUMN            { $$ = Key::VIS_ENCODING_COLUMN; }
+  | FACET             { $$ = Key::VIS_ENCODING_FACET; }
+  | HREF              { $$ = Key::VIS_ENCODING_HREF; }
+  | URL_P             { $$ = Key::VIS_ENCODING_URL; }
+  | KEY               { $$ = Key::VIS_ENCODING_KEY; }
+  | LATITUDE          { $$ = Key::VIS_ENCODING_LATITUDE; }
+  | LONGITUDE         { $$ = Key::VIS_ENCODING_LONGITUDE; }
+  | LATITUDE2         { $$ = Key::VIS_ENCODING_LATITUDE2; }
+  | LONGITUDE2        { $$ = Key::VIS_ENCODING_LONGITUDE2; }
+  | XOFFSET           { $$ = Key::VIS_ENCODING_X_OFFSET; }
+  | YOFFSET           { $$ = Key::VIS_ENCODING_Y_OFFSET; }
     ;
 
 vis_encoding_value:
@@ -209,48 +198,42 @@ vis_fielddef_list:
 
 opt_vis_fielddef_field:
     SCALE_P EQUALS_GREATER LRB vis_scale_list RRB {
-        $$ = VarArgField(ctx, @$, ctx.List({ Enum(@1, buffers::parser::VisFieldDefKey::SCALE) }),
-             ctx.Object(@$, buffers::parser::NodeType::OBJECT_EXT_VARARG_ARRAY, {
-                 Attr(Key::EXT_VARARG_ARRAY_VALUES, ctx.Array(@4, std::move($4))),
-             }));
+        $$ = Attr(Key::VIS_FIELD_DEF_SCALE,
+             ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_SCALE, std::move($4), false));
     }
   | AXIS EQUALS_GREATER LRB vis_axis_list RRB {
-        $$ = VarArgField(ctx, @$, ctx.List({ Enum(@1, buffers::parser::VisFieldDefKey::AXIS) }),
-             ctx.Object(@$, buffers::parser::NodeType::OBJECT_EXT_VARARG_ARRAY, {
-                 Attr(Key::EXT_VARARG_ARRAY_VALUES, ctx.Array(@4, std::move($4))),
-             }));
+        $$ = Attr(Key::VIS_FIELD_DEF_AXIS,
+             ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_AXIS, std::move($4), false));
     }
   | LEGEND EQUALS_GREATER LRB vis_legend_list RRB {
-        $$ = VarArgField(ctx, @$, ctx.List({ Enum(@1, buffers::parser::VisFieldDefKey::LEGEND) }),
-             ctx.Object(@$, buffers::parser::NodeType::OBJECT_EXT_VARARG_ARRAY, {
-                 Attr(Key::EXT_VARARG_ARRAY_VALUES, ctx.Array(@4, std::move($4))),
-             }));
+        $$ = Attr(Key::VIS_FIELD_DEF_LEGEND,
+             ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_LEGEND, std::move($4), false));
     }
   | TYPE_P EQUALS_GREATER vis_field_type {
-        $$ = VarArgField(ctx, @$, ctx.List({ Enum(@1, buffers::parser::VisFieldDefKey::TYPE) }), $3);
+        $$ = Attr(Key::VIS_FIELD_DEF_TYPE, $3);
     }
   | vis_fielddef_key EQUALS_GREATER vis_value {
-        $$ = VarArgField(ctx, @$, ctx.List({ $1 }), $3);
+        $$ = Attr($1, $3);
     }
   | %empty { $$ = Null(); }
     ;
 
 vis_fielddef_key:
-    IDENT           { $$ = NameFromIdentifier(@1, $1); }
-  | FIELD           { $$ = Enum(@1, buffers::parser::VisFieldDefKey::FIELD); }
-  | BIN             { $$ = Enum(@1, buffers::parser::VisFieldDefKey::BIN); }
-  | AGGREGATE       { $$ = Enum(@1, buffers::parser::VisFieldDefKey::AGGREGATE); }
-  | TIMEUNIT        { $$ = Enum(@1, buffers::parser::VisFieldDefKey::TIME_UNIT); }
-  | SORT            { $$ = Enum(@1, buffers::parser::VisFieldDefKey::SORT); }
-  | STACK           { $$ = Enum(@1, buffers::parser::VisFieldDefKey::STACK); }
-  | IMPUTE          { $$ = Enum(@1, buffers::parser::VisFieldDefKey::IMPUTE); }
-  | CONDITION       { $$ = Enum(@1, buffers::parser::VisFieldDefKey::CONDITION); }
-  | TITLE           { $$ = Enum(@1, buffers::parser::VisFieldDefKey::TITLE); }
-  | BANDPOSITION    { $$ = Enum(@1, buffers::parser::VisFieldDefKey::BAND_POSITION); }
-  | DATUM           { $$ = Enum(@1, buffers::parser::VisFieldDefKey::DATUM); }
-  | VALUE_P         { $$ = Enum(@1, buffers::parser::VisFieldDefKey::VALUE); }
-  | FORMAT          { $$ = Enum(@1, buffers::parser::VisFieldDefKey::FORMAT); }
-  | FORMATTYPE      { $$ = Enum(@1, buffers::parser::VisFieldDefKey::FORMAT_TYPE); }
+    IDENT           { $$ = Key::NONE; }
+  | FIELD           { $$ = Key::VIS_FIELD_DEF_FIELD; }
+  | BIN             { $$ = Key::VIS_FIELD_DEF_BIN; }
+  | AGGREGATE       { $$ = Key::VIS_FIELD_DEF_AGGREGATE; }
+  | TIMEUNIT        { $$ = Key::VIS_FIELD_DEF_TIME_UNIT; }
+  | SORT            { $$ = Key::VIS_FIELD_DEF_SORT; }
+  | STACK           { $$ = Key::VIS_FIELD_DEF_STACK; }
+  | IMPUTE          { $$ = Key::VIS_FIELD_DEF_IMPUTE; }
+  | CONDITION       { $$ = Key::VIS_FIELD_DEF_CONDITION; }
+  | TITLE           { $$ = Key::VIS_FIELD_DEF_TITLE; }
+  | BANDPOSITION    { $$ = Key::VIS_FIELD_DEF_BAND_POSITION; }
+  | DATUM           { $$ = Key::VIS_FIELD_DEF_DATUM; }
+  | VALUE_P         { $$ = Key::VIS_FIELD_DEF_VALUE; }
+  | FORMAT          { $$ = Key::VIS_FIELD_DEF_FORMAT; }
+  | FORMATTYPE      { $$ = Key::VIS_FIELD_DEF_FORMAT_TYPE; }
     ;
 
 vis_field_type:
@@ -272,34 +255,34 @@ vis_scale_list:
 
 opt_vis_scale_field:
     vis_scale_key EQUALS_GREATER vis_value {
-        $$ = VarArgField(ctx, @$, ctx.List({ $1 }), $3);
+        $$ = Attr($1, $3);
     }
   | %empty { $$ = Null(); }
     ;
 
 vis_scale_key:
-    IDENT           { $$ = NameFromIdentifier(@1, $1); }
-  | TYPE_P          { $$ = Enum(@1, buffers::parser::VisScaleKey::TYPE); }
-  | DOMAIN_P        { $$ = Enum(@1, buffers::parser::VisScaleKey::DOMAIN_); }
-  | DOMAINMIN       { $$ = Enum(@1, buffers::parser::VisScaleKey::DOMAIN_MIN); }
-  | DOMAINMAX       { $$ = Enum(@1, buffers::parser::VisScaleKey::DOMAIN_MAX); }
-  | DOMAINMID       { $$ = Enum(@1, buffers::parser::VisScaleKey::DOMAIN_MID); }
-  | RANGE           { $$ = Enum(@1, buffers::parser::VisScaleKey::RANGE); }
-  | RANGEMIN        { $$ = Enum(@1, buffers::parser::VisScaleKey::RANGE_MIN); }
-  | RANGEMAX        { $$ = Enum(@1, buffers::parser::VisScaleKey::RANGE_MAX); }
-  | SCHEME          { $$ = Enum(@1, buffers::parser::VisScaleKey::SCHEME); }
-  | INTERPOLATE     { $$ = Enum(@1, buffers::parser::VisScaleKey::INTERPOLATE); }
-  | NICE            { $$ = Enum(@1, buffers::parser::VisScaleKey::NICE); }
-  | ZERO            { $$ = Enum(@1, buffers::parser::VisScaleKey::ZERO); }
-  | CLAMP           { $$ = Enum(@1, buffers::parser::VisScaleKey::CLAMP); }
-  | PADDING         { $$ = Enum(@1, buffers::parser::VisScaleKey::PADDING); }
-  | PADDINGINNER    { $$ = Enum(@1, buffers::parser::VisScaleKey::PADDING_INNER); }
-  | PADDINGOUTER    { $$ = Enum(@1, buffers::parser::VisScaleKey::PADDING_OUTER); }
-  | REVERSE         { $$ = Enum(@1, buffers::parser::VisScaleKey::REVERSE); }
-  | ROUND           { $$ = Enum(@1, buffers::parser::VisScaleKey::ROUND); }
-  | EXPONENT        { $$ = Enum(@1, buffers::parser::VisScaleKey::EXPONENT); }
-  | BINS            { $$ = Enum(@1, buffers::parser::VisScaleKey::BINS); }
-  | NAME_P          { $$ = Enum(@1, buffers::parser::VisScaleKey::NAME); }
+    IDENT           { $$ = Key::NONE; }
+  | TYPE_P          { $$ = Key::VIS_SCALE_TYPE; }
+  | DOMAIN_P        { $$ = Key::VIS_SCALE_DOMAIN; }
+  | DOMAINMIN       { $$ = Key::VIS_SCALE_DOMAIN_MIN; }
+  | DOMAINMAX       { $$ = Key::VIS_SCALE_DOMAIN_MAX; }
+  | DOMAINMID       { $$ = Key::VIS_SCALE_DOMAIN_MID; }
+  | RANGE           { $$ = Key::VIS_SCALE_RANGE; }
+  | RANGEMIN        { $$ = Key::VIS_SCALE_RANGE_MIN; }
+  | RANGEMAX        { $$ = Key::VIS_SCALE_RANGE_MAX; }
+  | SCHEME          { $$ = Key::VIS_SCALE_SCHEME; }
+  | INTERPOLATE     { $$ = Key::VIS_SCALE_INTERPOLATE; }
+  | NICE            { $$ = Key::VIS_SCALE_NICE; }
+  | ZERO            { $$ = Key::VIS_SCALE_ZERO; }
+  | CLAMP           { $$ = Key::VIS_SCALE_CLAMP; }
+  | PADDING         { $$ = Key::VIS_SCALE_PADDING; }
+  | PADDINGINNER    { $$ = Key::VIS_SCALE_PADDING_INNER; }
+  | PADDINGOUTER    { $$ = Key::VIS_SCALE_PADDING_OUTER; }
+  | REVERSE         { $$ = Key::VIS_SCALE_REVERSE; }
+  | ROUND           { $$ = Key::VIS_SCALE_ROUND; }
+  | EXPONENT        { $$ = Key::VIS_SCALE_EXPONENT; }
+  | BINS            { $$ = Key::VIS_SCALE_BINS; }
+  | NAME_P          { $$ = Key::VIS_SCALE_NAME; }
     ;
 
 // ---------------------------------------------------------------------------
@@ -312,30 +295,30 @@ vis_axis_list:
 
 opt_vis_axis_field:
     vis_axis_key EQUALS_GREATER vis_value {
-        $$ = VarArgField(ctx, @$, ctx.List({ $1 }), $3);
+        $$ = Attr($1, $3);
     }
   | %empty { $$ = Null(); }
     ;
 
 vis_axis_key:
-    IDENT           { $$ = NameFromIdentifier(@1, $1); }
-  | ORIENT          { $$ = Enum(@1, buffers::parser::VisAxisKey::ORIENT); }
-  | FORMAT          { $$ = Enum(@1, buffers::parser::VisAxisKey::FORMAT); }
-  | FORMATTYPE      { $$ = Enum(@1, buffers::parser::VisAxisKey::FORMAT_TYPE); }
-  | GRID            { $$ = Enum(@1, buffers::parser::VisAxisKey::GRID); }
-  | TICKS           { $$ = Enum(@1, buffers::parser::VisAxisKey::TICKS); }
-  | TICKCOUNT       { $$ = Enum(@1, buffers::parser::VisAxisKey::TICK_COUNT); }
-  | TICKSIZE        { $$ = Enum(@1, buffers::parser::VisAxisKey::TICK_SIZE); }
-  | LABELANGLE      { $$ = Enum(@1, buffers::parser::VisAxisKey::LABEL_ANGLE); }
-  | LABELFONTSIZE   { $$ = Enum(@1, buffers::parser::VisAxisKey::LABEL_FONT_SIZE); }
-  | LABELOVERLAP    { $$ = Enum(@1, buffers::parser::VisAxisKey::LABEL_OVERLAP); }
-  | DIRECTION       { $$ = Enum(@1, buffers::parser::VisAxisKey::DIRECTION); }
-  | OFFSET          { $$ = Enum(@1, buffers::parser::VisAxisKey::OFFSET); }
-  | VALUES          { $$ = Enum(@1, buffers::parser::VisAxisKey::VALUES); }
-  | ZINDEX          { $$ = Enum(@1, buffers::parser::VisAxisKey::ZINDEX); }
-  | TITLE           { $$ = Enum(@1, buffers::parser::VisAxisKey::TITLE); }
-  | DOMAIN_P        { $$ = Enum(@1, buffers::parser::VisAxisKey::DOMAIN_); }
-  | NAME_P          { $$ = Enum(@1, buffers::parser::VisAxisKey::NAME); }
+    IDENT           { $$ = Key::NONE; }
+  | ORIENT          { $$ = Key::VIS_AXIS_ORIENT; }
+  | FORMAT          { $$ = Key::VIS_AXIS_FORMAT; }
+  | FORMATTYPE      { $$ = Key::VIS_AXIS_FORMAT_TYPE; }
+  | GRID            { $$ = Key::VIS_AXIS_GRID; }
+  | TICKS           { $$ = Key::VIS_AXIS_TICKS; }
+  | TICKCOUNT       { $$ = Key::VIS_AXIS_TICK_COUNT; }
+  | TICKSIZE        { $$ = Key::VIS_AXIS_TICK_SIZE; }
+  | LABELANGLE      { $$ = Key::VIS_AXIS_LABEL_ANGLE; }
+  | LABELFONTSIZE   { $$ = Key::VIS_AXIS_LABEL_FONT_SIZE; }
+  | LABELOVERLAP    { $$ = Key::VIS_AXIS_LABEL_OVERLAP; }
+  | DIRECTION       { $$ = Key::VIS_AXIS_DIRECTION; }
+  | OFFSET          { $$ = Key::VIS_AXIS_OFFSET; }
+  | VALUES          { $$ = Key::VIS_AXIS_VALUES; }
+  | ZINDEX          { $$ = Key::VIS_AXIS_ZINDEX; }
+  | TITLE           { $$ = Key::VIS_AXIS_TITLE; }
+  | DOMAIN_P        { $$ = Key::VIS_AXIS_DOMAIN; }
+  | NAME_P          { $$ = Key::VIS_AXIS_NAME; }
     ;
 
 // ---------------------------------------------------------------------------
@@ -348,24 +331,24 @@ vis_legend_list:
 
 opt_vis_legend_field:
     vis_legend_key EQUALS_GREATER vis_value {
-        $$ = VarArgField(ctx, @$, ctx.List({ $1 }), $3);
+        $$ = Attr($1, $3);
     }
   | %empty { $$ = Null(); }
     ;
 
 vis_legend_key:
-    IDENT           { $$ = NameFromIdentifier(@1, $1); }
-  | TYPE_P          { $$ = Enum(@1, buffers::parser::VisLegendKey::TYPE); }
-  | ORIENT          { $$ = Enum(@1, buffers::parser::VisLegendKey::ORIENT); }
-  | FORMAT          { $$ = Enum(@1, buffers::parser::VisLegendKey::FORMAT); }
-  | FORMATTYPE      { $$ = Enum(@1, buffers::parser::VisLegendKey::FORMAT_TYPE); }
-  | DIRECTION       { $$ = Enum(@1, buffers::parser::VisLegendKey::DIRECTION); }
-  | TITLE           { $$ = Enum(@1, buffers::parser::VisLegendKey::TITLE); }
-  | VALUES          { $$ = Enum(@1, buffers::parser::VisLegendKey::VALUES); }
-  | PADDING         { $$ = Enum(@1, buffers::parser::VisLegendKey::PADDING); }
-  | OFFSET          { $$ = Enum(@1, buffers::parser::VisLegendKey::OFFSET); }
-  | ZINDEX          { $$ = Enum(@1, buffers::parser::VisLegendKey::ZINDEX); }
-  | NAME_P          { $$ = Enum(@1, buffers::parser::VisLegendKey::NAME); }
+    IDENT           { $$ = Key::NONE; }
+  | TYPE_P          { $$ = Key::VIS_LEGEND_TYPE; }
+  | ORIENT          { $$ = Key::VIS_LEGEND_ORIENT; }
+  | FORMAT          { $$ = Key::VIS_LEGEND_FORMAT; }
+  | FORMATTYPE      { $$ = Key::VIS_LEGEND_FORMAT_TYPE; }
+  | DIRECTION       { $$ = Key::VIS_LEGEND_DIRECTION; }
+  | TITLE           { $$ = Key::VIS_LEGEND_TITLE; }
+  | VALUES          { $$ = Key::VIS_LEGEND_VALUES; }
+  | PADDING         { $$ = Key::VIS_LEGEND_PADDING; }
+  | OFFSET          { $$ = Key::VIS_LEGEND_OFFSET; }
+  | ZINDEX          { $$ = Key::VIS_LEGEND_ZINDEX; }
+  | NAME_P          { $$ = Key::VIS_LEGEND_NAME; }
     ;
 
 // ---------------------------------------------------------------------------
@@ -377,9 +360,7 @@ vis_legend_key:
 
 vis_value:
     LRB vis_spec_list RRB {
-        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_EXT_VARARG_ARRAY, {
-            Attr(Key::EXT_VARARG_ARRAY_VALUES, ctx.Array(@2, std::move($2))),
-        });
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($2), false);
     }
   | vararg_array_brackets {
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_EXT_VARARG_ARRAY, {
