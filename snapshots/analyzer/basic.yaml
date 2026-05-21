@@ -1056,3 +1056,375 @@ analyzer-snapshots:
                                 text: "total"
                       - type: LITERAL_INTEGER
                         text: "100"
+
+  - name: cte_basic
+    catalog:
+      script:
+        input: |-
+          create table sales (product text, amount int, region text);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..gion text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: amount
+                text: "amount int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: product
+                text: "product text"
+              - catalog-id: "256.65536.4294967296.2"
+                name: region
+                text: "region text"
+        errors: []
+    script:
+      input: with totals as (select product, sum(amount) as total from sales group by product) select product, total from totals;
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+        - type: name/unresolved
+          statement-id: 0
+          text: "totals"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "product"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "amount"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "product"
+        - expression-idx: 3
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "product"
+        - expression-idx: 4
+          type: colref/unresolved
+          statement-id: 0
+          text: "total"
+        - expression-idx: 5
+          type: function
+          name: sum
+          computation: 1
+          statement-id: 0
+          text: "sum(amount)"
+      column-computations:
+        - expression: 5
+          snippet:
+            signature-template: 7459937480860943044
+            signature-raw: 7349171517081095692
+            text: sum(amount)
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
+              ast:
+                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                text: "sum(amount)"
+                children:
+                  - key: SQL_FUNCTION_NAME
+                    type: ARRAY
+                    text: "sum"
+                    children:
+                      - type: NAME
+                        text: "sum"
+                  - key: SQL_FUNCTION_ARGUMENTS
+                    type: ARRAY
+                    text: "amount"
+                    children:
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "amount"
+                        children:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "amount"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "amount"
+                                children:
+                                  - type: NAME
+                                    text: "amount"
+
+  - name: cte_column_aliases
+    catalog:
+      script:
+        input: |-
+          create table sales (product text, amount int, region text);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..gion text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: amount
+                text: "amount int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: product
+                text: "product text"
+              - catalog-id: "256.65536.4294967296.2"
+                name: region
+                text: "region text"
+        errors: []
+    script:
+      input: with totals(item, revenue) as (select product, sum(amount) from sales group by product) select item, revenue from totals;
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+        - type: name/unresolved
+          statement-id: 0
+          text: "totals"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "product"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "amount"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "product"
+        - expression-idx: 3
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "item"
+        - expression-idx: 4
+          type: colref/unresolved
+          statement-id: 0
+          text: "revenue"
+        - expression-idx: 5
+          type: function
+          name: sum
+          computation: 1
+          statement-id: 0
+          text: "sum(amount)"
+      column-computations:
+        - expression: 5
+          snippet:
+            signature-template: 7459937480860943044
+            signature-raw: 7349171517081095692
+            text: sum(amount)
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
+              ast:
+                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                text: "sum(amount)"
+                children:
+                  - key: SQL_FUNCTION_NAME
+                    type: ARRAY
+                    text: "sum"
+                    children:
+                      - type: NAME
+                        text: "sum"
+                  - key: SQL_FUNCTION_ARGUMENTS
+                    type: ARRAY
+                    text: "amount"
+                    children:
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "amount"
+                        children:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "amount"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "amount"
+                                children:
+                                  - type: NAME
+                                    text: "amount"
+
+  - name: cte_chained
+    catalog:
+      script:
+        input: |-
+          create table orders (customer_id int, amount int, status text);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: orders
+            text: "create tab..atus text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: amount
+                text: "amount int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: customer_id
+                text: "customer_id int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: status
+                text: "status text"
+        errors: []
+    script:
+      input: |-
+        with
+          completed as (select customer_id, amount from orders where status = 'done'),
+          summary as (select customer_id, sum(amount) as total from completed group by customer_id)
+        select customer_id, total from summary;
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "orders"
+        - type: name/unresolved
+          statement-id: 0
+          text: "completed"
+        - type: name/unresolved
+          statement-id: 0
+          text: "summary"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "customer_id"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "amount"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          statement-id: 0
+          text: "status"
+        - expression-idx: 3
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "customer_id"
+        - expression-idx: 4
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "amount"
+        - expression-idx: 5
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "customer_id"
+        - expression-idx: 6
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "customer_id"
+        - expression-idx: 7
+          type: colref/unresolved
+          statement-id: 0
+          text: "total"
+        - expression-idx: 8
+          type: function
+          name: sum
+          computation: 4
+          statement-id: 0
+          text: "sum(amount)"
+        - expression-idx: 9
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'done'"
+        - expression-idx: 10
+          type: comparison
+          op: EQUAL
+          arg-left: 2
+          arg-right: 9
+          restriction-target: 2
+          statement-id: 0
+          text: "status = 'done'"
+      constants:
+        - expression: 9
+          text: "'done'"
+      column-computations:
+        - expression: 8
+          snippet:
+            signature-template: 7459937480860943044
+            signature-raw: 7349171517081095692
+            text: sum(amount)
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
+              ast:
+                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                text: "sum(amount)"
+                children:
+                  - key: SQL_FUNCTION_NAME
+                    type: ARRAY
+                    text: "sum"
+                    children:
+                      - type: NAME
+                        text: "sum"
+                  - key: SQL_FUNCTION_ARGUMENTS
+                    type: ARRAY
+                    text: "amount"
+                    children:
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "amount"
+                        children:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "amount"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "amount"
+                                children:
+                                  - type: NAME
+                                    text: "amount"
+      column-filters:
+        - expression: 10
+          snippet:
+            signature-template: 7878761948638513151
+            signature-raw: 548650992509396699
+            text: status = 'done'
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
+              ast:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "status = 'done'"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "status = 'done'"
+                    children:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "status"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "status"
+                            children:
+                              - type: NAME
+                                text: "status"
+                      - type: LITERAL_STRING
+                        text: "'done'"

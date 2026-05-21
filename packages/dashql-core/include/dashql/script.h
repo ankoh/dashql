@@ -190,6 +190,7 @@ class AnalyzedScript : public CatalogEntry {
     using TableReference = dashql::TableReference;
     using Expression = dashql::Expression;
     using ResultTarget = dashql::ResultTarget;
+    using CTEDefinition = dashql::CTEDefinition;
     using NameScope = dashql::NameScope;
     using ConstantExpression = dashql::ConstantExpression;
     using ColumnComputation = dashql::ColumnComputation;

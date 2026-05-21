@@ -134,3 +134,31 @@ analyzer-snapshots:
           create table sales (product text, amount int, region text);
     script:
       input: select product, total from (select product, sum(amount) as total from sales group by product) as s where total > 100;
+  # CTE with direct column reference
+  - name: cte_basic
+    catalog:
+      script:
+        input: |-
+          create table sales (product text, amount int, region text);
+    script:
+      input: with totals as (select product, sum(amount) as total from sales group by product) select product, total from totals;
+  # CTE with renamed output columns
+  - name: cte_column_aliases
+    catalog:
+      script:
+        input: |-
+          create table sales (product text, amount int, region text);
+    script:
+      input: with totals(item, revenue) as (select product, sum(amount) from sales group by product) select item, revenue from totals;
+  # Multiple CTEs where second references first
+  - name: cte_chained
+    catalog:
+      script:
+        input: |-
+          create table orders (customer_id int, amount int, status text);
+    script:
+      input: |-
+        with
+          completed as (select customer_id, amount from orders where status = 'done'),
+          summary as (select customer_id, sum(amount) as total from completed group by customer_id)
+        select customer_id, total from summary;

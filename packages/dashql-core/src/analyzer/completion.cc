@@ -441,21 +441,23 @@ void Completion::FindCandidatesForNamePath() {
                     // This means we're dot-completing a known table alias from here on.
                     auto table_iter = name_scope.get().referenced_tables_by_name.find(a_text);
                     if (table_iter != name_scope.get().referenced_tables_by_name.end()) {
-                        // Found a table declaration with that alias
-                        auto& table_decl = table_iter->second.get();
-                        // Register all column names as alias
-                        for (auto& column : table_decl.table_columns) {
-                            auto& name = column.column_name.get();
-                            DotCandidate candidate{
-                                .name = name,
-                                .candidate_tags = {buffers::completion::CandidateTag::DOT_RESOLUTION_COLUMN},
-                                .name_tags = NameTags{buffers::analyzer::NameTag::COLUMN_NAME},
-                                .object_id = column.object_id,
-                                .object = {column.CastToBase()}};
-                            candidate.candidate_tags.AddIf(
-                                buffers::completion::CandidateTag::THROUGH_CATALOG,
-                                table_decl.GetTableID().GetOrigin() != script.GetCatalogEntryId());
-                            dot_candidates.push_back(std::move(candidate));
+                        auto& ref_table = table_iter->second;
+                        if (auto* table_ref = std::get_if<
+                                std::reference_wrapper<const CatalogEntry::TableDeclaration>>(&ref_table.source)) {
+                            auto& table_decl = table_ref->get();
+                            for (auto& column : table_decl.table_columns) {
+                                auto& name = column.column_name.get();
+                                DotCandidate candidate{
+                                    .name = name,
+                                    .candidate_tags = {buffers::completion::CandidateTag::DOT_RESOLUTION_COLUMN},
+                                    .name_tags = NameTags{buffers::analyzer::NameTag::COLUMN_NAME},
+                                    .object_id = column.object_id,
+                                    .object = {column.CastToBase()}};
+                                candidate.candidate_tags.AddIf(
+                                    buffers::completion::CandidateTag::THROUGH_CATALOG,
+                                    table_decl.GetTableID().GetOrigin() != script.GetCatalogEntryId());
+                                dot_candidates.push_back(std::move(candidate));
+                            }
                         }
                         break;
                     }

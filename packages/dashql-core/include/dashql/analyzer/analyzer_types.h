@@ -227,14 +227,62 @@ struct ResultTarget : public IntrusiveListNode {
 
 /// An output column declared by a scope
 struct ScopeColumn {
+    using TableColumn = CatalogEntry::TableColumn;
+
     /// The column name
     std::reference_wrapper<RegisteredName> column_name;
-    /// The resolved catalog column ID (from the underlying table)
-    QualifiedCatalogObjectID catalog_column_id;
-    /// The catalog schema ID of the underlying table
-    QualifiedCatalogObjectID catalog_schema_id;
-    /// The catalog version
-    CatalogVersion catalog_version = 0;
+    /// The source: either an expression (named result target) or a table column (star expansion)
+    std::variant<std::reference_wrapper<Expression>, std::reference_wrapper<const TableColumn>> source;
+
+    /// Get the resolved column info (reads live state from the source)
+    std::optional<Expression::ResolvedColumn> GetResolved() const {
+        if (auto* expr_ref = std::get_if<std::reference_wrapper<Expression>>(&source)) {
+            if (auto* col_ref = std::get_if<Expression::ColumnRef>(&expr_ref->get().inner)) {
+                return col_ref->resolved_column;
+            }
+            return std::nullopt;
+        }
+        auto& col = std::get<std::reference_wrapper<const TableColumn>>(source).get();
+        auto& table = col.table->get();
+        return Expression::ResolvedColumn{
+            .catalog_schema_id = table.catalog_schema_id,
+            .catalog_table_column_id = col.object_id,
+            .referenced_catalog_version = table.catalog_version,
+        };
+    }
+};
+
+struct NameScope;
+
+/// A CTE definition
+struct CTEDefinition : public IntrusiveListNode {
+    /// The CTE name
+    std::reference_wrapper<RegisteredName> cte_name;
+    /// The AST node id of the CTE's inner SELECT statement
+    uint32_t select_node_id = 0;
+    /// The AST node id of the CTE columns array (0 if none)
+    uint32_t columns_node_id = 0;
+    /// The number of column aliases
+    uint16_t columns_count = 0;
+};
+
+/// A resolved CTE with its associated scope and column aliases
+struct ResolvedCTE {
+    /// The CTE name
+    std::reference_wrapper<RegisteredName> cte_name;
+    /// The child scope containing the CTE's SELECT
+    NameScope* child_scope = nullptr;
+    /// Optional column aliases (override the SELECT's output column names)
+    std::vector<std::reference_wrapper<RegisteredName>> column_aliases;
+};
+
+/// A table-like source in scope (either a catalog table or a CTE)
+struct ReferencedTable {
+    std::variant<std::reference_wrapper<const CatalogEntry::TableDeclaration>, std::reference_wrapper<ResolvedCTE>>
+        source;
+
+    /// Look up a column by name. Returns the resolved column if found.
+    std::optional<Expression::ResolvedColumn> ResolveColumn(std::string_view column_name) const;
 };
 
 /// A naming scope
@@ -256,11 +304,14 @@ struct NameScope : public IntrusiveListNode {
 
     /// The result targets in this scope
     IntrusiveList<ResultTarget> result_targets;
-    /// The output columns declared by this scope (populated after resolution)
-    std::unordered_map<std::string_view, ScopeColumn> output_columns;
-    /// The named tables in scope
-    std::unordered_map<std::string_view, std::reference_wrapper<const CatalogEntry::TableDeclaration>>
-        referenced_tables_by_name;
+    /// The output columns declared by this scope (ordered, for positional CTE alias access)
+    std::vector<ScopeColumn> output_columns;
+    /// The output columns indexed by name (points into output_columns)
+    std::unordered_map<std::string_view, size_t> output_columns_by_name;
+    /// The resolved CTEs in this scope (name → resolved CTE)
+    std::unordered_map<std::string_view, ResolvedCTE> cte_definitions;
+    /// The named table-like sources in scope (catalog tables and CTEs brought in via FROM)
+    std::unordered_map<std::string_view, ReferencedTable> referenced_tables_by_name;
 };
 
 /// A constant expression

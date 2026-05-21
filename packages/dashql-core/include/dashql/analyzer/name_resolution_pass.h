@@ -26,6 +26,8 @@ struct NameResolutionPass : public PassManager::LTRPass {
         IntrusiveList<AnalyzedScript::Expression> column_references;
         /// The result targets in this subtree
         IntrusiveList<AnalyzedScript::ResultTarget> result_targets;
+        /// The CTEs in this subtree
+        IntrusiveList<AnalyzedScript::CTEDefinition> ctes;
 
         /// Clear a node state
         void Clear();
@@ -46,6 +48,8 @@ struct NameResolutionPass : public PassManager::LTRPass {
     IntrusiveList<AnalyzedScript::TableColumn> pending_columns_free_list;
     /// The pending result targets
     ChunkBuffer<AnalyzedScript::ResultTarget, 16> pending_result_targets;
+    /// The pending CTEs
+    ChunkBuffer<AnalyzedScript::CTEDefinition, 4> pending_cte_nodes;
 
     /// Register a schema
     QualifiedCatalogObjectID RegisterSchema(RegisteredName& database_name, RegisteredName& schema_name);
