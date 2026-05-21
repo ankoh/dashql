@@ -18939,7 +18939,8 @@ analyzer-snapshots:
           statement-id: 0
           text: "cntrycode"
         - expression-idx: 1
-          type: colref/unresolved
+          type: colref/catalog
+          catalog: "256.65536.4294967299.0"
           statement-id: 0
           text: "c_acctbal"
         - expression-idx: 2

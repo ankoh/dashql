@@ -107,3 +107,30 @@ analyzer-snapshots:
           create table B (d int, e int);
     script:
       input: select * from A where not exists (select * from A, B where a = d);
+  # Correlated subquery in SELECT list
+  - name: nesting_correlated_select
+    catalog:
+      script:
+        input: |-
+          create table orders (o_custkey int, o_totalprice decimal);
+          create table customer (c_custkey int, c_name text);
+    script:
+      input: select c_name, (select sum(o_totalprice) from orders where o_custkey = c_custkey) as total from customer;
+  # Correlated subquery two levels deep
+  - name: nesting_correlated_deep
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table B (d int, e int);
+          create table C (f int, g int);
+    script:
+      input: select * from A where exists (select * from B where a = d and exists (select * from C where f = d));
+  # Subquery in FROM with output column resolution
+  - name: nesting_derived_table
+    catalog:
+      script:
+        input: |-
+          create table sales (product text, amount int, region text);
+    script:
+      input: select product, total from (select product, sum(amount) as total from sales group by product) as s where total > 100;

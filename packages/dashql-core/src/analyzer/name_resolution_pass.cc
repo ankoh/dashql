@@ -35,6 +35,7 @@ void NameResolutionPass::NodeState::Merge(NodeState&& other) {
     table_columns.Append(std::move(other.table_columns));
     table_references.Append(std::move(other.table_references));
     column_references.Append(std::move(other.column_references));
+    result_targets.Append(std::move(other.result_targets));
 }
 
 /// Clear a node state
@@ -43,6 +44,7 @@ void NameResolutionPass::NodeState::Clear() {
     table_columns.Clear();
     table_references.Clear();
     column_references.Clear();
+    result_targets.Clear();
 }
 
 /// Constructor
@@ -208,123 +210,211 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
     }
 }
 
-void NameResolutionPass::ResolveColumnRefsInScope(AnalyzedScript::NameScope& scope, ColumnRefsByAlias& refs_by_alias,
-                                                  ColumnRefsByName& refs_by_name) {
-    std::list<std::reference_wrapper<AnalyzedScript::Expression>> unresolved_columns;
+/// Try to resolve a column ref against a single scope's referenced_tables_by_name.
+/// Returns true if resolved.
+static bool TryResolveColumnInScope(AnalyzedScript::Expression& expr, AnalyzedScript::NameScope& target_scope,
+                                    AnalysisState& state) {
+    auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner);
+    std::string_view column_name = column_ref.column_name.column_name.get();
+
+    std::optional<std::reference_wrapper<AnalyzedScript::TableColumn>> table_column;
+    if (column_ref.column_name.table_alias.has_value()) {
+        std::string_view table_alias = column_ref.column_name.table_alias->get();
+        auto table_iter = target_scope.referenced_tables_by_name.find(table_alias);
+        if (table_iter != target_scope.referenced_tables_by_name.end()) {
+            auto& table_columns_by_name = table_iter->second.get().table_columns_by_name;
+            auto column_iter = table_columns_by_name.find(column_name);
+            if (column_iter != table_columns_by_name.end()) {
+                table_column = column_iter->second;
+            }
+        }
+    } else {
+        std::vector<std::tuple<std::string_view, std::reference_wrapper<const CatalogEntry::TableDeclaration>,
+                               std::reference_wrapper<AnalyzedScript::TableColumn>>>
+            candidates;
+        for (auto& [tbl_name, table] : target_scope.referenced_tables_by_name) {
+            auto& table_columns_by_name = table.get().table_columns_by_name;
+            auto column_iter = table_columns_by_name.find(column_name);
+            if (column_iter != table_columns_by_name.end()) {
+                candidates.emplace_back(tbl_name, table, column_iter->second);
+            }
+        }
+        if (candidates.size() > 1) {
+            state.analyzed->errors.emplace_back();
+            auto& error = state.analyzed->errors.back();
+            error.error_type = buffers::analyzer::AnalyzerErrorType::COLUMN_REF_AMBIGUOUS;
+            error.ast_node_id = expr.ast_node_id;
+            auto sym_span = state.parsed.nodes[expr.ast_node_id].symbol_span();
+            error.symbol_span = std::make_unique<buffers::parser::SymbolSpan>(sym_span);
+            error.text_span = std::make_unique<buffers::parser::TextSpan>(state.scanned.ResolveTextSpan(sym_span));
+            std::string out = "column reference is ambiguous, candidates: ";
+            std::string tmp;
+            for (size_t i = 0; i < candidates.size(); ++i) {
+                if (i > 0) out += ", ";
+                auto& [table_alias, table_decl, tc] = candidates[i];
+                std::string_view tbl = table_alias;
+                tbl = quote_anyupper_fuzzy(tbl, tmp);
+                out += tbl;
+                out += ".";
+                std::string_view col = column_name;
+                col = quote_anyupper_fuzzy(col, tmp);
+                out += col;
+            }
+            error.message = std::move(out);
+        } else if (candidates.size() == 1) {
+            table_column = std::get<2>(candidates.front());
+        }
+    }
+
+    if (table_column.has_value()) {
+        auto& resolved_column = table_column.value().get();
+        auto& resolved_table = resolved_column.table->get();
+        column_ref.resolved_column = AnalyzedScript::Expression::ResolvedColumn{
+            .catalog_schema_id = resolved_table.catalog_schema_id,
+            .catalog_table_column_id = resolved_column.object_id,
+            .referenced_catalog_version = resolved_table.catalog_version,
+        };
+        return true;
+    }
+    return false;
+}
+
+/// Try to resolve a column ref against a scope's output_columns.
+/// Returns true if resolved.
+static bool TryResolveColumnFromOutputs(AnalyzedScript::Expression& expr,
+                                        std::unordered_map<std::string_view, ScopeColumn>& output_columns) {
+    auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner);
+    if (column_ref.column_name.table_alias.has_value()) return false;
+    std::string_view column_name = column_ref.column_name.column_name.get();
+
+    auto it = output_columns.find(column_name);
+    if (it != output_columns.end() && it->second.catalog_column_id != QualifiedCatalogObjectID::Deferred()) {
+        column_ref.resolved_column = AnalyzedScript::Expression::ResolvedColumn{
+            .catalog_schema_id = it->second.catalog_schema_id,
+            .catalog_table_column_id = it->second.catalog_column_id,
+            .referenced_catalog_version = it->second.catalog_version,
+        };
+        return true;
+    }
+    return false;
+}
+
+void NameResolutionPass::ResolveColumnRefsLocally(AnalyzedScript::NameScope& scope) {
     for (auto& expr : scope.expressions) {
         if (auto col_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
             col_ref != nullptr && !col_ref->resolved_column.has_value()) {
-            unresolved_columns.push_back(expr);
+            TryResolveColumnInScope(expr, scope, state);
         }
     }
-    // Resolve refs in the scope upwards
-    for (auto target_scope = &scope; target_scope != nullptr; target_scope = target_scope->parent_scope) {
-        for (auto iter = unresolved_columns.begin(); iter != unresolved_columns.end();) {
-            auto& expr = iter->get();
-            auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner);
-            std::string_view column_name = column_ref.column_name.column_name.get();
+}
 
-            // Try to resolve a table
-            std::optional<std::reference_wrapper<AnalyzedScript::TableColumn>> table_column;
-            if (column_ref.column_name.table_alias.has_value()) {
-                // Do we know the name in this scope?
-                std::string_view table_alias = column_ref.column_name.table_alias->get();
-                auto table_iter = target_scope->referenced_tables_by_name.find(table_alias);
-                if (table_iter != target_scope->referenced_tables_by_name.end()) {
-                    // Is the table known in that table?
-                    auto& table_columns_by_name = table_iter->second.get().table_columns_by_name;
-                    auto column_iter = table_columns_by_name.find(column_name);
-                    if (column_iter != table_columns_by_name.end()) {
-                        table_column = column_iter->second;
-                    }
+void NameResolutionPass::ResolveColumnRefsFromChildOutputs(AnalyzedScript::NameScope& scope) {
+    for (auto& expr : scope.expressions) {
+        if (auto col_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
+            col_ref != nullptr && !col_ref->resolved_column.has_value()) {
+            // Try each child scope's output columns
+            for (auto& child_node : scope.child_scopes) {
+                auto& child_scope = *static_cast<AnalyzedScript::NameScope*>(&child_node);
+                if (TryResolveColumnFromOutputs(expr, child_scope.output_columns)) {
+                    break;
                 }
-            } else {
-                // Otherwise we check all table declarations and find all tables with the column name
-                std::vector<std::tuple<std::string_view, std::reference_wrapper<const CatalogEntry::TableDeclaration>,
-                                       std::reference_wrapper<AnalyzedScript::TableColumn>>>
-                    candidates;
-                for (auto& [table_name, table] : target_scope->referenced_tables_by_name) {
-                    auto& table_columns_by_name = table.get().table_columns_by_name;
-                    auto column_iter = table_columns_by_name.find(column_name);
-                    if (column_iter != table_columns_by_name.end()) {
-                        candidates.emplace_back(table_name, table, column_iter->second);
-                    }
-                }
-                // Is the column ref ambiguous?
-                if (candidates.size() > 1) {
-                    state.analyzed->errors.emplace_back();
-                    auto& error = state.analyzed->errors.back();
-                    error.error_type = buffers::analyzer::AnalyzerErrorType::COLUMN_REF_AMBIGUOUS;
-                    error.ast_node_id = expr.ast_node_id;
-                    auto sym_span = state.parsed.nodes[expr.ast_node_id].symbol_span();
-                    error.symbol_span = std::make_unique<buffers::parser::SymbolSpan>(sym_span);
-                    error.text_span = std::make_unique<buffers::parser::TextSpan>(state.scanned.ResolveTextSpan(sym_span));
-
-                    // Construct the error message
-                    // Note that we deliberately do not use std::stringstream here since clang is then baking in fd
-                    // dependencies: Import #5 module="wasi_snapshot_preview1" function="fd_prestat_get"
-                    std::string out = "column reference is ambiguous, candidates: ";
-                    std::string tmp;
-                    for (size_t i = 0; i < candidates.size(); ++i) {
-                        if (i > 0) {
-                            out += ", ";
-                        }
-                        auto& [table_alias, table_decl, table_column] = candidates[i];
-                        std::string_view tbl = table_alias;
-                        tbl = quote_anyupper_fuzzy(tbl, tmp);
-                        out += tbl;
-                        out += ".";
-                        std::string_view col = column_name;
-                        col = quote_anyupper_fuzzy(col, tmp);
-                        out += col;
-                    }
-                    error.message = std::move(out);
-
-                } else if (candidates.size() == 1) {
-                    table_column = std::get<2>(candidates.front());
-                }
-            }
-            // Found a table column?
-            if (table_column.has_value()) {
-                auto& resolved_column = table_column.value().get();
-                auto& resolved_table = resolved_column.table->get();
-                assert(column_ref.ast_scope_root.has_value());
-                auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner);
-                column_ref.resolved_column = AnalyzedScript::Expression::ResolvedColumn{
-                    .catalog_schema_id = resolved_table.catalog_schema_id,
-                    .catalog_table_column_id = resolved_column.object_id,
-                    .referenced_catalog_version = resolved_table.catalog_version,
-                };
-                auto dead_iter = iter++;
-                unresolved_columns.erase(dead_iter);
-            } else {
-                ++iter;
             }
         }
     }
 }
 
-void NameResolutionPass::ResolveNames() {
-    // Create column ref maps
-    ColumnRefsByAlias tmp_refs_by_alias;
-    ColumnRefsByAlias tmp_refs_by_name;
-    tmp_refs_by_alias.reserve(state.analyzed->expressions.GetSize());
-    tmp_refs_by_name.reserve(state.analyzed->expressions.GetSize());
-
-    // Recursively traverse down the scopes
-    std::stack<std::reference_wrapper<AnalyzedScript::NameScope>> pending_scopes;
-    for (auto& scope : root_scopes) {
-        pending_scopes.push(*scope);
+void NameResolutionPass::ResolveColumnRefsFromParents(AnalyzedScript::NameScope& scope) {
+    for (auto& expr : scope.expressions) {
+        if (auto col_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
+            col_ref != nullptr && !col_ref->resolved_column.has_value()) {
+            // Walk up to parent scopes
+            for (auto* target = scope.parent_scope; target != nullptr; target = target->parent_scope) {
+                if (TryResolveColumnInScope(expr, *target, state)) {
+                    break;
+                }
+            }
+        }
     }
-    while (!pending_scopes.empty()) {
-        auto top = pending_scopes.top();
-        pending_scopes.pop();
-        ResolveTableRefsInScope(top);
-        tmp_refs_by_alias.clear();
-        tmp_refs_by_name.clear();
-        ResolveColumnRefsInScope(top, tmp_refs_by_alias, tmp_refs_by_name);
-        for (auto& child_scope : top.get().child_scopes) {
-            pending_scopes.push(*static_cast<AnalyzedScript::NameScope*>(&child_scope));
+}
+
+void NameResolutionPass::PopulateOutputColumns(AnalyzedScript::NameScope& scope) {
+    for (auto& rt : scope.result_targets) {
+        if (rt.is_star) {
+            for (auto& [_, table_decl] : scope.referenced_tables_by_name) {
+                for (auto& col : table_decl.get().table_columns) {
+                    scope.output_columns.emplace(col.column_name.get().text, ScopeColumn{
+                        .column_name = col.column_name,
+                        .catalog_column_id = col.object_id,
+                        .catalog_schema_id = table_decl.get().catalog_schema_id,
+                        .catalog_version = table_decl.get().catalog_version,
+                    });
+                }
+            }
+        } else if (rt.column_name.has_value() && rt.expression_id.has_value()) {
+            auto* expr = state.GetExpression(*rt.expression_id);
+            if (auto* col_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr->inner);
+                col_ref && col_ref->resolved_column.has_value()) {
+                auto& resolved = *col_ref->resolved_column;
+                scope.output_columns.emplace(rt.column_name->get().text, ScopeColumn{
+                    .column_name = rt.column_name->get(),
+                    .catalog_column_id = resolved.catalog_table_column_id,
+                    .catalog_schema_id = resolved.catalog_schema_id,
+                    .catalog_version = resolved.referenced_catalog_version,
+                });
+            } else {
+                scope.output_columns.emplace(rt.column_name->get().text, ScopeColumn{
+                    .column_name = rt.column_name->get(),
+                    .catalog_column_id = QualifiedCatalogObjectID::Deferred(),
+                    .catalog_schema_id = QualifiedCatalogObjectID::Deferred(),
+                    .catalog_version = 0,
+                });
+            }
+        } else if (rt.column_name.has_value()) {
+            scope.output_columns.emplace(rt.column_name->get().text, ScopeColumn{
+                .column_name = rt.column_name->get(),
+                .catalog_column_id = QualifiedCatalogObjectID::Deferred(),
+                .catalog_schema_id = QualifiedCatalogObjectID::Deferred(),
+                .catalog_version = 0,
+            });
+        }
+    }
+}
+
+void NameResolutionPass::ResolveNames() {
+    // Pass 1 (bottom-up via post-order DFS): resolve table refs from catalog,
+    // resolve column refs locally against those tables, resolve from child scope
+    // outputs, then populate this scope's output_columns for its parent.
+    std::stack<std::pair<AnalyzedScript::NameScope*, bool>> dfs;
+    for (auto* scope : root_scopes) {
+        dfs.push({scope, false});
+    }
+    while (!dfs.empty()) {
+        auto& [scope, visited] = dfs.top();
+        if (!visited) {
+            visited = true;
+            for (auto& child : scope->child_scopes) {
+                dfs.push({static_cast<AnalyzedScript::NameScope*>(&child), false});
+            }
+        } else {
+            dfs.pop();
+            ResolveTableRefsInScope(*scope);
+            ResolveColumnRefsLocally(*scope);
+            ResolveColumnRefsFromChildOutputs(*scope);
+            PopulateOutputColumns(*scope);
+        }
+    }
+
+    // Pass 2 (top-down via pre-order DFS): resolve remaining unresolved column
+    // refs by walking up to parent scopes. This handles correlated subqueries.
+    for (auto* scope : root_scopes) {
+        dfs.push({scope, false});
+    }
+    while (!dfs.empty()) {
+        auto [scope, _] = dfs.top();
+        dfs.pop();
+        ResolveColumnRefsFromParents(*scope);
+        for (auto& child : scope->child_scopes) {
+            dfs.push({static_cast<AnalyzedScript::NameScope*>(&child), false});
         }
     }
 }
@@ -431,25 +521,41 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
             }
 
             case buffers::parser::NodeType::OBJECT_SQL_RESULT_TARGET: {
-                // // Read result target
-                // auto children = ast.subspan(node.children_begin_or_value(), node.children_count());
-                // auto attrs = attribute_index.Load(children);
-                //
-                // if (auto star_node = attrs[buffers::parser::AttributeKey::SQL_RESULT_TARGET_STAR]) {
-                //
-                // }
-                // // Specifies a target name?
-                // if (auto name_node = attrs[buffers::parser::AttributeKey::SQL_RESULT_TARGET_NAME]) {
-                // }
-                //
-                // XXX Register result targets
                 MergeChildStates(node_state, node);
+
+                auto [value_node, name_node, star_node] =
+                    state.GetAttributes<AttributeKey::SQL_RESULT_TARGET_VALUE, AttributeKey::SQL_RESULT_TARGET_NAME,
+                                        AttributeKey::SQL_RESULT_TARGET_STAR>(node);
+
+                auto& rt = pending_result_targets.PushBack(AnalyzedScript::ResultTarget{});
+                rt.ast_node_id = node_id;
+
+                if (star_node) {
+                    rt.is_star = true;
+                } else {
+                    if (name_node && name_node->node_type() == buffers::parser::NodeType::NAME) {
+                        auto& alias = state.scanned.GetNames().At(name_node->children_begin_or_value());
+                        rt.column_name = alias;
+                    } else if (value_node) {
+                        auto* expr = state.GetDerivedForNode<AnalyzedScript::Expression>(*value_node);
+                        if (expr) {
+                            rt.expression_id = expr->expression_id;
+                            if (auto* col_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr->inner)) {
+                                rt.column_name = col_ref->column_name.column_name;
+                            }
+                        }
+                    }
+                }
+
+                node_state.result_targets.PushBack(rt);
                 break;
             }
 
             case buffers::parser::NodeType::OBJECT_SQL_SELECT: {
                 MergeChildStates(node_state, node);
-                CreateScope(node_state, node_id);
+                auto result_targets = std::move(node_state.result_targets);
+                auto& scope = CreateScope(node_state, node_id);
+                scope.result_targets.Append(std::move(result_targets));
                 break;
             }
 
@@ -505,11 +611,9 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
             }
 
             case buffers::parser::NodeType::OBJECT_SQL_CREATE_FUNCTION: {
-                auto [name_node, params_node, returns_node, is_aggregate_node] =
-                    state.GetAttributes<AttributeKey::SQL_CREATE_FUNCTION_NAME,
-                                        AttributeKey::SQL_CREATE_FUNCTION_PARAMS,
-                                        AttributeKey::SQL_CREATE_FUNCTION_RETURNS,
-                                        AttributeKey::SQL_CREATE_FUNCTION_IS_AGGREGATE>(node);
+                auto [name_node, params_node, returns_node, is_aggregate_node] = state.GetAttributes<
+                    AttributeKey::SQL_CREATE_FUNCTION_NAME, AttributeKey::SQL_CREATE_FUNCTION_PARAMS,
+                    AttributeKey::SQL_CREATE_FUNCTION_RETURNS, AttributeKey::SQL_CREATE_FUNCTION_IS_AGGREGATE>(node);
                 auto func_name = state.ReadQualifiedFunctionName(name_node);
                 if (func_name.has_value()) {
                     auto schema_id = RegisterSchema(func_name->database_name, func_name->schema_name);
@@ -525,19 +629,22 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                     }
                     // Read parameters
                     if (params_node && params_node->node_type() == buffers::parser::NodeType::ARRAY) {
-                        auto param_nodes = state.ast.subspan(
-                            params_node->children_begin_or_value(), params_node->children_count());
+                        auto param_nodes =
+                            state.ast.subspan(params_node->children_begin_or_value(), params_node->children_count());
                         for (auto& param_node : param_nodes) {
-                            if (param_node.node_type() != buffers::parser::NodeType::OBJECT_SQL_FUNCTION_PARAM) continue;
+                            if (param_node.node_type() != buffers::parser::NodeType::OBJECT_SQL_FUNCTION_PARAM)
+                                continue;
                             auto [param_name_node, param_type_node] =
                                 LookupAttributes<AttributeKey::SQL_FUNCTION_PARAM_NAME,
-                                                 AttributeKey::SQL_FUNCTION_PARAM_TYPE>(
-                                    state.ast.subspan(param_node.children_begin_or_value(), param_node.children_count()));
+                                                 AttributeKey::SQL_FUNCTION_PARAM_TYPE>(state.ast.subspan(
+                                    param_node.children_begin_or_value(), param_node.children_count()));
                             if (param_name_node && param_name_node->node_type() == buffers::parser::NodeType::NAME) {
-                                auto& param_name = state.scanned.GetNames().At(param_name_node->children_begin_or_value());
+                                auto& param_name =
+                                    state.scanned.GetNames().At(param_name_node->children_begin_or_value());
                                 std::string_view param_type_text;
                                 if (param_type_node) {
-                                    param_type_text = state.scanned.ReadTextAtSymbolSpan(param_type_node->symbol_span());
+                                    param_type_text =
+                                        state.scanned.ReadTextAtSymbolSpan(param_type_node->symbol_span());
                                 }
                                 decl.params.emplace_back(&param_node - state.ast.data(), param_name, param_type_text);
                             }

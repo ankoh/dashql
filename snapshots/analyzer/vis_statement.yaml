@@ -438,11 +438,13 @@ analyzer-snapshots:
           statement-id: 0
           text: "revenue"
         - expression-idx: 2
-          type: colref/unresolved
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
           statement-id: 0
           text: "category"
         - expression-idx: 3
-          type: colref/unresolved
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
           statement-id: 0
           text: "revenue"
       visualizations:

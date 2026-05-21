@@ -722,3 +722,337 @@ analyzer-snapshots:
           catalog: "256.65536.4294967297.0"
           statement-id: 0
           text: "d"
+
+  - name: nesting_correlated_select
+    catalog:
+      script:
+        input: |-
+          create table orders (o_custkey int, o_totalprice decimal);
+          create table customer (c_custkey int, c_name text);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: orders
+            text: "create tab..e decimal)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: o_custkey
+                text: "o_custkey int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: o_totalprice
+                text: "o_totalpri..ce decimal"
+          - catalog-id: "256.65536.4294967297"
+            name: customer
+            text: "create tab..name text)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: c_custkey
+                text: "c_custkey int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c_name
+                text: "c_name text"
+        errors: []
+    script:
+      input: select c_name, (select sum(o_totalprice) from orders where o_custkey = c_custkey) as total from customer;
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "orders"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967297"
+          statement-id: 0
+          text: "customer"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967297.1"
+          statement-id: 0
+          text: "c_name"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "o_totalprice"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "o_custkey"
+        - expression-idx: 3
+          type: colref/catalog
+          catalog: "256.65536.4294967297.0"
+          statement-id: 0
+          text: "c_custkey"
+        - expression-idx: 4
+          type: function
+          name: sum
+          computation: 1
+          statement-id: 0
+          text: "sum(o_totalprice)"
+      column-computations:
+        - expression: 4
+          snippet:
+            signature-template: 7459937480860943044
+            signature-raw: 14591283797067347668
+            text: sum(o_totalprice)
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
+              ast:
+                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                text: "sum(o_totalprice)"
+                children:
+                  - key: SQL_FUNCTION_NAME
+                    type: ARRAY
+                    text: "sum"
+                    children:
+                      - type: NAME
+                        text: "sum"
+                  - key: SQL_FUNCTION_ARGUMENTS
+                    type: ARRAY
+                    text: "o_totalprice"
+                    children:
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "o_totalprice"
+                        children:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "o_totalprice"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "o_totalprice"
+                                children:
+                                  - type: NAME
+                                    text: "o_totalprice"
+
+  - name: nesting_correlated_deep
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table B (d int, e int);
+          create table C (f int, g int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: a
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: b
+            text: "create tab..nt, e int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: d
+                text: "d int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: e
+                text: "e int"
+          - catalog-id: "256.65536.4294967298"
+            name: c
+            text: "create tab..nt, g int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: f
+                text: "f int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: g
+                text: "g int"
+        errors: []
+    script:
+      input: select * from A where exists (select * from B where a = d and exists (select * from C where f = d));
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967298"
+          statement-id: 0
+          text: "C"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967297"
+          statement-id: 0
+          text: "B"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "A"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967297.0"
+          statement-id: 0
+          text: "d"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967298.0"
+          statement-id: 0
+          text: "f"
+        - expression-idx: 3
+          type: colref/catalog
+          catalog: "256.65536.4294967297.0"
+          statement-id: 0
+          text: "d"
+
+  - name: nesting_derived_table
+    catalog:
+      script:
+        input: |-
+          create table sales (product text, amount int, region text);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..gion text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: amount
+                text: "amount int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: product
+                text: "product text"
+              - catalog-id: "256.65536.4294967296.2"
+                name: region
+                text: "region text"
+        errors: []
+    script:
+      input: select product, total from (select product, sum(amount) as total from sales group by product) as s where total > 100;
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "product"
+        - expression-idx: 1
+          type: colref/unresolved
+          statement-id: 0
+          text: "total"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "product"
+        - expression-idx: 3
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "amount"
+        - expression-idx: 4
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "product"
+        - expression-idx: 5
+          type: colref/unresolved
+          statement-id: 0
+          text: "total"
+        - expression-idx: 6
+          type: function
+          name: sum
+          computation: 3
+          statement-id: 0
+          text: "sum(amount)"
+        - expression-idx: 7
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "100"
+        - expression-idx: 8
+          type: comparison
+          op: GREATER_THAN
+          arg-left: 5
+          arg-right: 7
+          restriction-target: 5
+          statement-id: 0
+          text: "total > 100"
+      constants:
+        - expression: 7
+          text: "100"
+      column-computations:
+        - expression: 6
+          snippet:
+            signature-template: 7459937480860943044
+            signature-raw: 7349171517081095692
+            text: sum(amount)
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
+              ast:
+                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                text: "sum(amount)"
+                children:
+                  - key: SQL_FUNCTION_NAME
+                    type: ARRAY
+                    text: "sum"
+                    children:
+                      - type: NAME
+                        text: "sum"
+                  - key: SQL_FUNCTION_ARGUMENTS
+                    type: ARRAY
+                    text: "amount"
+                    children:
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "amount"
+                        children:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "amount"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "amount"
+                                children:
+                                  - type: NAME
+                                    text: "amount"
+      column-filters:
+        - expression: 8
+          snippet:
+            signature-template: 2279910941344984120
+            signature-raw: 7742624175559992902
+            text: total > 100
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
+              ast:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "total > 100"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: GREATER_THAN
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "total > 100"
+                    children:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "total"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "total"
+                            children:
+                              - type: NAME
+                                text: "total"
+                      - type: LITERAL_INTEGER
+                        text: "100"

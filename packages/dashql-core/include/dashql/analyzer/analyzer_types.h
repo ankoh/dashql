@@ -214,21 +214,27 @@ struct Expression : public IntrusiveListNode {
 static_assert(std::is_trivially_destructible_v<Expression>, "Expressions should remain destructable");
 
 /// A result target
-struct ResultTarget {
-    /// A star result target
-    struct Star {};
-    /// An unnamed result target
-    struct Unnamed {
-        /// The expression
-        uint32_t expression_id;
-    };
-    /// A named result target
-    struct Named {
-        /// The expression
-        uint32_t expression_id;
-    };
-    /// An inner
-    std::variant<Star, Unnamed, Named> inner;
+struct ResultTarget : public IntrusiveListNode {
+    /// The AST node id
+    uint32_t ast_node_id = 0;
+    /// The output column name (alias if provided, otherwise inferred from expression)
+    std::optional<std::reference_wrapper<RegisteredName>> column_name;
+    /// The expression id (if not a star)
+    std::optional<uint32_t> expression_id;
+    /// Is a star expression?
+    bool is_star = false;
+};
+
+/// An output column declared by a scope
+struct ScopeColumn {
+    /// The column name
+    std::reference_wrapper<RegisteredName> column_name;
+    /// The resolved catalog column ID (from the underlying table)
+    QualifiedCatalogObjectID catalog_column_id;
+    /// The catalog schema ID of the underlying table
+    QualifiedCatalogObjectID catalog_schema_id;
+    /// The catalog version
+    CatalogVersion catalog_version = 0;
 };
 
 /// A naming scope
@@ -249,7 +255,9 @@ struct NameScope : public IntrusiveListNode {
     IntrusiveList<TableReference> table_references;
 
     /// The result targets in this scope
-    std::vector<ResultTarget> result_targets;
+    IntrusiveList<ResultTarget> result_targets;
+    /// The output columns declared by this scope (populated after resolution)
+    std::unordered_map<std::string_view, ScopeColumn> output_columns;
     /// The named tables in scope
     std::unordered_map<std::string_view, std::reference_wrapper<const CatalogEntry::TableDeclaration>>
         referenced_tables_by_name;

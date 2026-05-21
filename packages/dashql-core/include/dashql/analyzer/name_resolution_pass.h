@@ -1,7 +1,6 @@
 #pragma once
 
 #include <functional>
-#include <stack>
 
 #include "dashql/analyzer/pass_manager.h"
 #include "dashql/buffers/index_generated.h"
@@ -25,6 +24,8 @@ struct NameResolutionPass : public PassManager::LTRPass {
         IntrusiveList<AnalyzedScript::TableReference> table_references;
         /// The column references in scope
         IntrusiveList<AnalyzedScript::Expression> column_references;
+        /// The result targets in this subtree
+        IntrusiveList<AnalyzedScript::ResultTarget> result_targets;
 
         /// Clear a node state
         void Clear();
@@ -43,6 +44,8 @@ struct NameResolutionPass : public PassManager::LTRPass {
     ChunkBuffer<AnalyzedScript::TableColumn, 16> pending_columns;
     /// The temporary free-list for pending table columns
     IntrusiveList<AnalyzedScript::TableColumn> pending_columns_free_list;
+    /// The pending result targets
+    ChunkBuffer<AnalyzedScript::ResultTarget, 16> pending_result_targets;
 
     /// Register a schema
     QualifiedCatalogObjectID RegisterSchema(RegisteredName& database_name, RegisteredName& schema_name);
@@ -54,16 +57,16 @@ struct NameResolutionPass : public PassManager::LTRPass {
     /// Create a naming scope
     AnalyzedScript::NameScope& CreateScope(NodeState& target, uint32_t scope_root_node);
 
-    using ColumnRefsByAlias =
-        ankerl::unordered_dense::map<std::string_view, std::reference_wrapper<AnalyzedScript::Expression>>;
-    using ColumnRefsByName =
-        ankerl::unordered_dense::map<std::string_view, std::reference_wrapper<AnalyzedScript::Expression>>;
-
     /// Resolve all table refs in a scope
     void ResolveTableRefsInScope(AnalyzedScript::NameScope& scope);
-    /// Resolve all column refs in a scope
-    void ResolveColumnRefsInScope(AnalyzedScript::NameScope& scope, ColumnRefsByAlias& refs_by_alias,
-                                  ColumnRefsByName& refs_by_name);
+    /// Resolve column refs against tables in a scope (single scope, no parent walk)
+    void ResolveColumnRefsLocally(AnalyzedScript::NameScope& scope);
+    /// Resolve column refs against child scope output columns
+    void ResolveColumnRefsFromChildOutputs(AnalyzedScript::NameScope& scope);
+    /// Resolve remaining unresolved column refs by walking up parent scopes (correlation)
+    void ResolveColumnRefsFromParents(AnalyzedScript::NameScope& scope);
+    /// Populate a scope's output_columns from its result targets
+    void PopulateOutputColumns(AnalyzedScript::NameScope& scope);
     /// Resolve all names
     void ResolveNames();
 
