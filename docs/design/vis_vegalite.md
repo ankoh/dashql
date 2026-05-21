@@ -18,12 +18,12 @@ VISUALIZE (SELECT category, revenue FROM sales) AS (mark => bar);
 ```
 
 For table references, the table name is emitted as `data.name`. For SELECT
-subqueries, the placeholder `"<sql>"` is used since the query text is not a
-valid dataset name:
+subqueries, the SQL text is emitted under `data.$sql` (with wrapping
+parentheses stripped):
 
 ```json
 { "data": { "name": "sales" } }
-{ "data": { "name": "<sql>" } }
+{ "data": { "$sql": "SELECT category, revenue FROM sales" } }
 ```
 
 When the source is omitted, no `data` field is emitted. The embedding
@@ -179,7 +179,7 @@ produces a VISUALIZE statement string.
 | Vega-Lite `data` form | VISUALIZE output |
 |-----------------------|------------------|
 | `"data": { "name": "sales" }` | `VISUALIZE sales AS (...)` |
-| `"data": { "name": "<sql>" }` | `VISUALIZE "<sql>" AS (...)` |
+| `"data": { "$sql": "SELECT ..." }` | `VISUALIZE (SELECT ...) AS (...)` |
 | No data field | `VISUALIZE AS (...)` |
 | `"data": { "url": "..." }` | Not handled (source omitted) |
 | `"data": { "values": [...] }` | Not handled (source omitted) |
