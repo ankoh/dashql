@@ -190,6 +190,46 @@ formatter-snapshots:
                 )
               );
 
+  - name: vis_trailing_comma_spec
+    input: |-
+      visualize sales as (mark => line, width => 800,)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              visualize sales as (mark => line, width => 800);
+          - mode: pretty
+            expected: |-
+              visualize sales as (
+                mark => line,
+                width => 800
+              );
+
+  - name: vis_trailing_comma_nested
+    input: |-
+      visualize as (mark => bar, encoding => (x => (field => date, type => temporal,), y => (field => revenue,),),)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              visualize as (mark => bar, encoding => (x => (field => date, type => temporal), y => (field => revenue)));
+          - mode: pretty
+            expected: |-
+              visualize as (
+                mark => bar,
+                encoding => (
+                  x => (
+                    field => date,
+                    type => temporal
+                  ),
+                  y => (
+                    field => revenue
+                  )
+                )
+              );
+
   - name: vis_full_example
     input: |-
       visualize sales as (mark => line, encoding => (x => (field => time, type => temporal), y => (field => value, type => quantitative)), width => 800)

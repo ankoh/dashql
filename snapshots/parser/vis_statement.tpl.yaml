@@ -121,6 +121,18 @@ parser-snapshots:
         height => 400,
         title => 'Revenue by Region'
       );
+  - name: vis_statement_trailing_comma_spec
+    input: |
+      VISUALIZE AS (mark => line, width => 800,);
+  - name: vis_statement_trailing_comma_encoding
+    input: |
+      VISUALIZE AS (
+        mark => bar,
+        encoding => (
+          x => (field => date, type => temporal,),
+          y => (field => revenue,),
+        ),
+      );
   - name: vis_statement_keyword_collision_select
     input: |
       SELECT visualise, draw, scale FROM t;

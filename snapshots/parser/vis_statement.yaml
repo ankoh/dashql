@@ -1181,6 +1181,107 @@ parser-snapshots:
         - text: [365,366]
       comments: []
 
+  - name: vis_statement_trailing_comma_spec
+    input: |-
+      VISUALIZE AS (mark => line, width => 800,);
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 4
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..h => 800,)"
+            children:
+              - key: VIS_VISUALISE_SPEC
+                type: OBJECT_VIS_SPEC
+                text: "mark => li..th => 800,"
+                children:
+                  - key: VIS_SPEC_MARK
+                    type: ENUM_VIS_MARK_TYPE
+                    text: "line"
+                    children: []
+                  - key: VIS_SPEC_WIDTH
+                    type: LITERAL_INTEGER
+                    text: "800"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: vis_statement_trailing_comma_encoding
+    input: |-
+      VISUALIZE AS (
+        mark => bar,
+        encoding => (
+          x => (field => date, type => temporal,),
+          y => (field => revenue,),
+        ),
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 13
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..,),\n  ),\n)"
+            children:
+              - key: VIS_VISUALISE_SPEC
+                type: OBJECT_VIS_SPEC
+                text: "mark => ba..ue,),\n  ),"
+                children:
+                  - key: VIS_SPEC_MARK
+                    type: ENUM_VIS_MARK_TYPE
+                    text: "bar"
+                    children: []
+                  - key: VIS_SPEC_ENCODING
+                    type: OBJECT_VIS_ENCODING
+                    text: "encoding =..nue,),\n  )"
+                    children:
+                      - key: VIS_ENCODING_X
+                        type: OBJECT_VIS_FIELD_DEF
+                        text: "x => (fiel..temporal,)"
+                        children:
+                          - key: VIS_FIELD_DEF_FIELD
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "date"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "date"
+                                children:
+                                  - type: NAME
+                                    text: "date"
+                          - key: VIS_FIELD_DEF_TYPE
+                            type: ENUM_VIS_FIELD_TYPE
+                            text: "temporal"
+                            children: []
+                      - key: VIS_ENCODING_Y
+                        type: OBJECT_VIS_FIELD_DEF
+                        text: "y => (fiel.. revenue,)"
+                        children:
+                          - key: VIS_FIELD_DEF_FIELD
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "revenue"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "revenue"
+                                children:
+                                  - type: NAME
+                                    text: "revenue"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [14,15]
+        - text: [29,30]
+        - text: [45,46]
+        - text: [90,91]
+        - text: [120,121]
+        - text: [125,126]
+      comments: []
+
   - name: vis_statement_keyword_collision_select
     input: |-
       SELECT visualise, draw, scale FROM t;
