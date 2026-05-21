@@ -141,10 +141,14 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
     const keywordContinuation = candidate.keywordContinuation();
     if (keywordContinuation && updateFrom <= UpdatePatchStartingFrom.CatalogObject) {
         nextState = copyLazily(nextState, prevState);
+        const candidateText = candidate.completionText()!;
+        const insertAt = updateFrom <= UpdatePatchStartingFrom.Candidate
+            ? targetTo
+            : targetFrom + candidateText.length;
         nextState.catalogObjectPatch = [{
             target: CompletionPatchTarget.CatalogObject,
             type: PATCH_INSERT_TEXT,
-            value: { at: targetTo, text: " " + keywordContinuation, textAnchor: TextAnchor.Left },
+            value: { at: insertAt, text: " " + keywordContinuation, textAnchor: TextAnchor.Left },
         }];
         nextState.templatePatch = [];
         return nextState;
