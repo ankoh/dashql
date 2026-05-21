@@ -1359,8 +1359,32 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
     // Advanced completion only if we're at identifiers and not at aliases
     if (completion->dot_completion || completion->strategy == sx::completion::CompletionStrategy::COLUMN_REF ||
         (cursor_at_identifier && completion->strategy != sx::completion::CompletionStrategy::TABLE_REF_ALIAS)) {
+        // Only collect snippets in clauses where filters/templates apply.
+        // Skip in GROUP BY, ORDER BY, LIMIT, OFFSET, window definitions, etc.
+        bool skip_snippets = false;
+        if (cursor.script.parsed_script) {
+            auto& nodes = cursor.script.parsed_script->nodes;
+            for (auto node_id : cursor.ast_path_to_root) {
+                switch (nodes[node_id].attribute_key()) {
+                    case sx::parser::AttributeKey::SQL_SELECT_GROUPS:
+                    case sx::parser::AttributeKey::SQL_SELECT_ORDER:
+                    case sx::parser::AttributeKey::SQL_SELECT_LIMIT:
+                    case sx::parser::AttributeKey::SQL_SELECT_LIMIT_ALL:
+                    case sx::parser::AttributeKey::SQL_SELECT_OFFSET:
+                    case sx::parser::AttributeKey::SQL_SELECT_INTO:
+                    case sx::parser::AttributeKey::SQL_SELECT_ROW_LOCKING:
+                    case sx::parser::AttributeKey::SQL_SELECT_SAMPLE:
+                    case sx::parser::AttributeKey::SQL_SELECT_WINDOWS:
+                        skip_snippets = true;
+                        break;
+                    default:
+                        break;
+                }
+                if (skip_snippets) break;
+            }
+        }
         // Find identifier snippets for the completion result
-        if (registry) {
+        if (registry && !skip_snippets) {
             completion->FindIdentifierSnippetsForTopCandidates(*registry);
         }
     }
