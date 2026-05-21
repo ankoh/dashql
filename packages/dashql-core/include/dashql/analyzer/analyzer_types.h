@@ -72,25 +72,36 @@ struct TableReference : public IntrusiveListNode {
     flatbuffers::Offset<buffers::analyzer::TableReference> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 };
 
+struct ScopeColumn;
+
 /// An expression
 struct Expression : public IntrusiveListNode {
-    /// A resolved column reference
-    struct ResolvedColumn {
-        /// The resolved catalog schema id
+    using TableColumn = CatalogEntry::TableColumn;
+
+    /// Catalog IDs extracted from a resolved column (used for serialization)
+    struct ResolvedColumnIDs {
+        /// The catalog id of the schema
         QualifiedCatalogObjectID catalog_schema_id;
-        /// The resolved table column id in the catalog
+        /// The catalog id of table column
         QualifiedCatalogObjectID catalog_table_column_id;
-        /// The catalog version of the resolved column
+        /// The referenced catalog version
         CatalogVersion referenced_catalog_version = 0;
     };
     /// An unresolved column reference
     struct ColumnRef {
+        /// A column ref can either resolve to a table column or a scope column
+        using ResolvedVariant = std::variant<std::monostate, std::reference_wrapper<const TableColumn>,
+                                             std::reference_wrapper<const ScopeColumn>>;
+
         /// The column name, may refer to different catalog entry
         QualifiedColumnName column_name;
         /// The AST scope root in the target script
         std::optional<uint32_t> ast_scope_root;
-        /// The resolved column
-        std::optional<ResolvedColumn> resolved_column;
+        /// The resolution state: unresolved, resolved to a catalog table column, or resolved to a scope output column
+        ResolvedVariant resolved;
+
+        bool IsResolved() const { return !std::holds_alternative<std::monostate>(resolved); }
+        std::optional<ResolvedColumnIDs> GetResolvedColumnIDs() const;
     };
     /// A literal
     struct Literal {
@@ -231,26 +242,53 @@ struct ScopeColumn {
 
     /// The column name
     std::reference_wrapper<RegisteredName> column_name;
-    /// The source: either an expression (named result target) or a table column (star expansion)
+    /// The source:
+    /// - Either an expression (e.g. column ref)
+    /// - Or a direct table column (select *)
     std::variant<std::reference_wrapper<Expression>, std::reference_wrapper<const TableColumn>> source;
 
-    /// Get the resolved column info (reads live state from the source)
-    std::optional<Expression::ResolvedColumn> GetResolved() const {
+    /// Get the resolved catalog IDs (reads live state from the source)
+    std::optional<Expression::ResolvedColumnIDs> GetResolvedIDs() const {
         if (auto* expr_ref = std::get_if<std::reference_wrapper<Expression>>(&source)) {
             if (auto* col_ref = std::get_if<Expression::ColumnRef>(&expr_ref->get().inner)) {
-                return col_ref->resolved_column;
+                if (auto* tc = std::get_if<std::reference_wrapper<const TableColumn>>(&col_ref->resolved)) {
+                    auto& col = tc->get();
+                    auto& table = col.table->get();
+                    return Expression::ResolvedColumnIDs{
+                        .catalog_schema_id = table.catalog_schema_id,
+                        .catalog_table_column_id = col.object_id,
+                        .referenced_catalog_version = table.catalog_version,
+                    };
+                }
+                if (auto* sc = std::get_if<std::reference_wrapper<const ScopeColumn>>(&col_ref->resolved)) {
+                    return sc->get().GetResolvedIDs();
+                }
             }
             return std::nullopt;
         }
         auto& col = std::get<std::reference_wrapper<const TableColumn>>(source).get();
         auto& table = col.table->get();
-        return Expression::ResolvedColumn{
+        return Expression::ResolvedColumnIDs{
             .catalog_schema_id = table.catalog_schema_id,
             .catalog_table_column_id = col.object_id,
             .referenced_catalog_version = table.catalog_version,
         };
     }
 };
+
+inline std::optional<Expression::ResolvedColumnIDs> Expression::ColumnRef::GetResolvedColumnIDs() const {
+    if (auto* tc = std::get_if<std::reference_wrapper<const TableColumn>>(&resolved)) {
+        auto& col = tc->get();
+        auto& table = col.table->get();
+        return ResolvedColumnIDs{
+            .catalog_schema_id = table.catalog_schema_id,
+            .catalog_table_column_id = col.object_id,
+            .referenced_catalog_version = table.catalog_version,
+        };
+    }
+    if (auto* s = std::get_if<std::reference_wrapper<const ScopeColumn>>(&resolved)) return s->get().GetResolvedIDs();
+    return std::nullopt;
+}
 
 struct NameScope;
 
@@ -281,8 +319,10 @@ struct ReferencedTable {
     std::variant<std::reference_wrapper<const CatalogEntry::TableDeclaration>, std::reference_wrapper<ResolvedCTE>>
         source;
 
-    /// Look up a column by name. Returns the resolved column if found.
-    std::optional<Expression::ResolvedColumn> ResolveColumn(std::string_view column_name) const;
+    /// Result of resolving a column name against this table
+    using ColumnResolution = Expression::ColumnRef::ResolvedVariant;
+    /// Look up a column by name. Returns monostate if not found.
+    ColumnResolution ResolveColumn(std::string_view column_name) const;
 };
 
 /// A naming scope

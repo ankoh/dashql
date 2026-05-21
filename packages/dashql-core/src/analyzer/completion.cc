@@ -757,13 +757,16 @@ void Completion::PromoteIdentifiersInScope() {
         for (auto& expr : scope.expressions) {
             // Resolved column ref?
             auto* colref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
-            if (!colref || !colref->resolved_column.has_value()) {
+            if (!colref || !colref->IsResolved()) {
                 continue;
             }
 
             // Check directly if the the column is stored as candidate
-            auto& resolved_column = colref->resolved_column.value();
-            auto iter = candidate_objects_by_id.find(resolved_column.catalog_table_column_id);
+            auto resolved_column = colref->GetResolvedColumnIDs();
+            if (!resolved_column.has_value()) {
+                continue;
+            }
+            auto iter = candidate_objects_by_id.find(resolved_column->catalog_table_column_id);
             if (iter == candidate_objects_by_id.end()) {
                 continue;
             }
@@ -786,13 +789,16 @@ void Completion::PromoteIdentifiersInScripts(ScriptRegistry& registry) {
         script_entry.analyzed->expressions.ForEach([&](size_t i, const AnalyzedScript::Expression& expr) {
             // Resolved column ref?
             auto* colref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
-            if (!colref || !colref->resolved_column.has_value()) {
+            if (!colref || !colref->IsResolved()) {
                 return;
             }
 
             // Check directly if the the column is stored as candidate
-            auto& resolved_column = colref->resolved_column.value();
-            auto iter = candidate_objects_by_id.find(resolved_column.catalog_table_column_id);
+            auto resolved_column = colref->GetResolvedColumnIDs();
+            if (!resolved_column.has_value()) {
+                return;
+            }
+            auto iter = candidate_objects_by_id.find(resolved_column->catalog_table_column_id);
             if (iter == candidate_objects_by_id.end()) {
                 return;
             }
@@ -818,7 +824,7 @@ void Completion::PromoteTablesAndPeersForUnresolvedColumns() {
         for (auto& expr : scope.expressions) {
             // Is unresolved?
             if (auto* column_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
-                column_ref && !column_ref->resolved_column.has_value()) {
+                column_ref && !column_ref->IsResolved()) {
                 auto& column_name = column_ref->column_name.column_name.get();
                 tmp_columns.clear();
                 // Resolve all table columns that would match the unresolved name?

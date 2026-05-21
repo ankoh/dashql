@@ -38,39 +38,36 @@ void NameResolutionPass::NodeState::Clear() {
     ctes.Clear();
 }
 
-std::optional<Expression::ResolvedColumn> ReferencedTable::ResolveColumn(std::string_view column_name) const {
+ReferencedTable::ColumnResolution ReferencedTable::ResolveColumn(std::string_view column_name) const {
     if (auto* table_ref = std::get_if<std::reference_wrapper<const CatalogEntry::TableDeclaration>>(&source)) {
         auto& table = table_ref->get();
         auto it = table.table_columns_by_name.find(column_name);
         if (it != table.table_columns_by_name.end()) {
-            auto& col = it->second.get();
-            return Expression::ResolvedColumn{
-                .catalog_schema_id = table.catalog_schema_id,
-                .catalog_table_column_id = col.object_id,
-                .referenced_catalog_version = table.catalog_version,
-            };
+            return std::cref(it->second.get());
         }
-        return std::nullopt;
+        return {};
     }
     auto& cte = std::get<std::reference_wrapper<ResolvedCTE>>(source).get();
-    if (!cte.child_scope) return std::nullopt;
+    if (!cte.child_scope) return {};
     auto* scope = cte.child_scope;
+    size_t col_idx = std::string::npos;
     if (!cte.column_aliases.empty()) {
         for (size_t i = 0; i < cte.column_aliases.size(); ++i) {
             if (cte.column_aliases[i].get().text == column_name) {
-                if (i < scope->output_columns.size()) {
-                    return scope->output_columns[i].GetResolved();
-                }
-                return std::nullopt;
+                col_idx = i;
+                break;
             }
         }
-        return std::nullopt;
+    } else {
+        auto it = scope->output_columns_by_name.find(column_name);
+        if (it != scope->output_columns_by_name.end()) {
+            col_idx = it->second;
+        }
     }
-    auto it = scope->output_columns_by_name.find(column_name);
-    if (it != scope->output_columns_by_name.end()) {
-        return scope->output_columns[it->second].GetResolved();
+    if (col_idx != std::string::npos && col_idx < scope->output_columns.size()) {
+        return std::cref(scope->output_columns[col_idx]);
     }
-    return std::nullopt;
+    return {};
 }
 
 /// Constructor
@@ -237,7 +234,7 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
 }
 
 /// Try to resolve a column ref against a single scope's referenced_tables_by_name.
-/// Returns true if resolved.
+/// Returns true if the column name was found (even without a catalog entry).
 static bool TryResolveColumnInScope(AnalyzedScript::Expression& expr, AnalyzedScript::NameScope& target_scope,
                                     AnalysisState& state) {
     auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner);
@@ -247,9 +244,9 @@ static bool TryResolveColumnInScope(AnalyzedScript::Expression& expr, AnalyzedSc
         std::string_view table_alias = column_ref.column_name.table_alias->get();
         auto table_iter = target_scope.referenced_tables_by_name.find(table_alias);
         if (table_iter != target_scope.referenced_tables_by_name.end()) {
-            auto resolved = table_iter->second.ResolveColumn(column_name);
-            if (resolved.has_value()) {
-                column_ref.resolved_column = *resolved;
+            auto result = table_iter->second.ResolveColumn(column_name);
+            if (!std::holds_alternative<std::monostate>(result)) {
+                column_ref.resolved = std::move(result);
                 return true;
             }
         }
@@ -257,11 +254,11 @@ static bool TryResolveColumnInScope(AnalyzedScript::Expression& expr, AnalyzedSc
     }
 
     // No table alias — scan all tables for the column, check for ambiguity
-    std::vector<std::pair<std::string_view, Expression::ResolvedColumn>> candidates;
+    std::vector<std::pair<std::string_view, ReferencedTable::ColumnResolution>> candidates;
     for (auto& [tbl_name, table] : target_scope.referenced_tables_by_name) {
-        auto resolved = table.ResolveColumn(column_name);
-        if (resolved.has_value()) {
-            candidates.emplace_back(tbl_name, *resolved);
+        auto result = table.ResolveColumn(column_name);
+        if (!std::holds_alternative<std::monostate>(result)) {
+            candidates.emplace_back(tbl_name, std::move(result));
         }
     }
     if (candidates.size() > 1) {
@@ -285,14 +282,14 @@ static bool TryResolveColumnInScope(AnalyzedScript::Expression& expr, AnalyzedSc
         }
         error.message = std::move(out);
     } else if (candidates.size() == 1) {
-        column_ref.resolved_column = candidates.front().second;
+        column_ref.resolved = std::move(candidates.front().second);
         return true;
     }
     return false;
 }
 
 /// Try to resolve a column ref against a scope's output_columns.
-/// Returns true if resolved.
+/// Returns true if the column name was found.
 static bool TryResolveColumnFromOutputs(AnalyzedScript::Expression& expr, AnalyzedScript::NameScope& target_scope) {
     auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner);
     if (column_ref.column_name.table_alias.has_value()) return false;
@@ -300,11 +297,8 @@ static bool TryResolveColumnFromOutputs(AnalyzedScript::Expression& expr, Analyz
 
     auto it = target_scope.output_columns_by_name.find(column_name);
     if (it != target_scope.output_columns_by_name.end()) {
-        auto resolved = target_scope.output_columns[it->second].GetResolved();
-        if (resolved.has_value()) {
-            column_ref.resolved_column = *resolved;
-            return true;
-        }
+        column_ref.resolved = std::cref(target_scope.output_columns[it->second]);
+        return true;
     }
     return false;
 }
@@ -312,7 +306,7 @@ static bool TryResolveColumnFromOutputs(AnalyzedScript::Expression& expr, Analyz
 void NameResolutionPass::ResolveColumnRefsLocally(AnalyzedScript::NameScope& scope) {
     for (auto& expr : scope.expressions) {
         if (auto col_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
-            col_ref != nullptr && !col_ref->resolved_column.has_value()) {
+            col_ref != nullptr && !col_ref->IsResolved()) {
             TryResolveColumnInScope(expr, scope, state);
         }
     }
@@ -321,7 +315,7 @@ void NameResolutionPass::ResolveColumnRefsLocally(AnalyzedScript::NameScope& sco
 void NameResolutionPass::ResolveColumnRefsFromChildOutputs(AnalyzedScript::NameScope& scope) {
     for (auto& expr : scope.expressions) {
         if (auto col_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
-            col_ref != nullptr && !col_ref->resolved_column.has_value()) {
+            col_ref != nullptr && !col_ref->IsResolved()) {
             if (col_ref->column_name.table_alias.has_value()) continue;
             for (auto& child_node : scope.child_scopes) {
                 auto& child_scope = *static_cast<AnalyzedScript::NameScope*>(&child_node);
@@ -336,7 +330,7 @@ void NameResolutionPass::ResolveColumnRefsFromChildOutputs(AnalyzedScript::NameS
 void NameResolutionPass::ResolveColumnRefsFromParents(AnalyzedScript::NameScope& scope) {
     for (auto& expr : scope.expressions) {
         if (auto col_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
-            col_ref != nullptr && !col_ref->resolved_column.has_value()) {
+            col_ref != nullptr && !col_ref->IsResolved()) {
             for (auto* target = scope.parent_scope; target != nullptr; target = target->parent_scope) {
                 if (TryResolveColumnInScope(expr, *target, state)) {
                     break;
@@ -376,16 +370,30 @@ void NameResolutionPass::PopulateOutputColumns(AnalyzedScript::NameScope& scope)
                     }
                 }
             }
-        } else if (rt.column_name.has_value() && rt.expression_id.has_value()) {
-            // Otherwise, we just emit a scope column with a reference to the expression
-            auto& expr = *state.GetExpression(*rt.expression_id);
-            std::string_view name = rt.column_name->get().text;
-            if (scope.output_columns_by_name.contains(name)) continue;
-            scope.output_columns_by_name.emplace(name, scope.output_columns.size());
-            scope.output_columns.push_back(ScopeColumn{
-                .column_name = rt.column_name->get(),
-                .source = std::ref(expr),
-            });
+        } else {
+            AnalyzedScript::Expression* expr = nullptr;
+            if (rt.expression_id.has_value()) {
+                expr = state.GetExpression(*rt.expression_id);
+            } else {
+                auto& rt_node = state.ast[rt.ast_node_id];
+                auto [value_node] = state.GetAttributes<AttributeKey::SQL_RESULT_TARGET_VALUE>(rt_node);
+                if (value_node) {
+                    expr = state.GetDerivedForNode<AnalyzedScript::Expression>(*value_node);
+                    if (expr) rt.expression_id = expr->expression_id;
+                }
+            }
+            if (expr) {
+                auto& name_ref = rt.column_name.has_value() ? rt.column_name->get() : state.empty_name;
+                std::string_view name = name_ref.text;
+                if (!name.empty()) {
+                    if (scope.output_columns_by_name.contains(name)) continue;
+                    scope.output_columns_by_name.emplace(name, scope.output_columns.size());
+                }
+                scope.output_columns.push_back(ScopeColumn{
+                    .column_name = name_ref,
+                    .source = std::ref(*expr),
+                });
+            }
         }
     }
 }
@@ -479,7 +487,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                     AnalyzedScript::Expression::ColumnRef column_ref{
                         .column_name = column_name.value(),
                         .ast_scope_root = std::nullopt,
-                        .resolved_column = std::nullopt,
+                        .resolved = {},
                     };
                     auto& n = state.analyzed->AddExpression(node_id, node.symbol_span(), std::move(column_ref));
                     // Mark column refs as (identity) computation
@@ -551,12 +559,15 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                     if (name_node && name_node->node_type() == buffers::parser::NodeType::NAME) {
                         auto& alias = state.scanned.GetNames().At(name_node->children_begin_or_value());
                         rt.column_name = alias;
-                    } else if (value_node) {
+                    }
+                    if (value_node) {
                         auto* expr = state.GetDerivedForNode<AnalyzedScript::Expression>(*value_node);
                         if (expr) {
                             rt.expression_id = expr->expression_id;
-                            if (auto* col_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr->inner)) {
-                                rt.column_name = col_ref->column_name.column_name;
+                            if (!rt.column_name.has_value()) {
+                                if (auto* col_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr->inner)) {
+                                    rt.column_name = col_ref->column_name.column_name;
+                                }
                             }
                         }
                     }

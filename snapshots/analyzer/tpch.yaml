@@ -5200,15 +5200,17 @@ analyzer-snapshots:
           text: "nation n2"
       expressions:
         - expression-idx: 0
-          type: colref/unresolved
+          type: colref/catalog
+          catalog: "256.65536.4294967302.1"
           statement-id: 0
           text: "supp_nation"
         - expression-idx: 1
-          type: colref/unresolved
+          type: colref/catalog
+          catalog: "256.65536.4294967302.1"
           statement-id: 0
           text: "cust_nation"
         - expression-idx: 2
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "l_year"
         - expression-idx: 3
@@ -5316,27 +5318,31 @@ analyzer-snapshots:
           statement-id: 0
           text: "l_shipdate"
         - expression-idx: 24
-          type: colref/unresolved
+          type: colref/catalog
+          catalog: "256.65536.4294967302.1"
           statement-id: 0
           text: "supp_nation"
         - expression-idx: 25
-          type: colref/unresolved
+          type: colref/catalog
+          catalog: "256.65536.4294967302.1"
           statement-id: 0
           text: "cust_nation"
         - expression-idx: 26
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "l_year"
         - expression-idx: 27
-          type: colref/unresolved
+          type: colref/catalog
+          catalog: "256.65536.4294967302.1"
           statement-id: 0
           text: "supp_nation"
         - expression-idx: 28
-          type: colref/unresolved
+          type: colref/catalog
+          catalog: "256.65536.4294967302.1"
           statement-id: 0
           text: "cust_nation"
         - expression-idx: 29
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "l_year"
         - expression-idx: 30
@@ -6274,11 +6280,12 @@ analyzer-snapshots:
           text: "region"
       expressions:
         - expression-idx: 0
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "o_year"
         - expression-idx: 1
-          type: colref/unresolved
+          type: colref/catalog
+          catalog: "256.65536.4294967302.1"
           statement-id: 0
           text: "nation"
         - expression-idx: 2
@@ -6395,11 +6402,11 @@ analyzer-snapshots:
           statement-id: 0
           text: "p_type"
         - expression-idx: 25
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "o_year"
         - expression-idx: 26
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "o_year"
         - expression-idx: 27
@@ -7283,11 +7290,12 @@ analyzer-snapshots:
           text: "nation"
       expressions:
         - expression-idx: 0
-          type: colref/unresolved
+          type: colref/catalog
+          catalog: "256.65536.4294967302.1"
           statement-id: 0
           text: "nation"
         - expression-idx: 1
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "o_year"
         - expression-idx: 2
@@ -7390,19 +7398,21 @@ analyzer-snapshots:
           statement-id: 0
           text: "p_name"
         - expression-idx: 22
-          type: colref/unresolved
+          type: colref/catalog
+          catalog: "256.65536.4294967302.1"
           statement-id: 0
           text: "nation"
         - expression-idx: 23
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "o_year"
         - expression-idx: 24
-          type: colref/unresolved
+          type: colref/catalog
+          catalog: "256.65536.4294967302.1"
           statement-id: 0
           text: "nation"
         - expression-idx: 25
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "o_year"
         - expression-idx: 26
@@ -10694,7 +10704,7 @@ analyzer-snapshots:
           text: "orders"
       expressions:
         - expression-idx: 0
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "c_count"
         - expression-idx: 1
@@ -10728,7 +10738,7 @@ analyzer-snapshots:
           statement-id: 0
           text: "c_custkey"
         - expression-idx: 7
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "c_count"
         - expression-idx: 8
@@ -10736,7 +10746,7 @@ analyzer-snapshots:
           statement-id: 0
           text: "custdist"
         - expression-idx: 9
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "c_count"
         - expression-idx: 10
@@ -12198,7 +12208,7 @@ analyzer-snapshots:
           statement-id: 0
           text: "s_phone"
         - expression-idx: 10
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "total_revenue"
         - expression-idx: 11
@@ -12207,15 +12217,16 @@ analyzer-snapshots:
           statement-id: 0
           text: "s_suppkey"
         - expression-idx: 12
-          type: colref/unresolved
+          type: colref/catalog
+          catalog: "256.65536.4294967301.14"
           statement-id: 0
           text: "supplier_no"
         - expression-idx: 13
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "total_revenue"
         - expression-idx: 14
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "total_revenue"
         - expression-idx: 15
@@ -18935,7 +18946,7 @@ analyzer-snapshots:
           text: "customer"
       expressions:
         - expression-idx: 0
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "cntrycode"
         - expression-idx: 1
@@ -18989,11 +19000,11 @@ analyzer-snapshots:
           statement-id: 0
           text: "c_custkey"
         - expression-idx: 11
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "cntrycode"
         - expression-idx: 12
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "cntrycode"
         - expression-idx: 13

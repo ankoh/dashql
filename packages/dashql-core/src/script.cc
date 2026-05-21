@@ -436,16 +436,15 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
                 auto column_name_ofs = column_ref.column_name.Pack(builder);
 
                 flatbuffers::Offset<buffers::algebra::ResolvedColumn> resolved_ofs;
-                if (column_ref.resolved_column.has_value()) {
-                    auto& resolved = column_ref.resolved_column.value();
+                if (auto resolved = column_ref.GetResolvedColumnIDs()) {
                     buffers::algebra::ResolvedColumnBuilder resolved_builder{builder};
-                    auto [db_id, schema_id] = resolved.catalog_schema_id.UnpackSchemaID();
-                    auto [table_id, column_idx] = resolved.catalog_table_column_id.UnpackTableColumnID();
+                    auto [db_id, schema_id] = resolved->catalog_schema_id.UnpackSchemaID();
+                    auto [table_id, column_idx] = resolved->catalog_table_column_id.UnpackTableColumnID();
                     resolved_builder.add_catalog_database_id(db_id);
                     resolved_builder.add_catalog_schema_id(schema_id);
                     resolved_builder.add_catalog_table_id(table_id.Pack());
                     resolved_builder.add_column_id(column_idx);
-                    resolved_builder.add_referenced_catalog_version(resolved.referenced_catalog_version);
+                    resolved_builder.add_referenced_catalog_version(resolved->referenced_catalog_version);
                     resolved_ofs = resolved_builder.Finish();
                 }
                 buffers::algebra::ColumnRefExpressionBuilder out{builder};
@@ -704,11 +703,12 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
         column_refs_by_id.reserve(expressions.GetSize());
         expressions.ForEach([&](size_t ref_id, Expression& ref) {
             if (auto* column_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&ref.inner);
-                column_ref && column_ref->resolved_column.has_value()) {
-                auto& resolved = column_ref->resolved_column.value();
-                auto [db_id, schema_id] = resolved.catalog_schema_id.UnpackSchemaID();
-                auto [table_id, column_idx] = resolved.catalog_table_column_id.UnpackTableColumnID();
-                column_refs_by_id.emplace_back(db_id, schema_id, table_id.Pack(), column_idx, ref_id);
+                column_ref && column_ref->IsResolved()) {
+                if (auto resolved = column_ref->GetResolvedColumnIDs()) {
+                    auto [db_id, schema_id] = resolved->catalog_schema_id.UnpackSchemaID();
+                    auto [table_id, column_idx] = resolved->catalog_table_column_id.UnpackTableColumnID();
+                    column_refs_by_id.emplace_back(db_id, schema_id, table_id.Pack(), column_idx, ref_id);
+                }
             }
         });
         std::sort(column_refs_by_id.begin(), column_refs_by_id.end(),

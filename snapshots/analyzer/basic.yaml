@@ -945,7 +945,7 @@ analyzer-snapshots:
           statement-id: 0
           text: "product"
         - expression-idx: 1
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "total"
         - expression-idx: 2
@@ -964,7 +964,7 @@ analyzer-snapshots:
           statement-id: 0
           text: "product"
         - expression-idx: 5
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "total"
         - expression-idx: 6
@@ -1112,7 +1112,7 @@ analyzer-snapshots:
           statement-id: 0
           text: "product"
         - expression-idx: 4
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "total"
         - expression-idx: 5
@@ -1213,7 +1213,7 @@ analyzer-snapshots:
           statement-id: 0
           text: "item"
         - expression-idx: 4
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "revenue"
         - expression-idx: 5
@@ -1336,7 +1336,7 @@ analyzer-snapshots:
           statement-id: 0
           text: "customer_id"
         - expression-idx: 7
-          type: colref/unresolved
+          type: colref/local
           statement-id: 0
           text: "total"
         - expression-idx: 8

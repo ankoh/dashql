@@ -112,6 +112,7 @@ WASM_COPTS = [
     "-DWASM=1",
     "-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION",
     "-Wno-deprecated-declarations",
+    "-fconstexpr-steps=100000000",
     "-mbulk-memory",
 ]
 WASM_LINKOPTS = [

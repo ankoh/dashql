@@ -22,17 +22,15 @@ void ScriptRegistry::AddScript(Script& script) {
 
     analyzed.column_filters.ForEach([&](size_t i, AnalyzedScript::ColumnFilter& filter) {
         auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(filter.column_ref.get().inner);
-        if (column_ref.resolved_column.has_value()) {
-            auto& col = column_ref.resolved_column.value();
-            std::pair<QualifiedCatalogObjectID, const Script*> entry{col.catalog_table_column_id, &script};
+        if (auto ids = column_ref.GetResolvedColumnIDs()) {
+            std::pair<QualifiedCatalogObjectID, const Script*> entry{ids->catalog_table_column_id, &script};
             column_filters.insert(entry);
         }
     });
     analyzed.column_computations.ForEach([&](size_t i, AnalyzedScript::ColumnComputation& computation) {
         auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(computation.column_ref.get().inner);
-        if (column_ref.resolved_column.has_value()) {
-            auto& col = column_ref.resolved_column.value();
-            std::pair<QualifiedCatalogObjectID, const Script*> entry{col.catalog_table_column_id, &script};
+        if (auto ids = column_ref.GetResolvedColumnIDs()) {
+            std::pair<QualifiedCatalogObjectID, const Script*> entry{ids->catalog_table_column_id, &script};
             column_computations.insert(entry);
         }
     });
@@ -76,7 +74,7 @@ std::vector<ScriptRegistry::IndexedColumnFilter> ScriptRegistry::FindColumnFilte
             // If it is resolved, check the catalog_version.
             // If it is older than the provided catalog version, we know that the analyzed script is outdated.
             // (We are here looking up a column ref that was registered with the catalog at a later point than this ref)
-            if (auto& resolved = column_ref.resolved_column) {
+            if (auto resolved = column_ref.GetResolvedColumnIDs()) {
                 if (target_catalog_version.has_value() &&
                     resolved->referenced_catalog_version != target_catalog_version.value()) {
                     outdated.emplace_back(column_id, &script_entry.script);
@@ -136,7 +134,7 @@ std::vector<ScriptRegistry::IndexedColumnComputation> ScriptRegistry::FindColumn
             // If it is resolved, check the catalog_version.
             // If it is older than the provided catalog version, we know that the analyzed script is outdated.
             // (We are here looking up a column ref that was registered with the catalog at a later point than this ref)
-            if (auto& resolved = column_ref.resolved_column) {
+            if (auto resolved = column_ref.GetResolvedColumnIDs()) {
                 if (target_catalog_version.has_value() &&
                     resolved->referenced_catalog_version != target_catalog_version.value()) {
                     outdated.emplace_back(column_id, &script_entry.script);

@@ -195,7 +195,7 @@ void IdentifyColumnComputationsPass::Finish() {
 
         // Register column computation
         auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(iter->inner);
-        if (auto resolved = column_ref.resolved_column) {
+        if (auto resolved = column_ref.GetResolvedColumnIDs()) {
             state.analyzed->column_computations_by_catalog_entry.insert(
                 {resolved->catalog_table_column_id, computation});
         }

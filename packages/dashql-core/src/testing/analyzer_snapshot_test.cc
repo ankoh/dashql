@@ -258,10 +258,12 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
                     if constexpr (std::is_same_v<T, std::monostate>) {
                     } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::ColumnRef>) {
                         auto& column_ref = value;
-                        if (!column_ref.resolved_column.has_value()) {
+                        if (!column_ref.IsResolved()) {
                             yml_ref.append_child() << c4::yml::key("type") << "colref/unresolved";
+                        } else if (column_ref.IsResolved() && !column_ref.GetResolvedColumnIDs().has_value()) {
+                            yml_ref.append_child() << c4::yml::key("type") << "colref/local";
                         } else {
-                            auto& resolved = column_ref.resolved_column.value();
+                            auto resolved = *column_ref.GetResolvedColumnIDs();
                             auto [db_id, schema_id] = resolved.catalog_schema_id.UnpackSchemaID();
                             auto [table_id, column_idx] = resolved.catalog_table_column_id.UnpackTableColumnID();
                             std::string catalog_id =
