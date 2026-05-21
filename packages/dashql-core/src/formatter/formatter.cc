@@ -346,6 +346,7 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
             return FormatQualifiedName(node);
         case AttributeKey::SQL_TABLE_CONSTRAINT_COLUMNS:
         case AttributeKey::SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS:
+        case AttributeKey::EXT_VARARG_ARRAY_VALUES:
             return FormatCommaList(node);
         default:
             return FormatUnimplemented(node);
@@ -1271,137 +1272,6 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
     return reg;
 }
 
-FmtReg Formatter::FormatSelect(size_t node_id) {
-    const auto& node = ast[node_id];
-
-    auto [select_all, select_targets, select_into, select_from, select_where, select_groups, select_having,
-          select_windows, select_order, select_row_locking, select_with_ctes, select_with_recursive, select_offset,
-          select_limit, select_limit_all, select_sample, select_values] =
-        GetAttributes<AttributeKey::SQL_SELECT_ALL, AttributeKey::SQL_SELECT_TARGETS, AttributeKey::SQL_SELECT_INTO,
-                      AttributeKey::SQL_SELECT_FROM, AttributeKey::SQL_SELECT_WHERE, AttributeKey::SQL_SELECT_GROUPS,
-                      AttributeKey::SQL_SELECT_HAVING, AttributeKey::SQL_SELECT_WINDOWS, AttributeKey::SQL_SELECT_ORDER,
-                      AttributeKey::SQL_SELECT_ROW_LOCKING, AttributeKey::SQL_SELECT_WITH_CTES,
-                      AttributeKey::SQL_SELECT_WITH_RECURSIVE, AttributeKey::SQL_SELECT_OFFSET,
-                      AttributeKey::SQL_SELECT_LIMIT, AttributeKey::SQL_SELECT_LIMIT_ALL,
-                      AttributeKey::SQL_SELECT_SAMPLE, AttributeKey::SQL_SELECT_VALUES>(node);
-
-    if (select_into || select_windows || select_row_locking || select_with_ctes || select_with_recursive ||
-        select_sample || select_values || select_limit_all) {
-        return FormatUnimplemented(node);
-    }
-
-    std::vector<FmtReg> clauses;
-    clauses.reserve(8);
-    if (select_targets) {
-        auto body = Reg(*select_targets);
-        clauses.push_back(fmt.Concat({fmt.Text("select "), body}));
-    }
-    if (select_from) {
-        auto body = Reg(*select_from);
-        clauses.push_back(fmt.Concat({fmt.Text("from "), body}));
-    }
-    if (select_where) {
-        auto body = Reg(*select_where);
-        clauses.push_back(fmt.Concat({fmt.Text("where "), body}));
-    }
-    if (select_groups) {
-        auto body = Reg(*select_groups);
-        clauses.push_back(fmt.Concat({fmt.Text("group by "), body}));
-    }
-    if (select_having) {
-        auto body = Reg(*select_having);
-        clauses.push_back(fmt.Concat({fmt.Text("having "), body}));
-    }
-    if (select_order) {
-        auto body = Reg(*select_order);
-        clauses.push_back(fmt.Concat({fmt.Text("order by "), body}));
-    }
-    if (select_limit) {
-        auto body = Reg(*select_limit);
-        clauses.push_back(fmt.Concat({fmt.Text("limit "), body}));
-    }
-    if (select_offset) {
-        auto body = Reg(*select_offset);
-        clauses.push_back(fmt.Concat({fmt.Text("offset "), body}));
-    }
-
-    if (clauses.empty()) return FormatUnimplemented(node);
-    auto clause_policy = config.mode == buffers::formatting::FormattingMode::PRETTY
-                             ? FormattingJoinPolicy::ForceBreak
-                             : FormattingJoinPolicy::BreakAllOrNone;
-    return fmt.Join(clauses, fmt.Text(" "), fmt.Break(), clause_policy);
-}
-
-FmtReg Formatter::FormatExplain(size_t node_id) {
-    const auto& node = ast[node_id];
-    auto [statement, options] =
-        GetAttributes<AttributeKey::EXT_EXPLAIN_STATEMENT, AttributeKey::EXT_EXPLAIN_OPTIONS>(node);
-    if (!statement) return FormatUnimplemented(node);
-
-    auto stmt_reg = Reg(*statement);
-    if (stmt_reg == 0) return FormatUnimplemented(node);
-
-    if (options && options->children_count() > 0) {
-        std::vector<FmtReg> opt_parts;
-        opt_parts.reserve(options->children_count());
-        auto begin = options->children_begin_or_value();
-        for (size_t i = 0; i < options->children_count(); ++i) {
-            auto reg = Reg(ast[begin + i]);
-            if (reg == 0) return FormatUnimplemented(node);
-            opt_parts.push_back(reg);
-        }
-        auto opt_list = fmt.Join(opt_parts, fmt.Text(", "), fmt.Text(", "));
-        auto header = fmt.Concat({fmt.Text("explain "), fmt.Parenthesized(opt_list)});
-        std::array<FmtReg, 2> clauses{header, stmt_reg};
-        return fmt.Join(clauses, fmt.Text(" "), fmt.Break(), FormattingJoinPolicy::ForceBreak);
-    }
-
-    return fmt.Concat({fmt.Text("explain "), stmt_reg});
-}
-
-FmtReg Formatter::FormatCreate(size_t node_id) {
-    const auto& node = ast[node_id];
-    const auto& state = node_states[node_id];
-    if (!state.is_statement_root) return FormatUnimplemented(node);
-
-    auto [name, elements, if_not_exists, temp, on_commit] =
-        GetAttributes<AttributeKey::SQL_CREATE_TABLE_NAME, AttributeKey::SQL_CREATE_TABLE_ELEMENTS,
-                      AttributeKey::SQL_CREATE_TABLE_IF_NOT_EXISTS, AttributeKey::SQL_CREATE_TABLE_TEMP,
-                      AttributeKey::SQL_CREATE_TABLE_ON_COMMIT>(node);
-
-    if (!name || !elements) return FormatUnimplemented(node);
-    if (temp || on_commit) return FormatUnimplemented(node);
-
-    std::vector<FmtReg> header_parts;
-    header_parts.reserve(2);
-    header_parts.push_back(fmt.Text("create table "));
-    if (if_not_exists) {
-        header_parts.push_back(fmt.Text("if not exists "));
-    }
-    header_parts.push_back(Reg(*name));
-    auto header = fmt.Concat(std::move(header_parts));
-
-    FmtReg table_elements = fmt.Empty();
-    if (elements->children_count() > 0) {
-        std::vector<FmtReg> parts;
-        parts.reserve(elements->children_count());
-        auto begin = elements->children_begin_or_value();
-        for (size_t i = 0; i < elements->children_count(); ++i) {
-            const auto& element = ast[begin + i];
-            auto reg = Reg(element);
-            if (reg == 0) {
-                return FormatUnimplemented(node);
-            }
-            parts.push_back(reg);
-        }
-        table_elements = fmt.Join(parts, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}));
-    }
-
-    auto element_block = elements->children_count() > 0 ? fmt.Parenthesized(table_elements) : fmt.Text("()");
-    auto statement = fmt.Concat({header, fmt.Text(" "), element_block});
-    return statement;
-}
-
 FmtReg Formatter::FormatNode(size_t node_id) {
     const auto& node = ast[node_id];
     switch (node.node_type()) {
@@ -1479,6 +1349,22 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatExpressionOperatorType(node);
         case NodeType::OBJECT_SQL_NARY_EXPRESSION:
             return FormatExpression(node_id);
+        case NodeType::OBJECT_VIS_VISUALISE:
+            return FormatVisualize(node_id);
+        case NodeType::OBJECT_VIS_SPEC:
+        case NodeType::OBJECT_VIS_ENCODING:
+        case NodeType::OBJECT_VIS_FIELD_DEF:
+        case NodeType::OBJECT_VIS_SCALE:
+        case NodeType::OBJECT_VIS_AXIS:
+        case NodeType::OBJECT_VIS_LEGEND:
+            return FormatVisPropertyList(node);
+        case NodeType::ENUM_VIS_MARK_TYPE:
+        case NodeType::ENUM_VIS_FIELD_TYPE:
+        case NodeType::ENUM_VIS_SCALE_TYPE:
+        case NodeType::ENUM_VIS_ENCODING_CHANNEL:
+            return FormatVisEnum(node);
+        case NodeType::OBJECT_EXT_VARARG_ARRAY:
+            return FormatVarargArray(node);
         case NodeType::LITERAL_NULL:
         case NodeType::LITERAL_INTEGER:
         case NodeType::LITERAL_FLOAT:

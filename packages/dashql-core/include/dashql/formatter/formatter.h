@@ -92,6 +92,10 @@ struct Formatter {
     FmtReg FormatFunctionArg(const buffers::parser::Node& node);
     FmtReg FormatExpressionOperatorType(const buffers::parser::Node& node);
     FmtReg FormatExpression(size_t node_id);
+    FmtReg FormatVisualize(size_t node_id);
+    FmtReg FormatVisPropertyList(const buffers::parser::Node& node);
+    FmtReg FormatVisEnum(const buffers::parser::Node& node);
+    FmtReg FormatVarargArray(const buffers::parser::Node& node);
     FmtReg FormatLeaf(const buffers::parser::Node& node);
     FmtReg FormatUnimplemented(const buffers::parser::Node& node);
 

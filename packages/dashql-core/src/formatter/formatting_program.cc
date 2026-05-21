@@ -104,6 +104,9 @@ bool DryRunInline(ptrdiff_t remaining, std::vector<InlineRenderCommand> stack, c
                 PushInlineChildren(stack, doc.children, command.indentation);
                 break;
             case FormattingOpCode::Join:
+                if (doc.join_policy == FormattingJoinPolicy::ForceBreak && doc.children.size() > 1) {
+                    return false;
+                }
                 PushInlineJoin(stack, doc, command.indentation);
                 break;
             case FormattingOpCode::Indent:
