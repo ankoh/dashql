@@ -8,23 +8,24 @@
 namespace dashql {
 namespace parser {
 
-/// A raw pointer that is unique but does not destroy the object.
-/// If you get a WeakUniquePtr as r-value, you are responsible for deleting it.
-template <typename T> struct WeakUniquePtr {
+/// A unique pointer backed by a memory pool.
+/// Ownership is exclusive — on move, the source is nulled.
+/// Call Destroy() to invoke the destructor (returning memory to the pool).
+template <typename T> struct BackedUniquePtr {
     T* inner;
-    WeakUniquePtr(T* value = nullptr) : inner(value) {}
-    WeakUniquePtr(WeakUniquePtr&& other) : inner(other.inner) { other.inner = nullptr; }
-    WeakUniquePtr& operator=(WeakUniquePtr&& other) {
+    BackedUniquePtr(T* value = nullptr) : inner(value) {}
+    BackedUniquePtr(BackedUniquePtr&& other) : inner(other.inner) { other.inner = nullptr; }
+    BackedUniquePtr& operator=(BackedUniquePtr&& other) {
         Destroy();
         inner = other.inner;
         other.inner = nullptr;
         return *this;
     }
-    WeakUniquePtr(const WeakUniquePtr& other) : inner(other.inner) {
+    BackedUniquePtr(const BackedUniquePtr& other) : inner(other.inner) {
         // We only implement copy constructors to please the bison stack assignment.
         *const_cast<T**>(&other.inner) = nullptr;
     }
-    WeakUniquePtr& operator=(const WeakUniquePtr& other) {
+    BackedUniquePtr& operator=(const BackedUniquePtr& other) {
         Destroy();
         inner = other.inner;
         // We only implement copy assignment to please the bison stack assignment.
@@ -96,7 +97,7 @@ struct NodeList {
     /// Append a list of nodes
     void append(std::initializer_list<buffers::parser::Node> nodes);
     /// Append a list of nodes
-    void append(WeakUniquePtr<NodeList>&& other);
+    void append(BackedUniquePtr<NodeList>&& other);
     /// Write elements into span
     void copy_into(std::span<buffers::parser::Node> nodes);
 };
@@ -115,16 +116,16 @@ struct NAryExpression {
     /// The expression operator node
     buffers::parser::Node opNode;
     /// The arguments
-    WeakUniquePtr<NodeList> args;
+    BackedUniquePtr<NodeList> args;
 
     /// Constructor
     NAryExpression(Pool& pool, buffers::parser::SymbolSpan loc, buffers::parser::ExpressionOperator op,
-                   buffers::parser::Node node, WeakUniquePtr<NodeList> args);
+                   buffers::parser::Node node, BackedUniquePtr<NodeList> args);
     /// Destructor
     ~NAryExpression();
 };
 /// An expression is either a proto node with materialized children, or an n-ary expression that can be flattened
-using ExpressionVariant = std::variant<buffers::parser::Node, WeakUniquePtr<NAryExpression>>;
+using ExpressionVariant = std::variant<buffers::parser::Node, BackedUniquePtr<NAryExpression>>;
 
 }  // namespace parser
 }  // namespace dashql

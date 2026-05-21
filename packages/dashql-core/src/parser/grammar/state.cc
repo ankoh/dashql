@@ -7,7 +7,7 @@ namespace parser {
 
 /// Constructor
 NAryExpression::NAryExpression(Pool& pool, buffers::parser::SymbolSpan loc, buffers::parser::ExpressionOperator op, buffers::parser::Node node,
-                               WeakUniquePtr<NodeList> args)
+                               BackedUniquePtr<NodeList> args)
     : expression_pool(pool), location(loc), op(op), opNode(node), args(std::move(args)) {}
 /// Destructor
 NAryExpression::~NAryExpression() {
@@ -72,7 +72,7 @@ void NodeList::append(std::initializer_list<buffers::parser::Node> nodes) {
     }
 }
 /// Append a list of nodes
-void NodeList::append(WeakUniquePtr<NodeList>&& other) {
+void NodeList::append(BackedUniquePtr<NodeList>&& other) {
     if (!last_element) {
         assert(!first_element);
         first_element = other->first_element;

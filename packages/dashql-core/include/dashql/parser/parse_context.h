@@ -75,9 +75,9 @@ class ParseContext {
     }
 
     /// Create a list
-    WeakUniquePtr<NodeList> List(std::initializer_list<buffers::parser::Node> nodes = {});
+    BackedUniquePtr<NodeList> List(std::initializer_list<buffers::parser::Node> nodes = {});
     /// Add a an array
-    buffers::parser::Node Array(buffers::parser::SymbolSpan loc, WeakUniquePtr<NodeList>&& values,
+    buffers::parser::Node Array(buffers::parser::SymbolSpan loc, BackedUniquePtr<NodeList>&& values,
                                 bool null_if_empty = true, bool shrink_location = false);
     /// Add a an array
     buffers::parser::Node Array(buffers::parser::SymbolSpan loc, std::span<ExpressionVariant> values,
@@ -90,7 +90,7 @@ class ParseContext {
     }
     /// Add an object
     buffers::parser::Node Object(buffers::parser::SymbolSpan loc, buffers::parser::NodeType type,
-                                 WeakUniquePtr<NodeList>&& attrs, bool null_if_empty = true,
+                                 BackedUniquePtr<NodeList>&& attrs, bool null_if_empty = true,
                                  bool shrink_location = false);
     /// Add a an object
     inline buffers::parser::Node Object(buffers::parser::SymbolSpan loc, buffers::parser::NodeType type,

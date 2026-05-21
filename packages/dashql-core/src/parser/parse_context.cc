@@ -24,7 +24,7 @@ ParseContext::ParseContext(ScannedScript& scan, bool enable_vis_syntax)
 ParseContext::~ParseContext() {}
 
 /// Create a list
-WeakUniquePtr<NodeList> ParseContext::List(std::initializer_list<buffers::parser::Node> nodes) {
+BackedUniquePtr<NodeList> ParseContext::List(std::initializer_list<buffers::parser::Node> nodes) {
     auto list = new (temp_lists.Allocate()) NodeList(temp_lists, temp_list_elements);
     list->append(nodes);
     return list;
@@ -65,7 +65,7 @@ std::optional<ExpressionVariant> ParseContext::TryMerge(buffers::parser::SymbolS
             return std::nullopt;
     }
     // Create nary expression
-    WeakUniquePtr nary =
+    BackedUniquePtr nary =
         new (temp_nary_expressions.Allocate()) NAryExpression(temp_nary_expressions, loc, op, op_node, List());
     // Merge any nary expression arguments with the same operation, materialize others
     for (auto& arg : args) {
@@ -75,7 +75,7 @@ std::optional<ExpressionVariant> ParseContext::TryMerge(buffers::parser::SymbolS
             continue;
         }
         // Is a different operation?
-        WeakUniquePtr<NAryExpression> child = std::get<1>(arg);
+        BackedUniquePtr<NAryExpression> child = std::get<1>(arg);
         if (child->op != op) {
             nary->args->push_back(Expression(std::move(child)));
             continue;
@@ -88,7 +88,7 @@ std::optional<ExpressionVariant> ParseContext::TryMerge(buffers::parser::SymbolS
 }
 
 /// Add an array
-buffers::parser::Node ParseContext::Array(buffers::parser::SymbolSpan loc, WeakUniquePtr<NodeList>&& values,
+buffers::parser::Node ParseContext::Array(buffers::parser::SymbolSpan loc, BackedUniquePtr<NodeList>&& values,
                                           bool null_if_empty, bool shrink_location) {
     auto begin = nodes.GetSize();
     for (auto iter = values->front(); iter; iter = iter->next) {
@@ -179,7 +179,7 @@ buffers::parser::NumericType ParseContext::ReadFloatType(buffers::parser::Symbol
 
 /// Add an object
 buffers::parser::Node ParseContext::Object(buffers::parser::SymbolSpan loc, buffers::parser::NodeType type,
-                                           WeakUniquePtr<NodeList>&& attr_list, bool null_if_empty,
+                                           BackedUniquePtr<NodeList>&& attr_list, bool null_if_empty,
                                            bool shrink_location) {
     // Add the nodes
     auto begin = nodes.GetSize();

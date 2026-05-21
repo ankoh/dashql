@@ -22,25 +22,25 @@ inline buffers::parser::Node Attr(buffers::parser::AttributeKey key, buffers::pa
                        node.children_count());
 }
 /// Helper to concatenate lists
-inline WeakUniquePtr<NodeList> Concat(WeakUniquePtr<NodeList>&& l, WeakUniquePtr<NodeList>&& r) {
+inline BackedUniquePtr<NodeList> Concat(BackedUniquePtr<NodeList>&& l, BackedUniquePtr<NodeList>&& r) {
     l->append(std::move(r));
     return l;
 }
 /// Helper to concatenate lists
-inline WeakUniquePtr<NodeList> Concat(WeakUniquePtr<NodeList>&& l, std::initializer_list<buffers::parser::Node> r) {
+inline BackedUniquePtr<NodeList> Concat(BackedUniquePtr<NodeList>&& l, std::initializer_list<buffers::parser::Node> r) {
     l->append(std::move(r));
     return l;
 }
 /// Helper to concatenate lists
-inline WeakUniquePtr<NodeList> Concat(WeakUniquePtr<NodeList>&& v0, WeakUniquePtr<NodeList>&& v1,
+inline BackedUniquePtr<NodeList> Concat(BackedUniquePtr<NodeList>&& v0, BackedUniquePtr<NodeList>&& v1,
                                       std::initializer_list<buffers::parser::Node> v2) {
     v0->append(std::move(v1));
     v0->append(std::move(v2));
     return v0;
 }
 /// Helper to concatenate lists
-inline WeakUniquePtr<NodeList> Concat(WeakUniquePtr<NodeList>&& v0, WeakUniquePtr<NodeList>&& v1,
-                                      WeakUniquePtr<NodeList>&& v2, std::initializer_list<buffers::parser::Node> v3 = {}) {
+inline BackedUniquePtr<NodeList> Concat(BackedUniquePtr<NodeList>&& v0, BackedUniquePtr<NodeList>&& v1,
+                                      BackedUniquePtr<NodeList>&& v2, std::initializer_list<buffers::parser::Node> v3 = {}) {
     v0->append(std::move(v1));
     v0->append(std::move(v2));
     v0->append(std::move(v3));
@@ -109,7 +109,7 @@ inline buffers::parser::Node Into(ParseContext& driver, buffers::parser::SymbolS
 }
 
 /// Create a column ref
-inline buffers::parser::Node ColumnRef(ParseContext& driver, buffers::parser::SymbolSpan loc, WeakUniquePtr<NodeList>&& path) {
+inline buffers::parser::Node ColumnRef(ParseContext& driver, buffers::parser::SymbolSpan loc, BackedUniquePtr<NodeList>&& path) {
     auto path_nodes = driver.Array(loc, std::move(path));
     return driver.Object(loc, buffers::parser::NodeType::OBJECT_SQL_COLUMN_REF,
                          {
@@ -211,7 +211,7 @@ inline buffers::parser::JoinType Merge(buffers::parser::JoinType left, buffers::
 }
 
 /// Add a vararg field
-inline buffers::parser::Node VarArgField(ParseContext& driver, buffers::parser::SymbolSpan loc, WeakUniquePtr<NodeList>&& path,
+inline buffers::parser::Node VarArgField(ParseContext& driver, buffers::parser::SymbolSpan loc, BackedUniquePtr<NodeList>&& path,
                                buffers::parser::Node value) {
     auto root = value;
     for (auto iter = path->back(); iter; iter = iter->prev) {

@@ -1,8 +1,8 @@
-%type <WeakUniquePtr<NodeList>> vararg_array;
-%type <WeakUniquePtr<NodeList>> vararg_array_brackets;
-%type <WeakUniquePtr<NodeList>> vararg_fields;
-%type <WeakUniquePtr<NodeList>> vararg_key_path;
-%type <WeakUniquePtr<NodeList>> varargs;
+%type <BackedUniquePtr<NodeList>> vararg_array;
+%type <BackedUniquePtr<NodeList>> vararg_array_brackets;
+%type <BackedUniquePtr<NodeList>> vararg_fields;
+%type <BackedUniquePtr<NodeList>> vararg_key_path;
+%type <BackedUniquePtr<NodeList>> varargs;
 %type <buffers::parser::Node> opt_vararg_field;
 %type <buffers::parser::Node> vararg_key;
 %type <buffers::parser::Node> vararg_value;

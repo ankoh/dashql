@@ -2,32 +2,32 @@
 %type <std::string_view> vis_visualise_keyword;
 %type <buffers::parser::Node> vis_opt_source;
 
-%type <WeakUniquePtr<NodeList>> vis_spec_list;
+%type <BackedUniquePtr<NodeList>> vis_spec_list;
 %type <buffers::parser::Node> opt_vis_spec_field;
 %type <buffers::parser::AttributeKey> vis_spec_key;
 %type <buffers::parser::Node> vis_mark_value;
 %type <buffers::parser::Node> vis_mark_type;
 
-%type <WeakUniquePtr<NodeList>> vis_encoding_list;
+%type <BackedUniquePtr<NodeList>> vis_encoding_list;
 %type <buffers::parser::Node> opt_vis_encoding_field;
 %type <buffers::parser::AttributeKey> vis_channel_key;
 %type <buffers::parser::Node> vis_encoding_value;
 
-%type <WeakUniquePtr<NodeList>> vis_fielddef_list;
+%type <BackedUniquePtr<NodeList>> vis_fielddef_list;
 %type <buffers::parser::Node> opt_vis_fielddef_field;
 %type <buffers::parser::AttributeKey> vis_fielddef_key;
 %type <buffers::parser::Node> vis_field_type;
 
-%type <WeakUniquePtr<NodeList>> vis_scale_list;
+%type <BackedUniquePtr<NodeList>> vis_scale_list;
 %type <buffers::parser::Node> opt_vis_scale_field;
 %type <buffers::parser::AttributeKey> vis_scale_key;
 %type <buffers::parser::Node> vis_scale_type;
 
-%type <WeakUniquePtr<NodeList>> vis_axis_list;
+%type <BackedUniquePtr<NodeList>> vis_axis_list;
 %type <buffers::parser::Node> opt_vis_axis_field;
 %type <buffers::parser::AttributeKey> vis_axis_key;
 
-%type <WeakUniquePtr<NodeList>> vis_legend_list;
+%type <BackedUniquePtr<NodeList>> vis_legend_list;
 %type <buffers::parser::Node> opt_vis_legend_field;
 %type <buffers::parser::AttributeKey> vis_legend_key;
 
