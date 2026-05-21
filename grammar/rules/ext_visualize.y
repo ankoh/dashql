@@ -100,7 +100,6 @@ vis_mark_value:
   | LRB vis_spec_list RRB {
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($2), false);
     }
-  | sql_a_expr_const { $$ = ctx.Expression(std::move($1)); }
     ;
 
 vis_mark_type:

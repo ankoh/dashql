@@ -1,0 +1,671 @@
+completion-snapshots:
+  # Keyword completion: "vis" resolves to visualise/visualize
+  - name: vis_keyword_prefix
+    catalog: {}
+    editor:
+      input: vis
+    cursor:
+      search:
+        text: vis
+        index: 3
+    completions:
+      limit: 3
+
+  # Completion after VISUALIZE keyword (table source)
+  - name: vis_after_keyword
+    catalog:
+      script:
+        input: create table sales(revenue int, region text);
+    editor:
+      input: visualize sal
+    cursor:
+      search:
+        text: sal
+        index: 3
+    completions:
+      limit: 3
+
+  # ---------------------------------------------------------------------------
+  # Level 1: Top-level spec keys
+
+  # Complete spec key: "m" => mark
+  - name: vis_spec_key_m
+    catalog: {}
+    editor:
+      input: visualize as (m
+    cursor:
+      search:
+        text: (m
+        index: 2
+    completions:
+      limit: 3
+
+  # Complete spec key: "enc" => encoding
+  - name: vis_spec_key_enc
+    catalog: {}
+    editor:
+      input: visualize as (enc
+    cursor:
+      search:
+        text: enc
+        index: 3
+    completions:
+      limit: 3
+
+  # Complete spec key: "w" => width
+  - name: vis_spec_key_w
+    catalog: {}
+    editor:
+      input: visualize as (mark => bar, w
+    cursor:
+      search:
+        text: ', w'
+        index: 3
+    completions:
+      limit: 3
+
+  # Complete spec key: "h" => height
+  - name: vis_spec_key_h
+    catalog: {}
+    editor:
+      input: visualize as (mark => bar, h
+    cursor:
+      search:
+        text: ', h'
+        index: 3
+    completions:
+      limit: 3
+
+  # Complete spec key: "t" => title, type, transform
+  - name: vis_spec_key_t
+    catalog: {}
+    editor:
+      input: visualize as (mark => bar, t
+    cursor:
+      search:
+        text: ', t'
+        index: 3
+    completions:
+      limit: 3
+
+  # Complete spec key at empty position (after comma)
+  - name: vis_spec_key_empty
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (mark => bar,
+    cursor:
+      search:
+        text: 'bar,'
+        index: 4
+    completions:
+      limit: 3
+
+  # ---------------------------------------------------------------------------
+  # Mark type values
+
+  # Complete mark type: "li" => line
+  - name: vis_mark_type_li
+    catalog: {}
+    editor:
+      input: visualize as (mark => li
+    cursor:
+      search:
+        text: '=> li'
+        index: 5
+    completions:
+      limit: 3
+
+  # Complete mark type: "b" => bar, boxplot
+  - name: vis_mark_type_b
+    catalog: {}
+    editor:
+      input: visualize as (mark => b
+    cursor:
+      search:
+        text: '=> b'
+        index: 4
+    completions:
+      limit: 3
+
+  # Complete mark type: "p" => point
+  - name: vis_mark_type_p
+    catalog: {}
+    editor:
+      input: visualize as (mark => p
+    cursor:
+      search:
+        text: '=> p'
+        index: 4
+    completions:
+      limit: 3
+
+  # Complete mark type: "ar" => arc, area
+  - name: vis_mark_type_ar
+    catalog: {}
+    editor:
+      input: visualize as (mark => ar
+    cursor:
+      search:
+        text: '=> ar'
+        index: 5
+    completions:
+      limit: 3
+
+  # ---------------------------------------------------------------------------
+  # Completing while writing the arrow (=>)
+
+  # Cursor right after spec key, before arrow
+  - name: vis_arrow_before
+    catalog: {}
+    editor:
+      input: visualize as (mark
+    cursor:
+      search:
+        text: mark
+        index: 4
+    completions:
+      limit: 3
+
+  # Cursor at "=" of the arrow
+  - name: vis_arrow_at_equals
+    catalog: {}
+    editor:
+      input: visualize as (mark =
+    cursor:
+      search:
+        text: '='
+        index: 1
+    completions:
+      limit: 3
+
+  # Cursor after "=>" typing a mark value prefix
+  - name: vis_arrow_after
+    catalog: {}
+    editor:
+      input: visualize as (mark => l
+    cursor:
+      search:
+        text: '=> l'
+        index: 4
+    completions:
+      limit: 3
+
+  # ---------------------------------------------------------------------------
+  # Level 2: Encoding channel keys
+
+  # Complete channel key: "x" in encoding
+  - name: vis_channel_key_x
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          mark => bar,
+          encoding => (x
+    cursor:
+      search:
+        text: (x
+        index: 2
+    completions:
+      limit: 3
+
+  # Complete channel key: "co" => color, column
+  - name: vis_channel_key_co
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          mark => bar,
+          encoding => (co
+    cursor:
+      search:
+        text: (co
+        index: 3
+    completions:
+      limit: 3
+
+  # Complete channel key: "si" => size
+  - name: vis_channel_key_si
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          mark => bar,
+          encoding => (
+            x => date,
+            si
+    cursor:
+      search:
+        text: si
+        index: 2
+    completions:
+      limit: 3
+
+  # Complete channel key: "to" => tooltip
+  - name: vis_channel_key_to
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          mark => bar,
+          encoding => (
+            x => date,
+            to
+    cursor:
+      search:
+        text: to
+        index: 2
+    completions:
+      limit: 3
+
+  # Complete channel key: "sh" => shape
+  - name: vis_channel_key_sh
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          mark => point,
+          encoding => (sh
+    cursor:
+      search:
+        text: (sh
+        index: 3
+    completions:
+      limit: 3
+
+  # ---------------------------------------------------------------------------
+  # Level 3: Field definition keys
+
+  # Complete fielddef key: "f" => field
+  - name: vis_fielddef_key_f
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (f
+    cursor:
+      search:
+        text: (f
+        index: 2
+    completions:
+      limit: 3
+
+  # Complete fielddef key: "ty" => type
+  - name: vis_fielddef_key_ty
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (field => date, ty
+    cursor:
+      search:
+        text: ty
+        index: 2
+    completions:
+      limit: 3
+
+  # Complete fielddef key: "sc" => scale
+  - name: vis_fielddef_key_sc
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (field => date, type => temporal, sc
+    cursor:
+      search:
+        text: sc
+        index: 2
+    completions:
+      limit: 3
+
+  # Complete fielddef key: "ag" => aggregate
+  - name: vis_fielddef_key_ag
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            y => (field => revenue, ag
+    cursor:
+      search:
+        text: ag
+        index: 2
+    completions:
+      limit: 3
+
+  # Complete fielddef key: "ax" => axis
+  - name: vis_fielddef_key_ax
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (field => date, type => temporal, ax
+    cursor:
+      search:
+        text: ax
+        index: 2
+    completions:
+      limit: 3
+
+  # Complete fielddef key: "le" => legend
+  - name: vis_fielddef_key_le
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            color => (field => region, type => nominal, le
+    cursor:
+      search:
+        text: le
+        index: 2
+    completions:
+      limit: 3
+
+  # ---------------------------------------------------------------------------
+  # Field type enum values
+
+  # Complete field type: "te" => temporal
+  - name: vis_field_type_te
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (field => date, type => te
+    cursor:
+      search:
+        text: '=> te'
+        index: 5
+    completions:
+      limit: 3
+
+  # Complete field type: "no" => nominal
+  - name: vis_field_type_no
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            color => (field => region, type => no
+    cursor:
+      search:
+        text: '=> no'
+        index: 5
+    completions:
+      limit: 3
+
+  # Complete field type: "qu" => quantitative
+  - name: vis_field_type_qu
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            y => (field => amount, type => qu
+    cursor:
+      search:
+        text: '=> qu'
+        index: 5
+    completions:
+      limit: 3
+
+  # ---------------------------------------------------------------------------
+  # Level 4: Scale keys
+
+  # Complete scale key: "do" => domain, domainmin, domainmax, domainmid
+  - name: vis_scale_key_do
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (scale => (do
+    cursor:
+      search:
+        text: (do
+        index: 3
+    completions:
+      limit: 3
+
+  # Complete scale key: "ty" => type
+  - name: vis_scale_key_ty
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (scale => (ty
+    cursor:
+      search:
+        text: (ty
+        index: 3
+    completions:
+      limit: 3
+
+  # Complete scale type: "lo" => log
+  - name: vis_scale_type_lo
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (scale => (type => lo
+    cursor:
+      search:
+        text: '=> lo'
+        index: 5
+    completions:
+      limit: 3
+
+  # Complete scale key: "ni" => nice
+  - name: vis_scale_key_ni
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (scale => (type => log, ni
+    cursor:
+      search:
+        text: ni
+        index: 2
+    completions:
+      limit: 3
+
+  # Complete scale key: "ze" => zero
+  - name: vis_scale_key_ze
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            y => (scale => (ze
+    cursor:
+      search:
+        text: (ze
+        index: 3
+    completions:
+      limit: 3
+
+  # ---------------------------------------------------------------------------
+  # Column references in field properties
+
+  # Complete column reference in field => (shorthand encoding value)
+  - name: vis_column_ref_shorthand
+    catalog: {}
+    editor:
+      input: |-
+        create table sales(revenue int, region text, sale_date date);
+        visualize sales as (
+          encoding => (
+            x => sal
+    cursor:
+      search:
+        text: '=> sal'
+        index: 6
+    completions:
+      limit: 3
+
+  # Complete column reference in field => (full form)
+  - name: vis_column_ref_field
+    catalog: {}
+    editor:
+      input: |-
+        create table sales(revenue int, region text, sale_date date);
+        visualize sales as (
+          encoding => (
+            y => (field => rev
+    cursor:
+      search:
+        text: '=> rev'
+        index: 6
+    completions:
+      limit: 3
+
+  # Complete column reference with multiple columns available
+  - name: vis_column_ref_multiple
+    catalog: {}
+    editor:
+      input: |-
+        create table metrics(cpu_usage float, mem_usage float, disk_io float, timestamp date);
+        visualize metrics as (
+          encoding => (
+            x => (field => ti
+    cursor:
+      search:
+        text: '=> ti'
+        index: 5
+    completions:
+      limit: 3
+
+  # Column reference in second encoding channel
+  - name: vis_column_ref_second_channel
+    catalog: {}
+    editor:
+      input: |-
+        create table sales(revenue int, region text, sale_date date);
+        visualize sales as (
+          encoding => (
+            x => sale_date,
+            y => rev
+    cursor:
+      search:
+        text: '=> rev'
+        index: 6
+    completions:
+      limit: 3
+
+  # ---------------------------------------------------------------------------
+  # Axis and legend keys
+
+  # Complete axis key: "fo" => format
+  - name: vis_axis_key_fo
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (axis => (fo
+    cursor:
+      search:
+        text: (fo
+        index: 3
+    completions:
+      limit: 3
+
+  # Complete axis key: "gr" => grid
+  - name: vis_axis_key_gr
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (axis => (gr
+    cursor:
+      search:
+        text: (gr
+        index: 3
+    completions:
+      limit: 3
+
+  # Complete axis key: "la" => labelangle, labelfontsize, labeloverlap
+  - name: vis_axis_key_la
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (axis => (la
+    cursor:
+      search:
+        text: (la
+        index: 3
+    completions:
+      limit: 3
+
+  # Complete legend key: "or" => orient
+  - name: vis_legend_key_or
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            color => (legend => (or
+    cursor:
+      search:
+        text: (or
+        index: 3
+    completions:
+      limit: 3
+
+  # Complete legend key: "ti" => title
+  - name: vis_legend_key_ti
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            color => (legend => (ti
+    cursor:
+      search:
+        text: (ti
+        index: 3
+    completions:
+      limit: 3
+
+  # ---------------------------------------------------------------------------
+  # Multi-statement context (SQL + VISUALIZE)
+
+  # Complete visualize spec key after a SELECT statement
+  - name: vis_after_select_statement
+    catalog: {}
+    editor:
+      input: |-
+        create table sales(revenue int, region text);
+        select * from sales;
+        visualize sales as (m
+    cursor:
+      search:
+        text: (m
+        index: 2
+    completions:
+      limit: 3
+
+  # Complete table ref in visualize with preceding schema
+  - name: vis_table_ref_with_schema
+    catalog:
+      script:
+        input: create table warehouse.public.sales(revenue int, region text);
+    editor:
+      input: visualize warehouse.public.sal
+    cursor:
+      search:
+        text: sal
+        index: 3
+    completions:
+      limit: 3

@@ -1,0 +1,1730 @@
+completion-snapshots:
+
+  - name: vis_keyword_prefix
+    catalog: {}
+    editor:
+      input: vis
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: vis
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: visualise
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "vis"
+          location-qualified: "vis"
+          objects: []
+        - score: 55
+          value: visualize
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "vis"
+          location-qualified: "vis"
+          objects: []
+        - score: 3
+          value: select
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "vis"
+          location-qualified: "vis"
+          objects: []
+      text: "vis"
+
+  - name: vis_after_keyword
+    catalog:
+      script:
+        input: create table sales(revenue int, region text);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..gion text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: region
+                text: "region text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    editor:
+      input: visualize sal
+      catalog-id: 2
+      errors: []
+    cursor:
+      search:
+        text: sal
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 57
+          value: sales
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "sal"
+          location-qualified: "sal"
+          objects:
+            - score: 37
+              type: table
+              id: "256.65536.4294967296"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: sales
+              qualified-idx: 0
+              prefer-qualified: 0
+        - score: 2
+          value: as
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "sal"
+          location-qualified: "sal"
+          objects: []
+        - score: 2
+          value: by
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "sal"
+          location-qualified: "sal"
+          objects: []
+      text: "sal"
+
+  - name: vis_spec_key_m
+    catalog: {}
+    editor:
+      input: visualize as (m
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: (m
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: mark
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "m"
+          location-qualified: "m"
+          objects: []
+        - score: 50
+          value: name
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "m"
+          location-qualified: "m"
+          objects: []
+        - score: 50
+          value: params
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "m"
+          location-qualified: "m"
+          objects: []
+      text: "m"
+
+  - name: vis_spec_key_enc
+    catalog: {}
+    editor:
+      input: visualize as (enc
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: enc
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: encoding
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "enc"
+          location-qualified: "enc"
+          objects: []
+        - score: 0
+          value: autosize
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "enc"
+          location-qualified: "enc"
+          objects: []
+        - score: 0
+          value: background
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "enc"
+          location-qualified: "enc"
+          objects: []
+      text: "enc"
+
+  - name: vis_spec_key_w
+    catalog: {}
+    editor:
+      input: visualize as (mark => bar, w
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: ', w'
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: width
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "w"
+          location-qualified: "w"
+          objects: []
+        - score: 50
+          value: view
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "w"
+          location-qualified: "w"
+          objects: []
+        - score: 0
+          value: autosize
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "w"
+          location-qualified: "w"
+          objects: []
+      text: "w"
+
+  - name: vis_spec_key_h
+    catalog: {}
+    editor:
+      input: visualize as (mark => bar, h
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: ', h'
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: height
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "h"
+          location-qualified: "h"
+          objects: []
+        - score: 50
+          value: width
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "h"
+          location-qualified: "h"
+          objects: []
+        - score: 0
+          value: autosize
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "h"
+          location-qualified: "h"
+          objects: []
+      text: "h"
+
+  - name: vis_spec_key_t
+    catalog: {}
+    editor:
+      input: visualize as (mark => bar, t
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: ', t'
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: title
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "t"
+          location-qualified: "t"
+          objects: []
+        - score: 55
+          value: transform
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "t"
+          location-qualified: "t"
+          objects: []
+        - score: 55
+          value: type
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "t"
+          location-qualified: "t"
+          objects: []
+      text: "t"
+
+  - name: vis_spec_key_empty
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (mark => bar,
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: 'bar,'
+        index: 4
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries: []
+      text: ","
+
+  - name: vis_mark_type_li
+    catalog: {}
+    editor:
+      input: visualize as (mark => li
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: '=> li'
+        index: 5
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: line
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "li"
+          location-qualified: "li"
+          objects: []
+        - score: 0
+          value: arc
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "li"
+          location-qualified: "li"
+          objects: []
+        - score: 0
+          value: area
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "li"
+          location-qualified: "li"
+          objects: []
+      text: "li"
+
+  - name: vis_mark_type_b
+    catalog: {}
+    editor:
+      input: visualize as (mark => b
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: '=> b'
+        index: 4
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: bar
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - score: 55
+          value: boxplot
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - score: 0
+          value: arc
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+      text: "b"
+
+  - name: vis_mark_type_p
+    catalog: {}
+    editor:
+      input: visualize as (mark => p
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: '=> p'
+        index: 4
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: point
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "p"
+          location-qualified: "p"
+          objects: []
+        - score: 50
+          value: boxplot
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "p"
+          location-qualified: "p"
+          objects: []
+        - score: 50
+          value: geoshape
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "p"
+          location-qualified: "p"
+          objects: []
+      text: "p"
+
+  - name: vis_mark_type_ar
+    catalog: {}
+    editor:
+      input: visualize as (mark => ar
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: '=> ar'
+        index: 5
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: arc
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ar"
+          location-qualified: "ar"
+          objects: []
+        - score: 55
+          value: area
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ar"
+          location-qualified: "ar"
+          objects: []
+        - score: 50
+          value: bar
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ar"
+          location-qualified: "ar"
+          objects: []
+      text: "ar"
+
+  - name: vis_arrow_before
+    catalog: {}
+    editor:
+      input: visualize as (mark
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: mark
+        index: 4
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 70
+          value: mark
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "mark"
+          location-qualified: "mark"
+          objects: []
+        - score: 0
+          value: autosize
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "mark"
+          location-qualified: "mark"
+          objects: []
+        - score: 0
+          value: background
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "mark"
+          location-qualified: "mark"
+          objects: []
+      text: "mark"
+
+  - name: vis_arrow_at_equals
+    catalog: {}
+    editor:
+      input: visualize as (mark =
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: '='
+        index: 1
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries: []
+      text: "="
+
+  - name: vis_arrow_after
+    catalog: {}
+    editor:
+      input: visualize as (mark => l
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: '=> l'
+        index: 4
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: line
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "l"
+          location-qualified: "l"
+          objects: []
+        - score: 50
+          value: boxplot
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "l"
+          location-qualified: "l"
+          objects: []
+        - score: 50
+          value: circle
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "l"
+          location-qualified: "l"
+          objects: []
+      text: "l"
+
+  - name: vis_channel_key_x
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          mark => bar,
+          encoding => (x
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: (x
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 70
+          value: x
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "x"
+          location-qualified: "x"
+          objects: []
+        - score: 55
+          value: x2
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "x"
+          location-qualified: "x"
+          objects: []
+        - score: 55
+          value: x_offset
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "x"
+          location-qualified: "x"
+          objects: []
+      text: "x"
+
+  - name: vis_channel_key_co
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          mark => bar,
+          encoding => (co
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: (co
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: color
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "co"
+          location-qualified: "co"
+          objects: []
+        - score: 55
+          value: column
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "co"
+          location-qualified: "co"
+          objects: []
+        - score: 3
+          value: order
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "co"
+          location-qualified: "co"
+          objects: []
+      text: "co"
+
+  - name: vis_channel_key_si
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          mark => bar,
+          encoding => (
+            x => date,
+            si
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: si
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: size
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "si"
+          location-qualified: "si"
+          objects: []
+        - score: 3
+          value: order
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "si"
+          location-qualified: "si"
+          objects: []
+        - score: 0
+          value: angle
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "si"
+          location-qualified: "si"
+          objects: []
+      text: "si"
+
+  - name: vis_channel_key_to
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          mark => bar,
+          encoding => (
+            x => date,
+            to
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: to
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: tooltip
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "to"
+          location-qualified: "to"
+          objects: []
+        - score: 3
+          value: order
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "to"
+          location-qualified: "to"
+          objects: []
+        - score: 0
+          value: angle
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "to"
+          location-qualified: "to"
+          objects: []
+      text: "to"
+
+  - name: vis_channel_key_sh
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          mark => point,
+          encoding => (sh
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: (sh
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: shape
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "sh"
+          location-qualified: "sh"
+          objects: []
+        - score: 50
+          value: stroke_dash
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "sh"
+          location-qualified: "sh"
+          objects: []
+        - score: 3
+          value: order
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "sh"
+          location-qualified: "sh"
+          objects: []
+      text: "sh"
+
+  - name: vis_fielddef_key_f
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (f
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: (f
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: field
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "f"
+          location-qualified: "f"
+          objects: []
+        - score: 55
+          value: format
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "f"
+          location-qualified: "f"
+          objects: []
+        - score: 55
+          value: format_type
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "f"
+          location-qualified: "f"
+          objects: []
+      text: "f"
+
+  - name: vis_fielddef_key_ty
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (field => date, ty
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: ty
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: type
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ty"
+          location-qualified: "ty"
+          objects: []
+        - score: 50
+          value: format_type
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ty"
+          location-qualified: "ty"
+          objects: []
+        - score: 0
+          value: aggregate
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "ty"
+          location-qualified: "ty"
+          objects: []
+      text: "ty"
+
+  - name: vis_fielddef_key_sc
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (field => date, type => temporal, sc
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: sc
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: scale
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "sc"
+          location-qualified: "sc"
+          objects: []
+        - score: 0
+          value: aggregate
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "sc"
+          location-qualified: "sc"
+          objects: []
+        - score: 0
+          value: axis
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "sc"
+          location-qualified: "sc"
+          objects: []
+      text: "sc"
+
+  - name: vis_fielddef_key_ag
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            y => (field => revenue, ag
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: ag
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: aggregate
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ag"
+          location-qualified: "ag"
+          objects: []
+        - score: 0
+          value: axis
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "ag"
+          location-qualified: "ag"
+          objects: []
+        - score: 0
+          value: band_position
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "ag"
+          location-qualified: "ag"
+          objects: []
+      text: "ag"
+
+  - name: vis_fielddef_key_ax
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (field => date, type => temporal, ax
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: ax
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: axis
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ax"
+          location-qualified: "ax"
+          objects: []
+        - score: 0
+          value: aggregate
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "ax"
+          location-qualified: "ax"
+          objects: []
+        - score: 0
+          value: band_position
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "ax"
+          location-qualified: "ax"
+          objects: []
+      text: "ax"
+
+  - name: vis_fielddef_key_le
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            color => (field => region, type => nominal, le
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: le
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: legend
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "le"
+          location-qualified: "le"
+          objects: []
+        - score: 50
+          value: scale
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "le"
+          location-qualified: "le"
+          objects: []
+        - score: 50
+          value: title
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "le"
+          location-qualified: "le"
+          objects: []
+      text: "le"
+
+  - name: vis_field_type_te
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (field => date, type => te
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: '=> te'
+        index: 5
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: temp
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "te"
+          location-qualified: "te"
+          objects: []
+        - score: 55
+          value: template
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "te"
+          location-qualified: "te"
+          objects: []
+        - score: 55
+          value: temporal
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "te"
+          location-qualified: "te"
+          objects: []
+      text: "te"
+
+  - name: vis_field_type_no
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            color => (field => region, type => no
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: '=> no'
+        index: 5
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 70
+          value: no
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "no"
+          location-qualified: "no"
+          objects: []
+        - score: 55
+          value: nominal
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "no"
+          location-qualified: "no"
+          objects: []
+        - score: 55
+          value: none
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "no"
+          location-qualified: "no"
+          objects: []
+      text: "no"
+
+  - name: vis_field_type_qu
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            y => (field => amount, type => qu
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: '=> qu'
+        index: 5
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: quantile
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "qu"
+          location-qualified: "qu"
+          objects: []
+        - score: 55
+          value: quantitative
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "qu"
+          location-qualified: "qu"
+          objects: []
+        - score: 55
+          value: quantize
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "qu"
+          location-qualified: "qu"
+          objects: []
+      text: "qu"
+
+  - name: vis_scale_key_do
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (scale => (do
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: (do
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: domain
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "do"
+          location-qualified: "do"
+          objects: []
+        - score: 55
+          value: domain_max
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "do"
+          location-qualified: "do"
+          objects: []
+        - score: 55
+          value: domain_mid
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "do"
+          location-qualified: "do"
+          objects: []
+      text: "do"
+
+  - name: vis_scale_key_ty
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (scale => (ty
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: (ty
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: type
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ty"
+          location-qualified: "ty"
+          objects: []
+        - score: 0
+          value: bins
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "ty"
+          location-qualified: "ty"
+          objects: []
+        - score: 0
+          value: clamp
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "ty"
+          location-qualified: "ty"
+          objects: []
+      text: "ty"
+
+  - name: vis_scale_type_lo
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (scale => (type => lo
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: '=> lo'
+        index: 5
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: load
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "lo"
+          location-qualified: "lo"
+          objects: []
+        - score: 55
+          value: local
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "lo"
+          location-qualified: "lo"
+          objects: []
+        - score: 55
+          value: location
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "lo"
+          location-qualified: "lo"
+          objects: []
+      text: "lo"
+
+  - name: vis_scale_key_ni
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (scale => (type => log, ni
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: ni
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: nice
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ni"
+          location-qualified: "ni"
+          objects: []
+        - score: 0
+          value: bins
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "ni"
+          location-qualified: "ni"
+          objects: []
+        - score: 0
+          value: clamp
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "ni"
+          location-qualified: "ni"
+          objects: []
+      text: "ni"
+
+  - name: vis_scale_key_ze
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            y => (scale => (ze
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: (ze
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: zero
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ze"
+          location-qualified: "ze"
+          objects: []
+        - score: 0
+          value: bins
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "ze"
+          location-qualified: "ze"
+          objects: []
+        - score: 0
+          value: clamp
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "ze"
+          location-qualified: "ze"
+          objects: []
+      text: "ze"
+
+  - name: vis_column_ref_shorthand
+    catalog: {}
+    editor:
+      input: |-
+        create table sales(revenue int, region text, sale_date date);
+        visualize sales as (
+          encoding => (
+            x => sal
+      catalog-id: 1
+      tables:
+        - catalog-id: "256.65536.4294967296"
+          name: sales
+          text: "create tab..date date)"
+          columns:
+            - catalog-id: "256.65536.4294967296.0"
+              name: region
+              text: "region text"
+            - catalog-id: "256.65536.4294967296.1"
+              name: revenue
+              text: "revenue int"
+            - catalog-id: "256.65536.4294967296.2"
+              name: sale_date
+              text: "sale_date date"
+      errors: []
+    cursor:
+      search:
+        text: '=> sal'
+        index: 6
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_CREATE
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 55
+          value: sale_date
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "sal"
+          location-qualified: "sal"
+          objects:
+            - score: 35
+              type: column
+              id: "256.65536.4294967296.2"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+              qualified: sales.sale_date
+              qualified-idx: 1
+              prefer-qualified: 0
+        - score: 55
+          value: sales
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "sal"
+          location-qualified: "sal"
+          objects:
+            - score: 35
+              type: table
+              id: "256.65536.4294967296"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+              qualified: sales
+              qualified-idx: 0
+              prefer-qualified: 0
+        - score: 2
+          value: by
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "sal"
+          location-qualified: "sal"
+          objects: []
+      text: "sal"
+
+  - name: vis_column_ref_field
+    catalog: {}
+    editor:
+      input: |-
+        create table sales(revenue int, region text, sale_date date);
+        visualize sales as (
+          encoding => (
+            y => (field => rev
+      catalog-id: 1
+      tables:
+        - catalog-id: "256.65536.4294967296"
+          name: sales
+          text: "create tab..date date)"
+          columns:
+            - catalog-id: "256.65536.4294967296.0"
+              name: region
+              text: "region text"
+            - catalog-id: "256.65536.4294967296.1"
+              name: revenue
+              text: "revenue int"
+            - catalog-id: "256.65536.4294967296.2"
+              name: sale_date
+              text: "sale_date date"
+      errors: []
+    cursor:
+      search:
+        text: '=> rev'
+        index: 6
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_CREATE
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 55
+          value: revenue
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "rev"
+          location-qualified: "rev"
+          objects:
+            - score: 35
+              type: column
+              id: "256.65536.4294967296.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+              qualified: sales.revenue
+              qualified-idx: 1
+              prefer-qualified: 0
+        - score: 55
+          value: reverse
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "rev"
+          location-qualified: "rev"
+          objects: []
+        - score: 55
+          value: revoke
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "rev"
+          location-qualified: "rev"
+          objects: []
+      text: "rev"
+
+  - name: vis_column_ref_multiple
+    catalog: {}
+    editor:
+      input: |-
+        create table metrics(cpu_usage float, mem_usage float, disk_io float, timestamp date);
+        visualize metrics as (
+          encoding => (
+            x => (field => ti
+      catalog-id: 1
+      tables:
+        - catalog-id: "256.65536.4294967296"
+          name: metrics
+          text: "create tab..tamp date)"
+          columns:
+            - catalog-id: "256.65536.4294967296.0"
+              name: cpu_usage
+              text: "cpu_usage float"
+            - catalog-id: "256.65536.4294967296.1"
+              name: disk_io
+              text: "disk_io float"
+            - catalog-id: "256.65536.4294967296.2"
+              name: mem_usage
+              text: "mem_usage float"
+            - catalog-id: "256.65536.4294967296.3"
+              name: timestamp
+              text: "timestamp date"
+      errors: []
+    cursor:
+      search:
+        text: '=> ti'
+        index: 5
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_CREATE
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 55
+          value: tick
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ti"
+          location-qualified: "ti"
+          objects: []
+        - score: 55
+          value: tick_count
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ti"
+          location-qualified: "ti"
+          objects: []
+        - score: 55
+          value: tick_size
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ti"
+          location-qualified: "ti"
+          objects: []
+      text: "ti"
+
+  - name: vis_column_ref_second_channel
+    catalog: {}
+    editor:
+      input: |-
+        create table sales(revenue int, region text, sale_date date);
+        visualize sales as (
+          encoding => (
+            x => sale_date,
+            y => rev
+      catalog-id: 1
+      tables:
+        - catalog-id: "256.65536.4294967296"
+          name: sales
+          text: "create tab..date date)"
+          columns:
+            - catalog-id: "256.65536.4294967296.0"
+              name: region
+              text: "region text"
+            - catalog-id: "256.65536.4294967296.1"
+              name: revenue
+              text: "revenue int"
+            - catalog-id: "256.65536.4294967296.2"
+              name: sale_date
+              text: "sale_date date"
+      errors: []
+    cursor:
+      search:
+        text: '=> rev'
+        index: 6
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_CREATE
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 55
+          value: revenue
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "rev"
+          location-qualified: "rev"
+          objects:
+            - score: 35
+              type: column
+              id: "256.65536.4294967296.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+              qualified: sales.revenue
+              qualified-idx: 1
+              prefer-qualified: 0
+        - score: 55
+          value: reverse
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "rev"
+          location-qualified: "rev"
+          objects: []
+        - score: 55
+          value: revoke
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "rev"
+          location-qualified: "rev"
+          objects: []
+      text: "rev"
+
+  - name: vis_axis_key_fo
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (axis => (fo
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: (fo
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: format
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "fo"
+          location-qualified: "fo"
+          objects: []
+        - score: 55
+          value: format_type
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "fo"
+          location-qualified: "fo"
+          objects: []
+        - score: 50
+          value: label_font_size
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "fo"
+          location-qualified: "fo"
+          objects: []
+      text: "fo"
+
+  - name: vis_axis_key_gr
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (axis => (gr
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: (gr
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: grid
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "gr"
+          location-qualified: "gr"
+          objects: []
+        - score: 2
+          value: offset
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "gr"
+          location-qualified: "gr"
+          objects: []
+        - score: 0
+          value: direction
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "gr"
+          location-qualified: "gr"
+          objects: []
+      text: "gr"
+
+  - name: vis_axis_key_la
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            x => (axis => (la
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: (la
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: label_angle
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "la"
+          location-qualified: "la"
+          objects: []
+        - score: 55
+          value: label_font_size
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "la"
+          location-qualified: "la"
+          objects: []
+        - score: 55
+          value: label_overlap
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "la"
+          location-qualified: "la"
+          objects: []
+      text: "la"
+
+  - name: vis_legend_key_or
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            color => (legend => (or
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: (or
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: orient
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "or"
+          location-qualified: "or"
+          objects: []
+        - score: 50
+          value: format
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "or"
+          location-qualified: "or"
+          objects: []
+        - score: 50
+          value: format_type
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "or"
+          location-qualified: "or"
+          objects: []
+      text: "or"
+
+  - name: vis_legend_key_ti
+    catalog: {}
+    editor:
+      input: |-
+        visualize as (
+          encoding => (
+            color => (legend => (ti
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: (ti
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: title
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ti"
+          location-qualified: "ti"
+          objects: []
+        - score: 50
+          value: direction
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ti"
+          location-qualified: "ti"
+          objects: []
+        - score: 2
+          value: offset
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "ti"
+          location-qualified: "ti"
+          objects: []
+      text: "ti"
+
+  - name: vis_after_select_statement
+    catalog: {}
+    editor:
+      input: |-
+        create table sales(revenue int, region text);
+        select * from sales;
+        visualize sales as (m
+      catalog-id: 1
+      tables:
+        - catalog-id: "256.65536.4294967296"
+          name: sales
+          text: "create tab..gion text)"
+          columns:
+            - catalog-id: "256.65536.4294967296.0"
+              name: region
+              text: "region text"
+            - catalog-id: "256.65536.4294967296.1"
+              name: revenue
+              text: "revenue int"
+      errors: []
+      table-refs:
+        - type: name/internal
+          catalog-id: "256.65536.4294967296"
+          statement-id: 1
+          text: "sales"
+    cursor:
+      search:
+        text: (m
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_SELECT
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 55
+          value: mark
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "m"
+          location-qualified: "m"
+          objects: []
+        - score: 50
+          value: name
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "m"
+          location-qualified: "m"
+          objects: []
+        - score: 50
+          value: params
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "m"
+          location-qualified: "m"
+          objects: []
+      text: "m"
+
+  - name: vis_table_ref_with_schema
+    catalog:
+      script:
+        input: create table warehouse.public.sales(revenue int, region text);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..gion text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: region
+                text: "region text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    editor:
+      input: visualize warehouse.public.sal
+      catalog-id: 2
+      errors: []
+    cursor:
+      search:
+        text: sal
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      dot: 1
+      entries: []
+      text: "sal"

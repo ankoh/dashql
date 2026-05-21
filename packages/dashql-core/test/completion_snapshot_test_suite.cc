@@ -85,5 +85,6 @@ INSTANTIATE_TEST_SUITE_P(Trino, CompletionSnapshotTestSuite, ::testing::ValuesIn
 INSTANTIATE_TEST_SUITE_P(Bugs, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("bugs.yaml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Cursor, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("cursor.yaml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Quotes, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("quotes.yaml")), CompletionSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Visualize, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("visualize.yaml")), CompletionSnapshotTest::TestPrinter());
 
 }
