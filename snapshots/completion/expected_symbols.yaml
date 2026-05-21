@@ -90,6 +90,7 @@ completion-snapshots:
           objects: []
         - score: 55
           value: fetch
+          keyword-continuation: first
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "f"
           location-qualified: "f"
@@ -131,12 +132,14 @@ completion-snapshots:
           objects: []
         - score: 55
           value: fetch
+          keyword-continuation: first
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "f"
           location-qualified: "f"
           objects: []
         - score: 55
           value: foo
+          keyword-continuation: into
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "f"

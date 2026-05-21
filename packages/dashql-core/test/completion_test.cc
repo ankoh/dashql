@@ -164,4 +164,47 @@ SELECT sel
     }
 }
 
+TEST(CompletionTest, KeywordContinuation_CTEIdentifier) {
+    const std::string_view main_script_text = R"SQL(
+WITH fo
+    )SQL";
+
+    Catalog catalog;
+    Script external_script{catalog};
+    external_script.InsertTextAt(0, "create table foo(a int);");
+    ASSERT_NO_THROW({
+        external_script.Scan();
+        external_script.Parse();
+        external_script.Analyze();
+    });
+    ASSERT_NO_THROW(catalog.LoadScript(external_script, 0));
+
+    Script main_script{catalog};
+    main_script.InsertTextAt(0, main_script_text);
+    ASSERT_NO_THROW({
+        main_script.Scan();
+        main_script.Parse();
+        main_script.Analyze();
+    });
+
+    auto cursor_ofs = main_script_text.find("fo");
+    cursor_ofs += std::string_view{"fo"}.size();
+    main_script.MoveCursor(cursor_ofs);
+
+    auto completion = main_script.CompleteAtCursor();
+    auto& results = completion->GetResultCandidates();
+
+    // Identifier candidate "foo" in CTE position should get "as" continuation
+    bool found_foo = false;
+    for (auto& candidate : results) {
+        if (candidate.completion_text == "foo") {
+            found_foo = true;
+            ASSERT_EQ(candidate.keyword_continuation, "as")
+                << "'foo' should have 'as' continuation in CTE position";
+            break;
+        }
+    }
+    ASSERT_TRUE(found_foo) << "Expected 'foo' candidate with 'as' continuation";
+}
+
 }  // namespace

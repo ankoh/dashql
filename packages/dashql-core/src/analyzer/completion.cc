@@ -55,8 +55,7 @@ static_assert((NAME_TAG_UNLIKELY + SUBSTRING_SCORE_MODIFIER) > NAME_TAG_LIKELY,
               "An unlikely name that is a substring outweighs a likely name");
 static_assert(IN_NAME_SCOPE_SCORE_MODIFIER > PREFIX_SCORE_MODIFIER,
               "Candidates being available in scope weighs more than being a prefix");
-static_assert(EXACT_MATCH_SCORE_MODIFIER > IN_NAME_SCOPE_SCORE_MODIFIER,
-              "An exact match outweighs being in scope");
+static_assert(EXACT_MATCH_SCORE_MODIFIER > IN_NAME_SCOPE_SCORE_MODIFIER, "An exact match outweighs being in scope");
 static_assert(SUBSTRING_SCORE_MODIFIER >
                   (IN_SAME_STATEMENT_SCORE_MODIFIER + IN_SAME_SCRIPT_SCORE_MODIFIER + IN_OTHER_SCRIPT_SCORE_MODIFIER),
               "Candidates that are used elsewhere are not higher scoring than a substring match");
@@ -78,7 +77,8 @@ Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags)
     score += ((tags & buffers::completion::CandidateTag::SUBSTRING_MATCH) != 0) * SUBSTRING_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::PREFIX_MATCH) != 0) * PREFIX_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::EXACT_MATCH) != 0) * EXACT_MATCH_SCORE_MODIFIER;
-    score += ((tags & buffers::completion::CandidateTag::EXPECTED_KEYWORD_MATCH) != 0) * EXPECTED_KEYWORD_MATCH_MODIFIER;
+    score +=
+        ((tags & buffers::completion::CandidateTag::EXPECTED_KEYWORD_MATCH) != 0) * EXPECTED_KEYWORD_MATCH_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::THROUGH_CATALOG) != 0) * THROUGH_CATALOG_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::RESOLVING_TABLE) != 0) * RESOLVING_TABLE_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::UNRESOLVED_PEER) != 0) * UNRESOLVED_PEER_SCORE_MODIFIER;
@@ -191,6 +191,41 @@ bool doNotCompleteSymbol(parser::Parser::symbol_type& sym) {
             return true;
         default:
             return false;
+    }
+}
+
+// Keyword continuation scores.
+// When a keyword or identifier has multiple valid next-tokens in the grammar,
+// we pick the uniquely highest-scored one as the suggested continuation.
+uint8_t getKeywordContinuationScore(parser::Parser::symbol_kind_type sym) {
+    switch (sym) {
+        // Keywords that almost always follow their predecessor
+        case parser::Parser::symbol_kind_type::S_BY:
+        case parser::Parser::symbol_kind_type::S_AS:
+        case parser::Parser::symbol_kind_type::S_EQUALS_GREATER:
+        case parser::Parser::symbol_kind_type::S_ON:
+        case parser::Parser::symbol_kind_type::S_SELECT:
+        case parser::Parser::symbol_kind_type::S_INTO:
+        case parser::Parser::symbol_kind_type::S_TABLE:
+        case parser::Parser::symbol_kind_type::S_SET:
+            return 10;
+        // Join qualifiers
+        case parser::Parser::symbol_kind_type::S_OUTER_P:
+        // Ordering / window continuations (appear in specialized contexts)
+        case parser::Parser::symbol_kind_type::S_ASC_P:
+        case parser::Parser::symbol_kind_type::S_DESC_P:
+        case parser::Parser::symbol_kind_type::S_NULLS_P:
+        case parser::Parser::symbol_kind_type::S_FIRST_P:
+        case parser::Parser::symbol_kind_type::S_LAST_P:
+        case parser::Parser::symbol_kind_type::S_UNBOUNDED:
+        case parser::Parser::symbol_kind_type::S_PRECEDING:
+        case parser::Parser::symbol_kind_type::S_CURRENT_P:
+        case parser::Parser::symbol_kind_type::S_ROW:
+        case parser::Parser::symbol_kind_type::S_WITHIN:
+        case parser::Parser::symbol_kind_type::S_SETS:
+            return 6;
+        default:
+            return 0;
     }
 }
 
@@ -442,8 +477,8 @@ void Completion::FindCandidatesForNamePath() {
                     auto table_iter = name_scope.get().referenced_tables_by_name.find(a_text);
                     if (table_iter != name_scope.get().referenced_tables_by_name.end()) {
                         auto& ref_table = table_iter->second;
-                        if (auto* table_ref = std::get_if<
-                                std::reference_wrapper<const CatalogEntry::TableDeclaration>>(&ref_table.source)) {
+                        if (auto* table_ref = std::get_if<std::reference_wrapper<const CatalogEntry::TableDeclaration>>(
+                                &ref_table.source)) {
                             auto& table_decl = table_ref->get();
                             for (auto& column : table_decl.table_columns) {
                                 auto& name = column.column_name.get();
@@ -562,8 +597,8 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
             case Relative::END_OF_SYMBOL: {
                 auto symbol_ofs = target_symbol->symbol.location.offset();
                 auto symbol_prefix = std::max<uint32_t>(target_symbol->text_offset, symbol_ofs) - symbol_ofs;
-                auto symbol_text = cursor.script.scanned_script->ReadTextAtTextSpan(
-                    sx::parser::TextSpan(target_symbol->symbol.location.offset(), target_symbol->symbol.location.length()));
+                auto symbol_text = cursor.script.scanned_script->ReadTextAtTextSpan(sx::parser::TextSpan(
+                    target_symbol->symbol.location.offset(), target_symbol->symbol.location.length()));
                 auto symbol_text_trimmed = trim_view({symbol_text.data(), symbol_prefix}, is_no_double_quote);
                 fuzzy_ci_string_view ci_symbol_text{symbol_text_trimmed.data(), symbol_text_trimmed.length()};
                 // Is substring?
@@ -907,8 +942,8 @@ void Completion::SelectTopCandidates() {
 
         // Determine overall candidate score
         Completion::ScoreValueType object_score = !candidate_objects.empty()
-            ? candidate_objects.back().score
-            : computeCandidateScore(candidate.candidate_tags);
+                                                      ? candidate_objects.back().score
+                                                      : computeCandidateScore(candidate.candidate_tags);
         Completion::ScoreValueType candidate_score = base_score + object_score;
         candidate.score = candidate_score;
 
@@ -950,29 +985,63 @@ void Completion::DeriveKeywordSnippetsForTopCandidates() {
     auto& scanned = *cursor.script.scanned_script;
     auto target_id = target_scanner_symbol->symbol_id;
 
-    for (auto& candidate : top_candidates) {
-        if (!candidate.keyword_symbol.has_value()) continue;
+    // Helper: given expected symbols after a feed, find the best continuation.
+    // If there's exactly one keyword/operator expected, use it.
+    // Otherwise, find the uniquely highest-scored continuation keyword.
+    auto find_continuation = [](std::vector<parser::Parser::ExpectedSymbol>& expected_after) -> std::string_view {
+        std::string_view best_continuation;
+        uint8_t best_score = 0;
+        size_t best_count = 0;
+        size_t keyword_count = 0;
+        std::string_view unique_continuation;
 
-        auto expected_after =
-            parser::Parser::ParseUntilAfter(scanned, target_id, candidate.keyword_symbol.value());
-
-        // Find the unique keyword/operator continuation
-        std::string_view continuation;
-        bool ambiguous = false;
         for (auto& sym : expected_after) {
             auto text = parser::Keyword::GetSymbolText(sym);
-            if (!text.empty()) {
-                if (!continuation.empty()) {
-                    ambiguous = true;
-                    break;
-                }
-                continuation = text;
+            if (text.empty()) continue;
+            ++keyword_count;
+            unique_continuation = text;
+            auto score = getKeywordContinuationScore(sym);
+            if (score > best_score) {
+                best_score = score;
+                best_continuation = text;
+                best_count = 1;
+            } else if (score == best_score && score > 0) {
+                ++best_count;
             }
         }
-        if (ambiguous || continuation.empty()) continue;
+        if (keyword_count == 1) return unique_continuation;
+        if (best_count == 1) return best_continuation;
+        return {};
+    };
 
-        auto& stored = keyword_continuation_strings.PushBack(std::string{continuation});
-        candidate.keyword_continuation = stored;
+    // Compute identifier continuation once (for non-keyword candidates)
+    std::string_view ident_continuation;
+    bool ident_continuation_computed = false;
+
+    for (auto& candidate : top_candidates) {
+        if (candidate.keyword_symbol.has_value()) {
+            // Keyword candidate: feed its specific symbol
+            auto expected_after = parser::Parser::ParseUntilAfter(scanned, target_id, candidate.keyword_symbol.value());
+            auto continuation = find_continuation(expected_after);
+            if (continuation.empty()) continue;
+            auto& stored = keyword_continuation_strings.PushBack(std::string{continuation});
+            candidate.keyword_continuation = stored;
+        } else {
+            // Identifier candidate: feed IDENT
+            if (!ident_continuation_computed) {
+                ident_continuation_computed = true;
+                auto expected_after =
+                    parser::Parser::ParseUntilAfter(scanned, target_id, parser::Parser::symbol_kind_type::S_IDENT);
+                ident_continuation = find_continuation(expected_after);
+                if (!ident_continuation.empty()) {
+                    auto& stored = keyword_continuation_strings.PushBack(std::string{ident_continuation});
+                    ident_continuation = stored;
+                }
+            }
+            if (!ident_continuation.empty()) {
+                candidate.keyword_continuation = ident_continuation;
+            }
+        }
     }
 }
 
@@ -1499,7 +1568,8 @@ CompletionPtr Completion::SelectCandidate(flatbuffers::FlatBufferBuilder& builde
             if (std::holds_alternative<ScriptCursor::ColumnRefContext>(cursor.context)) {
                 sx::parser::SymbolSpan name_path_loc;
                 auto name_path_buffer = cursor.ReadCursorNamePath(name_path_loc);
-                auto [cursor_loc, path_loc] = getNameUnderCursorOrLast(*cursor.script.scanned_script, name_path_buffer, cursor.text_offset);
+                auto [cursor_loc, path_loc] =
+                    getNameUnderCursorOrLast(*cursor.script.scanned_script, name_path_buffer, cursor.text_offset);
                 auto ofs =
                     selectCandidateAtLocation(builder, completion, candidate_idx, std::nullopt, cursor_loc, path_loc);
                 return ofs;
@@ -1513,7 +1583,8 @@ CompletionPtr Completion::SelectCandidate(flatbuffers::FlatBufferBuilder& builde
                 // Read the name path
                 sx::parser::SymbolSpan name_path_loc;
                 auto name_path_buffer = cursor.ReadCursorNamePath(name_path_loc);
-                auto [cursor_loc, path_loc] = getNameUnderCursorOrLast(*cursor.script.scanned_script, name_path_buffer, cursor.text_offset);
+                auto [cursor_loc, path_loc] =
+                    getNameUnderCursorOrLast(*cursor.script.scanned_script, name_path_buffer, cursor.text_offset);
                 auto ofs =
                     selectCandidateAtLocation(builder, completion, candidate_idx, std::nullopt, cursor_loc, path_loc);
                 return ofs;

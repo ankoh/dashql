@@ -101,6 +101,7 @@ std::string_view Keyword::GetSymbolText(Parser::symbol_kind_type sym) {
     }
 }
 
+
 /// Find a keyword
 const Keyword* Keyword::Find(std::string_view text) {
     // Abort early if the keyword exceeds the max keyword size

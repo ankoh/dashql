@@ -65,6 +65,7 @@ completion-snapshots:
       entries:
         - score: 57
           value: sales
+          keyword-continuation: as
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "sal"

@@ -1,0 +1,150 @@
+completion-snapshots:
+  # group by
+  - name: group_by
+    catalog: {}
+    editor:
+      input: select * from foo gro
+    cursor:
+      search:
+        text: gro
+        index: 3
+    completions:
+      limit: 5
+
+  # order by
+  - name: order_by
+    catalog: {}
+    editor:
+      input: select * from foo ord
+    cursor:
+      search:
+        text: ord
+        index: 3
+    completions:
+      limit: 5
+
+  # partition by (in window)
+  - name: partition_by
+    catalog: {}
+    editor:
+      input: select sum(x) over (part
+    cursor:
+      search:
+        text: part
+        index: 4
+    completions:
+      limit: 5
+
+  # inner join
+  - name: inner_join
+    catalog: {}
+    editor:
+      input: select * from foo inn
+    cursor:
+      search:
+        text: inn
+        index: 3
+    completions:
+      limit: 5
+
+  # left join
+  - name: left_join
+    catalog: {}
+    editor:
+      input: select * from foo lef
+    cursor:
+      search:
+        text: lef
+        index: 3
+    completions:
+      limit: 5
+
+  # insert into
+  - name: insert_into
+    catalog: {}
+    editor:
+      input: inser
+    cursor:
+      search:
+        text: inser
+        index: 5
+    completions:
+      limit: 5
+
+  # create table
+  - name: create_table
+    catalog: {}
+    editor:
+      input: creat
+    cursor:
+      search:
+        text: creat
+        index: 5
+    completions:
+      limit: 5
+
+  # foreign key
+  - name: foreign_key
+    catalog: {}
+    editor:
+      input: create table t(a int, fore
+    cursor:
+      search:
+        text: fore
+        index: 4
+    completions:
+      limit: 5
+
+  # CTE: with foo as (identifier gets 'as' continuation)
+  - name: cte_as
+    catalog:
+      script:
+        input: create table foo(a int);
+    editor:
+      input: with fo
+    cursor:
+      search:
+        text: fo
+        index: 2
+    completions:
+      limit: 5
+
+  # fetch first
+  - name: fetch_first
+    catalog: {}
+    editor:
+      input: fetc
+    cursor:
+      search:
+        text: fetc
+        index: 4
+    completions:
+      limit: 5
+
+  # visualize mark =>
+  - name: vis_mark_arrow
+    catalog: {}
+    editor:
+      input: |
+        select 1 as x;
+        visualize $.0 using (mar
+    cursor:
+      search:
+        text: mar
+        index: 3
+    completions:
+      limit: 5
+
+  # No continuation for ambiguous position (SELECT ident has many options)
+  - name: no_continuation_select_expr
+    catalog:
+      script:
+        input: create table foo(bar int);
+    editor:
+      input: select ba
+    cursor:
+      search:
+        text: ba
+        index: 2
+    completions:
+      limit: 5

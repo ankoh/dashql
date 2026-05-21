@@ -1,0 +1,632 @@
+completion-snapshots:
+
+  - name: group_by
+    catalog: {}
+    editor:
+      input: select * from foo gro
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "foo gro"
+    cursor:
+      search:
+        text: gro
+        index: 3
+    completions:
+      limit: 5
+      strategy: TABLE_REF_ALIAS
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 58
+          value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 55
+          value: grouping
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 50
+          value: background
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 3
+          value: order
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 3
+          value: where
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+      text: "gro"
+
+  - name: order_by
+    catalog: {}
+    editor:
+      input: select * from foo ord
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "foo ord"
+    cursor:
+      search:
+        text: ord
+        index: 3
+    completions:
+      limit: 5
+      strategy: TABLE_REF_ALIAS
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 58
+          value: order
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ord"
+          location-qualified: "ord"
+          objects: []
+        - score: 55
+          value: ordinal
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ord"
+          location-qualified: "ord"
+          objects: []
+        - score: 55
+          value: ordinality
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ord"
+          location-qualified: "ord"
+          objects: []
+        - score: 50
+          value: password
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ord"
+          location-qualified: "ord"
+          objects: []
+        - score: 3
+          value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "ord"
+          location-qualified: "ord"
+          objects: []
+      text: "ord"
+
+  - name: partition_by
+    catalog: {}
+    editor:
+      input: select sum(x) over (part
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          text: "x"
+    cursor:
+      search:
+        text: part
+        index: 4
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: partial
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "part"
+          location-qualified: "part"
+          objects: []
+        - score: 55
+          value: partition
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "part"
+          location-qualified: "part"
+          objects: []
+        - score: 3
+          value: order
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "part"
+          location-qualified: "part"
+          objects: []
+        - score: 2
+          value: by
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "part"
+          location-qualified: "part"
+          objects: []
+        - score: 2
+          value: set
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "part"
+          location-qualified: "part"
+          objects: []
+      text: "part"
+
+  - name: inner_join
+    catalog: {}
+    editor:
+      input: select * from foo inn
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "foo inn"
+    cursor:
+      search:
+        text: inn
+        index: 3
+    completions:
+      limit: 5
+      strategy: TABLE_REF_ALIAS
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 55
+          value: inner
+          keyword-continuation: join
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "inn"
+          location-qualified: "inn"
+          objects: []
+        - score: 50
+          value: padding_inner
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "inn"
+          location-qualified: "inn"
+          objects: []
+        - score: 3
+          value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "inn"
+          location-qualified: "inn"
+          objects: []
+        - score: 3
+          value: order
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "inn"
+          location-qualified: "inn"
+          objects: []
+        - score: 3
+          value: where
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "inn"
+          location-qualified: "inn"
+          objects: []
+      text: "inn"
+
+  - name: left_join
+    catalog: {}
+    editor:
+      input: select * from foo lef
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "foo lef"
+    cursor:
+      search:
+        text: lef
+        index: 3
+    completions:
+      limit: 5
+      strategy: TABLE_REF_ALIAS
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 55
+          value: left
+          keyword-continuation: outer
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "lef"
+          location-qualified: "lef"
+          objects: []
+        - score: 3
+          value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "lef"
+          location-qualified: "lef"
+          objects: []
+        - score: 3
+          value: order
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "lef"
+          location-qualified: "lef"
+          objects: []
+        - score: 3
+          value: where
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "lef"
+          location-qualified: "lef"
+          objects: []
+        - score: 2
+          value: as
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "lef"
+          location-qualified: "lef"
+          objects: []
+      text: "lef"
+
+  - name: insert_into
+    catalog: {}
+    editor:
+      input: inser
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: inser
+        index: 5
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      entries:
+        - score: 3
+          value: select
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "inser"
+          location-qualified: "inser"
+          objects: []
+        - score: 2
+          value: set
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "inser"
+          location-qualified: "inser"
+          objects: []
+        - score: 2
+          value: with
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "inser"
+          location-qualified: "inser"
+          objects: []
+        - score: 0
+          value: create
+          keyword-continuation: table
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "inser"
+          location-qualified: "inser"
+          objects: []
+        - score: 0
+          value: explain
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "inser"
+          location-qualified: "inser"
+          objects: []
+      text: "inser"
+
+  - name: create_table
+    catalog: {}
+    editor:
+      input: creat
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: creat
+        index: 5
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: create
+          keyword-continuation: table
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "creat"
+          location-qualified: "creat"
+          objects: []
+        - score: 3
+          value: select
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "creat"
+          location-qualified: "creat"
+          objects: []
+        - score: 2
+          value: set
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "creat"
+          location-qualified: "creat"
+          objects: []
+        - score: 2
+          value: with
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "creat"
+          location-qualified: "creat"
+          objects: []
+        - score: 0
+          value: explain
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "creat"
+          location-qualified: "creat"
+          objects: []
+      text: "creat"
+
+  - name: foreign_key
+    catalog: {}
+    editor:
+      input: create table t(a int, fore
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: fore
+        index: 4
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: foreign
+          keyword-continuation: key
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "fore"
+          location-qualified: "fore"
+          objects: []
+        - score: 50
+          value: before
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "fore"
+          location-qualified: "fore"
+          objects: []
+        - score: 50
+          value: xmlforest
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "fore"
+          location-qualified: "fore"
+          objects: []
+        - score: 2
+          value: by
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "fore"
+          location-qualified: "fore"
+          objects: []
+        - score: 2
+          value: set
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "fore"
+          location-qualified: "fore"
+          objects: []
+      text: "fore"
+
+  - name: cte_as
+    catalog:
+      script:
+        input: create table foo(a int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: foo
+            text: "create tab..foo(a int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+        errors: []
+    editor:
+      input: with fo
+      catalog-id: 2
+      errors: []
+    cursor:
+      search:
+        text: fo
+        index: 2
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      entries:
+        - score: 57
+          value: foo
+          keyword-continuation: as
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "fo"
+          location-qualified: "fo"
+          objects:
+            - score: 37
+              type: table
+              id: "256.65536.4294967296"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: foo
+              qualified-idx: 0
+              prefer-qualified: 0
+        - score: 55
+          value: following
+          keyword-continuation: as
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "fo"
+          location-qualified: "fo"
+          objects: []
+        - score: 55
+          value: force
+          keyword-continuation: as
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "fo"
+          location-qualified: "fo"
+          objects: []
+        - score: 55
+          value: format
+          keyword-continuation: as
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "fo"
+          location-qualified: "fo"
+          objects: []
+        - score: 55
+          value: format_type
+          keyword-continuation: as
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "fo"
+          location-qualified: "fo"
+          objects: []
+      text: "fo"
+
+  - name: fetch_first
+    catalog: {}
+    editor:
+      input: fetc
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: fetc
+        index: 4
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      entries:
+        - score: 3
+          value: select
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "fetc"
+          location-qualified: "fetc"
+          objects: []
+        - score: 2
+          value: set
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "fetc"
+          location-qualified: "fetc"
+          objects: []
+        - score: 2
+          value: with
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "fetc"
+          location-qualified: "fetc"
+          objects: []
+        - score: 0
+          value: create
+          keyword-continuation: table
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "fetc"
+          location-qualified: "fetc"
+          objects: []
+        - score: 0
+          value: explain
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
+          location: "fetc"
+          location-qualified: "fetc"
+          objects: []
+      text: "fetc"
+
+  - name: vis_mark_arrow
+    catalog: {}
+    editor:
+      input: |
+        select 1 as x;
+        visualize $.0 using (mar
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+    cursor:
+      search:
+        text: mar
+        index: 3
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_SELECT
+      relative: END_OF_SYMBOL
+      entries: []
+      text: "mar"
+
+  - name: no_continuation_select_expr
+    catalog:
+      script:
+        input: create table foo(bar int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: foo
+            text: "create tab..o(bar int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: bar
+                text: "bar int"
+        errors: []
+    editor:
+      input: select ba
+      catalog-id: 2
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "ba"
+    cursor:
+      search:
+        text: ba
+        index: 2
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 57
+          value: bar
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "ba"
+          location-qualified: "ba"
+          objects:
+            - score: 37
+              type: column
+              id: "256.65536.4294967296.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: foo.bar
+              qualified-idx: 1
+              prefer-qualified: 0
+        - score: 55
+          value: background
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ba"
+          location-qualified: "ba"
+          objects: []
+        - score: 55
+          value: backward
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ba"
+          location-qualified: "ba"
+          objects: []
+        - score: 55
+          value: band
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ba"
+          location-qualified: "ba"
+          objects: []
+        - score: 55
+          value: band_position
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ba"
+          location-qualified: "ba"
+          objects: []
+      text: "ba"
