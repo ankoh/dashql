@@ -63,12 +63,14 @@ completion-snapshots:
               prefer-qualified: 0
         - score: 3
           value: group
+          keyword-continuation: by
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "region"
           location-qualified: "region"
           objects: []
         - score: 3
           value: order
+          keyword-continuation: by
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "region"
           location-qualified: "region"
@@ -144,12 +146,14 @@ completion-snapshots:
               prefer-qualified: 0
         - score: 3
           value: group
+          keyword-continuation: by
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "\"Region\""
           location-qualified: "\"Region\""
           objects: []
         - score: 3
           value: order
+          keyword-continuation: by
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "\"Region\""
           location-qualified: "\"Region\""

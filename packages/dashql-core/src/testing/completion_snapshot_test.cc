@@ -69,6 +69,10 @@ void CompletionSnapshotTest::EncodeCompletion(c4::yml::NodeRef root, const Compl
         yml_entry.append_child() << c4::yml::key("score") << iter->score;
         std::string text{iter->completion_text.data(), iter->completion_text.size()};
         yml_entry.append_child() << c4::yml::key("value") << text;
+        if (!iter->keyword_continuation.empty()) {
+            std::string cont{iter->keyword_continuation.data(), iter->keyword_continuation.size()};
+            yml_entry.append_child() << c4::yml::key("keyword-continuation") << cont;
+        }
         c4::yml::NodeRef ntags_node;
         bool first_ntag = true;
         iter->coarse_name_tags.ForEach([&](buffers::analyzer::NameTag tag) {

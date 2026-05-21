@@ -137,6 +137,19 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
         nextState.candidatePatch = completionDiff(targetFrom, currentText, candidateText, CompletionPatchTarget.Candidate, cursor);
     }
 
+    // Keyword continuation?
+    const keywordContinuation = candidate.keywordContinuation();
+    if (keywordContinuation && updateFrom <= UpdatePatchStartingFrom.CatalogObject) {
+        nextState = copyLazily(nextState, prevState);
+        nextState.catalogObjectPatch = [{
+            target: CompletionPatchTarget.CatalogObject,
+            type: PATCH_INSERT_TEXT,
+            value: { at: targetTo, text: " " + keywordContinuation, textAnchor: TextAnchor.Left },
+        }];
+        nextState.templatePatch = [];
+        return nextState;
+    }
+
     // Read catalog object
     const catalogObjectId = prevState.catalogObjectId;
     if (catalogObjectId >= candidate.catalogObjectsLength()) {

@@ -21,10 +21,15 @@ class Parser : public ParserBase {
     std::vector<ExpectedSymbol> CollectExpectedSymbols();
     /// Parse until a token and return expected symbols
     std::vector<ExpectedSymbol> CollectExpectedSymbolsAt(ChunkBufferEntryID symbol_id);
+    /// Parse until a token, feed an extra symbol, then return expected symbols after it
+    std::vector<ExpectedSymbol> CollectExpectedSymbolsAfter(ChunkBufferEntryID symbol_id, symbol_kind_type feed_symbol);
 
    public:
     /// Complete at a token
     static std::vector<ExpectedSymbol> ParseUntil(ScannedScript& in, ChunkBufferEntryID symbol_id);
+    /// Parse until a token, feed an extra symbol, then return expected symbols after it
+    static std::vector<ExpectedSymbol> ParseUntilAfter(ScannedScript& in, ChunkBufferEntryID symbol_id,
+                                                       symbol_kind_type feed_symbol);
     /// Parse a module (throws Exception on error)
     static std::shared_ptr<ParsedScript> Parse(std::shared_ptr<ScannedScript> in, bool debug = false);
 };

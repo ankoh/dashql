@@ -595,6 +595,7 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
                 .target_location = target_symbol->symbol.location,
                 .target_location_qualified = target_symbol->symbol.location,
                 .score = computeCandidateScore(tags),
+                .keyword_symbol = expected,
             };
             candidate_heap.Insert(std::move(candidate));
         }
@@ -945,7 +946,34 @@ void Completion::FindIdentifierSnippetsForTopCandidates(ScriptRegistry& registry
 }
 
 void Completion::DeriveKeywordSnippetsForTopCandidates() {
-    // XXX
+    if (!target_scanner_symbol.has_value()) return;
+    auto& scanned = *cursor.script.scanned_script;
+    auto target_id = target_scanner_symbol->symbol_id;
+
+    for (auto& candidate : top_candidates) {
+        if (!candidate.keyword_symbol.has_value()) continue;
+
+        auto expected_after =
+            parser::Parser::ParseUntilAfter(scanned, target_id, candidate.keyword_symbol.value());
+
+        // Find the unique keyword/operator continuation
+        std::string_view continuation;
+        bool ambiguous = false;
+        for (auto& sym : expected_after) {
+            auto text = parser::Keyword::GetSymbolText(sym);
+            if (!text.empty()) {
+                if (!continuation.empty()) {
+                    ambiguous = true;
+                    break;
+                }
+                continuation = text;
+            }
+        }
+        if (ambiguous || continuation.empty()) continue;
+
+        auto& stored = keyword_continuation_strings.PushBack(std::string{continuation});
+        candidate.keyword_continuation = stored;
+    }
 }
 
 void Completion::QualifyTopCandidates() {
@@ -1266,9 +1294,9 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
         if (registry) {
             completion->FindIdentifierSnippetsForTopCandidates(*registry);
         }
-        // Derive keyword snippets (if any)
-        completion->DeriveKeywordSnippetsForTopCandidates();
     }
+    // Derive keyword continuation snippets for all keyword candidates
+    completion->DeriveKeywordSnippetsForTopCandidates();
 
     // Register as normal completion
     return completion;
@@ -1430,9 +1458,39 @@ CompletionPtr Completion::SelectCandidate(flatbuffers::FlatBufferBuilder& builde
 
     // Did we complete a keyword?
     if (candidate_was_keyword) {
-        // XXX Keyword templates?
-        //     Add here once we have keyword templates
-        throw Exception(buffers::status::StatusCode::COMPLETION_WITHOUT_CONTINUATION);
+        // Check if this keyword has a continuation (e.g. "group" → " by")
+        if (!candidate->keyword_continuation() || candidate->keyword_continuation()->size() == 0) {
+            throw Exception(buffers::status::StatusCode::COMPLETION_WITHOUT_CONTINUATION);
+        }
+
+        // Build a completion buffer preserving the candidate with its continuation
+        auto display_text = builder.CreateString(candidate->display_text());
+        auto completion_text = builder.CreateString(candidate->completion_text());
+        auto keyword_continuation = builder.CreateString(candidate->keyword_continuation());
+
+        auto target_location = *candidate->target_location();
+        auto target_location_qualified = *candidate->target_location_qualified();
+
+        buffers::completion::CompletionCandidateBuilder candidate_builder{builder};
+        candidate_builder.add_display_text(display_text);
+        candidate_builder.add_completion_text(completion_text);
+        candidate_builder.add_candidate_tags(candidate->candidate_tags());
+        candidate_builder.add_name_tags(candidate->name_tags());
+        candidate_builder.add_score(candidate->score());
+        candidate_builder.add_target_location(&target_location);
+        candidate_builder.add_target_location_qualified(&target_location_qualified);
+        candidate_builder.add_keyword_continuation(keyword_continuation);
+
+        std::vector<flatbuffers::Offset<buffers::completion::CompletionCandidate>> candidateOffsets;
+        candidateOffsets.push_back(candidate_builder.Finish());
+        auto candidates_offset = builder.CreateVector(candidateOffsets);
+
+        buffers::completion::CompletionBuilder completion_builder{builder};
+        completion_builder.add_cursor_offset(completion.cursor_offset());
+        completion_builder.add_strategy(completion.strategy());
+        completion_builder.add_dot_completion(completion.dot_completion());
+        completion_builder.add_candidates(candidates_offset);
+        return completion_builder.Finish();
     }
 
     // What were we doing in the last completion?
@@ -1618,6 +1676,10 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
 
         auto catalog_objects_ofs = builder.CreateVector(catalog_objects);
         auto completion_text_ofs = builder.CreateString(completion_text);
+        flatbuffers::Offset<flatbuffers::String> keyword_continuation_ofs;
+        if (!iter_entry->keyword_continuation.empty()) {
+            keyword_continuation_ofs = builder.CreateString(iter_entry->keyword_continuation);
+        }
         buffers::completion::CompletionCandidateBuilder candidate_builder{builder};
         candidate_builder.add_display_text(display_text_offset);
         candidate_builder.add_completion_text(completion_text_ofs);
@@ -1627,6 +1689,9 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
         candidate_builder.add_score(iter_entry->score);
         candidate_builder.add_target_location(&iter_entry->target_location);
         candidate_builder.add_target_location_qualified(&iter_entry->target_location_qualified);
+        if (!iter_entry->keyword_continuation.empty()) {
+            candidate_builder.add_keyword_continuation(keyword_continuation_ofs);
+        }
         candidates.push_back(candidate_builder.Finish());
     }
     auto candidatesOfs = builder.CreateVector(candidates);

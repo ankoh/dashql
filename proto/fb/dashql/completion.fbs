@@ -92,6 +92,8 @@ table CompletionCandidate {
     catalog_objects: [CompletionCandidateObject];
     /// The score
     score: uint32;
+    /// Keyword continuation text (e.g. " by" after "group", " =>" after "mark")
+    keyword_continuation: string;
 }
 
 enum CompletionStrategy: uint8 {

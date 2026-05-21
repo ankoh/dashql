@@ -25,6 +25,8 @@ struct Keyword {
     static std::span<const Keyword> GetKeywords();
     /// Get a symbol name
     static std::string_view GetKeywordName(Parser::symbol_kind_type sym);
+    /// Get the text representation of any terminal symbol (keywords + operators)
+    static std::string_view GetSymbolText(Parser::symbol_kind_type sym);
     /// Find a keyword
     static const Keyword* Find(std::string_view text);
     /// Get the length of a keyword known at compile-time

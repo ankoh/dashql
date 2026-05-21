@@ -80,6 +80,10 @@ struct Completion {
         IntrusiveList<CandidateCatalogObject> catalog_objects;
         /// The score (if computed)
         ScoreValueType score = 0;
+        /// The keyword symbol (set for keyword candidates)
+        std::optional<parser::Parser::symbol_kind_type> keyword_symbol;
+        /// The keyword continuation text (e.g. "by"), set by DeriveKeywordSnippetsForTopCandidates
+        std::string_view keyword_continuation;
         /// Is less in the min-heap?
         /// We want to kick a candidate A before candidate B if
         ///     1) the score of A is less than the score of B
@@ -132,6 +136,8 @@ struct Completion {
     std::vector<Candidate> top_candidates;
     /// The top candidate names
     ChunkBuffer<std::vector<std::string_view>, 16> top_candidate_names;
+    /// Storage for keyword continuation strings (lifetime must outlast candidates)
+    ChunkBuffer<std::string, 16> keyword_continuation_strings;
 
     /// Store the qualified function name
     std::span<std::string_view> GetQualifiedFunctionName(const CatalogEntry::QualifiedFunctionName& name);

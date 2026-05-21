@@ -1,6 +1,5 @@
 #include "dashql/analyzer/completion.h"
 
-#include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "gtest/gtest.h"
 
@@ -51,16 +50,118 @@ SELECT s_co
 
     // Compute completion
     auto completion = main_script.CompleteAtCursor();
-    auto& heap = completion->GetHeap();
-    auto entries = heap.GetEntries();
+    auto& results = completion->GetResultCandidates();
 
     std::vector<std::string> names;
-    for (auto iter = entries.rbegin(); iter != entries.rend(); ++iter) {
-        names.emplace_back(iter->completion_text);
+    for (auto& candidate : results) {
+        std::string name{candidate.completion_text};
+        if (!candidate.keyword_continuation.empty()) {
+            name += " ";
+            name += candidate.keyword_continuation;
+        }
+        names.emplace_back(std::move(name));
     }
-    std::vector<std::string> expected_names{"like",  "cast",  "case", "by",         "where",
-                                            "order", "group", "from", "ps_comment", "s_comment"};
+    std::vector<std::string> expected_names{"s_comment", "ps_comment", "from", "group by", "order by",
+                                            "where",    "by",         "case", "cast",     "like"};
     ASSERT_EQ(names, expected_names);
+}
+
+TEST(CompletionTest, KeywordContinuation_GroupBy) {
+    const std::string_view main_script_text = R"SQL(
+SELECT * FROM supplier gro
+    )SQL";
+
+    Catalog catalog;
+    Script main_script{catalog};
+    main_script.InsertTextAt(0, main_script_text);
+    ASSERT_NO_THROW({
+        main_script.Scan();
+        main_script.Parse();
+        main_script.Analyze();
+    });
+
+    // Position cursor at end of "gro"
+    auto cursor_ofs = main_script_text.find("gro");
+    cursor_ofs += std::string_view{"gro"}.size();
+    main_script.MoveCursor(cursor_ofs);
+
+    // Compute completion
+    auto completion = main_script.CompleteAtCursor();
+    auto& results = completion->GetResultCandidates();
+
+    // Find the "group" candidate and check its continuation
+    bool found_group = false;
+    for (auto& candidate : results) {
+        if (candidate.completion_text == "group") {
+            found_group = true;
+            ASSERT_EQ(candidate.keyword_continuation, "by");
+            break;
+        }
+    }
+    ASSERT_TRUE(found_group) << "Expected 'group' candidate with continuation";
+}
+
+TEST(CompletionTest, KeywordContinuation_OrderBy) {
+    const std::string_view main_script_text = R"SQL(
+SELECT * FROM supplier ord
+    )SQL";
+
+    Catalog catalog;
+    Script main_script{catalog};
+    main_script.InsertTextAt(0, main_script_text);
+    ASSERT_NO_THROW({
+        main_script.Scan();
+        main_script.Parse();
+        main_script.Analyze();
+    });
+
+    auto cursor_ofs = main_script_text.find("ord");
+    cursor_ofs += std::string_view{"ord"}.size();
+    main_script.MoveCursor(cursor_ofs);
+
+    auto completion = main_script.CompleteAtCursor();
+    auto& results = completion->GetResultCandidates();
+
+    bool found_order = false;
+    for (auto& candidate : results) {
+        if (candidate.completion_text == "order") {
+            found_order = true;
+            ASSERT_EQ(candidate.keyword_continuation, "by");
+            break;
+        }
+    }
+    ASSERT_TRUE(found_order) << "Expected 'order' candidate with continuation";
+}
+
+TEST(CompletionTest, KeywordContinuation_NoAmbiguous) {
+    const std::string_view main_script_text = R"SQL(
+SELECT sel
+    )SQL";
+
+    Catalog catalog;
+    Script main_script{catalog};
+    main_script.InsertTextAt(0, main_script_text);
+    ASSERT_NO_THROW({
+        main_script.Scan();
+        main_script.Parse();
+        main_script.Analyze();
+    });
+
+    auto cursor_ofs = main_script_text.find("sel");
+    cursor_ofs += std::string_view{"sel"}.size();
+    main_script.MoveCursor(cursor_ofs);
+
+    auto completion = main_script.CompleteAtCursor();
+    auto& results = completion->GetResultCandidates();
+
+    // "select" has many possible continuations, should NOT have a keyword_continuation
+    for (auto& candidate : results) {
+        if (candidate.completion_text == "select") {
+            ASSERT_TRUE(candidate.keyword_continuation.empty())
+                << "'select' should not have a continuation (ambiguous)";
+            break;
+        }
+    }
 }
 
 }  // namespace

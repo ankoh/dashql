@@ -88,6 +88,19 @@ std::string_view Keyword::GetKeywordName(Parser::symbol_kind_type sym) {
     return "";
 }
 
+std::string_view Keyword::GetSymbolText(Parser::symbol_kind_type sym) {
+    auto kw = GetKeywordName(sym);
+    if (!kw.empty()) return kw;
+    switch (sym) {
+        case Parser::symbol_kind_type::S_EQUALS_GREATER: return "=>";
+        case Parser::symbol_kind_type::S_LESS_EQUALS: return "<=";
+        case Parser::symbol_kind_type::S_GREATER_EQUALS: return ">=";
+        case Parser::symbol_kind_type::S_NOT_EQUALS: return "!=";
+        case Parser::symbol_kind_type::S_COLON_EQUALS: return ":=";
+        default: return {};
+    }
+}
+
 /// Find a keyword
 const Keyword* Keyword::Find(std::string_view text) {
     // Abort early if the keyword exceeds the max keyword size

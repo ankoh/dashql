@@ -85,6 +85,7 @@ completion-snapshots:
           objects: []
         - score: 2
           value: by
+          keyword-continuation: as
           candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "sal"
           location-qualified: "sal"
@@ -107,18 +108,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: mark
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "m"
           location-qualified: "m"
           objects: []
         - score: 50
           value: name
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "m"
           location-qualified: "m"
           objects: []
         - score: 50
           value: params
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "m"
           location-qualified: "m"
@@ -141,18 +145,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: encoding
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "enc"
           location-qualified: "enc"
           objects: []
         - score: 0
           value: autosize
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "enc"
           location-qualified: "enc"
           objects: []
         - score: 0
           value: background
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "enc"
           location-qualified: "enc"
@@ -175,18 +182,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: width
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "w"
           location-qualified: "w"
           objects: []
         - score: 50
           value: view
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "w"
           location-qualified: "w"
           objects: []
         - score: 0
           value: autosize
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "w"
           location-qualified: "w"
@@ -209,18 +219,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: height
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "h"
           location-qualified: "h"
           objects: []
         - score: 50
           value: width
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "h"
           location-qualified: "h"
           objects: []
         - score: 0
           value: autosize
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "h"
           location-qualified: "h"
@@ -243,18 +256,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: title
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "t"
           location-qualified: "t"
           objects: []
         - score: 55
           value: transform
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "t"
           location-qualified: "t"
           objects: []
         - score: 55
           value: type
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "t"
           location-qualified: "t"
@@ -430,18 +446,21 @@ completion-snapshots:
       entries:
         - score: 70
           value: mark
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "mark"
           location-qualified: "mark"
           objects: []
         - score: 0
           value: autosize
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "mark"
           location-qualified: "mark"
           objects: []
         - score: 0
           value: background
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "mark"
           location-qualified: "mark"
@@ -517,18 +536,21 @@ completion-snapshots:
       entries:
         - score: 70
           value: x
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "x"
           location-qualified: "x"
           objects: []
         - score: 55
           value: x2
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "x"
           location-qualified: "x"
           objects: []
         - score: 55
           value: x_offset
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "x"
           location-qualified: "x"
@@ -554,18 +576,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: color
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "co"
           location-qualified: "co"
           objects: []
         - score: 55
           value: column
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "co"
           location-qualified: "co"
           objects: []
         - score: 3
           value: order
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "co"
           location-qualified: "co"
@@ -593,18 +618,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: size
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "si"
           location-qualified: "si"
           objects: []
         - score: 3
           value: order
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "si"
           location-qualified: "si"
           objects: []
         - score: 0
           value: angle
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "si"
           location-qualified: "si"
@@ -632,18 +660,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: tooltip
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "to"
           location-qualified: "to"
           objects: []
         - score: 3
           value: order
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "to"
           location-qualified: "to"
           objects: []
         - score: 0
           value: angle
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "to"
           location-qualified: "to"
@@ -669,18 +700,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: shape
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "sh"
           location-qualified: "sh"
           objects: []
         - score: 50
           value: stroke_dash
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "sh"
           location-qualified: "sh"
           objects: []
         - score: 3
           value: order
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "sh"
           location-qualified: "sh"
@@ -706,18 +740,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: field
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "f"
           location-qualified: "f"
           objects: []
         - score: 55
           value: format
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "f"
           location-qualified: "f"
           objects: []
         - score: 55
           value: format_type
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "f"
           location-qualified: "f"
@@ -743,18 +780,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: type
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "ty"
           location-qualified: "ty"
           objects: []
         - score: 50
           value: format_type
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "ty"
           location-qualified: "ty"
           objects: []
         - score: 0
           value: aggregate
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "ty"
           location-qualified: "ty"
@@ -780,18 +820,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: scale
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "sc"
           location-qualified: "sc"
           objects: []
         - score: 0
           value: aggregate
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "sc"
           location-qualified: "sc"
           objects: []
         - score: 0
           value: axis
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "sc"
           location-qualified: "sc"
@@ -817,18 +860,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: aggregate
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "ag"
           location-qualified: "ag"
           objects: []
         - score: 0
           value: axis
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "ag"
           location-qualified: "ag"
           objects: []
         - score: 0
           value: band_position
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "ag"
           location-qualified: "ag"
@@ -854,18 +900,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: axis
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "ax"
           location-qualified: "ax"
           objects: []
         - score: 0
           value: aggregate
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "ax"
           location-qualified: "ax"
           objects: []
         - score: 0
           value: band_position
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "ax"
           location-qualified: "ax"
@@ -891,18 +940,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: legend
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "le"
           location-qualified: "le"
           objects: []
         - score: 50
           value: scale
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "le"
           location-qualified: "le"
           objects: []
         - score: 50
           value: title
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "le"
           location-qualified: "le"
@@ -1039,18 +1091,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: domain
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "do"
           location-qualified: "do"
           objects: []
         - score: 55
           value: domain_max
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "do"
           location-qualified: "do"
           objects: []
         - score: 55
           value: domain_mid
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "do"
           location-qualified: "do"
@@ -1076,18 +1131,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: type
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "ty"
           location-qualified: "ty"
           objects: []
         - score: 0
           value: bins
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "ty"
           location-qualified: "ty"
           objects: []
         - score: 0
           value: clamp
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "ty"
           location-qualified: "ty"
@@ -1150,18 +1208,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: nice
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "ni"
           location-qualified: "ni"
           objects: []
         - score: 0
           value: bins
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "ni"
           location-qualified: "ni"
           objects: []
         - score: 0
           value: clamp
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "ni"
           location-qualified: "ni"
@@ -1187,18 +1248,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: zero
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "ze"
           location-qualified: "ze"
           objects: []
         - score: 0
           value: bins
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "ze"
           location-qualified: "ze"
           objects: []
         - score: 0
           value: clamp
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "ze"
           location-qualified: "ze"
@@ -1476,18 +1540,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: format
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "fo"
           location-qualified: "fo"
           objects: []
         - score: 55
           value: format_type
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "fo"
           location-qualified: "fo"
           objects: []
         - score: 50
           value: label_font_size
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "fo"
           location-qualified: "fo"
@@ -1513,18 +1580,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: grid
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "gr"
           location-qualified: "gr"
           objects: []
         - score: 2
           value: offset
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "gr"
           location-qualified: "gr"
           objects: []
         - score: 0
           value: direction
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL]
           location: "gr"
           location-qualified: "gr"
@@ -1550,18 +1620,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: label_angle
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "la"
           location-qualified: "la"
           objects: []
         - score: 55
           value: label_font_size
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "la"
           location-qualified: "la"
           objects: []
         - score: 55
           value: label_overlap
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "la"
           location-qualified: "la"
@@ -1587,18 +1660,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: orient
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "or"
           location-qualified: "or"
           objects: []
         - score: 50
           value: format
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "or"
           location-qualified: "or"
           objects: []
         - score: 50
           value: format_type
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "or"
           location-qualified: "or"
@@ -1624,18 +1700,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: title
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "ti"
           location-qualified: "ti"
           objects: []
         - score: 50
           value: direction
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "ti"
           location-qualified: "ti"
           objects: []
         - score: 2
           value: offset
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "ti"
           location-qualified: "ti"
@@ -1679,18 +1758,21 @@ completion-snapshots:
       entries:
         - score: 55
           value: mark
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "m"
           location-qualified: "m"
           objects: []
         - score: 50
           value: name
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "m"
           location-qualified: "m"
           objects: []
         - score: 50
           value: params
+          keyword-continuation: =>
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "m"
           location-qualified: "m"

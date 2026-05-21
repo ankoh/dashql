@@ -61,12 +61,14 @@ completion-snapshots:
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
         - score: 3
           value: group
+          keyword-continuation: by
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "db"
           location-qualified: "db"
           objects: []
         - score: 3
           value: order
+          keyword-continuation: by
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "db"
           location-qualified: "db"
@@ -363,6 +365,7 @@ completion-snapshots:
           objects: []
         - score: 3
           value: group
+          keyword-continuation: by
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "mys"
           location-qualified: "mys"
@@ -448,12 +451,14 @@ completion-snapshots:
               prefer-qualified: 0
         - score: 3
           value: group
+          keyword-continuation: by
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "external_"
           location-qualified: "external_"
           objects: []
         - score: 3
           value: order
+          keyword-continuation: by
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "external_"
           location-qualified: "external_"
@@ -533,12 +538,14 @@ completion-snapshots:
               prefer-qualified: 0
         - score: 3
           value: group
+          keyword-continuation: by
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "external_"
           location-qualified: "external_"
           objects: []
         - score: 3
           value: order
+          keyword-continuation: by
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "external_"
           location-qualified: "external_"

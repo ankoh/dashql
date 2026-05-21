@@ -555,12 +555,14 @@ completion-snapshots:
           objects: []
         - score: 3
           value: group
+          keyword-continuation: by
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "bar"
           location-qualified: "bar"
           objects: []
         - score: 3
           value: order
+          keyword-continuation: by
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "bar"
           location-qualified: "bar"

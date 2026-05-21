@@ -299,11 +299,181 @@ yyreturn:
     return expected_symbols;
 }
 
+std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbolsAfter(ChunkBufferEntryID target_symbol_id,
+                                                                        symbol_kind_type feed_symbol) {
+    // The expected symbols
+    std::vector<Parser::ExpectedSymbol> expected_symbols;
+    // Phase: 0 = parsing normally, 1 = fed the symbol, 2 = injected COMPLETE_HERE
+    int phase = 0;
+
+    int yyn;
+    int yylen = 0;
+    [[maybe_unused]] int yynerrs_ = 0;
+    int yyerrstatus_ = 0;
+    symbol_type yyla;
+    stack_symbol_type yyerror_range[3];
+    [[maybe_unused]] int yyresult;
+
+    yy_lac_discard_("init");
+    yystack_.clear();
+    yypush_(YY_NULLPTR, 0, YY_MOVE(yyla));
+
+yynewstate:
+    if (yystack_[0].state == yyfinal_) goto yyacceptlab;
+    goto yybackup;
+
+yybackup:
+    yyn = yypact_[+yystack_[0].state];
+    if (yy_pact_value_is_default_(yyn)) goto yydefault;
+
+    if (yyla.empty()) {
+        auto symbol_iter = ctx.GetSymbolIterator();
+        auto next_symbol = ctx.NextSymbol();
+
+        if (phase == 1) {
+            // Phase 1 → 2: After feeding the symbol, inject COMPLETE_HERE
+            auto completion_marker = parser::Parser::make_COMPLETE_HERE(next_symbol.location);
+            next_symbol.move(completion_marker);
+            phase = 2;
+        } else if (phase == 0 && symbol_iter >= target_symbol_id) {
+            // Phase 0 → 1: At target, inject the feed symbol
+            auto fed = parser::Parser::make_COMPLETE_HERE(next_symbol.location);
+            fed.kind_ = feed_symbol;
+            next_symbol.move(fed);
+            phase = 1;
+        }
+
+        symbol_type yylookahead(std::move(next_symbol));
+        yyla.move(yylookahead);
+    }
+
+    if (yyla.kind() == symbol_kind::S_YYerror) {
+        yyla.kind_ = symbol_kind::S_YYUNDEF;
+        goto yyerrlab1;
+    }
+
+    yyn += yyla.kind();
+    if (yyn < 0 || yylast_ < yyn || yycheck_[yyn] != yyla.kind()) {
+        if (!yy_lac_establish_(yyla.kind())) goto yyerrlab;
+        goto yydefault;
+    }
+
+    yyn = yytable_[yyn];
+    if (yyn <= 0) {
+        if (yy_table_value_is_error_(yyn)) goto yyerrlab;
+        if (!yy_lac_establish_(yyla.kind())) goto yyerrlab;
+        yyn = -yyn;
+        goto yyreduce;
+    }
+
+    if (yyerrstatus_) --yyerrstatus_;
+    yypush_("Shifting", state_type(yyn), YY_MOVE(yyla));
+    yy_lac_discard_("shift");
+    goto yynewstate;
+
+yydefault:
+    yyn = yydefact_[+yystack_[0].state];
+    if (yyn == 0) goto yyerrlab;
+    goto yyreduce;
+
+yyreduce:
+    yylen = yyr2_[yyn];
+    {
+        stack_symbol_type yylhs;
+        yylhs.state = yy_lr_goto_state_(yystack_[yylen].state, yyr1_[yyn]);
+        switch (yyr1_[yyn]) {
+            default:
+                break;
+        }
+        {
+            stack_type::slice range(yystack_, yylen);
+            YYLLOC_DEFAULT(yylhs.location, range, yylen);
+            yyerror_range[1].location = yylhs.location;
+        }
+        {
+            switch (yyn) {
+                default:
+                    break;
+            }
+        }
+        yypop_(yylen);
+        yylen = 0;
+        yypush_(YY_NULLPTR, YY_MOVE(yylhs));
+    }
+    goto yynewstate;
+
+yyerrlab:
+    if (phase == 2) {
+        expected_symbols = CollectExpectedSymbols();
+        goto yyabortlab;
+    }
+    if (!yyerrstatus_) {
+        ++yynerrs_;
+    }
+    yyerror_range[1].location = yyla.location;
+    if (yyerrstatus_ == 3) {
+        if (yyla.kind() == symbol_kind::S_YYEOF) {
+            goto yyabortlab;
+        } else if (!yyla.empty()) {
+            yyla.clear();
+        }
+    }
+    goto yyerrlab1;
+
+yyerrlab1:
+    yyerrstatus_ = 3;
+    for (;;) {
+        yyn = yypact_[+yystack_[0].state];
+        if (!yy_pact_value_is_default_(yyn)) {
+            yyn += symbol_kind::S_YYerror;
+            if (0 <= yyn && yyn <= yylast_ && yycheck_[yyn] == symbol_kind::S_YYerror) {
+                yyn = yytable_[yyn];
+                if (0 < yyn) break;
+            }
+        }
+        if (yystack_.size() == 1) goto yyabortlab;
+        yyerror_range[1].location = yystack_[0].location;
+        yypop_();
+    }
+    {
+        stack_symbol_type error_token;
+        yyerror_range[2].location = yyla.location;
+        YYLLOC_DEFAULT(error_token.location, yyerror_range, 2);
+        yy_lac_discard_("error recovery");
+        error_token.state = state_type(yyn);
+        yypush_("Shifting", YY_MOVE(error_token));
+    }
+    goto yynewstate;
+
+yyacceptlab:
+    yyresult = 0;
+    goto yyreturn;
+
+yyabortlab:
+    yyresult = 1;
+    goto yyreturn;
+
+yyreturn:
+    if (!yyla.empty()) yyla.clear();
+    yypop_(yylen);
+    while (1 < yystack_.size()) {
+        yypop_();
+    }
+    return expected_symbols;
+}
+
 std::vector<Parser::ExpectedSymbol> Parser::ParseUntil(ScannedScript& scanned, ChunkBufferEntryID symbol_id) {
     ParseContext ctx{scanned};
     dashql::parser::Parser parser(ctx);
     auto expected = parser.CollectExpectedSymbolsAt(symbol_id);
     return expected;
+}
+
+std::vector<Parser::ExpectedSymbol> Parser::ParseUntilAfter(ScannedScript& scanned, ChunkBufferEntryID symbol_id,
+                                                            symbol_kind_type feed_symbol) {
+    ParseContext ctx{scanned};
+    dashql::parser::Parser parser(ctx);
+    return parser.CollectExpectedSymbolsAfter(symbol_id, feed_symbol);
 }
 
 std::shared_ptr<ParsedScript> Parser::Parse(std::shared_ptr<ScannedScript> scanned, bool debug) {
