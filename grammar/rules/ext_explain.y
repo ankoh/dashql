@@ -1,3 +1,37 @@
+/*
+    Hyper options:
+
+    explain (optimize steps, costs)
+    explain (format text_tree)
+    explain (format analyze)
+    explain (format sql_stages)
+    explain (format referenced_tables)
+    explain (format json)
+    explain (format internal_json)
+    explain (format terse_internal_json)
+    explain (format schema)
+    explain (format schema, with_lineage)
+    explain (format schema, preaggregation)
+    explain (format schema, postaggregation, sql_dialect hyper)
+    explain (format sql, sql_dialect internal_spark)
+    explain (format sql, sql_dialect amazon_redshift)
+    explain (format sql, sql_dialect apache_calcite)
+    explain (format sql, sql_dialect azure_synapse)
+    explain (format sql, sql_dialect cdata)
+    explain (format sql, sql_dialect cdata_scan_only)
+    explain (format sql, sql_dialect databricks)
+    explain (format sql, sql_dialect google_bigquery)
+    explain (format sql, sql_dialect hyper)
+    explain (format sql, sql_dialect mariadb_10)
+    explain (format sql, sql_dialect microsoft_sql_server_2016)
+    explain (format sql, sql_dialect mysql_8)
+    explain (format sql, sql_dialect oracle_19)
+    explain (format sql, sql_dialect postgresql_12)
+    explain (format sql, sql_dialect postgresql_15)
+    explain (format sql, sql_dialect snowflake)
+    explain (format sql, sql_dialect trino)
+*/
+
 explain_stmt:
     EXPLAIN explainable_stmt {
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_EXT_EXPLAIN, {
