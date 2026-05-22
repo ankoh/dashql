@@ -655,3 +655,183 @@ formatter-snapshots:
                     or very_long_inner_right_column = 4
                 )
                 and very_long_outer_right_column = 5;
+
+  - name: expr_typecast_int
+    input: |-
+      select x::integer
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select x::integer;
+          - mode: compact
+            expected: |-
+              select x::integer;
+          - mode: pretty
+            expected: |-
+              select x::integer;
+
+  - name: expr_typecast_varchar
+    input: |-
+      select 123::varchar
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 123::varchar;
+          - mode: compact
+            expected: |-
+              select 123::varchar;
+          - mode: pretty
+            expected: |-
+              select 123::varchar;
+
+  - name: expr_typecast_chain
+    input: |-
+      select x::integer::varchar
+    dialects:
+      duckdb:
+        skip: true
+
+  - name: expr_exists
+    input: |-
+      select exists (select 1)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select exists (select 1);
+          - mode: compact
+            expected: |-
+              select exists (select 1);
+          - mode: pretty
+            expected: |-
+              select exists (select 1);
+
+  - name: expr_case_simple
+    input: |-
+      select case a when 1 then 'one' when 2 then 'two' end
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select case a when 1 then 'one' when 2 then 'two' end;
+          - mode: compact
+            expected: |-
+              select case a when 1 then 'one' when 2 then 'two' end;
+          - mode: pretty
+            expected: |-
+              select case a when 1 then 'one' when 2 then 'two' end;
+
+  - name: expr_case_simple_else
+    input: |-
+      select case a when 1 then 'one' else 'other' end
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select case a when 1 then 'one' else 'other' end;
+          - mode: compact
+            expected: |-
+              select case a when 1 then 'one' else 'other' end;
+          - mode: pretty
+            expected: |-
+              select case a when 1 then 'one' else 'other' end;
+
+  - name: expr_case_searched
+    input: |-
+      select case when a > 0 then 'pos' when a < 0 then 'neg' else 'zero' end
+    dialects:
+      duckdb:
+        skip: true
+
+  - name: expr_case_long
+    input: |-
+      select case very_long_column_name when 'very_long_value_one' then 'result_one' when 'very_long_value_two' then 'result_two' when 'very_long_value_three' then 'result_three' else 'default_result' end
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select case very_long_column_name when 'very_long_value_one' then 'result_one' when 'very_long_value_two' then 'result_two' when 'very_long_value_three' then 'result_three' else 'default_result' end;
+          - mode: compact
+            width: 80
+            expected: |-
+              select case very_long_column_name when 'very_long_value_one' then 'result_one'
+                when 'very_long_value_two' then 'result_two'
+                when 'very_long_value_three' then 'result_three' else 'default_result' end;
+          - mode: pretty
+            width: 80
+            expected: |-
+              select case very_long_column_name when 'very_long_value_one' then 'result_one'
+                when 'very_long_value_two' then 'result_two'
+                when 'very_long_value_three' then 'result_three' else 'default_result' end;
+
+  - name: expr_union
+    input: |-
+      select 1 union select 2
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1 union select 2;
+          - mode: compact
+            expected: |-
+              select 1 union select 2;
+          - mode: pretty
+            expected: |-
+              select 1 union select 2;
+
+  - name: expr_union_all
+    input: |-
+      select 1 union all select 2
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1 union all select 2;
+          - mode: compact
+            expected: |-
+              select 1 union all select 2;
+          - mode: pretty
+            expected: |-
+              select 1 union all select 2;
+
+  - name: expr_intersect
+    input: |-
+      select 1 intersect select 2
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1 intersect select 2;
+          - mode: compact
+            expected: |-
+              select 1 intersect select 2;
+          - mode: pretty
+            expected: |-
+              select 1 intersect select 2;
+
+  - name: expr_except
+    input: |-
+      select 1 except select 2
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1 except select 2;
+          - mode: compact
+            expected: |-
+              select 1 except select 2;
+          - mode: pretty
+            expected: |-
+              select 1 except select 2;

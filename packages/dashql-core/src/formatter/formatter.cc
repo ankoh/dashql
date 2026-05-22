@@ -458,7 +458,7 @@ FmtReg Formatter::FormatJoinedTable(const buffers::parser::Node& node) {
     auto clause_policy = config.mode == buffers::formatting::FormattingMode::PRETTY
                              ? FormattingJoinPolicy::ForceBreak
                              : FormattingJoinPolicy::BreakAllOrNone;
-    return fmt.Join(parts, fmt.Text(" "), fmt.Break(), clause_policy);
+    return fmt.Join(parts, fmt.Text(" "), fmt.Break(), clause_policy, true);
 }
 
 FmtReg Formatter::FormatGroupByItem(const buffers::parser::Node& node) {
@@ -1491,6 +1491,64 @@ FmtReg Formatter::FormatWindowFrame(const buffers::parser::Node& node) {
     return fmt.Join(clauses, fmt.Text(" "), fmt.Break(), FormattingJoinPolicy::BreakOnOverflow, true);
 }
 
+FmtReg Formatter::FormatTypecastExpression(const buffers::parser::Node& node) {
+    auto [value, type] = GetAttributes<AttributeKey::SQL_TYPECAST_VALUE, AttributeKey::SQL_TYPECAST_TYPE>(node);
+    if (!value || !type) return FormatUnimplemented(node);
+    auto value_reg = Reg(*value);
+    auto type_reg = Reg(*type);
+    if (value_reg == 0 || type_reg == 0) return FormatUnimplemented(node);
+    return fmt.Concat({value_reg, fmt.Text("::"), type_reg});
+}
+
+FmtReg Formatter::FormatCase(const buffers::parser::Node& node) {
+    auto [argument, clauses, default_val] =
+        GetAttributes<AttributeKey::SQL_CASE_ARGUMENT, AttributeKey::SQL_CASE_CLAUSES, AttributeKey::SQL_CASE_DEFAULT>(
+            node);
+    if (!clauses) return FormatUnimplemented(node);
+
+    std::vector<FmtReg> parts;
+    if (argument) {
+        auto arg_reg = Reg(*argument);
+        if (arg_reg == 0) return FormatUnimplemented(node);
+        parts.push_back(fmt.Concat({fmt.Text("case "), arg_reg}));
+    } else {
+        parts.push_back(fmt.Text("case"));
+    }
+
+    auto clause_children = GetArrayStates(*clauses);
+    for (auto& child : clause_children) {
+        if (child.reg == 0) return FormatUnimplemented(node);
+        parts.push_back(child.reg);
+    }
+
+    if (default_val) {
+        auto default_reg = Reg(*default_val);
+        if (default_reg == 0) return FormatUnimplemented(node);
+        parts.push_back(fmt.Concat({fmt.Text("else "), default_reg}));
+    }
+
+    parts.push_back(fmt.Text("end"));
+    return fmt.Join(parts, fmt.Text(" "), fmt.Break(), FormattingJoinPolicy::BreakOnOverflow, true);
+}
+
+FmtReg Formatter::FormatCaseClause(const buffers::parser::Node& node) {
+    auto [when_val, then_val] =
+        GetAttributes<AttributeKey::SQL_CASE_CLAUSE_WHEN, AttributeKey::SQL_CASE_CLAUSE_THEN>(node);
+    if (!when_val || !then_val) return FormatUnimplemented(node);
+    auto when_reg = Reg(*when_val);
+    auto then_reg = Reg(*then_val);
+    if (when_reg == 0 || then_reg == 0) return FormatUnimplemented(node);
+    return fmt.Concat({fmt.Text("when "), when_reg, fmt.Text(" then "), then_reg});
+}
+
+FmtReg Formatter::FormatExistsExpression(const buffers::parser::Node& node) {
+    auto [statement] = GetAttributes<AttributeKey::SQL_EXISTS_EXPRESSION_STATEMENT>(node);
+    if (!statement) return FormatUnimplemented(node);
+    auto stmt_reg = Reg(*statement);
+    if (stmt_reg == 0) return FormatUnimplemented(node);
+    return fmt.Concat({fmt.Text("exists "), fmt.Parenthesized(stmt_reg)});
+}
+
 FmtReg Formatter::FormatExpressionOperatorType(const buffers::parser::Node& node) {
     if (node.node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR) {
         return FormatUnimplemented(node);
@@ -1664,6 +1722,14 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatTrimDirection(node);
         case NodeType::OBJECT_SQL_GENERIC_OPTION:
             return FormatGenericOption(node);
+        case NodeType::OBJECT_SQL_TYPECAST_EXPRESSION:
+            return FormatTypecastExpression(node);
+        case NodeType::OBJECT_SQL_CASE:
+            return FormatCase(node);
+        case NodeType::OBJECT_SQL_CASE_CLAUSE:
+            return FormatCaseClause(node);
+        case NodeType::OBJECT_SQL_EXISTS_EXPRESSION:
+            return FormatExistsExpression(node);
         case NodeType::OBJECT_SQL_FUNCTION_EXPRESSION:
             return FormatFunctionExpression(node);
         case NodeType::OBJECT_SQL_WINDOW_FRAME:

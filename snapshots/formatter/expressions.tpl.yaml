@@ -400,3 +400,78 @@ formatter-snapshots:
             width: 80
           - mode: pretty
             width: 80
+
+  # TYPECAST
+
+  - name: expr_typecast_int
+    input: select x::integer
+    dialects:
+      duckdb:
+
+  - name: expr_typecast_varchar
+    input: select 123::varchar
+    dialects:
+      duckdb:
+
+  - name: expr_typecast_chain
+    input: select x::integer::varchar
+    dialects:
+      duckdb:
+        skip: true
+
+  # EXISTS
+
+  - name: expr_exists
+    input: select exists (select 1)
+    dialects:
+      duckdb:
+
+  # CASE
+
+  - name: expr_case_simple
+    input: select case a when 1 then 'one' when 2 then 'two' end
+    dialects:
+      duckdb:
+
+  - name: expr_case_simple_else
+    input: select case a when 1 then 'one' else 'other' end
+    dialects:
+      duckdb:
+
+  - name: expr_case_searched
+    input: select case when a > 0 then 'pos' when a < 0 then 'neg' else 'zero' end
+    dialects:
+      duckdb:
+        skip: true
+
+  - name: expr_case_long
+    input: select case very_long_column_name when 'very_long_value_one' then 'result_one' when 'very_long_value_two' then 'result_two' when 'very_long_value_three' then 'result_three' else 'default_result' end
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            width: 80
+          - mode: pretty
+            width: 80
+
+  # COMBINE (UNION, INTERSECT, EXCEPT)
+
+  - name: expr_union
+    input: select 1 union select 2
+    dialects:
+      duckdb:
+
+  - name: expr_union_all
+    input: select 1 union all select 2
+    dialects:
+      duckdb:
+
+  - name: expr_intersect
+    input: select 1 intersect select 2
+    dialects:
+      duckdb:
+
+  - name: expr_except
+    input: select 1 except select 2
+    dialects:
+      duckdb:
