@@ -6,7 +6,7 @@ const QUOTES = new Set(['"', "'", '`']);
 const CLOSERS = new Set([')', ']', '}']);
 const BEFORE_CLOSE = /^[\s)\]};,]|$/;
 
-function handleInput(view: EditorView, from: number, to: number, insert: string): boolean {
+export function handleInput(view: EditorView, from: number, to: number, insert: string): boolean {
     if (insert.length !== 1) return false;
 
     // Overtype: user types a closer and the char at cursor matches
@@ -56,7 +56,7 @@ function handleInput(view: EditorView, from: number, to: number, insert: string)
     return true;
 }
 
-function onBackspace(view: EditorView): boolean {
+export function onBackspace(view: EditorView): boolean {
     const state = view.state;
     const sel = state.selection.main;
     if (!sel.empty || sel.from === 0) return false;

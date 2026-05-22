@@ -1,5 +1,6 @@
 import { Prec } from '@codemirror/state';
 import { EditorView, keymap, KeyBinding, ViewPlugin, ViewUpdate } from '@codemirror/view';
+import { insertTab } from '@codemirror/commands';
 
 import { DashQLCompletionAbortEffect, DashQLCompletionNextCandidateEffect, DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectCatalogObjectEffect, DashQLCompletionSelectTemplateEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
 import { applyCompletion, updateCursorWithCompletion } from './dashql_completion_patches.js';
@@ -132,7 +133,7 @@ function onTab(view: EditorView) {
         return false;
     }
     if (processor.scriptCompletion == null) {
-        return false;
+        return insertTab(view);
     }
 
     switch (processor.scriptCompletion?.status) {
@@ -186,18 +187,16 @@ function onTab(view: EditorView) {
                 });
                 return true;
             }
-            // We couldn't complete anything?
-            return false;
+            return insertTab(view);
         }
         case DashQLCompletionStatus.SELECTED_TEMPLATE: {
-            // Tab has no effect with applied template
-            return false;
+            return insertTab(view);
         }
         default:
             break;
     }
 
-    return false;
+    return insertTab(view);
 }
 
 function onEsc(view: EditorView) {
