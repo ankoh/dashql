@@ -4,13 +4,15 @@ import { EditorView, keymap, KeyBinding, ViewPlugin, ViewUpdate } from '@codemir
 import { DashQLCompletionAbortEffect, DashQLCompletionNextCandidateEffect, DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectCatalogObjectEffect, DashQLCompletionSelectTemplateEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
 import { applyCompletion, updateCursorWithCompletion } from './dashql_completion_patches.js';
 
-type ScrollListener = (event: Event) => void;
+type EventListener = (event: Event) => void;
 
 interface ListenerTarget {
     /// The view
     view: EditorView;
     /// The listener for scroll events
-    scrollListener: ScrollListener;
+    scrollListener: EventListener;
+    /// The listener for mousedown events
+    mousedownListener: EventListener;
 };
 
 class DashQLCompletionEventListener {
@@ -23,11 +25,14 @@ class DashQLCompletionEventListener {
             return;
         }
         const onScroll = this.handleScrollEvent.bind(this);
+        const onMousedown = this.handleMousedownEvent.bind(this);
         this.listenerTarget = {
             view,
-            scrollListener: onScroll
+            scrollListener: onScroll,
+            mousedownListener: onMousedown,
         };
         view.scrollDOM.addEventListener('scroll', onScroll);
+        document.addEventListener('mousedown', onMousedown, true);
     }
 
     private stopListening() {
@@ -35,9 +40,18 @@ class DashQLCompletionEventListener {
             return;
         }
         this.listenerTarget.view.scrollDOM.removeEventListener('scroll', this.listenerTarget.scrollListener);
+        document.removeEventListener('mousedown', this.listenerTarget.mousedownListener, true);
         this.listenerTarget = null;
     }
 
+    private handleMousedownEvent(_event: Event) {
+        if (this.listenerTarget == null) {
+            return;
+        }
+        this.listenerTarget.view.dispatch({
+            effects: DashQLCompletionAbortEffect.of(null)
+        });
+    }
 
     private handleScrollEvent(_event: Event) {
         if (this.listenerTarget == null) {
@@ -50,6 +64,14 @@ class DashQLCompletionEventListener {
     }
 
     update(update: ViewUpdate) {
+        if (update.focusChanged && !update.view.hasFocus) {
+            if (this.listenerTarget != null) {
+                this.listenerTarget.view.dispatch({
+                    effects: DashQLCompletionAbortEffect.of(null)
+                });
+            }
+            return;
+        }
         const processor = update.view.state.field(DashQLProcessorPlugin);
         switch (processor.scriptCompletion?.status) {
             case DashQLCompletionStatus.AVAILABLE:
