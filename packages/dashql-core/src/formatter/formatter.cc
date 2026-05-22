@@ -334,6 +334,9 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_SELECT_FROM:
         case AttributeKey::SQL_SELECT_GROUPS:
         case AttributeKey::SQL_SELECT_ORDER:
+        case AttributeKey::SQL_WINDOW_FRAME_PARTITION:
+        case AttributeKey::SQL_WINDOW_FRAME_ORDER:
+        case AttributeKey::SQL_FUNCTION_WITHIN_GROUP:
         case AttributeKey::SQL_CREATE_TABLE_ELEMENTS:
             return FormatCommaList(node);
         case AttributeKey::SQL_ROW_LOCKING_OF:
@@ -1248,7 +1251,7 @@ FmtReg Formatter::FormatFunctionExpression(const buffers::parser::Node& node) {
                       AttributeKey::SQL_FUNCTION_SUBSTRING_ARGS, AttributeKey::SQL_FUNCTION_TREAT_ARGS,
                       AttributeKey::SQL_FUNCTION_TRIM_ARGS>(node);
 
-    if (!name || over || within_group || filter) return FormatUnimplemented(node);
+    if (!name) return FormatUnimplemented(node);
     if (all && distinct) return FormatUnimplemented(node);
 
     if (cast_args || extract_args || overlay_args || position_args || substring_args || treat_args || trim_args) {
@@ -1429,11 +1432,63 @@ FmtReg Formatter::FormatFunctionExpression(const buffers::parser::Node& node) {
     }
 
     auto call_body = fmt.Concat(std::move(call_parts));
+    FmtReg result;
     if (call_body == 0) {
-        if (name->node_type() == NodeType::ENUM_SQL_KNOWN_FUNCTION) return name_reg;
-        return fmt.Concat({name_reg, fmt.Text("()")});
+        if (name->node_type() == NodeType::ENUM_SQL_KNOWN_FUNCTION)
+            result = name_reg;
+        else
+            result = fmt.Concat({name_reg, fmt.Text("()")});
+    } else {
+        result = fmt.Concat({name_reg, fmt.Parenthesized(call_body)});
     }
-    return fmt.Concat({name_reg, fmt.Parenthesized(call_body)});
+
+    if (filter) {
+        auto filter_reg = Reg(*filter);
+        if (filter_reg == 0) return FormatUnimplemented(node);
+        result = fmt.Concat({result, fmt.Text(" filter "), fmt.Parenthesized(fmt.Concat({fmt.Text("where "), filter_reg}))});
+    }
+    if (within_group) {
+        auto wg_reg = Reg(*within_group);
+        if (wg_reg == 0) return FormatUnimplemented(node);
+        result = fmt.Concat({result, fmt.Text(" within group "), fmt.Parenthesized(fmt.Concat({fmt.Text("order by "), wg_reg}))});
+    }
+    if (over) {
+        auto over_reg = Reg(*over);
+        if (over_reg == 0) {
+            result = fmt.Concat({result, fmt.Text(" over ()")});
+        } else {
+            result = fmt.Concat({result, fmt.Text(" over "), fmt.Parenthesized(over_reg)});
+        }
+    }
+    return result;
+}
+
+FmtReg Formatter::FormatWindowFrame(const buffers::parser::Node& node) {
+    auto [partition, order, mode, bounds, exclude, name] =
+        GetAttributes<AttributeKey::SQL_WINDOW_FRAME_PARTITION, AttributeKey::SQL_WINDOW_FRAME_ORDER,
+                      AttributeKey::SQL_WINDOW_FRAME_MODE, AttributeKey::SQL_WINDOW_FRAME_BOUNDS,
+                      AttributeKey::SQL_WINDOW_FRAME_EXCLUDE, AttributeKey::SQL_WINDOW_FRAME_NAME>(node);
+
+    if (mode || bounds || exclude) return FormatUnimplemented(node);
+
+    if (name) {
+        return Reg(*name);
+    }
+
+    std::vector<FmtReg> clauses;
+    clauses.reserve(2);
+    if (partition) {
+        auto part_reg = Reg(*partition);
+        if (part_reg == 0) return FormatUnimplemented(node);
+        clauses.push_back(fmt.Concat({fmt.Text("partition by "), part_reg}));
+    }
+    if (order) {
+        auto order_reg = Reg(*order);
+        if (order_reg == 0) return FormatUnimplemented(node);
+        clauses.push_back(fmt.Concat({fmt.Text("order by "), order_reg}));
+    }
+    if (clauses.empty()) return fmt.Empty();
+    return fmt.Join(clauses, fmt.Text(" "), fmt.Break(), FormattingJoinPolicy::BreakOnOverflow, true);
 }
 
 FmtReg Formatter::FormatExpressionOperatorType(const buffers::parser::Node& node) {
@@ -1611,6 +1666,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatGenericOption(node);
         case NodeType::OBJECT_SQL_FUNCTION_EXPRESSION:
             return FormatFunctionExpression(node);
+        case NodeType::OBJECT_SQL_WINDOW_FRAME:
+            return FormatWindowFrame(node);
         case NodeType::OBJECT_SQL_FUNCTION_ARG:
             return FormatFunctionArg(node);
         case NodeType::OBJECT_SQL_CONST_INTERVAL_CAST:

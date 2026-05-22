@@ -94,6 +94,7 @@ struct Formatter {
     FmtReg FormatGenericOption(const buffers::parser::Node& node);
     FmtReg FormatFunctionExpression(const buffers::parser::Node& node);
     FmtReg FormatFunctionArg(const buffers::parser::Node& node);
+    FmtReg FormatWindowFrame(const buffers::parser::Node& node);
     FmtReg FormatExpressionOperatorType(const buffers::parser::Node& node);
     FmtReg FormatExpression(size_t node_id);
     FmtReg FormatVisualize(size_t node_id);

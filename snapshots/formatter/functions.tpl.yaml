@@ -69,3 +69,35 @@ formatter-snapshots:
     input: select trim(name)
     dialects:
       duckdb:
+
+  # Window functions
+
+  - name: func_over_partition
+    input: select sum(x) over (partition by y)
+    dialects:
+      duckdb:
+
+  - name: func_over_order
+    input: select row_number() over (order by x)
+    dialects:
+      duckdb:
+
+  - name: func_over_partition_order
+    input: select rank() over (partition by a order by b)
+    dialects:
+      duckdb:
+
+  - name: func_over_empty
+    input: select count(*) over ()
+    dialects:
+      duckdb:
+
+  - name: func_filter
+    input: select count(*) filter (where x > 0)
+    dialects:
+      duckdb:
+
+  - name: func_within_group
+    input: select percentile_cont(0.5) within group (order by x)
+    dialects:
+      duckdb:

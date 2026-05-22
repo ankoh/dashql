@@ -191,3 +191,99 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               select trim(name);
+
+  - name: func_over_partition
+    input: |-
+      select sum(x) over (partition by y)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select sum(x) over (partition by y);
+          - mode: compact
+            expected: |-
+              select sum(x) over (partition by y);
+          - mode: pretty
+            expected: |-
+              select sum(x) over (partition by y);
+
+  - name: func_over_order
+    input: |-
+      select row_number() over (order by x)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select row_number() over (order by x);
+          - mode: compact
+            expected: |-
+              select row_number() over (order by x);
+          - mode: pretty
+            expected: |-
+              select row_number() over (order by x);
+
+  - name: func_over_partition_order
+    input: |-
+      select rank() over (partition by a order by b)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select rank() over (partition by a order by b);
+          - mode: compact
+            expected: |-
+              select rank() over (partition by a order by b);
+          - mode: pretty
+            expected: |-
+              select rank() over (partition by a order by b);
+
+  - name: func_over_empty
+    input: |-
+      select count(*) over ()
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select count(*) over ();
+          - mode: compact
+            expected: |-
+              select count(*) over ();
+          - mode: pretty
+            expected: |-
+              select count(*) over ();
+
+  - name: func_filter
+    input: |-
+      select count(*) filter (where x > 0)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select count(*) filter (where x > 0);
+          - mode: compact
+            expected: |-
+              select count(*) filter (where x > 0);
+          - mode: pretty
+            expected: |-
+              select count(*) filter (where x > 0);
+
+  - name: func_within_group
+    input: |-
+      select percentile_cont(0.5) within group (order by x)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select percentile_cont(0.5) within group (order by x);
+          - mode: compact
+            expected: |-
+              select percentile_cont(0.5) within group (order by x);
+          - mode: pretty
+            expected: |-
+              select percentile_cont(0.5) within group (order by x);
