@@ -5,9 +5,11 @@ import { DashQLGutterPlugin } from './dashql_gutters.js';
 import { DashQLCompletionHintPlugin } from './dashql_completion_hint.js';
 import { DashQLCompletionListPlugin } from './dashql_completion_list.js';
 import { DashQLCompletionListenerPlugin } from './dashql_completion_listener.js';
+import { DashQLAutoclosePlugin } from './dashql_autoclose.js';
 
 export const DashQLExtensions = [
     DashQLProcessorPlugin,
+    DashQLAutoclosePlugin,
     DashQLCompletionHintPlugin,
     DashQLCompletionListPlugin,
     DashQLCompletionListenerPlugin,
