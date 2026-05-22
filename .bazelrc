@@ -11,8 +11,10 @@ common --enable_platform_specific_config
 # release targets when host/proc-macro compilation stays in fastbuild.
 build --host_compilation_mode=fastbuild
 
-# Use LLD on Linux.
-# Otherwise Rust complains that it's incompatible with the gold linker
+# Use Clang + LLD on Linux.
+# Clang is required for -fconstexpr-steps and LLVM coverage instrumentation.
+# LLD is required because Rust is incompatible with the gold linker.
+build:linux --repo_env=CC=clang
 build:linux --host_linkopt=-fuse-ld=lld
 build:linux --linkopt=-fuse-ld=lld
 

@@ -20,7 +20,7 @@ jobs:
               shell: bash
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y lld
+                  sudo apt-get install -y clang lld
 
             - uses: actions/checkout@v6
               with:
@@ -49,7 +49,7 @@ jobs:
               shell: bash
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y lld
+                  sudo apt-get install -y clang lld
 
             - uses: actions/checkout@v6
               with:
@@ -78,7 +78,7 @@ jobs:
               shell: bash
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y lld
+                  sudo apt-get install -y clang lld
 
             - uses: actions/checkout@v6
               with:
@@ -107,7 +107,7 @@ jobs:
               shell: bash
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y lld
+                  sudo apt-get install -y clang lld
 
             - uses: actions/checkout@v6
               with:
@@ -138,6 +138,7 @@ jobs:
               run: |
                   sudo apt-get update
                   sudo apt-get install -y \
+                    clang \
                     lld \
                     pkg-config \
                     libglib2.0-dev \
@@ -191,6 +192,7 @@ jobs:
               run: |
                   sudo apt-get update
                   sudo apt-get install -y \
+                    clang \
                     lld \
                     pkg-config \
                     libglib2.0-dev \
