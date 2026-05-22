@@ -56,3 +56,10 @@ coverage --combined_report=lcov
 test --test_output=errors
 # Show all tests with verbose test config
 test:verbose --test_output=all
+
+# Xcode 26 resolves system headers to absolute paths that Bazel's sandbox rejects.
+# Force CommandLineTools clang until Bazel's toolchain detection handles the new paths.
+# Tracked upstream: https://github.com/bazelbuild/bazel/issues/26150
+common --enable_platform_specific_config
+build:macos --repo_env=CC=/Library/Developer/CommandLineTools/usr/bin/cc
+build:macos --repo_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
