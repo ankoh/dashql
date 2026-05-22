@@ -18,7 +18,7 @@ aws-sdk-s3 = { version = "1.132.0", default-features = false, features = ["sigv4
 aws-credential-types = "1.2.14"
 log = "0.4.29"
 env_logger = "0.11.10"
-git2 = "0.20.4"
+git2 = "0.21.0"
 regex = "1.12.3"
 lazy_static = "1.5.0"
 minisign = "0.9.1"
