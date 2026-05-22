@@ -147,10 +147,52 @@ std::string_view GetOperatorText(ExpressionOperator op) {
             return "like";
         case ExpressionOperator::NOT_LIKE:
             return "not like";
+        case ExpressionOperator::ILIKE:
+            return "ilike";
+        case ExpressionOperator::NOT_ILIKE:
+            return "not ilike";
+        case ExpressionOperator::SIMILAR_TO:
+            return "similar to";
+        case ExpressionOperator::NOT_SIMILAR_TO:
+            return "not similar to";
+        case ExpressionOperator::GLOB:
+            return "glob";
+        case ExpressionOperator::NOT_GLOB:
+            return "not glob";
         case ExpressionOperator::IS_NULL:
             return "is null";
         case ExpressionOperator::NOT_NULL:
             return "is not null";
+        case ExpressionOperator::IS_TRUE:
+            return "is true";
+        case ExpressionOperator::IS_FALSE:
+            return "is false";
+        case ExpressionOperator::IS_UNKNOWN:
+            return "is unknown";
+        case ExpressionOperator::IS_NOT_TRUE:
+            return "is not true";
+        case ExpressionOperator::IS_NOT_FALSE:
+            return "is not false";
+        case ExpressionOperator::IS_NOT_UNKNOWN:
+            return "is not unknown";
+        case ExpressionOperator::IS_DISTINCT_FROM:
+            return "is distinct from";
+        case ExpressionOperator::IS_NOT_DISTINCT_FROM:
+            return "is not distinct from";
+        case ExpressionOperator::IN:
+            return "in";
+        case ExpressionOperator::NOT_IN:
+            return "not in";
+        case ExpressionOperator::BETWEEN_ASYMMETRIC:
+        case ExpressionOperator::BETWEEN_SYMMETRIC:
+            return "between";
+        case ExpressionOperator::NOT_BETWEEN_ASYMMETRIC:
+        case ExpressionOperator::NOT_BETWEEN_SYMMETRIC:
+            return "not between";
+        case ExpressionOperator::COLLATE:
+            return "collate";
+        case ExpressionOperator::AT_TIMEZONE:
+            return "at time zone";
         default:
             return "";
     }
@@ -1520,14 +1562,20 @@ FmtReg Formatter::FormatCase(const buffers::parser::Node& node) {
         if (child.reg == 0) return FormatUnimplemented(node);
         parts.push_back(child.reg);
     }
-
     if (default_val) {
         auto default_reg = Reg(*default_val);
         if (default_reg == 0) return FormatUnimplemented(node);
         parts.push_back(fmt.Concat({fmt.Text("else "), default_reg}));
     }
-
     parts.push_back(fmt.Text("end"));
+
+    if (config.mode == buffers::formatting::FormattingMode::PRETTY) {
+        std::vector<FmtReg> body_parts(parts.begin() + 1, parts.end() - 1);
+        body_parts.insert(body_parts.begin(), parts.front());
+        auto body = fmt.Join(body_parts, fmt.Text(" "), fmt.Break(), FormattingJoinPolicy::ForceBreak, true);
+        return fmt.Join(std::vector<FmtReg>{body, parts.back()}, fmt.Text(" "), fmt.Break(),
+                        FormattingJoinPolicy::ForceBreak);
+    }
     return fmt.Join(parts, fmt.Text(" "), fmt.Break(), FormattingJoinPolicy::BreakOnOverflow, true);
 }
 
@@ -1618,11 +1666,43 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
     FmtReg reg = fmt.Empty();
 
     if (args.size() == 1) {
-        if (op == ExpressionOperator::NEGATE) {
-            reg = fmt.Concat({op_reg, args.front()});
-        } else {
-            reg = fmt.Concat({op_reg, fmt.Text(" "), args.front()});
+        switch (op) {
+            case ExpressionOperator::NEGATE:
+                reg = fmt.Concat({op_reg, args.front()});
+                break;
+            case ExpressionOperator::NOT:
+                reg = fmt.Concat({op_reg, fmt.Text(" "), args.front()});
+                break;
+            case ExpressionOperator::IS_NULL:
+            case ExpressionOperator::NOT_NULL:
+            case ExpressionOperator::IS_TRUE:
+            case ExpressionOperator::IS_FALSE:
+            case ExpressionOperator::IS_UNKNOWN:
+            case ExpressionOperator::IS_NOT_TRUE:
+            case ExpressionOperator::IS_NOT_FALSE:
+            case ExpressionOperator::IS_NOT_UNKNOWN:
+                reg = fmt.Concat({args.front(), fmt.Text(" "), op_reg});
+                break;
+            default:
+                reg = fmt.Concat({op_reg, fmt.Text(" "), args.front()});
+                break;
         }
+    } else if (args.size() == 3 && (op == ExpressionOperator::BETWEEN_ASYMMETRIC ||
+                                     op == ExpressionOperator::NOT_BETWEEN_ASYMMETRIC ||
+                                     op == ExpressionOperator::BETWEEN_SYMMETRIC ||
+                                     op == ExpressionOperator::NOT_BETWEEN_SYMMETRIC)) {
+        reg = fmt.Concat({args[0], fmt.Text(" "), op_reg, fmt.Text(" "), args[1], fmt.Text(" and "), args[2]});
+    } else if (args.size() == 2 && (op == ExpressionOperator::IN || op == ExpressionOperator::NOT_IN)) {
+        auto rhs = args[1];
+        auto& rhs_node = ast[args_node->children_begin_or_value() + 1];
+        if (rhs_node.node_type() == NodeType::ARRAY) {
+            auto list = FormatCommaList(rhs_node);
+            rhs = fmt.Parenthesized(list);
+        }
+        reg = fmt.Concat({args[0], fmt.Text(" "), op_reg, fmt.Text(" "), rhs});
+    } else if (args.size() == 2 && (op == ExpressionOperator::IS_DISTINCT_FROM ||
+                                     op == ExpressionOperator::IS_NOT_DISTINCT_FROM)) {
+        reg = fmt.Concat({args[0], fmt.Text(" "), op_reg, fmt.Text(" "), args[1]});
     } else {
         FmtReg inline_separator = fmt.Empty();
         FmtReg break_separator = fmt.Empty();

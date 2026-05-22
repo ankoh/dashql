@@ -44,7 +44,6 @@ formatter-snapshots:
     input: select not a
     dialects:
       duckdb:
-        skip: true
 
   # Comparison
 
@@ -52,37 +51,31 @@ formatter-snapshots:
     input: select a=1
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_not_equal
     input: select a<>1
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_less_than
     input: select a<1
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_greater_than
     input: select a>1
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_less_equal
     input: select a<=1
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_greater_equal
     input: select a>=1
     dialects:
       duckdb:
-        skip: true
 
   # Logical
 
@@ -90,13 +83,11 @@ formatter-snapshots:
     input: select a and b
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_or
     input: select a or b
     dialects:
       duckdb:
-        skip: true
 
   # Precedence and parenthesisation
 
@@ -160,31 +151,27 @@ formatter-snapshots:
     input: select a like 'foo' from test
     dialects:
       duckdb:
-        skip: true
         validation:
           setup: |-
-            create table test (a int, b int, c int);
+            create table test (a varchar, b varchar, c varchar);
 
   - name: expr_not_like
     input: select a not like 'foo' from test
     dialects:
       duckdb:
-        skip: true
         validation:
           setup: |-
-            create table test (a int, b int, c int);
+            create table test (a varchar, b varchar, c varchar);
 
   - name: expr_ilike
     input: select a ilike b
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_not_ilike
     input: select a not ilike b
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_result_target_star
     input: select * from test
@@ -222,7 +209,6 @@ formatter-snapshots:
     input: select somefunc 'foo'
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_const_function_cast_date
     input: select date '2021-01-10'
@@ -233,7 +219,6 @@ formatter-snapshots:
     input: select somefunc(1, 2) 'foo'
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_const_interval_cast
     input: select interval '30 days'
@@ -249,7 +234,6 @@ formatter-snapshots:
     input: select a glob b
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_not_glob
     input: select a not glob b
@@ -261,13 +245,11 @@ formatter-snapshots:
     input: select a similar to b
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_not_similar_to
     input: select a not similar to b
     dialects:
       duckdb:
-        skip: true
 
   # IS tests
 
@@ -275,61 +257,51 @@ formatter-snapshots:
     input: select a is null
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_is_not_null
     input: select a is not null
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_is_true
     input: select a is true
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_is_not_true
     input: select a is not true
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_is_false
     input: select a is false
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_is_not_false
     input: select a is not false
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_is_unknown
     input: select a is unknown
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_is_not_unknown
     input: select a is not unknown
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_is_distinct_from
     input: select a is distinct from b
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_is_not_distinct_from
     input: select a is not distinct from b
     dialects:
       duckdb:
-        skip: true
 
   # BETWEEN
 
@@ -337,25 +309,21 @@ formatter-snapshots:
     input: select a between 1 and 10
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_not_between
     input: select a not between 1 and 10
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_between_symmetric
     input: select a between symmetric 1 and 10
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_not_between_symmetric
     input: select a not between symmetric 1 and 10
     dialects:
       duckdb:
-        skip: true
 
   # IN
 
@@ -363,13 +331,11 @@ formatter-snapshots:
     input: select a in (1, 2, 3)
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_not_in_list
     input: select a not in (1, 2, 3)
     dialects:
       duckdb:
-        skip: true
 
   # Long chains
 
@@ -377,19 +343,16 @@ formatter-snapshots:
     input: select very_long_column_name_a = 1 and very_long_column_name_b = 2 and very_long_column_name_c = 3
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_or_chain_long
     input: select very_long_column_name_a = 1 or very_long_column_name_b = 2 or very_long_column_name_c = 3
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_add_chain_long
     input: select very_long_column_name_a + very_long_column_name_b + very_long_column_name_c + very_long_column_name_d
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_nested_boolean_chain_long
     input: select * from test where very_long_outer_left_column = 1 and (very_long_inner_left_column = 2 or very_long_inner_middle_column = 3 or very_long_inner_right_column = 4) and very_long_outer_right_column = 5
@@ -417,7 +380,6 @@ formatter-snapshots:
     input: select x::integer::varchar
     dialects:
       duckdb:
-        skip: true
 
   # EXISTS
 
@@ -442,7 +404,6 @@ formatter-snapshots:
     input: select case when a > 0 then 'pos' when a < 0 then 'neg' else 'zero' end
     dialects:
       duckdb:
-        skip: true
 
   - name: expr_case_long
     input: select case very_long_column_name when 'very_long_value_one' then 'result_one' when 'very_long_value_two' then 'result_two' when 'very_long_value_three' then 'result_three' else 'default_result' end
