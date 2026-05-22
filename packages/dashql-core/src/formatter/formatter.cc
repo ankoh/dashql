@@ -397,6 +397,8 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS:
         case AttributeKey::SQL_JOIN_USING:
         case AttributeKey::SQL_FUNCTION_TRIM_INPUT:
+        case AttributeKey::SQL_ALIAS_COLUMN_NAMES:
+        case AttributeKey::SQL_ALIAS_COLUMN_DEFS:
         case AttributeKey::EXT_VARARG_ARRAY_VALUES:
             return FormatCommaList(node);
         default:
@@ -1534,6 +1536,24 @@ FmtReg Formatter::FormatWindowFrame(const buffers::parser::Node& node) {
     return fmt.Join(clauses, fmt.Text(" "), fmt.Break(), FormattingJoinPolicy::BreakOnOverflow, true);
 }
 
+FmtReg Formatter::FormatAlias(const buffers::parser::Node& node) {
+    auto [name, col_names, col_defs] = GetAttributes<AttributeKey::SQL_ALIAS_NAME, AttributeKey::SQL_ALIAS_COLUMN_NAMES,
+                                                     AttributeKey::SQL_ALIAS_COLUMN_DEFS>(node);
+    if (!name) return FormatUnimplemented(node);
+    auto name_reg = Reg(*name);
+    if (name_reg == 0) return FormatUnimplemented(node);
+
+    if (col_names && col_names->node_type() == NodeType::ARRAY && col_names->children_count() > 0) {
+        auto cols = FormatCommaList(*col_names);
+        return fmt.Concat({name_reg, fmt.Parenthesized(cols)});
+    }
+    if (col_defs && col_defs->node_type() == NodeType::ARRAY && col_defs->children_count() > 0) {
+        auto cols = FormatCommaList(*col_defs);
+        return fmt.Concat({name_reg, fmt.Parenthesized(cols)});
+    }
+    return name_reg;
+}
+
 FmtReg Formatter::FormatTypecastExpression(const buffers::parser::Node& node) {
     auto [value, type] = GetAttributes<AttributeKey::SQL_TYPECAST_VALUE, AttributeKey::SQL_TYPECAST_TYPE>(node);
     if (!value || !type) return FormatUnimplemented(node);
@@ -1826,6 +1846,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatTrimDirection(node);
         case NodeType::OBJECT_SQL_GENERIC_OPTION:
             return FormatGenericOption(node);
+        case NodeType::OBJECT_SQL_ALIAS:
+            return FormatAlias(node);
         case NodeType::OBJECT_SQL_TYPECAST_EXPRESSION:
             return FormatTypecastExpression(node);
         case NodeType::OBJECT_SQL_CASE:
