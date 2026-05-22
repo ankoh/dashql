@@ -3,6 +3,7 @@
 #include <format>
 #include <functional>
 #include <optional>
+#include <stack>
 #include <variant>
 
 #include "dashql/analyzer/analysis_state.h"
