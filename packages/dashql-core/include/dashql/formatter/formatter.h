@@ -99,6 +99,7 @@ struct Formatter {
     FmtReg FormatTrimDirection(const buffers::parser::Node& node);
     FmtReg FormatGenericOption(const buffers::parser::Node& node);
     FmtReg FormatFunctionExpression(const buffers::parser::Node& node);
+    FmtReg FormatFunctionTable(const buffers::parser::Node& node);
     FmtReg FormatFunctionArg(const buffers::parser::Node& node);
     FmtReg FormatWindowFrame(const buffers::parser::Node& node);
     FmtReg FormatExpressionOperatorType(const buffers::parser::Node& node);

@@ -132,6 +132,29 @@ formatter-snapshots:
             create table a(x int);
             create table b(x int);
 
+  - name: tableref_function_table
+    input: select * from generate_series(1, 10) t(x)
+    dialects:
+      duckdb:
+
+  - name: tableref_function_table_no_alias
+    input: select * from generate_series(1, 10)
+    dialects:
+      duckdb:
+
+  - name: tableref_function_table_ordinality
+    input: select * from generate_series(1, 10) with ordinality t(x, n)
+    dialects:
+      duckdb:
+
+  - name: tableref_lateral_function
+    input: select * from a, lateral generate_series(1, a.n) t(x)
+    dialects:
+      duckdb:
+        validation:
+          setup: |-
+            create table a(n int);
+
   - name: tableref_long_database_1
     input: select 1 from memory.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     dialects:

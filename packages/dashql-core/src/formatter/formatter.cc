@@ -407,9 +407,9 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
 }
 
 FmtReg Formatter::FormatTableRef(const buffers::parser::Node& node) {
-    auto [name, alias, table] =
+    auto [name, alias, table, lateral] =
         GetAttributes<AttributeKey::SQL_TABLEREF_NAME, AttributeKey::SQL_TABLEREF_ALIAS,
-                      AttributeKey::SQL_TABLEREF_TABLE>(node);
+                      AttributeKey::SQL_TABLEREF_TABLE, AttributeKey::SQL_TABLEREF_LATERAL>(node);
 
     FmtReg base_reg = 0;
     if (table) {
@@ -418,6 +418,10 @@ FmtReg Formatter::FormatTableRef(const buffers::parser::Node& node) {
         base_reg = Reg(*name);
     }
     if (base_reg == 0) return FormatUnimplemented(node);
+
+    if (lateral && lateral->node_type() == NodeType::BOOL && lateral->children_begin_or_value() != 0) {
+        base_reg = fmt.Concat({fmt.Text("lateral "), base_reg});
+    }
 
     if (!alias) return base_reg;
     auto alias_reg = Reg(*alias);
@@ -1508,6 +1512,35 @@ FmtReg Formatter::FormatFunctionExpression(const buffers::parser::Node& node) {
     return result;
 }
 
+FmtReg Formatter::FormatFunctionTable(const buffers::parser::Node& node) {
+    auto [func, rows_from, with_ordinality] =
+        GetAttributes<AttributeKey::SQL_FUNCTION_TABLE_FUNCTION, AttributeKey::SQL_FUNCTION_TABLE_ROWS_FROM,
+                      AttributeKey::SQL_FUNCTION_TABLE_WITH_ORDINALITY>(node);
+
+    FmtReg base_reg = 0;
+    if (func) {
+        base_reg = Reg(*func);
+    } else if (rows_from) {
+        auto children = GetArrayStates(*rows_from);
+        std::vector<FmtReg> items;
+        items.reserve(children.size());
+        for (auto& child : children) {
+            if (child.reg == 0) return FormatUnimplemented(node);
+            items.push_back(child.reg);
+        }
+        auto list = fmt.Join(items, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}),
+                             FormattingJoinPolicy::BreakOnOverflow, true);
+        base_reg = fmt.Concat({fmt.Text("rows from "), fmt.Parenthesized(list)});
+    }
+    if (base_reg == 0) return FormatUnimplemented(node);
+
+    if (with_ordinality && with_ordinality->node_type() == NodeType::BOOL &&
+        with_ordinality->children_begin_or_value() != 0) {
+        base_reg = fmt.Concat({base_reg, fmt.Text(" with ordinality")});
+    }
+    return base_reg;
+}
+
 FmtReg Formatter::FormatWindowFrame(const buffers::parser::Node& node) {
     auto [partition, order, mode, bounds, exclude, name] =
         GetAttributes<AttributeKey::SQL_WINDOW_FRAME_PARTITION, AttributeKey::SQL_WINDOW_FRAME_ORDER,
@@ -1860,6 +1893,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatCTE(node);
         case NodeType::OBJECT_SQL_FUNCTION_EXPRESSION:
             return FormatFunctionExpression(node);
+        case NodeType::OBJECT_SQL_FUNCTION_TABLE:
+            return FormatFunctionTable(node);
         case NodeType::OBJECT_SQL_WINDOW_FRAME:
             return FormatWindowFrame(node);
         case NodeType::OBJECT_SQL_FUNCTION_ARG:
