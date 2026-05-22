@@ -51,3 +51,65 @@ formatter-snapshots:
         validation:
           setup: |-
             create table t(a int, b int);
+
+  - name: select_with_simple
+    input: |-
+      with a as (select 1) select * from a
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              with a as (select 1) select * from a;
+          - mode: compact
+            expected: |-
+              with a as (select 1) select * from a;
+          - mode: pretty
+            expected: |-
+              with a as (
+                select 1
+              )
+              select *
+              from a;
+
+  - name: select_with_multiple
+    input: |-
+      with a as (select 1), b as (select 2) select * from a, b
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              with a as (select 1), b as (select 2) select * from a, b;
+          - mode: compact
+            expected: |-
+              with a as (select 1), b as (select 2) select * from a, b;
+          - mode: pretty
+            expected: |-
+              with a as (
+                select 1
+              ), b as (
+                select 2
+              )
+              select *
+              from a, b;
+
+  - name: select_with_recursive
+    input: |-
+      with recursive t as (select 1 union all select 2) select * from t
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              with recursive t as (select 1 union all select 2) select * from t;
+          - mode: compact
+            expected: |-
+              with recursive t as (select 1 union all select 2) select * from t;
+          - mode: pretty
+            expected: |-
+              with recursive t as (
+                select 1 union all select 2
+              )
+              select *
+              from t;

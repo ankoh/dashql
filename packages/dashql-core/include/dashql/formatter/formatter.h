@@ -93,6 +93,7 @@ struct Formatter {
     FmtReg FormatCase(const buffers::parser::Node& node);
     FmtReg FormatCaseClause(const buffers::parser::Node& node);
     FmtReg FormatExistsExpression(const buffers::parser::Node& node);
+    FmtReg FormatCTE(const buffers::parser::Node& node);
     FmtReg FormatExtractTarget(const buffers::parser::Node& node);
     FmtReg FormatTrimDirection(const buffers::parser::Node& node);
     FmtReg FormatGenericOption(const buffers::parser::Node& node);

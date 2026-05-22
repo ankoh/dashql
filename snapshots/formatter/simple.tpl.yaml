@@ -17,3 +17,20 @@ formatter-snapshots:
         validation:
           setup: |-
             create table t(a int, b int);
+
+  # WITH / CTE
+
+  - name: select_with_simple
+    input: with a as (select 1) select * from a
+    dialects:
+      duckdb:
+
+  - name: select_with_multiple
+    input: with a as (select 1), b as (select 2) select * from a, b
+    dialects:
+      duckdb:
+
+  - name: select_with_recursive
+    input: with recursive t as (select 1 union all select 2) select * from t
+    dialects:
+      duckdb:

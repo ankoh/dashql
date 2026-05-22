@@ -392,6 +392,7 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_COLUMN_REF_PATH:
             return FormatQualifiedName(node);
         case AttributeKey::SQL_SELECT_DISTINCT:
+        case AttributeKey::SQL_SELECT_WITH_CTES:
         case AttributeKey::SQL_TABLE_CONSTRAINT_COLUMNS:
         case AttributeKey::SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS:
         case AttributeKey::SQL_JOIN_USING:
@@ -1597,6 +1598,29 @@ FmtReg Formatter::FormatExistsExpression(const buffers::parser::Node& node) {
     return fmt.Concat({fmt.Text("exists "), fmt.Parenthesized(stmt_reg)});
 }
 
+FmtReg Formatter::FormatCTE(const buffers::parser::Node& node) {
+    auto [name, columns, statement] =
+        GetAttributes<AttributeKey::SQL_CTE_NAME, AttributeKey::SQL_CTE_COLUMNS, AttributeKey::SQL_CTE_STATEMENT>(node);
+    if (!name || !statement) return FormatUnimplemented(node);
+    auto name_reg = Reg(*name);
+    auto stmt_reg = Reg(*statement);
+    if (name_reg == 0 || stmt_reg == 0) return FormatUnimplemented(node);
+
+    FmtReg body;
+    if (config.mode == buffers::formatting::FormattingMode::PRETTY) {
+        body = fmt.Concat(
+            {fmt.Text("("), fmt.Indented(fmt.Concat({fmt.Break(), stmt_reg})), fmt.Break(), fmt.Text(")")});
+    } else {
+        body = fmt.Parenthesized(stmt_reg);
+    }
+
+    if (columns && columns->node_type() == NodeType::ARRAY && columns->children_count() > 0) {
+        auto cols_reg = FormatCommaList(*columns);
+        return fmt.Concat({name_reg, fmt.Text(" "), fmt.Parenthesized(cols_reg), fmt.Text(" as "), body});
+    }
+    return fmt.Concat({name_reg, fmt.Text(" as "), body});
+}
+
 FmtReg Formatter::FormatExpressionOperatorType(const buffers::parser::Node& node) {
     if (node.node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR) {
         return FormatUnimplemented(node);
@@ -1810,6 +1834,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatCaseClause(node);
         case NodeType::OBJECT_SQL_EXISTS_EXPRESSION:
             return FormatExistsExpression(node);
+        case NodeType::OBJECT_SQL_CTE:
+            return FormatCTE(node);
         case NodeType::OBJECT_SQL_FUNCTION_EXPRESSION:
             return FormatFunctionExpression(node);
         case NodeType::OBJECT_SQL_WINDOW_FRAME:

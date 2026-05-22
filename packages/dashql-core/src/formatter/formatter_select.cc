@@ -29,7 +29,7 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
 
     if (combine_operation && combine_input) {
         auto op = static_cast<CombineOperation>(combine_operation->children_begin_or_value());
-        std::string op_text;
+        std::string_view op_text;
         switch (op) {
             case CombineOperation::UNION:
                 op_text = "union";
@@ -43,21 +43,24 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
             default:
                 return FormatUnimplemented(node);
         }
+        std::string_view mod_text;
         if (combine_modifier) {
             auto mod = static_cast<CombineModifier>(combine_modifier->children_begin_or_value());
             switch (mod) {
                 case CombineModifier::ALL:
-                    op_text += " all";
+                    mod_text = " all";
                     break;
                 case CombineModifier::DISTINCT:
-                    op_text += " distinct";
+                    mod_text = " distinct";
                     break;
                 default:
                     break;
             }
         }
-        auto separator = fmt.Text(" " + op_text + " ");
-        auto break_separator = fmt.Concat({fmt.Break(), fmt.Text(op_text), fmt.Break()});
+        auto op_reg = mod_text.empty() ? fmt.Text(op_text)
+                                       : fmt.Concat({fmt.Text(op_text), fmt.Text(mod_text)});
+        auto separator = fmt.Concat({fmt.Text(" "), op_reg, fmt.Text(" ")});
+        auto break_separator = fmt.Concat({fmt.Break(), op_reg, fmt.Break()});
         auto children = GetArrayStates(*combine_input);
         std::vector<FmtReg> inputs;
         inputs.reserve(children.size());
@@ -68,13 +71,27 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
         return fmt.Join(inputs, separator, break_separator, FormattingJoinPolicy::BreakAllOrNone);
     }
 
-    if (select_into || select_windows || select_row_locking || select_with_ctes || select_with_recursive ||
-        select_sample || select_values || select_limit_all) {
+    if (select_into || select_windows || select_row_locking || select_sample || select_values || select_limit_all) {
         return FormatUnimplemented(node);
     }
 
     std::vector<FmtReg> clauses;
     clauses.reserve(8);
+    if (select_with_ctes) {
+        auto cte_children = GetArrayStates(*select_with_ctes);
+        std::vector<FmtReg> cte_regs;
+        cte_regs.reserve(cte_children.size() * 2);
+        for (size_t i = 0; i < cte_children.size(); ++i) {
+            if (i > 0) cte_regs.push_back(fmt.Text(", "));
+            cte_regs.push_back(cte_children[i].reg);
+        }
+        auto ctes = fmt.Concat(cte_regs);
+        if (select_with_recursive) {
+            clauses.push_back(fmt.Concat({fmt.Text("with recursive "), ctes}));
+        } else {
+            clauses.push_back(fmt.Concat({fmt.Text("with "), ctes}));
+        }
+    }
     if (select_targets) {
         auto body = Reg(*select_targets);
         if (select_distinct && select_distinct->node_type() == NodeType::ARRAY) {
