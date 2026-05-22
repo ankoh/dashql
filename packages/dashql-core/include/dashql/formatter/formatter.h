@@ -61,6 +61,7 @@ struct Formatter {
     FmtReg FormatExplain(size_t node_id);
     FmtReg FormatResultTarget(const buffers::parser::Node& node);
     FmtReg FormatTableRef(const buffers::parser::Node& node);
+    FmtReg FormatJoinedTable(const buffers::parser::Node& node);
     FmtReg FormatGroupByItem(const buffers::parser::Node& node);
     FmtReg FormatOrder(const buffers::parser::Node& node);
     FmtReg FormatOrderDirection(const buffers::parser::Node& node);
@@ -75,6 +76,7 @@ struct Formatter {
     FmtReg FormatCharacterType(const buffers::parser::Node& node);
     FmtReg FormatCharacterTypeBase(const buffers::parser::Node& node);
     FmtReg FormatGenericType(const buffers::parser::Node& node);
+    FmtReg FormatTimestampType(const buffers::parser::Node& node);
     FmtReg FormatColumnRef(const buffers::parser::Node& node);
     FmtReg FormatSelectExpression(const buffers::parser::Node& node);
     FmtReg FormatColumnDef(const buffers::parser::Node& node);
@@ -87,6 +89,8 @@ struct Formatter {
     FmtReg FormatColumnConstraintType(const buffers::parser::Node& node);
     FmtReg FormatColumnConstraint(const buffers::parser::Node& node);
     FmtReg FormatConstraintAttribute(const buffers::parser::Node& node);
+    FmtReg FormatExtractTarget(const buffers::parser::Node& node);
+    FmtReg FormatTrimDirection(const buffers::parser::Node& node);
     FmtReg FormatGenericOption(const buffers::parser::Node& node);
     FmtReg FormatFunctionExpression(const buffers::parser::Node& node);
     FmtReg FormatFunctionArg(const buffers::parser::Node& node);

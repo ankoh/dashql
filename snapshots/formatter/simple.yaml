@@ -31,3 +31,23 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               select 1, 2;
+
+  - name: select_distinct
+    input: |-
+      select distinct a, b from t
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select distinct a, b from t;
+          - mode: compact
+            expected: |-
+              select distinct a, b from t;
+          - mode: pretty
+            expected: |-
+              select distinct a, b
+              from t;
+        validation:
+          setup: |-
+            create table t(a int, b int);

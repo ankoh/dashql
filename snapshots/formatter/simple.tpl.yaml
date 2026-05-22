@@ -9,3 +9,11 @@ formatter-snapshots:
     input: select 1,2
     dialects:
       duckdb:
+  # SELECT DISTINCT
+  - name: select_distinct
+    input: select distinct a, b from t
+    dialects:
+      duckdb:
+        validation:
+          setup: |-
+            create table t(a int, b int);

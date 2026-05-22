@@ -1,0 +1,71 @@
+formatter-snapshots:
+
+  # CAST
+
+  - name: func_cast_int
+    input: select cast(x as integer)
+    dialects:
+      duckdb:
+
+  - name: func_cast_varchar
+    input: select cast(123 as varchar)
+    dialects:
+      duckdb:
+
+  - name: func_cast_timestamp
+    input: select cast('2021-01-01' as timestamp)
+    dialects:
+      duckdb:
+
+  - name: func_cast_timestamp_tz
+    input: select cast('2021-01-01' as timestamp with time zone)
+    dialects:
+      duckdb:
+
+  # EXTRACT
+
+  - name: func_extract_year
+    input: select extract(year from d)
+    dialects:
+      duckdb:
+
+  - name: func_extract_day
+    input: select extract(day from created_at)
+    dialects:
+      duckdb:
+
+  # POSITION
+
+  - name: func_position
+    input: select position('x' in name)
+    dialects:
+      duckdb:
+
+  # SUBSTRING
+
+  - name: func_substring_from
+    input: select substring(name from 1)
+    dialects:
+      duckdb:
+
+  - name: func_substring_from_for
+    input: select substring(name from 1 for 3)
+    dialects:
+      duckdb:
+
+  # TRIM
+
+  - name: func_trim_both
+    input: select trim(both ' ' from name)
+    dialects:
+      duckdb:
+
+  - name: func_trim_leading
+    input: select trim(leading from name)
+    dialects:
+      duckdb:
+
+  - name: func_trim_simple
+    input: select trim(name)
+    dialects:
+      duckdb:

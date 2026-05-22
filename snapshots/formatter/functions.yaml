@@ -1,0 +1,193 @@
+formatter-snapshots:
+
+  - name: func_cast_int
+    input: |-
+      select cast(x as integer)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select cast(x as integer);
+          - mode: compact
+            expected: |-
+              select cast(x as integer);
+          - mode: pretty
+            expected: |-
+              select cast(x as integer);
+
+  - name: func_cast_varchar
+    input: |-
+      select cast(123 as varchar)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select cast(123 as varchar);
+          - mode: compact
+            expected: |-
+              select cast(123 as varchar);
+          - mode: pretty
+            expected: |-
+              select cast(123 as varchar);
+
+  - name: func_cast_timestamp
+    input: |-
+      select cast('2021-01-01' as timestamp)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select cast('2021-01-01' as timestamp);
+          - mode: compact
+            expected: |-
+              select cast('2021-01-01' as timestamp);
+          - mode: pretty
+            expected: |-
+              select cast('2021-01-01' as timestamp);
+
+  - name: func_cast_timestamp_tz
+    input: |-
+      select cast('2021-01-01' as timestamp with time zone)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select cast('2021-01-01' as timestamp with time zone);
+          - mode: compact
+            expected: |-
+              select cast('2021-01-01' as timestamp with time zone);
+          - mode: pretty
+            expected: |-
+              select cast('2021-01-01' as timestamp with time zone);
+
+  - name: func_extract_year
+    input: |-
+      select extract(year from d)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select extract(year from d);
+          - mode: compact
+            expected: |-
+              select extract(year from d);
+          - mode: pretty
+            expected: |-
+              select extract(year from d);
+
+  - name: func_extract_day
+    input: |-
+      select extract(day from created_at)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select extract(day from created_at);
+          - mode: compact
+            expected: |-
+              select extract(day from created_at);
+          - mode: pretty
+            expected: |-
+              select extract(day from created_at);
+
+  - name: func_position
+    input: |-
+      select position('x' in name)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select position('x' in name);
+          - mode: compact
+            expected: |-
+              select position('x' in name);
+          - mode: pretty
+            expected: |-
+              select position('x' in name);
+
+  - name: func_substring_from
+    input: |-
+      select substring(name from 1)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select substring(name from 1);
+          - mode: compact
+            expected: |-
+              select substring(name from 1);
+          - mode: pretty
+            expected: |-
+              select substring(name from 1);
+
+  - name: func_substring_from_for
+    input: |-
+      select substring(name from 1 for 3)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select substring(name from 1 for 3);
+          - mode: compact
+            expected: |-
+              select substring(name from 1 for 3);
+          - mode: pretty
+            expected: |-
+              select substring(name from 1 for 3);
+
+  - name: func_trim_both
+    input: |-
+      select trim(both ' ' from name)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select trim(both ' ' from name);
+          - mode: compact
+            expected: |-
+              select trim(both ' ' from name);
+          - mode: pretty
+            expected: |-
+              select trim(both ' ' from name);
+
+  - name: func_trim_leading
+    input: |-
+      select trim(leading from name)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select trim(leading from name);
+          - mode: compact
+            expected: |-
+              select trim(leading from name);
+          - mode: pretty
+            expected: |-
+              select trim(leading from name);
+
+  - name: func_trim_simple
+    input: |-
+      select trim(name)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select trim(name);
+          - mode: compact
+            expected: |-
+              select trim(name);
+          - mode: pretty
+            expected: |-
+              select trim(name);

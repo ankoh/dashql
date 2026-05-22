@@ -25,6 +25,23 @@ formatter-snapshots:
             create schema b;
             create table b.c(x int);
 
+  - name: tableref_alias
+    input: select 1 from a t
+    dialects:
+      duckdb:
+        validation:
+          setup: |-
+            create table a(x int);
+
+  - name: tableref_alias_schema
+    input: select 1 from a.b t
+    dialects:
+      duckdb:
+        validation:
+          setup: |-
+            create schema a;
+            create table a.b(x int);
+
   - name: tableref_long_simple
     input: select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
     dialects:
@@ -60,6 +77,60 @@ formatter-snapshots:
           setup: |-
             create schema aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
             create table aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb(x int);
+
+  - name: tableref_join_inner
+    input: select * from a join b on a.x = b.x
+    dialects:
+      duckdb:
+        validation:
+          setup: |-
+            create table a(x int);
+            create table b(x int);
+
+  - name: tableref_join_left
+    input: select * from a left join b on a.x = b.x
+    dialects:
+      duckdb:
+        validation:
+          setup: |-
+            create table a(x int);
+            create table b(x int);
+
+  - name: tableref_join_right
+    input: select * from a right join b on a.x = b.x
+    dialects:
+      duckdb:
+        validation:
+          setup: |-
+            create table a(x int);
+            create table b(x int);
+
+  - name: tableref_join_full
+    input: select * from a full join b on a.x = b.x
+    dialects:
+      duckdb:
+        validation:
+          setup: |-
+            create table a(x int);
+            create table b(x int);
+
+  - name: tableref_join_using
+    input: select * from a join b using (x)
+    dialects:
+      duckdb:
+        validation:
+          setup: |-
+            create table a(x int);
+            create table b(x int);
+
+  - name: tableref_join_alias
+    input: select * from a t1 join b t2 on t1.x = t2.x
+    dialects:
+      duckdb:
+        validation:
+          setup: |-
+            create table a(x int);
+            create table b(x int);
 
   - name: tableref_long_database_1
     input: select 1 from memory.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

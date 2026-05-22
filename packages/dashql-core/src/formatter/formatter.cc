@@ -22,6 +22,8 @@ using OrderDirection = buffers::parser::OrderDirection;
 using OrderNullRule = buffers::parser::OrderNullRule;
 using KnownFunction = buffers::parser::KnownFunction;
 using IntervalType = buffers::parser::IntervalType;
+using ExtractTarget = buffers::parser::ExtractTarget;
+using TrimDirection = buffers::parser::TrimDirection;
 
 namespace {
 
@@ -344,8 +346,11 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_TABLE_CONSTRAINT_REFERENCES_NAME:
         case AttributeKey::SQL_COLUMN_REF_PATH:
             return FormatQualifiedName(node);
+        case AttributeKey::SQL_SELECT_DISTINCT:
         case AttributeKey::SQL_TABLE_CONSTRAINT_COLUMNS:
         case AttributeKey::SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS:
+        case AttributeKey::SQL_JOIN_USING:
+        case AttributeKey::SQL_FUNCTION_TRIM_INPUT:
         case AttributeKey::EXT_VARARG_ARRAY_VALUES:
             return FormatCommaList(node);
         default:
@@ -354,10 +359,103 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
 }
 
 FmtReg Formatter::FormatTableRef(const buffers::parser::Node& node) {
-    auto [name, alias] = GetAttributes<AttributeKey::SQL_TABLEREF_NAME, AttributeKey::SQL_TABLEREF_ALIAS>(node);
-    if (alias) return FormatUnimplemented(node);
-    if (name) return Reg(*name);
-    return FormatUnimplemented(node);
+    auto [name, alias, table] =
+        GetAttributes<AttributeKey::SQL_TABLEREF_NAME, AttributeKey::SQL_TABLEREF_ALIAS,
+                      AttributeKey::SQL_TABLEREF_TABLE>(node);
+
+    FmtReg base_reg = 0;
+    if (table) {
+        base_reg = Reg(*table);
+    } else if (name) {
+        base_reg = Reg(*name);
+    }
+    if (base_reg == 0) return FormatUnimplemented(node);
+
+    if (!alias) return base_reg;
+    auto alias_reg = Reg(*alias);
+    if (alias_reg == 0) return FormatUnimplemented(node);
+    return fmt.Concat({base_reg, fmt.Text(" "), alias_reg});
+}
+
+FmtReg Formatter::FormatJoinedTable(const buffers::parser::Node& node) {
+    using JoinType = buffers::parser::JoinType;
+    auto [inputs, join_type, join_on, join_using] =
+        GetAttributes<AttributeKey::SQL_JOIN_INPUT, AttributeKey::SQL_JOIN_TYPE, AttributeKey::SQL_JOIN_ON,
+                      AttributeKey::SQL_JOIN_USING>(node);
+    if (!inputs || !join_type || inputs->node_type() != NodeType::ARRAY || inputs->children_count() != 2) {
+        return FormatUnimplemented(node);
+    }
+
+    auto left_reg = Reg(ast[inputs->children_begin_or_value()]);
+    auto right_reg = Reg(ast[inputs->children_begin_or_value() + 1]);
+    if (left_reg == 0 || right_reg == 0) return FormatUnimplemented(node);
+
+    auto jt = static_cast<JoinType>(join_type->children_begin_or_value());
+    std::string_view join_text;
+    switch (jt) {
+        case JoinType::NONE:
+            join_text = "join";
+            break;
+        case JoinType::INNER:
+            join_text = "join";
+            break;
+        case JoinType::LEFT:
+        case JoinType::OUTER_LEFT:
+            join_text = "left join";
+            break;
+        case JoinType::RIGHT:
+        case JoinType::OUTER_RIGHT:
+            join_text = "right join";
+            break;
+        case JoinType::FULL:
+        case JoinType::OUTER_FULL:
+            join_text = "full join";
+            break;
+        case JoinType::NATURAL_INNER:
+            join_text = "natural join";
+            break;
+        case JoinType::NATURAL_LEFT:
+        case JoinType::NATURAL_OUTER_LEFT:
+            join_text = "natural left join";
+            break;
+        case JoinType::NATURAL_RIGHT:
+        case JoinType::NATURAL_OUTER_RIGHT:
+            join_text = "natural right join";
+            break;
+        case JoinType::NATURAL_FULL:
+        case JoinType::NATURAL_OUTER_FULL:
+            join_text = "natural full join";
+            break;
+        default:
+            return FormatUnimplemented(node);
+    }
+
+    std::vector<FmtReg> join_clause_parts;
+    join_clause_parts.reserve(3);
+    join_clause_parts.push_back(fmt.Concat({fmt.Text(join_text), fmt.Text(" "), right_reg}));
+
+    if (join_on) {
+        auto on_reg = Reg(*join_on);
+        if (on_reg == 0) return FormatUnimplemented(node);
+        join_clause_parts.push_back(fmt.Concat({fmt.Text("on "), on_reg}));
+    } else if (join_using) {
+        auto using_reg = Reg(*join_using);
+        if (using_reg == 0) return FormatUnimplemented(node);
+        join_clause_parts.push_back(fmt.Concat({fmt.Text("using "), fmt.Parenthesized(using_reg)}));
+    }
+
+    auto join_clause =
+        fmt.Join(join_clause_parts, fmt.Text(" "), fmt.Break(), FormattingJoinPolicy::BreakOnOverflow, true);
+
+    std::vector<FmtReg> parts;
+    parts.reserve(2);
+    parts.push_back(left_reg);
+    parts.push_back(join_clause);
+
+    auto clause_policy = config.mode == buffers::formatting::FormattingMode::PRETTY
+                             ? FormattingJoinPolicy::ForceBreak
+                             : FormattingJoinPolicy::BreakAllOrNone;
+    return fmt.Join(parts, fmt.Text(" "), fmt.Break(), clause_policy);
 }
 
 FmtReg Formatter::FormatGroupByItem(const buffers::parser::Node& node) {
@@ -632,6 +730,22 @@ FmtReg Formatter::FormatGenericType(const buffers::parser::Node& node) {
     return fmt.Concat(std::move(parts));
 }
 
+FmtReg Formatter::FormatTimestampType(const buffers::parser::Node& node) {
+    auto [precision, with_tz] =
+        GetAttributes<AttributeKey::SQL_TIME_TYPE_PRECISION, AttributeKey::SQL_TIME_TYPE_WITH_TIMEZONE>(node);
+    bool is_time = (node.node_type() == NodeType::OBJECT_SQL_TIME_TYPE);
+    std::vector<FmtReg> parts;
+    parts.reserve(4);
+    parts.push_back(fmt.Text(is_time ? "time" : "timestamp"));
+    if (precision) {
+        parts.push_back(fmt.Parenthesized(Reg(*precision)));
+    }
+    if (with_tz && with_tz->node_type() == NodeType::BOOL && with_tz->children_begin_or_value() != 0) {
+        parts.push_back(fmt.Text(" with time zone"));
+    }
+    return fmt.Concat(std::move(parts));
+}
+
 FmtReg Formatter::FormatOrder(const buffers::parser::Node& node) {
     auto [value, direction, nullrule] = GetAttributes<AttributeKey::SQL_ORDER_VALUE, AttributeKey::SQL_ORDER_DIRECTION,
                                                       AttributeKey::SQL_ORDER_NULLRULE>(node);
@@ -677,6 +791,40 @@ FmtReg Formatter::FormatOrderNullRule(const buffers::parser::Node& node) {
             return fmt.Text("nulls last");
     }
 
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatExtractTarget(const buffers::parser::Node& node) {
+    if (node.node_type() != NodeType::ENUM_SQL_EXTRACT_TARGET) return FormatUnimplemented(node);
+    auto value = static_cast<ExtractTarget>(node.children_begin_or_value());
+    switch (value) {
+        case ExtractTarget::YEAR:
+            return fmt.Text("year");
+        case ExtractTarget::MONTH:
+            return fmt.Text("month");
+        case ExtractTarget::DAY:
+            return fmt.Text("day");
+        case ExtractTarget::HOUR:
+            return fmt.Text("hour");
+        case ExtractTarget::MINUTE:
+            return fmt.Text("minute");
+        case ExtractTarget::SECOND:
+            return fmt.Text("second");
+    }
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatTrimDirection(const buffers::parser::Node& node) {
+    if (node.node_type() != NodeType::ENUM_SQL_TRIM_TARGET) return FormatUnimplemented(node);
+    auto value = static_cast<TrimDirection>(node.children_begin_or_value());
+    switch (value) {
+        case TrimDirection::BOTH:
+            return fmt.Text("both");
+        case TrimDirection::LEADING:
+            return fmt.Text("leading");
+        case TrimDirection::TRAILING:
+            return fmt.Text("trailing");
+    }
     return FormatUnimplemented(node);
 }
 
@@ -1102,7 +1250,122 @@ FmtReg Formatter::FormatFunctionExpression(const buffers::parser::Node& node) {
 
     if (!name || over || within_group || filter) return FormatUnimplemented(node);
     if (all && distinct) return FormatUnimplemented(node);
+
     if (cast_args || extract_args || overlay_args || position_args || substring_args || treat_args || trim_args) {
+        FmtReg name_reg = 0;
+        if (name->node_type() == NodeType::ENUM_SQL_KNOWN_FUNCTION) {
+            auto name_text = GetKnownFunctionText(static_cast<KnownFunction>(name->children_begin_or_value()));
+            if (name_text.empty()) return FormatUnimplemented(node);
+            name_reg = fmt.Text(name_text);
+        } else {
+            return FormatUnimplemented(node);
+        }
+        if (name_reg == 0) return FormatUnimplemented(node);
+
+        if (cast_args) {
+            auto [cast_value, cast_type] =
+                GetAttributes<AttributeKey::SQL_FUNCTION_CAST_VALUE, AttributeKey::SQL_FUNCTION_CAST_TYPE>(*cast_args);
+            if (!cast_value || !cast_type) return FormatUnimplemented(node);
+            auto value_reg = Reg(*cast_value);
+            auto type_reg = Reg(*cast_type);
+            if (value_reg == 0 || type_reg == 0) return FormatUnimplemented(node);
+            return fmt.Concat({name_reg, fmt.Parenthesized(fmt.Concat({value_reg, fmt.Text(" as "), type_reg}))});
+        }
+        if (extract_args) {
+            auto [extract_target, extract_input] =
+                GetAttributes<AttributeKey::SQL_FUNCTION_EXTRACT_TARGET, AttributeKey::SQL_FUNCTION_EXTRACT_INPUT>(
+                    *extract_args);
+            if (!extract_target || !extract_input) return FormatUnimplemented(node);
+            auto target_reg = Reg(*extract_target);
+            auto input_reg = Reg(*extract_input);
+            if (target_reg == 0 || input_reg == 0) return FormatUnimplemented(node);
+            return fmt.Concat(
+                {name_reg, fmt.Parenthesized(fmt.Concat({target_reg, fmt.Text(" from "), input_reg}))});
+        }
+        if (position_args) {
+            auto [pos_search, pos_input] =
+                GetAttributes<AttributeKey::SQL_FUNCTION_POSITION_SEARCH, AttributeKey::SQL_FUNCTION_POSITION_INPUT>(
+                    *position_args);
+            if (!pos_search || !pos_input) return FormatUnimplemented(node);
+            auto search_reg = Reg(*pos_search);
+            auto input_reg = Reg(*pos_input);
+            if (search_reg == 0 || input_reg == 0) return FormatUnimplemented(node);
+            return fmt.Concat(
+                {name_reg, fmt.Parenthesized(fmt.Concat({search_reg, fmt.Text(" in "), input_reg}))});
+        }
+        if (substring_args) {
+            auto [sub_input, sub_from, sub_for] =
+                GetAttributes<AttributeKey::SQL_FUNCTION_SUBSTRING_INPUT, AttributeKey::SQL_FUNCTION_SUBSTRING_FROM,
+                              AttributeKey::SQL_FUNCTION_SUBSTRING_FOR>(*substring_args);
+            if (!sub_input || !sub_from) return FormatUnimplemented(node);
+            auto input_reg = Reg(*sub_input);
+            auto from_reg = Reg(*sub_from);
+            if (input_reg == 0 || from_reg == 0) return FormatUnimplemented(node);
+            std::vector<FmtReg> parts;
+            parts.reserve(5);
+            parts.push_back(input_reg);
+            parts.push_back(fmt.Text(" from "));
+            parts.push_back(from_reg);
+            if (sub_for) {
+                auto for_reg = Reg(*sub_for);
+                if (for_reg == 0) return FormatUnimplemented(node);
+                parts.push_back(fmt.Text(" for "));
+                parts.push_back(for_reg);
+            }
+            return fmt.Concat({name_reg, fmt.Parenthesized(fmt.Concat(std::move(parts)))});
+        }
+        if (trim_args) {
+            auto [trim_input, trim_dir, trim_chars] =
+                GetAttributes<AttributeKey::SQL_FUNCTION_TRIM_INPUT, AttributeKey::SQL_FUNCTION_TRIM_DIRECTION,
+                              AttributeKey::SQL_FUNCTION_TRIM_CHARACTERS>(*trim_args);
+            if (!trim_input) return FormatUnimplemented(node);
+            auto input_reg = Reg(*trim_input);
+            if (input_reg == 0) return FormatUnimplemented(node);
+            std::vector<FmtReg> parts;
+            parts.reserve(6);
+            if (trim_dir) {
+                auto dir_reg = Reg(*trim_dir);
+                if (dir_reg == 0) return FormatUnimplemented(node);
+                parts.push_back(dir_reg);
+                parts.push_back(fmt.Text(" "));
+            }
+            if (trim_chars) {
+                auto chars_reg = Reg(*trim_chars);
+                if (chars_reg == 0) return FormatUnimplemented(node);
+                parts.push_back(chars_reg);
+                parts.push_back(fmt.Text(" "));
+            }
+            if (trim_dir || trim_chars) {
+                parts.push_back(fmt.Text("from "));
+            }
+            parts.push_back(input_reg);
+            return fmt.Concat({name_reg, fmt.Parenthesized(fmt.Concat(std::move(parts)))});
+        }
+        if (overlay_args) {
+            auto [ov_input, ov_placing, ov_from, ov_for] =
+                GetAttributes<AttributeKey::SQL_FUNCTION_OVERLAY_INPUT, AttributeKey::SQL_FUNCTION_OVERLAY_PLACING,
+                              AttributeKey::SQL_FUNCTION_OVERLAY_FROM, AttributeKey::SQL_FUNCTION_OVERLAY_FOR>(
+                    *overlay_args);
+            if (!ov_input || !ov_placing || !ov_from) return FormatUnimplemented(node);
+            auto input_reg = Reg(*ov_input);
+            auto placing_reg = Reg(*ov_placing);
+            auto from_reg = Reg(*ov_from);
+            if (input_reg == 0 || placing_reg == 0 || from_reg == 0) return FormatUnimplemented(node);
+            std::vector<FmtReg> parts;
+            parts.reserve(7);
+            parts.push_back(input_reg);
+            parts.push_back(fmt.Text(" placing "));
+            parts.push_back(placing_reg);
+            parts.push_back(fmt.Text(" from "));
+            parts.push_back(from_reg);
+            if (ov_for) {
+                auto for_reg = Reg(*ov_for);
+                if (for_reg == 0) return FormatUnimplemented(node);
+                parts.push_back(fmt.Text(" for "));
+                parts.push_back(for_reg);
+            }
+            return fmt.Concat({name_reg, fmt.Parenthesized(fmt.Concat(std::move(parts)))});
+        }
         return FormatUnimplemented(node);
     }
 
@@ -1285,6 +1548,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatExplain(node_id);
         case NodeType::OBJECT_SQL_TABLEREF:
             return FormatTableRef(node);
+        case NodeType::OBJECT_SQL_JOINED_TABLE:
+            return FormatJoinedTable(node);
         case NodeType::OBJECT_SQL_GROUP_BY_ITEM:
             return FormatGroupByItem(node);
         case NodeType::OBJECT_SQL_ORDER:
@@ -1309,6 +1574,9 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatCharacterTypeBase(node);
         case NodeType::OBJECT_SQL_GENERIC_TYPE:
             return FormatGenericType(node);
+        case NodeType::OBJECT_SQL_TIMESTAMP_TYPE:
+        case NodeType::OBJECT_SQL_TIME_TYPE:
+            return FormatTimestampType(node);
         case NodeType::OBJECT_SQL_COLUMN_REF:
             return FormatColumnRef(node);
         case NodeType::OBJECT_SQL_SELECT_EXPRESSION:
@@ -1335,6 +1603,10 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatColumnConstraint(node);
         case NodeType::ENUM_SQL_CONSTRAINT_ATTRIBUTE:
             return FormatConstraintAttribute(node);
+        case NodeType::ENUM_SQL_EXTRACT_TARGET:
+            return FormatExtractTarget(node);
+        case NodeType::ENUM_SQL_TRIM_TARGET:
+            return FormatTrimDirection(node);
         case NodeType::OBJECT_SQL_GENERIC_OPTION:
             return FormatGenericOption(node);
         case NodeType::OBJECT_SQL_FUNCTION_EXPRESSION:
