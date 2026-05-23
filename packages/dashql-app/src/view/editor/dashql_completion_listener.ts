@@ -74,9 +74,9 @@ class DashQLCompletionEventListener {
             return;
         }
         const processor = update.view.state.field(DashQLProcessorPlugin);
-        // Dismiss passive hints on cursor movement (arrow keys, click)
+        // Dismiss passive hints on cursor movement (arrow keys, click) but not on focus gain
         if (processor.scriptCompletion?.passiveHint
-            && !update.docChanged && update.selectionSet) {
+            && !update.docChanged && update.selectionSet && !update.focusChanged) {
             update.view.dispatch({
                 effects: DashQLCompletionAbortEffect.of(null)
             });

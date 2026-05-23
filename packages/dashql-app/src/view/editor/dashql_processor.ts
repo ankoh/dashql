@@ -245,9 +245,7 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
             state.scriptBuffers = analyzeScript(state.script!);
             state.scriptCursor = state.script!.moveCursor(selection ?? 0);
 
-        } else if (selectionChanged) {
-            // Doc did not change, update the script cursor if the selection changed.
-            // This is the place where we handle events of normal cursor movements.
+        } else if (selectionChanged || state.scriptCursor == null) {
             state = copyLazily(state, prevState);
             state.scriptCursor = state.script!.moveCursor(selection ?? 0);
         }
@@ -344,7 +342,6 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
     // Check additional completion effects
     for (const effect of transaction.effects) {
         if (effect.is(DashQLCompletionStartEffect)) {
-            // Effect to explictly start a completion
             const buffer = state.script!.tryCompleteAtCursor(DASHQL_COMPLETION_LIMIT, state.scriptRegistry);
             state = tryStartCompletion(state, prevState, buffer, transaction.newDoc, cursorOffset);
             continue;
