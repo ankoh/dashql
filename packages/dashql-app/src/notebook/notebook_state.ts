@@ -443,22 +443,26 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             // Update the script in the registry
             state.scriptRegistry.addScript(nextScript.script);
 
-            // Is defining tables?
-            const analyzed = nextScript.scriptAnalysis.buffers.analyzed?.read();
-            if (analyzed && analyzed.tablesLength() > 0) {
-                // Update the catalog since the schema might have changed
-                nextState.connectionCatalog!.loadScript(nextScript.script, nextScript.scriptKey);
-                // Mark all other scripts as outdated.
-                // Eventually, we could restrict to those that are depending?
-                for (const key in nextState.scripts) {
-                    const script = nextState.scripts[key];
-                    nextState.scripts[key] = {
-                        ...script,
-                        scriptAnalysis: {
-                            ...script.scriptAnalysis,
-                            outdated: true,
-                        }
-                    };
+            // Is defining tables and did the buffers change?
+            // Only re-load the catalog and mark scripts outdated when the analysis actually changed.
+            const buffersChanged = prevScript.scriptAnalysis.buffers !== update.scriptBuffers;
+            if (buffersChanged) {
+                const analyzed = nextScript.scriptAnalysis.buffers.analyzed?.read();
+                if (analyzed && analyzed.tablesLength() > 0) {
+                    // Update the catalog since the schema might have changed
+                    nextState.connectionCatalog!.loadScript(nextScript.script, nextScript.scriptKey);
+                    // Mark all other scripts as outdated.
+                    // Eventually, we could restrict to those that are depending?
+                    for (const key in nextState.scripts) {
+                        const script = nextState.scripts[key];
+                        nextState.scripts[key] = {
+                            ...script,
+                            scriptAnalysis: {
+                                ...script.scriptAnalysis,
+                                outdated: true,
+                            }
+                        };
+                    }
                 }
             }
             // Persist only the updated script, not the entire notebook
@@ -981,8 +985,8 @@ export function analyzeOutdatedScriptInNotebook<V extends NotebookStateWithoutId
         }
     };
 
-    // Update the semantic user focus
-    if (next.semanticUserFocus != null && nextScriptData.cursor != null) {
+    // Re-derive the semantic user focus if there is still a cursor
+    if (nextScriptData.cursor != null) {
         next.semanticUserFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, nextScriptData);
     }
     return next;
