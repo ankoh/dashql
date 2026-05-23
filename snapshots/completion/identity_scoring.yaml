@@ -1,0 +1,568 @@
+completion-snapshots:
+
+  - name: default_strategy_identity_first
+    catalog:
+      script:
+        input: create table foo(bar int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: foo
+            text: "create tab..o(bar int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: bar
+                text: "bar int"
+        errors: []
+    editor:
+      input: select ba
+      catalog-id: 2
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "ba"
+    cursor:
+      search:
+        text: ba
+        index: 2
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 59
+          value: ba
+          candidate-tags: [IDENTITY]
+          location: "ba"
+          location-qualified: "ba"
+          objects: []
+        - score: 57
+          value: bar
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "ba"
+          location-qualified: "ba"
+          objects:
+            - score: 37
+              type: column
+              id: "256.65536.4294967296.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: foo.bar
+              qualified-idx: 1
+              prefer-qualified: 0
+        - score: 55
+          value: background
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ba"
+          location-qualified: "ba"
+          objects: []
+        - score: 55
+          value: backward
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ba"
+          location-qualified: "ba"
+          objects: []
+        - score: 55
+          value: band
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ba"
+          location-qualified: "ba"
+          objects: []
+      text: "ba"
+
+  - name: column_ref_in_scope_beats_identity
+    catalog:
+      script:
+        input: create table supplier(s_comment varchar(101), s_name char(25));
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: supplier
+            text: "create tab.. char(25))"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: s_comment
+                text: "s_comment ..rchar(101)"
+              - catalog-id: "256.65536.4294967296.1"
+                name: s_name
+                text: "s_name char(25)"
+        errors: []
+        expressions:
+          - expression-idx: 0
+            type: literal/integer
+            is-const: true
+            statement-id: 0
+            text: "101"
+          - expression-idx: 1
+            type: literal/integer
+            is-const: true
+            statement-id: 0
+            text: "25"
+        constants:
+          - expression: 0
+            text: "101"
+          - expression: 1
+            text: "25"
+    editor:
+      input: select s_co from supplier
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "supplier"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "s_co"
+    cursor:
+      search:
+        text: s_co
+        index: 4
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 67
+          value: s_comment
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "s_co"
+          location-qualified: "s_co"
+          objects:
+            - score: 47
+              type: column
+              id: "256.65536.4294967296.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: supplier.s_comment
+              qualified-idx: 1
+              prefer-qualified: 0
+        - score: 59
+          value: s_co
+          candidate-tags: [IDENTITY]
+          location: "s_co"
+          location-qualified: "s_co"
+          objects: []
+        - score: 3
+          value: from
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "s_co"
+          location-qualified: "s_co"
+          objects: []
+        - score: 3
+          value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "s_co"
+          location-qualified: "s_co"
+          objects: []
+        - score: 3
+          value: order
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "s_co"
+          location-qualified: "s_co"
+          objects: []
+      text: "s_co"
+
+  - name: column_ref_out_of_scope_identity_wins
+    catalog:
+      script:
+        input: create table other_table(s_comment varchar(101));
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: other_table
+            text: "create tab..char(101))"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: s_comment
+                text: "s_comment ..rchar(101)"
+        errors: []
+        expressions:
+          - expression-idx: 0
+            type: literal/integer
+            is-const: true
+            statement-id: 0
+            text: "101"
+        constants:
+          - expression: 0
+            text: "101"
+    editor:
+      input: select s_co from supplier
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "supplier"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "s_co"
+    cursor:
+      search:
+        text: s_co
+        index: 4
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 59
+          value: s_co
+          candidate-tags: [IDENTITY]
+          location: "s_co"
+          location-qualified: "s_co"
+          objects: []
+        - score: 57
+          value: s_comment
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "s_co"
+          location-qualified: "s_co"
+          objects:
+            - score: 37
+              type: column
+              id: "256.65536.4294967296.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: other_table.s_comment
+              qualified-idx: 1
+              prefer-qualified: 0
+        - score: 3
+          value: from
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "s_co"
+          location-qualified: "s_co"
+          objects: []
+        - score: 3
+          value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "s_co"
+          location-qualified: "s_co"
+          objects: []
+        - score: 3
+          value: order
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "s_co"
+          location-qualified: "s_co"
+          objects: []
+      text: "s_co"
+
+  - name: table_ref_catalog_beats_identity
+    catalog:
+      script:
+        input: create table supplier(s_name char(25));
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: supplier
+            text: "create tab.. char(25))"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: s_name
+                text: "s_name char(25)"
+        errors: []
+        expressions:
+          - expression-idx: 0
+            type: literal/integer
+            is-const: true
+            statement-id: 0
+            text: "25"
+        constants:
+          - expression: 0
+            text: "25"
+    editor:
+      input: select * from sup
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "sup"
+    cursor:
+      search:
+        text: sup
+        index: 3
+    completions:
+      limit: 5
+      strategy: TABLE_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 57
+          value: supplier
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "sup"
+          location-qualified: "sup"
+          objects:
+            - score: 37
+              type: table
+              id: "256.65536.4294967296"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: supplier
+              qualified-idx: 0
+              prefer-qualified: 0
+        - score: 50
+          value: sup
+          candidate-tags: [IDENTITY]
+          location: "sup"
+          location-qualified: "sup"
+          objects: []
+        - score: 3
+          value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "sup"
+          location-qualified: "sup"
+          objects: []
+        - score: 3
+          value: order
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "sup"
+          location-qualified: "sup"
+          objects: []
+        - score: 3
+          value: where
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "sup"
+          location-qualified: "sup"
+          objects: []
+      text: "sup"
+
+  - name: table_ref_no_match_identity_wins
+    catalog:
+      script:
+        input: create table supplier(s_name char(25));
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: supplier
+            text: "create tab.. char(25))"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: s_name
+                text: "s_name char(25)"
+        errors: []
+        expressions:
+          - expression-idx: 0
+            type: literal/integer
+            is-const: true
+            statement-id: 0
+            text: "25"
+        constants:
+          - expression: 0
+            text: "25"
+    editor:
+      input: select * from xyz
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "xyz"
+    cursor:
+      search:
+        text: xyz
+        index: 3
+    completions:
+      limit: 5
+      strategy: TABLE_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 50
+          value: xyz
+          candidate-tags: [IDENTITY]
+          location: "xyz"
+          location-qualified: "xyz"
+          objects: []
+        - score: 3
+          value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "xyz"
+          location-qualified: "xyz"
+          objects: []
+        - score: 3
+          value: order
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "xyz"
+          location-qualified: "xyz"
+          objects: []
+        - score: 3
+          value: where
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "xyz"
+          location-qualified: "xyz"
+          objects: []
+        - score: 2
+          value: by
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "xyz"
+          location-qualified: "xyz"
+          objects: []
+      text: "xyz"
+
+  - name: definition_select_as_alias
+    catalog:
+      script:
+        input: create table foo(bar int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: foo
+            text: "create tab..o(bar int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: bar
+                text: "bar int"
+        errors: []
+    editor:
+      input: select bar as ba from foo
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "foo"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "bar"
+    cursor:
+      search:
+        text: as ba
+        index: 5
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 4294967295
+          value: ba
+          keyword-continuation: into
+          candidate-tags: [IDENTITY]
+          location: "ba"
+          location-qualified: "ba"
+          objects: []
+        - score: 55
+          value: background
+          keyword-continuation: into
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ba"
+          location-qualified: "ba"
+          objects: []
+        - score: 55
+          value: backward
+          keyword-continuation: into
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ba"
+          location-qualified: "ba"
+          objects: []
+        - score: 55
+          value: band
+          keyword-continuation: into
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ba"
+          location-qualified: "ba"
+          objects: []
+        - score: 55
+          value: band_position
+          keyword-continuation: into
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "ba"
+          location-qualified: "ba"
+          objects: []
+      text: "ba"
+
+  - name: definition_cte_name
+    catalog:
+      script:
+        input: create table foo(bar int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: foo
+            text: "create tab..o(bar int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: bar
+                text: "bar int"
+        errors: []
+    editor:
+      input: with fo as (select * from foo) select * from fo
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "foo"
+        - type: name/unresolved
+          statement-id: 0
+          text: "fo"
+    cursor:
+      search:
+        text: fo as
+        index: 2
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 4294967295
+          value: fo
+          keyword-continuation: as
+          candidate-tags: [IDENTITY]
+          location: "fo"
+          location-qualified: "fo"
+          objects: []
+        - score: 55
+          value: following
+          keyword-continuation: as
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "fo"
+          location-qualified: "fo"
+          objects: []
+        - score: 55
+          value: force
+          keyword-continuation: as
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "fo"
+          location-qualified: "fo"
+          objects: []
+        - score: 55
+          value: format
+          keyword-continuation: as
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "fo"
+          location-qualified: "fo"
+          objects: []
+        - score: 55
+          value: format_type
+          keyword-continuation: as
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "fo"
+          location-qualified: "fo"
+          objects: []
+      text: "fo"

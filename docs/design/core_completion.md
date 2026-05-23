@@ -18,14 +18,15 @@ The cursor's AST context determines the active strategy:
 
 Each candidate carries a coarse type used for visual identification:
 
-| Type       | Symbol | Description                   |
-|------------|--------|-------------------------------|
-| KEYWORD    | SQL    | SQL keyword from the grammar  |
-| DATABASE   | DB     | Database name                 |
-| SCHEMA     | NS     | Schema name                   |
-| TABLE      | TBL    | Table name                    |
-| COLUMN     | COL    | Column name                   |
-| FUNCTION   | FN     | Function name                 |
+| Type       | Symbol | Description                                      |
+|------------|--------|--------------------------------------------------|
+| KEYWORD    | SQL    | SQL keyword from the grammar                     |
+| DATABASE   | DB     | Database name                                    |
+| SCHEMA     | NS     | Schema name                                      |
+| TABLE      | TBL    | Table name                                       |
+| COLUMN     | COL    | Column name                                      |
+| FUNCTION   | FN     | Function name                                    |
+| IDENTITY   | ID     | Identity candidate (matches what the user typed) |
 
 ## Candidate sources
 
@@ -192,14 +193,16 @@ Completion::Compute(cursor, k, registry)
 ├─ Select target symbol (current vs. previous)
 ├─ Detect dot-completion context
 ├─ Skip non-completable symbols (constants, operators, punctuation)
+├─ Parser::ParseUntil() → expected symbols, expects_identifier
+├─ Detect definition position (AST attribute keys)
 │
 ├─ [dot-completion]
 │  └─ FindCandidatesForNamePath()
 │
 ├─ [normal completion]
-│  ├─ Parser::ParseUntil() → expected symbols
 │  ├─ AddExpectedKeywordsAsCandidates()
-│  └─ FindCandidatesInIndexes()   (if expects_identifier)
+│  ├─ Insert identity candidate (score varies by context)
+│  └─ FindCandidatesInIndexes()   (if expects_identifier && !at_definition)
 │     └─ PromoteTablesAndPeersForUnresolvedColumns()
 │
 ├─ PromoteIdentifiersInScope()
@@ -207,7 +210,7 @@ Completion::Compute(cursor, k, registry)
 ├─ SelectTopCandidates()          → top-k heap
 ├─ QualifyTopCandidates()         → derive qualified names
 │
-├─ [if identifier context]
+├─ [if identifier context && !at_definition]
 │  ├─ FindIdentifierSnippetsForTopCandidates(registry)
 │  └─ DeriveKeywordSnippetsForTopCandidates()
 │

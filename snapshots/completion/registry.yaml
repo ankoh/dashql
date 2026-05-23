@@ -47,12 +47,6 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 4294967295
-          value: attr
-          candidate-tags: [IDENTITY]
-          location: "attr"
-          location-qualified: "attr"
-          objects: []
         - score: 67
           value: attr1
           name-tags: [COLUMN_NAME]
@@ -67,6 +61,12 @@ completion-snapshots:
               qualified: tablea.attr1
               qualified-idx: 1
               prefer-qualified: 0
+        - score: 59
+          value: attr
+          candidate-tags: [IDENTITY]
+          location: "attr"
+          location-qualified: "attr"
+          objects: []
         - score: 57
           value: attr2
           name-tags: [COLUMN_NAME]

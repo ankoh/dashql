@@ -39,12 +39,6 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 4294967295
-          value: cas
-          candidate-tags: [IDENTITY]
-          location: "cas"
-          location-qualified: "cas"
-          objects: []
         - score: 57
           value: cast
           candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
@@ -53,6 +47,12 @@ completion-snapshots:
           objects: []
         - score: 55
           value: cascade
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "cas"
+          location-qualified: "cas"
+          objects: []
+        - score: 55
+          value: cascaded
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "cas"
           location-qualified: "cas"
@@ -99,7 +99,7 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 4294967295
+        - score: 59
           value: cas
           candidate-tags: [IDENTITY]
           location: "cas"

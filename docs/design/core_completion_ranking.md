@@ -115,13 +115,61 @@ But once the user completes the full word `from`, the exact match modifier fires
 
 The keyword `from` now wins.
 
+## Identity candidate
+
+When the cursor is on an identifier and the grammar expects one, the system inserts an *identity candidate* — a synthetic candidate whose text matches exactly what the user has typed.
+This provides a stable "keep what I typed" option so that accepting a completion never feels forced.
+
+The identity candidate is tagged with `IDENTITY` and rendered with a distinct gray "ID" badge in the UI.
+
+### Context-dependent scoring
+
+The identity candidate's score varies by context to avoid suppressing strong contextual matches:
+
+| Context              | Score | Rationale                                                        |
+|----------------------|-------|------------------------------------------------------------------|
+| Definition position  | max   | User is naming something new — always preserve their text        |
+| DEFAULT strategy     | max   | Context is ambiguous — play it safe                              |
+| TABLE_REF strategy   | 50    | Any substring-matching catalog table (≥52) wins                  |
+| COLUMN_REF strategy  | 59    | In-scope substring-matching columns (≥60) win                    |
+
+At **definition positions** (detected via AST attribute keys like `SQL_CREATE_TABLE_NAME`, `SQL_RESULT_TARGET_NAME`, `SQL_CTE_NAME`, etc.), name-index search is also suppressed entirely — no catalog suggestions appear.
+
+### Score arithmetic
+
+In TABLE_REF (identity=50):
+- Table with substring match: NAME_TAG_LIKELY(20) + SUBSTRING(30) + THROUGH_CATALOG(2) = 52 > 50 ✓
+- Non-matching table: 20 + 2 = 22 < 50, identity wins ✓
+
+In COLUMN_REF (identity=59):
+- In-scope column with substring match: 20 + 30 + 10 = 60 > 59 ✓
+- Out-of-scope column prefix-only: 20 + 30 + 5 = 55 < 59, identity wins ✓
+- Best keyword (very popular + expected + substring + prefix): 3 + 20 + 30 + 5 = 58 < 59, identity wins ✓
+
+## Definition positions
+
+The system detects "definition" positions — places where the user is defining a new name, not referencing an existing one.
+At these positions:
+
+1. The identity candidate gets max score (always #1)
+2. Name-index search is suppressed (no table/column/function suggestions from the catalog)
+3. Keywords still appear if they match the prefix
+
+Detection uses the AST path from cursor to root, checking `attribute_key()` against:
+`SQL_CREATE_TABLE_NAME`, `SQL_CREATE_AS_NAME`, `SQL_VIEW_NAME`, `SQL_COLUMN_DEF_NAME`, `SQL_RESULT_TARGET_NAME`, `SQL_CTE_NAME`, `SQL_WINDOW_DEF_NAME`, `SQL_CREATE_FUNCTION_NAME`, `SQL_FUNCTION_PARAM_NAME`.
+
+Table aliases (`FROM t AS alias`) are handled separately by the `TABLE_REF_ALIAS` strategy which already skips name-index search.
+
 ## Pipeline
 
 The full completion pipeline in `Completion::Compute`:
 
 1. Determine cursor context (dot-completion, table ref, column ref, default).
 2. If dot-completing: `FindCandidatesForNamePath` — restrict to the resolved dot context.
-3. Otherwise: `AddExpectedKeywordsAsCandidates` — insert scored keywords into the heap, then `FindCandidatesInIndexes` — find all name-index matches.
+3. Otherwise:
+   a. `AddExpectedKeywordsAsCandidates` — insert scored keywords into the heap.
+   b. Insert identity candidate (score depends on strategy and definition context).
+   c. `FindCandidatesInIndexes` — find all name-index matches (skipped at definition positions).
 4. `PromoteTablesAndPeersForUnresolvedColumns` — boost tables that resolve missing columns.
 5. `PromoteIdentifiersInScope` — tag candidates reachable through naming scopes.
 6. `PromoteIdentifiersInScripts` — tag candidates referenced in other scripts.

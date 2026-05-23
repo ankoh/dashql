@@ -590,7 +590,7 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 4294967295
+        - score: 59
           value: ba
           candidate-tags: [IDENTITY]
           location: "ba"

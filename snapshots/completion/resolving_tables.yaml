@@ -47,12 +47,6 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 4294967295
-          value: s
-          candidate-tags: [IDENTITY]
-          location: "s"
-          location-qualified: "s"
-          objects: []
         - score: 60
           value: similar_name_0
           name-tags: [TABLE_NAME]
@@ -70,6 +64,12 @@ completion-snapshots:
         - score: 57
           value: set
           candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "s"
+          location-qualified: "s"
+          objects: []
+        - score: 55
+          value: sample
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "s"
           location-qualified: "s"
           objects: []

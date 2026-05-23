@@ -50,6 +50,13 @@ static constexpr Completion::ScoreValueType IN_SAME_STATEMENT_SCORE_MODIFIER = 1
 static constexpr Completion::ScoreValueType IN_SAME_SCRIPT_SCORE_MODIFIER = 1;     // Candidate used in same script
 static constexpr Completion::ScoreValueType IN_OTHER_SCRIPT_SCORE_MODIFIER = 1;    // Candidate used in other script
 
+// Identity candidate scores (context-dependent)
+// At definition positions: max (always keep user's text)
+// At TABLE_REF: low enough that any substring-matching catalog table wins
+// At COLUMN_REF: low enough that in-scope substring-matching columns win
+static constexpr Completion::ScoreValueType IDENTITY_SCORE_TABLE_REF = 50;
+static constexpr Completion::ScoreValueType IDENTITY_SCORE_COLUMN_REF = 59;
+
 // Design choices for the score modifiers
 static_assert((NAME_TAG_UNLIKELY + SUBSTRING_SCORE_MODIFIER) > NAME_TAG_LIKELY,
               "An unlikely name that is a substring outweighs a likely name");
@@ -1357,19 +1364,29 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
         // Add expected grammar symbols to the heap and score them
         completion->AddExpectedKeywordsAsCandidates(expected_symbols);
         // Insert an identity candidate matching the user's text when on an identifier.
-        // This ensures the top suggestion is always a no-op (keeping what they typed).
+        // Score depends on context: at definitions it dominates, at references it yields to strong matches.
         if (expects_identifier && completion->target_scanner_symbol.has_value()) {
             auto& sym = completion->target_scanner_symbol->symbol;
             auto symbol_text = cursor.script.scanned_script->ReadTextAtTextSpan(
                 sx::parser::TextSpan(sym.location.offset(), sym.location.length()));
             if (!symbol_text.empty()) {
+                ScoreValueType identity_score;
+                if (completion->at_definition) {
+                    identity_score = std::numeric_limits<ScoreValueType>::max();
+                } else if (completion->strategy == sx::completion::CompletionStrategy::TABLE_REF) {
+                    identity_score = IDENTITY_SCORE_TABLE_REF;
+                } else if (completion->strategy == sx::completion::CompletionStrategy::COLUMN_REF) {
+                    identity_score = IDENTITY_SCORE_COLUMN_REF;
+                } else {
+                    identity_score = std::numeric_limits<ScoreValueType>::max();
+                }
                 Candidate identity{
                     .completion_text = symbol_text,
                     .coarse_name_tags = {},
                     .candidate_tags = buffers::completion::CandidateTag::IDENTITY,
                     .target_location = sym.location,
                     .target_location_qualified = sym.location,
-                    .score = std::numeric_limits<ScoreValueType>::max(),
+                    .score = identity_score,
                 };
                 completion->candidate_heap.Insert(std::move(identity));
             }

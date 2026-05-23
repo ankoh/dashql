@@ -580,7 +580,7 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 4294967295
+        - score: 59
           value: s_co
           candidate-tags: [IDENTITY]
           location: "s_co"
@@ -1195,12 +1195,6 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 4294967295
-          value: p
-          candidate-tags: [IDENTITY]
-          location: "p"
-          location-qualified: "p"
-          objects: []
         - score: 57
           value: part
           name-tags: [TABLE_NAME]
@@ -1229,6 +1223,12 @@ completion-snapshots:
               qualified: partsupp
               qualified-idx: 0
               prefer-qualified: 0
+        - score: 55
+          value: padding
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          location: "p"
+          location-qualified: "p"
+          objects: []
       text: "p"
 
   - name: column_name_in_scope
@@ -1816,12 +1816,6 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 4294967295
-          value: ke
-          candidate-tags: [IDENTITY]
-          location: "ke"
-          location-qualified: "ke"
-          objects: []
         - score: 62
           value: l_orderkey
           name-tags: [COLUMN_NAME]
@@ -1848,6 +1842,20 @@ completion-snapshots:
               id: "256.65536.4294967301.7"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: lineitem.l_partkey
+              qualified-idx: 1
+              prefer-qualified: 0
+        - score: 62
+          value: l_suppkey
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "ke"
+          location-qualified: "ke"
+          objects:
+            - score: 42
+              type: column
+              id: "256.65536.4294967301.14"
+              candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: lineitem.l_suppkey
               qualified-idx: 1
               prefer-qualified: 0
       text: "ke"

@@ -1,0 +1,98 @@
+completion-snapshots:
+  # DEFAULT strategy: identity should be #1 (max score)
+  - name: default_strategy_identity_first
+    catalog:
+      script:
+        input: create table foo(bar int);
+    editor:
+      input: select ba
+    cursor:
+      search:
+        text: ba
+        index: 2
+    completions:
+      limit: 5
+
+  # COLUMN_REF: in-scope column with substring match beats identity
+  - name: column_ref_in_scope_beats_identity
+    catalog:
+      script:
+        input: create table supplier(s_comment varchar(101), s_name char(25));
+    editor:
+      input: select s_co from supplier
+    cursor:
+      search:
+        text: s_co
+        index: 4
+    completions:
+      limit: 5
+
+  # COLUMN_REF: out-of-scope column does not beat identity
+  - name: column_ref_out_of_scope_identity_wins
+    catalog:
+      script:
+        input: create table other_table(s_comment varchar(101));
+    editor:
+      input: select s_co from supplier
+    cursor:
+      search:
+        text: s_co
+        index: 4
+    completions:
+      limit: 5
+
+  # TABLE_REF: catalog table with substring match beats identity
+  - name: table_ref_catalog_beats_identity
+    catalog:
+      script:
+        input: create table supplier(s_name char(25));
+    editor:
+      input: select * from sup
+    cursor:
+      search:
+        text: sup
+        index: 3
+    completions:
+      limit: 5
+
+  # TABLE_REF: no matching table, identity wins
+  - name: table_ref_no_match_identity_wins
+    catalog:
+      script:
+        input: create table supplier(s_name char(25));
+    editor:
+      input: select * from xyz
+    cursor:
+      search:
+        text: xyz
+        index: 3
+    completions:
+      limit: 5
+
+  # Definition position (SELECT AS alias): identity at max, no catalog names
+  - name: definition_select_as_alias
+    catalog:
+      script:
+        input: create table foo(bar int);
+    editor:
+      input: select bar as ba from foo
+    cursor:
+      search:
+        text: as ba
+        index: 5
+    completions:
+      limit: 5
+
+  # Definition position (CTE name): identity at max
+  - name: definition_cte_name
+    catalog:
+      script:
+        input: create table foo(bar int);
+    editor:
+      input: with fo as (select * from foo) select * from fo
+    cursor:
+      search:
+        text: fo as
+        index: 2
+    completions:
+      limit: 5
