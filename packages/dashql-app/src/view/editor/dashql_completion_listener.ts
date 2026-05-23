@@ -1,4 +1,4 @@
-import { Prec } from '@codemirror/state';
+import { EditorState, Prec } from '@codemirror/state';
 import { EditorView, keymap, KeyBinding, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { insertTab } from '@codemirror/commands';
 
@@ -14,6 +14,8 @@ interface ListenerTarget {
     scrollListener: EventListener;
     /// The listener for mousedown events
     mousedownListener: EventListener;
+    /// The listener for blur events
+    blurListener: EventListener;
 };
 
 class DashQLCompletionEventListener {
@@ -27,13 +29,16 @@ class DashQLCompletionEventListener {
         }
         const onScroll = this.handleScrollEvent.bind(this);
         const onMousedown = this.handleMousedownEvent.bind(this);
+        const onBlur = this.handleBlurEvent.bind(this);
         this.listenerTarget = {
             view,
             scrollListener: onScroll,
             mousedownListener: onMousedown,
+            blurListener: onBlur,
         };
         view.scrollDOM.addEventListener('scroll', onScroll);
         document.addEventListener('mousedown', onMousedown, true);
+        view.contentDOM.addEventListener('blur', onBlur);
     }
 
     private stopListening() {
@@ -42,6 +47,7 @@ class DashQLCompletionEventListener {
         }
         this.listenerTarget.view.scrollDOM.removeEventListener('scroll', this.listenerTarget.scrollListener);
         document.removeEventListener('mousedown', this.listenerTarget.mousedownListener, true);
+        this.listenerTarget.view.contentDOM.removeEventListener('blur', this.listenerTarget.blurListener);
         this.listenerTarget = null;
     }
 
@@ -58,30 +64,22 @@ class DashQLCompletionEventListener {
         if (this.listenerTarget == null) {
             return;
         }
-        // Abort the completion
+        this.listenerTarget.view.dispatch({
+            effects: DashQLCompletionAbortEffect.of(null)
+        });
+    }
+
+    private handleBlurEvent(_event: Event) {
+        if (this.listenerTarget == null) {
+            return;
+        }
         this.listenerTarget.view.dispatch({
             effects: DashQLCompletionAbortEffect.of(null)
         });
     }
 
     update(update: ViewUpdate) {
-        if (update.focusChanged && !update.view.hasFocus) {
-            if (this.listenerTarget != null) {
-                this.listenerTarget.view.dispatch({
-                    effects: DashQLCompletionAbortEffect.of(null)
-                });
-            }
-            return;
-        }
         const processor = update.view.state.field(DashQLProcessorPlugin);
-        // Dismiss passive hints on cursor movement (arrow keys, click) but not on focus gain
-        if (processor.scriptCompletion?.passiveHint
-            && !update.docChanged && update.selectionSet && !update.focusChanged) {
-            update.view.dispatch({
-                effects: DashQLCompletionAbortEffect.of(null)
-            });
-            return;
-        }
         switch (processor.scriptCompletion?.status) {
             case DashQLCompletionStatus.AVAILABLE:
             case DashQLCompletionStatus.SELECTED_CANDIDATE:
@@ -321,7 +319,16 @@ const KEYBINDINGS: KeyBinding[] = [
 ];
 const KEYMAP = Prec.highest(keymap.of(KEYBINDINGS));
 
+const PASSIVE_HINT_ABORT = EditorState.transactionExtender.of((tr) => {
+    if (tr.docChanged || !tr.selection) return null;
+    const processor = tr.startState.field(DashQLProcessorPlugin);
+    if (!processor.scriptCompletion?.passiveHint) return null;
+    if (processor.scriptCompletion?.status !== DashQLCompletionStatus.AVAILABLE) return null;
+    return { effects: DashQLCompletionAbortEffect.of(null) };
+});
+
 export const DashQLCompletionListenerPlugin = [
     Prec.highest(ViewPlugin.fromClass(DashQLCompletionEventListener)),
     Prec.highest(KEYMAP),
+    PASSIVE_HINT_ABORT,
 ];
