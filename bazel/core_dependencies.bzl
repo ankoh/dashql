@@ -106,7 +106,7 @@ def _dashql_core_deps_impl(mctx):
     # renovate: datasource=github-releases depName=duckdb/duckdb
     http_archive(
         name = "duckdb_prebuilt_linux_amd64",
-        sha256 = "4711438f0fdb04f0441803409bec5430b763d4f2ac3482c1f97cfa6b5ecb4c15",
+        sha256 = "0a926eba5bce0abc0010f4b9109133e4440cb74e97bd10fd2d0fc2a721621b05",
         urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/libduckdb-linux-amd64.zip"],
         build_file = "//bazel:external_duckdb_prebuilt.BUILD",
     )
