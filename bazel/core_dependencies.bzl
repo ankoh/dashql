@@ -113,7 +113,7 @@ def _dashql_core_deps_impl(mctx):
     # DuckDB source (WASM and custom builds)
     http_archive(
         name = "duckdb_source",
-        sha256 = "6d8612fc87115cf4d3512a934ada5d1669db29378b4cc8e226fdfa8f5c537385",
+        sha256 = "f22a7cfb3e72be3010f4a7f2fbdd8de7d62fa036b838543acb663a722a7a71df",
         strip_prefix = "duckdb-" + _DUCKDB_VERSION,
         urls = ["https://github.com/duckdb/duckdb/archive/refs/tags/v" + _DUCKDB_VERSION + ".tar.gz"],
         build_file = "//bazel/duckdb:duckdb.bazel",
