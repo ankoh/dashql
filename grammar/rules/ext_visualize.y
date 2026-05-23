@@ -72,8 +72,7 @@ opt_vis_spec_field:
     ;
 
 vis_spec_key:
-    IDENT           { $$ = Key::NONE; }
-  | LAYER           { $$ = Key::VIS_SPEC_LAYER; }
+    LAYER           { $$ = Key::VIS_SPEC_LAYER; }
   | DATA_P          { $$ = Key::VIS_SPEC_DATA; }
   | TRANSFORM       { $$ = Key::VIS_SPEC_TRANSFORM; }
   | PARAMS          { $$ = Key::VIS_SPEC_PARAMS; }
@@ -140,8 +139,7 @@ opt_vis_encoding_field:
     ;
 
 vis_channel_key:
-    IDENT             { $$ = Key::NONE; }
-  | X_P               { $$ = Key::VIS_ENCODING_X; }
+    X_P               { $$ = Key::VIS_ENCODING_X; }
   | Y_P               { $$ = Key::VIS_ENCODING_Y; }
   | X2                { $$ = Key::VIS_ENCODING_X2; }
   | Y2                { $$ = Key::VIS_ENCODING_Y2; }
@@ -222,8 +220,7 @@ opt_vis_fielddef_field:
     ;
 
 vis_fielddef_key:
-    IDENT           { $$ = Key::NONE; }
-  | FIELD           { $$ = Key::VIS_FIELD_DEF_FIELD; }
+    FIELD           { $$ = Key::VIS_FIELD_DEF_FIELD; }
   | BIN             { $$ = Key::VIS_FIELD_DEF_BIN; }
   | AGGREGATE       { $$ = Key::VIS_FIELD_DEF_AGGREGATE; }
   | TIMEUNIT        { $$ = Key::VIS_FIELD_DEF_TIME_UNIT; }
@@ -286,8 +283,7 @@ vis_scale_type:
     ;
 
 vis_scale_key:
-    IDENT           { $$ = Key::NONE; }
-  | DOMAIN_P        { $$ = Key::VIS_SCALE_DOMAIN; }
+    DOMAIN_P        { $$ = Key::VIS_SCALE_DOMAIN; }
   | DOMAINMIN       { $$ = Key::VIS_SCALE_DOMAIN_MIN; }
   | DOMAINMAX       { $$ = Key::VIS_SCALE_DOMAIN_MAX; }
   | DOMAINMID       { $$ = Key::VIS_SCALE_DOMAIN_MID; }
@@ -325,8 +321,7 @@ opt_vis_axis_field:
     ;
 
 vis_axis_key:
-    IDENT           { $$ = Key::NONE; }
-  | ORIENT          { $$ = Key::VIS_AXIS_ORIENT; }
+    ORIENT          { $$ = Key::VIS_AXIS_ORIENT; }
   | FORMAT          { $$ = Key::VIS_AXIS_FORMAT; }
   | FORMATTYPE      { $$ = Key::VIS_AXIS_FORMAT_TYPE; }
   | GRID            { $$ = Key::VIS_AXIS_GRID; }
@@ -361,8 +356,7 @@ opt_vis_legend_field:
     ;
 
 vis_legend_key:
-    IDENT           { $$ = Key::NONE; }
-  | TYPE_P          { $$ = Key::VIS_LEGEND_TYPE; }
+    TYPE_P          { $$ = Key::VIS_LEGEND_TYPE; }
   | ORIENT          { $$ = Key::VIS_LEGEND_ORIENT; }
   | FORMAT          { $$ = Key::VIS_LEGEND_FORMAT; }
   | FORMATTYPE      { $$ = Key::VIS_LEGEND_FORMAT_TYPE; }
