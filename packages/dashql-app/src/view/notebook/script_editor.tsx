@@ -108,11 +108,13 @@ function updateEditor(view: EditorView, notebook: NotebookState, scriptData: Scr
     // as that would collapse an in-progress text selection.
     let selection: EditorSelection | null = null;
     if (state.scriptCursor !== scriptData.cursor && state.script === scriptData.script) {
-        const currentOffset = view.state.selection.main.head;
-        const nextCursorOffset = scriptData.cursor?.read().textOffset();
-        if (nextCursorOffset != null && nextCursorOffset !== currentOffset) {
-            const clampedOffset = Math.max(0, Math.min(nextCursorOffset, view.state.doc.length));
-            selection = EditorSelection.create([EditorSelection.cursor(clampedOffset)]);
+        const mainSel = view.state.selection.main;
+        if (mainSel.empty) {
+            const nextCursorOffset = scriptData.cursor?.read().textOffset();
+            if (nextCursorOffset != null && nextCursorOffset !== mainSel.head) {
+                const clampedOffset = Math.max(0, Math.min(nextCursorOffset, view.state.doc.length));
+                selection = EditorSelection.create([EditorSelection.cursor(clampedOffset)]);
+            }
         }
     }
 
