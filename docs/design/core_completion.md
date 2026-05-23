@@ -3,44 +3,44 @@
 The completion system provides context-aware suggestions as the user types SQL in the editor.
 It spans two layers: a C++ core that computes and scores candidates, and a TypeScript frontend that renders inline hints and handles keyboard interaction.
 
-## Completion strategies
+## Compute pipeline summary
 
-The cursor's AST context determines the active strategy:
+```
+Completion::Compute(cursor, k, registry)
+│
+├─ Validate cursor has scanner location
+├─ Select target symbol (current vs. previous)
+├─ Detect dot-completion context
+├─ Skip non-completable symbols (constants, operators, punctuation)
+├─ Parser::ParseUntil() → expected symbols, expects_identifier
+├─ Detect definition position (AST attribute keys)
+│
+├─ [dot-completion]
+│  └─ FindCandidatesForNamePath()
+│
+├─ [between symbols — passive hints]
+│  ├─ Check suppressPassiveHint() → return empty if suppressed
+│  └─ AddExpectedKeywordsAsCandidates() (filtered, no identifier candidates)
+│
+├─ [normal completion]
+│  ├─ AddExpectedKeywordsAsCandidates()
+│  ├─ Insert identity candidate (score varies by context)
+│  └─ FindCandidatesInIndexes()   (if expects_identifier && !at_definition)
+│     └─ PromoteTablesAndPeersForUnresolvedColumns()
+│
+├─ PromoteIdentifiersInScope()
+├─ PromoteIdentifiersInScripts(registry)
+├─ SelectTopCandidates()          → top-k heap
+├─ QualifyTopCandidates()         → derive qualified names
+│
+├─ [if identifier context && !at_definition]
+│  ├─ FindIdentifierSnippetsForTopCandidates(registry)
+│  └─ DeriveKeywordSnippetsForTopCandidates()
+│
+└─ Pack() → FlatBuffer result to frontend
+```
 
-| Strategy          | When                                          | Effect on scoring                        |
-|-------------------|-----------------------------------------------|------------------------------------------|
-| `DEFAULT`         | No special context                            | All name types equally likely (base 20)  |
-| `TABLE_REF`       | Cursor is inside a table reference            | Tables/schemas boosted, columns demoted  |
-| `TABLE_REF_ALIAS` | Cursor is at a table alias position           | Skips name-index search entirely         |
-| `COLUMN_REF`      | Cursor is inside a column reference           | Columns/aliases boosted, tables demoted  |
-
-## Candidate types
-
-Each candidate carries a coarse type used for visual identification:
-
-| Type       | Symbol | Description                                      |
-|------------|--------|--------------------------------------------------|
-| KEYWORD    | SQL    | SQL keyword from the grammar                     |
-| DATABASE   | DB     | Database name                                    |
-| SCHEMA     | NS     | Schema name                                      |
-| TABLE      | TBL    | Table name                                       |
-| COLUMN     | COL    | Column name                                      |
-| FUNCTION   | FN     | Function name                                    |
-| IDENTITY   | ID     | Identity candidate (matches what the user typed) |
-
-## Candidate sources
-
-### Name-index candidates
-
-Identifiers (tables, columns, functions, schemas, databases) come from the `NameSearchIndex`, a suffix-indexed btree over all registered names in the catalog.
-The search walks the index with a case-insensitive prefix of the text under the cursor.
-These candidates receive a base score from the strategy-specific scoring table.
-
-### Keyword candidates
-
-Expected grammar symbols at the cursor position are extracted by `Parser::ParseUntil`, which runs the parser up to the cursor's symbol and collects all valid next tokens.
-Keywords bypass the candidate registration and enter the result heap directly.
-They receive an `EXPECTED_KEYWORD_MATCH` modifier (+20) when matching the user's input, plus a prevalence modifier for common keywords (e.g. `SELECT` +3, `AS` +2).
+The sections below walk through each stage of this pipeline.
 
 ## Cursor interaction
 
@@ -78,6 +78,50 @@ When dot-completion is active, the engine restricts candidates to those reachabl
 Each component is classified as `Name`, `Star`, `TrailingDot`, or `Index`.
 The engine determines how many components are *sealed* (fully typed, before a dot) and uses the sealed prefix to resolve the dot context.
 
+## Completion strategies
+
+The cursor's AST context determines the active strategy:
+
+| Strategy          | When                                          | Effect on scoring                        |
+|-------------------|-----------------------------------------------|------------------------------------------|
+| `DEFAULT`         | No special context                            | All name types equally likely (base 20)  |
+| `TABLE_REF`       | Cursor is inside a table reference            | Tables/schemas boosted, columns demoted  |
+| `TABLE_REF_ALIAS` | Cursor is at a table alias position           | Skips name-index search entirely         |
+| `COLUMN_REF`      | Cursor is inside a column reference           | Columns/aliases boosted, tables demoted  |
+
+## Expected symbols (ParseUntil)
+
+Expected grammar symbols at the cursor position are extracted by `Parser::ParseUntil`, which runs the parser up to the cursor's symbol and collects all valid next tokens.
+Keywords bypass the candidate registration and enter the result heap directly.
+They receive an `EXPECTED_KEYWORD_MATCH` modifier (+20) when matching the user's input, plus a prevalence modifier for common keywords (e.g. `SELECT` +3, `AS` +2).
+
+## Candidate sources
+
+### Candidate types
+
+Each candidate carries a coarse type used for visual identification:
+
+| Type       | Symbol | Description                                      |
+|------------|--------|--------------------------------------------------|
+| KEYWORD    | SQL    | SQL keyword from the grammar                     |
+| DATABASE   | DB     | Database name                                    |
+| SCHEMA     | NS     | Schema name                                      |
+| TABLE      | TBL    | Table name                                       |
+| COLUMN     | COL    | Column name                                      |
+| FUNCTION   | FN     | Function name                                    |
+| IDENTITY   | ID     | Identity candidate (matches what the user typed) |
+
+### Name-index candidates
+
+Identifiers (tables, columns, functions, schemas, databases) come from the `NameSearchIndex`, a suffix-indexed btree over all registered names in the catalog.
+The search walks the index with a case-insensitive prefix of the text under the cursor.
+These candidates receive a base score from the strategy-specific scoring table.
+
+### Keyword candidates
+
+Keywords enter the candidate set via `AddExpectedKeywordsAsCandidates()`.
+They are extracted from the parser state and scored with `EXPECTED_KEYWORD_MATCH` (+20) when matching the user's prefix, plus prevalence modifiers for common keywords.
+
 ## Dot-completion resolution
 
 Given a name path like `a.b._`, the resolution depends on the strategy:
@@ -92,13 +136,37 @@ Given a name path like `a.b._`, the resolution depends on the strategy:
 
 The cursor text after the last dot acts as a prefix filter on the resolved candidates.
 
-## Scoring and ranking
+## Passive inline hints
 
-See [completion_ranking.md](completion_ranking.md) for the full scoring system.
+When the cursor is positioned *between* symbols (whitespace after a token), the completion engine produces **passive hints** — lightweight, single-keyword suggestions shown as ghost text without requiring any user typing.
 
-In brief: each candidate accumulates `CandidateTag` flags during collection and promotion passes.
-The final score is `base_score + sum(tag_modifiers)`.
-Ties are broken lexicographically (case-insensitive, smaller name wins).
+### Triggering
+
+Passive hints activate when `scanner_location.current.relative_pos == AFTER_SYMBOL` (cursor is in whitespace after a token), or at the very beginning of a statement with no previous symbol.
+
+### Suppression
+
+Certain tokens suppress passive hints entirely because the user is about to type an identifier or expression, not a keyword:
+
+| Token | Reason |
+|-------|--------|
+| `FROM` | User will type a table name |
+| `JOIN` | User will type a table name |
+| `WHERE` | User will type a filter expression |
+| `ON` | User will type a join condition |
+| `AND` | User will type an expression |
+| `OR` | User will type an expression |
+
+When the previous token is in this list, no passive hint is shown.
+
+### Candidate filtering
+
+For passive hints, keywords expected only as identifiers (`expected_as_identifier` flag) are filtered from candidates — unless they are high-prevalence keywords (KEYWORD_A or KEYWORD_B), which are always shown since they are primarily intended as keywords.
+
+### Visual behavior
+
+Passive hints suppress the control widgets (Tab/Enter key icons) — they appear as faint ghost text only.
+Accepting a passive hint is not interactive; the user simply starts typing the suggested keyword or ignores it.
 
 ## Promotion passes
 
@@ -109,6 +177,60 @@ After initial candidate collection, three promotion passes tag candidates with a
 2. **PromoteIdentifiersInScope** — Walks the cursor's naming scopes (innermost first) and tags reachable candidates with `IN_NAME_SCOPE` (+10).
 
 3. **PromoteIdentifiersInScripts** — Uses the script registry to find candidates referenced in the same statement, same script, or other scripts. Tags with `IN_SAME_STATEMENT` (+1), `IN_SAME_SCRIPT` (+1), `IN_OTHER_SCRIPT` (+1).
+
+## Scoring and ranking
+
+See [core_completion_ranking.md](core_completion_ranking.md) for the full scoring system.
+
+In brief: each candidate accumulates `CandidateTag` flags during collection and promotion passes.
+The final score is `base_score + sum(tag_modifiers)`.
+Ties are broken lexicographically (case-insensitive, smaller name wins).
+
+## Top-k selection and qualification
+
+`SelectTopCandidates()` extracts the top-k candidates from the scored heap.
+`QualifyTopCandidates()` derives qualified names for the winners (e.g. `schema.table` instead of just `table`) when the catalog object prefers qualification.
+
+## Snippets
+
+### Script registry integration
+
+The `ScriptRegistry` indexes computations and filters across all analyzed scripts.
+It is orthogonal to the catalog: the catalog stores identifiers, the registry stores how those identifiers are *used*.
+
+#### What it indexes
+
+- **Column filters** — WHERE-clause predicates referencing a specific column (e.g. `WHERE status = 'active'`).
+- **Column computations** — expressions that transform a column (e.g. `DATE_TRUNC('month', created_at)`).
+
+Both are indexed by `QualifiedCatalogObjectID` (database + schema + table + column) in btree sets for prefix search.
+
+#### How it participates in completion
+
+1. **Promotion** (`PromoteIdentifiersInScripts`): The registry tells the scoring system which candidates appear in other scripts, boosting their rank with `IN_SAME_SCRIPT` / `IN_OTHER_SCRIPT` tags.
+
+2. **Snippets** (`FindIdentifierSnippetsForTopCandidates`): After top-k selection, the engine queries the registry for filter and computation snippets associated with each winning catalog object. These become the templates offered in step 3 of multi-step completion.
+
+#### Lazy cleanup
+
+The registry uses lazy invalidation: when a script is modified, stale entries are cleaned up on the next lookup rather than eagerly.
+This means the btree may temporarily contain references to outdated script analyses, but false positives are harmless — they are detected and removed when accessed.
+
+### Keyword continuations
+
+When a keyword candidate is selected, the engine computes a *continuation* — the most likely keyword that follows it.
+For example, `group` gets continuation `by`, `order` gets `by`, `inner` gets `join`.
+
+`DeriveKeywordSnippetsForTopCandidates` runs `Parser::ParseUntilAfter` to simulate feeding the candidate keyword and inspecting what the grammar expects next.
+The `find_continuation` heuristic picks a continuation when:
+- Exactly one non-identifier keyword is expected after the feed, OR
+- One keyword has a uniquely highest `getKeywordContinuationScore` (a hardcoded priority for keywords like BY, AS, ON, TABLE, SET).
+
+Keywords flagged `expected_as_identifier` are excluded from the continuation count to avoid false positives (e.g. after `ORDER`, many unreserved keywords are grammatically valid as column names, but `BY` is the genuine continuation).
+
+Identifier candidates also receive a continuation: the engine feeds `IDENT` once and finds the best keyword continuation for the generic identifier case (e.g. identifiers in CTE position get `as`).
+
+The frontend renders the continuation as additional ghost text after the candidate insertion (e.g. typing `gro` shows `group by` as the inline hint).
 
 ## Multi-step completion
 
@@ -160,114 +282,6 @@ The editor renders inline decorations for pending patches:
 - **Template hints** — ghost text showing the template snippet that the final Tab will insert.
 
 Each hint category has a distinct visual style (color-coded CSS classes) and a key icon widget indicating which key activates it.
-
-## Script registry integration
-
-The `ScriptRegistry` indexes computations and filters across all analyzed scripts.
-It is orthogonal to the catalog: the catalog stores identifiers, the registry stores how those identifiers are *used*.
-
-### What it indexes
-
-- **Column filters** — WHERE-clause predicates referencing a specific column (e.g. `WHERE status = 'active'`).
-- **Column computations** — expressions that transform a column (e.g. `DATE_TRUNC('month', created_at)`).
-
-Both are indexed by `QualifiedCatalogObjectID` (database + schema + table + column) in btree sets for prefix search.
-
-### How it participates in completion
-
-1. **Promotion** (`PromoteIdentifiersInScripts`): The registry tells the scoring system which candidates appear in other scripts, boosting their rank with `IN_SAME_SCRIPT` / `IN_OTHER_SCRIPT` tags.
-
-2. **Snippets** (`FindIdentifierSnippetsForTopCandidates`): After top-k selection, the engine queries the registry for filter and computation snippets associated with each winning catalog object. These become the templates offered in step 3.
-
-### Lazy cleanup
-
-The registry uses lazy invalidation: when a script is modified, stale entries are cleaned up on the next lookup rather than eagerly.
-This means the btree may temporarily contain references to outdated script analyses, but false positives are harmless — they are detected and removed when accessed.
-
-## Keyword continuations
-
-When a keyword candidate is selected, the engine computes a *continuation* — the most likely keyword that follows it.
-For example, `group` gets continuation `by`, `order` gets `by`, `inner` gets `join`.
-
-`DeriveKeywordSnippetsForTopCandidates` runs `Parser::ParseUntilAfter` to simulate feeding the candidate keyword and inspecting what the grammar expects next.
-The `find_continuation` heuristic picks a continuation when:
-- Exactly one non-identifier keyword is expected after the feed, OR
-- One keyword has a uniquely highest `getKeywordContinuationScore` (a hardcoded priority for keywords like BY, AS, ON, TABLE, SET).
-
-Keywords flagged `expected_as_identifier` are excluded from the continuation count to avoid false positives (e.g. after `ORDER`, many unreserved keywords are grammatically valid as column names, but `BY` is the genuine continuation).
-
-Identifier candidates also receive a continuation: the engine feeds `IDENT` once and finds the best keyword continuation for the generic identifier case (e.g. identifiers in CTE position get `as`).
-
-The frontend renders the continuation as additional ghost text after the candidate insertion (e.g. typing `gro` shows `group by` as the inline hint).
-
-## Passive inline hints
-
-When the cursor is positioned *between* symbols (whitespace after a token), the completion engine produces **passive hints** — lightweight, single-keyword suggestions shown as ghost text without requiring any user typing.
-
-### Triggering
-
-Passive hints activate when `scanner_location.current.relative_pos == AFTER_SYMBOL` (cursor is in whitespace after a token), or at the very beginning of a statement with no previous symbol.
-
-### Suppression
-
-Certain tokens suppress passive hints entirely because the user is about to type an identifier or expression, not a keyword:
-
-| Token | Reason |
-|-------|--------|
-| `FROM` | User will type a table name |
-| `JOIN` | User will type a table name |
-| `WHERE` | User will type a filter expression |
-| `ON` | User will type a join condition |
-| `AND` | User will type an expression |
-| `OR` | User will type an expression |
-
-When the previous token is in this list, no passive hint is shown.
-
-### Candidate filtering
-
-For passive hints, keywords expected only as identifiers (`expected_as_identifier` flag) are filtered from candidates — unless they are high-prevalence keywords (KEYWORD_A or KEYWORD_B), which are always shown since they are primarily intended as keywords.
-
-### Visual behavior
-
-Passive hints suppress the control widgets (Tab/Enter key icons) — they appear as faint ghost text only.
-Accepting a passive hint is not interactive; the user simply starts typing the suggested keyword or ignores it.
-
-## Compute pipeline summary
-
-```
-Completion::Compute(cursor, k, registry)
-│
-├─ Validate cursor has scanner location
-├─ Select target symbol (current vs. previous)
-├─ Detect dot-completion context
-├─ Skip non-completable symbols (constants, operators, punctuation)
-├─ Parser::ParseUntil() → expected symbols, expects_identifier
-├─ Detect definition position (AST attribute keys)
-│
-├─ [dot-completion]
-│  └─ FindCandidatesForNamePath()
-│
-├─ [between symbols — passive hints]
-│  ├─ Check suppressPassiveHint() → return empty if suppressed
-│  └─ AddExpectedKeywordsAsCandidates() (filtered, no identifier candidates)
-│
-├─ [normal completion]
-│  ├─ AddExpectedKeywordsAsCandidates()
-│  ├─ Insert identity candidate (score varies by context)
-│  └─ FindCandidatesInIndexes()   (if expects_identifier && !at_definition)
-│     └─ PromoteTablesAndPeersForUnresolvedColumns()
-│
-├─ PromoteIdentifiersInScope()
-├─ PromoteIdentifiersInScripts(registry)
-├─ SelectTopCandidates()          → top-k heap
-├─ QualifyTopCandidates()         → derive qualified names
-│
-├─ [if identifier context && !at_definition]
-│  ├─ FindIdentifierSnippetsForTopCandidates(registry)
-│  └─ DeriveKeywordSnippetsForTopCandidates()
-│
-└─ Pack() → FlatBuffer result to frontend
-```
 
 ## SelectCandidate / SelectQualifiedCandidate
 
