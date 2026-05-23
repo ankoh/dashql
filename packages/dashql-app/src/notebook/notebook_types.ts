@@ -79,9 +79,16 @@ export function createEmptyMetadata(): NotebookMetadata {
     };
 }
 
-/** Helper to generate script file name based on entry index */
-export function generateScriptFileName(entryIndex: number): string {
-    return `${String(entryIndex + 1).padStart(2, '0')}-script.sql`;
+/** Helper to generate a script file name that doesn't collide with existing entries */
+export function generateScriptFileName(existingScripts: NotebookPageScript[]): string {
+    const existingNames = new Set(existingScripts.map(s => s.fileName));
+    let index = existingScripts.length + 1;
+    let candidate = `${String(index).padStart(2, '0')}-script.sql`;
+    while (existingNames.has(candidate)) {
+        index++;
+        candidate = `${String(index).padStart(2, '0')}-script.sql`;
+    }
+    return candidate;
 }
 
 /** Helper to create an empty page */

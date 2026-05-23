@@ -41,7 +41,7 @@ export function createDefaultNotebook(
 
     mainScript.replaceText(mainScriptText);
 
-    const mainFileName = generateScriptFileName(0);
+    const mainFileName = generateScriptFileName([]);
 
     let mainScriptData = createScriptData(mainScript, 0, mainFileName, 'Main');
     mainScriptData = analyzeNotebookScript(mainScriptData, registry, conn.catalog, logger);

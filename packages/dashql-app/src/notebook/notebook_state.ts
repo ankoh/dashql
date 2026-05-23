@@ -199,7 +199,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
 
             const newPages = [...state.notebookPages, newPage];
             const newPageIndex = newPages.length - 1;
-            const fileName = generateScriptFileName(0);
+            const fileName = generateScriptFileName([]);
 
             // Create a new script for the new page
             const script = state.instance.createScript(state.connectionCatalog);
@@ -606,7 +606,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             if (!page) return state;
 
             const pageIndex = state.notebookUserFocus.pageIndex;
-            const fileName = generateScriptFileName(page.scripts.length);
+            const fileName = generateScriptFileName(page.scripts);
 
             // Create a new script
             const script = state.instance.createScript(state.connectionCatalog);
@@ -762,7 +762,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 return state;
             }
             const pageIndex = state.notebookUserFocus.pageIndex;
-            const fileName = generateScriptFileName(page.scripts.length);
+            const fileName = generateScriptFileName(page.scripts);
 
             // Append the uncommitted script as a new committed entry
             const promotedEntry = createPageScript(state.uncommittedScriptId, fileName);

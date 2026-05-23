@@ -14,7 +14,7 @@ export function useNotebookSetup(): NotebookSetup {
     return React.useCallback((conn: ConnectionState) => {
         const registry = conn.instance.createScriptRegistry();
         const mainScript = conn.instance.createScript(conn.catalog);
-        const fileName = generateScriptFileName(0);
+        const fileName = generateScriptFileName([]);
         const mainScriptData: ScriptData = {
             scriptKey: mainScript.getCatalogEntryId(),
             script: mainScript,

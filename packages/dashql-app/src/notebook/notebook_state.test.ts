@@ -97,7 +97,7 @@ function buildState(): NotebookState {
             {
                 folderName: 'Main',
                 scripts: [
-                    createPageScript(committedKey, generateScriptFileName(0)),
+                    createPageScript(committedKey, generateScriptFileName([])),
                 ],
             },
         ],
