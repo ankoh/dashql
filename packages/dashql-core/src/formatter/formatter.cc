@@ -380,6 +380,7 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_WINDOW_FRAME_ORDER:
         case AttributeKey::SQL_FUNCTION_WITHIN_GROUP:
         case AttributeKey::SQL_CREATE_TABLE_ELEMENTS:
+        case AttributeKey::SQL_GROUP_BY_ITEM_ARG:
             return FormatCommaList(node);
         case AttributeKey::SQL_ROW_LOCKING_OF:
         case AttributeKey::SQL_TEMP_NAME:
@@ -513,11 +514,11 @@ FmtReg Formatter::FormatJoinedTable(const buffers::parser::Node& node) {
 FmtReg Formatter::FormatGroupByItem(const buffers::parser::Node& node) {
     auto [type, arg] = GetAttributes<AttributeKey::SQL_GROUP_BY_ITEM_TYPE, AttributeKey::SQL_GROUP_BY_ITEM_ARG>(node);
     if (!type || type->node_type() != NodeType::ENUM_SQL_GROUP_BY_ITEM_TYPE) {
-        return FormatUnimplemented(node);
+        return fmt.Empty();
     }
 
     auto arg_reg = [&]() -> FmtReg {
-        if (!arg) return 0;
+        if (!arg || arg->node_type() == NodeType::NONE) return 0;
         return Reg(*arg);
     };
 
@@ -525,21 +526,21 @@ FmtReg Formatter::FormatGroupByItem(const buffers::parser::Node& node) {
     switch (item_type) {
         case GroupByItemType::EXPRESSION:
             if (auto reg = arg_reg()) return reg;
-            return FormatUnimplemented(node);
+            return fmt.Empty();
         case GroupByItemType::EMPTY:
             return fmt.Text("()");
         case GroupByItemType::CUBE:
             if (auto reg = arg_reg()) return fmt.Concat({fmt.Text("cube"), fmt.Parenthesized(reg)});
-            return FormatUnimplemented(node);
+            return fmt.Empty();
         case GroupByItemType::ROLLUP:
             if (auto reg = arg_reg()) return fmt.Concat({fmt.Text("rollup"), fmt.Parenthesized(reg)});
-            return FormatUnimplemented(node);
+            return fmt.Empty();
         case GroupByItemType::GROUPING_SETS:
             if (auto reg = arg_reg()) return fmt.Concat({fmt.Text("grouping sets"), fmt.Parenthesized(reg)});
-            return FormatUnimplemented(node);
+            return fmt.Empty();
     }
 
-    return FormatUnimplemented(node);
+    return fmt.Empty();
 }
 
 FmtReg Formatter::FormatTypeName(const buffers::parser::Node& node) {
