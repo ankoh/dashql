@@ -20,7 +20,7 @@ Completion::Compute(cursor, k, registry)
 │
 ├─ [between symbols — passive hints]
 │  ├─ Check suppressPassiveHint() → return empty if suppressed
-│  └─ AddExpectedKeywordsAsCandidates() (filtered, no identifier candidates)
+│  └─ AddExpectedKeywordsAsCandidates() (keywords only, no identifier candidates)
 │
 ├─ [normal completion]
 │  ├─ AddExpectedKeywordsAsCandidates()
@@ -150,18 +150,18 @@ Certain tokens suppress passive hints entirely because the user is about to type
 
 | Token | Reason |
 |-------|--------|
+| `SELECT` | User will type column expressions |
 | `FROM` | User will type a table name |
 | `JOIN` | User will type a table name |
 | `WHERE` | User will type a filter expression |
 | `ON` | User will type a join condition |
 | `AND` | User will type an expression |
 | `OR` | User will type an expression |
+| `BY` | User will type a column reference |
+| `VISUALISE` / `VISUALIZE` | User will type a visualization name |
 
 When the previous token is in this list, no passive hint is shown.
-
-### Candidate filtering
-
-For passive hints, keywords expected only as identifiers (`expected_as_identifier` flag) are filtered from candidates — unless they are high-prevalence keywords (KEYWORD_A or KEYWORD_B), which are always shown since they are primarily intended as keywords.
+This is the sole mechanism for controlling passive hint visibility — keyword prevalence scoring naturally ensures that high-value keywords (FROM, WHERE, etc.) outrank noise when hints are not suppressed.
 
 ### Visual behavior
 
@@ -223,10 +223,10 @@ For example, `group` gets continuation `by`, `order` gets `by`, `inner` gets `jo
 
 `DeriveKeywordSnippetsForTopCandidates` runs `Parser::ParseUntilAfter` to simulate feeding the candidate keyword and inspecting what the grammar expects next.
 The `find_continuation` heuristic picks a continuation when:
-- Exactly one non-identifier keyword is expected after the feed, OR
+- Exactly one keyword/operator is expected after the feed, OR
 - One keyword has a uniquely highest `getKeywordContinuationScore` (a hardcoded priority for keywords like BY, AS, ON, TABLE, SET).
 
-Keywords flagged `expected_as_identifier` are excluded from the continuation count to avoid false positives (e.g. after `ORDER`, many unreserved keywords are grammatically valid as column names, but `BY` is the genuine continuation).
+When many unreserved keywords are expected (because IDENT is valid and all unreserved keywords can serve as identifiers), the continuation score disambiguates: only a keyword with a uniquely highest score is selected. Keywords that follow their predecessor in nearly all contexts (BY after GROUP/ORDER, AS after VISUALISE ident) have score 10; context-specific continuations (ASC, DESC, NULLS, etc.) have score 6; everything else has 0.
 
 Identifier candidates also receive a continuation: the engine feeds `IDENT` once and finds the best keyword continuation for the generic identifier case (e.g. identifiers in CTE position get `as`).
 
