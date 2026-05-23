@@ -3,6 +3,7 @@ import * as styles from './notebook_script_details.module.css';
 import * as dashql from '../../core/index.js';
 import { EditorView } from '@codemirror/view';
 import { EditorState, EditorSelection } from '@codemirror/state';
+import { DashQLCompletionAbortEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import icons from '@ankoh/dashql-svg-symbols';
@@ -293,7 +294,6 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
             {
                 key: 'Escape',
                 ctrlKey: false,
-                // Capture is required so Escape reaches hideDetails before the editor consumes it.
                 capture: true,
                 callback: (event) => {
                     if (isEditingName) {
@@ -301,12 +301,20 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                         event.stopImmediatePropagation();
                         return;
                     }
+                    if (editorView) {
+                        const processor = editorView.state.field(DashQLProcessorPlugin, false);
+                        if (processor?.scriptCompletion?.status === DashQLCompletionStatus.AVAILABLE) {
+                            editorView.dispatch({ effects: DashQLCompletionAbortEffect.of(null) });
+                            event.stopImmediatePropagation();
+                            return;
+                        }
+                    }
                     props.hideDetails();
                     event.stopImmediatePropagation();
                 },
             },
         ],
-        [props.hideDetails, tabState, selectTab, splitModeEnabled, isEditingName, cancelNameEdit],
+        [props.hideDetails, tabState, selectTab, splitModeEnabled, isEditingName, cancelNameEdit, editorView],
     );
     useKeyEvents(keyHandlers);
 
