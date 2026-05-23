@@ -548,6 +548,7 @@ table Statement {
 enum ScannerTokenType: uint8 {
     NONE,
     KEYWORD,
+    KEYWORD_VIS,
     LITERAL_INTEGER,
     LITERAL_FLOAT,
     LITERAL_STRING,

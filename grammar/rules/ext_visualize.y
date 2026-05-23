@@ -59,13 +59,16 @@ vis_spec_list:
 
 opt_vis_spec_field:
     ENCODING EQUALS_GREATER LRB vis_encoding_list RRB {
+        ctx.MarkVisKey(@1);
         $$ = Attr(Key::VIS_SPEC_ENCODING,
              ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_ENCODING, std::move($4), false));
     }
   | MARK EQUALS_GREATER vis_mark_value {
+        ctx.MarkVisKey(@1);
         $$ = Attr(Key::VIS_SPEC_MARK, $3);
     }
   | vis_spec_key EQUALS_GREATER vis_value {
+        ctx.MarkVisKey(@1);
         $$ = Attr($1, $3);
     }
   | %empty { $$ = Null(); }
@@ -129,10 +132,12 @@ vis_encoding_list:
 
 opt_vis_encoding_field:
     vis_channel_key EQUALS_GREATER LRB vis_fielddef_list RRB {
+        ctx.MarkVisKey(@1);
         $$ = Attr($1,
              ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_FIELD_DEF, std::move($4), false));
     }
   | vis_channel_key EQUALS_GREATER vis_encoding_value {
+        ctx.MarkVisKey(@1);
         $$ = Attr($1, $3);
     }
   | %empty { $$ = Null(); }
@@ -199,21 +204,26 @@ vis_fielddef_list:
 
 opt_vis_fielddef_field:
     SCALE_P EQUALS_GREATER LRB vis_scale_list RRB {
+        ctx.MarkVisKey(@1);
         $$ = Attr(Key::VIS_FIELD_DEF_SCALE,
              ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_SCALE, std::move($4), false));
     }
   | AXIS EQUALS_GREATER LRB vis_axis_list RRB {
+        ctx.MarkVisKey(@1);
         $$ = Attr(Key::VIS_FIELD_DEF_AXIS,
              ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_AXIS, std::move($4), false));
     }
   | LEGEND EQUALS_GREATER LRB vis_legend_list RRB {
+        ctx.MarkVisKey(@1);
         $$ = Attr(Key::VIS_FIELD_DEF_LEGEND,
              ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_LEGEND, std::move($4), false));
     }
   | TYPE_P EQUALS_GREATER vis_field_type {
+        ctx.MarkVisKey(@1);
         $$ = Attr(Key::VIS_FIELD_DEF_TYPE, $3);
     }
   | vis_fielddef_key EQUALS_GREATER vis_value {
+        ctx.MarkVisKey(@1);
         $$ = Attr($1, $3);
     }
   | %empty { $$ = Null(); }
@@ -255,9 +265,11 @@ vis_scale_list:
 
 opt_vis_scale_field:
     TYPE_P EQUALS_GREATER vis_scale_type {
+        ctx.MarkVisKey(@1);
         $$ = Attr(Key::VIS_SCALE_TYPE, $3);
     }
   | vis_scale_key EQUALS_GREATER vis_value {
+        ctx.MarkVisKey(@1);
         $$ = Attr($1, $3);
     }
   | %empty { $$ = Null(); }
@@ -315,6 +327,7 @@ vis_axis_list:
 
 opt_vis_axis_field:
     vis_axis_key EQUALS_GREATER vis_value {
+        ctx.MarkVisKey(@1);
         $$ = Attr($1, $3);
     }
   | %empty { $$ = Null(); }
@@ -350,6 +363,7 @@ vis_legend_list:
 
 opt_vis_legend_field:
     vis_legend_key EQUALS_GREATER vis_value {
+        ctx.MarkVisKey(@1);
         $$ = Attr($1, $3);
     }
   | %empty { $$ = Null(); }

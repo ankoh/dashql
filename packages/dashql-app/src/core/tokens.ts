@@ -89,6 +89,8 @@ export function getScannerTokenTypeName(token: buffers.parser.ScannerTokenType) 
             return "none";
         case buffers.parser.ScannerTokenType.KEYWORD:
             return "keyword";
+        case buffers.parser.ScannerTokenType.KEYWORD_VIS:
+            return "keyword(vis)";
         case buffers.parser.ScannerTokenType.LITERAL_BINARY:
             return "literal(binary)";
         case buffers.parser.ScannerTokenType.LITERAL_BOOLEAN:

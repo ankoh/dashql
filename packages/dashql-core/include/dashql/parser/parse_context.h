@@ -35,6 +35,8 @@ class ParseContext {
     std::vector<ParsedScript::Statement> statements;
     /// The errors
     std::vector<std::pair<buffers::parser::SymbolSpan, std::string>> errors;
+    /// Symbol indices of vis spec keys (for token type remapping)
+    std::vector<uint32_t> vis_key_symbols;
 
     /// The current statement
     ParsedScript::Statement current_statement;
@@ -122,6 +124,12 @@ class ParseContext {
     void AddStatement(buffers::parser::Node node);
     /// Reset a statement
     void ResetStatement();
+    /// Mark a symbol as a vis spec key
+    void MarkVisKey(buffers::parser::SymbolSpan loc) {
+        for (uint32_t i = 0; i < loc.length(); ++i) {
+            vis_key_symbols.push_back(loc.offset() + i);
+        }
+    }
 };
 
 }  // namespace parser

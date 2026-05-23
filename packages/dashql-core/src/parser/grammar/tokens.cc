@@ -67,6 +67,14 @@ std::unique_ptr<buffers::parser::ScannerTokensT> ParsedScript::PackTokens() {
         }
     }
 
+    // Build a bitset of symbol indices where a keyword is used as a vis spec key
+    std::vector<bool> vis_key_overrides(scan.symbols.GetSize(), false);
+    for (auto idx : vis_key_symbols) {
+        if (idx < vis_key_overrides.size()) {
+            vis_key_overrides[idx] = true;
+        }
+    }
+
     std::vector<uint32_t> offsets;
     std::vector<uint32_t> lengths;
     std::vector<buffers::parser::ScannerTokenType> types;
@@ -83,12 +91,14 @@ std::unique_ptr<buffers::parser::ScannerTokensT> ParsedScript::PackTokens() {
             lengths.push_back(comment.length());
             types.push_back(buffers::parser::ScannerTokenType::COMMENT);
         }
-        // Map as standard token, overriding keywords that the parser consumed as identifiers.
+        // Map as standard token, overriding keywords that the parser consumed as identifiers or vis keys.
         offsets.push_back(symbol.location.offset());
         lengths.push_back(symbol.location.length());
         auto token_type = MapToken(symbol, scan.text_buffer);
         if (token_type == buffers::parser::ScannerTokenType::KEYWORD && name_overrides[symbol_id]) {
             token_type = buffers::parser::ScannerTokenType::IDENTIFIER;
+        } else if (token_type == buffers::parser::ScannerTokenType::KEYWORD && vis_key_overrides[symbol_id]) {
+            token_type = buffers::parser::ScannerTokenType::KEYWORD_VIS;
         }
         types.push_back(token_type);
     });
