@@ -1299,6 +1299,30 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
         }
     }
 
+    // Check if cursor is at a "definition" position (where a name is being defined, not referenced).
+    // We suppress identifier completion at these positions since the user is naming something new.
+    if (cursor.script.parsed_script && !cursor.ast_path_to_root.empty()) {
+        auto& nodes = cursor.script.parsed_script->nodes;
+        for (auto node_id : cursor.ast_path_to_root) {
+            switch (nodes[node_id].attribute_key()) {
+                case sx::parser::AttributeKey::SQL_CREATE_TABLE_NAME:
+                case sx::parser::AttributeKey::SQL_CREATE_AS_NAME:
+                case sx::parser::AttributeKey::SQL_VIEW_NAME:
+                case sx::parser::AttributeKey::SQL_COLUMN_DEF_NAME:
+                case sx::parser::AttributeKey::SQL_RESULT_TARGET_NAME:
+                case sx::parser::AttributeKey::SQL_CTE_NAME:
+                case sx::parser::AttributeKey::SQL_WINDOW_DEF_NAME:
+                case sx::parser::AttributeKey::SQL_CREATE_FUNCTION_NAME:
+                case sx::parser::AttributeKey::SQL_FUNCTION_PARAM_NAME:
+                    completion->at_definition = true;
+                    break;
+                default:
+                    break;
+            }
+            if (completion->at_definition) break;
+        }
+    }
+
     // Is the previous symbol an inner dot?
     // Then we check if we're currently pointing at the successor symbol.
     // If we do, we do a normal dot completion.
@@ -1332,9 +1356,28 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
     } else {
         // Add expected grammar symbols to the heap and score them
         completion->AddExpectedKeywordsAsCandidates(expected_symbols);
+        // At definition positions, insert an identity candidate matching the user's text.
+        // This ensures the top suggestion is always a no-op (keeping what they typed).
+        if (completion->at_definition && completion->target_scanner_symbol.has_value()) {
+            auto& sym = completion->target_scanner_symbol->symbol;
+            auto symbol_text = cursor.script.scanned_script->ReadTextAtTextSpan(
+                sx::parser::TextSpan(sym.location.offset(), sym.location.length()));
+            if (!symbol_text.empty()) {
+                Candidate identity{
+                    .completion_text = symbol_text,
+                    .coarse_name_tags = {},
+                    .candidate_tags = buffers::completion::CandidateTag::IDENTITY,
+                    .target_location = sym.location,
+                    .target_location_qualified = sym.location,
+                    .score = std::numeric_limits<ScoreValueType>::max(),
+                };
+                completion->candidate_heap.Insert(std::move(identity));
+            }
+        }
         // Also check the name indexes when expecting an identifier.
-        // For aliases, we stop searching for candidates since aliases are user-provided names.
-        if (expects_identifier && completion->strategy != sx::completion::CompletionStrategy::TABLE_REF_ALIAS) {
+        // For definitions and aliases, we stop searching for candidates since these are user-provided names.
+        if (expects_identifier && !completion->at_definition &&
+            completion->strategy != sx::completion::CompletionStrategy::TABLE_REF_ALIAS) {
             // Just find all candidates in the name index
             completion->FindCandidatesInIndexes();
             // Promote names of all tables that could resolve an unresolved column
@@ -1356,9 +1399,10 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
     bool cursor_at_identifier = cursor.scanner_location.has_value() && cursor.scanner_location->current.symbol.kind_ ==
                                                                            parser::Parser::symbol_kind_type::S_IDENT;
 
-    // Advanced completion only if we're at identifiers and not at aliases
+    // Advanced completion only if we're at identifiers and not at definitions/aliases
     if (completion->dot_completion || completion->strategy == sx::completion::CompletionStrategy::COLUMN_REF ||
-        (cursor_at_identifier && completion->strategy != sx::completion::CompletionStrategy::TABLE_REF_ALIAS)) {
+        (cursor_at_identifier && !completion->at_definition &&
+         completion->strategy != sx::completion::CompletionStrategy::TABLE_REF_ALIAS)) {
         // Only collect snippets in clauses where filters/templates apply.
         // Skip in GROUP BY, ORDER BY, LIMIT, OFFSET, window definitions, etc.
         bool skip_snippets = false;

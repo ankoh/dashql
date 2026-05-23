@@ -481,14 +481,18 @@ class CompletionList {
                 const co = ca.catalogObjects(j, tmpCatalogObject)!;
                 totalTemplates += co.scriptTemplatesLength();
             }
-            let objectType: dashql.buffers.completion.CompletionCandidateObjectType | null = null;
-            if (ca.catalogObjectsLength() > 0) {
+            let candidateType: CompletionCandidateType;
+            if (ca.candidateTags()! & dashql.buffers.completion.CandidateTag.IDENTITY) {
+                candidateType = CompletionCandidateType.IDENTITY;
+            } else if (ca.catalogObjectsLength() > 0) {
                 const co = ca.catalogObjects(0, tmpCatalogObject)!;
-                objectType = co.objectType();
+                candidateType = (co.objectType() as number) as CompletionCandidateType;
+            } else {
+                candidateType = CompletionCandidateType.KEYWORD;
             }
             out.push({
                 candidateLabel: ca.displayText()!,
-                candidateType: (objectType as number) as CompletionCandidateType,
+                candidateType,
                 isSelected: false,
                 totalObjectCount: totalObjects,
                 selectedCatalogObject: null,
