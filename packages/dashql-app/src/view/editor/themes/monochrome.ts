@@ -1,5 +1,6 @@
 import { tags as t } from '@lezer/highlight';
 import { createTheme, CreateThemeOptions } from './theme.js';
+import { visKeywordTag } from '../dashql_decorations_standalone.js';
 
 export const defaultSettingsMonochromeLight: CreateThemeOptions['settings'] = {
     background: '#f7f7f8',
@@ -20,6 +21,7 @@ export function monochromeLightInit(options?: Partial<CreateThemeOptions>) {
         styles: [
             { tag: [t.comment, t.quote], color: '#909090' },
             { tag: [t.keyword], color: '#5f5f5f', fontWeight: 'bold' },
+            { tag: [visKeywordTag], color: '#767676' },
             { tag: [t.propertyName], color: '#767676' },
             { tag: [t.string, t.meta], color: '#818181' },
             { tag: [t.name], color: '#767676' },

@@ -7,9 +7,11 @@ import { tags as CODEMIRROR_TAGS, Tag } from '@lezer/highlight';
 
 import './dashql_decorations.css';
 
+export const visKeywordTag = Tag.define(CODEMIRROR_TAGS.keyword);
+
 const PROTO_TAG_MAPPING: Map<dashql.buffers.parser.ScannerTokenType, Tag> = new Map([
     [dashql.buffers.parser.ScannerTokenType.KEYWORD, CODEMIRROR_TAGS.keyword],
-    [dashql.buffers.parser.ScannerTokenType.KEYWORD_VIS, CODEMIRROR_TAGS.propertyName],
+    [dashql.buffers.parser.ScannerTokenType.KEYWORD_VIS, visKeywordTag],
     [dashql.buffers.parser.ScannerTokenType.OPERATOR, CODEMIRROR_TAGS.operator],
     [dashql.buffers.parser.ScannerTokenType.LITERAL_BINARY, CODEMIRROR_TAGS.literal],
     [dashql.buffers.parser.ScannerTokenType.LITERAL_BOOLEAN, CODEMIRROR_TAGS.bool],

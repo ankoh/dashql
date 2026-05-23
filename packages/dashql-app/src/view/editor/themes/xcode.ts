@@ -1,5 +1,6 @@
 import { tags as t } from '@lezer/highlight';
 import { createTheme, CreateThemeOptions } from './theme.js';
+import { visKeywordTag } from '../dashql_decorations_standalone.js';
 
 export const defaultSettingsXcodeLight: CreateThemeOptions['settings'] = {
     background: '#fff',
@@ -23,6 +24,7 @@ export function xcodeLightInit(options?: Partial<CreateThemeOptions>) {
             { tag: [t.comment, t.quote], color: '#707F8D' },
             { tag: [t.typeName, t.typeOperator], color: '#aa0d91' },
             { tag: [t.keyword], color: '#aa0d91', fontWeight: 'bold' },
+            { tag: [visKeywordTag], color: '#032f62' },
             { tag: [t.propertyName], color: '#032f62' },
             { tag: [t.string, t.meta], color: '#D23423' },
             { tag: [t.name], color: '#032f62' },
@@ -57,6 +59,7 @@ export const xcodeDarkInit = (options?: Partial<CreateThemeOptions>) => {
         styles: [
             { tag: [t.comment, t.quote], color: '#7F8C98' },
             { tag: [t.keyword], color: '#FF7AB2', fontWeight: 'bold' },
+            { tag: [visKeywordTag], color: '#6BAA9F' },
             { tag: [t.propertyName], color: '#6BAA9F' },
             { tag: [t.string, t.meta], color: '#FF8170' },
             { tag: [t.typeName], color: '#DABAFF' },
