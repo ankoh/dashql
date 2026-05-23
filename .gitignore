@@ -32,7 +32,7 @@ yarn-error.log
 /todo.txt
 /todo.md
 
-/.claude
+/.claude/settings.local.json
 /.cursor
 
 /.local
