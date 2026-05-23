@@ -100,7 +100,7 @@ export const createTheme = ({ theme, settings = {}, styles = [] }: CreateThemeOp
 
     if (settings.selection) {
         themeOptions[
-            '&.cm-focused .cm-selectionBackground, & .cm-line::selection, & .cm-selectionLayer .cm-selectionBackground, .cm-content ::selection'
+            '&.cm-focused .cm-selectionBackground, & .cm-selectionLayer .cm-selectionBackground'
         ] = {
             background: settings.selection + ' !important',
         };

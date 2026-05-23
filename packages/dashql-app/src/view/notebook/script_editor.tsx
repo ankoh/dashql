@@ -87,21 +87,30 @@ function updateEditor(view: EditorView, notebook: NotebookState, scriptData: Scr
 
     // Initial setup or unexpected script buffers?
     // Then we reset everything to make sure the script is ok.
-    // XXX We could track a version counter to make sure we're referencing the same content.
+    // Only replace if the doc content actually differs — the editor may already have the
+    // correct text from its own transaction (e.g. autoclose inserting brackets).
     if (state.scriptBuffers !== scriptData.scriptAnalysis.buffers) {
-        logger.debug("Replacing editor script", {}, LOG_CTX);
-        changes.push({
-            from: 0,
-            to: view.state.doc.length,
-            insert: scriptData.script.toString(),
-        });
+        const scriptText = scriptData.script.toString();
+        const editorText = view.state.doc.toString();
+        if (scriptText !== editorText) {
+            logger.debug("Replacing editor script", {}, LOG_CTX);
+            changes.push({
+                from: 0,
+                to: view.state.doc.length,
+                insert: scriptText,
+            });
+        }
     }
 
-    // Did the cursor change?
+    // Did the cursor change externally (not from the editor itself)?
+    // Only override the selection if the cursor was set from outside (e.g. clicking a table ref).
+    // Never override when the cursor update originated from the editor's own selection changes,
+    // as that would collapse an in-progress text selection.
     let selection: EditorSelection | null = null;
-    if (state.scriptCursor !== scriptData.cursor) {
+    if (state.scriptCursor !== scriptData.cursor && state.script === scriptData.script) {
+        const currentOffset = view.state.selection.main.head;
         const nextCursorOffset = scriptData.cursor?.read().textOffset();
-        if (nextCursorOffset != null) {
+        if (nextCursorOffset != null && nextCursorOffset !== currentOffset) {
             const clampedOffset = Math.max(0, Math.min(nextCursorOffset, view.state.doc.length));
             selection = EditorSelection.create([EditorSelection.cursor(clampedOffset)]);
         }
