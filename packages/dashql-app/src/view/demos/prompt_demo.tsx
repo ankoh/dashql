@@ -5,7 +5,7 @@ import * as styles from './prompt_demo.module.css';
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import { EditorState, Extension, StateEffect } from '@codemirror/state';
-import { EditorView, keymap, placeholder } from '@codemirror/view';
+import { EditorView, drawSelection, keymap, placeholder } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 
 import { useDashQLCoreSetup } from '../../core_provider.js';
@@ -25,6 +25,7 @@ function createPromptExtensions(): Extension[] {
     ]);
     const extensions: Extension[] = [
         themes.xcode.xcodeLight,
+        drawSelection(),
         history(),
         ...DashQLExtensions,
         keymapExtension,

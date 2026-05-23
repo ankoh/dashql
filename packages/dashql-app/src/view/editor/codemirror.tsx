@@ -3,7 +3,7 @@ import * as themes from './themes/index.js';
 
 import { EditorState, Extension } from '@codemirror/state';
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands"
-import { EditorView, keymap, lineNumbers } from '@codemirror/view';
+import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 import { DashQLExtensions, DashQLReadonlyExtensions } from './dashql_extension.js';
 
 import { useLogger } from '../../platform/logger/logger_provider.js';
@@ -31,6 +31,7 @@ export function createCodeMirrorExtensions(): Extension[] {
     const extensions: Extension[] = [
         themes.xcode.xcodeLight,
         lineNumbers(),
+        drawSelection(),
         history(),
         ...DashQLExtensions,
         keymapExtension
@@ -42,6 +43,7 @@ export function createReadonlyCodeMirrorExtensions(): Extension[] {
     return [
         themes.xcode.xcodeLight,
         lineNumbers(),
+        drawSelection(),
         EditorState.readOnly.of(true),
         ...DashQLReadonlyExtensions,
     ];
