@@ -64,7 +64,7 @@ describe('DashQL Completion', () => {
         const text = "select * from tableA where attr";
         scriptB.insertTextAt(0, text);
         scriptB.analyze();
-        const cursor = scriptB.moveCursor(text.search(" attr") + 6);
+        const cursor = scriptB.moveCursor(text.length);
         const completion = scriptB.completeAtCursor(10, registry);
         cursor.destroy();
 
@@ -96,7 +96,7 @@ describe('DashQL Completion', () => {
         const text = "select * from tableA \"T\" where attr";
         scriptA.insertTextAt(0, text);
         scriptA.analyze();
-        const cursor = scriptA.moveCursor(text.search(" attr") + 6);
+        const cursor = scriptA.moveCursor(text.length);
         const completion = scriptA.completeAtCursor(10, registry);
         cursor.destroy();
 

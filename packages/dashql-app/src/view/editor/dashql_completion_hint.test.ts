@@ -32,7 +32,7 @@ describe('Completion Hint', () => {
         const text = "select * from tableA where attr";
         scriptPtr.insertTextAt(0, text);
         scriptPtr.analyze();
-        const cursor = scriptPtr.moveCursor(text.search(" attr") + 6);
+        const cursor = scriptPtr.moveCursor(text.length);
         const completionPtr = scriptPtr.completeAtCursor(10, registry);
 
         const completionReader = completionPtr.read()
