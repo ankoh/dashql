@@ -84,6 +84,7 @@ INSTANTIATE_TEST_SUITE_P(Registry, CompletionSnapshotTestSuite, ::testing::Value
 INSTANTIATE_TEST_SUITE_P(Trino, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("trino.yaml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Bugs, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("bugs.yaml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(KeywordContinuations, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("keyword_continuations.yaml")), CompletionSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(KeywordPassiveHints, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("keywords_passive_hints.yaml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Cursor, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("cursor.yaml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Quotes, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("quotes.yaml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Visualize, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("visualize.yaml")), CompletionSnapshotTest::TestPrinter());

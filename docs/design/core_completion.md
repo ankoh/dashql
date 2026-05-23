@@ -184,6 +184,54 @@ Both are indexed by `QualifiedCatalogObjectID` (database + schema + table + colu
 The registry uses lazy invalidation: when a script is modified, stale entries are cleaned up on the next lookup rather than eagerly.
 This means the btree may temporarily contain references to outdated script analyses, but false positives are harmless — they are detected and removed when accessed.
 
+## Keyword continuations
+
+When a keyword candidate is selected, the engine computes a *continuation* — the most likely keyword that follows it.
+For example, `group` gets continuation `by`, `order` gets `by`, `inner` gets `join`.
+
+`DeriveKeywordSnippetsForTopCandidates` runs `Parser::ParseUntilAfter` to simulate feeding the candidate keyword and inspecting what the grammar expects next.
+The `find_continuation` heuristic picks a continuation when:
+- Exactly one non-identifier keyword is expected after the feed, OR
+- One keyword has a uniquely highest `getKeywordContinuationScore` (a hardcoded priority for keywords like BY, AS, ON, TABLE, SET).
+
+Keywords flagged `expected_as_identifier` are excluded from the continuation count to avoid false positives (e.g. after `ORDER`, many unreserved keywords are grammatically valid as column names, but `BY` is the genuine continuation).
+
+Identifier candidates also receive a continuation: the engine feeds `IDENT` once and finds the best keyword continuation for the generic identifier case (e.g. identifiers in CTE position get `as`).
+
+The frontend renders the continuation as additional ghost text after the candidate insertion (e.g. typing `gro` shows `group by` as the inline hint).
+
+## Passive inline hints
+
+When the cursor is positioned *between* symbols (whitespace after a token), the completion engine produces **passive hints** — lightweight, single-keyword suggestions shown as ghost text without requiring any user typing.
+
+### Triggering
+
+Passive hints activate when `scanner_location.current.relative_pos == AFTER_SYMBOL` (cursor is in whitespace after a token), or at the very beginning of a statement with no previous symbol.
+
+### Suppression
+
+Certain tokens suppress passive hints entirely because the user is about to type an identifier or expression, not a keyword:
+
+| Token | Reason |
+|-------|--------|
+| `FROM` | User will type a table name |
+| `JOIN` | User will type a table name |
+| `WHERE` | User will type a filter expression |
+| `ON` | User will type a join condition |
+| `AND` | User will type an expression |
+| `OR` | User will type an expression |
+
+When the previous token is in this list, no passive hint is shown.
+
+### Candidate filtering
+
+For passive hints, keywords expected only as identifiers (`expected_as_identifier` flag) are filtered from candidates — unless they are high-prevalence keywords (KEYWORD_A or KEYWORD_B), which are always shown since they are primarily intended as keywords.
+
+### Visual behavior
+
+Passive hints suppress the control widgets (Tab/Enter key icons) — they appear as faint ghost text only.
+Accepting a passive hint is not interactive; the user simply starts typing the suggested keyword or ignores it.
+
 ## Compute pipeline summary
 
 ```
@@ -198,6 +246,10 @@ Completion::Compute(cursor, k, registry)
 │
 ├─ [dot-completion]
 │  └─ FindCandidatesForNamePath()
+│
+├─ [between symbols — passive hints]
+│  ├─ Check suppressPassiveHint() → return empty if suppressed
+│  └─ AddExpectedKeywordsAsCandidates() (filtered, no identifier candidates)
 │
 ├─ [normal completion]
 │  ├─ AddExpectedKeywordsAsCandidates()

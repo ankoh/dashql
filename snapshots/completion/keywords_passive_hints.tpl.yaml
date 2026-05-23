@@ -1,0 +1,132 @@
+completion-snapshots:
+  # Passive hint after "select * " → should suggest FROM
+  - name: select_star
+    catalog: {}
+    editor:
+      input: "select * "
+    cursor:
+      search:
+        text: "* "
+        index: 2
+    completions:
+      limit: 3
+
+  # Passive hint after "select foo " → should suggest FROM
+  - name: select_foo
+    catalog: {}
+    editor:
+      input: "select foo "
+    cursor:
+      search:
+        text: "foo "
+        index: 4
+    completions:
+      limit: 3
+
+  # Suppressed after "from " → user types table name
+  - name: suppress_after_from
+    catalog: {}
+    editor:
+      input: "select * from "
+    cursor:
+      search:
+        text: "from "
+        index: 5
+    completions:
+      limit: 3
+
+  # Suppressed after "join " → user types table name
+  - name: suppress_after_join
+    catalog: {}
+    editor:
+      input: "select * from foo join "
+    cursor:
+      search:
+        text: "join "
+        index: 5
+    completions:
+      limit: 3
+
+  # Suppressed after "where " → user types expression
+  - name: suppress_after_where
+    catalog: {}
+    editor:
+      input: "select * from foo where "
+    cursor:
+      search:
+        text: "where "
+        index: 6
+    completions:
+      limit: 3
+
+  # Suppressed after "on " → user types join condition
+  - name: suppress_after_on
+    catalog: {}
+    editor:
+      input: "select * from foo join bar on "
+    cursor:
+      search:
+        text: "on "
+        index: 3
+    completions:
+      limit: 3
+
+  # Suppressed after "and " → user types expression
+  - name: suppress_after_and
+    catalog: {}
+    editor:
+      input: "select * from foo where x = 1 and "
+    cursor:
+      search:
+        text: "and "
+        index: 4
+    completions:
+      limit: 3
+
+  # Suppressed after "or " → user types expression
+  - name: suppress_after_or
+    catalog: {}
+    editor:
+      input: "select * from foo where x = 1 or "
+    cursor:
+      search:
+        text: "or "
+        index: 3
+    completions:
+      limit: 3
+
+  # Passive hint after "from foo " → should suggest WHERE
+  - name: after_from_table
+    catalog: {}
+    editor:
+      input: "select * from foo "
+    cursor:
+      search:
+        text: "foo "
+        index: 4
+    completions:
+      limit: 3
+
+  # Passive hint after "group " → should suggest BY
+  - name: after_group
+    catalog: {}
+    editor:
+      input: "select * from foo group "
+    cursor:
+      search:
+        text: "group "
+        index: 6
+    completions:
+      limit: 3
+
+  # Passive hint after "order " → should suggest BY
+  - name: after_order
+    catalog: {}
+    editor:
+      input: "select * from foo order "
+    cursor:
+      search:
+        text: "order "
+        index: 6
+    completions:
+      limit: 3

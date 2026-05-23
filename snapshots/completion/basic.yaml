@@ -377,7 +377,7 @@ completion-snapshots:
               qualified-idx: 0
               prefer-qualified: 0
         - score: 4
-          value: where
+          value: from
           candidate-tags: [EXPECTED_PARSER_SYMBOL,KEYWORD_A]
           location: "mys"
           location-qualified: "mys"

@@ -61,7 +61,7 @@ SELECT s_co
         }
         names.emplace_back(std::move(name));
     }
-    std::vector<std::string> expected_names{"s_co",      "s_comment", "ps_comment", "where", "from",
+    std::vector<std::string> expected_names{"s_co",      "s_comment", "ps_comment", "from", "where",
                                             "group by", "order by",  "by",         "case",  "cast"};
     ASSERT_EQ(names, expected_names);
 }
@@ -205,6 +205,93 @@ WITH fo
         }
     }
     ASSERT_TRUE(found_foo) << "Expected 'foo' candidate with 'as' continuation";
+}
+
+TEST(CompletionTest, PassiveHint_SelectStar) {
+    const std::string_view main_script_text = "select * ";
+
+    Catalog catalog;
+    Script main_script{catalog};
+    main_script.InsertTextAt(0, main_script_text);
+    ASSERT_NO_THROW({
+        main_script.Scan();
+        main_script.Parse();
+        main_script.Analyze();
+    });
+
+    // Cursor at end (after the space following *)
+    main_script.MoveCursor(main_script_text.size());
+
+    auto completion = main_script.CompleteAtCursor();
+    auto& results = completion->GetResultCandidates();
+
+    // Should suggest FROM as the top candidate (not WHERE)
+    ASSERT_FALSE(results.empty());
+    ASSERT_EQ(results[0].completion_text, "from");
+}
+
+TEST(CompletionTest, PassiveHint_SuppressAfterFrom) {
+    const std::string_view main_script_text = "select * from ";
+
+    Catalog catalog;
+    Script main_script{catalog};
+    main_script.InsertTextAt(0, main_script_text);
+    ASSERT_NO_THROW({
+        main_script.Scan();
+        main_script.Parse();
+        main_script.Analyze();
+    });
+
+    main_script.MoveCursor(main_script_text.size());
+
+    auto completion = main_script.CompleteAtCursor();
+    auto& results = completion->GetResultCandidates();
+
+    // Should produce no passive hint after FROM
+    ASSERT_TRUE(results.empty());
+}
+
+TEST(CompletionTest, PassiveHint_SuppressAfterWhere) {
+    const std::string_view main_script_text = "select * from foo where ";
+
+    Catalog catalog;
+    Script main_script{catalog};
+    main_script.InsertTextAt(0, main_script_text);
+    ASSERT_NO_THROW({
+        main_script.Scan();
+        main_script.Parse();
+        main_script.Analyze();
+    });
+
+    main_script.MoveCursor(main_script_text.size());
+
+    auto completion = main_script.CompleteAtCursor();
+    auto& results = completion->GetResultCandidates();
+
+    // Should produce no passive hint after WHERE
+    ASSERT_TRUE(results.empty());
+}
+
+TEST(CompletionTest, PassiveHint_AfterFromTable) {
+    const std::string_view main_script_text = "select * from foo ";
+
+    Catalog catalog;
+    Script main_script{catalog};
+    main_script.InsertTextAt(0, main_script_text);
+    ASSERT_NO_THROW({
+        main_script.Scan();
+        main_script.Parse();
+        main_script.Analyze();
+    });
+
+    main_script.MoveCursor(main_script_text.size());
+
+    auto completion = main_script.CompleteAtCursor();
+    auto& results = completion->GetResultCandidates();
+
+    // After a table name, should suggest WHERE (not suppressed)
+    ASSERT_FALSE(results.empty());
+    ASSERT_EQ(results[0].completion_text, "where");
 }
 
 }  // namespace

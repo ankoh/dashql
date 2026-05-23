@@ -22,6 +22,24 @@ namespace sx = buffers;
 
 namespace {
 
+// Tokens that suppress passive inline hints when the cursor immediately follows them.
+// After these tokens, the user is about to type an identifier or expression, not a keyword.
+bool suppressPassiveHint(parser::Parser::symbol_kind_type kind) {
+    switch (kind) {
+        case parser::Parser::symbol_kind_type::S_SELECT:
+        case parser::Parser::symbol_kind_type::S_FROM:
+        case parser::Parser::symbol_kind_type::S_JOIN:
+        case parser::Parser::symbol_kind_type::S_WHERE:
+        case parser::Parser::symbol_kind_type::S_ON:
+        case parser::Parser::symbol_kind_type::S_AND:
+        case parser::Parser::symbol_kind_type::S_OR:
+        case parser::Parser::symbol_kind_type::S_BY:
+            return true;
+        default:
+            return false;
+    }
+}
+
 // Keyword prevalence modifiers
 // Users write some keywords much more likely than others, and we hardcode some prevalence scores.
 // Example: "se" should suggest "select" before "set"
@@ -145,10 +163,10 @@ static constexpr NameScoringTable NAME_SCORE_COLUMN_REF{{
 static constexpr buffers::completion::CandidateTag GetKeywordPrevalence(parser::Parser::symbol_kind_type keyword) {
     switch (keyword) {
         case parser::Parser::symbol_kind_type::S_SELECT:
+        case parser::Parser::symbol_kind_type::S_FROM:
         case parser::Parser::symbol_kind_type::S_WHERE:
             return buffers::completion::CandidateTag::KEYWORD_A;
         case parser::Parser::symbol_kind_type::S_AND:
-        case parser::Parser::symbol_kind_type::S_FROM:
         case parser::Parser::symbol_kind_type::S_GROUP_P:
         case parser::Parser::symbol_kind_type::S_ORDER:
             return buffers::completion::CandidateTag::KEYWORD_B;
@@ -634,17 +652,21 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
     };
 
     // Determine target location: use cursor position with zero length when between symbols (pure insertion)
-    auto target_loc = between_symbols
-        ? sx::parser::SymbolSpan(cursor.text_offset, 0)
-        : target_symbol->symbol.location;
+    auto target_loc = between_symbols ? sx::parser::SymbolSpan(cursor.text_offset, 0) : target_symbol->symbol.location;
 
     // Add all expected symbols to the result heap.
     // When between symbols (passive inline hints), skip keywords that are only expected because they
     // double as identifiers — e.g. after "GROUP BY ", the grammar expects BY/SET/etc. as column names
     // via sql_unreserved_keywords, but suggesting "by" there is confusing rather than helpful.
+    // Exception: high-prevalence keywords (A/B) are never filtered — they are primarily keywords even
+    // when the grammar also accepts them through an identifier path (e.g. FROM after SELECT *).
     for (auto& expected : symbols) {
         if (between_symbols && expected.expected_as_identifier) {
-            continue;
+            auto prevalence = GetKeywordPrevalence(expected);
+            if (prevalence != buffers::completion::CandidateTag::KEYWORD_A &&
+                prevalence != buffers::completion::CandidateTag::KEYWORD_B) {
+                continue;
+            }
         }
         auto name = parser::Keyword::GetKeywordName(expected);
         if (!name.empty()) {
@@ -1012,8 +1034,8 @@ void Completion::DeriveKeywordSnippetsForTopCandidates() {
     auto& symbols = cursor.script.scanned_script->GetSymbols();
     // When between symbols, use the next symbol position so ParseUntilAfter includes the previous token
     auto target_id = (between_symbols && !symbols.IsAtEOF(target_scanner_symbol->symbol_id))
-        ? symbols.GetNext(target_scanner_symbol->symbol_id)
-        : target_scanner_symbol->symbol_id;
+                         ? symbols.GetNext(target_scanner_symbol->symbol_id)
+                         : target_scanner_symbol->symbol_id;
 
     // Helper: given expected symbols after a feed, find the best continuation.
     // If there's exactly one genuine keyword/operator expected, use it.
@@ -1236,15 +1258,13 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
     target_symbol.emplace(scanner_location.current);
     std::optional<ScannedScript::SymbolLocationInfo> previous_symbol{scanner_location.previous};
 
-    // Cursor is between symbols (whitespace after a token)?
+    // Cursor is after a symbol (whitespace after a token)?
     // Produce expected-keyword-only completions for passive inline hints.
-    switch (scanner_location.current.relative_pos) {
-        case buffers::cursor::RelativeSymbolPosition::AFTER_SYMBOL:
-        case buffers::cursor::RelativeSymbolPosition::BEFORE_SYMBOL:
-            completion->between_symbols = true;
-            break;
-        default:
-            break;
+    // Also treat BEFORE_SYMBOL as between-symbols when there's no previous symbol (start of statement).
+    if (scanner_location.current.relative_pos == buffers::cursor::RelativeSymbolPosition::AFTER_SYMBOL ||
+        (scanner_location.current.relative_pos == buffers::cursor::RelativeSymbolPosition::BEFORE_SYMBOL &&
+         !previous_symbol.has_value())) {
+        completion->between_symbols = true;
     }
     bool between_symbols = completion->between_symbols;
 
@@ -1392,7 +1412,12 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
     } else if (between_symbols) {
         // Between symbols: only add expected keywords with zero-length target location.
         // This produces candidates for passive inline hints (e.g. "BY" after "GROUP ").
-        completion->AddExpectedKeywordsAsCandidates(expected_symbols);
+        // Suppress hints entirely after tokens where the user will type an identifier/expression.
+        if (suppressPassiveHint(target_symbol->symbol.kind_)) {
+            // No candidates, no passive hint
+        } else {
+            completion->AddExpectedKeywordsAsCandidates(expected_symbols);
+        }
     } else {
         // Add expected grammar symbols to the heap and score them
         completion->AddExpectedKeywordsAsCandidates(expected_symbols);
@@ -1458,8 +1483,8 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
     // Advanced completion only if we're at identifiers and not at definitions/aliases
     if (!between_symbols &&
         (completion->dot_completion || completion->strategy == sx::completion::CompletionStrategy::COLUMN_REF ||
-        (cursor_at_identifier && !completion->at_definition &&
-         completion->strategy != sx::completion::CompletionStrategy::TABLE_REF_ALIAS))) {
+         (cursor_at_identifier && !completion->at_definition &&
+          completion->strategy != sx::completion::CompletionStrategy::TABLE_REF_ALIAS))) {
         // Only collect snippets in clauses where filters/templates apply.
         // Skip in GROUP BY, ORDER BY, LIMIT, OFFSET, window definitions, etc.
         bool skip_snippets = false;

@@ -82,9 +82,9 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
-        - score: 58
+        - score: 59
           value: from
-          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          candidate-tags: [EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH,KEYWORD_A]
           location: "f"
           location-qualified: "f"
           objects: []
@@ -131,9 +131,9 @@ completion-snapshots:
           location: "f"
           location-qualified: "f"
           objects: []
-        - score: 58
+        - score: 59
           value: from
-          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          candidate-tags: [EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH,KEYWORD_A]
           location: "f"
           location-qualified: "f"
           objects: []
@@ -187,14 +187,14 @@ completion-snapshots:
           location-qualified: "baz"
           objects: []
         - score: 4
-          value: select
+          value: from
           keyword-continuation: into
           candidate-tags: [EXPECTED_PARSER_SYMBOL,KEYWORD_A]
           location: "baz"
           location-qualified: "baz"
           objects: []
         - score: 4
-          value: where
+          value: select
           keyword-continuation: into
           candidate-tags: [EXPECTED_PARSER_SYMBOL,KEYWORD_A]
           location: "baz"
