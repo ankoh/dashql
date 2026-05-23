@@ -30,8 +30,8 @@
 
 .hint_candidate_insert {
     position: relative;
-    color: var(--dashql-completion-hint-color, #666) !important;
-    opacity: 0.6;
+    color: #888 !important;
+    opacity: 0.5;
     font-style: italic;
     user-select: none;
     pointer-events: none;
@@ -39,17 +39,20 @@
     display: inline;
 }
 .hint_candidate_insert:not(:empty) {
-    background-color: var(--dashql-completion-hint-bg, rgba(0, 255, 0, 0.5));
+    background-color: rgba(128, 128, 128, 0.07);
     border-radius: 2px;
     padding: 0 1px;
 }
 .hint_candidate_delete {
-    background-color: rgba(155, 0, 0, 0.5);
+    text-decoration: line-through;
+    color: #888 !important;
+    opacity: 0.5;
+    background-color: rgba(128, 128, 128, 0.07);
 }
 
 .hint_qualification_insert {
-    color: var(--dashql-completion-hint-color, #666) !important;
-    opacity: 0.6;
+    color: #888 !important;
+    opacity: 0.5;
     font-style: italic;
     user-select: none;
     pointer-events: none;
@@ -57,17 +60,20 @@
     display: inline;
 }
 .hint_qualification_insert:not(:empty) {
-    background-color: rgba(0, 255, 0, 0.5);
+    background-color: rgba(128, 128, 128, 0.07);
     border-radius: 2px;
     padding: 0 1px;
 }
 .hint_qualification_delete {
-    background-color: rgba(155, 0, 0, 0.5);
+    text-decoration: line-through;
+    color: #888 !important;
+    opacity: 0.5;
+    background-color: rgba(128, 128, 128, 0.07);
 }
 
 .hint_template_insert {
-    color: var(--dashql-completion-hint-color, #666) !important;
-    opacity: 0.6;
+    color: #888 !important;
+    opacity: 0.5;
     font-style: italic;
     user-select: none;
     pointer-events: none;
@@ -75,10 +81,13 @@
     display: inline;
 }
 .hint_template_insert:not(:empty) {
-    background-color: rgba(0, 255, 0, 0.5);
+    background-color: rgba(128, 128, 128, 0.07);
     border-radius: 2px;
     padding: 0 1px;
 }
 .hint_template_delete {
-    background-color: rgba(255, 0, 0, 0.5);
+    text-decoration: line-through;
+    color: #888 !important;
+    opacity: 0.5;
+    background-color: rgba(128, 128, 128, 0.07);
 }

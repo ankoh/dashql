@@ -28,8 +28,8 @@
 }
 
 .cm-completion-hint {
-    color: var(--dashql-completion-hint-color, #666) !important;
-    opacity: 0.6;
+    color: #888 !important;
+    opacity: 0.5;
     font-style: italic;
     user-select: none;
     pointer-events: none;
@@ -37,7 +37,7 @@
     display: inline;
 }
 .cm-completion-hint:not(:empty) {
-    background-color: var(--dashql-completion-hint-bg, rgba(100, 149, 237, 0.1));
+    background-color: rgba(128, 128, 128, 0.07);
     border-radius: 2px;
     padding: 0 1px;
 }
