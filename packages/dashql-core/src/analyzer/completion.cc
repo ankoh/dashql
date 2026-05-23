@@ -25,9 +25,10 @@ namespace {
 // Keyword prevalence modifiers
 // Users write some keywords much more likely than others, and we hardcode some prevalence scores.
 // Example: "se" should suggest "select" before "set"
-static constexpr Completion::ScoreValueType KEYWORD_VERY_POPULAR = 3;
-static constexpr Completion::ScoreValueType KEYWORD_POPULAR = 2;
-static constexpr Completion::ScoreValueType KEYWORD_DEFAULT = 0;
+static constexpr Completion::ScoreValueType KEYWORD_A = 4;
+static constexpr Completion::ScoreValueType KEYWORD_B = 3;
+static constexpr Completion::ScoreValueType KEYWORD_C = 2;
+static constexpr Completion::ScoreValueType KEYWORD_D = 0;
 
 // Coarse base score of a registered name
 static constexpr Completion::ScoreValueType NAME_TAG_IGNORE = 0;
@@ -53,8 +54,11 @@ static constexpr Completion::ScoreValueType IN_OTHER_SCRIPT_SCORE_MODIFIER = 1; 
 // Identity candidate scores (context-dependent)
 // At definition positions: max (always keep user's text)
 // At TABLE_REF: low enough that any substring-matching catalog table wins
+// At TABLE_REF_ALIAS: low enough that prefix-matching keywords (WHERE=58) win over the alias text,
+//   so typing "w" after FROM suggests WHERE before treating it as an alias
 // At COLUMN_REF: low enough that in-scope substring-matching columns win
 static constexpr Completion::ScoreValueType IDENTITY_SCORE_TABLE_REF = 50;
+static constexpr Completion::ScoreValueType IDENTITY_SCORE_TABLE_REF_ALIAS = 50;
 static constexpr Completion::ScoreValueType IDENTITY_SCORE_COLUMN_REF = 59;
 
 // Design choices for the score modifiers
@@ -77,9 +81,10 @@ static_assert((NAME_TAG_LIKELY + THROUGH_CATALOG_SCORE_MODIFIER) > EXPECTED_KEYW
 
 Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags) {
     Completion::ScoreValueType score = 0;
-    score += ((tags & buffers::completion::CandidateTag::KEYWORD_DEFAULT) != 0) * KEYWORD_DEFAULT;
-    score += ((tags & buffers::completion::CandidateTag::KEYWORD_POPULAR) != 0) * KEYWORD_POPULAR;
-    score += ((tags & buffers::completion::CandidateTag::KEYWORD_VERY_POPULAR) != 0) * KEYWORD_VERY_POPULAR;
+    score += ((tags & buffers::completion::CandidateTag::KEYWORD_D) != 0) * KEYWORD_D;
+    score += ((tags & buffers::completion::CandidateTag::KEYWORD_C) != 0) * KEYWORD_C;
+    score += ((tags & buffers::completion::CandidateTag::KEYWORD_B) != 0) * KEYWORD_B;
+    score += ((tags & buffers::completion::CandidateTag::KEYWORD_A) != 0) * KEYWORD_A;
 
     score += ((tags & buffers::completion::CandidateTag::SUBSTRING_MATCH) != 0) * SUBSTRING_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::PREFIX_MATCH) != 0) * PREFIX_SCORE_MODIFIER;
@@ -139,13 +144,14 @@ static constexpr NameScoringTable NAME_SCORE_COLUMN_REF{{
 /// (i.e., being prefix, substring or in-scope outweighs the prevalence score)
 static constexpr buffers::completion::CandidateTag GetKeywordPrevalence(parser::Parser::symbol_kind_type keyword) {
     switch (keyword) {
+        case parser::Parser::symbol_kind_type::S_SELECT:
+        case parser::Parser::symbol_kind_type::S_WHERE:
+            return buffers::completion::CandidateTag::KEYWORD_A;
         case parser::Parser::symbol_kind_type::S_AND:
         case parser::Parser::symbol_kind_type::S_FROM:
         case parser::Parser::symbol_kind_type::S_GROUP_P:
         case parser::Parser::symbol_kind_type::S_ORDER:
-        case parser::Parser::symbol_kind_type::S_SELECT:
-        case parser::Parser::symbol_kind_type::S_WHERE:
-            return buffers::completion::CandidateTag::KEYWORD_VERY_POPULAR;
+            return buffers::completion::CandidateTag::KEYWORD_B;
         case parser::Parser::symbol_kind_type::S_AS:
         case parser::Parser::symbol_kind_type::S_ASC_P:
         case parser::Parser::symbol_kind_type::S_BY:
@@ -161,13 +167,13 @@ static constexpr buffers::completion::CandidateTag GetKeywordPrevalence(parser::
         case parser::Parser::symbol_kind_type::S_THEN:
         case parser::Parser::symbol_kind_type::S_WHEN:
         case parser::Parser::symbol_kind_type::S_WITH:
-            return buffers::completion::CandidateTag::KEYWORD_POPULAR;
+            return buffers::completion::CandidateTag::KEYWORD_C;
         case parser::Parser::symbol_kind_type::S_BETWEEN:
         case parser::Parser::symbol_kind_type::S_DAY_P:
         case parser::Parser::symbol_kind_type::S_PARTITION:
         case parser::Parser::symbol_kind_type::S_SETOF:
         default:
-            return buffers::completion::CandidateTag::KEYWORD_DEFAULT;
+            return buffers::completion::CandidateTag::KEYWORD_D;
     }
 }
 
@@ -608,14 +614,16 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
                     target_symbol->symbol.location.offset(), target_symbol->symbol.location.length()));
                 auto symbol_text_trimmed = trim_view({symbol_text.data(), symbol_prefix}, is_no_double_quote);
                 fuzzy_ci_string_view ci_symbol_text{symbol_text_trimmed.data(), symbol_text_trimmed.length()};
-                // Is substring?
-                if (auto pos = ci_keyword_text.find(ci_symbol_text); pos != fuzzy_ci_string_view::npos) {
-                    tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
-                    tags |= buffers::completion::CandidateTag::EXPECTED_KEYWORD_MATCH;
-                    if (pos == 0) {
-                        tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
-                        if (ci_symbol_text.size() == ci_keyword_text.size()) {
-                            tags |= buffers::completion::CandidateTag::EXACT_MATCH;
+                // Is substring? (only match when the user has actually typed something)
+                if (!ci_symbol_text.empty()) {
+                    if (auto pos = ci_keyword_text.find(ci_symbol_text); pos != fuzzy_ci_string_view::npos) {
+                        tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
+                        tags |= buffers::completion::CandidateTag::EXPECTED_KEYWORD_MATCH;
+                        if (pos == 0) {
+                            tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
+                            if (ci_symbol_text.size() == ci_keyword_text.size()) {
+                                tags |= buffers::completion::CandidateTag::EXACT_MATCH;
+                            }
                         }
                     }
                 }
@@ -625,8 +633,19 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
         return tags;
     };
 
-    // Add all expected symbols to the result heap
+    // Determine target location: use cursor position with zero length when between symbols (pure insertion)
+    auto target_loc = between_symbols
+        ? sx::parser::SymbolSpan(cursor.text_offset, 0)
+        : target_symbol->symbol.location;
+
+    // Add all expected symbols to the result heap.
+    // When between symbols (passive inline hints), skip keywords that are only expected because they
+    // double as identifiers — e.g. after "GROUP BY ", the grammar expects BY/SET/etc. as column names
+    // via sql_unreserved_keywords, but suggesting "by" there is confusing rather than helpful.
     for (auto& expected : symbols) {
+        if (between_symbols && expected.expected_as_identifier) {
+            continue;
+        }
         auto name = parser::Keyword::GetKeywordName(expected);
         if (!name.empty()) {
             auto tags = get_score(*target_symbol, expected, name);
@@ -634,8 +653,8 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
                 .completion_text = name,
                 .coarse_name_tags = {},
                 .candidate_tags = tags,
-                .target_location = target_symbol->symbol.location,
-                .target_location_qualified = target_symbol->symbol.location,
+                .target_location = target_loc,
+                .target_location_qualified = target_loc,
                 .score = computeCandidateScore(tags),
                 .keyword_symbol = expected,
             };
@@ -990,11 +1009,18 @@ void Completion::FindIdentifierSnippetsForTopCandidates(ScriptRegistry& registry
 void Completion::DeriveKeywordSnippetsForTopCandidates() {
     if (!target_scanner_symbol.has_value()) return;
     auto& scanned = *cursor.script.scanned_script;
-    auto target_id = target_scanner_symbol->symbol_id;
+    auto& symbols = cursor.script.scanned_script->GetSymbols();
+    // When between symbols, use the next symbol position so ParseUntilAfter includes the previous token
+    auto target_id = (between_symbols && !symbols.IsAtEOF(target_scanner_symbol->symbol_id))
+        ? symbols.GetNext(target_scanner_symbol->symbol_id)
+        : target_scanner_symbol->symbol_id;
 
     // Helper: given expected symbols after a feed, find the best continuation.
-    // If there's exactly one keyword/operator expected, use it.
+    // If there's exactly one genuine keyword/operator expected, use it.
     // Otherwise, find the uniquely highest-scored continuation keyword.
+    // Ignores keywords that are only expected as identifiers — they would inflate the keyword count
+    // and suppress valid continuations (e.g. after "ORDER", BY is the genuine continuation but many
+    // unreserved keywords are also expected as column-name identifiers).
     auto find_continuation = [](std::vector<parser::Parser::ExpectedSymbol>& expected_after) -> std::string_view {
         std::string_view best_continuation;
         uint8_t best_score = 0;
@@ -1003,6 +1029,7 @@ void Completion::DeriveKeywordSnippetsForTopCandidates() {
         std::string_view unique_continuation;
 
         for (auto& sym : expected_after) {
+            if (sym.expected_as_identifier) continue;
             auto text = parser::Keyword::GetSymbolText(sym);
             if (text.empty()) continue;
             ++keyword_count;
@@ -1209,15 +1236,17 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
     target_symbol.emplace(scanner_location.current);
     std::optional<ScannedScript::SymbolLocationInfo> previous_symbol{scanner_location.previous};
 
-    // After we pointing into nirvana?
-    // Then we shouldn't complete anything
+    // Cursor is between symbols (whitespace after a token)?
+    // Produce expected-keyword-only completions for passive inline hints.
     switch (scanner_location.current.relative_pos) {
         case buffers::cursor::RelativeSymbolPosition::AFTER_SYMBOL:
         case buffers::cursor::RelativeSymbolPosition::BEFORE_SYMBOL:
-            return completion;
+            completion->between_symbols = true;
+            break;
         default:
             break;
     }
+    bool between_symbols = completion->between_symbols;
 
     auto usePreviousSymbolIfAtEnd = [&]() {
         if (previous_symbol.has_value() && previous_symbol.value().relative_pos == RelativePosition::END_OF_SYMBOL) {
@@ -1233,7 +1262,7 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
 
     // Is the current symbol an inner dot?
     completion->dot_completion = false;
-    if (completion->target_scanner_symbol->symbolIsDot()) {
+    if (!between_symbols && completion->target_scanner_symbol->symbolIsDot()) {
         using RelativePosition = ScannedScript::LocationInfo::RelativePosition;
         switch (completion->target_scanner_symbol->relative_pos) {
             case RelativePosition::AFTER_SYMBOL:
@@ -1253,7 +1282,7 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
     }
 
     // Is the current symbol a trailing dot?
-    else if (completion->target_scanner_symbol->symbolIsTrailingDot()) {
+    else if (!between_symbols && completion->target_scanner_symbol->symbolIsTrailingDot()) {
         using RelativePosition = ScannedScript::LocationInfo::RelativePosition;
         switch (completion->target_scanner_symbol->relative_pos) {
             case RelativePosition::AFTER_SYMBOL:
@@ -1275,7 +1304,7 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
     }
 
     // Skip completion for the current symbol
-    if (doNotCompleteSymbol(target_symbol->symbol)) {
+    if (!between_symbols && doNotCompleteSymbol(target_symbol->symbol)) {
         // Is the cursor at the end of the previous symbol?
         // This happens for commas.
         if (!usePreviousSymbolIfAtEnd()) {
@@ -1360,6 +1389,10 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
     if (completion->dot_completion) {
         // Restricting candidates to the dot context
         completion->FindCandidatesForNamePath();
+    } else if (between_symbols) {
+        // Between symbols: only add expected keywords with zero-length target location.
+        // This produces candidates for passive inline hints (e.g. "BY" after "GROUP ").
+        completion->AddExpectedKeywordsAsCandidates(expected_symbols);
     } else {
         // Add expected grammar symbols to the heap and score them
         completion->AddExpectedKeywordsAsCandidates(expected_symbols);
@@ -1377,6 +1410,8 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
                     identity_score = IDENTITY_SCORE_TABLE_REF;
                 } else if (completion->strategy == sx::completion::CompletionStrategy::COLUMN_REF) {
                     identity_score = IDENTITY_SCORE_COLUMN_REF;
+                } else if (completion->strategy == sx::completion::CompletionStrategy::TABLE_REF_ALIAS) {
+                    identity_score = IDENTITY_SCORE_TABLE_REF_ALIAS;
                 } else {
                     identity_score = std::numeric_limits<ScoreValueType>::max();
                 }
@@ -1402,24 +1437,29 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
         }
     }
     // Promote names that are in scope
-    completion->PromoteIdentifiersInScope();
-    // Promote names that we've used before
-    if (registry) {
-        completion->PromoteIdentifiersInScripts(*registry);
+    if (!between_symbols) {
+        completion->PromoteIdentifiersInScope();
+        // Promote names that we've used before
+        if (registry) {
+            completion->PromoteIdentifiersInScripts(*registry);
+        }
     }
     // Add all candidates to the result heap
     completion->SelectTopCandidates();
     // Get qualified names for the top candidate objects
-    completion->QualifyTopCandidates();
+    if (!between_symbols) {
+        completion->QualifyTopCandidates();
+    }
 
     // Cursor at identifier?
     bool cursor_at_identifier = cursor.scanner_location.has_value() && cursor.scanner_location->current.symbol.kind_ ==
                                                                            parser::Parser::symbol_kind_type::S_IDENT;
 
     // Advanced completion only if we're at identifiers and not at definitions/aliases
-    if (completion->dot_completion || completion->strategy == sx::completion::CompletionStrategy::COLUMN_REF ||
+    if (!between_symbols &&
+        (completion->dot_completion || completion->strategy == sx::completion::CompletionStrategy::COLUMN_REF ||
         (cursor_at_identifier && !completion->at_definition &&
-         completion->strategy != sx::completion::CompletionStrategy::TABLE_REF_ALIAS)) {
+         completion->strategy != sx::completion::CompletionStrategy::TABLE_REF_ALIAS))) {
         // Only collect snippets in clauses where filters/templates apply.
         // Skip in GROUP BY, ORDER BY, LIMIT, OFFSET, window definitions, etc.
         bool skip_snippets = false;
@@ -1605,9 +1645,10 @@ CompletionPtr Completion::SelectCandidate(flatbuffers::FlatBufferBuilder& builde
     }
 
     // Check if the candidate was a keyword
-    auto candidate_mask = static_cast<uint32_t>(buffers::completion::CandidateTag::KEYWORD_DEFAULT) |
-                          static_cast<uint32_t>(buffers::completion::CandidateTag::KEYWORD_POPULAR) |
-                          static_cast<uint32_t>(buffers::completion::CandidateTag::KEYWORD_VERY_POPULAR);
+    auto candidate_mask = static_cast<uint32_t>(buffers::completion::CandidateTag::KEYWORD_D) |
+                          static_cast<uint32_t>(buffers::completion::CandidateTag::KEYWORD_C) |
+                          static_cast<uint32_t>(buffers::completion::CandidateTag::KEYWORD_B) |
+                          static_cast<uint32_t>(buffers::completion::CandidateTag::KEYWORD_A);
     auto candidate_was_keyword = (candidate->candidate_tags() & candidate_mask) != 0;
 
     // Did we complete a keyword?

@@ -61,8 +61,8 @@ SELECT s_co
         }
         names.emplace_back(std::move(name));
     }
-    std::vector<std::string> expected_names{"s_co",      "s_comment", "ps_comment", "from", "group by",
-                                            "order by", "where",     "by",         "case", "cast"};
+    std::vector<std::string> expected_names{"s_co",      "s_comment", "ps_comment", "where", "from",
+                                            "group by", "order by",  "by",         "case",  "cast"};
     ASSERT_EQ(names, expected_names);
 }
 

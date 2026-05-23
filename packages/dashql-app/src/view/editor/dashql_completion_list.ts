@@ -535,7 +535,8 @@ class CompletionList {
         this.renderedCompletion = processor.scriptCompletion;
 
         // Hide completion?
-        if (processor.scriptCompletion?.status !== DashQLCompletionStatus.AVAILABLE) {
+        if (processor.scriptCompletion?.status !== DashQLCompletionStatus.AVAILABLE
+            || processor.scriptCompletion?.passiveHint) {
             if (!this.list.isHidden) {
                 view.requestMeasure<(Position | null)>({
                     read: (_view) => null,

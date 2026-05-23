@@ -74,6 +74,14 @@ class DashQLCompletionEventListener {
             return;
         }
         const processor = update.view.state.field(DashQLProcessorPlugin);
+        // Dismiss passive hints on cursor movement (arrow keys, click)
+        if (processor.scriptCompletion?.passiveHint
+            && !update.docChanged && update.selectionSet) {
+            update.view.dispatch({
+                effects: DashQLCompletionAbortEffect.of(null)
+            });
+            return;
+        }
         switch (processor.scriptCompletion?.status) {
             case DashQLCompletionStatus.AVAILABLE:
             case DashQLCompletionStatus.SELECTED_CANDIDATE:
@@ -102,6 +110,10 @@ function onEnter(view: EditorView) {
 
     // `Enter` can only be used to accept the immediate candidate
     if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
+        return false;
+    }
+    // Passive hints are not accepted by Enter — let it insert a newline
+    if (processor.scriptCompletion?.passiveHint) {
         return false;
     }
 
@@ -225,6 +237,7 @@ function onArrowUp(view: EditorView) {
     if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
         return false;
     }
+    if (processor.scriptCompletion?.passiveHint) { return false; }
     const c = processor.scriptCompletion.buffer.read();
     const candidateCount = c.candidatesLength();
     if (candidateCount > 1) {
@@ -244,6 +257,7 @@ function onArrowDown(view: EditorView) {
         console.log(processor.scriptCompletion?.status);
         return false;
     }
+    if (processor.scriptCompletion?.passiveHint) { return false; }
     const c = processor.scriptCompletion.buffer.read();
     const candidateCount = c.candidatesLength();
     if (candidateCount > 1) {

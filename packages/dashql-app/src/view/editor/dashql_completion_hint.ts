@@ -190,6 +190,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
     if (processor.scriptCompletion == null || processor.scriptCursor == null) {
         return Decoration.none;
     }
+    const isPassive = processor.scriptCompletion.passiveHint;
 
     // Compute the new completion hints
     const hints = deriveCompletionHints(processor.scriptCompletion);
@@ -243,7 +244,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
                 decorations.push(insertDeco);
 
                 // Insert controls after?
-                if (patch.controls) {
+                if (patch.controls && !isPassive) {
                     const [hintKey, hintKeyNumber] = determineHintKey(hints, patch.target);
                     const controlsWidget = new HintKeyWidget(hintKey, hintKeyNumber);
                     const controlDeco = Decoration.widget({ widget: controlsWidget, side }).range(patch.value.at);
@@ -258,7 +259,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
                 decorations.push(deleteDeco);
 
                 // Emit controls?
-                if (patch.controls) {
+                if (patch.controls && !isPassive) {
                     const [hintKey, hintKeyNumber] = determineHintKey(hints, patch.target);
                     const controlsWidget = new HintKeyWidget(hintKey, hintKeyNumber);
                     const controlDeco = Decoration.widget({ widget: controlsWidget }).range(patch.value.at);

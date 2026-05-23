@@ -67,17 +67,16 @@ completion-snapshots:
           location: "region"
           location-qualified: "region"
           objects: []
-        - score: 3
-          value: group
-          keyword-continuation: by
-          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+        - score: 4
+          value: where
+          candidate-tags: [EXPECTED_PARSER_SYMBOL,KEYWORD_A]
           location: "region"
           location-qualified: "region"
           objects: []
         - score: 3
-          value: order
+          value: group
           keyword-continuation: by
-          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
           location: "region"
           location-qualified: "region"
           objects: []
@@ -150,17 +149,16 @@ completion-snapshots:
           location: "\"Region\""
           location-qualified: "\"Region\""
           objects: []
-        - score: 3
-          value: group
-          keyword-continuation: by
-          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+        - score: 4
+          value: where
+          candidate-tags: [EXPECTED_PARSER_SYMBOL,KEYWORD_A]
           location: "\"Region\""
           location-qualified: "\"Region\""
           objects: []
         - score: 3
-          value: order
+          value: group
           keyword-continuation: by
-          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
           location: "\"Region\""
           location-qualified: "\"Region\""
           objects: []

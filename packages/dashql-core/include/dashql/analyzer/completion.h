@@ -110,6 +110,8 @@ struct Completion {
     bool dot_completion = false;
     /// Is the cursor at a definition position (name being defined, not referenced)?
     bool at_definition = false;
+    /// Is the cursor between symbols (whitespace after a token)?
+    bool between_symbols = false;
     /// The symbol that we are completing.
     /// Note that we sometimes have a choice here between the current and the previous symbol.
     std::optional<ScannedScript::SymbolLocationInfo> target_scanner_symbol;

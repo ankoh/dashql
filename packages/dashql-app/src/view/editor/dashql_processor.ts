@@ -37,6 +37,8 @@ export enum DashQLCompletionStatus {
 export interface DashQLCompletionState {
     /// The status
     status: DashQLCompletionStatus;
+    /// Show as passive inline hint only (no dropdown list, no Enter acceptance)
+    passiveHint: boolean;
     /// The completion buffer
     buffer: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>;
     /// The currently selected candidate id.
@@ -278,8 +280,10 @@ function tryStartCompletion(state: DashQLProcessorState, prevState: DashQLProces
     } else {
         // Mark the new completion available
         state = copyLazily(state, prevState);
+        const completionBuffer = buffer.read();
         state.scriptCompletion = {
             status: DashQLCompletionStatus.AVAILABLE,
+            passiveHint: isPassiveHint(completionBuffer),
             buffer: buffer,
             candidateId: 0,
             candidatePatch: [],
@@ -293,6 +297,14 @@ function tryStartCompletion(state: DashQLProcessorState, prevState: DashQLProces
     }
     return state;
 };
+
+function isPassiveHint(buffer: dashql.buffers.completion.Completion): boolean {
+    const count = buffer.candidatesLength();
+    if (count === 0) return false;
+    const first = buffer.candidates(0)!;
+    const targetLoc = first.targetLocation();
+    return targetLoc != null && targetLoc.length() === 0;
+}
 
 // Helper to determine if a user event triggers completions.
 // For events, refer to https://codemirror.net/docs/ref/

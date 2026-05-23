@@ -52,9 +52,10 @@ table CompletionCandidateObject {
 
 enum CandidateTag: uint32 {
     NONE = 0,
-    KEYWORD_DEFAULT = 1,
-    KEYWORD_POPULAR = 2,
-    KEYWORD_VERY_POPULAR = 4,
+    KEYWORD_D = 1,
+    KEYWORD_C = 2,
+    KEYWORD_B = 4,
+    KEYWORD_A = 2097152,
     EXPECTED_PARSER_SYMBOL = 8,
     NAME_INDEX = 16,
     DOT_RESOLUTION_DATABASE = 32,

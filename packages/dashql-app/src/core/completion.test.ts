@@ -140,9 +140,9 @@ describe('DashQL Completion', () => {
             expect(candidate?.catalogObjectsLength()).toEqual(1);
             expect(candidate?.completionText()).toEqual("\"attrA\"");
             expect(candidate?.targetLocation()?.unpack()).toEqual({ offset: 29, length: 3 });
-            expect(candidate?.candidateTags()! & dashql.buffers.completion.CandidateTag.KEYWORD_DEFAULT).toEqual(0);
-            expect(candidate?.candidateTags()! & dashql.buffers.completion.CandidateTag.KEYWORD_POPULAR).toEqual(0);
-            expect(candidate?.candidateTags()! & dashql.buffers.completion.CandidateTag.KEYWORD_VERY_POPULAR).toEqual(0);
+            expect(candidate?.candidateTags()! & dashql.buffers.completion.CandidateTag.KEYWORD_D).toEqual(0);
+            expect(candidate?.candidateTags()! & dashql.buffers.completion.CandidateTag.KEYWORD_C).toEqual(0);
+            expect(candidate?.candidateTags()! & dashql.buffers.completion.CandidateTag.KEYWORD_B).toEqual(0);
 
             const textB = "select * from tableA a where \"attrA\"";
             script.replaceText(textB);

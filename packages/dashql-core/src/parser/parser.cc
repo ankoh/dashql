@@ -16,14 +16,51 @@ template <typename Base> static void destroy(std::string_view msg, dashql::parse
     // See yy_destroy_
 }
 
-/// Collect all expected symbols
+/// Collect all expected symbols.
+/// For each accepted keyword symbol, determines whether it is expected purely because it doubles as an
+/// identifier (via sql_unreserved_keywords, sql_column_name_keywords, etc.) or because it has genuine
+/// syntactic meaning at this position (e.g. CUBE in "GROUP BY CUBE(...)").
+///
+/// The heuristic: after shifting the keyword, check the target state's default action.
+/// If it immediately reduces a length-1 rule, the keyword was only shifted into a keyword-list nonterminal
+/// (like `sql_unreserved_keywords: BY {$$=$1;}`) and serves exclusively as an identifier.
+/// Genuine keyword uses always lead to states expecting additional tokens (the keyword starts a multi-token
+/// construct), so their target states do NOT have an immediate length-1 default reduce.
 std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbols() {
     std::vector<Parser::ExpectedSymbol> expected;
+
+    // Check if IDENT is accepted — if not, keywords cannot be expected "as identifier"
+    bool ident_accepted = yy_lac_check_(symbol_kind::S_IDENT);
+
+    // Determine the current state from the top of the parse stack (used for shift-target lookups)
+    auto current_state = yystack_[0].state;
 
     for (int yyx = 0; yyx < YYNTOKENS; ++yyx) {
         symbol_kind_type yysym = YY_CAST(symbol_kind_type, yyx);
         if (yysym != symbol_kind::S_YYerror && yysym != symbol_kind::S_YYUNDEF && yy_lac_check_(yysym)) {
-            expected.emplace_back(yysym);
+            bool as_identifier = false;
+
+            // Determine if this keyword is only expected as an identifier.
+            // Only relevant when IDENT is also expected (otherwise there's no identifier path).
+            if (ident_accepted && yysym != symbol_kind::S_IDENT) {
+                int yyn = yypact_[+current_state];
+                if (!yy_pact_value_is_default_(yyn)) {
+                    yyn += yysym;
+                    if (0 <= yyn && yyn <= yylast_ && yycheck_[yyn] == yysym) {
+                        int action = yytable_[yyn];
+                        if (action > 0) {
+                            // action > 0 means shift to state `action`.
+                            // Check if that state immediately reduces a length-1 rule.
+                            int target_default_rule = yydefact_[action];
+                            if (target_default_rule != 0 && yyr2_[target_default_rule] == 1) {
+                                as_identifier = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            expected.emplace_back(yysym, as_identifier);
         }
     }
     return expected;

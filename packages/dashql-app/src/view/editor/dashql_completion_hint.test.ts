@@ -44,6 +44,7 @@ describe('Completion Hint', () => {
         const textBuffer = Text.of([text]);
         let completionState: DashQLCompletionState = {
             status: DashQLCompletionStatus.AVAILABLE,
+            passiveHint: false,
             buffer: completionPtr,
             candidateId: 0,
             candidatePatch: [],
@@ -106,6 +107,7 @@ describe('Completion Hint', () => {
         const textBuffer = Text.of([text]);
         let completionState: DashQLCompletionState = {
             status: DashQLCompletionStatus.AVAILABLE,
+            passiveHint: false,
             buffer: completionPtr,
             candidateId: 0,
             candidatePatch: [],
@@ -173,6 +175,7 @@ describe('Completion Hint', () => {
         const textBuffer = Text.of([text]);
         let completionState: DashQLCompletionState = {
             status: DashQLCompletionStatus.AVAILABLE,
+            passiveHint: false,
             buffer: completionPtr,
             candidateId: 0,
             candidatePatch: [],

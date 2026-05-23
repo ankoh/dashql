@@ -13,7 +13,22 @@ completion-snapshots:
     completions:
       limit: 3
       strategy: DEFAULT
-      entries: []
+      entries:
+        - score: 4
+          value: select
+          candidate-tags: [EXPECTED_PARSER_SYMBOL,KEYWORD_A]
+          location: ""
+          objects: []
+        - score: 2
+          value: set
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          objects: []
+        - score: 2
+          value: with
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          objects: []
       text: ""
 
   - name: complete_database_name
@@ -65,10 +80,9 @@ completion-snapshots:
           location: "db"
           location-qualified: "db"
           objects: []
-        - score: 3
-          value: group
-          keyword-continuation: by
-          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+        - score: 4
+          value: where
+          candidate-tags: [EXPECTED_PARSER_SYMBOL,KEYWORD_A]
           location: "db"
           location-qualified: "db"
           objects: []
@@ -119,13 +133,13 @@ completion-snapshots:
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
         - score: 55
           value: schema
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "sch"
           location-qualified: "sch"
           objects: []
         - score: 55
           value: schemas
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "sch"
           location-qualified: "sch"
           objects: []
@@ -179,13 +193,13 @@ completion-snapshots:
               prefer-qualified: 0
         - score: 55
           value: following
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "fo"
           location-qualified: "fo"
           objects: []
         - score: 55
           value: for
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "fo"
           location-qualified: "fo"
           objects: []
@@ -362,9 +376,9 @@ completion-snapshots:
               qualified: mysum
               qualified-idx: 0
               prefer-qualified: 0
-        - score: 3
-          value: from
-          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+        - score: 4
+          value: where
+          candidate-tags: [EXPECTED_PARSER_SYMBOL,KEYWORD_A]
           location: "mys"
           location-qualified: "mys"
           objects: []
@@ -415,7 +429,7 @@ completion-snapshots:
       entries:
         - score: 70
           value: external
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,EXPECTED_KEYWORD_MATCH]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "external_"
           location-qualified: "external_"
           objects: []
@@ -456,7 +470,7 @@ completion-snapshots:
         - score: 3
           value: group
           keyword-continuation: by
-          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
           location: "external_"
           location-qualified: "external_"
           objects: []
@@ -542,14 +556,14 @@ completion-snapshots:
         - score: 3
           value: group
           keyword-continuation: by
-          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
           location: "external_"
           location-qualified: "external_"
           objects: []
         - score: 3
           value: order
           keyword-continuation: by
-          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
           location: "external_"
           location-qualified: "external_"
           objects: []

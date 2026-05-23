@@ -14,7 +14,21 @@ class Parser : public ParserBase {
     using ParserBase::ParserBase;
 
    public:
-    using ExpectedSymbol = Parser::symbol_kind_type;
+    /// An expected symbol with metadata about how it's expected.
+    /// When the grammar expects IDENT, all unreserved keywords are implicitly expected too (as identifiers).
+    /// We track this: a keyword is "expected as identifier" when its only acceptance path is through a
+    /// keyword-list nonterminal (e.g. sql_unreserved_keywords) — i.e., after shifting the keyword, the parser
+    /// immediately reduces a length-1 rule. Genuine keyword uses (e.g. CUBE in GROUP BY CUBE(...)) shift to
+    /// states with more items ahead.
+    struct ExpectedSymbol {
+        symbol_kind_type symbol;
+        bool expected_as_identifier = false;
+
+        ExpectedSymbol() = default;
+        ExpectedSymbol(symbol_kind_type s, bool as_ident = false) : symbol(s), expected_as_identifier(as_ident) {}
+        operator symbol_kind_type() const { return symbol; }
+        bool operator==(symbol_kind_type other) const { return symbol == other; }
+    };
 
    protected:
     /// Collect all expected symbols

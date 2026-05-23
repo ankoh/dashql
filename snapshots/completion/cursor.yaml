@@ -14,21 +14,21 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
-        - score: 73
+        - score: 74
           value: select
-          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,EXPECTED_KEYWORD_MATCH]
+          candidate-tags: [EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,EXPECTED_KEYWORD_MATCH,KEYWORD_A]
           location: "select"
           location-qualified: "select"
           objects: []
         - score: 2
           value: set
-          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
           location: "select"
           location-qualified: "select"
           objects: []
         - score: 2
           value: with
-          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
           location: "select"
           location-qualified: "select"
           objects: []
