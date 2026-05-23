@@ -62,7 +62,6 @@ completion-snapshots:
           objects: []
         - score: 50
           value: visualise
-          keyword-continuation: as
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "se"
           location-qualified: "se"

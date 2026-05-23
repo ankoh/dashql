@@ -28,39 +28,10 @@ template <typename Base> static void destroy(std::string_view msg, dashql::parse
 /// construct), so their target states do NOT have an immediate length-1 default reduce.
 std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbols() {
     std::vector<Parser::ExpectedSymbol> expected;
-
-    // Check if IDENT is accepted — if not, keywords cannot be expected "as identifier"
-    bool ident_accepted = yy_lac_check_(symbol_kind::S_IDENT);
-
-    // Determine the current state from the top of the parse stack (used for shift-target lookups)
-    auto current_state = yystack_[0].state;
-
     for (int yyx = 0; yyx < YYNTOKENS; ++yyx) {
         symbol_kind_type yysym = YY_CAST(symbol_kind_type, yyx);
         if (yysym != symbol_kind::S_YYerror && yysym != symbol_kind::S_YYUNDEF && yy_lac_check_(yysym)) {
-            bool as_identifier = false;
-
-            // Determine if this keyword is only expected as an identifier.
-            // Only relevant when IDENT is also expected (otherwise there's no identifier path).
-            if (ident_accepted && yysym != symbol_kind::S_IDENT) {
-                int yyn = yypact_[+current_state];
-                if (!yy_pact_value_is_default_(yyn)) {
-                    yyn += yysym;
-                    if (0 <= yyn && yyn <= yylast_ && yycheck_[yyn] == yysym) {
-                        int action = yytable_[yyn];
-                        if (action > 0) {
-                            // action > 0 means shift to state `action`.
-                            // Check if that state immediately reduces a length-1 rule.
-                            int target_default_rule = yydefact_[action];
-                            if (target_default_rule != 0 && yyr2_[target_default_rule] == 1) {
-                                as_identifier = true;
-                            }
-                        }
-                    }
-                }
-            }
-
-            expected.emplace_back(yysym, as_identifier);
+            expected.emplace_back(yysym);
         }
     }
     return expected;

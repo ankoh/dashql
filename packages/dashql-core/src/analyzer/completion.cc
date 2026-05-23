@@ -34,6 +34,8 @@ bool suppressPassiveHint(parser::Parser::symbol_kind_type kind) {
         case parser::Parser::symbol_kind_type::S_AND:
         case parser::Parser::symbol_kind_type::S_OR:
         case parser::Parser::symbol_kind_type::S_BY:
+        case parser::Parser::symbol_kind_type::S_VISUALISE:
+        case parser::Parser::symbol_kind_type::S_VISUALIZE:
             return true;
         default:
             return false;
@@ -654,20 +656,7 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
     // Determine target location: use cursor position with zero length when between symbols (pure insertion)
     auto target_loc = between_symbols ? sx::parser::SymbolSpan(cursor.text_offset, 0) : target_symbol->symbol.location;
 
-    // Add all expected symbols to the result heap.
-    // When between symbols (passive inline hints), skip keywords that are only expected because they
-    // double as identifiers — e.g. after "GROUP BY ", the grammar expects BY/SET/etc. as column names
-    // via sql_unreserved_keywords, but suggesting "by" there is confusing rather than helpful.
-    // Exception: high-prevalence keywords (A/B) are never filtered — they are primarily keywords even
-    // when the grammar also accepts them through an identifier path (e.g. FROM after SELECT *).
     for (auto& expected : symbols) {
-        if (between_symbols && expected.expected_as_identifier) {
-            auto prevalence = GetKeywordPrevalence(expected);
-            if (prevalence != buffers::completion::CandidateTag::KEYWORD_A &&
-                prevalence != buffers::completion::CandidateTag::KEYWORD_B) {
-                continue;
-            }
-        }
         auto name = parser::Keyword::GetKeywordName(expected);
         if (!name.empty()) {
             auto tags = get_score(*target_symbol, expected, name);
@@ -1038,11 +1027,8 @@ void Completion::DeriveKeywordSnippetsForTopCandidates() {
                          : target_scanner_symbol->symbol_id;
 
     // Helper: given expected symbols after a feed, find the best continuation.
-    // If there's exactly one genuine keyword/operator expected, use it.
+    // If there's exactly one keyword/operator expected, use it.
     // Otherwise, find the uniquely highest-scored continuation keyword.
-    // Ignores keywords that are only expected as identifiers — they would inflate the keyword count
-    // and suppress valid continuations (e.g. after "ORDER", BY is the genuine continuation but many
-    // unreserved keywords are also expected as column-name identifiers).
     auto find_continuation = [](std::vector<parser::Parser::ExpectedSymbol>& expected_after) -> std::string_view {
         std::string_view best_continuation;
         uint8_t best_score = 0;
@@ -1051,7 +1037,6 @@ void Completion::DeriveKeywordSnippetsForTopCandidates() {
         std::string_view unique_continuation;
 
         for (auto& sym : expected_after) {
-            if (sym.expected_as_identifier) continue;
             auto text = parser::Keyword::GetSymbolText(sym);
             if (text.empty()) continue;
             ++keyword_count;
