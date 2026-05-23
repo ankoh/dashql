@@ -53,8 +53,13 @@ build:debug -c dbg
 # --instrumentation_filter is supplied per-invocation to scope to first-party targets.
 coverage --combined_report=lcov
 coverage --experimental_generate_llvm_lcov
+coverage --features=llvm_coverage_map_format
 coverage --repo_env=BAZEL_USE_LLVM_NATIVE_COVERAGE=1
 coverage --repo_env=GCOV=llvm-cov
+coverage:linux --test_env=LLVM_COV=/usr/bin/llvm-cov
+coverage:linux --test_env=LLVM_PROFDATA=/usr/bin/llvm-profdata
+coverage:macos --test_env=LLVM_COV=/opt/homebrew/opt/llvm/bin/llvm-cov
+coverage:macos --test_env=LLVM_PROFDATA=/opt/homebrew/opt/llvm/bin/llvm-profdata
 
 # Show errors by default
 test --test_output=errors
