@@ -63,6 +63,13 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
+        - score: 4294967295
+          value: sal
+          keyword-continuation: as
+          candidate-tags: [IDENTITY]
+          location: "sal"
+          location-qualified: "sal"
+          objects: []
         - score: 57
           value: sales
           keyword-continuation: as
@@ -80,13 +87,6 @@ completion-snapshots:
               prefer-qualified: 0
         - score: 2
           value: as
-          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
-          location: "sal"
-          location-qualified: "sal"
-          objects: []
-        - score: 2
-          value: by
-          keyword-continuation: as
           candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "sal"
           location-qualified: "sal"
@@ -979,6 +979,12 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
+        - score: 4294967295
+          value: te
+          candidate-tags: [IDENTITY]
+          location: "te"
+          location-qualified: "te"
+          objects: []
         - score: 55
           value: temp
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
@@ -987,12 +993,6 @@ completion-snapshots:
           objects: []
         - score: 55
           value: template
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
-          location: "te"
-          location-qualified: "te"
-          objects: []
-        - score: 55
-          value: temporal
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "te"
           location-qualified: "te"
@@ -1016,6 +1016,12 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
+        - score: 4294967295
+          value: no
+          candidate-tags: [IDENTITY]
+          location: "no"
+          location-qualified: "no"
+          objects: []
         - score: 70
           value: no
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,EXPECTED_KEYWORD_MATCH]
@@ -1024,12 +1030,6 @@ completion-snapshots:
           objects: []
         - score: 55
           value: nominal
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
-          location: "no"
-          location-qualified: "no"
-          objects: []
-        - score: 55
-          value: none
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "no"
           location-qualified: "no"
@@ -1053,6 +1053,12 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
+        - score: 4294967295
+          value: qu
+          candidate-tags: [IDENTITY]
+          location: "qu"
+          location-qualified: "qu"
+          objects: []
         - score: 55
           value: quantile
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
@@ -1061,12 +1067,6 @@ completion-snapshots:
           objects: []
         - score: 55
           value: quantitative
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
-          location: "qu"
-          location-qualified: "qu"
-          objects: []
-        - score: 55
-          value: quantize
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "qu"
           location-qualified: "qu"
@@ -1170,6 +1170,12 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
+        - score: 4294967295
+          value: lo
+          candidate-tags: [IDENTITY]
+          location: "lo"
+          location-qualified: "lo"
+          objects: []
         - score: 55
           value: load
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
@@ -1178,12 +1184,6 @@ completion-snapshots:
           objects: []
         - score: 55
           value: local
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
-          location: "lo"
-          location-qualified: "lo"
-          objects: []
-        - score: 55
-          value: location
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "lo"
           location-qualified: "lo"
@@ -1304,6 +1304,12 @@ completion-snapshots:
       symbol: OBJECT_SQL_CREATE
       relative: END_OF_SYMBOL
       entries:
+        - score: 4294967295
+          value: sal
+          candidate-tags: [IDENTITY]
+          location: "sal"
+          location-qualified: "sal"
+          objects: []
         - score: 55
           value: sale_date
           name-tags: [COLUMN_NAME]
@@ -1332,12 +1338,6 @@ completion-snapshots:
               qualified: sales
               qualified-idx: 0
               prefer-qualified: 0
-        - score: 2
-          value: by
-          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
-          location: "sal"
-          location-qualified: "sal"
-          objects: []
       text: "sal"
 
   - name: vis_column_ref_field
@@ -1374,6 +1374,12 @@ completion-snapshots:
       symbol: OBJECT_SQL_CREATE
       relative: END_OF_SYMBOL
       entries:
+        - score: 4294967295
+          value: rev
+          candidate-tags: [IDENTITY]
+          location: "rev"
+          location-qualified: "rev"
+          objects: []
         - score: 55
           value: revenue
           name-tags: [COLUMN_NAME]
@@ -1390,12 +1396,6 @@ completion-snapshots:
               prefer-qualified: 0
         - score: 55
           value: reverse
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
-          location: "rev"
-          location-qualified: "rev"
-          objects: []
-        - score: 55
-          value: revoke
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "rev"
           location-qualified: "rev"
@@ -1439,6 +1439,12 @@ completion-snapshots:
       symbol: OBJECT_SQL_CREATE
       relative: END_OF_SYMBOL
       entries:
+        - score: 4294967295
+          value: ti
+          candidate-tags: [IDENTITY]
+          location: "ti"
+          location-qualified: "ti"
+          objects: []
         - score: 55
           value: tick
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
@@ -1447,12 +1453,6 @@ completion-snapshots:
           objects: []
         - score: 55
           value: tick_count
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
-          location: "ti"
-          location-qualified: "ti"
-          objects: []
-        - score: 55
-          value: tick_size
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "ti"
           location-qualified: "ti"
@@ -1494,6 +1494,12 @@ completion-snapshots:
       symbol: OBJECT_SQL_CREATE
       relative: END_OF_SYMBOL
       entries:
+        - score: 4294967295
+          value: rev
+          candidate-tags: [IDENTITY]
+          location: "rev"
+          location-qualified: "rev"
+          objects: []
         - score: 55
           value: revenue
           name-tags: [COLUMN_NAME]
@@ -1510,12 +1516,6 @@ completion-snapshots:
               prefer-qualified: 0
         - score: 55
           value: reverse
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
-          location: "rev"
-          location-qualified: "rev"
-          objects: []
-        - score: 55
-          value: revoke
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "rev"
           location-qualified: "rev"

@@ -33,6 +33,12 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
+        - score: 4294967295
+          value: region
+          candidate-tags: [IDENTITY]
+          location: "region"
+          location-qualified: "region"
+          objects: []
         - score: 72
           value: region
           name-tags: [TABLE_NAME]
@@ -75,12 +81,6 @@ completion-snapshots:
           location: "region"
           location-qualified: "region"
           objects: []
-        - score: 3
-          value: where
-          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          location: "region"
-          location-qualified: "region"
-          objects: []
       text: "region"
 
   - name: quoted_name_exists
@@ -116,6 +116,12 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
+        - score: 4294967295
+          value: '"Region"'
+          candidate-tags: [IDENTITY]
+          location: "\"Region\""
+          location-qualified: "\"Region\""
+          objects: []
         - score: 72
           value: Region
           name-tags: [TABLE_NAME]
@@ -154,12 +160,6 @@ completion-snapshots:
         - score: 3
           value: order
           keyword-continuation: by
-          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          location: "\"Region\""
-          location-qualified: "\"Region\""
-          objects: []
-        - score: 3
-          value: where
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "\"Region\""
           location-qualified: "\"Region\""

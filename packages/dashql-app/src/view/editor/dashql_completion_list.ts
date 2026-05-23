@@ -508,7 +508,7 @@ class CompletionList {
 
         // Update the selected candidate
         const ca = completion.candidates(selectedCandidate, tmpCandidate)!;
-        if (selectedCatalogObject != null) {
+        if (selectedCatalogObject != null && ca.catalogObjectsLength() > 0) {
             const co = ca.catalogObjects(selectedCatalogObject, tmpCatalogObject)!;
             const o = out[selectedCandidate];
             o.selectedCatalogObject = selectedCatalogObject;

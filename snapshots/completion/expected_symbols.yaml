@@ -145,3 +145,59 @@ completion-snapshots:
           location-qualified: "f"
           objects: []
       text: "f"
+
+  - name: select_as_alias
+    catalog:
+      script:
+        input: create table foo(bar int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: foo
+            text: "create tab..o(bar int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: bar
+                text: "bar int"
+        errors: []
+    editor:
+      input: select bar as baz
+      catalog-id: 2
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "bar"
+    cursor:
+      search:
+        text: as baz
+        index: 6
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 4294967295
+          value: baz
+          keyword-continuation: into
+          candidate-tags: [IDENTITY]
+          location: "baz"
+          location-qualified: "baz"
+          objects: []
+        - score: 3
+          value: and
+          keyword-continuation: into
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "baz"
+          location-qualified: "baz"
+          objects: []
+        - score: 3
+          value: from
+          keyword-continuation: into
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "baz"
+          location-qualified: "baz"
+          objects: []
+      text: "baz"

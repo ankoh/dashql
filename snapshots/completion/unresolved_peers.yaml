@@ -47,6 +47,12 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
+        - score: 4294967295
+          value: ju
+          candidate-tags: [IDENTITY]
+          location: "ju"
+          location-qualified: "ju"
+          objects: []
         - score: 56
           value: juice0
           name-tags: [COLUMN_NAME]
@@ -75,10 +81,4 @@ completion-snapshots:
               qualified: bar.juice1
               qualified-idx: 1
               prefer-qualified: 0
-        - score: 2
-          value: by
-          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
-          location: "ju"
-          location-qualified: "ju"
-          objects: []
       text: "ju"

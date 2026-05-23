@@ -45,6 +45,12 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
+        - score: 4294967295
+          value: j
+          candidate-tags: [IDENTITY]
+          location: "j"
+          location-qualified: "j"
+          objects: []
         - score: 65
           value: juice0
           name-tags: [COLUMN_NAME]
@@ -62,12 +68,6 @@ completion-snapshots:
         - score: 55
           value: join
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
-          location: "j"
-          location-qualified: "j"
-          objects: []
-        - score: 50
-          value: geojson
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "j"
           location-qualified: "j"
           objects: []

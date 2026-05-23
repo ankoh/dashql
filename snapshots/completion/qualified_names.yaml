@@ -51,6 +51,12 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
+        - score: 4294967295
+          value: attr
+          candidate-tags: [IDENTITY]
+          location: "attr"
+          location-qualified: "attr"
+          objects: []
         - score: 67
           value: attr1
           name-tags: [COLUMN_NAME]
@@ -75,12 +81,6 @@ completion-snapshots:
         - score: 55
           value: attribute
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
-          location: "attr"
-          location-qualified: "attr"
-          objects: []
-        - score: 50
-          value: xmlattributes
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "attr"
           location-qualified: "attr"
           objects: []
@@ -133,6 +133,12 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
+        - score: 4294967295
+          value: attr
+          candidate-tags: [IDENTITY]
+          location: "attr"
+          location-qualified: "attr"
+          objects: []
         - score: 57
           value: attr1
           name-tags: [COLUMN_NAME]
@@ -157,12 +163,6 @@ completion-snapshots:
         - score: 55
           value: attribute
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
-          location: "attr"
-          location-qualified: "attr"
-          objects: []
-        - score: 50
-          value: xmlattributes
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "attr"
           location-qualified: "attr"
           objects: []
@@ -222,6 +222,12 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
+        - score: 4294967295
+          value: attr
+          candidate-tags: [IDENTITY]
+          location: "attr"
+          location-qualified: "attr"
+          objects: []
         - score: 67
           value: attr1
           name-tags: [COLUMN_NAME]
@@ -246,12 +252,6 @@ completion-snapshots:
         - score: 55
           value: attribute
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
-          location: "attr"
-          location-qualified: "attr"
-          objects: []
-        - score: 50
-          value: xmlattributes
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "attr"
           location-qualified: "attr"
           objects: []
@@ -308,6 +308,12 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
+        - score: 4294967295
+          value: attr
+          candidate-tags: [IDENTITY]
+          location: "attr"
+          location-qualified: "attr"
+          objects: []
         - score: 67
           value: attr1
           name-tags: [COLUMN_NAME]
@@ -332,12 +338,6 @@ completion-snapshots:
         - score: 55
           value: attribute
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
-          location: "attr"
-          location-qualified: "attr"
-          objects: []
-        - score: 50
-          value: xmlattributes
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "attr"
           location-qualified: "attr"
           objects: []
@@ -394,6 +394,12 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
+        - score: 4294967295
+          value: attr
+          candidate-tags: [IDENTITY]
+          location: "attr"
+          location-qualified: "attr"
+          objects: []
         - score: 67
           value: attr1
           name-tags: [COLUMN_NAME]
@@ -418,12 +424,6 @@ completion-snapshots:
         - score: 55
           value: attribute
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
-          location: "attr"
-          location-qualified: "attr"
-          objects: []
-        - score: 50
-          value: xmlattributes
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "attr"
           location-qualified: "attr"
           objects: []
@@ -480,6 +480,12 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
+        - score: 4294967295
+          value: attr
+          candidate-tags: [IDENTITY]
+          location: "attr"
+          location-qualified: "attr"
+          objects: []
         - score: 67
           value: attr1
           name-tags: [COLUMN_NAME]
@@ -504,12 +510,6 @@ completion-snapshots:
         - score: 55
           value: attribute
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
-          location: "attr"
-          location-qualified: "attr"
-          objects: []
-        - score: 50
-          value: xmlattributes
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "attr"
           location-qualified: "attr"
           objects: []
@@ -547,6 +547,12 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
+        - score: 4294967295
+          value: bar
+          candidate-tags: [IDENTITY]
+          location: "bar"
+          location-qualified: "bar"
+          objects: []
         - score: 70
           value: bar
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,EXPECTED_KEYWORD_MATCH]
@@ -555,13 +561,6 @@ completion-snapshots:
           objects: []
         - score: 3
           value: group
-          keyword-continuation: by
-          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          location: "bar"
-          location-qualified: "bar"
-          objects: []
-        - score: 3
-          value: order
           keyword-continuation: by
           candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           location: "bar"
@@ -593,6 +592,12 @@ completion-snapshots:
       symbol: OBJECT_SQL_SELECT
       relative: END_OF_SYMBOL
       entries:
+        - score: 4294967295
+          value: limit
+          candidate-tags: [IDENTITY]
+          location: "limit"
+          location-qualified: "limit"
+          objects: []
         - score: 72
           value: limit
           candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,EXPECTED_KEYWORD_MATCH]
@@ -601,12 +606,6 @@ completion-snapshots:
           objects: []
         - score: 50
           value: delimiter
-          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
-          location: "limit"
-          location-qualified: "limit"
-          objects: []
-        - score: 50
-          value: delimiters
           candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
           location: "limit"
           location-qualified: "limit"

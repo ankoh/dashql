@@ -46,3 +46,17 @@ completion-snapshots:
         index: 5
     completions:
       limit: 3
+
+  # Definition position: SELECT ... AS alias (identity candidate should top-score)
+  - name: select_as_alias
+    catalog:
+      script:
+        input: create table foo(bar int);
+    editor:
+      input: select bar as baz
+    cursor:
+      search:
+        text: as baz
+        index: 6
+    completions:
+      limit: 3

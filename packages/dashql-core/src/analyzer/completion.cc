@@ -1356,9 +1356,9 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
     } else {
         // Add expected grammar symbols to the heap and score them
         completion->AddExpectedKeywordsAsCandidates(expected_symbols);
-        // At definition positions, insert an identity candidate matching the user's text.
+        // Insert an identity candidate matching the user's text when on an identifier.
         // This ensures the top suggestion is always a no-op (keeping what they typed).
-        if (completion->at_definition && completion->target_scanner_symbol.has_value()) {
+        if (expects_identifier && completion->target_scanner_symbol.has_value()) {
             auto& sym = completion->target_scanner_symbol->symbol;
             auto symbol_text = cursor.script.scanned_script->ReadTextAtTextSpan(
                 sx::parser::TextSpan(sym.location.offset(), sym.location.length()));
