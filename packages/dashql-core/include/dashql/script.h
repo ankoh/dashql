@@ -204,9 +204,10 @@ class AnalyzedScript : public CatalogEntry {
     /// These are used for catalog registration under dashql.notebook."<path>".
     struct NotebookOutputNames {
         std::string path_buffer;
-        RegisteredName db_name{.name_id = 0, .text = "dashql", .location = {}, .occurrences = 0, .coarse_analyzer_tags = 0};
-        RegisteredName schema_name{.name_id = 0, .text = "notebook", .location = {}, .occurrences = 0, .coarse_analyzer_tags = 0};
-        RegisteredName table_name{.name_id = 0, .text = {}, .location = {}, .occurrences = 0, .coarse_analyzer_tags = 0};
+        RegisteredName db_name;
+        RegisteredName schema_name;
+        RegisteredName table_name;
+        NotebookOutputNames() : path_buffer{}, db_name{}, schema_name{}, table_name{} {}
     };
     std::optional<NotebookOutputNames> notebook_output_names;
 

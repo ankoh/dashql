@@ -785,6 +785,8 @@ void NameResolutionPass::Finish() {
         state.analyzed->notebook_output_names.emplace();
         auto& names = *state.analyzed->notebook_output_names;
         names.path_buffer = std::string(state.notebook_path);
+        names.db_name.text = "dashql";
+        names.schema_name.text = "notebook";
         names.table_name.text = names.path_buffer;
         names.db_name.coarse_analyzer_tags |= buffers::analyzer::NameTag::DATABASE_NAME;
         names.schema_name.coarse_analyzer_tags |= buffers::analyzer::NameTag::SCHEMA_NAME;
