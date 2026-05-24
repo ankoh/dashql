@@ -41,12 +41,13 @@ struct Analyzer {
 
    public:
     /// Constructor
-    Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog);
+    Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog, std::string_view notebook_path = "");
     /// Run the analyzer (throws Exception on error)
     std::shared_ptr<AnalyzedScript> Execute();
 
     /// Analyze a program (throws Exception on error)
-    static std::shared_ptr<AnalyzedScript> Analyze(std::shared_ptr<ParsedScript> parsed, Catalog& catalog);
+    static std::shared_ptr<AnalyzedScript> Analyze(std::shared_ptr<ParsedScript> parsed, Catalog& catalog,
+                                                   std::string_view notebook_path = "");
 };
 
 }  // namespace dashql

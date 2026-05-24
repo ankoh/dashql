@@ -443,26 +443,22 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             // Update the script in the registry
             state.scriptRegistry.addScript(nextScript.script);
 
-            // Is defining tables and did the buffers change?
-            // Only re-load the catalog and mark scripts outdated when the analysis actually changed.
+            // Re-load the catalog and mark scripts outdated when the analysis actually changed.
             const buffersChanged = prevScript.scriptAnalysis.buffers !== update.scriptBuffers;
             if (buffersChanged) {
-                const analyzed = nextScript.scriptAnalysis.buffers.analyzed?.read();
-                if (analyzed && analyzed.tablesLength() > 0) {
-                    // Update the catalog since the schema might have changed
-                    nextState.connectionCatalog!.loadScript(nextScript.script, nextScript.scriptKey);
-                    // Mark all other scripts as outdated.
-                    // Eventually, we could restrict to those that are depending?
-                    for (const key in nextState.scripts) {
-                        const script = nextState.scripts[key];
-                        nextState.scripts[key] = {
-                            ...script,
-                            scriptAnalysis: {
-                                ...script.scriptAnalysis,
-                                outdated: true,
-                            }
-                        };
-                    }
+                // Always load into catalog so scripts can be referenced by qualified name
+                nextState.connectionCatalog!.loadScript(nextScript.script, nextScript.scriptKey);
+                // Mark all other scripts as outdated.
+                // Eventually, we could restrict to those that are depending?
+                for (const key in nextState.scripts) {
+                    const script = nextState.scripts[key];
+                    nextState.scripts[key] = {
+                        ...script,
+                        scriptAnalysis: {
+                            ...script.scriptAnalysis,
+                            outdated: true,
+                        }
+                    };
                 }
             }
             // Persist only the updated script, not the entire notebook
@@ -939,6 +935,11 @@ export function analyzeNotebookScript(scriptData: ScriptData, registry: core.Das
     const next: ScriptData = { ...scriptData };
     next.scriptAnalysis.buffers.destroy(next.scriptAnalysis.buffers);
 
+    // Set the notebook path so the analyzer registers this script in the catalog
+    if (next.folderName && next.fileName) {
+        next.script.setNotebookPath(`${next.folderName}/${next.fileName}`);
+    }
+
     // Analyze the script
     next.scriptAnalysis = {
         buffers: analyzeScript(next.script),
@@ -952,13 +953,8 @@ export function analyzeNotebookScript(scriptData: ScriptData, registry: core.Das
     // Update the script in the registry
     registry.addScript(next.script);
 
-    // Contains tables, then also update the catalog
-    if (next.scriptAnalysis.buffers.analyzed) {
-        const analyzed = next.scriptAnalysis.buffers.analyzed.read();
-        if (analyzed.tablesLength() > 0) {
-            catalog.loadScript(next.script, scriptData.scriptKey);
-        }
-    }
+    // Always load scripts into the catalog so they can be referenced by qualified name
+    catalog.loadScript(next.script, scriptData.scriptKey);
 
     // Update the cursor?
     if (next.cursor != null) {

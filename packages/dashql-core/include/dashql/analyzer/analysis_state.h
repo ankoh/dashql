@@ -34,6 +34,8 @@ struct AnalysisState {
     const CatalogEntryID catalog_entry_id;
     /// The catalog
     Catalog& catalog;
+    /// The notebook path for catalog registration (e.g., "main/01-script.sql"). Empty means none.
+    std::string_view notebook_path;
 
     /// A dummy emtpy registered name.
     /// Used to construct qualified column and table identifiers and fill the prefix.

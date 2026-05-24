@@ -142,6 +142,7 @@ WASM_LINKOPTS = [
         "'_dashql_catalog_flatten'," +
         "'_dashql_script_new'," +
         "'_dashql_script_get_catalog_entry_id'," +
+        "'_dashql_script_set_notebook_path'," +
         "'_dashql_script_insert_text_at'," +
         "'_dashql_script_insert_char_at'," +
         "'_dashql_script_erase_text_range'," +

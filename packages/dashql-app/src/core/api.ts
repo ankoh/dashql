@@ -42,6 +42,7 @@ interface EmscriptenModule {
     _dashql_script_get_catalog_entry_id: (ptr: number) => number;
     _dashql_script_get_parsed: (result: number, ptr: number) => void;
     _dashql_script_get_analyzed: (result: number, ptr: number) => void;
+    _dashql_script_set_notebook_path: (ptr: number, path: number, path_length: number) => void;
     _dashql_script_get_statistics: (result: number, ptr: number) => void;
     _dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean, catalog: number) => void;
     _dashql_catalog_new: (result: number) => void;
@@ -88,6 +89,7 @@ interface DashQLModuleExports {
     dashql_script_select_completion_candidate_at_cursor: (result: number, ptr: number, completion: number, candidateId: number) => void;
     dashql_script_select_completion_catalog_object_at_cursor: (result: number, ptr: number, completion: number, candidateId: number, catalogObjectIdx: number) => void;
     dashql_script_get_catalog_entry_id: (ptr: number) => number;
+    dashql_script_set_notebook_path: (ptr: number, path: number, path_length: number) => void;
     dashql_script_get_parsed: (result: number, ptr: number) => void;
     dashql_script_get_analyzed: (result: number, ptr: number) => void;
     dashql_script_get_statistics: (result: number, ptr: number) => void;
@@ -223,6 +225,7 @@ export class DashQL {
             dashql_script_analyze: module._dashql_script_analyze,
             dashql_script_get_statistics: module._dashql_script_get_statistics,
             dashql_script_get_catalog_entry_id: module._dashql_script_get_catalog_entry_id,
+            dashql_script_set_notebook_path: module._dashql_script_set_notebook_path,
             dashql_script_get_parsed: module._dashql_script_get_parsed,
             dashql_script_get_analyzed: module._dashql_script_get_analyzed,
             dashql_script_move_cursor: module._dashql_script_move_cursor,
@@ -674,6 +677,12 @@ export class DashQLScript {
     /// Get the script id
     public getCatalogEntryId(): number {
         return this.ptr.api.instanceExports.dashql_script_get_catalog_entry_id(this.ptr.assertNotNull());
+    }
+    /// Set the notebook path for catalog registration (e.g., "main/01-script.sql")
+    public setNotebookPath(path: string): void {
+        const scriptPtr = this.ptr.assertNotNull();
+        const [pathBegin, pathLength] = this.ptr.api.copyString(path);
+        this.ptr.api.instanceExports.dashql_script_set_notebook_path(scriptPtr, pathBegin, pathLength);
     }
     /// Insert text at an offset
     public insertTextAt(offset: number, text: string) {

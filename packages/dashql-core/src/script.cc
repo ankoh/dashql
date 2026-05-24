@@ -993,7 +993,7 @@ void Script::Analyze(bool parse_if_outdated) {
     }
     // Analyze a script
     auto time_before_analyzing = std::chrono::steady_clock::now();
-    analyzed_script = Analyzer::Analyze(parsed_script, catalog);  // throws on error
+    analyzed_script = Analyzer::Analyze(parsed_script, catalog, notebook_path);  // throws on error
     timing_statistics.mutate_analyzer_last_elapsed(
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - time_before_analyzing)
             .count());

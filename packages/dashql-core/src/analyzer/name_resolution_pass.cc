@@ -771,6 +771,60 @@ void NameResolutionPass::Finish() {
     // Resolve all names
     ResolveNames();
 
+    // Generate synthetic output table declaration for notebook script registration
+    if (!state.notebook_path.empty() && !state.parsed.statements.empty()) {
+        // Find the last statement's root scope to get output columns
+        auto& last_stmt = state.parsed.statements.back();
+        NameScope* last_scope = nullptr;
+        auto scope_iter = state.analyzed->name_scopes_by_root_node.find(last_stmt.root);
+        if (scope_iter != state.analyzed->name_scopes_by_root_node.end()) {
+            last_scope = &scope_iter->second.get();
+        }
+
+        // Initialize owned name storage on AnalyzedScript (avoids polluting ScannedScript's name registry)
+        state.analyzed->notebook_output_names.emplace();
+        auto& names = *state.analyzed->notebook_output_names;
+        names.path_buffer = std::string(state.notebook_path);
+        names.table_name.text = names.path_buffer;
+        names.db_name.coarse_analyzer_tags |= buffers::analyzer::NameTag::DATABASE_NAME;
+        names.schema_name.coarse_analyzer_tags |= buffers::analyzer::NameTag::SCHEMA_NAME;
+        names.table_name.coarse_analyzer_tags |= buffers::analyzer::NameTag::TABLE_NAME;
+
+        // Register the schema
+        auto schema_id = RegisterSchema(names.db_name, names.schema_name);
+
+        // Create the table declaration
+        ExternalObjectID catalog_table_id{state.catalog_entry_id,
+                                          static_cast<uint32_t>(state.analyzed->table_declarations.GetSize())};
+        CatalogEntry::QualifiedTableName qname{std::nullopt, names.db_name, names.schema_name, names.table_name};
+        auto& table_decl = state.analyzed->table_declarations.PushBack(
+            CatalogEntry::TableDeclaration(schema_id, catalog_table_id, qname));
+
+        // Populate columns from the last statement's output columns
+        if (last_scope && !last_scope->output_columns.empty()) {
+            table_decl.table_columns.reserve(last_scope->output_columns.size());
+            for (size_t i = 0; i < last_scope->output_columns.size(); ++i) {
+                auto& out_col = last_scope->output_columns[i];
+                if (out_col.column_name.get().text.empty()) continue;
+                auto col_id = QualifiedCatalogObjectID::TableColumn(catalog_table_id, table_decl.table_columns.size());
+                table_decl.table_columns.emplace_back(catalog_table_id, table_decl.table_columns.size(), std::nullopt,
+                                                      out_col.column_name);
+                table_decl.table_columns.back().object_id = col_id;
+                table_decl.table_columns.back().table = table_decl;
+            }
+            table_decl.table_columns_by_name.reserve(table_decl.table_columns.size());
+            for (auto& col : table_decl.table_columns) {
+                table_decl.table_columns_by_name.insert({col.column_name.get().text, col});
+            }
+        }
+
+        // Index the synthetic table
+        state.analyzed->tables_by_qualified_name.insert({table_decl.table_name, table_decl});
+        state.analyzed->tables_by_unqualified_name.insert({table_decl.table_name.table_name.get().text, table_decl});
+        state.analyzed->tables_by_unqualified_schema.insert(
+            {{table_decl.table_name.schema_name.get(), table_decl.table_name.database_name.get()}, table_decl});
+    }
+
     // Bail out if there are no statements
     if (!state.parsed.statements.empty()) {
         // Helper to assign statement ids

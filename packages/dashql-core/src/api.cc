@@ -73,6 +73,11 @@ extern "C" void dashql_script_new(FFIResult* result, dashql::Catalog* catalog) {
 }
 /// Get the catalog entry id
 extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script) { return script->GetCatalogEntryId(); }
+/// Set the notebook path for catalog registration
+extern "C" void dashql_script_set_notebook_path(Script* script, const char* path_ptr, size_t path_length) {
+    std::unique_ptr<const char[]> path_buffer{path_ptr};
+    script->notebook_path = (path_ptr && path_length > 0) ? std::string(path_ptr, path_length) : std::string{};
+}
 /// Insert char at a position
 extern "C" void dashql_script_insert_char_at(Script* script, size_t offset, uint32_t unicode) {
     script->InsertCharAt(offset, unicode);

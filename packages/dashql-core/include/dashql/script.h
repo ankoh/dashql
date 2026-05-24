@@ -200,6 +200,16 @@ class AnalyzedScript : public CatalogEntry {
     using VisEncodingChannel = dashql::VisEncodingChannel;
     using VisualizationSpec = dashql::VisualizationSpec;
 
+    /// Owned storage for synthetic notebook output table names.
+    /// These are used for catalog registration under dashql.notebook."<path>".
+    struct NotebookOutputNames {
+        std::string path_buffer;
+        RegisteredName db_name{.name_id = 0, .text = "dashql", .location = {}, .occurrences = 0, .coarse_analyzer_tags = 0};
+        RegisteredName schema_name{.name_id = 0, .text = "notebook", .location = {}, .occurrences = 0, .coarse_analyzer_tags = 0};
+        RegisteredName table_name{.name_id = 0, .text = {}, .location = {}, .occurrences = 0, .coarse_analyzer_tags = 0};
+    };
+    std::optional<NotebookOutputNames> notebook_output_names;
+
     /// The parsed script
     std::shared_ptr<ParsedScript> parsed_script;
 
@@ -339,6 +349,10 @@ class Script {
     Catalog& catalog;
     /// The catalog entry id
     const CatalogEntryID catalog_entry_id;
+
+    /// The notebook path for this script (e.g., "main/01-script.sql").
+    /// Set externally before analysis. Empty means no notebook registration.
+    std::string notebook_path;
 
     /// The underlying rope
     rope::Rope text;

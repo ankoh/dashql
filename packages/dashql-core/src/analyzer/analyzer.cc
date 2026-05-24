@@ -14,7 +14,7 @@
 
 namespace dashql {
 
-Analyzer::Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog)
+Analyzer::Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog, std::string_view notebook_path)
     : state(parsed, catalog),
       pass_manager(),
       name_resolution(std::make_unique<NameResolutionPass>(state)),
@@ -22,7 +22,9 @@ Analyzer::Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog)
       identify_constants(std::make_unique<ConstantPropagationPass>(state)),
       identify_projections(std::make_unique<IdentifyColumnComputationsPass>(state)),
       identify_filters(std::make_unique<IdentifyColumnFiltersPass>(state)),
-      analyze_visualization(std::make_unique<AnalyzeVisualizationPass>(state)) {}
+      analyze_visualization(std::make_unique<AnalyzeVisualizationPass>(state)) {
+    state.notebook_path = notebook_path;
+}
 
 std::shared_ptr<AnalyzedScript> Analyzer::Execute() {
     std::initializer_list<std::reference_wrapper<PassManager::LTRPass>> scan1{
@@ -33,11 +35,12 @@ std::shared_ptr<AnalyzedScript> Analyzer::Execute() {
     return state.analyzed;
 }
 
-std::shared_ptr<AnalyzedScript> Analyzer::Analyze(std::shared_ptr<ParsedScript> parsed, Catalog& catalog) {
+std::shared_ptr<AnalyzedScript> Analyzer::Analyze(std::shared_ptr<ParsedScript> parsed, Catalog& catalog,
+                                                   std::string_view notebook_path) {
     if (parsed == nullptr) {
         throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
     }
-    Analyzer az{parsed, catalog};
+    Analyzer az{parsed, catalog, notebook_path};
     return az.Execute();
 }
 
