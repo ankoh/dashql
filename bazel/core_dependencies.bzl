@@ -26,7 +26,7 @@ _ANKERL_VERSION = "4.8.1"
 # renovate: datasource=github-releases depName=Tencent/rapidjson
 _RAPIDJSON_VERSION = "1.1.0"
 # renovate: datasource=github-releases depName=biojppm/c4core
-_C4CORE_VERSION = "0.2.12"
+_C4CORE_VERSION = "0.3.0"
 # renovate: datasource=github-releases depName=biojppm/rapidyaml
 _RAPIDYAML_VERSION = "0.12.1"
 # renovate: datasource=github-releases depName=google/benchmark
@@ -77,7 +77,7 @@ def _dashql_core_deps_impl(mctx):
     )
     http_archive(
         name = "c4core",
-        sha256 = "10041b33a5fd879edf79f1c3171fb4f580f1de9dc2678b659174a2fb1435ceec",
+        sha256 = "f7cc9185630293571a913e65848c669ba5acff472efed536154b5e546b19ddeb",
         strip_prefix = "c4core-" + _C4CORE_VERSION,
         urls = ["https://github.com/biojppm/c4core/archive/refs/tags/v" + _C4CORE_VERSION + ".zip"],
         build_file = "//bazel:external_c4core.BUILD",
@@ -99,7 +99,7 @@ def _dashql_core_deps_impl(mctx):
     # renovate: datasource=github-releases depName=duckdb/duckdb
     http_archive(
         name = "duckdb_prebuilt_osx",
-        sha256 = "524f3537330a1b747556a0c98b62a46865a3f48c7ead2b2035c62f1ad3e5ca8b",
+        sha256 = "386f8e8b3b4bc8d128762327121e22065ce45f2ee55ef1b1f412ce11e0e6c51f",
         urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/libduckdb-osx-universal.zip"],
         build_file = "//bazel:external_duckdb_prebuilt.BUILD",
     )
