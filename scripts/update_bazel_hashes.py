@@ -90,8 +90,8 @@ def versions_changed(filepath: Path, workspace: Path) -> bool:
     return "_VERSION" in result.stdout
 
 
-def update_core_dependencies(filepath: Path, workspace: Path) -> None:
-    if not versions_changed(filepath, workspace):
+def update_core_dependencies(filepath: Path, workspace: Path, force: bool = False) -> None:
+    if not force and not versions_changed(filepath, workspace):
         print(f"No _VERSION changes detected in {filepath}, skipping hash update.")
         return
 
@@ -122,8 +122,8 @@ def update_core_dependencies(filepath: Path, workspace: Path) -> None:
 _TABLEAUHYPERAPI_WHEEL_SUFFIX = "manylinux2014_x86_64.whl"
 
 
-def update_tableauhyperapi_hashes(filepath: Path, workspace: Path) -> None:
-    if not versions_changed(filepath, workspace):
+def update_tableauhyperapi_hashes(filepath: Path, workspace: Path, force: bool = False) -> None:
+    if not force and not versions_changed(filepath, workspace):
         print(f"No _VERSION changes detected in {filepath}, skipping hash update.")
         return
 
@@ -169,14 +169,18 @@ _HANDLERS = {
 
 def main() -> None:
     workspace = Path(os.environ.get("BUILD_WORKSPACE_DIRECTORY", "."))
-    if len(sys.argv) < 2:
-        print("Usage: update_bazel_hashes.py <path/to/file.bzl>", file=sys.stderr)
+    args = sys.argv[1:]
+    force = "--force" in args
+    args = [a for a in args if a != "--force"]
+
+    if not args:
+        print("Usage: update_bazel_hashes.py [--force] <path/to/file.bzl>", file=sys.stderr)
         print("Known files:", ", ".join(_HANDLERS) or "core_dependencies.bzl (default handler)", file=sys.stderr)
         sys.exit(1)
-    filepath = Path(sys.argv[1])
+    filepath = Path(args[0])
 
     handler = _HANDLERS.get(filepath.name, update_core_dependencies)
-    handler(filepath, workspace)
+    handler(filepath, workspace, force=force)
 
 
 if __name__ == "__main__":
