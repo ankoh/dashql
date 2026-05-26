@@ -20,13 +20,16 @@ from pathlib import Path
 # the archive directory name, so strip_prefix does not need it.
 # ---------------------------------------------------------------------------
 DEPS = [
-    ("com_google_flatbuffers",  "_FLATBUFFERS_VERSION", "https://github.com/google/flatbuffers/archive/refs/tags/v{VERSION}.zip"),
-    ("ankerl_unordered_dense",  "_ANKERL_VERSION",      "https://github.com/martinus/unordered_dense/archive/refs/tags/v{VERSION}.zip"),
-    ("rapidjson",               "_RAPIDJSON_VERSION",   "https://github.com/Tencent/rapidjson/archive/refs/tags/v{VERSION}.zip"),
-    ("c4core",                  "_C4CORE_VERSION",      "https://github.com/biojppm/c4core/archive/refs/tags/v{VERSION}.zip"),
-    ("rapidyaml",               "_RAPIDYAML_VERSION",   "https://github.com/biojppm/rapidyaml/archive/refs/tags/v{VERSION}.zip"),
-    ("com_google_benchmark",    "_BENCHMARK_VERSION",   "https://github.com/google/benchmark/archive/refs/tags/v{VERSION}.zip"),
-    ("duckdb",                  "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/archive/refs/tags/v{VERSION}.zip"),
+    ("com_google_flatbuffers",      "_FLATBUFFERS_VERSION", "https://github.com/google/flatbuffers/archive/refs/tags/v{VERSION}.zip"),
+    ("ankerl_unordered_dense",      "_ANKERL_VERSION",      "https://github.com/martinus/unordered_dense/archive/refs/tags/v{VERSION}.zip"),
+    ("rapidjson",                   "_RAPIDJSON_VERSION",   "https://github.com/Tencent/rapidjson/archive/refs/tags/v{VERSION}.zip"),
+    ("c4core",                      "_C4CORE_VERSION",      "https://github.com/biojppm/c4core/archive/refs/tags/v{VERSION}.zip"),
+    ("rapidyaml",                   "_RAPIDYAML_VERSION",   "https://github.com/biojppm/rapidyaml/archive/refs/tags/v{VERSION}.zip"),
+    ("com_google_benchmark",        "_BENCHMARK_VERSION",   "https://github.com/google/benchmark/archive/refs/tags/v{VERSION}.zip"),
+    ("duckdb_prebuilt_osx",         "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/releases/download/v{VERSION}/libduckdb-osx-universal.zip"),
+    ("duckdb_prebuilt_linux_amd64", "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/releases/download/v{VERSION}/libduckdb-linux-amd64.zip"),
+    ("duckdb_source",               "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/archive/refs/tags/v{VERSION}.tar.gz"),
+    ("apache_arrow",                "_ARROW_VERSION",       "https://github.com/apache/arrow/archive/refs/tags/apache-arrow-{VERSION}.tar.gz"),
 ]
 
 
@@ -119,7 +122,11 @@ def update_core_dependencies(filepath: Path, workspace: Path, force: bool = Fals
 # Handler: bazel/external_tableauhyperapi.bzl
 # ---------------------------------------------------------------------------
 
-_TABLEAUHYPERAPI_WHEEL_SUFFIX = "manylinux2014_x86_64.whl"
+_WHEEL_PLATFORMS = {
+    "linux_x86_64": "manylinux2014_x86_64.whl",
+    "macos_x86_64": "macosx_10_11_x86_64.whl",
+    "macos_arm64": "macosx_13_0_arm64.whl",
+}
 
 
 def update_tableauhyperapi_hashes(filepath: Path, workspace: Path, force: bool = False) -> None:
@@ -138,23 +145,38 @@ def update_tableauhyperapi_hashes(filepath: Path, workspace: Path, force: bool =
     with urllib.request.urlopen(req) as resp:
         meta = json.loads(resp.read())
 
-    wheel_url = None
-    for entry in meta["urls"]:
-        if entry["filename"].endswith(_TABLEAUHYPERAPI_WHEEL_SUFFIX):
-            wheel_url = entry["url"]
-            break
+    new_hashes = {}
+    for platform_key, wheel_suffix in _WHEEL_PLATFORMS.items():
+        wheel_url = None
+        for entry in meta["urls"]:
+            if entry["filename"].endswith(wheel_suffix):
+                wheel_url = entry["url"]
+                break
 
-    if wheel_url is None:
-        raise ValueError(f"No {_TABLEAUHYPERAPI_WHEEL_SUFFIX} wheel found for tableauhyperapi {version}")
+        if wheel_url is None:
+            raise ValueError(f"No {wheel_suffix} wheel found for tableauhyperapi {version}")
 
-    sha = compute_sha256(wheel_url)
-    print(f"  sha256={sha}")
+        sha = compute_sha256(wheel_url)
+        print(f"  [{platform_key}] sha256={sha}")
+        new_hashes[platform_key] = sha
 
-    pattern = re.compile(r'(_WHEEL_SHA256\s*=\s*")[^"]*(")' )
-    new_content, count = pattern.subn(lambda m: m.group(1) + sha + m.group(2), content)
-    if count == 0:
-        raise ValueError("Could not find _WHEEL_SHA256 in file")
-    filepath.write_text(new_content)
+    def replace_sha256_dict(m: re.Match) -> str:
+        dict_content = m.group(1)
+        for platform_key, sha in new_hashes.items():
+            dict_content = re.sub(
+                r'("' + re.escape(platform_key) + r'":\s*")[^"]*(")',
+                lambda inner, s=sha: inner.group(1) + s + inner.group(2),
+                dict_content,
+            )
+        return dict_content
+
+    content = re.sub(
+        r'(_WHEEL_SHA256\s*=\s*\{[^}]*\})',
+        replace_sha256_dict,
+        content,
+    )
+
+    filepath.write_text(content)
     print("Done.")
 
 
