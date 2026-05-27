@@ -1,6 +1,7 @@
 %type <buffers::parser::Node> vis_visualise_stmt;
 %type <std::string_view> vis_visualise_keyword;
 %type <buffers::parser::Node> vis_opt_source;
+%type <buffers::parser::Node> vis_opt_spec;
 
 %type <BackedUniquePtr<NodeList>> vis_spec_list;
 %type <buffers::parser::Node> opt_vis_spec_field;

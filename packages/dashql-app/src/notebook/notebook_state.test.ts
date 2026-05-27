@@ -340,6 +340,91 @@ describe('UPDATE_NOTEBOOK_ENTRY', () => {
         const next = reduce(state, { type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex: 99, fileName: 'test.sql' } });
         expect(next).toBe(state);
     });
+
+    it('marks script analysis outdated on rename', () => {
+        const state = buildState();
+        // Give the first script a fileName so we can detect the rename
+        const scriptId = state.notebookPages[0].scripts[0].scriptId;
+        const s1: NotebookState = {
+            ...state,
+            notebookPages: [{
+                ...state.notebookPages[0],
+                scripts: [{ ...state.notebookPages[0].scripts[0], fileName: '01-old.sql' }],
+            }],
+            scripts: {
+                ...state.scripts,
+                [scriptId]: { ...state.scripts[scriptId], fileName: '01-old.sql' },
+            },
+        };
+        // Analyze so the script is up-to-date
+        const s2 = reduce(s1, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
+        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
+
+        // Rename the entry
+        const s3 = reduce(s2, { type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex: 0, fileName: '02-renamed.sql' } });
+        expect(s3.scripts[scriptId].scriptAnalysis.outdated).toBe(true);
+    });
+
+    it('does not mark outdated when fileName is unchanged', () => {
+        const state = buildState();
+        const scriptId = state.notebookPages[0].scripts[0].scriptId;
+        const fileName = '01-query.sql';
+        const s1: NotebookState = {
+            ...state,
+            notebookPages: [{
+                ...state.notebookPages[0],
+                scripts: [{ ...state.notebookPages[0].scripts[0], fileName }],
+            }],
+            scripts: {
+                ...state.scripts,
+                [scriptId]: { ...state.scripts[scriptId], fileName },
+            },
+        };
+        const s2 = reduce(s1, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
+        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
+
+        // "Rename" to same name
+        const s3 = reduce(s2, { type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex: 0, fileName } });
+        expect(s3.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
+    });
+
+    it('updates catalog path after re-analysis following rename', () => {
+        const state = buildState();
+        const scriptId = state.notebookPages[0].scripts[0].scriptId;
+        const oldName = '01-script.sql';
+        const folderName = 'Main';
+
+        // Set up the script with text and proper names
+        const scriptData = state.scripts[scriptId];
+        scriptData.script.insertTextAt(0, 'SELECT 1 as x, 2 as y');
+        const s1: NotebookState = {
+            ...state,
+            notebookPages: [{
+                ...state.notebookPages[0],
+                folderName,
+                scripts: [{ ...state.notebookPages[0].scripts[0], fileName: oldName }],
+            }],
+            scripts: {
+                ...state.scripts,
+                [scriptId]: { ...scriptData, fileName: oldName, folderName },
+            },
+        };
+
+        // Analyze — should register synthetic table with old path
+        const s2 = reduce(s1, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
+        expect(s2.scripts[scriptId].annotations.tableDefs).toContain(`${folderName}/${oldName}`);
+
+        // Rename
+        const newName = '02-renamed.sql';
+        const s3 = reduce(s2, { type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex: 0, fileName: newName } });
+        expect(s3.scripts[scriptId].scriptAnalysis.outdated).toBe(true);
+
+        // Re-analyze — catalog path should reflect new name
+        const s4 = reduce(s3, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
+        expect(s4.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
+        expect(s4.scripts[scriptId].annotations.tableDefs).toContain(`${folderName}/${newName}`);
+        expect(s4.scripts[scriptId].annotations.tableDefs).not.toContain(`${folderName}/${oldName}`);
+    });
 });
 
 describe('UPDATE_PAGE_FOLDER_NAME', () => {
@@ -353,6 +438,68 @@ describe('UPDATE_PAGE_FOLDER_NAME', () => {
         const state = buildState();
         const next = reduce(state, { type: UPDATE_PAGE_FOLDER_NAME, value: { pageIndex: 99, folderName: 'Test' } });
         expect(next).toBe(state);
+    });
+
+    it('marks all page scripts outdated on folder rename', () => {
+        const state = buildState();
+        const scriptId = state.notebookPages[0].scripts[0].scriptId;
+
+        // Analyze so the script is up-to-date
+        const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
+        expect(s1.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
+
+        // Rename the folder
+        const s2 = reduce(s1, { type: UPDATE_PAGE_FOLDER_NAME, value: { pageIndex: 0, folderName: 'Analytics' } });
+        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(true);
+    });
+
+    it('does not mark outdated when folderName is unchanged', () => {
+        const state = buildState();
+        const scriptId = state.notebookPages[0].scripts[0].scriptId;
+
+        const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
+        expect(s1.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
+
+        // "Rename" to the same folder name
+        const s2 = reduce(s1, { type: UPDATE_PAGE_FOLDER_NAME, value: { pageIndex: 0, folderName: 'Main' } });
+        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
+    });
+
+    it('updates catalog path after re-analysis following folder rename', () => {
+        const state = buildState();
+        const scriptId = state.notebookPages[0].scripts[0].scriptId;
+        const fileName = '01-script.sql';
+        const oldFolder = 'Main';
+
+        // Set up the script with text
+        const scriptData = state.scripts[scriptId];
+        scriptData.script.insertTextAt(0, 'SELECT 1 as x');
+        const s1: NotebookState = {
+            ...state,
+            notebookPages: [{
+                ...state.notebookPages[0],
+                folderName: oldFolder,
+                scripts: [{ ...state.notebookPages[0].scripts[0], fileName }],
+            }],
+            scripts: {
+                ...state.scripts,
+                [scriptId]: { ...scriptData, fileName, folderName: oldFolder },
+            },
+        };
+
+        // Analyze — registers with old folder path
+        const s2 = reduce(s1, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
+        expect(s2.scripts[scriptId].annotations.tableDefs).toContain(`${oldFolder}/${fileName}`);
+
+        // Rename folder
+        const newFolder = 'Analytics';
+        const s3 = reduce(s2, { type: UPDATE_PAGE_FOLDER_NAME, value: { pageIndex: 0, folderName: newFolder } });
+        expect(s3.scripts[scriptId].scriptAnalysis.outdated).toBe(true);
+
+        // Re-analyze
+        const s4 = reduce(s3, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
+        expect(s4.scripts[scriptId].annotations.tableDefs).toContain(`${newFolder}/${fileName}`);
+        expect(s4.scripts[scriptId].annotations.tableDefs).not.toContain(`${oldFolder}/${fileName}`);
     });
 });
 

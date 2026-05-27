@@ -4,11 +4,16 @@ parser-snapshots:
     input: |-
       VISUALISE;
     expected:
-      statements: []
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 1
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALISE"
+            children: []
       scanner-errors: []
-      parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON'
-          text: ";"
+      parser-errors: []
       line-breaks: []
       comments: []
 
@@ -16,11 +21,16 @@ parser-snapshots:
     input: |-
       VISUALIZE;
     expected:
-      statements: []
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 1
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE"
+            children: []
       scanner-errors: []
-      parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON'
-          text: ";"
+      parser-errors: []
       line-breaks: []
       comments: []
 

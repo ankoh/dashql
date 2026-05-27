@@ -329,6 +329,7 @@ void Completion::FindCandidatesForNamePath() {
     // Read the name path
     sx::parser::SymbolSpan name_path_loc;
     auto name_path_buffer = cursor.ReadCursorNamePath(name_path_loc);
+
     std::span<ScriptCursor::NameComponent> name_path = name_path_buffer;
 
     // Filter all name components in the path.
@@ -401,9 +402,7 @@ void Completion::FindCandidatesForNamePath() {
     // Collect all candidate strings
     std::vector<DotCandidate> dot_candidates;
 
-    // Are we completing a table ref?
-    if (auto* ctx = std::get_if<ScriptCursor::TableRefContext>(&cursor.context)) {
-        (void)ctx;
+    if (std::get_if<ScriptCursor::TableRefContext>(&cursor.context)) {
         auto& script = cursor.script;
 
         switch (sealed) {

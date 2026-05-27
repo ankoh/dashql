@@ -114,6 +114,93 @@ describe('DashQL Completion', () => {
         expect(name1).toEqual("\"attrA\"");
     });
 
+    describe('notebook qualified name', () => {
+        test('dot completion after dashql.notebook. in SELECT FROM', () => {
+            const catalog = dql!.createCatalog();
+
+            // Script A: produces a synthetic table via notebook_path
+            const scriptA = dql!.createScript(catalog);
+            scriptA.setNotebookPath('main/01-script.sql');
+            scriptA.insertTextAt(0, 'SELECT 1 as x, 2 as y');
+            scriptA.analyze();
+            catalog.loadScript(scriptA, 0);
+
+            // Script B: references the notebook table via dot completion
+            const text = 'SELECT * FROM dashql.notebook.';
+            const scriptB = dql!.createScript(catalog);
+            scriptB.insertTextAt(0, text);
+            scriptB.analyze();
+            const cursor = scriptB.moveCursor(text.length);
+            const completion = scriptB.completeAtCursor(10);
+            cursor.destroy();
+
+            const reader = completion.read();
+            const candidates: string[] = [];
+            for (let i = 0; i < reader.candidatesLength(); ++i) {
+                candidates.push(reader.candidates(i)!.completionText()!);
+            }
+            expect(candidates).toContain('main/01-script.sql');
+        });
+
+        test('dot completion after dashql.notebook. in VISUALIZE', () => {
+            const catalog = dql!.createCatalog();
+
+            const scriptA = dql!.createScript(catalog);
+            scriptA.setNotebookPath('main/01-script.sql');
+            scriptA.insertTextAt(0, 'SELECT 1 as x, 2 as y');
+            scriptA.analyze();
+            catalog.loadScript(scriptA, 0);
+
+            const text = 'VISUALIZE dashql.notebook.';
+            const scriptB = dql!.createScript(catalog);
+            scriptB.insertTextAt(0, text);
+            scriptB.analyze();
+            const cursor = scriptB.moveCursor(text.length);
+            const completion = scriptB.completeAtCursor(10);
+            cursor.destroy();
+
+            const reader = completion.read();
+            const candidates: string[] = [];
+            for (let i = 0; i < reader.candidatesLength(); ++i) {
+                candidates.push(reader.candidates(i)!.completionText()!);
+            }
+            expect(candidates).toContain('main/01-script.sql');
+        });
+
+        test('rename updates completion candidates', () => {
+            const catalog = dql!.createCatalog();
+
+            // First registration with old path
+            const scriptA = dql!.createScript(catalog);
+            scriptA.setNotebookPath('main/01-old.sql');
+            scriptA.insertTextAt(0, 'SELECT 1 as x');
+            scriptA.analyze();
+            catalog.loadScript(scriptA, 0);
+
+            // Rename: re-set path and re-analyze
+            scriptA.setNotebookPath('main/02-renamed.sql');
+            scriptA.analyze();
+            catalog.loadScript(scriptA, 0);
+
+            // Dot-complete should show new name, not old
+            const text = 'SELECT * FROM dashql.notebook.';
+            const scriptB = dql!.createScript(catalog);
+            scriptB.insertTextAt(0, text);
+            scriptB.analyze();
+            const cursor = scriptB.moveCursor(text.length);
+            const completion = scriptB.completeAtCursor(10);
+            cursor.destroy();
+
+            const reader = completion.read();
+            const candidates: string[] = [];
+            for (let i = 0; i < reader.candidatesLength(); ++i) {
+                candidates.push(reader.candidates(i)!.completionText()!);
+            }
+            expect(candidates).toContain('main/02-renamed.sql');
+            expect(candidates).not.toContain('main/01-old.sql');
+        });
+    });
+
     describe('candidate selection', () => {
         test('candidate location update', () => {
             const catalog = dql!.createCatalog();

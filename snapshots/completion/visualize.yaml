@@ -55,21 +55,23 @@ completion-snapshots:
       input: visualize sal
       catalog-id: 2
       errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "sal"
+      visualizations:
+        - statement-id: 0
+          source: "sal"
     cursor:
       search:
         text: sal
         index: 3
     completions:
       limit: 3
-      strategy: DEFAULT
+      strategy: TABLE_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
       entries:
-        - score: 4294967295
-          value: sal
-          keyword-continuation: as
-          candidate-tags: [IDENTITY]
-          location: "sal"
-          location-qualified: "sal"
-          objects: []
         - score: 57
           value: sales
           keyword-continuation: as
@@ -85,6 +87,13 @@ completion-snapshots:
               qualified: sales
               qualified-idx: 0
               prefer-qualified: 0
+        - score: 50
+          value: sal
+          keyword-continuation: as
+          candidate-tags: [IDENTITY]
+          location: "sal"
+          location-qualified: "sal"
+          objects: []
         - score: 2
           value: as
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
@@ -1801,13 +1810,37 @@ completion-snapshots:
       input: visualize warehouse.public.sal
       catalog-id: 2
       errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "warehouse...public.sal"
+      visualizations:
+        - statement-id: 0
+          source: "warehouse...public.sal"
     cursor:
       search:
         text: sal
         index: 3
     completions:
       limit: 3
-      strategy: DEFAULT
+      strategy: TABLE_REF
       dot: 1
-      entries: []
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 59
+          value: sales
+          keyword-continuation: as
+          name-tags: [TABLE_NAME]
+          candidate-tags: [DOT_RESOLUTION_TABLE,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "sal"
+          location-qualified: "warehouse...public.sal"
+          objects:
+            - score: 39
+              type: table
+              id: "256.65536.4294967296"
+              candidate-tags: [DOT_RESOLUTION_TABLE,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: warehouse.public.sales
+              qualified-idx: 2
+              prefer-qualified: 0
       text: "sal"

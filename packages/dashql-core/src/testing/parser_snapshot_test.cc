@@ -206,7 +206,8 @@ void ParserSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
             }
             if (child.has_child("input")) {
                 c4::csubstr v = child["input"].val();
-                t.input = v.str ? std::string(trim_view(std::string_view{v.str, v.len}, is_no_space)) : std::string();
+                t.input = v.str ? std::string(trim_view_right(
+                    trim_view_left(std::string_view{v.str, v.len}, is_no_space), is_no_newline)) : std::string();
             }
             if (child.has_child("debug")) {
                 c4::csubstr v = child["debug"].val();

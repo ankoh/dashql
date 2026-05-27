@@ -673,11 +673,18 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const newPages = [...state.notebookPages];
             newPages[state.notebookUserFocus.pageIndex] = { ...page, scripts: entries };
 
-            // Update the script data fileName
+            // Update the script data fileName; mark analysis outdated on rename so the catalog path gets updated
             const updatedScriptData = state.scripts[scriptId];
+            const renamed = oldFileName !== fileName;
             const newScripts = updatedScriptData ? {
                 ...state.scripts,
-                [scriptId]: { ...updatedScriptData, fileName }
+                [scriptId]: {
+                    ...updatedScriptData,
+                    fileName,
+                    scriptAnalysis: renamed
+                        ? { ...updatedScriptData.scriptAnalysis, outdated: true }
+                        : updatedScriptData.scriptAnalysis,
+                }
             } : state.scripts;
 
             const next = {
@@ -717,13 +724,20 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const newPages = [...state.notebookPages];
             newPages[pageIndex] = { ...newPages[pageIndex], folderName };
 
-            // Update all scripts in this page with the new folder name
+            // Update all scripts in this page with the new folder name; mark outdated on rename for catalog path update
             const page = state.notebookPages[pageIndex];
+            const folderRenamed = oldFolderName !== folderName;
             let newScripts = { ...state.scripts };
             for (const entry of page.scripts) {
                 const scriptData = newScripts[entry.scriptId];
                 if (scriptData) {
-                    newScripts[entry.scriptId] = { ...scriptData, folderName };
+                    newScripts[entry.scriptId] = {
+                        ...scriptData,
+                        folderName,
+                        scriptAnalysis: folderRenamed
+                            ? { ...scriptData.scriptAnalysis, outdated: true }
+                            : scriptData.scriptAnalysis,
+                    };
                 }
             }
 

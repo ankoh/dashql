@@ -294,4 +294,97 @@ TEST(CompletionTest, PassiveHint_AfterFromTable) {
     ASSERT_EQ(results[0].completion_text, "where");
 }
 
+TEST(CompletionTest, NotebookQualifiedName_SelectFrom) {
+    Catalog catalog;
+    Script script_a{catalog};
+    script_a.notebook_path = "main/01-script.sql";
+    script_a.InsertTextAt(0, "SELECT 1 as x, 2 as y");
+    ASSERT_NO_THROW({
+        script_a.Scan();
+        script_a.Parse();
+        script_a.Analyze();
+    });
+
+    // Verify synthetic table and schema were created
+    ASSERT_TRUE(script_a.analyzed_script->notebook_output_names.has_value());
+    ASSERT_GT(script_a.analyzed_script->GetTables().GetSize(), 0);
+    auto& schemas = script_a.analyzed_script->GetSchemasByName();
+    ASSERT_NE(schemas.find({"dashql", "notebook"}), schemas.end());
+
+    ASSERT_NO_THROW(catalog.LoadScript(script_a, 0));
+
+    // Dot completion from SELECT context
+    const std::string_view text = "SELECT * FROM dashql.notebook.";
+    Script script_b{catalog};
+    script_b.InsertTextAt(0, text);
+    ASSERT_NO_THROW({
+        script_b.Scan();
+        script_b.Parse();
+        script_b.Analyze();
+    });
+
+    auto cursor_ofs = text.find("notebook.") + std::string_view{"notebook."}.size();
+    script_b.MoveCursor(cursor_ofs);
+
+    auto completion = script_b.CompleteAtCursor();
+    auto& results = completion->GetResultCandidates();
+
+    bool found = false;
+    for (auto& candidate : results) {
+        if (candidate.completion_text.find("main/01-script.sql") != std::string_view::npos) {
+            found = true;
+            break;
+        }
+    }
+    ASSERT_TRUE(found) << "Expected notebook path in SELECT FROM context, got "
+                       << results.size() << " candidates: "
+                       << (results.empty() ? "(none)" : std::string(results[0].completion_text));
+}
+
+TEST(CompletionTest, NotebookQualifiedName_Visualize) {
+    Catalog catalog;
+    Script script_a{catalog};
+    script_a.notebook_path = "main/01-script.sql";
+    script_a.InsertTextAt(0, "SELECT 1 as x, 2 as y");
+    ASSERT_NO_THROW({
+        script_a.Scan();
+        script_a.Parse();
+        script_a.Analyze();
+    });
+    ASSERT_NO_THROW(catalog.LoadScript(script_a, 0));
+
+    // Dot completion from VISUALIZE context
+    const std::string_view text = "VISUALIZE dashql.notebook.";
+    Script script_b{catalog};
+    script_b.InsertTextAt(0, text);
+    ASSERT_NO_THROW({
+        script_b.Scan();
+        script_b.Parse();
+        script_b.Analyze();
+    });
+
+    auto cursor_ofs = text.find("notebook.") + std::string_view{"notebook."}.size();
+    auto* cursor_ptr = script_b.MoveCursor(cursor_ofs);
+    ASSERT_NE(cursor_ptr, nullptr);
+    ASSERT_TRUE(cursor_ptr->scanner_location.has_value()) << "No scanner location";
+
+    auto completion = script_b.CompleteAtCursor();
+    auto& results = completion->GetResultCandidates();
+
+    bool found = false;
+    for (auto& candidate : results) {
+        if (candidate.completion_text.find("main/01-script.sql") != std::string_view::npos) {
+            found = true;
+            break;
+        }
+    }
+    ASSERT_TRUE(found) << "Expected notebook path in VISUALIZE context, got "
+                       << results.size() << " candidates: "
+                       << (results.empty() ? "(none)" : std::string(results[0].completion_text))
+                       << ". Cursor has ast_node=" << (cursor_ptr->ast_node_id.has_value() ? (int)*cursor_ptr->ast_node_id : -1)
+                       << " stmt=" << (cursor_ptr->statement_id.has_value() ? (int)*cursor_ptr->statement_id : -1)
+                       << " path_len=" << cursor_ptr->ast_path_to_root.size()
+                       << " context=" << cursor_ptr->context.index();
+}
+
 }  // namespace

@@ -27,7 +27,6 @@ std::vector<ScriptCursor::NameComponent> ScriptCursor::ReadCursorNamePath(sx::pa
         },
         context);
 
-    // Couldn't find an ast name path?
     if (!name_ast_node_id.has_value()) {
         return {};
     }

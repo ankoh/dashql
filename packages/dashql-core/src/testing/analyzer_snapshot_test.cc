@@ -96,7 +96,8 @@ void AnalyzerSnapshotTest::ScriptAnalysisSnapshot::ReadFrom(c4::yml::ConstNodeRe
     if (script_node.has_child("input")) {
         c4::csubstr v = script_node["input"].val();
         if (v.str) {
-            std::string_view trimmed = trim_view_left(std::string_view{v.str, v.len}, is_no_space);
+            std::string_view trimmed = trim_view_right(
+                trim_view_left(std::string_view{v.str, v.len}, is_no_space), is_no_newline);
             input.assign(trimmed.data(), trimmed.size());
         }
     }

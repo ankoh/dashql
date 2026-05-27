@@ -26,17 +26,23 @@ vis_visualise_keyword:
     ;
 
 vis_visualise_stmt:
-    vis_visualise_keyword vis_opt_source AS LRB vis_spec_list RRB {
+    vis_visualise_keyword vis_opt_source vis_opt_spec {
         if (!ctx.IsVisEnabled()) {
             error(@1, "VISUALISE syntax is disabled in this ParseContext");
             YYERROR;
         }
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_VISUALISE, {
             Attr(Key::VIS_VISUALISE_SELECT, $2),
-            Attr(Key::VIS_VISUALISE_SPEC,
-                 ctx.Object(@5, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($5), false)),
+            Attr(Key::VIS_VISUALISE_SPEC, $3),
         }, false);
     }
+    ;
+
+vis_opt_spec:
+    AS LRB vis_spec_list RRB {
+        $$ = ctx.Object(@3, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($3), false);
+    }
+  | %empty { $$ = Null(); }
     ;
 
 vis_opt_source:
