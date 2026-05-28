@@ -55,7 +55,7 @@ version = "0.1.20"
 features = ["server"]
 
 [dependencies.reqwest]
-version = "^0.13.3"
+version = "^0.13.4"
 default-features = false
 features = ["stream", "native-tls", "charset", "http2", "system-proxy"]
 
