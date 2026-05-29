@@ -234,7 +234,7 @@ register_execution_platforms(
 oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
 oci.pull(
     name = "ubi9_minimal",
-    image = "registry.access.redhat.com/ubi9/ubi-minimal",
+    image = "registry.access.redhat.com/ubi9/ubi-minimal:9.7-1773939694",
     # renovate: depName=registry.access.redhat.com/ubi9/ubi-minimal
     digest = "sha256:5b74fce9d6e629942a0c6dc0f546c193e70d7f974d999a48c948c53dd3d36362",
     platforms = ["linux/amd64"],
