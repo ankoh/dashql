@@ -23,7 +23,6 @@ interface EmscriptenModule {
     stackRestore: (ptr: number) => void;
 
     // All C functions exported with underscore prefix
-    _dashql_version: () => number;
     _dashql_malloc: (length: number) => number;
     _dashql_free: (ptr: number) => void;
     _dashql_delete_owner: (owner_ptr: number, owner_deleter: number) => void;
@@ -71,7 +70,6 @@ interface EmscriptenModule {
 
 // Our cleaned-up API interface (without underscores)
 interface DashQLModuleExports {
-    dashql_version: () => number;
     dashql_malloc: (length: number) => number;
     dashql_free: (ptr: number) => void;
     dashql_delete_owner: (owner_ptr: number, owner_deleter: number) => void;
@@ -210,7 +208,6 @@ export class DashQL {
 
         // Wrap all Emscripten exports, removing the leading underscore
         this.instanceExports = {
-            dashql_version: module._dashql_version,
             dashql_malloc: module._dashql_malloc,
             dashql_free: module._dashql_free,
             dashql_delete_owner: module._dashql_delete_owner,
@@ -447,15 +444,6 @@ export class DashQL {
         const viewModel = new DashQLPlanViewModel(ptr, layoutConfig);
         this.registerMemory({ type: PLAN_VIEW_MODEL_TYPE, value: viewModel.ptr! });
         return viewModel;
-    }
-
-    public getVersionText(): string {
-        const versionPtr = this.instanceExports.dashql_version();
-        const heapU32 = this.module.HEAPU32;
-        const dataPtr = heapU32[versionPtr / 4];
-        const dataLength = heapU32[versionPtr / 4 + 1];
-        const dataArray = this.module.HEAPU8.subarray(dataPtr, dataPtr + dataLength);
-        return this.decoder.decode(dataArray);
     }
 
     public readString(dataPtr: number, dataLength: number): string {

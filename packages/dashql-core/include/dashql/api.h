@@ -6,16 +6,12 @@
 #include "dashql/catalog.h"
 #include "dashql/script.h"
 #include "dashql/script_registry.h"
-#include "dashql/version.h"
 #include "dashql/view/plan_view_model.h"
 
 namespace console {
 /// Log a text to the console
 void log(std::string_view text);
 }  // namespace console
-
-/// Get the DashQL version
-extern "C" dashql::DashQLVersion* dashql_version();
 
 /// Allocate memory
 extern "C" std::byte* dashql_malloc(size_t length);

@@ -2,17 +2,6 @@ load("@emsdk//emscripten_toolchain:wasm_rules.bzl", "wasm_cc_binary")
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 
 # ---------------------------------------------------------------------------
-# Version (git describe -> version.cc via repository_rule in bazel/version.bzl)
-# ---------------------------------------------------------------------------
-
-cc_library(
-    name = "version",
-    srcs = ["@dashql_core_version//:version.cc"],
-    hdrs = ["include/dashql/version.h"],
-    includes = ["include"],
-)
-
-# ---------------------------------------------------------------------------
 # Main library (libdashql_core).
 # ---------------------------------------------------------------------------
 
@@ -101,7 +90,7 @@ cc_library(
     ],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
-    deps = CORE_DEPS + [":version"],
+    deps = CORE_DEPS,
 )
 
 # ---------------------------------------------------------------------------
@@ -127,7 +116,6 @@ WASM_LINKOPTS = [
 
     # Export all C functions (note: underscore prefix required in JS)
     "-sEXPORTED_FUNCTIONS=[" +
-        "'_dashql_version'," +
         "'_dashql_malloc'," +
         "'_dashql_free'," +
         "'_dashql_delete_owner'," +
@@ -205,11 +193,9 @@ cc_library(
     deps = CORE_DEPS,
 )
 
-# Inline version.cc directly so it is compiled with the emscripten toolchain.
 cc_binary(
     name = "dashql_core_wasm",
     srcs = LIB_SRCS + [
-        "@dashql_core_version//:version.cc",
         "//grammar:scanner_generated",
     ],
     copts = WASM_COPTS,

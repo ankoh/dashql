@@ -16,9 +16,6 @@ describe('DashQL setup', () => {
     it('instantiates WebAssembly module', async () => {
         expect(dql).not.toBeNull();
         expect(dql).not.toBeUndefined();
-        const version = dql!.getVersionText();
-        expect(version).not.toBeFalsy();
-        expect(version).toMatch(/^[0-9]+.[0-9]+.[0-9]+(\-dev\.[0-9]+)?$/);
     });
 });
 

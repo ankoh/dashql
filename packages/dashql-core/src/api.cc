@@ -4,15 +4,12 @@
 #include <flatbuffers/detached_buffer.h>
 #include <flatbuffers/flatbuffer_builder.h>
 
-#include <span>
-
 #include "dashql/analyzer/completion.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/catalog_object.h"
 #include "dashql/exception.h"
 #include "dashql/script.h"
-#include "dashql/version.h"
 #include "dashql/view/plan_view_model.h"
 
 using namespace dashql;
@@ -46,9 +43,6 @@ static void packBuffer(FFIResult* result, std::unique_ptr<flatbuffers::DetachedB
     result->owner_ptr = detached.release();
     result->owner_deleter = [](void* buffer) { delete reinterpret_cast<flatbuffers::DetachedBuffer*>(buffer); };
 }
-
-/// Get the DashQL version
-extern "C" DashQLVersion* dashql_version() { return &dashql::VERSION; }
 
 /// Allocate memory
 extern "C" std::byte* dashql_malloc(size_t length) { return new std::byte[length]; }

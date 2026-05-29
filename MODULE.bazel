@@ -110,8 +110,6 @@ use_repo(npm, "npm")
 
 core_deps = use_extension("//bazel:core_dependencies.bzl", "dashql_core_dependencies")
 
-core_version = use_extension("//packages/dashql-core:bazel/version.bzl", "dashql_core_version_ext")
-
 use_repo(
     core_deps,
     "ankerl_unordered_dense",
@@ -130,8 +128,6 @@ use_repo(
     "rapidyaml",
     "wabt",
 )
-
-use_repo(core_version, "dashql_core_version")
 
 # Emscripten binaries (downloaded per-platform; default version is the latest bundled with emsdk 5.0.4).
 emsdk_ext = use_extension("@emsdk//:emscripten_deps.bzl", "emscripten_deps")
