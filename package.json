@@ -47,7 +47,7 @@
     "eslint": "^10.4.0",
     "flatbuffers": "^25.9.23",
     "framer-motion": "^12.40.0",
-    "immutable": "^5.1.5",
+    "immutable": "^5.1.6",
     "jsdom": "^29.1.1",
     "json-schema-to-typescript": "^15.0.4",
     "jszip": "^3.10.1",
