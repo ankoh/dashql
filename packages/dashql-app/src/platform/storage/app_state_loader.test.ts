@@ -143,7 +143,7 @@ describe('restoreAppState', () => {
 
         const notebook = result.notebooks.get('uuid-1')!;
         expect(notebook.sessionId).toBe('uuid-1');
-        expect(notebook.notebookPages.length).toBe(1);
+        expect(Object.keys(notebook.notebookPages).length).toBe(1);
 
         // Verify progress tracking
         const finalProgress = progressUpdates[progressUpdates.length - 1];
@@ -481,10 +481,10 @@ describe('restoreAppState', () => {
         );
 
         const notebook = result.notebooks.get('multi-page-uuid')!;
-        expect(notebook.notebookPages.length).toBe(3);
-        expect(notebook.notebookPages[0].scripts.length).toBe(2);
-        expect(notebook.notebookPages[1].scripts.length).toBe(1);
-        expect(notebook.notebookPages[2].scripts.length).toBe(0);
+        expect(Object.keys(notebook.notebookPages).length).toBe(3);
+        expect(Object.keys(notebook.notebookPages['page-1'].scripts).length).toBe(2);
+        expect(Object.keys(notebook.notebookPages['page-2'].scripts).length).toBe(1);
+        expect(Object.keys(notebook.notebookPages['page-3'].scripts).length).toBe(0);
 
         // Verify draft script was loaded
         expect(notebook.scripts[notebook.uncommittedScriptId].script.replaceText).toHaveBeenCalledWith('-- my draft');
@@ -522,8 +522,9 @@ describe('restoreAppState', () => {
         );
 
         const notebook = result.notebooks.get('empty-notebook-uuid')!;
-        expect(notebook.notebookPages.length).toBe(1);
-        expect(notebook.notebookPages[0].scripts.length).toBe(0);
+        const folders = Object.keys(notebook.notebookPages);
+        expect(folders.length).toBe(1);
+        expect(Object.keys(notebook.notebookPages[folders[0]].scripts).length).toBe(0);
     });
 
     it('handles notebook restoration failure without affecting connection', async () => {

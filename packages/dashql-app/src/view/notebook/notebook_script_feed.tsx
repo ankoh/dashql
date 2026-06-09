@@ -14,7 +14,7 @@ import type { RowComponentProps } from 'react-window';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
-import { getSelectedPageEntries, getUncommittedScriptData, REGISTER_QUERY, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
+import { getSelectedPage, getSelectedPageEntries, getUncommittedScriptData, REGISTER_QUERY, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
 import { QueryType } from '../../connection/query_execution_state.js';
 import { useQueryExecutor, useQueryState } from '../../connection/query_executor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
@@ -29,7 +29,7 @@ import { FeedEntryFooter } from './feed_entry_footer.js';
 import { TabKey as DetailsTabKey } from './notebook_script_details.js';
 
 interface FeedScrollTarget {
-    entryIndex: number;
+    fileName: string;
     version: number;
 }
 
@@ -48,22 +48,21 @@ const FEED_BOTTOM_FADE_HEIGHT = 24;
 
 interface CollapsedScriptCardProps {
     sessionId: string;
-    entryIndex: number;
     isFocused: boolean;
     scriptData: ScriptData | undefined;
     folderName: string;
     scriptFileName: string;
     scriptDebugMode: boolean;
     canDelete: boolean;
-    onFocus: (entryIndex: number) => void;
-    onExpand: (entryIndex: number) => void;
-    onDelete: (entryIndex: number) => void;
-    onRename: (entryIndex: number, fileName: string) => void;
-    onShowTable: (entryIndex: number) => void;
-    onShowStatus: (entryIndex: number) => void;
+    onFocus: (fileName: string) => void;
+    onExpand: (fileName: string) => void;
+    onDelete: (fileName: string) => void;
+    onRename: (oldFileName: string, newFileName: string) => void;
+    onShowTable: (fileName: string) => void;
+    onShowStatus: (fileName: string) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, entryIndex, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, onFocus, onExpand, onDelete, onRename, onShowTable, onShowStatus }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, onFocus, onExpand, onDelete, onRename, onShowTable, onShowStatus }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const EyeIcon: Icon = SymbolIcon(isFocused ? 'eye_16' : 'eye_closed_16');
     const PencilIcon: Icon = SymbolIcon('pencil_16');
@@ -82,10 +81,10 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, entryIndex,
     const saveEdit = React.useCallback(() => {
         const trimmed = draftFileName.trim();
         if (trimmed && trimmed !== scriptFileName) {
-            onRename(entryIndex, trimmed);
+            onRename(scriptFileName, trimmed);
         }
         setIsEditing(false);
-    }, [draftFileName, scriptFileName, entryIndex, onRename]);
+    }, [draftFileName, scriptFileName, onRename]);
 
     const cancelEdit = React.useCallback(() => {
         setIsEditing(false);
@@ -102,15 +101,15 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, entryIndex,
         if (event.button !== 0 || event.defaultPrevented) {
             return;
         }
-        onFocus(entryIndex);
-    }, [entryIndex, onFocus]);
+        onFocus(scriptFileName);
+    }, [scriptFileName, onFocus]);
 
     const handlePreviewPointerDown = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
         if (event.button !== 0 || event.defaultPrevented) {
             return;
         }
-        onExpand(entryIndex);
-    }, [entryIndex, onExpand]);
+        onExpand(scriptFileName);
+    }, [scriptFileName, onExpand]);
 
     return (
         <motion.div
@@ -118,7 +117,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, entryIndex,
             initial={{ y: 4, opacity: 0 }}
             animate={{ y: isReady ? 0 : 4, opacity: isReady ? 1 : 0 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            onPointerEnter={() => onFocus(entryIndex)}
+            onPointerEnter={() => onFocus(scriptFileName)}
         >
             <div className={styles.feed_entry_action_bar} onPointerDown={handleHeaderPointerDown}>
                 <div className={styles.feed_entry_focus}>
@@ -158,7 +157,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, entryIndex,
                 )}
                 <IconButton
                     variant={ButtonVariant.Invisible}
-                    onClick={() => onDelete(entryIndex)}
+                    onClick={() => onDelete(scriptFileName)}
                     aria-label="delete"
                     aria-labelledby="delete-entry"
                     disabled={!canDelete}
@@ -176,8 +175,8 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, entryIndex,
                         queryId={queryState.queryId}
                         traceId={queryState.traceId}
                         queryState={queryState}
-                        onShowTable={() => onShowTable(entryIndex)}
-                        onShowStatus={() => onShowStatus(entryIndex)}
+                        onShowTable={() => onShowTable(scriptFileName)}
+                        onShowStatus={() => onShowStatus(scriptFileName)}
                     />
                 </div>
             )}
@@ -191,21 +190,21 @@ interface ScriptFeedRowProps {
     scripts: NotebookState['scripts'];
     folderName: string;
     scriptDebugMode: boolean;
-    focusedEntryIndex: number;
+    focusedFileName: string;
     canDelete: boolean;
-    onFocus: (index: number) => void;
-    onExpand: (index: number) => void;
-    onDelete: (index: number) => void;
-    onRename: (index: number, fileName: string) => void;
-    onShowTable: (index: number) => void;
-    onShowStatus: (index: number) => void;
+    onFocus: (fileName: string) => void;
+    onExpand: (fileName: string) => void;
+    onDelete: (fileName: string) => void;
+    onRename: (oldFileName: string, newFileName: string) => void;
+    onShowTable: (fileName: string) => void;
+    onShowStatus: (fileName: string) => void;
     onHeightMeasured: (index: number, height: number) => void;
     fillerRowHeight: number;
     heightsVersion: number;
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, onFocus, onExpand, onDelete, onRename, onShowTable, onShowStatus, onHeightMeasured } = props;
+    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onShowTable, onShowStatus, onHeightMeasured } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -241,8 +240,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
             >
                 <ScriptCard
                     sessionId={sessionId}
-                    entryIndex={entryIndex}
-                    isFocused={entryIndex === focusedEntryIndex}
+                    isFocused={scriptFileName === focusedFileName}
                     scriptData={scriptData}
                     folderName={folderName}
                     scriptFileName={scriptFileName}
@@ -268,22 +266,22 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const [composeEditorView, setComposeEditorView] = React.useState<EditorView | null>(null);
     const [inputMode, setInputMode] = React.useState<number>(0); // 0 = SQL, 1 = Natural Language
 
-    const handleFocus = React.useCallback((entryIndex: number) => {
-        props.modifyNotebook({ type: SELECT_ENTRY, value: entryIndex });
+    const handleFocus = React.useCallback((fileName: string) => {
+        props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
     }, [props.modifyNotebook]);
 
-    const handleExpand = React.useCallback((entryIndex: number) => {
-        props.modifyNotebook({ type: SELECT_ENTRY, value: entryIndex });
+    const handleExpand = React.useCallback((fileName: string) => {
+        props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
         props.showDetails();
     }, [props.modifyNotebook, props.showDetails]);
 
-    const handleShowTable = React.useCallback((entryIndex: number) => {
-        props.modifyNotebook({ type: SELECT_ENTRY, value: entryIndex });
+    const handleShowTable = React.useCallback((fileName: string) => {
+        props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
         props.showDetails(DetailsTabKey.QueryResultView);
     }, [props.modifyNotebook, props.showDetails]);
 
-    const handleShowStatus = React.useCallback((entryIndex: number) => {
-        props.modifyNotebook({ type: SELECT_ENTRY, value: entryIndex });
+    const handleShowStatus = React.useCallback((fileName: string) => {
+        props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
         props.showDetails(DetailsTabKey.QueryStatusPanel);
     }, [props.modifyNotebook, props.showDetails]);
 
@@ -308,9 +306,6 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         const mainScriptText = scriptData?.script.toString() ?? '';
         props.modifyNotebook({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
         if (executeOnSend && !isDisconnected && mainScriptText.trim().length > 0) {
-            const pageIndex = notebook.notebookUserFocus.pageIndex;
-            const page = notebook.notebookPages[pageIndex];
-            const entryInPage = page ? page.scripts.length : 0;
             const [queryId] = executeQuery(notebook.sessionId, {
                 query: mainScriptText,
                 analyzeResults: true,
@@ -324,17 +319,17 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             });
             props.modifyNotebook({
                 type: REGISTER_QUERY,
-                value: [pageIndex, entryInPage, scriptKey, queryId]
+                value: [scriptKey, queryId]
             });
         }
     }, [props.notebook, props.modifyNotebook, executeOnSend, isDisconnected, executeQuery]);
 
-    const handleDelete = React.useCallback((entryIndex: number) => {
-        props.modifyNotebook({ type: DELETE_NOTEBOOK_ENTRY, value: entryIndex });
+    const handleDelete = React.useCallback((fileName: string) => {
+        props.modifyNotebook({ type: DELETE_NOTEBOOK_ENTRY, value: fileName });
     }, [props.modifyNotebook]);
 
-    const handleRename = React.useCallback((entryIndex: number, fileName: string) => {
-        props.modifyNotebook({ type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex, fileName } });
+    const handleRename = React.useCallback((oldFileName: string, newFileName: string) => {
+        props.modifyNotebook({ type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: oldFileName, newFileName } });
     }, [props.modifyNotebook]);
 
     const keyHandlers = React.useMemo<KeyEventHandler[]>(() => [
@@ -397,12 +392,13 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         if (props.scrollTarget == null || !listRef.current || entries.length === 0) {
             return;
         }
-        const clampedEntryIndex = Math.max(0, Math.min(props.scrollTarget.entryIndex, entries.length - 1));
+        const targetIdx = entries.findIndex(e => e.fileName === props.scrollTarget!.fileName);
+        const clampedEntryIndex = Math.max(0, Math.min(targetIdx === -1 ? 0 : targetIdx, entries.length - 1));
         listRef.current.scrollToRow({
             index: clampedEntryIndex + 1,
             align: 'start',
         });
-    }, [entries.length, listRef, props.scrollTarget]);
+    }, [entries, listRef, props.scrollTarget]);
 
     const [composeScrollbarInset, setComposeScrollbarInset] = React.useState(0);
     React.useEffect(() => {
@@ -422,19 +418,20 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     }, [listHeight, fillerRowHeight, entries.length, heightsVersion]);
 
     // Get folder name from current page
-    const selectedPage = props.notebook.notebookPages[props.notebook.notebookUserFocus.pageIndex];
+    const selectedPage = getSelectedPage(props.notebook);
     const folderName = selectedPage?.folderName ?? 'Untitled';
 
     // Row props — heightsVersion is included so react-window re-evaluates row heights on change
-    const focusedEntryIndex = props.notebook.notebookUserFocus.entryInPage;
-    const canDelete = props.notebook.notebookPages.length > 1 || entries.length > 1;
+    const focusedFileName = props.notebook.notebookUserFocus.fileName;
+    const pageCount = Object.keys(props.notebook.notebookPages).length;
+    const canDelete = pageCount > 1 || entries.length > 1;
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
         sessionId: props.notebook.sessionId,
         entries,
         scripts: props.notebook.scripts,
         folderName,
         scriptDebugMode,
-        focusedEntryIndex,
+        focusedFileName,
         canDelete,
         onFocus: handleFocus,
         onExpand: handleExpand,
@@ -445,13 +442,13 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onHeightMeasured: handleHeightMeasured,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedEntryIndex, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleShowTable, handleShowStatus, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleShowTable, handleShowStatus, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container}>
             <div className={styles.feed_list_container} ref={listContainerRef}>
                 <List
-                    key={props.notebook.notebookUserFocus.pageIndex}
+                    key={props.notebook.notebookUserFocus.folderName}
                     listRef={listRef}
                     style={{ width: listWidth, height: listHeight }}
                     rowCount={entries.length + 2}

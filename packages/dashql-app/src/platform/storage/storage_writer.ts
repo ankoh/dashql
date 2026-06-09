@@ -287,18 +287,19 @@ export class StorageWriter {
                 const sessionPath = notebook.sessionId;
 
                 // Write all pages and their scripts first
-                for (const page of notebook.notebookPages) {
-                    const pageName = page.folderName;
-                    await this.backend.createNotebookPage(sessionPath, pageName);
+                for (const folderName in notebook.notebookPages) {
+                    const page = notebook.notebookPages[folderName];
+                    await this.backend.createNotebookPage(sessionPath, folderName);
 
-                    for (const pageScript of page.scripts) {
+                    for (const fileName in page.scripts) {
+                        const pageScript = page.scripts[fileName];
                         const scriptData = notebook.scripts[pageScript.scriptId];
                         if (scriptData) {
                             const sql = scriptData.script.toString();
                             const t0 = new Date();
-                            await this.backend.saveNotebookScript(sessionPath, pageName, pageScript.fileName, sql);
+                            await this.backend.saveNotebookScript(sessionPath, folderName, pageScript.fileName, sql);
                             const t1 = new Date();
-                            this.registerWrite(`${sessionPath}/notebook/${pageName}/${pageScript.fileName}`, sql.length, t1.getTime() - t0.getTime());
+                            this.registerWrite(`${sessionPath}/notebook/${folderName}/${pageScript.fileName}`, sql.length, t1.getTime() - t0.getTime());
                         }
                     }
                 }

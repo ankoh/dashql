@@ -39,12 +39,12 @@ export interface NotebookPageScript {
     fileName: string;
 }
 
-/** A notebook page containing script references */
+/** A notebook page containing script references, keyed by file name */
 export interface NotebookPage {
     /** The folder name for this page */
     folderName: string;
-    /** The entries (script references) */
-    scripts: NotebookPageScript[];
+    /** The entries (script references) keyed by file name */
+    scripts: { [fileName: string]: NotebookPageScript };
 }
 
 /** Complete notebook structure (runtime representation) */
@@ -53,8 +53,8 @@ export interface Notebook {
     connectionParams?: any; // ConnectionParams from JSON Schema
     /** The scripts */
     scripts: NotebookScript[];
-    /** The notebook pages */
-    notebookPages: NotebookPage[];
+    /** The notebook pages keyed by folder name */
+    notebookPages: { [folderName: string]: NotebookPage };
     /** The notebook metadata */
     notebookMetadata: NotebookMetadata;
     /** The uncommitted script id (0 = unset) */
@@ -80,11 +80,11 @@ export function createEmptyMetadata(): NotebookMetadata {
 }
 
 /** Helper to generate a script file name that doesn't collide with existing entries */
-export function generateScriptFileName(existingScripts: NotebookPageScript[]): string {
-    const existingNames = new Set(existingScripts.map(s => s.fileName));
-    let index = existingScripts.length + 1;
+export function generateScriptFileName(existingScripts: { [fileName: string]: NotebookPageScript }): string {
+    const count = Object.keys(existingScripts).length;
+    let index = count + 1;
     let candidate = `${String(index).padStart(2, '0')}-script.sql`;
-    while (existingNames.has(candidate)) {
+    while (existingScripts[candidate] !== undefined) {
         index++;
         candidate = `${String(index).padStart(2, '0')}-script.sql`;
     }
@@ -95,7 +95,7 @@ export function generateScriptFileName(existingScripts: NotebookPageScript[]): s
 export function createEmptyPage(folderName: string = 'Untitled'): NotebookPage {
     return {
         folderName,
-        scripts: [],
+        scripts: {},
     };
 }
 

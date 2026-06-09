@@ -14,7 +14,8 @@ export function useNotebookSetup(): NotebookSetup {
     return React.useCallback((conn: ConnectionState) => {
         const registry = conn.instance.createScriptRegistry();
         const mainScript = conn.instance.createScript(conn.catalog);
-        const fileName = generateScriptFileName([]);
+        const folderName = 'Main';
+        const fileName = generateScriptFileName({});
         const mainScriptData: ScriptData = {
             scriptKey: mainScript.getCatalogEntryId(),
             script: mainScript,
@@ -31,15 +32,14 @@ export function useNotebookSetup(): NotebookSetup {
             cursor: null,
             completion: null,
             latestQueryId: null,
-            pageIndex: 0,
-            fileName: fileName,
-            folderName: 'Main',
+            fileName,
+            folderName,
         };
 
         const [uncommittedKey, uncommittedData] = createEmptyScriptData(conn.instance, conn.catalog);
         const defaultPage = {
-            folderName: 'Main',
-            scripts: [createPageScript(mainScriptData.scriptKey, fileName)],
+            folderName,
+            scripts: { [fileName]: createPageScript(mainScriptData.scriptKey, fileName) },
         };
         const [_notebookId, notebook] = allocateNotebookState({
             notebookMetadata: createEmptyMetadata(),
@@ -52,9 +52,9 @@ export function useNotebookSetup(): NotebookSetup {
                 [mainScriptData.scriptKey]: mainScriptData,
                 [uncommittedKey]: uncommittedData,
             },
-            notebookPages: [defaultPage],
+            notebookPages: { [folderName]: defaultPage },
             uncommittedScriptId: uncommittedKey,
-            notebookUserFocus: { pageIndex: 0, entryInPage: 0, interactionCounter: 0 },
+            notebookUserFocus: { folderName, fileName, interactionCounter: 0 },
             semanticUserFocus: null,
         });
         return notebook;

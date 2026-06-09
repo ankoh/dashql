@@ -12,7 +12,7 @@ import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js'
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
-import { CREATE_PAGE, SELECT_PAGE, UPDATE_PAGE_FOLDER_NAME } from '../../notebook/notebook_state.js';
+import { CREATE_PAGE, SELECT_PAGE, UPDATE_PAGE_FOLDER_NAME, getSortedFolderNames } from '../../notebook/notebook_state.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
@@ -30,7 +30,7 @@ const LOG_CTX = 'notebook_page';
 type CatalogTab = 'relations' | 'functions';
 
 interface FeedScrollTarget {
-    entryIndex: number;
+    fileName: string;
     version: number;
 }
 
@@ -49,46 +49,46 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const [detailsInitialTab, setDetailsInitialTab] = React.useState<DetailsTabKey | undefined>(undefined);
     const [feedScrollTarget, setFeedScrollTarget] = React.useState<FeedScrollTarget | null>(null);
     const [catalogTab, setCatalogTab] = React.useState<CatalogTab | null>(null);
-    const [editingPageIndex, setEditingPageIndex] = React.useState<number | null>(null);
+    const [editingFolder, setEditingFolder] = React.useState<string | null>(null);
     const [editingPageTitle, setEditingPageTitle] = React.useState<string>("");
     const editInputRef = React.useRef<HTMLInputElement>(null);
     const connectionStatusRef = React.useRef<HTMLButtonElement>(null);
 
     const sessionCommand = useNotebookCommandDispatch();
-    const requestFeedScroll = React.useCallback((entryIndex: number) => {
+    const requestFeedScroll = React.useCallback((fileName: string) => {
         setFeedScrollTarget(prev => ({
-            entryIndex,
+            fileName,
             version: (prev?.version ?? 0) + 1,
         }));
     }, []);
     const restoreSelectedFeedScroll = React.useCallback(() => {
-        requestFeedScroll(notebook?.notebookUserFocus.entryInPage ?? 0);
-    }, [notebook?.notebookUserFocus.entryInPage, requestFeedScroll]);
+        requestFeedScroll(notebook?.notebookUserFocus.fileName ?? '');
+    }, [notebook?.notebookUserFocus.fileName, requestFeedScroll]);
 
-    const startEditingPage = React.useCallback((index: number, currentTitle: string, event: React.MouseEvent) => {
+    const startEditingPage = React.useCallback((folderName: string, currentTitle: string, event: React.MouseEvent) => {
         event.stopPropagation();
-        setEditingPageIndex(index);
+        setEditingFolder(folderName);
         setEditingPageTitle(currentTitle);
     }, []);
 
     const savePageEdit = React.useCallback(() => {
-        if (editingPageIndex === null) return;
+        if (editingFolder === null) return;
 
-        const page = notebook?.notebookPages[editingPageIndex];
+        const page = notebook?.notebookPages[editingFolder];
         if (page) {
             // Update the page's folder name
             modifyNotebook({
                 type: UPDATE_PAGE_FOLDER_NAME,
-                value: { pageIndex: editingPageIndex, folderName: editingPageTitle.trim() || 'Untitled' }
+                value: { folderName: editingFolder, newFolderName: editingPageTitle.trim() || 'Untitled' }
             });
         }
 
-        setEditingPageIndex(null);
+        setEditingFolder(null);
         setEditingPageTitle("");
-    }, [editingPageIndex, editingPageTitle, notebook, modifyNotebook]);
+    }, [editingFolder, editingPageTitle, notebook, modifyNotebook]);
 
     const cancelPageEdit = React.useCallback(() => {
-        setEditingPageIndex(null);
+        setEditingFolder(null);
         setEditingPageTitle("");
     }, []);
 
@@ -104,11 +104,11 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
 
     // Focus input when entering edit mode
     React.useEffect(() => {
-        if (editingPageIndex !== null && editInputRef.current) {
+        if (editingFolder !== null && editInputRef.current) {
             editInputRef.current.focus();
             editInputRef.current.select();
         }
-    }, [editingPageIndex]);
+    }, [editingFolder]);
 
     const keyHandlers = React.useMemo<KeyEventHandler[]>(
         () => [
@@ -116,12 +116,15 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 key: 'Escape',
                 ctrlKey: false,
                 callback: () => {
-                    if (editingPageIndex !== null) return;
+                    if (editingFolder !== null) return;
                     if (catalogTab != null) {
                         setCatalogTab(null);
                         setShowDetails(false);
-                        if (notebook && notebook.notebookUserFocus.pageIndex !== 0 && notebook.notebookPages.length > 0) {
-                            modifyNotebook({ type: SELECT_PAGE, value: 0 });
+                        if (notebook) {
+                            const folders = getSortedFolderNames(notebook.notebookPages);
+                            if (folders.length > 0 && notebook.notebookUserFocus.folderName !== folders[0]) {
+                                modifyNotebook({ type: SELECT_PAGE, value: folders[0] });
+                            }
                         }
                         return;
                     }
@@ -130,7 +133,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 },
             },
         ],
-        [catalogTab, showDetails, editingPageIndex, notebook, modifyNotebook, navigate],
+        [catalogTab, showDetails, editingFolder, notebook, modifyNotebook, navigate],
     );
     useKeyEvents(keyHandlers);
 
@@ -152,7 +155,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
         if (showDetails || notebook == null) {
             return;
         }
-        requestFeedScroll(notebook.notebookUserFocus.entryInPage);
+        requestFeedScroll(notebook.notebookUserFocus.fileName);
     }, [notebook?.notebookUserFocus.interactionCounter, requestFeedScroll, showDetails]);
 
     React.useEffect(() => {
@@ -222,17 +225,18 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             </div>
             <div className={styles.page_tabs_container}>
                 <div className={styles.page_tabs} role="tablist" aria-label="Notebook pages">
-                    {notebook.notebookPages.map((page, index) => {
-                        const isSelected = catalogTab == null && index === notebook.notebookUserFocus.pageIndex;
-                        const isEditing = editingPageIndex === index;
-                        const label = page.folderName || `Page ${index + 1}`;
+                    {getSortedFolderNames(notebook.notebookPages).map((folderName) => {
+                        const page = notebook.notebookPages[folderName];
+                        const isSelected = catalogTab == null && folderName === notebook.notebookUserFocus.folderName;
+                        const isEditing = editingFolder === folderName;
+                        const label = page.folderName || 'Untitled';
 
                         const PencilIcon = SymbolIcon('pencil_16');
                         const canEdit = true; // Allow editing folder name for all pages
 
                         return (
                             <div
-                                key={index}
+                                key={folderName}
                                 className={isSelected ? styles.page_tab_selected : styles.page_tab}
                                 onClick={() => {
                                     if (isEditing) return; // Don't change page while editing
@@ -240,7 +244,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                                     if (isSelected) {
                                         setShowDetails(false);
                                     } else {
-                                        modifyNotebook({ type: SELECT_PAGE, value: index });
+                                        modifyNotebook({ type: SELECT_PAGE, value: folderName });
                                         setShowDetails(false);
                                     }
                                 }}
@@ -266,7 +270,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                                                         variant={ButtonVariant.Invisible}
                                                         size={ButtonSize.Tiny}
                                                         aria-label="Rename page"
-                                                        onClick={(e) => startEditingPage(index, label, e)}
+                                                        onClick={(e) => startEditingPage(folderName, label, e)}
                                                         className={styles.page_tab_action_button}
                                                     >
                                                         <PencilIcon size={12} />
@@ -319,7 +323,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     )}
                 </div>
             </div>
-            <div className={styles.body_container} id="notebook-body" role="tabpanel" aria-labelledby={notebook.notebookPages.length > 0 ? `notebook-page-tab-${notebook.notebookUserFocus.pageIndex}` : undefined}>
+            <div className={styles.body_container} id="notebook-body" role="tabpanel" aria-labelledby={notebook.notebookUserFocus.folderName ? `notebook-page-tab-${notebook.notebookUserFocus.folderName}` : undefined}>
                 {
                     catalogTab === 'relations' && conn
                         ? <CatalogSchemaView connection={conn} />

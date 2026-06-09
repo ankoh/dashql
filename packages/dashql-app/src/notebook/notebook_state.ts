@@ -16,6 +16,8 @@ const LOG_CTX = 'notebook_state';
 export type ScriptKey = number;
 /// A script data map
 export type ScriptDataMap = { [scriptKey: number]: ScriptData };
+/// A page map keyed by folder name
+export type NotebookPageMap = { [folderName: string]: NotebookPage };
 
 /// A notebook metadata
 export interface NotebookMetadata {
@@ -25,10 +27,10 @@ export interface NotebookMetadata {
 
 /// A notebook user focus
 export interface NotebookUserFocus {
-    /// The currently selected page index (for editor tabs)
-    pageIndex: number;
-    /// The selected entry index within the selected page
-    entryInPage: number;
+    /// The folder name of the selected page (empty if none)
+    folderName: string;
+    /// The file name of the selected entry within the page (empty if none)
+    fileName: string;
     /// Monotonic counter incremented only by explicit navigation (Next/Prev Script/Page), used to trigger auto-scroll
     interactionCounter: number;
 }
@@ -50,11 +52,11 @@ export interface NotebookState {
     scriptRegistry: core.DashQLScriptRegistry;
     /// The scripts
     scripts: ScriptDataMap;
-    /// The notebook pages. Each page holds a sequence of script references (entries).
-    notebookPages: NotebookPage[];
+    /// The notebook pages keyed by folder name. View order is by name.
+    notebookPages: NotebookPageMap;
     /// The uncommitted script id for the notebook-level composer.
     uncommittedScriptId: number;
-    /// The notebook focus (selected page and entry)
+    /// The notebook focus (selected page and entry by name)
     notebookUserFocus: NotebookUserFocus;
     /// The semantic user focus info (if any)
     semanticUserFocus: SemanticUserFocus | null;
@@ -86,8 +88,6 @@ export interface ScriptData {
     completion: DashQLCompletionState | null;
     /// The latest query id
     latestQueryId: number | null;
-    /// The page index this script belongs to (-1 for uncommitted/draft script)
-    pageIndex: number;
     /// The file name of this script (empty string for uncommitted/draft script)
     fileName: string;
     /// The folder name of the page this script belongs to (empty string for uncommitted/draft script)
@@ -106,7 +106,6 @@ export const ANALYZE_OUTDATED_SCRIPT = Symbol('ANALYZE_OUTDATED_SCRIPT');
 export const UPDATE_FROM_PROCESSOR = Symbol('UPDATE_FROM_PROCESSOR');
 export const CATALOG_DID_UPDATE = Symbol('CATALOG_DID_UPDATE');
 export const REGISTER_QUERY = Symbol('REGISTER_QUERY');
-export const REORDER_NOTEBOOK_ENTRIES = Symbol('REORDER_NOTEBOOK_ENTRIES');
 export const CREATE_NOTEBOOK_ENTRY = Symbol('CREATE_NOTEBOOK_ENTRY');
 export const DELETE_NOTEBOOK_ENTRY = Symbol('DELETE_NOTEBOOK_ENTRY');
 export const UPDATE_NOTEBOOK_ENTRY = Symbol('UPDATE_NOTEBOOK_ENTRY');
@@ -114,29 +113,28 @@ export const UPDATE_PAGE_FOLDER_NAME = Symbol('UPDATE_PAGE_FOLDER_NAME');
 export const PROMOTE_UNCOMMITTED_SCRIPT = Symbol('PROMOTE_UNCOMMITTED_SCRIPT');
 
 export type NotebookStateAction =
-    | VariantKind<typeof SELECT_PAGE, number>
+    | VariantKind<typeof SELECT_PAGE, string>
     | VariantKind<typeof CREATE_PAGE, null>
-    | VariantKind<typeof DELETE_PAGE, number>
+    | VariantKind<typeof DELETE_PAGE, string>
     | VariantKind<typeof SELECT_NEXT_PAGE, null>
     | VariantKind<typeof SELECT_PREV_PAGE, null>
     | VariantKind<typeof SELECT_NEXT_ENTRY, null>
     | VariantKind<typeof SELECT_PREV_ENTRY, null>
-    | VariantKind<typeof SELECT_ENTRY, number>
+    | VariantKind<typeof SELECT_ENTRY, string>
     | VariantKind<typeof ANALYZE_OUTDATED_SCRIPT, ScriptKey>
     | VariantKind<typeof UPDATE_FROM_PROCESSOR, DashQLProcessorUpdateOut>
     | VariantKind<typeof CATALOG_DID_UPDATE, null>
-    | VariantKind<typeof REGISTER_QUERY, [number, number, ScriptKey, number]>
-    | VariantKind<typeof REORDER_NOTEBOOK_ENTRIES, { oldIndex: number, newIndex: number }>
+    | VariantKind<typeof REGISTER_QUERY, [ScriptKey, number]>
     | VariantKind<typeof CREATE_NOTEBOOK_ENTRY, null>
-    | VariantKind<typeof DELETE_NOTEBOOK_ENTRY, number>
-    | VariantKind<typeof UPDATE_NOTEBOOK_ENTRY, { entryIndex: number, fileName: string }>
-    | VariantKind<typeof UPDATE_PAGE_FOLDER_NAME, { pageIndex: number, folderName: string }>
+    | VariantKind<typeof DELETE_NOTEBOOK_ENTRY, string>
+    | VariantKind<typeof UPDATE_NOTEBOOK_ENTRY, { fileName: string, newFileName: string }>
+    | VariantKind<typeof UPDATE_PAGE_FOLDER_NAME, { folderName: string, newFolderName: string }>
     | VariantKind<typeof PROMOTE_UNCOMMITTED_SCRIPT, null>
     ;
 
 const STATS_HISTORY_LIMIT = 20;
 
-export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQLCatalog, pageIndex: number = -1, fileName: string = '', folderName: string = ''): [number, ScriptData] {
+export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQLCatalog, fileName: string = '', folderName: string = ''): [number, ScriptData] {
     const script = instance.createScript(catalog);
     const scriptKey = script.getCatalogEntryId();
     const scriptData: ScriptData = {
@@ -155,18 +153,17 @@ export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQ
         cursor: null,
         completion: null,
         latestQueryId: null,
-        pageIndex,
         fileName,
         folderName,
     };
     return [scriptKey, scriptData];
 }
 
-function uniqueFolderName(baseName: string, pages: NotebookPage[], excludeIndex: number = -1): string {
-    const existing = new Set(pages.filter((_, i) => i !== excludeIndex).map(p => p.folderName));
-    if (!existing.has(baseName)) return baseName;
+function uniqueFolderName(baseName: string, pages: NotebookPageMap, excludeFolder: string = ''): string {
+    const taken = (name: string) => name !== excludeFolder && pages[name] !== undefined;
+    if (!taken(baseName)) return baseName;
     let suffix = 2;
-    while (existing.has(`${baseName} ${suffix}`)) suffix++;
+    while (taken(`${baseName} ${suffix}`)) suffix++;
     return `${baseName} ${suffix}`;
 }
 
@@ -176,30 +173,83 @@ enum FocusUpdate {
     UpdateFromCompletion,
 };
 
+/// Returns the sorted list of folder names for view-layer iteration.
+export function getSortedFolderNames(pages: NotebookPageMap): string[] {
+    return Object.keys(pages).sort((a, b) => a.localeCompare(b));
+}
+
+/// Returns the sorted list of file names within a page.
+export function getSortedFileNames(page: NotebookPage): string[] {
+    return Object.keys(page.scripts).sort((a, b) => a.localeCompare(b));
+}
+
+/// Returns the currently selected page, or undefined if none.
+export function getSelectedPage(state: NotebookState): NotebookPage | undefined {
+    const folder = state.notebookUserFocus.folderName;
+    if (folder && state.notebookPages[folder]) return state.notebookPages[folder];
+    // Fall back to the first page in sorted order
+    const folders = getSortedFolderNames(state.notebookPages);
+    return folders.length > 0 ? state.notebookPages[folders[0]] : undefined;
+}
+
+/// Returns the script entries of the selected page, sorted by file name.
+export function getSelectedPageEntries(state: NotebookState): NotebookPageScript[] {
+    const page = getSelectedPage(state);
+    if (!page) return [];
+    return getSortedFileNames(page).map(name => page.scripts[name]);
+}
+
+/// Returns the uncommitted script data for the notebook-level composer, or null if none.
+export function getUncommittedScriptData(state: NotebookState): ScriptData | null {
+    if (state.uncommittedScriptId === 0) return null;
+    return state.scripts[state.uncommittedScriptId] ?? null;
+}
+
+/// Returns the currently selected entry (script ref) in the selected page, or undefined.
+export function getSelectedEntry(state: NotebookState): NotebookPageScript | undefined {
+    const page = getSelectedPage(state);
+    if (!page) return undefined;
+    const file = state.notebookUserFocus.fileName;
+    if (file && page.scripts[file]) return page.scripts[file];
+    // Fall back to first sorted entry
+    const files = getSortedFileNames(page);
+    return files.length > 0 ? page.scripts[files[0]] : undefined;
+}
+
+/// Returns the index of the selected entry in the sorted entry list, or -1.
+export function getSelectedEntryIndex(state: NotebookState): number {
+    const page = getSelectedPage(state);
+    if (!page) return -1;
+    const file = state.notebookUserFocus.fileName;
+    if (!file) return -1;
+    const files = getSortedFileNames(page);
+    return files.indexOf(file);
+}
+
+/// Returns the index of the selected page in the sorted page list, or -1.
+export function getSelectedPageIndex(state: NotebookState): number {
+    const folders = getSortedFolderNames(state.notebookPages);
+    return folders.indexOf(state.notebookUserFocus.folderName);
+}
+
 export function reduceNotebookState(state: NotebookState, action: NotebookStateAction, storageArg: StorageWriter, logger: Logger, active: boolean): NotebookState {
     // Suppress storage writes when the connection is not yet active
     const storage = active ? storageArg : null;
     switch (action.type) {
         case SELECT_PAGE: {
-            const pageIndex = Math.max(0, Math.min(action.value, state.notebookPages.length - 1));
-            const page = state.notebookPages[pageIndex];
-            const maxEntry = page && page.scripts.length > 0 ? page.scripts.length - 1 : 0;
-            const entryInPage = Math.min(state.notebookUserFocus.entryInPage, maxEntry);
+            const folderName = action.value;
+            if (!state.notebookPages[folderName]) return state;
+            const page = state.notebookPages[folderName];
+            const files = getSortedFileNames(page);
+            const fileName = files.length > 0 ? files[0] : '';
             return {
                 ...clearSemanticUserFocus(state),
-                notebookUserFocus: { pageIndex, entryInPage, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
+                notebookUserFocus: { folderName, fileName, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
         }
         case CREATE_PAGE: {
             const folderName = uniqueFolderName('Untitled', state.notebookPages);
-            const newPage: NotebookPage = {
-                folderName,
-                scripts: [],
-            };
-
-            const newPages = [...state.notebookPages, newPage];
-            const newPageIndex = newPages.length - 1;
-            const fileName = generateScriptFileName([]);
+            const fileName = generateScriptFileName({});
 
             // Create a new script for the new page
             const script = state.instance.createScript(state.connectionCatalog);
@@ -220,13 +270,15 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 cursor: null,
                 completion: null,
                 latestQueryId: null,
-                pageIndex: newPageIndex,
-                fileName: fileName,
+                fileName,
                 folderName,
             };
 
             const entry = createPageScript(scriptKey, fileName);
-            newPage.scripts.push(entry);
+            const newPage: NotebookPage = {
+                folderName,
+                scripts: { [fileName]: entry },
+            };
 
             const next: NotebookState = {
                 ...clearSemanticUserFocus(state),
@@ -234,101 +286,120 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     ...state.scripts,
                     [scriptKey]: scriptData,
                 },
-                notebookPages: newPages,
-                notebookUserFocus: { pageIndex: newPages.length - 1, entryInPage: 0, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
+                notebookPages: { ...state.notebookPages, [folderName]: newPage },
+                notebookUserFocus: { folderName, fileName, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
 
             storage?.write(
-                groupPageWrites(next.sessionId, newPage.folderName),
-                { type: CREATE_NOTEBOOK_PAGE, value: [next.sessionId, newPage.folderName, [{ scriptId: scriptKey, fileName, sql: '' }]] },
+                groupPageWrites(next.sessionId, folderName),
+                { type: CREATE_NOTEBOOK_PAGE, value: [next.sessionId, folderName, [{ scriptId: scriptKey, fileName, sql: '' }]] },
                 DEBOUNCE_DURATION_NOTEBOOK_WRITE
             );
             return next;
         }
         case DELETE_PAGE: {
             // Prevent deleting the last remaining page
-            if (state.notebookPages.length <= 1) {
+            const folders = getSortedFolderNames(state.notebookPages);
+            if (folders.length <= 1) return state;
+
+            const folderToDelete = action.value;
+            if (!state.notebookPages[folderToDelete]) {
+                console.warn("Delete references invalid page");
                 return state;
             }
 
-            const pageIndexToDelete = action.value;
-            if (pageIndexToDelete < 0 || pageIndexToDelete >= state.notebookPages.length) {
-                console.warn("Delete references invalid page index");
-                return state;
+            const newPages: NotebookPageMap = { ...state.notebookPages };
+            delete newPages[folderToDelete];
+
+            // Pick a new focused page: previous in sorted order, else first remaining
+            let newFolder = state.notebookUserFocus.folderName;
+            if (folderToDelete === newFolder) {
+                const idx = folders.indexOf(folderToDelete);
+                const remaining = folders.filter(f => f !== folderToDelete);
+                newFolder = remaining[Math.max(0, idx - 1)] ?? remaining[0] ?? '';
             }
+            const newPage = newPages[newFolder];
+            const newFiles = newPage ? getSortedFileNames(newPage) : [];
+            const newFile = newFiles[0] ?? '';
 
-            // Remove the page
-            const newPages = state.notebookPages.filter((_, idx) => idx !== pageIndexToDelete);
-
-            // Calculate new focus: select previous page, or next if deleting first page
-            let newPageIndex = state.notebookUserFocus.pageIndex;
-            if (pageIndexToDelete === state.notebookUserFocus.pageIndex) {
-                // Deleting current page - select previous (or 0 if deleting first)
-                newPageIndex = Math.max(0, pageIndexToDelete - 1);
-            } else if (pageIndexToDelete < state.notebookUserFocus.pageIndex) {
-                // Deleting a page before current - adjust index
-                newPageIndex = state.notebookUserFocus.pageIndex - 1;
-            }
-
-            const deletedPage = state.notebookPages[pageIndexToDelete];
             const next: NotebookState = {
                 ...destroyDeadScripts({
                     ...clearSemanticUserFocus(state),
                     notebookPages: newPages,
                     notebookUserFocus: {
-                        pageIndex: newPageIndex,
-                        entryInPage: 0,
+                        folderName: newFolder,
+                        fileName: newFile,
                         interactionCounter: state.notebookUserFocus.interactionCounter + 1,
                     }
                 })
             };
 
             storage?.write(
-                groupPageWrites(next.sessionId, deletedPage.folderName),
-                { type: DELETE_NOTEBOOK_PAGE, value: [next.sessionId, deletedPage.folderName] },
+                groupPageWrites(next.sessionId, folderToDelete),
+                { type: DELETE_NOTEBOOK_PAGE, value: [next.sessionId, folderToDelete] },
                 DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
             );
             return next;
         }
         case SELECT_NEXT_PAGE: {
-            const nextPageIndex = Math.min(state.notebookUserFocus.pageIndex + 1, state.notebookPages.length - 1);
-            const nextPage = state.notebookPages[nextPageIndex];
-            const maxEntry = nextPage && nextPage.scripts.length > 0 ? nextPage.scripts.length - 1 : 0;
-            const entryInPage = Math.min(state.notebookUserFocus.entryInPage, maxEntry);
+            const folders = getSortedFolderNames(state.notebookPages);
+            const cur = folders.indexOf(state.notebookUserFocus.folderName);
+            const nextIdx = Math.min(Math.max(cur, 0) + 1, folders.length - 1);
+            const folderName = folders[nextIdx] ?? state.notebookUserFocus.folderName;
+            const page = state.notebookPages[folderName];
+            const files = page ? getSortedFileNames(page) : [];
+            const fileName = files.includes(state.notebookUserFocus.fileName)
+                ? state.notebookUserFocus.fileName
+                : (files[0] ?? '');
             return {
                 ...clearSemanticUserFocus(state),
-                notebookUserFocus: { pageIndex: nextPageIndex, entryInPage, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
+                notebookUserFocus: { folderName, fileName, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
         }
         case SELECT_PREV_PAGE: {
-            const prevPageIndex = Math.max(state.notebookUserFocus.pageIndex - 1, 0);
-            const prevPage = state.notebookPages[prevPageIndex];
-            const maxEntry = prevPage && prevPage.scripts.length > 0 ? prevPage.scripts.length - 1 : 0;
-            const entryInPage = Math.min(state.notebookUserFocus.entryInPage, maxEntry);
+            const folders = getSortedFolderNames(state.notebookPages);
+            const cur = folders.indexOf(state.notebookUserFocus.folderName);
+            const prevIdx = Math.max((cur < 0 ? 0 : cur) - 1, 0);
+            const folderName = folders[prevIdx] ?? state.notebookUserFocus.folderName;
+            const page = state.notebookPages[folderName];
+            const files = page ? getSortedFileNames(page) : [];
+            const fileName = files.includes(state.notebookUserFocus.fileName)
+                ? state.notebookUserFocus.fileName
+                : (files[0] ?? '');
             return {
                 ...clearSemanticUserFocus(state),
-                notebookUserFocus: { pageIndex: prevPageIndex, entryInPage, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
+                notebookUserFocus: { folderName, fileName, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
         }
         case SELECT_NEXT_ENTRY: {
-            const entries = getSelectedPageEntries(state);
-            const nextEntry = Math.max(Math.min(state.notebookUserFocus.entryInPage + 1, entries.length - 1), 0);
+            const page = getSelectedPage(state);
+            const files = page ? getSortedFileNames(page) : [];
+            const cur = files.indexOf(state.notebookUserFocus.fileName);
+            const nextIdx = Math.min(Math.max(cur, 0) + 1, files.length - 1);
+            const fileName = files[nextIdx] ?? state.notebookUserFocus.fileName;
             return {
                 ...clearSemanticUserFocus(state),
-                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: nextEntry, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
+                notebookUserFocus: { ...state.notebookUserFocus, fileName, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
         }
-        case SELECT_PREV_ENTRY:
+        case SELECT_PREV_ENTRY: {
+            const page = getSelectedPage(state);
+            const files = page ? getSortedFileNames(page) : [];
+            const cur = files.indexOf(state.notebookUserFocus.fileName);
+            const prevIdx = Math.max((cur < 0 ? 0 : cur) - 1, 0);
+            const fileName = files[prevIdx] ?? state.notebookUserFocus.fileName;
             return {
                 ...clearSemanticUserFocus(state),
-                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: Math.max(state.notebookUserFocus.entryInPage - 1, 0), interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
+                notebookUserFocus: { ...state.notebookUserFocus, fileName, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
             };
+        }
         case SELECT_ENTRY: {
-            const entries = getSelectedPageEntries(state);
-            const idx = Math.max(Math.min(action.value, entries.length - 1), 0);
+            const fileName = action.value;
+            const page = getSelectedPage(state);
+            if (!page || !page.scripts[fileName]) return state;
             return {
                 ...clearSemanticUserFocus(state),
-                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: idx },
+                notebookUserFocus: { ...state.notebookUserFocus, fileName },
             };
         }
 
@@ -484,7 +555,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
         }
 
         case REGISTER_QUERY: {
-            const [_pageIndex, _entryIndexInPage, scriptKey, queryId] = action.value;
+            const [scriptKey, queryId] = action.value;
             const scriptData = state.scripts[scriptKey];
             if (!scriptData) {
                 logger.warn("Orphan query references invalid script", {
@@ -502,96 +573,76 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             }
         }
 
-        case REORDER_NOTEBOOK_ENTRIES: {
-            const page = getSelectedPage(state);
-            if (!page) return state;
-            const { oldIndex, newIndex } = action.value;
-            const newScripts = [...page.scripts];
-            if (oldIndex < 0 || oldIndex >= newScripts.length || newIndex < 0 || newIndex >= newScripts.length) return state;
-            const [movedEntry] = newScripts.splice(oldIndex, 1);
-            newScripts.splice(newIndex, 0, movedEntry);
-
-            let newEntryInPage = state.notebookUserFocus.entryInPage;
-            if (state.notebookUserFocus.entryInPage === oldIndex) {
-                newEntryInPage = newIndex;
-            } else if (oldIndex < state.notebookUserFocus.entryInPage && newIndex >= state.notebookUserFocus.entryInPage) {
-                newEntryInPage--;
-            } else if (oldIndex > state.notebookUserFocus.entryInPage && newIndex <= state.notebookUserFocus.entryInPage) {
-                newEntryInPage++;
-            }
-
-            const newPages = [...state.notebookPages];
-            newPages[state.notebookUserFocus.pageIndex] = { ...page, scripts: newScripts };
-
-            const next = {
-                ...clearSemanticUserFocus(state),
-                notebookPages: newPages,
-                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newEntryInPage },
-            };
-            storage?.write(groupNotebookWrites(next.sessionId), { type: REPLACE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
-            return next;
-        }
-
         case DELETE_NOTEBOOK_ENTRY: {
             const page = getSelectedPage(state);
-            if (!page || action.value < 0 || action.value >= page.scripts.length) {
-                return state;
-            }
-            const deletedEntry = page.scripts[action.value];
+            if (!page || !page.scripts[action.value]) return state;
+            const deletedFileName = action.value;
+            const deletedEntry = page.scripts[deletedFileName];
+            const folderName = page.folderName;
 
-            // If this is the last entry in the page
-            if (page.scripts.length <= 1) {
+            const remainingFiles = getSortedFileNames(page).filter(n => n !== deletedFileName);
+
+            // If this would empty the page
+            if (remainingFiles.length === 0) {
                 // If there's only one page total, prevent deletion (can't have empty notebook)
-                if (state.notebookPages.length <= 1) {
+                const folders = getSortedFolderNames(state.notebookPages);
+                if (folders.length <= 1) {
                     logger.info("Refusing to delete script", {}, LOG_CTX);
                     return state;
                 }
                 // Multiple pages exist - delete the entire page instead
-                const currentPageIndex = state.notebookUserFocus.pageIndex;
-                const newPages = state.notebookPages.filter((_, idx) => idx !== currentPageIndex);
+                const newPages: NotebookPageMap = { ...state.notebookPages };
+                delete newPages[folderName];
 
-                // Calculate new focus: select previous page, or next if deleting first page
-                const newPageIndex = Math.max(0, currentPageIndex - 1);
+                const idx = folders.indexOf(folderName);
+                const remainingFolders = folders.filter(f => f !== folderName);
+                const newFolder = remainingFolders[Math.max(0, idx - 1)] ?? remainingFolders[0] ?? '';
+                const newPage = newPages[newFolder];
+                const newFiles = newPage ? getSortedFileNames(newPage) : [];
 
                 const next: NotebookState = {
                     ...destroyDeadScripts({
                         ...clearSemanticUserFocus(state),
                         notebookPages: newPages,
                         notebookUserFocus: {
-                            pageIndex: newPageIndex,
-                            entryInPage: 0,
+                            folderName: newFolder,
+                            fileName: newFiles[0] ?? '',
                             interactionCounter: state.notebookUserFocus.interactionCounter + 1,
                         }
                     })
                 };
 
                 storage?.write(
-                    groupPageWrites(next.sessionId, page.folderName),
-                    { type: DELETE_NOTEBOOK_PAGE, value: [next.sessionId, page.folderName] },
+                    groupPageWrites(next.sessionId, folderName),
+                    { type: DELETE_NOTEBOOK_PAGE, value: [next.sessionId, folderName] },
                     DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
                 );
                 return next;
             }
 
             // Normal case: delete the entry from the page
-            const newScripts = page.scripts.filter((_entry: NotebookPageScript, i: number) => i !== action.value);
-            let newEntryInPage = state.notebookUserFocus.entryInPage;
-            if (state.notebookUserFocus.entryInPage === action.value) {
-                newEntryInPage = Math.max(0, action.value - 1);
-            } else if (action.value < state.notebookUserFocus.entryInPage) {
-                newEntryInPage--;
+            const newPageScripts = { ...page.scripts };
+            delete newPageScripts[deletedFileName];
+            const newPages: NotebookPageMap = {
+                ...state.notebookPages,
+                [folderName]: { ...page, scripts: newPageScripts },
+            };
+
+            // Adjust focus if needed
+            let newFile = state.notebookUserFocus.fileName;
+            if (newFile === deletedFileName) {
+                const oldIdx = getSortedFileNames(page).indexOf(deletedFileName);
+                newFile = remainingFiles[Math.max(0, oldIdx - 1)] ?? remainingFiles[0] ?? '';
             }
-            const newPages = [...state.notebookPages];
-            newPages[state.notebookUserFocus.pageIndex] = { ...page, scripts: newScripts };
 
             const next = destroyDeadScripts({
                 ...clearSemanticUserFocus(state),
                 notebookPages: newPages,
-                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: Math.min(newEntryInPage, newScripts.length - 1) },
+                notebookUserFocus: { ...state.notebookUserFocus, fileName: newFile },
             });
             storage?.write(
-                groupScriptDeletes(next.sessionId, page.folderName, deletedEntry.fileName),
-                { type: DELETE_NOTEBOOK_SCRIPT, value: [next.sessionId, page.folderName, deletedEntry.fileName] },
+                groupScriptDeletes(next.sessionId, folderName, deletedEntry.fileName),
+                { type: DELETE_NOTEBOOK_SCRIPT, value: [next.sessionId, folderName, deletedEntry.fileName] },
                 DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
             );
             return next;
@@ -601,7 +652,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const page = getSelectedPage(state);
             if (!page) return state;
 
-            const pageIndex = state.notebookUserFocus.pageIndex;
+            const folderName = page.folderName;
             const fileName = generateScriptFileName(page.scripts);
 
             // Create a new script
@@ -624,15 +675,15 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 cursor: null,
                 completion: null,
                 latestQueryId: null,
-                pageIndex,
                 fileName,
-                folderName: page.folderName,
+                folderName,
             };
 
             const entry: NotebookPageScript = createPageScript(scriptKey, fileName);
-            const newScripts = [...page.scripts, entry];
-            const newPages = [...state.notebookPages];
-            newPages[pageIndex] = { ...page, scripts: newScripts };
+            const newPage: NotebookPage = {
+                ...page,
+                scripts: { ...page.scripts, [fileName]: entry },
+            };
 
             const next: NotebookState = {
                 ...clearSemanticUserFocus(state),
@@ -640,12 +691,12 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     ...state.scripts,
                     [scriptKey]: scriptData,
                 },
-                notebookPages: newPages,
-                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newScripts.length - 1 },
+                notebookPages: { ...state.notebookPages, [folderName]: newPage },
+                notebookUserFocus: { ...state.notebookUserFocus, fileName },
             };
             storage?.write(
-                groupScriptWrites(next.sessionId, page.folderName, fileName),
-                { type: WRITE_NOTEBOOK_SCRIPT, value: [next.sessionId, page.folderName, fileName, ''] },
+                groupScriptWrites(next.sessionId, folderName, fileName),
+                { type: WRITE_NOTEBOOK_SCRIPT, value: [next.sessionId, folderName, fileName, ''] },
                 DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
             );
             return next;
@@ -653,51 +704,59 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
 
         case UPDATE_NOTEBOOK_ENTRY: {
             const page = getSelectedPage(state);
-            if (!page || action.value.entryIndex < 0 || action.value.entryIndex >= page.scripts.length) {
+            if (!page) {
                 console.warn("Update references invalid notebook entry");
                 return state;
             }
-            const { entryIndex, fileName } = action.value;
-            const oldFileName = page.scripts[entryIndex].fileName;
-            const renamedEntry: NotebookPageScript = { ...page.scripts[entryIndex], fileName };
-            const scriptId = renamedEntry.scriptId;
-            // Re-sort entries by fileName so the feed order tracks the storage ordering
-            const entries = page.scripts
-                .map((entry, i) => i === entryIndex ? renamedEntry : entry)
-                .sort((a, b) => a.fileName.localeCompare(b.fileName));
+            const { fileName: oldFileName, newFileName } = action.value;
+            const entry = page.scripts[oldFileName];
+            if (!entry) {
+                console.warn("Update references invalid notebook entry");
+                return state;
+            }
+            // Disallow rename to an existing file in the same page
+            if (oldFileName !== newFileName && page.scripts[newFileName]) {
+                console.warn("Rename target file name already exists");
+                return state;
+            }
+            const renamed = oldFileName !== newFileName;
+            const renamedEntry: NotebookPageScript = { ...entry, fileName: newFileName };
+            const newPageScripts = { ...page.scripts };
+            if (renamed) delete newPageScripts[oldFileName];
+            newPageScripts[newFileName] = renamedEntry;
 
-            // Keep focus on the same script across the reorder
-            const focusedScriptId = page.scripts[state.notebookUserFocus.entryInPage]?.scriptId ?? scriptId;
-            const remappedEntryInPage = entries.findIndex(e => e.scriptId === focusedScriptId);
-
-            const newPages = [...state.notebookPages];
-            newPages[state.notebookUserFocus.pageIndex] = { ...page, scripts: entries };
+            const newPages: NotebookPageMap = {
+                ...state.notebookPages,
+                [page.folderName]: { ...page, scripts: newPageScripts },
+            };
 
             // Update the script data fileName; mark analysis outdated on rename so the catalog path gets updated
+            const scriptId = entry.scriptId;
             const updatedScriptData = state.scripts[scriptId];
-            const renamed = oldFileName !== fileName;
             const newScripts = updatedScriptData ? {
                 ...state.scripts,
                 [scriptId]: {
                     ...updatedScriptData,
-                    fileName,
+                    fileName: newFileName,
                     scriptAnalysis: renamed
                         ? { ...updatedScriptData.scriptAnalysis, outdated: true }
                         : updatedScriptData.scriptAnalysis,
                 }
             } : state.scripts;
 
+            // Keep focus on this script across the rename
+            const focusFile = state.notebookUserFocus.fileName === oldFileName
+                ? newFileName
+                : state.notebookUserFocus.fileName;
+
             const next = {
                 ...state,
                 notebookPages: newPages,
                 scripts: newScripts,
-                notebookUserFocus: {
-                    ...state.notebookUserFocus,
-                    entryInPage: Math.max(0, remappedEntryInPage),
-                },
+                notebookUserFocus: { ...state.notebookUserFocus, fileName: focusFile },
             };
             // Delete old file, write new file
-            if (oldFileName !== fileName) {
+            if (renamed) {
                 storage?.write(
                     groupScriptDeletes(next.sessionId, page.folderName, oldFileName),
                     { type: DELETE_NOTEBOOK_SCRIPT, value: [next.sessionId, page.folderName, oldFileName] },
@@ -706,60 +765,67 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             }
             const sql = updatedScriptData ? updatedScriptData.script.toString() : '';
             storage?.write(
-                groupScriptWrites(next.sessionId, page.folderName, fileName),
-                { type: WRITE_NOTEBOOK_SCRIPT, value: [next.sessionId, page.folderName, fileName, sql] },
+                groupScriptWrites(next.sessionId, page.folderName, newFileName),
+                { type: WRITE_NOTEBOOK_SCRIPT, value: [next.sessionId, page.folderName, newFileName, sql] },
                 DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
             );
             return next;
         }
 
         case UPDATE_PAGE_FOLDER_NAME: {
-            const { pageIndex, folderName: requestedName } = action.value;
-            if (pageIndex < 0 || pageIndex >= state.notebookPages.length) {
-                console.warn("Update references invalid page index");
+            const { folderName: oldFolderName, newFolderName: requestedName } = action.value;
+            const page = state.notebookPages[oldFolderName];
+            if (!page) {
+                console.warn("Update references invalid folder name");
                 return state;
             }
-            const folderName = uniqueFolderName(requestedName, state.notebookPages, pageIndex);
-            const oldFolderName = state.notebookPages[pageIndex].folderName;
-            const newPages = [...state.notebookPages];
-            newPages[pageIndex] = { ...newPages[pageIndex], folderName };
+            const newFolderName = uniqueFolderName(requestedName, state.notebookPages, oldFolderName);
+            const renamed = oldFolderName !== newFolderName;
 
             // Update all scripts in this page with the new folder name; mark outdated on rename for catalog path update
-            const page = state.notebookPages[pageIndex];
-            const folderRenamed = oldFolderName !== folderName;
-            let newScripts = { ...state.scripts };
-            for (const entry of page.scripts) {
+            const newScripts = { ...state.scripts };
+            for (const fileName in page.scripts) {
+                const entry = page.scripts[fileName];
                 const scriptData = newScripts[entry.scriptId];
                 if (scriptData) {
                     newScripts[entry.scriptId] = {
                         ...scriptData,
-                        folderName,
-                        scriptAnalysis: folderRenamed
+                        folderName: newFolderName,
+                        scriptAnalysis: renamed
                             ? { ...scriptData.scriptAnalysis, outdated: true }
                             : scriptData.scriptAnalysis,
                     };
                 }
             }
 
-            const next = {
+            const newPages: NotebookPageMap = { ...state.notebookPages };
+            if (renamed) delete newPages[oldFolderName];
+            newPages[newFolderName] = { ...page, folderName: newFolderName };
+
+            const newFocusFolder = state.notebookUserFocus.folderName === oldFolderName
+                ? newFolderName
+                : state.notebookUserFocus.folderName;
+
+            const next: NotebookState = {
                 ...state,
                 notebookPages: newPages,
-                scripts: newScripts
+                scripts: newScripts,
+                notebookUserFocus: { ...state.notebookUserFocus, folderName: newFocusFolder },
             };
             // Delete old page folder, create new one with all scripts
-            if (oldFolderName !== folderName) {
+            if (renamed) {
                 storage?.write(
                     groupPageWrites(next.sessionId, oldFolderName),
                     { type: DELETE_NOTEBOOK_PAGE, value: [next.sessionId, oldFolderName] },
                     DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
                 );
-                const scriptEntries = page.scripts.map(entry => {
+                const scriptEntries = Object.values(page.scripts).map(entry => {
                     const sd = newScripts[entry.scriptId];
                     return { scriptId: entry.scriptId, fileName: entry.fileName, sql: sd ? sd.script.toString() : '' };
                 });
                 storage?.write(
-                    groupPageWrites(next.sessionId, folderName),
-                    { type: CREATE_NOTEBOOK_PAGE, value: [next.sessionId, folderName, scriptEntries] },
+                    groupPageWrites(next.sessionId, newFolderName),
+                    { type: CREATE_NOTEBOOK_PAGE, value: [next.sessionId, newFolderName, scriptEntries] },
                     DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
                 );
             }
@@ -771,29 +837,28 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             if (!page || state.uncommittedScriptId == 0) {
                 return state;
             }
-            const pageIndex = state.notebookUserFocus.pageIndex;
+            const folderName = page.folderName;
             const fileName = generateScriptFileName(page.scripts);
 
             // Append the uncommitted script as a new committed entry
             const promotedEntry = createPageScript(state.uncommittedScriptId, fileName);
-            const newPageScripts = [...page.scripts, promotedEntry];
 
             // Update the promoted script metadata
             const promotedScriptData = state.scripts[state.uncommittedScriptId];
             const updatedPromotedScript = promotedScriptData ? {
                 ...promotedScriptData,
-                pageIndex,
                 fileName,
-                folderName: page.folderName,
+                folderName,
             } : promotedScriptData;
 
             // Create a new empty uncommitted script
             const [newUncommittedKey, newUncommittedData] = createEmptyScriptData(state.instance, state.connectionCatalog);
-            const newPages = [...state.notebookPages];
-            newPages[pageIndex] = {
+
+            const newPage: NotebookPage = {
                 ...page,
-                scripts: newPageScripts,
+                scripts: { ...page.scripts, [fileName]: promotedEntry },
             };
+
             const next: NotebookState = {
                 ...clearSemanticUserFocus(state),
                 scripts: {
@@ -801,14 +866,14 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     [state.uncommittedScriptId]: updatedPromotedScript,
                     [newUncommittedKey]: newUncommittedData,
                 },
-                notebookPages: newPages,
+                notebookPages: { ...state.notebookPages, [folderName]: newPage },
                 uncommittedScriptId: newUncommittedKey,
-                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newPageScripts.length - 1 },
+                notebookUserFocus: { ...state.notebookUserFocus, fileName },
             };
             const sql = updatedPromotedScript ? updatedPromotedScript.script.toString() : '';
             storage?.write(
-                groupScriptWrites(next.sessionId, page.folderName, fileName),
-                { type: WRITE_NOTEBOOK_SCRIPT, value: [next.sessionId, page.folderName, fileName, sql] },
+                groupScriptWrites(next.sessionId, folderName, fileName),
+                { type: WRITE_NOTEBOOK_SCRIPT, value: [next.sessionId, folderName, fileName, sql] },
                 DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
             );
             storage?.write(
@@ -876,9 +941,10 @@ function destroyDeadScripts(state: NotebookState): NotebookState {
     for (const key in state.scripts) {
         deadScripts.set(+key, state.scripts[key]);
     }
-    for (const page of state.notebookPages) {
-        for (const entry of page.scripts) {
-            deadScripts.delete(entry.scriptId);
+    for (const folder in state.notebookPages) {
+        const page = state.notebookPages[folder];
+        for (const fileName in page.scripts) {
+            deadScripts.delete(page.scripts[fileName].scriptId);
         }
     }
     deadScripts.delete(state.uncommittedScriptId);
@@ -1000,31 +1066,4 @@ export function analyzeOutdatedScriptInNotebook<V extends NotebookStateWithoutId
         next.semanticUserFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, nextScriptData);
     }
     return next;
-}
-
-/// Returns the currently selected page, or undefined if none.
-export function getSelectedPage(state: NotebookState): NotebookPage | undefined {
-    if (state.notebookPages.length === 0) return undefined;
-    const idx = Math.max(0, Math.min(state.notebookUserFocus.pageIndex, state.notebookPages.length - 1));
-    return state.notebookPages[idx];
-}
-
-/// Returns the script entries of the selected page.
-export function getSelectedPageEntries(state: NotebookState): NotebookPageScript[] {
-    const page = getSelectedPage(state);
-    return page?.scripts ?? [];
-}
-
-/// Returns the uncommitted script data for the notebook-level composer, or null if none.
-export function getUncommittedScriptData(state: NotebookState): ScriptData | null {
-    if (state.uncommittedScriptId === 0) return null;
-    return state.scripts[state.uncommittedScriptId] ?? null;
-}
-
-/// Returns the currently selected entry (script ref) in the selected page, or undefined.
-export function getSelectedEntry(state: NotebookState): NotebookPageScript | undefined {
-    const entries = getSelectedPageEntries(state);
-    if (entries.length === 0) return undefined;
-    const idx = Math.max(0, Math.min(state.notebookUserFocus.entryInPage, entries.length - 1));
-    return entries[idx];
 }

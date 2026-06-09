@@ -49,13 +49,16 @@ describe('createDefaultNotebook', () => {
         );
 
         expect(allocateNotebookState).toHaveBeenCalledTimes(1);
-        expect(notebook.notebookPages).toHaveLength(1);
-        expect(notebook.notebookUserFocus).toEqual({ pageIndex: 0, entryInPage: 0, interactionCounter: 0 });
+        expect(Object.keys(notebook.notebookPages)).toHaveLength(1);
+        expect(notebook.notebookUserFocus.folderName).toBe('Main');
+        expect(notebook.notebookUserFocus.fileName.length).toBeGreaterThan(0);
+        expect(notebook.notebookUserFocus.interactionCounter).toBe(0);
 
-        const queryPage = notebook.notebookPages[0];
-        expect(queryPage.scripts).toHaveLength(1);
+        const queryPage = notebook.notebookPages['Main'];
+        expect(Object.keys(queryPage.scripts)).toHaveLength(1);
 
-        const queryScriptId = queryPage.scripts[0].scriptId;
+        const fileName = notebook.notebookUserFocus.fileName;
+        const queryScriptId = queryPage.scripts[fileName].scriptId;
         expect(notebook.uncommittedScriptId).not.toBe(queryScriptId);
 
         expect(notebook.scripts[queryScriptId]?.script.toString()).toBe('select 1;');

@@ -1,24 +1,24 @@
 import { NotebookPage, NotebookPageScript, createPageScript } from '../../notebook/notebook_types.js';
 
-export function remapNotebookPageScripts(pages: NotebookPage[], scriptMapping: Map<number, number>) {
-    // Restore pages: use notebook_pages from proto; if empty, create one default page
-    const out: NotebookPage[] = [];
-    if (pages.length > 0) {
-        // Map script ids in notebook pages
-        for (const page of pages) {
-            const mappedScripts: NotebookPageScript[] = [];
-            for (const script of page.scripts) {
-                const mapped = scriptMapping.get(script.scriptId);
-                if (mapped !== undefined) {
-                    mappedScripts.push(createPageScript(mapped, script.fileName));
-                }
+export function remapNotebookPageScripts(
+    pages: { [folderName: string]: NotebookPage },
+    scriptMapping: Map<number, number>,
+): { [folderName: string]: NotebookPage } {
+    const out: { [folderName: string]: NotebookPage } = {};
+    for (const folderName in pages) {
+        const page = pages[folderName];
+        const mappedScripts: { [fileName: string]: NotebookPageScript } = {};
+        for (const fileName in page.scripts) {
+            const script = page.scripts[fileName];
+            const mapped = scriptMapping.get(script.scriptId);
+            if (mapped !== undefined) {
+                mappedScripts[script.fileName] = createPageScript(mapped, script.fileName);
             }
-            const p = {
-                folderName: page.folderName,
-                scripts: mappedScripts,
-            };
-            out.push(p);
         }
+        out[folderName] = {
+            folderName: page.folderName,
+            scripts: mappedScripts,
+        };
     }
     return out;
 }

@@ -53,7 +53,7 @@ async function restoreNotebook(
 
     // Reconstruct scripts and pages
     const scripts: Record<number, NotebookScriptData> = {};
-    const notebookPages: any[] = [];
+    const notebookPages: { [folderName: string]: { folderName: string; scripts: { [fileName: string]: { scriptId: number; fileName: string } } } } = {};
 
     logger.info("Reconstructing scripts and pages", {
         sessionId,
@@ -62,7 +62,7 @@ async function restoreNotebook(
 
     for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
         const page = pages[pageIndex];
-        const pageScripts: any[] = [];
+        const pageScripts: { [fileName: string]: { scriptId: number; fileName: string } } = {};
 
         logger.info("Processing page", {
             sessionId,
@@ -96,7 +96,6 @@ async function restoreNotebook(
                 cursor: null,
                 completion: null,
                 latestQueryId: null,
-                pageIndex: pageIndex,
                 fileName: scriptFile.name,
                 folderName: page.name,
             };
@@ -105,22 +104,22 @@ async function restoreNotebook(
             scriptRegistry.addScript(script);
 
             // Create page script reference
-            pageScripts.push({
+            pageScripts[scriptFile.name] = {
                 scriptId: scriptKey,
                 fileName: scriptFile.name,
-            });
+            };
         }
 
-        notebookPages.push({
+        notebookPages[page.name] = {
             folderName: page.name,
-            scripts: pageScripts
-        });
+            scripts: pageScripts,
+        };
     }
 
     // Ensure at least one page exists
-    if (notebookPages.length === 0) {
+    if (Object.keys(notebookPages).length === 0) {
         logger.info("No pages found, creating empty page", { sessionId }, LOG_CTX);
-        notebookPages.push({ scripts: [] });
+        notebookPages['Untitled'] = { folderName: 'Untitled', scripts: {} };
     }
 
     // Create uncommitted script
@@ -142,6 +141,14 @@ async function restoreNotebook(
         logger.info("No draft script found", { sessionId }, LOG_CTX);
     }
 
+    // Pick the first sorted page as the initial focus
+    const sortedFolders = Object.keys(notebookPages).sort((a, b) => a.localeCompare(b));
+    const initialFolder = sortedFolders[0] ?? '';
+    const initialPage = initialFolder ? notebookPages[initialFolder] : null;
+    const initialFile = initialPage
+        ? (Object.keys(initialPage.scripts).sort((a, b) => a.localeCompare(b))[0] ?? '')
+        : '';
+
     const notebookState: NotebookState = {
         instance: core,
         sessionId,
@@ -152,7 +159,7 @@ async function restoreNotebook(
         scripts,
         notebookPages,
         uncommittedScriptId: uncommittedKey,
-        notebookUserFocus: { pageIndex: 0, entryInPage: 0, interactionCounter: 0 },
+        notebookUserFocus: { folderName: initialFolder, fileName: initialFile, interactionCounter: 0 },
         semanticUserFocus: null,
     };
 
@@ -345,7 +352,7 @@ async function restoreSession(
         const notebookDuration = performance.now() - notebookStartTime;
         logger.info("Notebook restored", {
             sessionId,
-            pageCount: notebookState.notebookPages.length.toString(),
+            pageCount: Object.keys(notebookState.notebookPages).length.toString(),
             scriptCount: Object.keys(notebookState.scripts).length.toString(),
             durationMs: notebookDuration.toFixed(2)
         }, LOG_CTX);

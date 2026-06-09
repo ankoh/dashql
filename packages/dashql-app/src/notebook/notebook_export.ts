@@ -30,15 +30,17 @@ export async function encodeNotebookAsZip(
         notebook: notebookMetadata,
     };
 
-    // Convert notebook pages to storage format
+    // Convert notebook pages to storage format. Iterate folders/files in sorted order.
     const pages: PageData[] = [];
-    for (let pageIdx = 0; pageIdx < notebookState.notebookPages.length; pageIdx++) {
-        const page = notebookState.notebookPages[pageIdx];
+    const sortedFolders = Object.keys(notebookState.notebookPages).sort((a, b) => a.localeCompare(b));
+    for (let pageIdx = 0; pageIdx < sortedFolders.length; pageIdx++) {
+        const page = notebookState.notebookPages[sortedFolders[pageIdx]];
         const pageOrder = pageIdx + 1; // Pages are 1-indexed
 
         const scripts: ScriptData[] = [];
-        for (let entryIdx = 0; entryIdx < page.scripts.length; entryIdx++) {
-            const pageScript = page.scripts[entryIdx];
+        const sortedFiles = Object.keys(page.scripts).sort((a, b) => a.localeCompare(b));
+        for (let entryIdx = 0; entryIdx < sortedFiles.length; entryIdx++) {
+            const pageScript = page.scripts[sortedFiles[entryIdx]];
             const scriptOrder = entryIdx + 1; // Scripts are 1-indexed
             const scriptData = notebookState.scripts[pageScript.scriptId];
             if (scriptData) {

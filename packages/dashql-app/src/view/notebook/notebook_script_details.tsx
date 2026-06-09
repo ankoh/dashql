@@ -18,7 +18,7 @@ import { QueryResultView } from '../query_result/query_result_view.js';
 import { QueryStatusPanel } from '../query_status/query_status_panel.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { useQueryState } from '../../connection/query_executor.js';
-import { getSelectedEntry, getSelectedPageEntries, NotebookState, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
+import { getSelectedEntry, getSelectedPage, NotebookState, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { useAppConfig } from '../../app_config.js';
 import { ScriptEditor } from './script_editor.js';
@@ -67,14 +67,9 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     const scriptData = notebookEntry != null ? props.notebook.scripts[notebookEntry.scriptId] : null;
 
     // Get folder name and script file name
-    const selectedPage = props.notebook.notebookPages[props.notebook.notebookUserFocus.pageIndex];
+    const selectedPage = getSelectedPage(props.notebook);
     const folderName = selectedPage?.folderName ?? 'Untitled';
     const scriptFileName = notebookEntry?.fileName ?? '01-script.sql';
-
-    const pageEntries = getSelectedPageEntries(props.notebook);
-    const selectedEntryIndex = pageEntries.length === 0
-        ? -1
-        : Math.max(0, Math.min(props.notebook.notebookUserFocus.entryInPage, pageEntries.length - 1));
 
     const PencilIcon: Icon = SymbolIcon('pencil_16');
     const PencilAIIcon: Icon = SymbolIcon('pencil_ai_16');
@@ -92,11 +87,11 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
 
     const saveNameEdit = React.useCallback(() => {
         const trimmed = draftFileName.trim();
-        if (trimmed && trimmed !== scriptFileName && selectedEntryIndex >= 0) {
-            props.modifyNotebook({ type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex: selectedEntryIndex, fileName: trimmed } });
+        if (trimmed && trimmed !== scriptFileName) {
+            props.modifyNotebook({ type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: scriptFileName, newFileName: trimmed } });
         }
         setIsEditingName(false);
-    }, [draftFileName, scriptFileName, selectedEntryIndex, props.modifyNotebook]);
+    }, [draftFileName, scriptFileName, props.modifyNotebook]);
 
     const cancelNameEdit = React.useCallback(() => {
         setIsEditingName(false);

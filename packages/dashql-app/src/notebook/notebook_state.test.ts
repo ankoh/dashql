@@ -11,13 +11,16 @@ import {
     DELETE_NOTEBOOK_ENTRY,
     PROMOTE_UNCOMMITTED_SCRIPT,
     REGISTER_QUERY,
-    REORDER_NOTEBOOK_ENTRIES,
     SELECT_ENTRY,
     SELECT_NEXT_ENTRY,
     SELECT_PAGE,
     SELECT_PREV_ENTRY,
     UPDATE_NOTEBOOK_ENTRY,
     UPDATE_PAGE_FOLDER_NAME,
+    getSelectedPage,
+    getSelectedPageEntries,
+    getSortedFileNames,
+    getSortedFolderNames,
 } from './notebook_state.js';
 import { createDatalessConnectorInfo } from '../connection/connector_info.js';
 import { StorageWriter, StorageWriteTaskVariant } from "../platform/storage/storage_writer.js";
@@ -73,36 +76,38 @@ afterEach(() => {
     dql!.resetUnsafe();
 });
 
-// Builds a minimal DEMO-connector NotebookState:
-//   page[0].scripts = [{ scriptId: committedKey }]
-//   notebook.uncommittedScriptId = uncommittedKey
+const MAIN_FOLDER = 'Main';
+
+// Builds a minimal DEMO-connector NotebookState with a single 'Main' page
+// containing one committed script and a separate uncommitted script.
 function buildState(): NotebookState {
     const catalog = dql!.createCatalog();
     const registry = dql!.createScriptRegistry();
     const [committedKey, committedData] = createEmptyScriptData(dql!, catalog);
     const [uncommittedKey, uncommittedData] = createEmptyScriptData(dql!, catalog);
     const sessionId = crypto.randomUUID();
+    const initialFile = generateScriptFileName({});
     return {
         instance: dql!,
-        sessionId: sessionId,
+        sessionId,
         notebookMetadata: createEmptyMetadata(),
         connectorInfo: createDatalessConnectorInfo(true),
         connectionCatalog: catalog,
         scriptRegistry: registry,
         scripts: {
-            [committedKey]: committedData,
+            [committedKey]: { ...committedData, folderName: MAIN_FOLDER, fileName: initialFile },
             [uncommittedKey]: uncommittedData,
         },
-        notebookPages: [
-            {
-                folderName: 'Main',
-                scripts: [
-                    createPageScript(committedKey, generateScriptFileName([])),
-                ],
+        notebookPages: {
+            [MAIN_FOLDER]: {
+                folderName: MAIN_FOLDER,
+                scripts: {
+                    [initialFile]: createPageScript(committedKey, initialFile),
+                },
             },
-        ],
+        },
         uncommittedScriptId: uncommittedKey,
-        notebookUserFocus: { pageIndex: 0, entryInPage: 0, interactionCounter: 0 },
+        notebookUserFocus: { folderName: MAIN_FOLDER, fileName: initialFile, interactionCounter: 0 },
         semanticUserFocus: null,
     };
 }
@@ -111,29 +116,36 @@ function reduce(state: NotebookState, action: Parameters<typeof reduceNotebookSt
     return reduceNotebookState(state, action, storage, logger, true);
 }
 
+function pageEntries(state: NotebookState) {
+    return getSelectedPageEntries(state);
+}
+
+function pageEntryCount(state: NotebookState) {
+    const page = getSelectedPage(state);
+    return page ? Object.keys(page.scripts).length : 0;
+}
+
+function folderNames(state: NotebookState) {
+    return getSortedFolderNames(state.notebookPages);
+}
+
 // ---------------------------------------------------------------------------
 // SELECT_PAGE
 // ---------------------------------------------------------------------------
 
 describe('SELECT_PAGE', () => {
-    it('navigates to a valid page index', () => {
+    it('navigates to a valid folder name', () => {
         const s0 = buildState();
         const s1 = reduce(s0, { type: CREATE_PAGE, value: null });
-        expect(s1.notebookPages.length).toBe(2);
-        const s2 = reduce(s1, { type: SELECT_PAGE, value: 0 });
-        expect(s2.notebookUserFocus.pageIndex).toBe(0);
+        expect(folderNames(s1).length).toBe(2);
+        const s2 = reduce(s1, { type: SELECT_PAGE, value: MAIN_FOLDER });
+        expect(s2.notebookUserFocus.folderName).toBe(MAIN_FOLDER);
     });
 
-    it('clamps a high page index to the last page', () => {
+    it('is a no-op for an unknown folder name', () => {
         const state = buildState();
-        const next = reduce(state, { type: SELECT_PAGE, value: 999 });
-        expect(next.notebookUserFocus.pageIndex).toBe(state.notebookPages.length - 1);
-    });
-
-    it('clamps a negative page index to 0', () => {
-        const state = buildState();
-        const next = reduce(state, { type: SELECT_PAGE, value: -1 });
-        expect(next.notebookUserFocus.pageIndex).toBe(0);
+        const next = reduce(state, { type: SELECT_PAGE, value: 'Nonexistent' });
+        expect(next).toBe(state);
     });
 
     it('clears semanticUserFocus', () => {
@@ -141,7 +153,7 @@ describe('SELECT_PAGE', () => {
             ...buildState(),
             semanticUserFocus: { registryColumnInfo: null } as any,
         };
-        const next = reduce(state, { type: SELECT_PAGE, value: 0 });
+        const next = reduce(state, { type: SELECT_PAGE, value: MAIN_FOLDER });
         expect(next.semanticUserFocus).toBeNull();
     });
 });
@@ -151,56 +163,58 @@ describe('SELECT_PAGE', () => {
 // ---------------------------------------------------------------------------
 
 describe('SELECT_NEXT_ENTRY', () => {
-    it('advances entryInPage', () => {
+    it('advances to the next entry by sorted file name', () => {
         const s0 = buildState();
-        const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null }); // now 2 entries, focus=1
+        const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
+        const files = getSortedFileNames(getSelectedPage(s1)!);
+        expect(files.length).toBe(2);
+        // Move focus back to first entry, then advance.
         const s2 = reduce(
-            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 0, interactionCounter: 0 } },
+            { ...s1, notebookUserFocus: { ...s1.notebookUserFocus, fileName: files[0] } },
             { type: SELECT_NEXT_ENTRY, value: null },
         );
-        expect(s2.notebookUserFocus.entryInPage).toBe(1);
+        expect(s2.notebookUserFocus.fileName).toBe(files[1]);
     });
 
     it('is capped at the last entry', () => {
-        const state = buildState(); // 1 committed entry, focus=0
+        const state = buildState(); // 1 committed entry
         const next = reduce(state, { type: SELECT_NEXT_ENTRY, value: null });
-        expect(next.notebookUserFocus.entryInPage).toBe(0);
+        expect(next.notebookUserFocus.fileName).toBe(state.notebookUserFocus.fileName);
     });
 });
 
 describe('SELECT_PREV_ENTRY', () => {
-    it('decrements entryInPage', () => {
+    it('moves to the previous entry by sorted file name', () => {
         const s0 = buildState();
         const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
+        const files = getSortedFileNames(getSelectedPage(s1)!);
         const s2 = reduce(
-            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 1, interactionCounter: 0 } },
+            { ...s1, notebookUserFocus: { ...s1.notebookUserFocus, fileName: files[1] } },
             { type: SELECT_PREV_ENTRY, value: null },
         );
-        expect(s2.notebookUserFocus.entryInPage).toBe(0);
+        expect(s2.notebookUserFocus.fileName).toBe(files[0]);
     });
 
-    it('clamps at 0', () => {
+    it('clamps at the first entry', () => {
         const state = buildState();
         const next = reduce(state, { type: SELECT_PREV_ENTRY, value: null });
-        expect(next.notebookUserFocus.entryInPage).toBe(0);
+        expect(next.notebookUserFocus.fileName).toBe(state.notebookUserFocus.fileName);
     });
 });
 
 describe('SELECT_ENTRY', () => {
-    it('sets entryInPage directly', () => {
+    it('selects an entry by file name', () => {
         const s0 = buildState();
         const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
-        const s2 = reduce(
-            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 0, interactionCounter: 0 } },
-            { type: SELECT_ENTRY, value: 1 },
-        );
-        expect(s2.notebookUserFocus.entryInPage).toBe(1);
+        const files = getSortedFileNames(getSelectedPage(s1)!);
+        const s2 = reduce(s1, { type: SELECT_ENTRY, value: files[0] });
+        expect(s2.notebookUserFocus.fileName).toBe(files[0]);
     });
 
-    it('clamps an out-of-range index', () => {
+    it('is a no-op for an unknown file name', () => {
         const state = buildState();
-        const next = reduce(state, { type: SELECT_ENTRY, value: 999 });
-        expect(next.notebookUserFocus.entryInPage).toBe(0);
+        const next = reduce(state, { type: SELECT_ENTRY, value: 'nope.sql' });
+        expect(next).toBe(state);
     });
 });
 
@@ -212,7 +226,7 @@ describe('CREATE_PAGE', () => {
     it('appends a new page without reallocating the notebook draft', () => {
         const state = buildState();
         const next = reduce(state, { type: CREATE_PAGE, value: null });
-        expect(next.notebookPages.length).toBe(2);
+        expect(folderNames(next).length).toBe(2);
         expect(next.uncommittedScriptId).toBe(state.uncommittedScriptId);
         expect(next.scripts[next.uncommittedScriptId]).toBeDefined();
     });
@@ -220,14 +234,14 @@ describe('CREATE_PAGE', () => {
     it('moves focus to the new page', () => {
         const state = buildState();
         const next = reduce(state, { type: CREATE_PAGE, value: null });
-        expect(next.notebookUserFocus.pageIndex).toBe(1);
-        expect(next.notebookUserFocus.entryInPage).toBe(0);
+        expect(next.notebookUserFocus.folderName).toBe('Untitled');
     });
 
     it('new page has an auto-created script', () => {
         const state = buildState();
         const next = reduce(state, { type: CREATE_PAGE, value: null });
-        expect(next.notebookPages[1].scripts.length).toBe(1);
+        const newPage = next.notebookPages['Untitled'];
+        expect(Object.keys(newPage.scripts).length).toBe(1);
     });
 });
 
@@ -238,9 +252,9 @@ describe('CREATE_PAGE', () => {
 describe('CREATE_NOTEBOOK_ENTRY', () => {
     it('appends a new entry to the selected page', () => {
         const state = buildState();
-        const prevEntryCount = state.notebookPages[0].scripts.length;
+        const prevCount = pageEntryCount(state);
         const next = reduce(state, { type: CREATE_NOTEBOOK_ENTRY, value: null });
-        expect(next.notebookPages[0].scripts.length).toBe(prevEntryCount + 1);
+        expect(pageEntryCount(next)).toBe(prevCount + 1);
     });
 
     it('adds the corresponding script to the script map', () => {
@@ -253,15 +267,18 @@ describe('CREATE_NOTEBOOK_ENTRY', () => {
     it('moves focus to the newly created entry', () => {
         const state = buildState();
         const next = reduce(state, { type: CREATE_NOTEBOOK_ENTRY, value: null });
-        const lastIndex = next.notebookPages[0].scripts.length - 1;
-        expect(next.notebookUserFocus.entryInPage).toBe(lastIndex);
+        const files = getSortedFileNames(getSelectedPage(next)!);
+        expect(files).toContain(next.notebookUserFocus.fileName);
+        // The new entry is the last sorted file
+        expect(files[files.length - 1]).toBe(next.notebookUserFocus.fileName);
     });
 
     it('new entry scriptId is present in the script map', () => {
         const state = buildState();
         const next = reduce(state, { type: CREATE_NOTEBOOK_ENTRY, value: null });
-        const page = next.notebookPages[0];
-        const newEntry = page.scripts[page.scripts.length - 1];
+        const page = getSelectedPage(next)!;
+        const focusFile = next.notebookUserFocus.fileName;
+        const newEntry = page.scripts[focusFile];
         expect(next.scripts[newEntry.scriptId]).toBeDefined();
     });
 });
@@ -273,54 +290,57 @@ describe('CREATE_NOTEBOOK_ENTRY', () => {
 describe('DELETE_NOTEBOOK_ENTRY', () => {
     it('removes the targeted entry', () => {
         const s0 = buildState();
-        const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null }); // 2 entries
-        const next = reduce(s1, { type: DELETE_NOTEBOOK_ENTRY, value: 0 });
-        expect(next.notebookPages[0].scripts.length).toBe(1);
+        const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
+        const files = getSortedFileNames(getSelectedPage(s1)!);
+        const next = reduce(s1, { type: DELETE_NOTEBOOK_ENTRY, value: files[0] });
+        expect(pageEntryCount(next)).toBe(1);
+        expect(getSelectedPage(next)!.scripts[files[0]]).toBeUndefined();
     });
 
-    it('is a no-op when only one entry remains', () => {
+    it('is a no-op when only one entry remains in the only page', () => {
         const state = buildState(); // 1 committed entry
-        const next = reduce(state, { type: DELETE_NOTEBOOK_ENTRY, value: 0 });
-        expect(next.notebookPages[0].scripts.length).toBe(1);
+        const file = state.notebookUserFocus.fileName;
+        const next = reduce(state, { type: DELETE_NOTEBOOK_ENTRY, value: file });
+        expect(pageEntryCount(next)).toBe(1);
     });
 
-    it('is a no-op for an out-of-range index', () => {
+    it('is a no-op for an unknown file name', () => {
         const s0 = buildState();
         const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
-        const next = reduce(s1, { type: DELETE_NOTEBOOK_ENTRY, value: 99 });
-        expect(next.notebookPages[0].scripts.length).toBe(2);
+        const next = reduce(s1, { type: DELETE_NOTEBOOK_ENTRY, value: 'nope.sql' });
+        expect(next).toBe(s1);
     });
 
-    it('adjusts focus down when deleting an entry before the focused entry', () => {
+    it('adjusts focus to the previous sorted entry when deleting the focused one', () => {
         const s0 = buildState();
         const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
-        const s2 = reduce(
-            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 1, interactionCounter: 0 } },
-            { type: DELETE_NOTEBOOK_ENTRY, value: 0 },
-        );
-        expect(s2.notebookUserFocus.entryInPage).toBe(0);
-    });
-
-    it('adjusts focus when deleting the focused entry', () => {
-        const s0 = buildState();
-        const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
-        const s2 = reduce(
-            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 1, interactionCounter: 0 } },
-            { type: DELETE_NOTEBOOK_ENTRY, value: 1 },
-        );
-        expect(s2.notebookUserFocus.entryInPage).toBe(0);
+        const files = getSortedFileNames(getSelectedPage(s1)!);
+        // Delete the second (focused) entry
+        const s2 = reduce(s1, { type: DELETE_NOTEBOOK_ENTRY, value: files[1] });
+        expect(s2.notebookUserFocus.fileName).toBe(files[0]);
     });
 
     it('removes dead scripts from the script map', () => {
         const s0 = buildState();
         const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
-        const deletedScriptId = s1.notebookPages[0].scripts[1].scriptId;
+        const files = getSortedFileNames(getSelectedPage(s1)!);
+        const deletedFile = files[1];
+        const deletedScriptId = getSelectedPage(s1)!.scripts[deletedFile].scriptId;
         expect(s1.scripts[deletedScriptId]).toBeDefined();
-        const next = reduce(
-            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 0, interactionCounter: 0 } },
-            { type: DELETE_NOTEBOOK_ENTRY, value: 1 },
-        );
+        const next = reduce(s1, { type: DELETE_NOTEBOOK_ENTRY, value: deletedFile });
         expect(next.scripts[deletedScriptId]).toBeUndefined();
+    });
+
+    it('preserves the notebook uncommitted script', () => {
+        const state = buildState();
+        const stateWithSecondEntry = reduce(state, { type: CREATE_NOTEBOOK_ENTRY, value: null });
+        const uncommittedScriptId = stateWithSecondEntry.uncommittedScriptId;
+        const files = getSortedFileNames(getSelectedPage(stateWithSecondEntry)!);
+
+        const next = reduce(stateWithSecondEntry, { type: DELETE_NOTEBOOK_ENTRY, value: files[1] });
+
+        expect(next.uncommittedScriptId).toBe(uncommittedScriptId);
+        expect(next.scripts[uncommittedScriptId]).toBeDefined();
     });
 });
 
@@ -329,237 +349,119 @@ describe('DELETE_NOTEBOOK_ENTRY', () => {
 // ---------------------------------------------------------------------------
 
 describe('UPDATE_NOTEBOOK_ENTRY', () => {
-    it('updates the fileName of the targeted entry', () => {
+    it('renames the targeted entry', () => {
         const state = buildState();
-        const next = reduce(state, { type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex: 0, fileName: '01-query.sql' } });
-        expect(next.notebookPages[0].scripts[0].fileName).toBe('01-query.sql');
+        const oldFile = state.notebookUserFocus.fileName;
+        const next = reduce(state, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: oldFile, newFileName: '01-query.sql' } });
+        expect(getSelectedPage(next)!.scripts['01-query.sql']).toBeDefined();
+        expect(getSelectedPage(next)!.scripts[oldFile]).toBeUndefined();
     });
 
-    it('is a no-op for an out-of-range entry index', () => {
+    it('is a no-op for an unknown file name', () => {
         const state = buildState();
-        const next = reduce(state, { type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex: 99, fileName: 'test.sql' } });
+        const next = reduce(state, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: 'nope.sql', newFileName: 'test.sql' } });
         expect(next).toBe(state);
     });
 
     it('marks script analysis outdated on rename', () => {
         const state = buildState();
-        // Give the first script a fileName so we can detect the rename
-        const scriptId = state.notebookPages[0].scripts[0].scriptId;
-        const s1: NotebookState = {
-            ...state,
-            notebookPages: [{
-                ...state.notebookPages[0],
-                scripts: [{ ...state.notebookPages[0].scripts[0], fileName: '01-old.sql' }],
-            }],
-            scripts: {
-                ...state.scripts,
-                [scriptId]: { ...state.scripts[scriptId], fileName: '01-old.sql' },
-            },
-        };
-        // Analyze so the script is up-to-date
-        const s2 = reduce(s1, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
-        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
+        const file = state.notebookUserFocus.fileName;
+        const scriptId = getSelectedPage(state)!.scripts[file].scriptId;
+        const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
+        expect(s1.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
 
-        // Rename the entry
-        const s3 = reduce(s2, { type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex: 0, fileName: '02-renamed.sql' } });
-        expect(s3.scripts[scriptId].scriptAnalysis.outdated).toBe(true);
+        const s2 = reduce(s1, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: file, newFileName: '02-renamed.sql' } });
+        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(true);
     });
 
     it('does not mark outdated when fileName is unchanged', () => {
         const state = buildState();
-        const scriptId = state.notebookPages[0].scripts[0].scriptId;
-        const fileName = '01-query.sql';
-        const s1: NotebookState = {
-            ...state,
-            notebookPages: [{
-                ...state.notebookPages[0],
-                scripts: [{ ...state.notebookPages[0].scripts[0], fileName }],
-            }],
-            scripts: {
-                ...state.scripts,
-                [scriptId]: { ...state.scripts[scriptId], fileName },
-            },
-        };
-        const s2 = reduce(s1, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
-        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
+        const file = state.notebookUserFocus.fileName;
+        const scriptId = getSelectedPage(state)!.scripts[file].scriptId;
 
-        // "Rename" to same name
-        const s3 = reduce(s2, { type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex: 0, fileName } });
-        expect(s3.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
+        const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
+        expect(s1.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
+
+        const s2 = reduce(s1, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: file, newFileName: file } });
+        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
     });
 
     it('updates catalog path after re-analysis following rename', () => {
         const state = buildState();
-        const scriptId = state.notebookPages[0].scripts[0].scriptId;
-        const oldName = '01-script.sql';
-        const folderName = 'Main';
+        const oldName = state.notebookUserFocus.fileName;
+        const folder = MAIN_FOLDER;
+        const scriptId = getSelectedPage(state)!.scripts[oldName].scriptId;
+        state.scripts[scriptId].script.insertTextAt(0, 'SELECT 1 as x, 2 as y');
 
-        // Set up the script with text and proper names
-        const scriptData = state.scripts[scriptId];
-        scriptData.script.insertTextAt(0, 'SELECT 1 as x, 2 as y');
-        const s1: NotebookState = {
-            ...state,
-            notebookPages: [{
-                ...state.notebookPages[0],
-                folderName,
-                scripts: [{ ...state.notebookPages[0].scripts[0], fileName: oldName }],
-            }],
-            scripts: {
-                ...state.scripts,
-                [scriptId]: { ...scriptData, fileName: oldName, folderName },
-            },
-        };
+        const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
+        expect(s1.scripts[scriptId].annotations.tableDefs).toContain(`${folder}/${oldName}`);
 
-        // Analyze — should register synthetic table with old path
-        const s2 = reduce(s1, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
-        expect(s2.scripts[scriptId].annotations.tableDefs).toContain(`${folderName}/${oldName}`);
-
-        // Rename
         const newName = '02-renamed.sql';
-        const s3 = reduce(s2, { type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex: 0, fileName: newName } });
-        expect(s3.scripts[scriptId].scriptAnalysis.outdated).toBe(true);
+        const s2 = reduce(s1, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: oldName, newFileName: newName } });
+        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(true);
 
-        // Re-analyze — catalog path should reflect new name
-        const s4 = reduce(s3, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
-        expect(s4.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
-        expect(s4.scripts[scriptId].annotations.tableDefs).toContain(`${folderName}/${newName}`);
-        expect(s4.scripts[scriptId].annotations.tableDefs).not.toContain(`${folderName}/${oldName}`);
+        const s3 = reduce(s2, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
+        expect(s3.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
+        expect(s3.scripts[scriptId].annotations.tableDefs).toContain(`${folder}/${newName}`);
+        expect(s3.scripts[scriptId].annotations.tableDefs).not.toContain(`${folder}/${oldName}`);
     });
 });
 
 describe('UPDATE_PAGE_FOLDER_NAME', () => {
-    it('updates the folderName of the targeted page', () => {
+    it('renames the targeted page', () => {
         const state = buildState();
-        const next = reduce(state, { type: UPDATE_PAGE_FOLDER_NAME, value: { pageIndex: 0, folderName: 'Analytics' } });
-        expect(next.notebookPages[0].folderName).toBe('Analytics');
+        const next = reduce(state, { type: UPDATE_PAGE_FOLDER_NAME, value: { folderName: MAIN_FOLDER, newFolderName: 'Analytics' } });
+        expect(next.notebookPages['Analytics']).toBeDefined();
+        expect(next.notebookPages[MAIN_FOLDER]).toBeUndefined();
     });
 
-    it('is a no-op for an out-of-range page index', () => {
+    it('is a no-op for an unknown folder name', () => {
         const state = buildState();
-        const next = reduce(state, { type: UPDATE_PAGE_FOLDER_NAME, value: { pageIndex: 99, folderName: 'Test' } });
+        const next = reduce(state, { type: UPDATE_PAGE_FOLDER_NAME, value: { folderName: 'Nope', newFolderName: 'Test' } });
         expect(next).toBe(state);
     });
 
     it('marks all page scripts outdated on folder rename', () => {
         const state = buildState();
-        const scriptId = state.notebookPages[0].scripts[0].scriptId;
+        const file = state.notebookUserFocus.fileName;
+        const scriptId = getSelectedPage(state)!.scripts[file].scriptId;
 
-        // Analyze so the script is up-to-date
         const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
         expect(s1.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
 
-        // Rename the folder
-        const s2 = reduce(s1, { type: UPDATE_PAGE_FOLDER_NAME, value: { pageIndex: 0, folderName: 'Analytics' } });
+        const s2 = reduce(s1, { type: UPDATE_PAGE_FOLDER_NAME, value: { folderName: MAIN_FOLDER, newFolderName: 'Analytics' } });
         expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(true);
     });
 
     it('does not mark outdated when folderName is unchanged', () => {
         const state = buildState();
-        const scriptId = state.notebookPages[0].scripts[0].scriptId;
+        const file = state.notebookUserFocus.fileName;
+        const scriptId = getSelectedPage(state)!.scripts[file].scriptId;
 
         const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
         expect(s1.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
 
-        // "Rename" to the same folder name
-        const s2 = reduce(s1, { type: UPDATE_PAGE_FOLDER_NAME, value: { pageIndex: 0, folderName: 'Main' } });
+        const s2 = reduce(s1, { type: UPDATE_PAGE_FOLDER_NAME, value: { folderName: MAIN_FOLDER, newFolderName: MAIN_FOLDER } });
         expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
     });
 
     it('updates catalog path after re-analysis following folder rename', () => {
         const state = buildState();
-        const scriptId = state.notebookPages[0].scripts[0].scriptId;
-        const fileName = '01-script.sql';
-        const oldFolder = 'Main';
+        const file = state.notebookUserFocus.fileName;
+        const oldFolder = MAIN_FOLDER;
+        const scriptId = getSelectedPage(state)!.scripts[file].scriptId;
+        state.scripts[scriptId].script.insertTextAt(0, 'SELECT 1 as x');
 
-        // Set up the script with text
-        const scriptData = state.scripts[scriptId];
-        scriptData.script.insertTextAt(0, 'SELECT 1 as x');
-        const s1: NotebookState = {
-            ...state,
-            notebookPages: [{
-                ...state.notebookPages[0],
-                folderName: oldFolder,
-                scripts: [{ ...state.notebookPages[0].scripts[0], fileName }],
-            }],
-            scripts: {
-                ...state.scripts,
-                [scriptId]: { ...scriptData, fileName, folderName: oldFolder },
-            },
-        };
+        const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
+        expect(s1.scripts[scriptId].annotations.tableDefs).toContain(`${oldFolder}/${file}`);
 
-        // Analyze — registers with old folder path
-        const s2 = reduce(s1, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
-        expect(s2.scripts[scriptId].annotations.tableDefs).toContain(`${oldFolder}/${fileName}`);
-
-        // Rename folder
         const newFolder = 'Analytics';
-        const s3 = reduce(s2, { type: UPDATE_PAGE_FOLDER_NAME, value: { pageIndex: 0, folderName: newFolder } });
-        expect(s3.scripts[scriptId].scriptAnalysis.outdated).toBe(true);
+        const s2 = reduce(s1, { type: UPDATE_PAGE_FOLDER_NAME, value: { folderName: oldFolder, newFolderName: newFolder } });
+        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(true);
 
-        // Re-analyze
-        const s4 = reduce(s3, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
-        expect(s4.scripts[scriptId].annotations.tableDefs).toContain(`${newFolder}/${fileName}`);
-        expect(s4.scripts[scriptId].annotations.tableDefs).not.toContain(`${oldFolder}/${fileName}`);
-    });
-});
-
-// ---------------------------------------------------------------------------
-// REORDER_NOTEBOOK_ENTRIES
-// ---------------------------------------------------------------------------
-
-describe('REORDER_NOTEBOOK_ENTRIES', () => {
-    it('moves an entry forward (index 0 → 1)', () => {
-        const s0 = buildState();
-        const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null }); // 2 entries
-        const idAt0 = s1.notebookPages[0].scripts[0].scriptId;
-        const idAt1 = s1.notebookPages[0].scripts[1].scriptId;
-        const next = reduce(s1, { type: REORDER_NOTEBOOK_ENTRIES, value: { oldIndex: 0, newIndex: 1 } });
-        expect(next.notebookPages[0].scripts[0].scriptId).toBe(idAt1);
-        expect(next.notebookPages[0].scripts[1].scriptId).toBe(idAt0);
-    });
-
-    it('moves an entry backward (index 1 → 0)', () => {
-        const s0 = buildState();
-        const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
-        const idAt0 = s1.notebookPages[0].scripts[0].scriptId;
-        const idAt1 = s1.notebookPages[0].scripts[1].scriptId;
-        const next = reduce(s1, { type: REORDER_NOTEBOOK_ENTRIES, value: { oldIndex: 1, newIndex: 0 } });
-        expect(next.notebookPages[0].scripts[0].scriptId).toBe(idAt1);
-        expect(next.notebookPages[0].scripts[1].scriptId).toBe(idAt0);
-    });
-
-    it('focus follows the moved entry when it was selected', () => {
-        const s0 = buildState();
-        const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
-        // Focus on entry 0, move it to index 1
-        const s2 = reduce(
-            { ...s1, notebookUserFocus: { pageIndex: 0, entryInPage: 0, interactionCounter: 0 } },
-            { type: REORDER_NOTEBOOK_ENTRIES, value: { oldIndex: 0, newIndex: 1 } },
-        );
-        expect(s2.notebookUserFocus.entryInPage).toBe(1);
-    });
-
-    it('is a no-op for out-of-range indices', () => {
-        const state = buildState(); // only 1 entry, newIndex=99 is out of range
-        const next = reduce(state, { type: REORDER_NOTEBOOK_ENTRIES, value: { oldIndex: 0, newIndex: 99 } });
-        expect(next).toBe(state);
-    });
-});
-
-// ---------------------------------------------------------------------------
-// DELETE_NOTEBOOK_ENTRY
-// ---------------------------------------------------------------------------
-
-describe('DELETE_NOTEBOOK_ENTRY', () => {
-    it('preserves the notebook uncommitted script', () => {
-        const state = buildState();
-        const stateWithSecondEntry = reduce(state, { type: CREATE_NOTEBOOK_ENTRY, value: null });
-        const uncommittedScriptId = stateWithSecondEntry.uncommittedScriptId;
-
-        const next = reduce(stateWithSecondEntry, { type: DELETE_NOTEBOOK_ENTRY, value: 1 });
-
-        expect(next.uncommittedScriptId).toBe(uncommittedScriptId);
-        expect(next.scripts[uncommittedScriptId]).toBeDefined();
+        const s3 = reduce(s2, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
+        expect(s3.scripts[scriptId].annotations.tableDefs).toContain(`${newFolder}/${file}`);
+        expect(s3.scripts[scriptId].annotations.tableDefs).not.toContain(`${oldFolder}/${file}`);
     });
 });
 
@@ -571,10 +473,11 @@ describe('PROMOTE_UNCOMMITTED_SCRIPT', () => {
     it('appends the uncommitted script as a new committed entry', () => {
         const state = buildState();
         const prevUncommittedId = state.uncommittedScriptId;
-        const prevEntryCount = state.notebookPages[0].scripts.length;
+        const prevEntryCount = pageEntryCount(state);
         const next = reduce(state, { type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
-        expect(next.notebookPages[0].scripts.length).toBe(prevEntryCount + 1);
-        const promotedEntry = next.notebookPages[0].scripts[next.notebookPages[0].scripts.length - 1];
+        expect(pageEntryCount(next)).toBe(prevEntryCount + 1);
+        const focusFile = next.notebookUserFocus.fileName;
+        const promotedEntry = getSelectedPage(next)!.scripts[focusFile];
         expect(promotedEntry.scriptId).toBe(prevUncommittedId);
     });
 
@@ -590,7 +493,8 @@ describe('PROMOTE_UNCOMMITTED_SCRIPT', () => {
     it('moves focus to the promoted entry', () => {
         const state = buildState();
         const next = reduce(state, { type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
-        expect(next.notebookUserFocus.entryInPage).toBe(next.notebookPages[0].scripts.length - 1);
+        const files = getSortedFileNames(getSelectedPage(next)!);
+        expect(next.notebookUserFocus.fileName).toBe(files[files.length - 1]);
     });
 });
 
@@ -601,7 +505,6 @@ describe('PROMOTE_UNCOMMITTED_SCRIPT', () => {
 describe('CATALOG_DID_UPDATE', () => {
     it('marks every script outdated', () => {
         const state = buildState();
-        // Force one script to be outdated first
         const firstKey = +Object.keys(state.scripts)[0];
         state.scripts[firstKey] = {
             ...state.scripts[firstKey],
@@ -622,7 +525,7 @@ describe('CATALOG_DID_UPDATE', () => {
 // ---------------------------------------------------------------------------
 
 describe('ANALYZE_OUTDATED_SCRIPT', () => {
-    it('sets outdatedAnalysis=false on the targeted script', () => {
+    it('sets outdated=false on the targeted script', () => {
         const state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];
         expect(state.scripts[scriptKey].scriptAnalysis.outdated).toBe(true);
@@ -655,13 +558,16 @@ describe('REGISTER_QUERY', () => {
     it('records latestQueryId on the referenced script', () => {
         const state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];
-        const next = reduce(state, { type: REGISTER_QUERY, value: [0, 0, scriptKey, 42] });
+        const next = reduce(state, { type: REGISTER_QUERY, value: [scriptKey, 42] });
         expect(next.scripts[scriptKey].latestQueryId).toBe(42);
     });
 
     it('returns the unchanged state for an unknown scriptKey', () => {
         const state = buildState();
-        const next = reduce(state, { type: REGISTER_QUERY, value: [0, 0, 99999, 1] });
+        const next = reduce(state, { type: REGISTER_QUERY, value: [99999, 1] });
         expect(next).toBe(state);
     });
 });
+
+// Reference to keep imports used if other helpers are not consumed
+void pageEntries;

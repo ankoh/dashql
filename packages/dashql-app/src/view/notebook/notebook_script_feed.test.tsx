@@ -82,7 +82,7 @@ function createOnlineConnection(): ConnectionState {
     return { connectionHealth: ConnectionHealth.ONLINE } as unknown as ConnectionState;
 }
 
-function makeScriptData(scriptKey: number, text: string, pageIndex: number = -1, fileName: string = '', folderName: string = '') {
+function makeScriptData(scriptKey: number, text: string, fileName: string = '', folderName: string = '') {
     return {
         scriptKey,
         script: { toString: () => text } as any,
@@ -99,7 +99,6 @@ function makeScriptData(scriptKey: number, text: string, pageIndex: number = -1,
         cursor: null,
         completion: null,
         latestQueryId: null,
-        pageIndex,
         fileName,
         folderName,
     };
@@ -114,22 +113,23 @@ function createNotebookState(): NotebookState {
         connectionCatalog: {} as any,
         scriptRegistry: {} as any,
         scripts: {
-            101: makeScriptData(101, 'select 1', 0, '01-script.sql', 'Main'),
-            102: makeScriptData(102, 'select 2', 0, '02-script.sql', 'Main'),
+            101: makeScriptData(101, 'select 1', '01-script.sql', 'Main'),
+            102: makeScriptData(102, 'select 2', '02-script.sql', 'Main'),
             999: makeScriptData(999, ''), // Draft script with defaults
         },
         uncommittedScriptId: 999,
-        notebookPages: [
-            {
-                scripts: [
-                    { scriptId: 101, title: 'Query 1' },
-                    { scriptId: 102, title: 'Query 2' },
-                ],
-            } as any,
-        ],
+        notebookPages: {
+            'Main': {
+                folderName: 'Main',
+                scripts: {
+                    '01-script.sql': { scriptId: 101, fileName: '01-script.sql' },
+                    '02-script.sql': { scriptId: 102, fileName: '02-script.sql' },
+                },
+            },
+        },
         notebookUserFocus: {
-            pageIndex: 0,
-            entryInPage: 0,
+            folderName: 'Main',
+            fileName: '01-script.sql',
             interactionCounter: 0,
         },
         semanticUserFocus: null,
@@ -137,21 +137,23 @@ function createNotebookState(): NotebookState {
 }
 
 function appendCommittedEntry(notebook: NotebookState): NotebookState {
+    const main = notebook.notebookPages['Main'];
     return {
         ...notebook,
         scripts: {
             ...notebook.scripts,
-            103: makeScriptData(103, 'select 3', 0, '03-script.sql', 'Main'),
+            103: makeScriptData(103, 'select 3', '03-script.sql', 'Main'),
         },
-        notebookPages: [
-            {
-                ...notebook.notebookPages[0],
-                scripts: [
-                    ...notebook.notebookPages[0].scripts,
-                    { scriptId: 103, title: 'Query 3' },
-                ],
-            } as any,
-        ],
+        notebookPages: {
+            ...notebook.notebookPages,
+            'Main': {
+                ...main,
+                scripts: {
+                    ...main.scripts,
+                    '03-script.sql': { scriptId: 103, fileName: '03-script.sql' },
+                },
+            },
+        },
     };
 }
 
@@ -211,7 +213,7 @@ describe('NotebookScriptFeed', () => {
 
         expect(modifyNotebook).toHaveBeenCalledWith({
             type: SELECT_ENTRY,
-            value: 1,
+            value: '02-script.sql',
         });
         expect(showDetails).toHaveBeenCalledTimes(1);
     });
@@ -234,7 +236,7 @@ describe('NotebookScriptFeed', () => {
 
         expect(modifyNotebook).toHaveBeenCalledWith({
             type: DELETE_NOTEBOOK_ENTRY,
-            value: 0,
+            value: '01-script.sql',
         });
     });
 
@@ -330,7 +332,7 @@ describe('NotebookScriptFeed', () => {
             notebook,
             modifyNotebook,
             showDetails,
-            scrollTarget: { entryIndex: 1, version: 1 },
+            scrollTarget: { fileName: '02-script.sql', version: 1 },
         });
 
         expect(mockState.scrollToRowMock).toHaveBeenCalledWith({

@@ -5,7 +5,7 @@ import { LinkIcon, SyncIcon } from '@primer/octicons-react';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
-import { getSelectedPageEntries, NotebookState } from '../../notebook/notebook_state.js';
+import { getSelectedPageEntries, getSortedFolderNames, NotebookState } from '../../notebook/notebook_state.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { NotebookFileSaveOverlay } from './notebook_file_save_overlay.js';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
@@ -64,11 +64,19 @@ export const NotebookCommandList: React.FC<{
     const ArrowRightIcon = SymbolIcon('arrow_right_16');
     const FileZipIcon = SymbolIcon('file_zip_16');
     const XIcon = SymbolIcon('x_16');
+
+    const folders = props.notebook ? getSortedFolderNames(props.notebook.notebookPages) : [];
+    const focusedFolder = props.notebook?.notebookUserFocus.folderName ?? '';
+    const folderIndex = folders.indexOf(focusedFolder);
+    const entries = props.notebook ? getSelectedPageEntries(props.notebook) : [];
+    const focusedFile = props.notebook?.notebookUserFocus.fileName ?? '';
+    const fileIndex = entries.findIndex(e => e.fileName === focusedFile);
+
     return (
         <>
             <ActionList.ListItem
                 onClick={() => notebookCommand(NotebookCommandType.SelectPreviousNotebookPage)}
-                disabled={(props.notebook?.notebookUserFocus.pageIndex ?? 0) === 0}
+                disabled={folderIndex <= 0}
             >
                 <ActionList.Leading>
                     <ArrowLeftIcon />
@@ -80,7 +88,7 @@ export const NotebookCommandList: React.FC<{
             </ActionList.ListItem>
             <ActionList.ListItem
                 onClick={() => notebookCommand(NotebookCommandType.SelectNextNotebookPage)}
-                disabled={props.notebook == null || ((props.notebook.notebookUserFocus.pageIndex + 1) >= props.notebook.notebookPages.length)}
+                disabled={props.notebook == null || folderIndex < 0 || (folderIndex + 1) >= folders.length}
             >
                 <ActionList.Leading>
                     <ArrowRightIcon />
@@ -92,7 +100,7 @@ export const NotebookCommandList: React.FC<{
             </ActionList.ListItem>
             <ActionList.ListItem
                 onClick={() => notebookCommand(NotebookCommandType.SelectPreviousNotebookScript)}
-                disabled={(props.notebook?.notebookUserFocus.entryInPage ?? 0) === 0}
+                disabled={fileIndex <= 0}
             >
                 <ActionList.Leading>
                     <ArrowUpIcon />
@@ -104,7 +112,7 @@ export const NotebookCommandList: React.FC<{
             </ActionList.ListItem>
             <ActionList.ListItem
                 onClick={() => notebookCommand(NotebookCommandType.SelectNextNotebookScript)}
-                disabled={props.notebook == null || ((props.notebook.notebookUserFocus.entryInPage + 1) >= getSelectedPageEntries(props.notebook).length)}
+                disabled={props.notebook == null || fileIndex < 0 || (fileIndex + 1) >= entries.length}
             >
                 <ActionList.Leading>
                     <ArrowDownIcon />

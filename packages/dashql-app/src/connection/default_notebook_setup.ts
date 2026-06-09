@@ -7,7 +7,7 @@ import { analyzeNotebookScript, ScriptData, NotebookState, createEmptyScriptData
 import { NotebookAllocator, NotebookStateWithoutId } from '../notebook/notebook_state_registry.js';
 import { createEmptyAnnotations, createPageScript, generateScriptFileName } from '../notebook/notebook_types.js';
 
-function createScriptData(script: core.DashQLScript, pageIndex: number, fileName: string, folderName: string): ScriptData {
+function createScriptData(script: core.DashQLScript, fileName: string, folderName: string): ScriptData {
     return {
         scriptKey: script.getCatalogEntryId(),
         script,
@@ -24,7 +24,6 @@ function createScriptData(script: core.DashQLScript, pageIndex: number, fileName
         cursor: null,
         completion: null,
         latestQueryId: null,
-        pageIndex,
         fileName,
         folderName,
     };
@@ -41,9 +40,10 @@ export function createDefaultNotebook(
 
     mainScript.replaceText(mainScriptText);
 
-    const mainFileName = generateScriptFileName([]);
+    const mainFolderName = 'Main';
+    const mainFileName = generateScriptFileName({});
 
-    let mainScriptData = createScriptData(mainScript, 0, mainFileName, 'Main');
+    let mainScriptData = createScriptData(mainScript, mainFileName, mainFolderName);
     mainScriptData = analyzeNotebookScript(mainScriptData, registry, conn.catalog, logger);
 
     const [uncommittedKey, uncommittedData] = createEmptyScriptData(conn.instance, conn.catalog);
@@ -63,16 +63,16 @@ export function createDefaultNotebook(
             [mainScriptData.scriptKey]: mainScriptData,
             [uncommittedKey]: uncommittedData,
         },
-        notebookPages: [
-            {
-                folderName: 'Main',
-                scripts: [
-                    createPageScript(mainScriptData.scriptKey, mainFileName),
-                ],
+        notebookPages: {
+            [mainFolderName]: {
+                folderName: mainFolderName,
+                scripts: {
+                    [mainFileName]: createPageScript(mainScriptData.scriptKey, mainFileName),
+                },
             },
-        ],
+        },
         uncommittedScriptId: uncommittedKey,
-        notebookUserFocus: { pageIndex: 0, entryInPage: 0, interactionCounter: 0 },
+        notebookUserFocus: { folderName: mainFolderName, fileName: mainFileName, interactionCounter: 0 },
         semanticUserFocus: null,
     };
 
