@@ -58,7 +58,7 @@ TEST_P(TestNameTags, Test) {
 
     auto scanned = parser::Scanner::Scan(buffer, 0, 0);
     auto parsed = parser::Parser::Parse(scanned);
-    ASSERT_TRUE(parsed->errors.empty()) << parsed->errors[0].second;
+    ASSERT_TRUE(parsed->errors.empty()) << parsed->errors[0].message;
     Catalog catalog;
     auto analyzed = Analyzer::Analyze(parsed, catalog);
 

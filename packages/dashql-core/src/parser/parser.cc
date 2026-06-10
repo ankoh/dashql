@@ -12,6 +12,26 @@ void dashql::parser::ParserBase::error(const location_type& loc, const std::stri
     ctx.AddError(loc, message);
 }
 
+void Parser::error(const location_type& loc, const std::string& message) {
+    ctx.AddError(loc, message, std::move(ctx.pending_hint));
+    ctx.pending_hint.clear();
+}
+
+std::string Parser::yysyntax_error_(const context& yyctx) const {
+    // Build the standard bison message first.
+    std::string message = ParserBase::yysyntax_error_(yyctx);
+    // If the offending token is a string literal but an identifier would have been valid here,
+    // suggest the user double-quote it instead. Catches mistakes like `SELECT 1 AS 'one'` against
+    // `sql_col_id` rules that only accept `IDENT`.
+    if (yyctx.token() == symbol_kind::S_SCONST && yy_lac_check_(symbol_kind::S_IDENT)) {
+        ctx.pending_hint =
+            "string literals cannot be used as identifiers here; use a double-quoted identifier instead";
+    } else {
+        ctx.pending_hint.clear();
+    }
+    return message;
+}
+
 template <typename Base> static void destroy(std::string_view msg, dashql::parser::Parser::basic_symbol<Base>& yysym) {
     // See yy_destroy_
 }

@@ -34,9 +34,13 @@ class ParseContext {
     /// The statements
     std::vector<ParsedScript::Statement> statements;
     /// The errors
-    std::vector<std::pair<buffers::parser::SymbolSpan, std::string>> errors;
+    std::vector<ParseError> errors;
     /// Symbol indices of vis spec keys (for token type remapping)
     std::vector<uint32_t> vis_key_symbols;
+    /// Hint produced by `Parser::yysyntax_error_` and consumed by the next `Parser::error` call.
+    /// Lives here (not on the Parser) so the const-qualified `yysyntax_error_` can write through
+    /// the non-const `ctx` reference without needing a mutable Parser member.
+    std::string pending_hint;
 
     /// The current statement
     ParsedScript::Statement current_statement;
@@ -126,7 +130,7 @@ class ParseContext {
     /// Add a node
     NodeID AddNode(buffers::parser::Node node);
     /// Add an error
-    void AddError(buffers::parser::SymbolSpan loc, const std::string& message);
+    void AddError(buffers::parser::SymbolSpan loc, const std::string& message, std::string hint = {});
     /// Add a statement
     void AddStatement(buffers::parser::Node node);
     /// Reset a statement

@@ -277,11 +277,13 @@ flatbuffers::Offset<buffers::parser::ParsedScript> ParsedScript::Pack(flatbuffer
     }
     // Pack parser errors
     out.parser_errors.reserve(errors.size());
-    for (auto& [loc, msg] : errors) {
+    for (auto& parser_error : errors) {
         auto err = std::make_unique<buffers::parser::ErrorT>();
-        err->symbol_span = std::make_unique<buffers::parser::SymbolSpan>(loc);
-        err->text_span = std::make_unique<buffers::parser::TextSpan>(scanned_script->ResolveTextSpan(loc));
-        err->message = msg;
+        err->symbol_span = std::make_unique<buffers::parser::SymbolSpan>(parser_error.location);
+        err->text_span =
+            std::make_unique<buffers::parser::TextSpan>(scanned_script->ResolveTextSpan(parser_error.location));
+        err->message = parser_error.message;
+        err->hint = parser_error.hint;
         out.parser_errors.push_back(std::move(err));
     }
     out.tokens = PackTokens();

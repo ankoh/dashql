@@ -260,8 +260,8 @@ void ParseContext::AddStatement(buffers::parser::Node node) {
 void ParseContext::ResetStatement() { current_statement.nodes_begin = nodes.GetSize(); }
 
 /// Add an error
-void ParseContext::AddError(buffers::parser::SymbolSpan loc, const std::string& message) {
-    errors.push_back({loc, message});
+void ParseContext::AddError(buffers::parser::SymbolSpan loc, const std::string& message, std::string hint) {
+    errors.push_back({loc, message, std::move(hint)});
 }
 
 }  // namespace parser

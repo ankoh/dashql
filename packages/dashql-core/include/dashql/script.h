@@ -165,7 +165,7 @@ class ParsedScript {
     /// The statements
     std::vector<Statement> statements;
     /// The parser errors
-    std::vector<std::pair<buffers::parser::SymbolSpan, std::string>> errors;
+    std::vector<parser::ParseError> errors;
     /// Symbol indices of vis spec keys
     std::vector<uint32_t> vis_key_symbols;
 

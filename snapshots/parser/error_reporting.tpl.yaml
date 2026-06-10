@@ -3,3 +3,18 @@ parser-snapshots:
   - name: error_reporting_0
     input: |
       select * from foo select
+
+  # String literal where an identifier was expected (FROM clause)
+  - name: error_reporting_sconst_in_from
+    input: |
+      select * from 'foo'
+
+  # String literal as implicit column alias
+  - name: error_reporting_sconst_as_implicit_alias
+    input: |
+      select 1 'one'
+
+  # String literal as explicit alias parses fine; no hint should be emitted.
+  - name: error_reporting_sconst_explicit_alias_ok
+    input: |
+      select 1 as 'one'

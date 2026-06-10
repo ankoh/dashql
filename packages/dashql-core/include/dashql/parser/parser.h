@@ -1,6 +1,7 @@
 #pragma once
 
 #include <span>
+#include <string>
 #include <vector>
 
 #include "dashql/parser/parser_generated.h"
@@ -12,6 +13,16 @@ class ParsedScript;
 class ScannedScript;
 
 namespace parser {
+
+/// A parser error
+struct ParseError {
+    /// The symbol span of the offending token
+    buffers::parser::SymbolSpan location;
+    /// The error message
+    std::string message;
+    /// An optional hint (e.g. "did you mean to use a double-quoted identifier?")
+    std::string hint;
+};
 
 class Parser : public ParserBase {
     using ParserBase::ParserBase;
@@ -108,6 +119,14 @@ class Parser : public ParserBase {
         std::span<const symbol_kind_type> feed_symbols, bool replace_target);
     /// Parse a module (throws Exception on error)
     static std::shared_ptr<ParsedScript> Parse(std::shared_ptr<ScannedScript> in, bool debug = false);
+
+   protected:
+    /// Override of bison's syntax-error message builder. Detects common mistakes (e.g. SCONST used
+    /// where an IDENT would have parsed) and stashes a hint for the next `error()` call.
+    std::string yysyntax_error_(const context& yyctx) const override;
+    /// Override of the bison-generated error reporter. Forwards `loc` and `msg` to the
+    /// `ParseContext`, attaching any `pending_hint_` set by the prior `yysyntax_error_` call.
+    void error(const location_type& loc, const std::string& msg) override;
 };
 
 }  // namespace parser

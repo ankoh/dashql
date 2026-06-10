@@ -536,6 +536,7 @@ table Error {
     text_span: TextSpan;
     symbol_span: SymbolSpan;
     message: string;
+    hint: string;
 }
 
 table Statement {

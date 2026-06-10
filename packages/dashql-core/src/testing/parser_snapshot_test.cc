@@ -137,11 +137,14 @@ void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript
     auto parser_errors_node = root.append_child();
     parser_errors_node << c4::yml::key("parser-errors");
     parser_errors_node |= c4::yml::SEQ;
-    for (auto& [err_loc, err_msg] : parsed.errors) {
+    for (auto& parser_error : parsed.errors) {
         auto err_node = parser_errors_node.append_child();
         err_node.set_type(c4::yml::MAP);
-        err_node.append_child() << c4::yml::key("message") << err_msg;
-        EncodeLocationText(err_node, scanned.ResolveTextSpan(err_loc), text);
+        err_node.append_child() << c4::yml::key("message") << parser_error.message;
+        EncodeLocationText(err_node, scanned.ResolveTextSpan(parser_error.location), text);
+        if (!parser_error.hint.empty()) {
+            err_node.append_child() << c4::yml::key("hint") << parser_error.hint;
+        }
     }
 
     auto line_breaks_node = root.append_child();
