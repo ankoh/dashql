@@ -16,19 +16,19 @@ completion-snapshots:
       entries:
         - score: 59
           value: select
-          candidate-tags: [EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH,KEYWORD_A]
+          candidate-tags: [EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,KEYWORD_A]
           location: "s"
           location-qualified: "s"
           objects: []
         - score: 57
           value: set
-          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "s"
           location-qualified: "s"
           objects: []
         - score: 50
           value: values
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           location: "s"
           location-qualified: "s"
           objects: []
@@ -50,19 +50,19 @@ completion-snapshots:
       entries:
         - score: 59
           value: select
-          candidate-tags: [EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH,KEYWORD_A]
+          candidate-tags: [EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,KEYWORD_A]
           location: "se"
           location-qualified: "se"
           objects: []
         - score: 57
           value: set
-          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "se"
           location-qualified: "se"
           objects: []
         - score: 50
           value: values
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           location: "se"
           location-qualified: "se"
           objects: []
@@ -84,20 +84,20 @@ completion-snapshots:
       entries:
         - score: 59
           value: from
-          candidate-tags: [EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH,KEYWORD_A]
+          candidate-tags: [EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,KEYWORD_A]
           location: "f"
           location-qualified: "f"
           objects: []
         - score: 55
           value: fetch
           keyword-continuation: first
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "f"
           location-qualified: "f"
           objects: []
         - score: 55
           value: for
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "f"
           location-qualified: "f"
           objects: []
@@ -133,14 +133,14 @@ completion-snapshots:
           objects: []
         - score: 59
           value: from
-          candidate-tags: [EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH,KEYWORD_A]
+          candidate-tags: [EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,KEYWORD_A]
           location: "f"
           location-qualified: "f"
           objects: []
         - score: 55
           value: fetch
           keyword-continuation: first
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "f"
           location-qualified: "f"
           objects: []

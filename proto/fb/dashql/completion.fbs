@@ -52,28 +52,52 @@ table CompletionCandidateObject {
 
 enum CandidateTag: uint32 {
     NONE = 0,
-    KEYWORD_D = 1,
-    KEYWORD_C = 2,
-    KEYWORD_B = 4,
-    KEYWORD_A = 2097152,
-    EXPECTED_PARSER_SYMBOL = 8,
-    NAME_INDEX = 16,
-    DOT_RESOLUTION_DATABASE = 32,
+    // Keyword prevalence class 1 (highest)
+    KEYWORD_A = 1,
+    // Keyword prevalence class 2
+    KEYWORD_B = 2,
+    // Keyword prevalence class 3
+    KEYWORD_C = 4,
+    // Keyword prevalence class 4 (lowest)
+    KEYWORD_D = 8,
+    // Candidate is a valid symbol at the current cursor location
+    EXPECTED_PARSER_SYMBOL = 16,
+    // Candidate found in the name index
+    NAME_INDEX = 32,
+    // Candidate reached by dot-resolving the schema
     DOT_RESOLUTION_SCHEMA = 64,
+    // Candidate reached by dot-resolving the table
     DOT_RESOLUTION_TABLE = 128,
+    // Candidate reached by dot-resolving the column
     DOT_RESOLUTION_COLUMN = 256,
+    // Is a prefix match to the current text under the cursor
     PREFIX_MATCH = 512,
+    // Is a substring match to the current text under the cursor
     SUBSTRING_MATCH = 1024,
+    // Candidate is a table name and resolves a column
     RESOLVING_TABLE = 2048,
+    // Candidate shares a table with an unresolved other column
     UNRESOLVED_PEER = 4096,
+    // Found candidate through catalog
     THROUGH_CATALOG = 8192,
+    // Candidate is already in same name scope
     IN_NAME_SCOPE = 16384,
+    // Candidate is already in same name statement
     IN_SAME_STATEMENT = 32768,
+    // Candidate is already in same name script
     IN_SAME_SCRIPT = 65536,
+    // Candidate is already in other name script
     IN_OTHER_SCRIPT = 131072,
+    // Candidate exactly matches the user input
     EXACT_MATCH = 262144,
-    EXPECTED_KEYWORD_MATCH = 524288,
-    IDENTITY = 1048576,
+    // Candidate IS the user input
+    IDENTITY = 524288,
+    /// The current suffix after the cursor is incompatible when completing this candidate
+    SUFFIX_INCOMPATIBLE = 1048576,
+    /// Set when exactly 1 real post-cursor token shifts cleanly after the candidate
+    SUFFIX_DEPTH_ONE = 2097152,
+    /// Set when 2+ real post-cursor tokens shift cleanly, or parsing reaches EOF
+    SUFFIX_DEPTH_MANY = 4194304,
 }
 
 table CompletionCandidate {

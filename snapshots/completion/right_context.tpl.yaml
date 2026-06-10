@@ -1,0 +1,141 @@
+completion-snapshots:
+  # Cursor right after `a` in mid-SELECT list, before `, b from tbl`.
+  # The first real post-cursor token is `,`. FROM/WHERE/GROUP/HAVING are technically valid as
+  # next tokens at this parse state but break with `,` next — they should be demoted.
+  - name: mid_select_list_after_column
+    catalog:
+      script:
+        input: create table tbl(a int, b int);
+    editor:
+      input: 'select a , b from tbl'
+    cursor:
+      search:
+        text: 'a '
+        index: 1
+    completions:
+      limit: 5
+
+  # Cursor on a partially typed identifier in mid-SELECT, between two columns and FROM.
+  # Without right-context filtering, FROM and WHERE rank as expected next tokens.
+  # With it, they should be demoted because `, b from tbl` follows the typed token.
+  - name: mid_select_list_typing_prefix
+    catalog:
+      script:
+        input: create table tbl(a int, b int);
+    editor:
+      input: 'select x , b from tbl'
+    cursor:
+      search:
+        text: x
+        index: 1
+    completions:
+      limit: 5
+
+  # Cursor inside WHERE expression, after `1`, before ` and b = 2`.
+  # AND/OR are valid as next tokens; SELECT/FROM are not — they should sink.
+  - name: mid_where_expr_after_literal
+    catalog:
+      script:
+        input: create table tbl(a int, b int);
+    editor:
+      input: 'select * from tbl where a = 1 and b = 2'
+    cursor:
+      search:
+        text: '1 and'
+        index: 1
+    completions:
+      limit: 5
+
+  # Cursor on a partial table name in FROM list, before `, customers`.
+  - name: mid_from_list_typing_prefix
+    catalog:
+      script:
+        input: |
+          create table sales(id int);
+          create table customers(id int);
+    editor:
+      input: 'select * from sa , customers'
+    cursor:
+      search:
+        text: sa
+        index: 2
+    completions:
+      limit: 5
+
+  # Cursor on the first ORDER BY column, before `, b`.
+  - name: mid_order_by_list_typing_prefix
+    catalog:
+      script:
+        input: create table tbl(a int, b int, c int);
+    editor:
+      input: 'select * from tbl order by a , b'
+    cursor:
+      search:
+        text: a ,
+        index: 1
+    completions:
+      limit: 5
+
+  # Cursor on a partially typed token where the prefix matches both compatible and incompatible
+  # keywords (e.g. `f` matches FROM, FETCH, FOR, FILTER). After `select * | from tbl`, FROM as
+  # a candidate at the cursor position produces `select * FROM from tbl` which doesn't parse —
+  # FROM should be demoted relative to other f-prefixed unreserved keywords.
+  - name: mid_select_after_star_typing_f
+    catalog:
+      script:
+        input: create table tbl(a int);
+    editor:
+      input: 'select * f from tbl'
+    cursor:
+      search:
+        text: ' f'
+        index: 2
+    completions:
+      limit: 8
+
+  # NEAR depth: cursor on a partial keyword `be` whose completion `between` consumes the next
+  # real token (the integer `1` as the lower bound) but then expects AND — which the EOF doesn't
+  # provide. So the suffix shifts exactly 1 real post-cursor token: tag = RIGHT_CONTEXT_DEPTH_NEAR.
+  - name: mid_where_between_depth_near
+    catalog:
+      script:
+        input: create table tbl(a int);
+    editor:
+      input: 'select * from tbl where a be 1'
+    cursor:
+      search:
+        text: be
+        index: 2
+    completions:
+      limit: 8
+
+  # MID depth: same shape as NEAR, but the suffix already has the `AND` of `BETWEEN x AND y`,
+  # so feeding `between` shifts both `1` and `and` cleanly (depth 2) before erroring on the
+  # missing upper bound (EOF). Tag = RIGHT_CONTEXT_DEPTH_MID.
+  - name: mid_where_between_depth_mid
+    catalog:
+      script:
+        input: create table tbl(a int);
+    editor:
+      input: 'select * from tbl where a be 1 and'
+    cursor:
+      search:
+        text: be
+        index: 2
+    completions:
+      limit: 8
+
+  # Negative case: cursor mid-statement, but post-cursor stream is malformed —
+  # ensure incompatible keywords are demoted but still surface in the result list.
+  - name: mid_select_malformed_suffix
+    catalog:
+      script:
+        input: create table tbl(a int);
+    editor:
+      input: 'select  garbage'
+    cursor:
+      search:
+        text: 'select '
+        index: 7
+    completions:
+      limit: 5

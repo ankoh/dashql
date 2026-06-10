@@ -12,7 +12,7 @@ Completion::Compute(cursor, k, registry)
 ├─ Select target symbol (current vs. previous)
 ├─ Detect dot-completion context
 ├─ Skip non-completable symbols (constants, operators, punctuation)
-├─ Parser::ParseUntil() → expected symbols, expects_identifier
+├─ Parser::ParseUntilWithSnapshot() → expected symbols + LALR state snapshot
 ├─ Detect definition position (AST attribute keys)
 │
 ├─ [dot-completion]
@@ -20,10 +20,11 @@ Completion::Compute(cursor, k, registry)
 │
 ├─ [between symbols — passive hints]
 │  ├─ Check suppressPassiveHint() → return empty if suppressed
-│  └─ AddExpectedKeywordsAsCandidates() (keywords only, no identifier candidates)
+│  └─ AddExpectedKeywordsAsCandidates(prefix snapshot) (keywords only)
 │
 ├─ [normal completion]
-│  ├─ AddExpectedKeywordsAsCandidates()
+│  ├─ AddExpectedKeywordsAsCandidates(prefix snapshot)
+│  │   └─ ProbeSuffixBatchFromSnapshot() — replay suffix per candidate (mid-statement only)
 │  ├─ Insert identity candidate (score varies by context)
 │  └─ FindCandidatesInIndexes()   (if expects_identifier && !at_definition)
 │     └─ PromoteTablesAndPeersForUnresolvedColumns()
@@ -89,11 +90,30 @@ The cursor's AST context determines the active strategy:
 | `TABLE_REF_ALIAS` | Cursor is at a table alias position           | Skips name-index search entirely         |
 | `COLUMN_REF`      | Cursor is inside a column reference           | Columns/aliases boosted, tables demoted  |
 
-## Expected symbols (ParseUntil)
+## Expected symbols (ParseUntilWithSnapshot)
 
-Expected grammar symbols at the cursor position are extracted by `Parser::ParseUntil`, which runs the parser up to the cursor's symbol and collects all valid next tokens.
+Expected grammar symbols at the cursor position are extracted by `Parser::ParseUntilWithSnapshot`, which runs the parser up to the cursor's symbol and collects all valid next tokens via Bison's LAC (look-ahead correction).
+The same call also returns a `PrefixSnapshot` of the LALR state stack (state numbers only — reduction actions are no-ops in this skeleton, so semantic values aren't needed); the suffix probe reuses that snapshot to avoid re-parsing the prefix.
 Keywords bypass the candidate registration and enter the result heap directly.
-They receive an `EXPECTED_KEYWORD_MATCH` modifier (+20) when matching the user's input, plus a prevalence modifier for common keywords (e.g. `SELECT` +3, `AS` +2).
+They receive a +20 keyword-substring bonus when both `EXPECTED_PARSER_SYMBOL` and `SUBSTRING_MATCH` are set on the candidate, plus a prevalence modifier for common keywords (e.g. `SELECT` +4, `AS` +2).
+
+### Suffix probe
+
+LAC is one-sided: it tells you what tokens the grammar would accept at the cursor, but it ignores everything after the cursor.
+This is fine at the write front (no post-cursor stream) but produces noisy mid-statement suggestions: a keyword like `FROM` is "expected" after `select * | , b from tbl`, but actually inserting it would yield `select * FROM , b from tbl` — broken.
+
+`Parser::ProbeSuffixBatchFromSnapshot(scanned, feed_id, prefix, candidates, replace_target)` complements LAC for keyword scoring.
+For each candidate keyword `K`, it restores the prefix snapshot into a fresh parser, feeds `K` (either replacing the typed token or inserting before the next real token, depending on cursor relative position), and continues consuming real post-cursor tokens until shift fails or accept happens.
+The result captures three signals:
+
+- `k1_compatible` — the next real post-cursor token shifts cleanly after `K`.
+- `depth_consumed` — how many real post-cursor tokens were shifted before erroring.
+- `reached_eof` — parsing accepted the suffix.
+
+The completion engine threads these into scoring via three `CandidateTag` flags: `SUFFIX_INCOMPATIBLE` (penalty), `SUFFIX_DEPTH_ONE` / `SUFFIX_DEPTH_MANY` (small positive bonuses).
+See [core_completion_ranking.md](core_completion_ranking.md) for the magnitudes.
+
+The probe is skipped when there is no real post-cursor token (cursor at EOF, or only the synthetic EOF token follows), and only applied to keyword candidates — identifier candidates from the name index are not probed.
 
 ## Candidate sources
 
@@ -120,7 +140,7 @@ These candidates receive a base score from the strategy-specific scoring table.
 ### Keyword candidates
 
 Keywords enter the candidate set via `AddExpectedKeywordsAsCandidates()`.
-They are extracted from the parser state and scored with `EXPECTED_KEYWORD_MATCH` (+20) when matching the user's prefix, plus prevalence modifiers for common keywords.
+They are extracted from the parser state and get a +20 keyword-substring bonus (in `computeCandidateScore`) when both `EXPECTED_PARSER_SYMBOL` and `SUBSTRING_MATCH` are set, plus prevalence modifiers for common keywords.
 
 ## Dot-completion resolution
 

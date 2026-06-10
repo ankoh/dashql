@@ -56,11 +56,14 @@ static constexpr Completion::ScoreValueType NAME_TAG_UNLIKELY = 10;
 static constexpr Completion::ScoreValueType NAME_TAG_LIKELY = 20;
 
 // Fine-granular score modifiers
-static constexpr Completion::ScoreValueType SUBSTRING_SCORE_MODIFIER = 30;         // User typed name substring
-static constexpr Completion::ScoreValueType PREFIX_SCORE_MODIFIER = 5;             // User typed name prefix
-static constexpr Completion::ScoreValueType EXACT_MATCH_SCORE_MODIFIER = 15;       // User typed exact name
-static constexpr Completion::ScoreValueType EXPECTED_KEYWORD_MATCH_MODIFIER = 20;  // Expected keyword matches input
-static constexpr Completion::ScoreValueType THROUGH_CATALOG_SCORE_MODIFIER = 2;    // Candidate comes from the catalog
+static constexpr Completion::ScoreValueType SUBSTRING_SCORE_MODIFIER = 30;        // User typed name substring
+static constexpr Completion::ScoreValueType PREFIX_SCORE_MODIFIER = 5;            // User typed name prefix
+static constexpr Completion::ScoreValueType EXACT_MATCH_SCORE_MODIFIER = 15;      // User typed exact name
+// Bonus for an expected-keyword candidate whose text substring-matches the user's input.
+// Applied on top of SUBSTRING_SCORE_MODIFIER so a substring-matched expected keyword outranks a
+// generic substring-matched name from the index by a meaningful margin.
+static constexpr Completion::ScoreValueType KEYWORD_SUBSTRING_BONUS = 20;
+static constexpr Completion::ScoreValueType THROUGH_CATALOG_SCORE_MODIFIER = 2;   // Candidate comes from the catalog
 static constexpr Completion::ScoreValueType RESOLVING_TABLE_SCORE_MODIFIER = 5;    // Table is resolving unresolved
 static constexpr Completion::ScoreValueType UNRESOLVED_PEER_SCORE_MODIFIER = 1;    // Share unresolved table
 static constexpr Completion::ScoreValueType DOT_SCHEMA_SCORE_MODIFIER = 2;         // Dot completion for schema
@@ -70,6 +73,15 @@ static constexpr Completion::ScoreValueType IN_NAME_SCOPE_SCORE_MODIFIER = 10;  
 static constexpr Completion::ScoreValueType IN_SAME_STATEMENT_SCORE_MODIFIER = 1;  // Candidate used in same statement
 static constexpr Completion::ScoreValueType IN_SAME_SCRIPT_SCORE_MODIFIER = 1;     // Candidate used in same script
 static constexpr Completion::ScoreValueType IN_OTHER_SCRIPT_SCORE_MODIFIER = 1;    // Candidate used in other script
+
+// Suffix-probe modifiers. The penalty demotes keywords that the post-cursor stream can't accept
+// after them. The depth bonus rewards candidates that align with deeper suffix structure — kept
+// small (1 unit) so it breaks ties among k=1-compatible candidates without inflating common
+// unreserved keywords above legitimate identifiers (which sit ~2 units higher via THROUGH_CATALOG
+// and would otherwise lose ranking with a larger bonus).
+static constexpr Completion::ScoreValueType SUFFIX_INCOMPATIBLE_PENALTY = 15;
+static constexpr Completion::ScoreValueType SUFFIX_DEPTH_ONE_BONUS = 0;
+static constexpr Completion::ScoreValueType SUFFIX_DEPTH_MANY_BONUS = 1;
 
 // Identity candidate scores (context-dependent)
 // At definition positions: max (always keep user's text)
@@ -96,7 +108,7 @@ static_assert(IN_NAME_SCOPE_SCORE_MODIFIER >
 static_assert(RESOLVING_TABLE_SCORE_MODIFIER >
                   (IN_SAME_STATEMENT_SCORE_MODIFIER + IN_SAME_SCRIPT_SCORE_MODIFIER + IN_OTHER_SCRIPT_SCORE_MODIFIER),
               "Resolving unresolved columns outweighs being referenced elsewhere");
-static_assert((NAME_TAG_LIKELY + THROUGH_CATALOG_SCORE_MODIFIER) > EXPECTED_KEYWORD_MATCH_MODIFIER,
+static_assert((NAME_TAG_LIKELY + THROUGH_CATALOG_SCORE_MODIFIER) > KEYWORD_SUBSTRING_BONUS,
               "A likely catalog name with prefix match outranks an expected keyword with prefix match");
 
 Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags) {
@@ -109,8 +121,13 @@ Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags)
     score += ((tags & buffers::completion::CandidateTag::SUBSTRING_MATCH) != 0) * SUBSTRING_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::PREFIX_MATCH) != 0) * PREFIX_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::EXACT_MATCH) != 0) * EXACT_MATCH_SCORE_MODIFIER;
-    score +=
-        ((tags & buffers::completion::CandidateTag::EXPECTED_KEYWORD_MATCH) != 0) * EXPECTED_KEYWORD_MATCH_MODIFIER;
+    // Expected-keyword + substring-match: bonus on top of SUBSTRING_SCORE_MODIFIER so keyword
+    // candidates that the user is actively typing rank above generic name-index substring matches.
+    {
+        bool expected_kw = (tags & buffers::completion::CandidateTag::EXPECTED_PARSER_SYMBOL) != 0;
+        bool substring = (tags & buffers::completion::CandidateTag::SUBSTRING_MATCH) != 0;
+        score += (expected_kw && substring) * KEYWORD_SUBSTRING_BONUS;
+    }
     score += ((tags & buffers::completion::CandidateTag::THROUGH_CATALOG) != 0) * THROUGH_CATALOG_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::RESOLVING_TABLE) != 0) * RESOLVING_TABLE_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::UNRESOLVED_PEER) != 0) * UNRESOLVED_PEER_SCORE_MODIFIER;
@@ -123,6 +140,12 @@ Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags)
     score += ((tags & buffers::completion::CandidateTag::IN_SAME_STATEMENT) != 0) * IN_SAME_STATEMENT_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::IN_SAME_SCRIPT) != 0) * IN_SAME_SCRIPT_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::IN_OTHER_SCRIPT) != 0) * IN_OTHER_SCRIPT_SCORE_MODIFIER;
+
+    score += ((tags & buffers::completion::CandidateTag::SUFFIX_DEPTH_ONE) != 0) * SUFFIX_DEPTH_ONE_BONUS;
+    score += ((tags & buffers::completion::CandidateTag::SUFFIX_DEPTH_MANY) != 0) * SUFFIX_DEPTH_MANY_BONUS;
+    Completion::ScoreValueType penalty =
+        ((tags & buffers::completion::CandidateTag::SUFFIX_INCOMPATIBLE) != 0) * SUFFIX_INCOMPATIBLE_PENALTY;
+    score = (score > penalty) ? (score - penalty) : 0;
     return score;
 }
 
@@ -608,8 +631,38 @@ void Completion::FindCandidatesForNamePath() {
     }
 }
 
-void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::ExpectedSymbol> symbols) {
+void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::ExpectedSymbol> symbols,
+                                                  const parser::Parser::PrefixSnapshot& prefix) {
     auto& target_symbol = target_scanner_symbol;
+    auto& scanned = *cursor.script.scanned_script;
+    auto& scanner_symbols = scanned.GetSymbols();
+
+    // Pick the symbol id at which the candidate is fed and decide whether feeding replaces the
+    // token at that id (typing on a token) or inserts before it (cursor in whitespace). The
+    // post-cursor token used to test compatibility is the next real entry after the consumed
+    // span (i.e. one entry past target when replacing, the target itself when inserting).
+    using RelativePos = ScannedScript::LocationInfo::RelativePosition;
+    auto feed_id = target_symbol->symbol_id;
+    auto post_id = target_symbol->symbol_id;
+    bool replace_target = target_symbol->relative_pos == RelativePos::BEGIN_OF_SYMBOL ||
+                          target_symbol->relative_pos == RelativePos::MID_OF_SYMBOL ||
+                          target_symbol->relative_pos == RelativePos::END_OF_SYMBOL;
+    if (target_symbol->relative_pos == RelativePos::AFTER_SYMBOL &&
+        !scanner_symbols.IsAtEOF(target_symbol->symbol_id)) {
+        feed_id = scanner_symbols.GetNext(target_symbol->symbol_id);
+        post_id = feed_id;  // insert mode: post-cursor token is the displaced real token itself
+    } else if (replace_target && !scanner_symbols.IsAtEOF(target_symbol->symbol_id)) {
+        post_id = scanner_symbols.GetNext(target_symbol->symbol_id);
+    }
+    // The probe is meaningful only when there is at least one real token after the feed point.
+    // The scanner emits an EOF token; treat the entry at-or-past EOF as no post-cursor context.
+    bool have_post_cursor_token = !scanner_symbols.IsAtEOF(post_id);
+    if (have_post_cursor_token) {
+        auto& probe_token = scanner_symbols[post_id];
+        if (probe_token.kind() == parser::Parser::symbol_kind_type::S_YYEOF) {
+            have_post_cursor_token = false;
+        }
+    }
 
     // Helper to determine the score of a cursor symbol
     auto get_score = [&](const ScannedScript::SymbolLocationInfo& loc, parser::Parser::ExpectedSymbol expected,
@@ -637,7 +690,6 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
                 if (!ci_symbol_text.empty()) {
                     if (auto pos = ci_keyword_text.find(ci_symbol_text); pos != fuzzy_ci_string_view::npos) {
                         tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
-                        tags |= buffers::completion::CandidateTag::EXPECTED_KEYWORD_MATCH;
                         if (pos == 0) {
                             tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
                             if (ci_symbol_text.size() == ci_keyword_text.size()) {
@@ -655,21 +707,59 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
     // Determine target location: use cursor position with zero length when between symbols (pure insertion)
     auto target_loc = between_symbols ? sx::parser::SymbolSpan(cursor.text_offset, 0) : target_symbol->symbol.location;
 
-    for (auto& expected : symbols) {
-        auto name = parser::Keyword::GetKeywordName(expected);
-        if (!name.empty()) {
-            auto tags = get_score(*target_symbol, expected, name);
-            Candidate candidate{
-                .completion_text = name,
-                .coarse_name_tags = {},
-                .candidate_tags = tags,
-                .target_location = target_loc,
-                .target_location_qualified = target_loc,
-                .score = computeCandidateScore(tags),
-                .keyword_symbol = expected,
-            };
-            candidate_heap.Insert(std::move(candidate));
+    // First pass: collect the keyword candidates we want to probe (those with a non-empty name).
+    // We also remember each one's index in the input span so we can stitch probe results back.
+    std::vector<parser::Parser::symbol_kind_type> probe_kinds;
+    std::vector<size_t> probe_input_idx;
+    if (have_post_cursor_token) {
+        probe_kinds.reserve(symbols.size());
+        probe_input_idx.reserve(symbols.size());
+        for (size_t i = 0; i < symbols.size(); ++i) {
+            if (!parser::Keyword::GetKeywordName(symbols[i]).empty()) {
+                probe_kinds.push_back(symbols[i].symbol);
+                probe_input_idx.push_back(i);
+            }
         }
+    }
+
+    // Reuse the prefix snapshot the caller already captured so the probe doesn't reparse.
+    std::vector<parser::Parser::SuffixProbe> probes;
+    if (!probe_kinds.empty()) {
+        probes = parser::Parser::ProbeSuffixBatchFromSnapshot(scanned, feed_id, prefix, probe_kinds, replace_target);
+    }
+    auto next_probe = probes.begin();
+    auto next_probe_input_idx = probe_input_idx.begin();
+    auto suffix_tags = [&](size_t i) -> CandidateTags {
+        CandidateTags extra;
+        if (next_probe == probes.end() || *next_probe_input_idx != i) return extra;
+        const auto& probe = *next_probe++;
+        ++next_probe_input_idx;
+        if (!probe.k1_compatible) {
+            extra |= buffers::completion::CandidateTag::SUFFIX_INCOMPATIBLE;
+        } else if (probe.reached_eof || probe.depth_consumed >= 2) {
+            extra |= buffers::completion::CandidateTag::SUFFIX_DEPTH_MANY;
+        } else if (probe.depth_consumed == 1) {
+            extra |= buffers::completion::CandidateTag::SUFFIX_DEPTH_ONE;
+        }
+        return extra;
+    };
+
+    for (size_t i = 0; i < symbols.size(); ++i) {
+        auto& expected = symbols[i];
+        auto name = parser::Keyword::GetKeywordName(expected);
+        if (name.empty()) continue;
+        auto tags = get_score(*target_symbol, expected, name);
+        tags |= suffix_tags(i);
+        Candidate candidate{
+            .completion_text = name,
+            .coarse_name_tags = {},
+            .candidate_tags = tags,
+            .target_location = target_loc,
+            .target_location_qualified = target_loc,
+            .score = computeCandidateScore(tags),
+            .keyword_symbol = expected,
+        };
+        candidate_heap.Insert(std::move(candidate));
     }
 }
 
@@ -1320,24 +1410,27 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
         }
     }
 
-    // When not dot-completing, find the expected symbols at this location
+    // When not dot-completing, find the expected symbols at this location.
+    // We capture a parser-state snapshot here so the suffix probe (run later inside
+    // AddExpectedKeywordsAsCandidates) can replay the suffix without re-parsing the prefix.
     bool expects_identifier = false;
-    std::vector<parser::Parser::ExpectedSymbol> expected_symbols;
+    parser::Parser::ExpectedAtCursor expected_at_cursor;
     if (!completion->dot_completion) {
-        if (target_symbol->relative_pos == ScannedScript::LocationInfo::RelativePosition::AFTER_SYMBOL &&
-            !symbols.IsAtEOF(target_symbol->symbol_id)) {
-            expected_symbols =
-                parser::Parser::ParseUntil(*cursor.script.scanned_script, symbols.GetNext(target_symbol->symbol_id));
-        } else {
-            expected_symbols = parser::Parser::ParseUntil(*cursor.script.scanned_script, target_symbol->symbol_id);
-        }
-        for (auto& expected : expected_symbols) {
+        auto parse_until_target =
+            (target_symbol->relative_pos == ScannedScript::LocationInfo::RelativePosition::AFTER_SYMBOL &&
+             !symbols.IsAtEOF(target_symbol->symbol_id))
+                ? symbols.GetNext(target_symbol->symbol_id)
+                : target_symbol->symbol_id;
+        expected_at_cursor =
+            parser::Parser::ParseUntilWithSnapshot(*cursor.script.scanned_script, parse_until_target);
+        for (auto& expected : expected_at_cursor.expected) {
             if (expected == parser::Parser::symbol_kind_type::S_IDENT) {
                 expects_identifier = true;
                 break;
             }
         }
     }
+    auto expected_symbols = std::span<parser::Parser::ExpectedSymbol>(expected_at_cursor.expected);
 
     // Check if cursor is at a "definition" position (where a name is being defined, not referenced).
     // We suppress identifier completion at these positions since the user is naming something new.
@@ -1400,11 +1493,11 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
         if (suppressPassiveHint(target_symbol->symbol.kind_)) {
             // No candidates, no passive hint
         } else {
-            completion->AddExpectedKeywordsAsCandidates(expected_symbols);
+            completion->AddExpectedKeywordsAsCandidates(expected_symbols, expected_at_cursor.prefix);
         }
     } else {
         // Add expected grammar symbols to the heap and score them
-        completion->AddExpectedKeywordsAsCandidates(expected_symbols);
+        completion->AddExpectedKeywordsAsCandidates(expected_symbols, expected_at_cursor.prefix);
         // Insert an identity candidate matching the user's text when on an identifier.
         // Score depends on context: at definitions it dominates, at references it yields to strong matches.
         if (expects_identifier && completion->target_scanner_symbol.has_value()) {

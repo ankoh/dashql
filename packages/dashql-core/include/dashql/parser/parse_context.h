@@ -62,6 +62,13 @@ class ParseContext {
     bool IsVisEnabled() const { return enable_vis_syntax; }
     /// Get the symbol iterator
     inline auto& GetSymbolIterator() const { return symbol_iterator; }
+    /// Rewind the scanner to a previously captured position. Used by the suffix probe to re-read
+    /// the post-cursor token after injecting a synthetic candidate keyword.
+    inline void RewindScanner(ChunkBuffer<Parser::symbol_type>::ConstTupleIterator iter,
+                              uint32_t token_index) {
+        symbol_iterator = iter;
+        next_token_index = token_index;
+    }
     /// The current token index (incremented each time NextSymbol returns a token)
     uint32_t next_token_index = 0;
     /// Get next symbol

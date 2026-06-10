@@ -1,5 +1,8 @@
 #pragma once
 
+#include <span>
+#include <vector>
+
 #include "dashql/parser/parser_generated.h"
 #include "dashql/utils/chunk_buffer.h"
 
@@ -23,20 +26,86 @@ class Parser : public ParserBase {
         bool operator==(symbol_kind_type other) const { return symbol == other; }
     };
 
+    /// Result of probing a hypothetical keyword's compatibility with the post-cursor token stream.
+    /// Drives mid-statement keyword scoring: an expected keyword that the actual suffix can't continue is noise.
+    struct SuffixProbe {
+        /// Did the next real post-cursor token shift cleanly after feeding the candidate? (k=1 test)
+        bool k1_compatible = false;
+        /// Number of real post-cursor tokens that were consumed before erroring or accepting.
+        uint16_t depth_consumed = 0;
+        /// Did parsing reach EOF (the suffix is fully consistent with the candidate).
+        bool reached_eof = false;
+    };
+
+    /// Snapshot of the LALR parser state immediately before reading the token at the cursor.
+    /// Holds only state numbers — `yy_lac_check_` and the suffix-probe replay only read state
+    /// numbers, so semantic values are not needed. Reused between expected-symbol collection and
+    /// the suffix probe so the prefix is parsed only once.
+    struct PrefixSnapshot {
+        std::vector<state_type> state_stack;
+        /// True when the prefix parse reached the cursor without erroring or accepting first.
+        bool reached_target = false;
+    };
+
+    /// Combined output of the prefix parse: expected grammar symbols at the cursor + the state
+    /// snapshot used to compute them. The snapshot can be replayed by
+    /// `ProbeSuffixBatchFromSnapshot`.
+    struct ExpectedAtCursor {
+        std::vector<ExpectedSymbol> expected;
+        PrefixSnapshot prefix;
+    };
+
+    /// Accessor for the underlying ParseContext. Used by DriveLALR policies that need to look at
+    /// the symbol iterator or token index.
+    ParseContext& GetCtx() { return ctx; }
+    /// Number of states on the parser stack.
+    auto GetStackSize() const { return yystack_.size(); }
+    /// State number at depth `i` (0 = bottom). Used by policies that snapshot the stack.
+    state_type GetStackState(decltype(stack_type{}.size()) i) const { return yystack_[i].state; }
+
    protected:
-    /// Collect all expected symbols
-    std::vector<ExpectedSymbol> CollectExpectedSymbols();
-    /// Parse until a token and return expected symbols
-    std::vector<ExpectedSymbol> CollectExpectedSymbolsAt(ChunkBufferEntryID symbol_id);
-    /// Parse until a token, feed an extra symbol, then return expected symbols after it
-    std::vector<ExpectedSymbol> CollectExpectedSymbolsAfter(ChunkBufferEntryID symbol_id, symbol_kind_type feed_symbol);
+    /// Run the bison-generated LALR automaton, delegating customizable steps to `policy` (a duck
+    /// type with the hooks documented in parser.cc). All three of `CollectExpectedSymbolsAfter`,
+    /// `ParsePrefixToTarget`, and `ProbeSuffixFromPrefix` share this driver — they only differ
+    /// in the policy.
+    /// `init_stack=true` clears yystack_ and pushes the initial state; pass `false` when the
+    /// caller has already restored a prefix snapshot.
+    template <typename Policy>
+    void DriveLALR(Policy& policy, bool init_stack);
 
    public:
-    /// Complete at a token
-    static std::vector<ExpectedSymbol> ParseUntil(ScannedScript& in, ChunkBufferEntryID symbol_id);
+    /// Collect all expected symbols at the parser's current state via LAC. Public so DriveLALR
+    /// policies can call it from their hooks.
+    std::vector<ExpectedSymbol> CollectExpectedSymbols();
+    /// Parse until a token, feed an extra symbol, then return expected symbols after it
+    std::vector<ExpectedSymbol> CollectExpectedSymbolsAfter(ChunkBufferEntryID symbol_id, symbol_kind_type feed_symbol);
+    /// Run the LALR driver up to (but not including) the read of `target_symbol_id`. The parser's
+    /// current state stack is captured into `out` (state numbers only, no semantic values).
+    void ParsePrefixToTarget(ChunkBufferEntryID target_symbol_id, PrefixSnapshot& out);
+    /// Restore a captured state stack into the parser. After this returns the parser is in the
+    /// same logical state as ParsePrefixToTarget left it, ready for LAC queries or suffix replay.
+    void RestorePrefix(const PrefixSnapshot& prefix);
+    /// Probe how many post-cursor tokens parse cleanly after feeding `feed_symbol`, starting from
+    /// the parser state captured in `prefix`. The caller's iterator and token-index are positioned
+    /// to the target. If `replace_target` is true the candidate stands in for the target token;
+    /// otherwise the candidate is inserted before it and the target is consumed afterward.
+    SuffixProbe ProbeSuffixFromPrefix(const PrefixSnapshot& prefix, ChunkBufferEntryID target_symbol_id,
+                                       symbol_kind_type feed_symbol, bool replace_target);
+
+   public:
+    /// Parse until a token; return both the expected grammar symbols at the cursor and the
+    /// LALR state snapshot. Pass the snapshot to `ProbeSuffixBatchFromSnapshot` to avoid
+    /// re-parsing the prefix.
+    static ExpectedAtCursor ParseUntilWithSnapshot(ScannedScript& in, ChunkBufferEntryID symbol_id);
     /// Parse until a token, feed an extra symbol, then return expected symbols after it
     static std::vector<ExpectedSymbol> ParseUntilAfter(ScannedScript& in, ChunkBufferEntryID symbol_id,
                                                        symbol_kind_type feed_symbol);
+    /// Probe how compatible each candidate keyword is with the post-cursor token stream, given a
+    /// pre-computed prefix snapshot (e.g. from `ParseUntilWithSnapshot`). One probe per candidate
+    /// in input order; if the snapshot didn't reach the target, all probes are default-valued.
+    static std::vector<SuffixProbe> ProbeSuffixBatchFromSnapshot(
+        ScannedScript& in, ChunkBufferEntryID symbol_id, const PrefixSnapshot& prefix,
+        std::span<const symbol_kind_type> feed_symbols, bool replace_target);
     /// Parse a module (throws Exception on error)
     static std::shared_ptr<ParsedScript> Parse(std::shared_ptr<ScannedScript> in, bool debug = false);
 };

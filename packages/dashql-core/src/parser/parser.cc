@@ -16,6 +16,34 @@ template <typename Base> static void destroy(std::string_view msg, dashql::parse
     // See yy_destroy_
 }
 
+// Shared LALR driver — see DriveLALR below. The driver is a parallel copy of the bison-generated
+// `parse()` skeleton (lalr1.cc) with four customization hooks delivered via a Policy duck type:
+//
+//   void Policy::OnLookaheadRead(Parser&, symbol_type& next,
+//                                ChunkBuffer<...>::ConstTupleIterator pre_iter,
+//                                uint32_t pre_token_index, bool& stop)
+//     Called every time the loop has just read a token via NextSymbol() and is about to wrap it
+//     in yyla. `pre_iter` and `pre_token_index` are the scanner's iterator state immediately
+//     before NextSymbol() was called — policies use them to (a) test whether the next read is
+//     at the cursor or (b) rewind so a different synthetic token can be re-read. The policy may
+//     mutate `next` (e.g. overwrite kind/value to inject a synthetic token). Setting `stop = true`
+//     aborts the driver immediately (used by ParsePrefixToTarget to snapshot at the cursor).
+//
+//   void Policy::OnShifted(Parser&, symbol_kind_type shifted_kind)
+//     Called after every successful shift of the lookahead token. The probe uses this to count
+//     post-cursor tokens that align with the grammar.
+//
+//   bool Policy::OnAccept(Parser&)
+//     Called when the parser reaches its final state (yystack_[0].state == yyfinal_). Probe sets
+//     reached_eof here. Return value is unused (kept for symmetry / future extension).
+//
+//   bool Policy::ShortCircuitOnError(Parser&)
+//     Called at yyerrlab before standard error recovery. Returns true to stop the driver
+//     immediately (e.g. probe stops once the candidate has shifted; collect-after stops once
+//     COMPLETE_HERE has been fed and the parser errors at the post-feed state).
+//
+// Hooks that don't apply to a given policy should be no-ops returning sensible defaults.
+
 /// Collect all expected symbols.
 /// For each accepted keyword symbol, determines whether it is expected purely because it doubles as an
 /// identifier (via sql_unreserved_keywords, sql_column_name_keywords, etc.) or because it has genuine
@@ -37,54 +65,7 @@ std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbols() {
     return expected;
 }
 
-#define DEBUG_COMPLETE_AT 0
-std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbolsAt(ChunkBufferEntryID target_symbol_id) {
-    // Helper to print a symbol (captures only used when DEBUG_COMPLETE_AT)
-    auto yy_print = [this]([[maybe_unused]] const auto& yysym) {
-        (void)this;
-#if DEBUG_COMPLETE_AT == 1
-        if (yysym.empty()) {
-            std::cout << "empty symbol";
-        } else {
-            symbol_kind_type yykind = yysym.kind();
-            std::cout << (yykind < YYNTOKENS ? "token" : "nterm") << ' ' << yysym.name() << " ("
-                      << yysym.location.offset() << ": " << yysym.location.length() << ')';
-        }
-#endif
-    };
-    // Helper to print a symbol with a prefix (captures only used when DEBUG_COMPLETE_AT)
-    auto yy_symbol_print = [this, &yy_print]([[maybe_unused]] std::string_view prefix,
-                                             [[maybe_unused]] const auto& sym) {
-        (void)this;
-        (void)yy_print;
-#if DEBUG_COMPLETE_AT == 1
-        std::cout << prefix << " ";
-        yy_print(sym);
-        std::cout << std::endl;
-#endif
-    };
-    // Helper to print a reduction (captures only used when DEBUG_COMPLETE_AT)
-    auto yy_reduce_print = [this, &yy_print]([[maybe_unused]] int yyrule) {
-        (void)this;
-        (void)yy_print;
-#if DEBUG_COMPLETE_AT == 1
-        int yynrhs = yyr2_[yyrule];
-        // Print the symbols being reduced, and their result.
-        std::cout << "Reducing stack by rule " << yyrule - 1 << ":\n";
-        // The symbols being reduced.
-        for (int yyi = 0; yyi < yynrhs; yyi++) {
-            std::cout << "   $" << yyi + 1 << " = ";
-            yy_print(yystack_[(yynrhs) - (yyi + 1)]);
-            std::cout << std::endl;
-        }
-#endif
-    };
-
-    // The expected symbols
-    std::vector<Parser::ExpectedSymbol> expected_symbols;
-    // Reached the completion point?
-    bool reached_completion_point = false;
-
+template <typename Policy> void Parser::DriveLALR(Policy& policy, bool init_stack) {
     // The next symbol id
     int yyn;
     // The length of the RHS of the rule being reduced
@@ -100,20 +81,24 @@ std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbolsAt(ChunkBuffer
     /// The return value of parse ()
     [[maybe_unused]] int yyresult;
 
-    // Discard the LAC context in case there still is one left from a
-    // previous invocation.
+    // Discard the LAC context in case there still is one left from a previous invocation.
     yy_lac_discard_("init");
 
-    // Initialize the stack. The initial state will be set in
-    // yynewstate, since the latter expects the semantical and the
-    // location values to have been already stored, initialize these
-    // stacks with a primary value.
-    yystack_.clear();
-    yypush_(YY_NULLPTR, 0, YY_MOVE(yyla));
+    if (init_stack) {
+        // Initialize the stack. The initial state will be set in yynewstate, since the latter
+        // expects the semantical and the location values to have been already stored, initialize
+        // these stacks with a primary value.
+        yystack_.clear();
+        yypush_(YY_NULLPTR, 0, YY_MOVE(yyla));
+    }
+    // Otherwise the caller (e.g. ProbeSuffixFromPrefix) has already restored a snapshot.
 
 yynewstate:
     // Accept?
-    if (yystack_[0].state == yyfinal_) goto yyacceptlab;
+    if (yystack_[0].state == yyfinal_) {
+        policy.OnAccept(*this);
+        goto yyacceptlab;
+    }
     goto yybackup;
 
 yybackup:
@@ -123,31 +108,33 @@ yybackup:
 
     // Read a lookahead token.
     if (yyla.empty()) {
+        // Snapshot the pre-read scanner state so policies can either (a) decide based on whether
+        // the about-to-be-read token is at the cursor, or (b) rewind after deciding to inject a
+        // synthetic token in place of the real one (probe's insert mode).
+        auto pre_iter = ctx.GetSymbolIterator();
+        auto pre_token_index = ctx.next_token_index;
         // Get the next symbol
-        auto symbol_iter = ctx.GetSymbolIterator();
         auto next_symbol = ctx.NextSymbol();
-        // Did we reach the target index?
-        if (symbol_iter >= target_symbol_id) {
-            auto completion_marker = parser::Parser::make_COMPLETE_HERE(next_symbol.location);
-            next_symbol.move(completion_marker);
-            reached_completion_point = true;
-        }
+        // Let the policy inspect / mutate / replace the lookahead, or signal stop. Stop happens
+        // when the policy wants to capture state at the cursor without consuming the token.
+        bool stop = false;
+        policy.OnLookaheadRead(*this, next_symbol, pre_iter, pre_token_index, stop);
+        if (stop) goto yyabortlab;
         // Store symbol as lookahead
         symbol_type yylookahead(std::move(next_symbol));
         yyla.move(yylookahead);
     }
 
     if (yyla.kind() == symbol_kind::S_YYerror) {
-        // The scanner already issued an error message, process directly
-        // to error recovery.  But do not keep the error token as
-        // lookahead, it is too special and may lead us to an endless
-        // loop in error recovery.
+        // The scanner already issued an error message, process directly to error recovery.
+        // But do not keep the error token as lookahead, it is too special and may lead us
+        // to an endless loop in error recovery.
         yyla.kind_ = symbol_kind::S_YYUNDEF;
         goto yyerrlab1;
     }
 
-    // If the proper action on seeing token YYLA.TYPE is to reduce or
-    // to detect an error, take that action.
+    // If the proper action on seeing token YYLA.TYPE is to reduce or to detect an error,
+    // take that action.
     yyn += yyla.kind();
     if (yyn < 0 || yylast_ < yyn || yycheck_[yyn] != yyla.kind()) {
         if (!yy_lac_establish_(yyla.kind())) goto yyerrlab;
@@ -159,7 +146,6 @@ yybackup:
     if (yyn <= 0) {
         if (yy_table_value_is_error_(yyn)) goto yyerrlab;
         if (!yy_lac_establish_(yyla.kind())) goto yyerrlab;
-
         yyn = -yyn;
         goto yyreduce;
     }
@@ -168,8 +154,12 @@ yybackup:
     if (yyerrstatus_) --yyerrstatus_;
 
     // Shift the lookahead token.
-    yypush_("Shifting", state_type(yyn), YY_MOVE(yyla));
-    yy_lac_discard_("shift");
+    {
+        auto shifted_kind = yyla.kind();
+        yypush_("Shifting", state_type(yyn), YY_MOVE(yyla));
+        yy_lac_discard_("shift");
+        policy.OnShifted(*this, shifted_kind);
+    }
     goto yynewstate;
 
 yydefault:
@@ -182,72 +172,50 @@ yyreduce:
     {
         stack_symbol_type yylhs;
         yylhs.state = yy_lr_goto_state_(yystack_[yylen].state, yyr1_[yyn]);
-
-        // Variants are always initialized to an empty instance of the
-        // correct type. The default '$$ = $1' action is NOT applied
-        // when using variants
+        // Variants are always initialized to an empty instance of the correct type.
+        // The default '$$ = $1' action is NOT applied when using variants.
         switch (yyr1_[yyn]) {
-                // ....
-                // Initialize yylhs.value
             default:
                 break;
         }
-
         // Default location.
         {
             stack_type::slice range(yystack_, yylen);
             YYLLOC_DEFAULT(yylhs.location, range, yylen);
             yyerror_range[1].location = yylhs.location;
         }
-
-        // Perform the reduction.
-        yy_reduce_print(yyn);
-        // Reductions
+        // Reductions (no-op: this driver doesn't run grammar actions).
         {
             switch (yyn) {
                 default:
                     break;
             }
         }
-
-        yy_symbol_print("-> $$ =", yylhs);
         yypop_(yylen);
         yylen = 0;
-
         // Shift the result of the reduction.
         yypush_(YY_NULLPTR, YY_MOVE(yylhs));
     }
     goto yynewstate;
 
 yyerrlab:
-    // Collect expected symbols at the completion point
-    if (reached_completion_point) {
-        expected_symbols = CollectExpectedSymbols();
-        goto yyabortlab;
-    }
-
-    // If not already recovering from an error, report this error.
+    // Give the policy a chance to short-circuit before standard error recovery (e.g. probe stops
+    // once the candidate has shifted, collect-after stops once COMPLETE_HERE has been fed).
+    if (policy.ShortCircuitOnError(*this)) goto yyabortlab;
+    // If not already recovering from an error, count it.
     if (!yyerrstatus_) {
         ++yynerrs_;
-        context yyctx(*this, yyla);
-        std::string msg = yysyntax_error_(yyctx);
-        error(yyla.location, YY_MOVE(msg));
     }
-
     yyerror_range[1].location = yyla.location;
     if (yyerrstatus_ == 3) {
-        /* If just tried and failed to reuse lookahead token after an
-           error, discard it.  */
-
+        // If just tried and failed to reuse lookahead token after an error, discard it.
         // Return failure if at end of input.
         if (yyla.kind() == symbol_kind::S_YYEOF) {
             goto yyabortlab;
         } else if (!yyla.empty()) {
-            destroy("Error: discarding", yyla);
             yyla.clear();
         }
     }
-
     // Else will try to reuse lookahead token after shifting the error token.
     goto yyerrlab1;
 
@@ -263,21 +231,15 @@ yyerrlab1:
                 if (0 < yyn) break;
             }
         }
-
         // Pop the current state because it cannot handle the error token.
         if (yystack_.size() == 1) goto yyabortlab;
-
         yyerror_range[1].location = yystack_[0].location;
-        destroy("Error: popping", yystack_[0]);
         yypop_();
-        // YY_STACK_PRINT();
     }
     {
         stack_symbol_type error_token;
-
         yyerror_range[2].location = yyla.location;
         YYLLOC_DEFAULT(error_token.location, yyerror_range, 2);
-
         // Shift the error token.
         yy_lac_discard_("error recovery");
         error_token.state = state_type(yyn);
@@ -294,187 +256,72 @@ yyabortlab:
     goto yyreturn;
 
 yyreturn:
-    if (!yyla.empty()) destroy("Cleanup: discarding lookahead", yyla);
-
-    // Do not reclaim the symbols of the rule whose action triggered
-    // this YYABORT or YYACCEPT.
+    if (!yyla.empty()) yyla.clear();
+    // Do not reclaim the symbols of the rule whose action triggered this YYABORT or YYACCEPT.
     yypop_(yylen);
-    // YY_STACK_PRINT();
     while (1 < yystack_.size()) {
-        destroy("Cleanup: popping", yystack_[0]);
         yypop_();
     }
-    return expected_symbols;
 }
 
-std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbolsAfter(ChunkBufferEntryID target_symbol_id,
-                                                                        symbol_kind_type feed_symbol) {
-    // The expected symbols
-    std::vector<Parser::ExpectedSymbol> expected_symbols;
-    // Phase: 0 = parsing normally, 1 = fed the symbol, 2 = injected COMPLETE_HERE
+
+// Policy for ParseUntilAfter: at the cursor, replace the real token with the candidate
+// `feed_symbol`. On the very next lookahead read, replace that one with COMPLETE_HERE so the
+// parser errors at the post-feed state. The error handler then collects LAC-expected symbols.
+struct CollectAfterPolicy {
+    ChunkBufferEntryID target_symbol_id;
+    Parser::symbol_kind_type feed_symbol;
+    // 0 = parsing normally, 1 = fed the candidate, 2 = injected COMPLETE_HERE.
     int phase = 0;
+    std::vector<Parser::ExpectedSymbol> expected_symbols;
 
-    int yyn;
-    int yylen = 0;
-    [[maybe_unused]] int yynerrs_ = 0;
-    int yyerrstatus_ = 0;
-    symbol_type yyla;
-    stack_symbol_type yyerror_range[3];
-    [[maybe_unused]] int yyresult;
-
-    yy_lac_discard_("init");
-    yystack_.clear();
-    yypush_(YY_NULLPTR, 0, YY_MOVE(yyla));
-
-yynewstate:
-    if (yystack_[0].state == yyfinal_) goto yyacceptlab;
-    goto yybackup;
-
-yybackup:
-    yyn = yypact_[+yystack_[0].state];
-    if (yy_pact_value_is_default_(yyn)) goto yydefault;
-
-    if (yyla.empty()) {
-        auto symbol_iter = ctx.GetSymbolIterator();
-        auto next_symbol = ctx.NextSymbol();
-
+    template <typename Iter>
+    void OnLookaheadRead(Parser&, Parser::symbol_type& next_symbol, const Iter& pre_iter,
+                         uint32_t /*pre_token_index*/, bool& /*stop*/) {
         if (phase == 1) {
-            // Phase 1 → 2: After feeding the symbol, inject COMPLETE_HERE
-            auto completion_marker = parser::Parser::make_COMPLETE_HERE(next_symbol.location);
-            next_symbol.move(completion_marker);
+            // Phase 1 → 2: inject COMPLETE_HERE so the next yyerrlab triggers LAC.
+            auto marker = Parser::make_COMPLETE_HERE(next_symbol.location);
+            next_symbol.move(marker);
             phase = 2;
-        } else if (phase == 0 && symbol_iter >= target_symbol_id) {
-            // Phase 0 → 1: At target, inject the feed symbol
-            auto fed = parser::Parser::make_COMPLETE_HERE(next_symbol.location);
+            return;
+        }
+        if (phase == 0 && pre_iter >= target_symbol_id) {
+            // Phase 0 → 1: replace the real cursor token with the candidate.
+            auto fed = Parser::make_COMPLETE_HERE(next_symbol.location);
             fed.kind_ = feed_symbol;
             next_symbol.move(fed);
             phase = 1;
         }
-
-        symbol_type yylookahead(std::move(next_symbol));
-        yyla.move(yylookahead);
     }
-
-    if (yyla.kind() == symbol_kind::S_YYerror) {
-        yyla.kind_ = symbol_kind::S_YYUNDEF;
-        goto yyerrlab1;
-    }
-
-    yyn += yyla.kind();
-    if (yyn < 0 || yylast_ < yyn || yycheck_[yyn] != yyla.kind()) {
-        if (!yy_lac_establish_(yyla.kind())) goto yyerrlab;
-        goto yydefault;
-    }
-
-    yyn = yytable_[yyn];
-    if (yyn <= 0) {
-        if (yy_table_value_is_error_(yyn)) goto yyerrlab;
-        if (!yy_lac_establish_(yyla.kind())) goto yyerrlab;
-        yyn = -yyn;
-        goto yyreduce;
-    }
-
-    if (yyerrstatus_) --yyerrstatus_;
-    yypush_("Shifting", state_type(yyn), YY_MOVE(yyla));
-    yy_lac_discard_("shift");
-    goto yynewstate;
-
-yydefault:
-    yyn = yydefact_[+yystack_[0].state];
-    if (yyn == 0) goto yyerrlab;
-    goto yyreduce;
-
-yyreduce:
-    yylen = yyr2_[yyn];
-    {
-        stack_symbol_type yylhs;
-        yylhs.state = yy_lr_goto_state_(yystack_[yylen].state, yyr1_[yyn]);
-        switch (yyr1_[yyn]) {
-            default:
-                break;
+    void OnShifted(Parser&, Parser::symbol_kind_type) {}
+    void OnAccept(Parser&) {}
+    bool ShortCircuitOnError(Parser& p) {
+        if (phase == 2) {
+            expected_symbols = p.CollectExpectedSymbols();
+            return true;
         }
-        {
-            stack_type::slice range(yystack_, yylen);
-            YYLLOC_DEFAULT(yylhs.location, range, yylen);
-            yyerror_range[1].location = yylhs.location;
-        }
-        {
-            switch (yyn) {
-                default:
-                    break;
-            }
-        }
-        yypop_(yylen);
-        yylen = 0;
-        yypush_(YY_NULLPTR, YY_MOVE(yylhs));
+        return false;
     }
-    goto yynewstate;
+};
 
-yyerrlab:
-    if (phase == 2) {
-        expected_symbols = CollectExpectedSymbols();
-        goto yyabortlab;
-    }
-    if (!yyerrstatus_) {
-        ++yynerrs_;
-    }
-    yyerror_range[1].location = yyla.location;
-    if (yyerrstatus_ == 3) {
-        if (yyla.kind() == symbol_kind::S_YYEOF) {
-            goto yyabortlab;
-        } else if (!yyla.empty()) {
-            yyla.clear();
-        }
-    }
-    goto yyerrlab1;
-
-yyerrlab1:
-    yyerrstatus_ = 3;
-    for (;;) {
-        yyn = yypact_[+yystack_[0].state];
-        if (!yy_pact_value_is_default_(yyn)) {
-            yyn += symbol_kind::S_YYerror;
-            if (0 <= yyn && yyn <= yylast_ && yycheck_[yyn] == symbol_kind::S_YYerror) {
-                yyn = yytable_[yyn];
-                if (0 < yyn) break;
-            }
-        }
-        if (yystack_.size() == 1) goto yyabortlab;
-        yyerror_range[1].location = yystack_[0].location;
-        yypop_();
-    }
-    {
-        stack_symbol_type error_token;
-        yyerror_range[2].location = yyla.location;
-        YYLLOC_DEFAULT(error_token.location, yyerror_range, 2);
-        yy_lac_discard_("error recovery");
-        error_token.state = state_type(yyn);
-        yypush_("Shifting", YY_MOVE(error_token));
-    }
-    goto yynewstate;
-
-yyacceptlab:
-    yyresult = 0;
-    goto yyreturn;
-
-yyabortlab:
-    yyresult = 1;
-    goto yyreturn;
-
-yyreturn:
-    if (!yyla.empty()) yyla.clear();
-    yypop_(yylen);
-    while (1 < yystack_.size()) {
-        yypop_();
-    }
-    return expected_symbols;
+std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbolsAfter(ChunkBufferEntryID target_symbol_id,
+                                                                        symbol_kind_type feed_symbol) {
+    CollectAfterPolicy policy{target_symbol_id, feed_symbol};
+    DriveLALR(policy, /*init_stack=*/true);
+    return std::move(policy.expected_symbols);
 }
 
-std::vector<Parser::ExpectedSymbol> Parser::ParseUntil(ScannedScript& scanned, ChunkBufferEntryID symbol_id) {
+Parser::ExpectedAtCursor Parser::ParseUntilWithSnapshot(ScannedScript& scanned, ChunkBufferEntryID symbol_id) {
+    ExpectedAtCursor out;
     ParseContext ctx{scanned};
     dashql::parser::Parser parser(ctx);
-    auto expected = parser.CollectExpectedSymbolsAt(symbol_id);
-    return expected;
+    parser.ParsePrefixToTarget(symbol_id, out.prefix);
+    if (out.prefix.reached_target) {
+        // Restore so yy_lac_check_ (which reads yystack_[].state) sees the captured state.
+        parser.RestorePrefix(out.prefix);
+        out.expected = parser.CollectExpectedSymbols();
+    }
+    return out;
 }
 
 std::vector<Parser::ExpectedSymbol> Parser::ParseUntilAfter(ScannedScript& scanned, ChunkBufferEntryID symbol_id,
@@ -482,6 +329,143 @@ std::vector<Parser::ExpectedSymbol> Parser::ParseUntilAfter(ScannedScript& scann
     ParseContext ctx{scanned};
     dashql::parser::Parser parser(ctx);
     return parser.CollectExpectedSymbolsAfter(symbol_id, feed_symbol);
+}
+
+std::vector<Parser::SuffixProbe> Parser::ProbeSuffixBatchFromSnapshot(
+    ScannedScript& scanned, ChunkBufferEntryID symbol_id, const PrefixSnapshot& prefix,
+    std::span<const symbol_kind_type> feed_symbols, bool replace_target) {
+    std::vector<SuffixProbe> out;
+    out.resize(feed_symbols.size());  // default-constructed entries when prefix didn't reach target
+    if (feed_symbols.empty() || !prefix.reached_target) return out;
+
+    // Each suffix replay needs a fresh ParseContext (token iterator + LAC state must reset).
+    for (size_t i = 0; i < feed_symbols.size(); ++i) {
+        ParseContext suffix_ctx{scanned};
+        dashql::parser::Parser suffix_parser(suffix_ctx);
+        out[i] = suffix_parser.ProbeSuffixFromPrefix(prefix, symbol_id, feed_symbols[i], replace_target);
+    }
+    return out;
+}
+
+// Run the LALR driver up to the cursor and snapshot just the state stack. Implemented as a
+// parallel copy of the bison driver (like CollectExpectedSymbolsAt/After) because merging the
+// control flows would require restructuring the goto-based skeleton.
+//
+// On entry to the cursor (i.e. when the iterator first points there), we stop *before* reading
+// the lookahead — the suffix replay reproduces that read from the snapshot.
+// Policy for ParsePrefixToTarget: parse the prefix normally; when the next read would consume
+// the cursor's token, snapshot the state stack and stop.
+struct PrefixCapturePolicy {
+    ChunkBufferEntryID target_symbol_id;
+    Parser::PrefixSnapshot& out;
+
+    template <typename Iter>
+    void OnLookaheadRead(Parser& p, Parser::symbol_type& /*next_symbol*/, const Iter& pre_iter,
+                         uint32_t /*pre_token_index*/, bool& stop) {
+        if (pre_iter >= target_symbol_id) {
+            out.reached_target = true;
+            // Capture state numbers from bottom to top.
+            for (auto i = p.GetStackSize(); i > 0; --i) {
+                out.state_stack.push_back(p.GetStackState(i - 1));
+            }
+            stop = true;
+        }
+    }
+    void OnShifted(Parser&, Parser::symbol_kind_type) {}
+    void OnAccept(Parser&) {}
+    bool ShortCircuitOnError(Parser&) { return false; }
+};
+
+void Parser::ParsePrefixToTarget(ChunkBufferEntryID target_symbol_id, PrefixSnapshot& out) {
+    out.state_stack.clear();
+    out.reached_target = false;
+    PrefixCapturePolicy policy{target_symbol_id, out};
+    DriveLALR(policy, /*init_stack=*/true);
+}
+
+// Restore a captured state stack into the parser. We push only state numbers — the stack symbols
+// carry empty semantic values, which is fine because reduction actions are no-ops in our skeleton
+// and `yy_lac_check_` only reads state numbers.
+void Parser::RestorePrefix(const PrefixSnapshot& prefix) {
+    yystack_.clear();
+    if (prefix.state_stack.empty()) return;
+    {
+        symbol_type empty_la;
+        yypush_(YY_NULLPTR, 0, YY_MOVE(empty_la));
+    }
+    yystack_[0].state = prefix.state_stack.front();
+    for (size_t i = 1; i < prefix.state_stack.size(); ++i) {
+        stack_symbol_type stk;
+        stk.state = prefix.state_stack[i];
+        yypush_(YY_NULLPTR, YY_MOVE(stk));
+    }
+    yy_lac_discard_("init");
+}
+
+// Replay the suffix from a captured prefix state stack: restores the parser state, advances the
+// scanner iterator to the target token, then drives the shared LALR loop with `SuffixProbePolicy`.
+//
+// Policy for ProbeSuffixFromPrefix — the parser stack is already restored from the prefix
+// snapshot before DriveLALR is called, and the scanner has been advanced to the target. The very
+// first lookahead read is at the cursor — replace it with the feed symbol (and rewind the scanner
+// for insert mode, so the real target is re-read afterward). Then count how many real post-cursor
+// tokens shift cleanly before the parser errors or accepts.
+struct SuffixProbePolicy {
+    Parser::symbol_kind_type feed_symbol;
+    bool replace_target;
+    Parser::SuffixProbe probe;
+    // 0 = before feed, 1 = feed in lookahead, 2 = feed shifted, real suffix flowing.
+    int phase = 0;
+
+    template <typename Iter>
+    void OnLookaheadRead(Parser& p, Parser::symbol_type& next_symbol, const Iter& pre_iter,
+                         uint32_t pre_token_index, bool& /*stop*/) {
+        if (phase == 0) {
+            auto fed = Parser::make_COMPLETE_HERE(next_symbol.location);
+            fed.kind_ = feed_symbol;
+            if (!replace_target) {
+                // Insert mode: rewind so the displaced real target token is re-read next.
+                p.GetCtx().RewindScanner(pre_iter, pre_token_index);
+            }
+            next_symbol.move(fed);
+            phase = 1;
+        }
+        // Otherwise this is a real post-cursor token; the driver uses it as-is.
+    }
+    void OnShifted(Parser&, Parser::symbol_kind_type shifted_kind) {
+        // Phase 1 → 2 happens here, once the feed symbol itself has shifted. Subsequent shifts in
+        // phase 2 are real post-cursor tokens aligning with the grammar's expectation.
+        if (phase == 2 && shifted_kind != Parser::symbol_kind_type::S_YYEOF) {
+            if (probe.depth_consumed == 0) probe.k1_compatible = true;
+            if (probe.depth_consumed < std::numeric_limits<uint16_t>::max()) ++probe.depth_consumed;
+        }
+        if (phase == 1) phase = 2;
+    }
+    void OnAccept(Parser&) {
+        // Reaching the final state while replaying the suffix means the candidate + rest of the
+        // post-cursor stream is a complete parse — the strongest signal we can give.
+        probe.reached_eof = true;
+    }
+    bool ShortCircuitOnError(Parser&) {
+        // Stop as soon as the parser errors past the feed. EOF as the failing lookahead means the
+        // parser expected more input, not that the suffix was fully consumed; `reached_eof` is
+        // set only on the accept path (handled in OnAccept above).
+        return phase >= 1;
+    }
+};
+
+Parser::SuffixProbe Parser::ProbeSuffixFromPrefix(const PrefixSnapshot& prefix,
+                                                  ChunkBufferEntryID target_symbol_id,
+                                                  symbol_kind_type feed_symbol, bool replace_target) {
+    if (!prefix.reached_target) return SuffixProbe{};
+    RestorePrefix(prefix);
+    // Advance the scanner to the target token. Discard everything before it.
+    while (!ctx.symbol_iterator.IsAtEnd() && ctx.symbol_iterator != target_symbol_id) {
+        ctx.NextSymbol();
+    }
+    SuffixProbePolicy policy{feed_symbol, replace_target};
+    DriveLALR(policy, /*init_stack=*/false);
+    return policy.probe;
 }
 
 std::shared_ptr<ParsedScript> Parser::Parse(std::shared_ptr<ScannedScript> scanned, bool debug) {

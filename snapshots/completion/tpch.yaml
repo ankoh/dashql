@@ -1225,7 +1225,7 @@ completion-snapshots:
               prefer-qualified: 0
         - score: 55
           value: padding
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXPECTED_KEYWORD_MATCH]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "p"
           location-qualified: "p"
           objects: []

@@ -1,0 +1,769 @@
+completion-snapshots:
+
+  - name: mid_select_list_after_column
+    catalog:
+      script:
+        input: create table tbl(a int, b int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: tbl
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+        errors: []
+    editor:
+      input: 'select a , b from tbl'
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "tbl"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "b"
+    cursor:
+      search:
+        text: 'a '
+        index: 1
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 82
+          value: a
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+          location: "a"
+          location-qualified: "a"
+          objects:
+            - score: 62
+              type: column
+              id: "256.65536.4294967296.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+              qualified: tbl.a
+              qualified-idx: 1
+              prefer-qualified: 0
+        - score: 59
+          value: a
+          candidate-tags: [IDENTITY]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+        - score: 56
+          value: abort
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+        - score: 56
+          value: absolute
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+        - score: 56
+          value: access
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+      text: "a"
+
+  - name: mid_select_list_typing_prefix
+    catalog:
+      script:
+        input: create table tbl(a int, b int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: tbl
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+        errors: []
+    editor:
+      input: 'select x , b from tbl'
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "tbl"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "x"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "b"
+    cursor:
+      search:
+        text: x
+        index: 1
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 71
+          value: x
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          location: "x"
+          location-qualified: "x"
+          objects: []
+        - score: 70
+          value: x
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH]
+          location: "x"
+          location-qualified: "x"
+          objects: []
+        - score: 59
+          value: x
+          candidate-tags: [IDENTITY]
+          location: "x"
+          location-qualified: "x"
+          objects: []
+        - score: 56
+          value: x2
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          location: "x"
+          location-qualified: "x"
+          objects: []
+        - score: 56
+          value: x_offset
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          location: "x"
+          location-qualified: "x"
+          objects: []
+      text: "x"
+
+  - name: mid_where_expr_after_literal
+    catalog:
+      script:
+        input: create table tbl(a int, b int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: tbl
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+        errors: []
+    editor:
+      input: 'select * from tbl where a = 1 and b = 2'
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "tbl"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "b"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 3
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "2"
+        - expression-idx: 4
+          type: comparison
+          op: EQUAL
+          arg-left: 0
+          arg-right: 2
+          restriction-target: 0
+          statement-id: 0
+          text: "a = 1"
+        - expression-idx: 5
+          type: comparison
+          op: EQUAL
+          arg-left: 1
+          arg-right: 3
+          restriction-target: 1
+          statement-id: 0
+          text: "b = 2"
+      constants:
+        - expression: 2
+          text: "1"
+        - expression: 3
+          text: "2"
+      column-filters:
+        - expression: 4
+          snippet:
+            signature-template: 1794172684583472092
+            signature-raw: 6895659058441714752
+            text: a = 1
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
+              ast:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "a = 1"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "a = 1"
+                    children:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: NAME
+                                text: "a"
+                      - type: LITERAL_INTEGER
+                        text: "1"
+        - expression: 5
+          snippet:
+            signature-template: 1794172684583472092
+            signature-raw: 10801199794688364005
+            text: b = 2
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
+              ast:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "b = 2"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "b = 2"
+                    children:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "b"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "b"
+                            children:
+                              - type: NAME
+                                text: "b"
+                      - type: LITERAL_INTEGER
+                        text: "2"
+    cursor:
+      search:
+        text: '1 and'
+        index: 1
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: LITERAL_INTEGER
+      relative: END_OF_SYMBOL
+      entries: []
+      text: "1"
+
+  - name: mid_from_list_typing_prefix
+    catalog:
+      script:
+        input: |
+          create table sales(id int);
+          create table customers(id int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..es(id int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: id
+                text: "id int"
+          - catalog-id: "256.65536.4294967297"
+            name: customers
+            text: "create tab..rs(id int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: id
+                text: "id int"
+        errors: []
+    editor:
+      input: 'select * from sa , customers'
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "sa"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967297"
+          statement-id: 0
+          text: "customers"
+    cursor:
+      search:
+        text: sa
+        index: 2
+    completions:
+      limit: 5
+      strategy: TABLE_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 57
+          value: sales
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "sa"
+          location-qualified: "sa"
+          objects:
+            - score: 37
+              type: table
+              id: "256.65536.4294967296"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: sales
+              qualified-idx: 0
+              prefer-qualified: 0
+        - score: 56
+          value: sample
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          location: "sa"
+          location-qualified: "sa"
+          objects: []
+        - score: 56
+          value: savepoint
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          location: "sa"
+          location-qualified: "sa"
+          objects: []
+        - score: 51
+          value: disable
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          location: "sa"
+          location-qualified: "sa"
+          objects: []
+        - score: 51
+          value: transaction
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          location: "sa"
+          location-qualified: "sa"
+          objects: []
+      text: "sa"
+
+  - name: mid_order_by_list_typing_prefix
+    catalog:
+      script:
+        input: create table tbl(a int, b int, c int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: tbl
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: c
+                text: "c int"
+        errors: []
+    editor:
+      input: 'select * from tbl order by a , b'
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "tbl"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "b"
+    cursor:
+      search:
+        text: a ,
+        index: 1
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 82
+          value: a
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+          location: "a"
+          location-qualified: "a"
+          objects:
+            - score: 62
+              type: column
+              id: "256.65536.4294967296.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+              qualified: tbl.a
+              qualified-idx: 1
+              prefer-qualified: 0
+        - score: 59
+          value: a
+          candidate-tags: [IDENTITY]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+        - score: 56
+          value: abort
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+        - score: 56
+          value: absolute
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+        - score: 56
+          value: access
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+      text: "a"
+
+  - name: mid_select_after_star_typing_f
+    catalog:
+      script:
+        input: create table tbl(a int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: tbl
+            text: "create tab..tbl(a int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+        errors: []
+    editor:
+      input: 'select * f from tbl'
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "tbl"
+    cursor:
+      search:
+        text: ' f'
+        index: 2
+    completions:
+      limit: 8
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_SELECT
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 44
+          value: from
+          candidate-tags: [EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,KEYWORD_A,INCOMPATIBLE_RIGHT_CONTEXT]
+          location: "f"
+          location-qualified: "f"
+          objects: []
+        - score: 40
+          value: fetch
+          keyword-continuation: first
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,INCOMPATIBLE_RIGHT_CONTEXT]
+          location: "f"
+          location-qualified: "f"
+          objects: []
+        - score: 40
+          value: for
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,INCOMPATIBLE_RIGHT_CONTEXT]
+          location: "f"
+          location-qualified: "f"
+          objects: []
+        - score: 37
+          value: offset
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,INCOMPATIBLE_RIGHT_CONTEXT]
+          location: "f"
+          location-qualified: "f"
+          objects: []
+        - score: 0
+          value: except
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,INCOMPATIBLE_RIGHT_CONTEXT]
+          location: "f"
+          location-qualified: "f"
+          objects: []
+        - score: 0
+          value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,INCOMPATIBLE_RIGHT_CONTEXT]
+          location: "f"
+          location-qualified: "f"
+          objects: []
+        - score: 0
+          value: having
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,INCOMPATIBLE_RIGHT_CONTEXT]
+          location: "f"
+          location-qualified: "f"
+          objects: []
+        - score: 0
+          value: intersect
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,INCOMPATIBLE_RIGHT_CONTEXT]
+          location: "f"
+          location-qualified: "f"
+          objects: []
+      text: "f"
+
+  - name: mid_where_between_depth_near
+    catalog:
+      script:
+        input: create table tbl(a int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: tbl
+            text: "create tab..tbl(a int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+        errors: []
+    editor:
+      input: 'select * from tbl where a be 1'
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "tbl"
+    cursor:
+      search:
+        text: be
+        index: 2
+    completions:
+      limit: 8
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_SELECT
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 55
+          value: between
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_NEAR]
+          location: "be"
+          location-qualified: "be"
+          objects: []
+        - score: 4
+          value: and
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          location: "be"
+          location-qualified: "be"
+          objects: []
+        - score: 3
+          value: like
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          location: "be"
+          location-qualified: "be"
+          objects: []
+        - score: 3
+          value: limit
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          location: "be"
+          location-qualified: "be"
+          objects: []
+        - score: 3
+          value: offset
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          location: "be"
+          location-qualified: "be"
+          objects: []
+        - score: 3
+          value: or
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          location: "be"
+          location-qualified: "be"
+          objects: []
+        - score: 1
+          value: glob
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          location: "be"
+          location-qualified: "be"
+          objects: []
+        - score: 1
+          value: having
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          location: "be"
+          location-qualified: "be"
+          objects: []
+      text: "be"
+
+  - name: mid_where_between_depth_mid
+    catalog:
+      script:
+        input: create table tbl(a int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: tbl
+            text: "create tab..tbl(a int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+        errors: []
+    editor:
+      input: 'select * from tbl where a be 1 and'
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "tbl"
+    cursor:
+      search:
+        text: be
+        index: 2
+    completions:
+      limit: 8
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_NARY_EXPRESSION
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 56
+          value: between
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          location: "be"
+          location-qualified: "be"
+          objects: []
+        - score: 4
+          value: and
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          location: "be"
+          location-qualified: "be"
+          objects: []
+        - score: 3
+          value: like
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          location: "be"
+          location-qualified: "be"
+          objects: []
+        - score: 3
+          value: limit
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          location: "be"
+          location-qualified: "be"
+          objects: []
+        - score: 3
+          value: offset
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          location: "be"
+          location-qualified: "be"
+          objects: []
+        - score: 3
+          value: or
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          location: "be"
+          location-qualified: "be"
+          objects: []
+        - score: 1
+          value: glob
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          location: "be"
+          location-qualified: "be"
+          objects: []
+        - score: 1
+          value: having
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          location: "be"
+          location-qualified: "be"
+          objects: []
+      text: "be"
+
+  - name: mid_select_malformed_suffix
+    catalog:
+      script:
+        input: create table tbl(a int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: tbl
+            text: "create tab..tbl(a int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+        errors: []
+    editor:
+      input: 'select  garbage'
+      catalog-id: 2
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "garbage"
+    cursor:
+      search:
+        text: 'select '
+        index: 7
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_SELECT
+      relative: AFTER_SYMBOL
+      entries: []
+      text: "select"

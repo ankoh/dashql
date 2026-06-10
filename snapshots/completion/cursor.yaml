@@ -16,7 +16,7 @@ completion-snapshots:
       entries:
         - score: 74
           value: select
-          candidate-tags: [EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,EXPECTED_KEYWORD_MATCH,KEYWORD_A]
+          candidate-tags: [EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,KEYWORD_A]
           location: "select"
           location-qualified: "select"
           objects: []

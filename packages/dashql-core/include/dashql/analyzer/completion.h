@@ -167,7 +167,11 @@ struct Completion {
     /// We deliberately do not register them as candidates to not inflate the results.
     /// We accept that they may occur twice in the completion list and we mark them explictly as grammar matches in the
     /// UI.
-    void AddExpectedKeywordsAsCandidates(std::span<parser::Parser::ExpectedSymbol> symbols);
+    /// `prefix` is the LALR state snapshot taken by `ParseUntilWithSnapshot` at the same target
+    /// the caller used to compute `symbols`; reused here for the suffix probe so the prefix
+    /// isn't reparsed.
+    void AddExpectedKeywordsAsCandidates(std::span<parser::Parser::ExpectedSymbol> symbols,
+                                         const parser::Parser::PrefixSnapshot& prefix);
     /// Flush pending candidates and finish the results
     void SelectTopCandidates();
     /// Find identifier snippets for results (after flushing)
