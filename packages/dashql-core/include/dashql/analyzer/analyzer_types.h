@@ -548,6 +548,28 @@ struct VisEncodingChannel {
     std::optional<VisLegend> legend;
 };
 
+/// The kind of source resolved for a VISUALIZE statement
+enum class VisSourceKind : uint8_t {
+    Unresolved = 0,
+    /// `visualize <db>.<schema>.<table> as (...)` — bare table reference
+    TableReference = 1,
+    /// `visualize dashql.notebook."<folder>/<file>" as (...)` — qualified script path
+    ScriptReference = 2,
+    /// `visualize (select ...) as (...)` — inline parenthesised SELECT subquery
+    InlineSelect = 3,
+};
+
+/// The resolved source of a VISUALIZE statement
+struct ResolvedVisSource {
+    /// The kind of resolved source
+    VisSourceKind kind = VisSourceKind::Unresolved;
+    /// For ScriptReference / TableReference: the resolved qualified name (copied
+    /// from the table reference produced by NameResolutionPass)
+    std::optional<QualifiedTableName> qualified_name;
+    /// For InlineSelect: the AST node id of the OBJECT_SQL_SELECT subquery
+    std::optional<uint32_t> inline_select_ast_node_id;
+};
+
 /// A visualization specification
 struct VisualizationSpec {
     /// The AST node id of the OBJECT_VIS_VISUALISE root
@@ -558,6 +580,8 @@ struct VisualizationSpec {
     std::optional<buffers::parser::VisMarkType> mark_type;
     /// The AST node id of the data source (table ref or SELECT subquery)
     std::optional<uint32_t> source_node_id;
+    /// The resolved source classification, populated in AnalyzeVisualizationPass::Finish
+    ResolvedVisSource resolved_source;
     /// The encoding channels mapping data fields to visual properties
     std::vector<VisEncodingChannel> encoding_channels;
     /// The chart title
@@ -566,6 +590,9 @@ struct VisualizationSpec {
     std::optional<int64_t> width;
     /// The chart height in pixels
     std::optional<int64_t> height;
+    /// The pretty-printed Vega-Lite JSON specification (without the `data` field).
+    /// Generated lazily during AnalyzedScript::Pack.
+    std::string vegalite_json;
 };
 
 }  // namespace dashql

@@ -267,6 +267,33 @@ table AnalyzerError {
 
 table AnalyzerWarning {}
 
+/// The kind of source resolved for a VISUALIZE statement
+enum VisSourceKind: uint8 {
+    UNRESOLVED = 0,
+    /// `visualize <db>.<schema>.<table> as (...)` — bare table reference
+    TABLE_REFERENCE = 1,
+    /// `visualize dashql.notebook."<folder>/<file>" as (...)` — qualified script path
+    SCRIPT_REFERENCE = 2,
+    /// `visualize (select ...) as (...)` — inline parenthesised SELECT subquery
+    INLINE_SELECT = 3,
+}
+
+/// A visualization specification produced by the analyzer for a single VISUALIZE statement.
+table VisualizationSpec {
+    /// The AST node id of the OBJECT_VIS_VISUALISE root
+    ast_node_id: uint32;
+    /// The id of the statement containing this visualization
+    ast_statement_id: uint32;
+    /// The kind of resolved source
+    source_kind: VisSourceKind = UNRESOLVED;
+    /// The qualified name of the source for SCRIPT_REFERENCE / TABLE_REFERENCE
+    source_qualified_name: QualifiedTableName;
+    /// The AST node id of the inline SELECT subquery for INLINE_SELECT
+    source_inline_select_ast_node_id: uint32;
+    /// The pretty-printed Vega-Lite JSON specification (without the `data` field)
+    vegalite_spec: string;
+}
+
 table AnalyzedScript {
     /// The external id that the user specified for this catalog entry
     catalog_entry_id: uint32;
@@ -330,4 +357,7 @@ table AnalyzedScript {
 
     // The function declarations
     function_declarations: [FunctionDeclaration];
+
+    /// The visualization specs produced by analyzing VISUALIZE statements
+    visualization_specs: [VisualizationSpec];
 }

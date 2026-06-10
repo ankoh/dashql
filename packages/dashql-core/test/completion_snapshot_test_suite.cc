@@ -88,5 +88,7 @@ INSTANTIATE_TEST_SUITE_P(KeywordPassiveHints, CompletionSnapshotTestSuite, ::tes
 INSTANTIATE_TEST_SUITE_P(Cursor, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("cursor.yaml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Quotes, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("quotes.yaml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Visualize, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("visualize.yaml")), CompletionSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(RightContext, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("right_context.yaml")), CompletionSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Identity, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("identity_scoring.yaml")), CompletionSnapshotTest::TestPrinter());
 
 }

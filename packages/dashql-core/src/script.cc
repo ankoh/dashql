@@ -19,6 +19,7 @@
 #include "dashql/parser/parse_context.h"
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
+#include "dashql/visualize/vegalite.h"
 
 namespace dashql {
 
@@ -817,6 +818,40 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
         func_decls_ofs = builder.CreateVector(func_offsets);
     }
 
+    // Pack visualization specs (with Vega-Lite JSON generated on demand)
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<buffers::analyzer::VisualizationSpec>>>
+        visualization_specs_ofs;
+    {
+        std::vector<flatbuffers::Offset<buffers::analyzer::VisualizationSpec>> spec_offsets;
+        spec_offsets.reserve(visualization_specs.GetSize());
+        visualization_specs.ForEach([&](size_t, VisualizationSpec& spec) {
+            // Generate the Vega-Lite JSON once, lazily, and cache it on the spec.
+            if (spec.vegalite_json.empty()) {
+                spec.vegalite_json = visualize::GenerateVegaLiteSpec(spec, *this);
+            }
+            flatbuffers::Offset<flatbuffers::String> vegalite_ofs;
+            if (!spec.vegalite_json.empty()) {
+                vegalite_ofs = builder.CreateString(spec.vegalite_json);
+            }
+
+            flatbuffers::Offset<buffers::analyzer::QualifiedTableName> qname_ofs;
+            if (spec.resolved_source.qualified_name.has_value()) {
+                qname_ofs = spec.resolved_source.qualified_name->Pack(builder);
+            }
+
+            buffers::analyzer::VisualizationSpecBuilder sb{builder};
+            sb.add_ast_node_id(spec.ast_node_id);
+            sb.add_ast_statement_id(spec.ast_statement_id.value_or(PROTO_NULL_U32));
+            sb.add_source_kind(static_cast<buffers::analyzer::VisSourceKind>(spec.resolved_source.kind));
+            sb.add_source_qualified_name(qname_ofs);
+            sb.add_source_inline_select_ast_node_id(
+                spec.resolved_source.inline_select_ast_node_id.value_or(PROTO_NULL_U32));
+            sb.add_vegalite_spec(vegalite_ofs);
+            spec_offsets.push_back(sb.Finish());
+        });
+        visualization_specs_ofs = builder.CreateVector(spec_offsets);
+    }
+
     buffers::analyzer::AnalyzedScriptBuilder out{builder};
     out.add_catalog_entry_id(catalog_entry_id);
     out.add_tables(tables_ofs);
@@ -829,6 +864,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     out.add_column_computations(column_computations_ofs);
     out.add_name_scopes(name_scopes_ofs);
     out.add_function_declarations(func_decls_ofs);
+    out.add_visualization_specs(visualization_specs_ofs);
     return out.Finish();
 }
 
