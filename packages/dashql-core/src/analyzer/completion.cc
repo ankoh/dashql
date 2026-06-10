@@ -56,14 +56,14 @@ static constexpr Completion::ScoreValueType NAME_TAG_UNLIKELY = 10;
 static constexpr Completion::ScoreValueType NAME_TAG_LIKELY = 20;
 
 // Fine-granular score modifiers
-static constexpr Completion::ScoreValueType SUBSTRING_SCORE_MODIFIER = 30;        // User typed name substring
-static constexpr Completion::ScoreValueType PREFIX_SCORE_MODIFIER = 5;            // User typed name prefix
-static constexpr Completion::ScoreValueType EXACT_MATCH_SCORE_MODIFIER = 15;      // User typed exact name
+static constexpr Completion::ScoreValueType SUBSTRING_SCORE_MODIFIER = 30;    // User typed name substring
+static constexpr Completion::ScoreValueType PREFIX_SCORE_MODIFIER = 5;        // User typed name prefix
+static constexpr Completion::ScoreValueType EXACT_MATCH_SCORE_MODIFIER = 15;  // User typed exact name
 // Bonus for an expected-keyword candidate whose text substring-matches the user's input.
 // Applied on top of SUBSTRING_SCORE_MODIFIER so a substring-matched expected keyword outranks a
 // generic substring-matched name from the index by a meaningful margin.
 static constexpr Completion::ScoreValueType KEYWORD_SUBSTRING_BONUS = 20;
-static constexpr Completion::ScoreValueType THROUGH_CATALOG_SCORE_MODIFIER = 2;   // Candidate comes from the catalog
+static constexpr Completion::ScoreValueType THROUGH_CATALOG_SCORE_MODIFIER = 2;    // Candidate comes from the catalog
 static constexpr Completion::ScoreValueType RESOLVING_TABLE_SCORE_MODIFIER = 5;    // Table is resolving unresolved
 static constexpr Completion::ScoreValueType UNRESOLVED_PEER_SCORE_MODIFIER = 1;    // Share unresolved table
 static constexpr Completion::ScoreValueType DOT_SCHEMA_SCORE_MODIFIER = 2;         // Dot completion for schema
@@ -92,6 +92,10 @@ static constexpr Completion::ScoreValueType SUFFIX_DEPTH_MANY_BONUS = 1;
 static constexpr Completion::ScoreValueType IDENTITY_SCORE_TABLE_REF = 50;
 static constexpr Completion::ScoreValueType IDENTITY_SCORE_TABLE_REF_ALIAS = 50;
 static constexpr Completion::ScoreValueType IDENTITY_SCORE_COLUMN_REF = 59;
+
+// Cap identity candidate length. Guards against runaway tokens (e.g. a delimited
+// identifier missing its closing quote consumes everything up to the next quote).
+static constexpr size_t MAX_IDENTITY_LENGTH = 64;
 
 // Design choices for the score modifiers
 static_assert((NAME_TAG_UNLIKELY + SUBSTRING_SCORE_MODIFIER) > NAME_TAG_LIKELY,
@@ -632,7 +636,7 @@ void Completion::FindCandidatesForNamePath() {
 }
 
 void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::ExpectedSymbol> symbols,
-                                                  const parser::Parser::PrefixSnapshot& prefix) {
+                                                 const parser::Parser::PrefixSnapshot& prefix) {
     auto& target_symbol = target_scanner_symbol;
     auto& scanned = *cursor.script.scanned_script;
     auto& scanner_symbols = scanned.GetSymbols();
@@ -1421,8 +1425,7 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
              !symbols.IsAtEOF(target_symbol->symbol_id))
                 ? symbols.GetNext(target_symbol->symbol_id)
                 : target_symbol->symbol_id;
-        expected_at_cursor =
-            parser::Parser::ParseUntilWithSnapshot(*cursor.script.scanned_script, parse_until_target);
+        expected_at_cursor = parser::Parser::ParseUntilWithSnapshot(*cursor.script.scanned_script, parse_until_target);
         for (auto& expected : expected_at_cursor.expected) {
             if (expected == parser::Parser::symbol_kind_type::S_IDENT) {
                 expects_identifier = true;
@@ -1504,6 +1507,12 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
             auto& sym = completion->target_scanner_symbol->symbol;
             auto symbol_text = cursor.script.scanned_script->ReadTextAtTextSpan(
                 sx::parser::TextSpan(sym.location.offset(), sym.location.length()));
+            // A delimited identifier with a missing closing quote runs to the next quote
+            // anywhere downstream, producing a giant token. Cap the identity candidate length
+            // to avoid surfacing the entire script suffix as a candidate.
+            if (symbol_text.size() > MAX_IDENTITY_LENGTH) {
+                symbol_text = {};
+            }
             if (!symbol_text.empty()) {
                 ScoreValueType identity_score;
                 if (completion->at_definition) {
