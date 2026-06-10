@@ -345,6 +345,21 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                 handleSend();
             },
         },
+        {
+            // Ctrl+E executes the selected feed entry globally. Suppress it
+            // while the compose editor is focused so it doesn't run a
+            // background entry the user isn't looking at — Ctrl+Enter is
+            // the dedicated shortcut for sending the draft.
+            key: 'e',
+            ctrlKey: true,
+            capture: true,
+            callback: (event: KeyboardEvent) => {
+                if (!composeEditorView?.hasFocus) {
+                    return;
+                }
+                event.stopPropagation();
+            },
+        },
     ], [composeEditorView, handleSend]);
     useKeyEvents(keyHandlers);
 

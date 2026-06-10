@@ -314,6 +314,45 @@ describe('NotebookScriptFeed', () => {
         });
     });
 
+    it('suppresses Ctrl+E when the compose editor is focused', () => {
+        renderFeed({
+            notebook: createNotebookState(),
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+
+        const handler = mockState.keyHandlers.find(candidate => candidate.key === 'e' && candidate.ctrlKey === true && candidate.capture === true);
+        expect(handler).toBeDefined();
+
+        const stopPropagation = vi.fn();
+        act(() => {
+            handler!.callback({ stopPropagation } as unknown as KeyboardEvent);
+        });
+
+        expect(stopPropagation).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not suppress Ctrl+E when the compose editor is not focused', () => {
+        mockState.composeEditorFocused = false;
+        renderFeed({
+            notebook: createNotebookState(),
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+
+        const handler = mockState.keyHandlers.find(candidate => candidate.key === 'e' && candidate.ctrlKey === true && candidate.capture === true);
+        expect(handler).toBeDefined();
+
+        const stopPropagation = vi.fn();
+        act(() => {
+            handler!.callback({ stopPropagation } as unknown as KeyboardEvent);
+        });
+
+        expect(stopPropagation).not.toHaveBeenCalled();
+    });
+
     it('scrolls to the requested row when scrollTarget changes', () => {
         const notebook = createNotebookState();
         const modifyNotebook = vi.fn();
