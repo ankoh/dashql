@@ -54,7 +54,7 @@ export function fakeReactWindowModule(
     scrollToRowMock: (...args: any[]) => any,
 ) {
     return {
-        useListRef: () => ({ current: { scrollToRow: scrollToRowMock } }),
+        useListRef: () => React.useRef({ scrollToRow: scrollToRowMock }),
         List: (props: {
             rowCount: number;
             rowHeight: (rowIndex: number) => number;
@@ -74,7 +74,7 @@ export function fakeReactWindowModule(
 }
 
 export class ResizeObserverMock {
-    observe() {}
-    disconnect() {}
-    unobserve() {}
+    observe() { }
+    disconnect() { }
+    unobserve() { }
 }
