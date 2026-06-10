@@ -16,7 +16,7 @@ completion-snapshots:
       limit: 5
 
   # Cursor on a partially typed identifier in mid-SELECT, between two columns and FROM.
-  # Without right-context filtering, FROM and WHERE rank as expected next tokens.
+  # Without suffix filtering, FROM and WHERE rank as expected next tokens.
   # With it, they should be demoted because `, b from tbl` follows the typed token.
   - name: mid_select_list_typing_prefix
     catalog:
@@ -95,7 +95,7 @@ completion-snapshots:
 
   # NEAR depth: cursor on a partial keyword `be` whose completion `between` consumes the next
   # real token (the integer `1` as the lower bound) but then expects AND — which the EOF doesn't
-  # provide. So the suffix shifts exactly 1 real post-cursor token: tag = RIGHT_CONTEXT_DEPTH_NEAR.
+  # provide. So the suffix shifts exactly 1 real post-cursor token: tag = SUFFIX_DEPTH_ONE.
   - name: mid_where_between_depth_near
     catalog:
       script:
@@ -111,7 +111,7 @@ completion-snapshots:
 
   # MID depth: same shape as NEAR, but the suffix already has the `AND` of `BETWEEN x AND y`,
   # so feeding `between` shifts both `1` and `and` cleanly (depth 2) before erroring on the
-  # missing upper bound (EOF). Tag = RIGHT_CONTEXT_DEPTH_MID.
+  # missing upper bound (EOF). Tag = SUFFIX_DEPTH_MANY (depth ≥ 2).
   - name: mid_where_between_depth_mid
     catalog:
       script:

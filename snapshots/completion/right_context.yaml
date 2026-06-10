@@ -69,19 +69,19 @@ completion-snapshots:
           objects: []
         - score: 56
           value: abort
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "a"
           location-qualified: "a"
           objects: []
         - score: 56
           value: absolute
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "a"
           location-qualified: "a"
           objects: []
         - score: 56
           value: access
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "a"
           location-qualified: "a"
           objects: []
@@ -135,7 +135,7 @@ completion-snapshots:
       entries:
         - score: 71
           value: x
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,SUFFIX_DEPTH_MANY]
           location: "x"
           location-qualified: "x"
           objects: []
@@ -154,13 +154,13 @@ completion-snapshots:
           objects: []
         - score: 56
           value: x2
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "x"
           location-qualified: "x"
           objects: []
         - score: 56
           value: x_offset
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "x"
           location-qualified: "x"
           objects: []
@@ -368,25 +368,25 @@ completion-snapshots:
               prefer-qualified: 0
         - score: 56
           value: sample
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "sa"
           location-qualified: "sa"
           objects: []
         - score: 56
           value: savepoint
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "sa"
           location-qualified: "sa"
           objects: []
         - score: 51
           value: disable
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "sa"
           location-qualified: "sa"
           objects: []
         - score: 51
           value: transaction
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "sa"
           location-qualified: "sa"
           objects: []
@@ -464,19 +464,19 @@ completion-snapshots:
           objects: []
         - score: 56
           value: abort
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "a"
           location-qualified: "a"
           objects: []
         - score: 56
           value: absolute
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "a"
           location-qualified: "a"
           objects: []
         - score: 56
           value: access
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "a"
           location-qualified: "a"
           objects: []
@@ -517,51 +517,51 @@ completion-snapshots:
       entries:
         - score: 44
           value: from
-          candidate-tags: [EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,KEYWORD_A,INCOMPATIBLE_RIGHT_CONTEXT]
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
           location: "f"
           location-qualified: "f"
           objects: []
         - score: 40
           value: fetch
           keyword-continuation: first
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,INCOMPATIBLE_RIGHT_CONTEXT]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
           location: "f"
           location-qualified: "f"
           objects: []
         - score: 40
           value: for
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,INCOMPATIBLE_RIGHT_CONTEXT]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
           location: "f"
           location-qualified: "f"
           objects: []
         - score: 37
           value: offset
-          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,INCOMPATIBLE_RIGHT_CONTEXT]
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
           location: "f"
           location-qualified: "f"
           objects: []
         - score: 0
           value: except
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,INCOMPATIBLE_RIGHT_CONTEXT]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_INCOMPATIBLE]
           location: "f"
           location-qualified: "f"
           objects: []
         - score: 0
           value: group
           keyword-continuation: by
-          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,INCOMPATIBLE_RIGHT_CONTEXT]
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,SUFFIX_INCOMPATIBLE]
           location: "f"
           location-qualified: "f"
           objects: []
         - score: 0
           value: having
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,INCOMPATIBLE_RIGHT_CONTEXT]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_INCOMPATIBLE]
           location: "f"
           location-qualified: "f"
           objects: []
         - score: 0
           value: intersect
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,INCOMPATIBLE_RIGHT_CONTEXT]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_INCOMPATIBLE]
           location: "f"
           location-qualified: "f"
           objects: []
@@ -602,49 +602,49 @@ completion-snapshots:
       entries:
         - score: 55
           value: between
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_NEAR]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_ONE]
           location: "be"
           location-qualified: "be"
           objects: []
         - score: 4
           value: and
-          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "be"
           location-qualified: "be"
           objects: []
         - score: 3
           value: like
-          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "be"
           location-qualified: "be"
           objects: []
         - score: 3
           value: limit
-          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "be"
           location-qualified: "be"
           objects: []
         - score: 3
           value: offset
-          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "be"
           location-qualified: "be"
           objects: []
         - score: 3
           value: or
-          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "be"
           location-qualified: "be"
           objects: []
         - score: 1
           value: glob
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "be"
           location-qualified: "be"
           objects: []
         - score: 1
           value: having
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "be"
           location-qualified: "be"
           objects: []
@@ -685,49 +685,49 @@ completion-snapshots:
       entries:
         - score: 56
           value: between
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "be"
           location-qualified: "be"
           objects: []
         - score: 4
           value: and
-          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "be"
           location-qualified: "be"
           objects: []
         - score: 3
           value: like
-          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "be"
           location-qualified: "be"
           objects: []
         - score: 3
           value: limit
-          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "be"
           location-qualified: "be"
           objects: []
         - score: 3
           value: offset
-          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "be"
           location-qualified: "be"
           objects: []
         - score: 3
           value: or
-          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "be"
           location-qualified: "be"
           objects: []
         - score: 1
           value: glob
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "be"
           location-qualified: "be"
           objects: []
         - score: 1
           value: having
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,RIGHT_CONTEXT_DEPTH_MID]
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "be"
           location-qualified: "be"
           objects: []

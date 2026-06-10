@@ -28,7 +28,7 @@ completion-snapshots:
           objects: []
         - score: 4
           value: select
-          candidate-tags: [EXPECTED_PARSER_SYMBOL,KEYWORD_A]
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "vis"
           location-qualified: "vis"
           objects: []

@@ -47,7 +47,7 @@ completion-snapshots:
           objects: []
         - score: 4
           value: where
-          candidate-tags: [EXPECTED_PARSER_SYMBOL,KEYWORD_A]
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "gro"
           location-qualified: "gro"
           objects: []
@@ -199,7 +199,7 @@ completion-snapshots:
           objects: []
         - score: 4
           value: where
-          candidate-tags: [EXPECTED_PARSER_SYMBOL,KEYWORD_A]
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "inn"
           location-qualified: "inn"
           objects: []
@@ -247,7 +247,7 @@ completion-snapshots:
           objects: []
         - score: 4
           value: where
-          candidate-tags: [EXPECTED_PARSER_SYMBOL,KEYWORD_A]
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "lef"
           location-qualified: "lef"
           objects: []
@@ -283,7 +283,7 @@ completion-snapshots:
       entries:
         - score: 4
           value: select
-          candidate-tags: [EXPECTED_PARSER_SYMBOL,KEYWORD_A]
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "inser"
           location-qualified: "inser"
           objects: []
@@ -337,7 +337,7 @@ completion-snapshots:
           objects: []
         - score: 4
           value: select
-          candidate-tags: [EXPECTED_PARSER_SYMBOL,KEYWORD_A]
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "creat"
           location-qualified: "creat"
           objects: []
@@ -495,7 +495,7 @@ completion-snapshots:
       entries:
         - score: 4
           value: select
-          candidate-tags: [EXPECTED_PARSER_SYMBOL,KEYWORD_A]
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "fetc"
           location-qualified: "fetc"
           objects: []

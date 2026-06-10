@@ -69,7 +69,7 @@ completion-snapshots:
           objects: []
         - score: 4
           value: where
-          candidate-tags: [EXPECTED_PARSER_SYMBOL,KEYWORD_A]
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "region"
           location-qualified: "region"
           objects: []
@@ -151,7 +151,7 @@ completion-snapshots:
           objects: []
         - score: 4
           value: where
-          candidate-tags: [EXPECTED_PARSER_SYMBOL,KEYWORD_A]
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "\"Region\""
           location-qualified: "\"Region\""
           objects: []
