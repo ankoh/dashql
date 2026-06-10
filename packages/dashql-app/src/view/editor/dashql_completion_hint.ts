@@ -1,3 +1,5 @@
+import * as dashql from '../../core/index.js';
+
 import { Range, Text } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
@@ -191,6 +193,14 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
         return Decoration.none;
     }
     const isPassive = processor.scriptCompletion.passiveHint;
+
+    // Suppress the inline hint when the selected candidate has an incompatible suffix.
+    const completionBuffer = processor.scriptCompletion.buffer.read();
+    const selectedCandidate = completionBuffer.candidates(processor.scriptCompletion.candidateId);
+    if (selectedCandidate != null
+        && (selectedCandidate.candidateTags()! & dashql.buffers.completion.CandidateTag.SUFFIX_INCOMPATIBLE) != 0) {
+        return Decoration.none;
+    }
 
     // Compute the new completion hints
     const hints = deriveCompletionHints(processor.scriptCompletion);
