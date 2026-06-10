@@ -244,6 +244,8 @@ FmtReg Formatter::FormatVisPropertyList(const buffers::parser::Node& node) {
     if (parts.empty()) return fmt.Empty();
 
     bool eager_break = config.mode == buffers::formatting::FormattingMode::PRETTY;
+    bool inline_mode = config.mode == buffers::formatting::FormattingMode::INLINE;
+    bool is_top_level_spec = node.node_type() == NodeType::OBJECT_VIS_SPEC;
     auto inline_separator = fmt.Text(", ");
     auto break_separator = fmt.Concat({fmt.Text(","), fmt.Break()});
     if (eager_break) {
@@ -251,6 +253,9 @@ FmtReg Formatter::FormatVisPropertyList(const buffers::parser::Node& node) {
         return fmt.Concat({fmt.Text("("), fmt.Indented(fmt.Concat({fmt.Break(), join})), fmt.Break(), fmt.Text(")")});
     }
     auto join = fmt.Join(parts, inline_separator, break_separator);
+    if (is_top_level_spec && !inline_mode) {
+        return fmt.Concat({fmt.Text("("), fmt.Indented(fmt.Concat({fmt.Break(), join})), fmt.Break(), fmt.Text(")")});
+    }
     return fmt.Parenthesized(join);
 }
 

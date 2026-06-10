@@ -11,7 +11,9 @@ formatter-snapshots:
               visualize as (mark => line);
           - mode: compact
             expected: |-
-              visualize as (mark => line);
+              visualize as (
+                mark => line
+              );
           - mode: pretty
             expected: |-
               visualize as (
@@ -29,7 +31,9 @@ formatter-snapshots:
               visualize sales as (mark => bar);
           - mode: compact
             expected: |-
-              visualize sales as (mark => bar);
+              visualize sales as (
+                mark => bar
+              );
           - mode: pretty
             expected: |-
               visualize sales as (
@@ -47,7 +51,9 @@ formatter-snapshots:
               visualize warehouse.public.sales as (mark => point);
           - mode: compact
             expected: |-
-              visualize warehouse.public.sales as (mark => point);
+              visualize warehouse.public.sales as (
+                mark => point
+              );
           - mode: pretty
             expected: |-
               visualize warehouse.public.sales as (
@@ -65,7 +71,9 @@ formatter-snapshots:
               visualize (select * from sales) as (mark => line);
           - mode: compact
             expected: |-
-              visualize (select * from sales) as (mark => line);
+              visualize (select * from sales) as (
+                mark => line
+              );
           - mode: pretty
             expected: |-
               visualize (
@@ -86,7 +94,9 @@ formatter-snapshots:
               visualize sales as (mark => line, width => 800, height => 400);
           - mode: compact
             expected: |-
-              visualize sales as (mark => line, width => 800, height => 400);
+              visualize sales as (
+                mark => line, width => 800, height => 400
+              );
           - mode: pretty
             expected: |-
               visualize sales as (
@@ -153,7 +163,9 @@ formatter-snapshots:
               visualize sales as (encoding => (x => (field => time, type => temporal, scale => (domain => [0, 100]))));
           - mode: compact
             expected: |-
-              visualize sales as (encoding => (x => (field => time, type => temporal, scale => (domain => [0, 100]))));
+              visualize sales as (
+                encoding => (x => (field => time, type => temporal, scale => (domain => [0, 100])))
+              );
           - mode: pretty
             expected: |-
               visualize sales as (
@@ -179,7 +191,9 @@ formatter-snapshots:
               visualize sales as (mark => bar, encoding => (x => date, y => revenue));
           - mode: compact
             expected: |-
-              visualize sales as (mark => bar, encoding => (x => date, y => revenue));
+              visualize sales as (
+                mark => bar, encoding => (x => date, y => revenue)
+              );
           - mode: pretty
             expected: |-
               visualize sales as (
