@@ -543,6 +543,18 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
         else if (state.scriptCompletion != null) {
             switch (state.scriptCompletion.status) {
                 case DashQLCompletionStatus.AVAILABLE:
+                    // If a delete left the cursor between tokens, the word the hint was
+                    // anchored on is gone. Clear the completion instead of regenerating it.
+                    const newRelPos = state.scriptCursor!.read().scannerRelativePosition();
+                    const isDelete = transaction.annotation(Transaction.userEvent)?.startsWith("delete.") ?? false;
+                    const cursorBetweenTokens =
+                        newRelPos === dashql.buffers.cursor.RelativeSymbolPosition.AFTER_SYMBOL ||
+                        newRelPos === dashql.buffers.cursor.RelativeSymbolPosition.BEFORE_SYMBOL;
+                    if (isDelete && cursorBetweenTokens) {
+                        state = copyLazily(state, prevState);
+                        state.scriptCompletion = null;
+                        break;
+                    }
                     const buffer = state.script!.tryCompleteAtCursor(DASHQL_COMPLETION_LIMIT, state.scriptRegistry);
                     state = tryStartCompletion(state, prevState, buffer, transaction.newDoc, cursorOffset);
                     break;
