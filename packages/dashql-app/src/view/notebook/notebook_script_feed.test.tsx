@@ -341,6 +341,37 @@ describe('NotebookScriptFeed', () => {
         });
     });
 
+    it('does not scroll when only the focused entry changes (e.g. hover-driven SELECT_ENTRY)', () => {
+        // Simulate a keyboard nav that set scrollTarget to '01-script.sql', then a
+        // hover that changed focus to '02-script.sql' without bumping the scroll target.
+        const notebook = createNotebookState();
+        const scrollTarget = { fileName: '01-script.sql', version: 1 };
+
+        renderFeed({
+            notebook,
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget,
+        });
+
+        mockState.scrollToRowMock.mockClear();
+
+        // Re-render with the same scrollTarget reference but a different focused file
+        // (mimicking a hover-triggered SELECT_ENTRY that the parent did not promote
+        // to a new scroll request).
+        renderFeed({
+            notebook: {
+                ...notebook,
+                notebookUserFocus: { ...notebook.notebookUserFocus, fileName: '02-script.sql' },
+            },
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget,
+        });
+
+        expect(mockState.scrollToRowMock).not.toHaveBeenCalled();
+    });
+
     it('does not show execution footer when latestQueryId is null', () => {
         renderFeed({
             notebook: createNotebookState(),

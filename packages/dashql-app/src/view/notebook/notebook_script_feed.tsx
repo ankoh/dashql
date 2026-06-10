@@ -388,17 +388,26 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         });
     }, [entries.length, listRef]);
 
+    // Read entries via ref so this effect runs only when scrollTarget changes,
+    // not on every re-render (e.g. hover-driven SELECT_ENTRY) which would yank
+    // the feed back to the last keyboard-set target while the user mouse-scrolls.
+    const entriesRef = React.useRef(entries);
+    entriesRef.current = entries;
     React.useEffect(() => {
-        if (props.scrollTarget == null || !listRef.current || entries.length === 0) {
+        if (props.scrollTarget == null || !listRef.current) {
             return;
         }
-        const targetIdx = entries.findIndex(e => e.fileName === props.scrollTarget!.fileName);
-        const clampedEntryIndex = Math.max(0, Math.min(targetIdx === -1 ? 0 : targetIdx, entries.length - 1));
+        const currentEntries = entriesRef.current;
+        if (currentEntries.length === 0) {
+            return;
+        }
+        const targetIdx = currentEntries.findIndex(e => e.fileName === props.scrollTarget!.fileName);
+        const clampedEntryIndex = Math.max(0, Math.min(targetIdx === -1 ? 0 : targetIdx, currentEntries.length - 1));
         listRef.current.scrollToRow({
             index: clampedEntryIndex + 1,
             align: 'start',
         });
-    }, [entries, listRef, props.scrollTarget]);
+    }, [listRef, props.scrollTarget]);
 
     const [composeScrollbarInset, setComposeScrollbarInset] = React.useState(0);
     React.useEffect(() => {
