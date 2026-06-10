@@ -36,6 +36,9 @@ table ScriptCursor {
     scanner_symbol_offset: uint32;
     /// The kind of the scanner symbol
     scanner_symbol_kind: uint32;
+    /// Is the scanner symbol completable?
+    /// False for tokens like punctuation or literals where completing the symbol itself makes no sense.
+    scanner_symbol_completable: bool;
     /// The relative position
     scanner_relative_position: RelativeSymbolPosition;
     /// The statement id

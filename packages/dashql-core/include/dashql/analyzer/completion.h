@@ -185,6 +185,10 @@ struct Completion {
     /// Constructor
     Completion(const ScriptCursor& cursor, size_t k);
 
+    /// Is a scanner symbol kind completable?
+    /// False for punctuation, literals, and other symbols where completing the symbol itself makes no sense.
+    static bool IsSymbolKindCompletable(parser::Parser::symbol_kind_type kind);
+
     /// Get the cursor
     auto& GetCursor() const { return cursor; }
     /// Get the target scanner symbol

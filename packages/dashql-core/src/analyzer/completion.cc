@@ -224,35 +224,7 @@ static constexpr buffers::completion::CandidateTag GetKeywordPrevalence(parser::
     }
 }
 
-bool doNotCompleteSymbol(parser::Parser::symbol_type& sym) {
-    switch (sym.kind_) {
-        case parser::Parser::symbol_kind_type::S_SCONST:
-        case parser::Parser::symbol_kind_type::S_ICONST:
-        case parser::Parser::symbol_kind_type::S_FCONST:
-        case parser::Parser::symbol_kind_type::S_BCONST:
-        case parser::Parser::symbol_kind_type::S_XCONST:
-        case parser::Parser::symbol_kind_type::S_COMMA:
-        case parser::Parser::symbol_kind_type::S_LRB:
-        case parser::Parser::symbol_kind_type::S_RRB:
-        case parser::Parser::symbol_kind_type::S_LSB:
-        case parser::Parser::symbol_kind_type::S_RSB:
-        case parser::Parser::symbol_kind_type::S_SEMICOLON:
-        case parser::Parser::symbol_kind_type::S_COLON:
-        case parser::Parser::symbol_kind_type::S_PLUS:
-        case parser::Parser::symbol_kind_type::S_MINUS:
-        case parser::Parser::symbol_kind_type::S_STAR:
-        case parser::Parser::symbol_kind_type::S_DIVIDE:
-        case parser::Parser::symbol_kind_type::S_MODULO:
-        case parser::Parser::symbol_kind_type::S_QUESTION_MARK:
-        case parser::Parser::symbol_kind_type::S_CIRCUMFLEX:
-        case parser::Parser::symbol_kind_type::S_LESS_THAN:
-        case parser::Parser::symbol_kind_type::S_GREATER_THAN:
-        case parser::Parser::symbol_kind_type::S_EQUALS:
-            return true;
-        default:
-            return false;
-    }
-}
+bool doNotCompleteSymbol(parser::Parser::symbol_type& sym) { return !Completion::IsSymbolKindCompletable(sym.kind_); }
 
 // Keyword continuation scores.
 // When a keyword or identifier has multiple valid next-tokens in the grammar,
@@ -290,6 +262,36 @@ uint8_t getKeywordContinuationScore(parser::Parser::symbol_kind_type sym) {
 }
 
 }  // namespace
+
+bool Completion::IsSymbolKindCompletable(parser::Parser::symbol_kind_type kind) {
+    switch (kind) {
+        case parser::Parser::symbol_kind_type::S_SCONST:
+        case parser::Parser::symbol_kind_type::S_ICONST:
+        case parser::Parser::symbol_kind_type::S_FCONST:
+        case parser::Parser::symbol_kind_type::S_BCONST:
+        case parser::Parser::symbol_kind_type::S_XCONST:
+        case parser::Parser::symbol_kind_type::S_COMMA:
+        case parser::Parser::symbol_kind_type::S_LRB:
+        case parser::Parser::symbol_kind_type::S_RRB:
+        case parser::Parser::symbol_kind_type::S_LSB:
+        case parser::Parser::symbol_kind_type::S_RSB:
+        case parser::Parser::symbol_kind_type::S_SEMICOLON:
+        case parser::Parser::symbol_kind_type::S_COLON:
+        case parser::Parser::symbol_kind_type::S_PLUS:
+        case parser::Parser::symbol_kind_type::S_MINUS:
+        case parser::Parser::symbol_kind_type::S_STAR:
+        case parser::Parser::symbol_kind_type::S_DIVIDE:
+        case parser::Parser::symbol_kind_type::S_MODULO:
+        case parser::Parser::symbol_kind_type::S_QUESTION_MARK:
+        case parser::Parser::symbol_kind_type::S_CIRCUMFLEX:
+        case parser::Parser::symbol_kind_type::S_LESS_THAN:
+        case parser::Parser::symbol_kind_type::S_GREATER_THAN:
+        case parser::Parser::symbol_kind_type::S_EQUALS:
+            return false;
+        default:
+            return true;
+    }
+}
 
 std::span<std::string_view> Completion::GetQualifiedFunctionName(const CatalogEntry::QualifiedFunctionName& name) {
     std::vector<std::string_view> names;

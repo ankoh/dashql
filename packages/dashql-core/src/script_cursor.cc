@@ -1,3 +1,4 @@
+#include "dashql/analyzer/completion.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
 
@@ -178,11 +179,13 @@ flatbuffers::Offset<buffers::cursor::ScriptCursor> ScriptCursor::Pack(flatbuffer
             static_cast<buffers::cursor::RelativeSymbolPosition>(target_symbol.relative_pos);
         out->scanner_symbol_offset = symbol_offset;
         out->scanner_symbol_kind = static_cast<uint32_t>(symbol.kind_);
+        out->scanner_symbol_completable = Completion::IsSymbolKindCompletable(symbol.kind_);
     } else {
         out->scanner_symbol_id = std::numeric_limits<uint32_t>::max();
         out->scanner_relative_position = buffers::cursor::RelativeSymbolPosition::AFTER_SYMBOL;
         out->scanner_symbol_offset = 0;
         out->scanner_symbol_kind = 0;
+        out->scanner_symbol_completable = false;
     }
     out->statement_id = statement_id.value_or(std::numeric_limits<uint32_t>::max());
     out->ast_node_id = ast_node_id.value_or(std::numeric_limits<uint32_t>::max());

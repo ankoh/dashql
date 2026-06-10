@@ -320,7 +320,10 @@ function userEventCanStartCompletion(transaction: Transaction, prevCursor: dashq
                 case dashql.buffers.cursor.RelativeSymbolPosition.BEFORE_SYMBOL:
                     return false;
                 default:
-                    return true;
+                    // Don't auto-start a completion when deleting characters from a non-completable symbol
+                    // (punctuation, literals, ...). Without this, backspacing a trailing comma re-opens
+                    // a completion on the preceding identifier.
+                    return prevCursor?.read().scannerSymbolCompletable() ?? false;
             }
         case "input.paste":
         case "delete.cut":
