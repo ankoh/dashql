@@ -169,7 +169,7 @@ importers:
         specifier: ^1.0.5
         version: 1.2.1
       vega-lite:
-        specifier: ^5.21.0
+        specifier: ^5.23.0
         version: 5.23.0(vega@5.33.1)
       vite:
         specifier: ^8.0.14
