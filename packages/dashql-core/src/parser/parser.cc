@@ -1,3 +1,26 @@
+/*
+   This file contains parts of a generated bison parser for our SQL grammar.
+   As such, we're bound to the licensing of BISON which itself is GPL.
+   Bison includes a specific exception for the BISON-generated output.
+
+   https://cgit.git.savannah.gnu.org/cgit/bison.git/tree/data/yacc.c?id=193d7c7054ba7197b0789e14965b739162319b5e#n141
+
+   "
+   As a special exception, you may create a larger work that contains
+   part or all of the Bison parser skeleton and distribute that work
+   under terms of your choice, so long as that work isn't itself a
+   parser generator using the skeleton or a modified version thereof
+   as a parser skeleton.  Alternatively, if you modify or redistribute
+   the parser skeleton itself, you may (at your option) remove this
+   special exception, which will cause the skeleton and the resulting
+   Bison output files to be licensed under the GNU General Public
+   License without this special exception.
+
+   This special exception was added by the Free Software Foundation in
+   version 2.2 of Bison.
+   "
+*/
+
 #include "dashql/parser/parser.h"
 
 #include <cassert>
@@ -24,8 +47,7 @@ std::string Parser::yysyntax_error_(const context& yyctx) const {
     // suggest the user double-quote it instead. Catches mistakes like `SELECT 1 AS 'one'` against
     // `sql_col_id` rules that only accept `IDENT`.
     if (yyctx.token() == symbol_kind::S_SCONST && yy_lac_check_(symbol_kind::S_IDENT)) {
-        ctx.pending_hint =
-            "string literals cannot be used as identifiers here; use a double-quoted identifier instead";
+        ctx.pending_hint = "string literals cannot be used as identifiers here; use a double-quoted identifier instead";
     } else {
         ctx.pending_hint.clear();
     }
@@ -284,7 +306,6 @@ yyreturn:
     }
 }
 
-
 // Policy for ParseUntilAfter: at the cursor, replace the real token with the candidate
 // `feed_symbol`. On the very next lookahead read, replace that one with COMPLETE_HERE so the
 // parser errors at the post-feed state. The error handler then collects LAC-expected symbols.
@@ -296,8 +317,8 @@ struct CollectAfterPolicy {
     std::vector<Parser::ExpectedSymbol> expected_symbols;
 
     template <typename Iter>
-    void OnLookaheadRead(Parser&, Parser::symbol_type& next_symbol, const Iter& pre_iter,
-                         uint32_t /*pre_token_index*/, bool& /*stop*/) {
+    void OnLookaheadRead(Parser&, Parser::symbol_type& next_symbol, const Iter& pre_iter, uint32_t /*pre_token_index*/,
+                         bool& /*stop*/) {
         if (phase == 1) {
             // Phase 1 → 2: inject COMPLETE_HERE so the next yyerrlab triggers LAC.
             auto marker = Parser::make_COMPLETE_HERE(next_symbol.location);
@@ -351,9 +372,11 @@ std::vector<Parser::ExpectedSymbol> Parser::ParseUntilAfter(ScannedScript& scann
     return parser.CollectExpectedSymbolsAfter(symbol_id, feed_symbol);
 }
 
-std::vector<Parser::SuffixProbe> Parser::ProbeSuffixBatchFromSnapshot(
-    ScannedScript& scanned, ChunkBufferEntryID symbol_id, const PrefixSnapshot& prefix,
-    std::span<const symbol_kind_type> feed_symbols, bool replace_target) {
+std::vector<Parser::SuffixProbe> Parser::ProbeSuffixBatchFromSnapshot(ScannedScript& scanned,
+                                                                      ChunkBufferEntryID symbol_id,
+                                                                      const PrefixSnapshot& prefix,
+                                                                      std::span<const symbol_kind_type> feed_symbols,
+                                                                      bool replace_target) {
     std::vector<SuffixProbe> out;
     out.resize(feed_symbols.size());  // default-constructed entries when prefix didn't reach target
     if (feed_symbols.empty() || !prefix.reached_target) return out;
@@ -438,8 +461,8 @@ struct SuffixProbePolicy {
     int phase = 0;
 
     template <typename Iter>
-    void OnLookaheadRead(Parser& p, Parser::symbol_type& next_symbol, const Iter& pre_iter,
-                         uint32_t pre_token_index, bool& /*stop*/) {
+    void OnLookaheadRead(Parser& p, Parser::symbol_type& next_symbol, const Iter& pre_iter, uint32_t pre_token_index,
+                         bool& /*stop*/) {
         if (phase == 0) {
             auto fed = Parser::make_COMPLETE_HERE(next_symbol.location);
             fed.kind_ = feed_symbol;
@@ -474,8 +497,7 @@ struct SuffixProbePolicy {
     }
 };
 
-Parser::SuffixProbe Parser::ProbeSuffixFromPrefix(const PrefixSnapshot& prefix,
-                                                  ChunkBufferEntryID target_symbol_id,
+Parser::SuffixProbe Parser::ProbeSuffixFromPrefix(const PrefixSnapshot& prefix, ChunkBufferEntryID target_symbol_id,
                                                   symbol_kind_type feed_symbol, bool replace_target) {
     if (!prefix.reached_target) return SuffixProbe{};
     RestorePrefix(prefix);
