@@ -4,6 +4,7 @@ import * as Immutable from 'immutable';
 import { analyzeScript, DashQLCompletionState, DashQLProcessorUpdateOut, DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, SemanticUserFocus } from './focus.js';
 import { ConnectorInfo } from '../connection/connector_info.js';
+import { resolveVisualizeQuery, ScriptTextByPath } from '../connection/visualize_executor.js';
 import { VariantKind } from '../utils/index.js';
 import { REPLACE_NOTEBOOK, CREATE_NOTEBOOK_PAGE, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK_PAGE, DELETE_NOTEBOOK_SCRIPT, groupDraftWrites, groupNotebookWrites, groupPageWrites, groupScriptDeletes, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK_DRAFT, WRITE_NOTEBOOK_SCRIPT } from '../platform/storage/storage_writer.js';
 import { NotebookStateWithoutId } from './notebook_state_registry.js';
@@ -484,7 +485,11 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 cursor: update.scriptCursor,
                 completion: update.scriptCompletion,
                 statistics: rotateScriptStatistics(prevScript.statistics, prevScript.script.getStatistics() ?? null),
-                annotations: deriveScriptAnnotations(update.scriptBuffers),
+                annotations: deriveScriptAnnotations(
+                    update.scriptBuffers,
+                    prevScript.script.toString(),
+                    makeScriptLookup(state.notebookPages, state.scripts),
+                ),
             };
             // Update semantic user focus
             let semanticUserFocus: SemanticUserFocus | null = prevFocus;
@@ -983,7 +988,11 @@ export function rotateScriptStatistics(
     }
 }
 
-function deriveScriptAnnotations(data: DashQLScriptBuffers): NotebookScriptAnnotations {
+function deriveScriptAnnotations(
+    data: DashQLScriptBuffers,
+    scriptText: string,
+    lookupScriptText: ScriptTextByPath,
+): NotebookScriptAnnotations {
     if (!data.analyzed) {
         return createEmptyAnnotations();
     }
@@ -1004,14 +1013,28 @@ function deriveScriptAnnotations(data: DashQLScriptBuffers): NotebookScriptAnnot
     let tableDefsFlat: string[] = [...tableDefs.values()];
     tableDefsFlat = tableDefsFlat.sort();
 
+    // Resolve the first VISUALIZE statement (if any) into its executable SQL +
+    // parsed Vega-Lite spec. We do this once at analysis time so consumers
+    // don't have to touch the flatbuffer or re-parse JSON.
+    const visualizeQuery = resolveVisualizeQuery(data, scriptText, lookupScriptText);
+
     return {
         tableRefs: [],
         tableDefs: tableDefsFlat,
         restrictedColumns: [],
+        visualizeQuery,
     };
 }
 
-export function analyzeNotebookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, _logger: Logger): ScriptData {
+export function makeScriptLookup(pages: NotebookPageMap, scripts: ScriptDataMap): ScriptTextByPath {
+    return (folder, file) => {
+        const scriptId = pages[folder]?.scripts[file]?.scriptId;
+        if (scriptId == null) return null;
+        return scripts[scriptId]?.script.toString() ?? null;
+    };
+}
+
+export function analyzeNotebookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, scriptLookup: ScriptTextByPath, _logger: Logger): ScriptData {
     const next: ScriptData = { ...scriptData };
     next.scriptAnalysis.buffers.destroy(next.scriptAnalysis.buffers);
 
@@ -1027,8 +1050,12 @@ export function analyzeNotebookScript(scriptData: ScriptData, registry: core.Das
     }
     // Rotate the script statistics
     next.statistics = rotateScriptStatistics(next.statistics, next.script.getStatistics() ?? null);
-    // Derive script annotations
-    next.annotations = deriveScriptAnnotations(next.scriptAnalysis.buffers);
+    // Derive script annotations (incl. resolved VISUALIZE query)
+    next.annotations = deriveScriptAnnotations(
+        next.scriptAnalysis.buffers,
+        next.script.toString(),
+        scriptLookup,
+    );
 
     // Update the script in the registry
     registry.addScript(next.script);
@@ -1052,7 +1079,7 @@ export function analyzeOutdatedScriptInNotebook<V extends NotebookStateWithoutId
         return state;
     }
     // Create the next notebook state
-    const nextScriptData = analyzeNotebookScript(scriptData, state.scriptRegistry, state.connectionCatalog, logger);
+    const nextScriptData = analyzeNotebookScript(scriptData, state.scriptRegistry, state.connectionCatalog, makeScriptLookup(state.notebookPages, state.scripts), logger);
     const next = {
         ...clearSemanticUserFocus(state),
         scripts: {

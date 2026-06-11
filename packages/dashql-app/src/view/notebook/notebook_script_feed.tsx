@@ -303,11 +303,12 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         const notebook = props.notebook;
         const scriptKey = notebook.uncommittedScriptId;
         const scriptData = notebook.scripts[scriptKey];
-        const mainScriptText = scriptData?.script.toString() ?? '';
+        const queryText =
+            scriptData?.annotations.visualizeQuery?.sql ?? scriptData?.script.toString() ?? '';
         props.modifyNotebook({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
-        if (executeOnSend && !isDisconnected && mainScriptText.trim().length > 0) {
+        if (executeOnSend && !isDisconnected && queryText.trim().length > 0) {
             const [queryId] = executeQuery(notebook.sessionId, {
-                query: mainScriptText,
+                query: queryText,
                 analyzeResults: true,
                 metadata: {
                     queryType: QueryType.USER_PROVIDED,

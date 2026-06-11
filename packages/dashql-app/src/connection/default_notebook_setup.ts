@@ -3,7 +3,7 @@ import * as core from '../core/index.js';
 
 import { ConnectionState } from './connection_state.js';
 import { Logger } from '../platform/logger/logger.js';
-import { analyzeNotebookScript, ScriptData, NotebookState, createEmptyScriptData } from '../notebook/notebook_state.js';
+import { analyzeNotebookScript, makeScriptLookup, ScriptData, NotebookState, createEmptyScriptData } from '../notebook/notebook_state.js';
 import { NotebookAllocator, NotebookStateWithoutId } from '../notebook/notebook_state_registry.js';
 import { createEmptyAnnotations, createPageScript, generateScriptFileName } from '../notebook/notebook_types.js';
 
@@ -44,7 +44,20 @@ export function createDefaultNotebook(
     const mainFileName = generateScriptFileName({});
 
     let mainScriptData = createScriptData(mainScript, mainFileName, mainFolderName);
-    mainScriptData = analyzeNotebookScript(mainScriptData, registry, conn.catalog, logger);
+    // Initial analyze: only the main script exists, so cross-script references can't resolve yet.
+    const initialPages = {
+        [mainFolderName]: {
+            folderName: mainFolderName,
+            scripts: { [mainFileName]: createPageScript(mainScriptData.scriptKey, mainFileName) },
+        },
+    };
+    mainScriptData = analyzeNotebookScript(
+        mainScriptData,
+        registry,
+        conn.catalog,
+        makeScriptLookup(initialPages, { [mainScriptData.scriptKey]: mainScriptData }),
+        logger,
+    );
 
     const [uncommittedKey, uncommittedData] = createEmptyScriptData(conn.instance, conn.catalog);
 

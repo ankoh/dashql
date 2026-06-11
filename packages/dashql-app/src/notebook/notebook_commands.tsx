@@ -69,9 +69,9 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         const entry = getSelectedEntry(notebook);
                         if (!entry) break;
                         const scriptData = notebook.scripts[entry.scriptId];
-                        const mainScriptText = scriptData.script.toString();
+                        const queryText = scriptData.annotations.visualizeQuery?.sql ?? scriptData.script.toString();
                         const [queryId, _run] = executeQuery(notebook.sessionId, {
-                            query: mainScriptText,
+                            query: queryText,
                             analyzeResults: true,
                             metadata: {
                                 queryType: QueryType.USER_PROVIDED,

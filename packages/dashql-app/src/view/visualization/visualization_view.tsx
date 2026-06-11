@@ -47,10 +47,20 @@ export function VisualizationView(props: Props): React.ReactElement {
         const withData = { ...spec, data: { values: arrowTableToRows(resultTable) } } as TopLevelSpec & { width?: unknown };
         // Always grow to container width
         if (withData.width === undefined) withData.width = 'container';
-        // Lazy-load vega-embed to keep it out of the test/import graph for non-vis paths
-        import('vega-embed').then(mod => {
+        // Lazy-load vega-embed (and vega-interpreter, which avoids the
+        // CSP-violating `Function()` eval that vega's default expression
+        // compiler does) to keep them out of the import graph for non-vis paths.
+        Promise.all([import('vega-embed'), import('vega-interpreter')]).then(([embed, interp]) => {
             if (disposed) return;
-            return mod.default(el, withData, { actions: false, renderer: 'canvas' });
+            // `ast: true` makes vega parse expressions to an AST and gates the
+            // `expr` option on, so vega-interpreter actually replaces the
+            // default `new Function()` evaluator (which CSP forbids).
+            return embed.default(el, withData, {
+                actions: false,
+                renderer: 'canvas',
+                ast: true,
+                expr: interp.expressionInterpreter,
+            });
         }).then(result => {
             if (!result) return;
             if (disposed) {

@@ -26,6 +26,7 @@ import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
 import { NotebookScriptName } from './notebook_script_name.js';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
+import { VisualizationView } from '../visualization/visualization_view.js';
 import { createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../editor/dashql_processor.js';
 
@@ -35,6 +36,7 @@ export enum TabKey {
     Editor = 0,
     QueryStatusPanel = 1,
     QueryResultView = 2,
+    Visualization = 3,
 }
 
 interface TabState {
@@ -222,12 +224,17 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     const activeQueryId = scriptData?.latestQueryId ?? null;
     const activeQueryState = useQueryState(props.notebook?.sessionId ?? null, activeQueryId);
 
+    const visualizeQuery = scriptData?.annotations.visualizeQuery ?? null;
+    const hasVisualizeStmt = visualizeQuery != null;
+    const vegaLiteSpec = visualizeQuery?.vegaLiteSpec ?? null;
+
     const tabState = React.useRef<TabState>({
         enabledTabs: 1,
     });
     let enabledTabs = 1;
     enabledTabs += +(activeQueryState != null);
     enabledTabs += +(activeQueryState?.status == QueryExecutionStatus.SUCCEEDED);
+    enabledTabs += +(hasVisualizeStmt && activeQueryState?.status == QueryExecutionStatus.SUCCEEDED);
     tabState.current.enabledTabs = enabledTabs;
 
     const toggleSplitMode = React.useCallback(() => {
@@ -235,9 +242,11 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
             if (!prev) {
                 // Enabling split mode: set primary tab as selected and choose split tab
                 selectTab(TabKey.Editor);
-                const defaultSplitTab = tabState.current.enabledTabs >= 3
-                    ? TabKey.QueryResultView
-                    : (tabState.current.enabledTabs >= 2 ? TabKey.QueryStatusPanel : null);
+                const defaultSplitTab = tabState.current.enabledTabs >= 4
+                    ? TabKey.Visualization
+                    : tabState.current.enabledTabs >= 3
+                        ? TabKey.QueryResultView
+                        : (tabState.current.enabledTabs >= 2 ? TabKey.QueryStatusPanel : null);
                 setSplitTab(defaultSplitTab);
             } else {
                 // Disabling split mode
@@ -268,7 +277,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                     if (splitModeEnabled) {
                         // In split mode, cycle through available split tabs
                         setSplitTab(currentSplitTab => {
-                            const availableTabs = [TabKey.QueryStatusPanel, TabKey.QueryResultView].filter((_, idx) =>
+                            const availableTabs = [TabKey.QueryStatusPanel, TabKey.QueryResultView, TabKey.Visualization].filter((_, idx) =>
                                 tabState.current.enabledTabs >= idx + 2
                             );
                             if (availableTabs.length === 0) return currentSplitTab;
@@ -280,7 +289,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                     } else {
                         // Normal mode: cycle through all tabs
                         selectTab(key => {
-                            const tabs = [TabKey.Editor, TabKey.QueryStatusPanel, TabKey.QueryResultView];
+                            const tabs = [TabKey.Editor, TabKey.QueryStatusPanel, TabKey.QueryResultView, TabKey.Visualization];
                             return tabs[((key as number) + 1) % tabState.current.enabledTabs];
                         });
                     }
@@ -351,17 +360,18 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                 break;
             case QueryExecutionStatus.SUCCEEDED:
                 if (prevStatus.current != null && prevStatus.current[1] != QueryExecutionStatus.SUCCEEDED) {
+                    const successTab = hasVisualizeStmt ? TabKey.Visualization : TabKey.QueryResultView;
                     if (splitModeEnabled) {
                         selectTab(TabKey.Editor);
-                        setSplitTab(TabKey.QueryResultView);
+                        setSplitTab(successTab);
                     } else {
-                        selectTab(TabKey.QueryResultView);
+                        selectTab(successTab);
                     }
                 }
                 break;
         }
         prevStatus.current = [activeQueryId, status];
-    }, [activeQueryId, activeQueryState?.status, splitModeEnabled]);
+    }, [activeQueryId, activeQueryState?.status, splitModeEnabled, hasVisualizeStmt]);
 
     // Auto-enable split mode the first time a second tab becomes active (if height > AUTO_VSPLIT_MIN_HEIGHT)
     React.useEffect(() => {
@@ -387,11 +397,14 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
         if (splitModeEnabled && splitTab !== null && splitTab !== TabKey.Editor) {
             // Check if the current split tab is disabled
             const isSplitTabDisabled = (splitTab === TabKey.QueryStatusPanel && tabState.current.enabledTabs < 2) ||
-                (splitTab === TabKey.QueryResultView && tabState.current.enabledTabs < 3);
+                (splitTab === TabKey.QueryResultView && tabState.current.enabledTabs < 3) ||
+                (splitTab === TabKey.Visualization && tabState.current.enabledTabs < 4);
 
             if (isSplitTabDisabled) {
-                // Try to find another enabled tab
-                if (tabState.current.enabledTabs >= 3 && splitTab !== TabKey.QueryResultView) {
+                // Try to find another enabled tab, preferring richer views
+                if (tabState.current.enabledTabs >= 4 && splitTab !== TabKey.Visualization) {
+                    setSplitTab(TabKey.Visualization);
+                } else if (tabState.current.enabledTabs >= 3 && splitTab !== TabKey.QueryResultView) {
                     setSplitTab(TabKey.QueryResultView);
                 } else if (tabState.current.enabledTabs >= 2 && splitTab !== TabKey.QueryStatusPanel) {
                     setSplitTab(TabKey.QueryStatusPanel);
@@ -516,11 +529,20 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                     description: 'Query results',
                                     disabled: tabState.current.enabledTabs < 3,
                                 },
+                                [TabKey.Visualization]: {
+                                    tabId: TabKey.Visualization,
+                                    icon: `${icons}#graph_plus`,
+                                    labelShort: 'Chart',
+                                    ariaLabel: 'Visualization',
+                                    description: 'Visualization',
+                                    disabled: tabState.current.enabledTabs < 4,
+                                },
                             }}
                             tabKeys={[
                                 TabKey.Editor,
                                 TabKey.QueryStatusPanel,
-                                TabKey.QueryResultView
+                                TabKey.QueryResultView,
+                                TabKey.Visualization,
                             ]}
                             tabRenderers={{
                                 [TabKey.Editor]: _props => (
@@ -566,6 +588,9 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                 ),
                                 [TabKey.QueryResultView]: _props => (
                                     <QueryResultView query={activeQueryState} debugMode={tableDebugMode} />
+                                ),
+                                [TabKey.Visualization]: _props => (
+                                    <VisualizationView query={activeQueryState} vegaLiteSpec={vegaLiteSpec} />
                                 ),
                             }}
                         />
