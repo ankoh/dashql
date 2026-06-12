@@ -21,7 +21,7 @@ export function monochromeLightInit(options?: Partial<CreateThemeOptions>) {
         styles: [
             { tag: [t.comment, t.quote], color: '#909090' },
             { tag: [t.keyword], color: '#5f5f5f', fontWeight: 'bold' },
-            { tag: [visKeywordTag], color: '#767676' },
+            { tag: [visKeywordTag], color: '#767676', fontStyle: 'italic' },
             { tag: [t.propertyName], color: '#767676' },
             { tag: [t.string, t.meta], color: '#818181' },
             { tag: [t.name], color: '#767676' },

@@ -189,7 +189,7 @@ ParsedScript::ParsedScript(std::shared_ptr<ScannedScript> scan, parser::ParseCon
       nodes(ctx.nodes.Flatten()),
       statements(std::move(ctx.statements)),
       errors(std::move(ctx.errors)),
-      vis_key_symbols(std::move(ctx.vis_key_symbols)) {
+      vis_spec_spans(std::move(ctx.vis_spec_spans)) {
     assert(std::is_sorted(statements.begin(), statements.end(),
                           [](auto& l, auto& r) { return l.nodes_begin < r.nodes_begin; }));
 }

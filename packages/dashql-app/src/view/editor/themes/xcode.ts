@@ -59,7 +59,7 @@ export const xcodeDarkInit = (options?: Partial<CreateThemeOptions>) => {
         styles: [
             { tag: [t.comment, t.quote], color: '#7F8C98' },
             { tag: [t.keyword], color: '#FF7AB2', fontWeight: 'bold' },
-            { tag: [visKeywordTag], color: '#6BAA9F' },
+            { tag: [visKeywordTag], color: '#6BAA9F', fontStyle: 'italic' },
             { tag: [t.propertyName], color: '#6BAA9F' },
             { tag: [t.string, t.meta], color: '#FF8170' },
             { tag: [t.typeName], color: '#DABAFF' },

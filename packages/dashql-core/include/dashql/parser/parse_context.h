@@ -35,8 +35,9 @@ class ParseContext {
     std::vector<ParsedScript::Statement> statements;
     /// The errors
     std::vector<ParseError> errors;
-    /// Symbol indices of vis spec keys (for token type remapping)
-    std::vector<uint32_t> vis_key_symbols;
+    /// Symbol-index spans (begin, end) covering the bodies of vis specs.
+    /// Any keyword whose symbol index falls within one of these spans is rendered as a vis keyword.
+    std::vector<std::pair<uint32_t, uint32_t>> vis_spec_spans;
     /// Hint produced by `Parser::yysyntax_error_` and consumed by the next `Parser::error` call.
     /// Lives here (not on the Parser) so the const-qualified `yysyntax_error_` can write through
     /// the non-const `ctx` reference without needing a mutable Parser member.
@@ -135,11 +136,9 @@ class ParseContext {
     void AddStatement(buffers::parser::Node node);
     /// Reset a statement
     void ResetStatement();
-    /// Mark a symbol as a vis spec key
-    void MarkVisKey(buffers::parser::SymbolSpan loc) {
-        for (uint32_t i = 0; i < loc.length(); ++i) {
-            vis_key_symbols.push_back(loc.offset() + i);
-        }
+    /// Mark a text span as the body of a vis spec
+    void MarkVisSpecSpan(buffers::parser::SymbolSpan loc) {
+        vis_spec_spans.emplace_back(loc.offset(), loc.offset() + loc.length());
     }
 };
 

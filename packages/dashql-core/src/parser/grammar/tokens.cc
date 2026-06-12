@@ -67,20 +67,21 @@ std::unique_ptr<buffers::parser::ScannerTokensT> ParsedScript::PackTokens() {
         }
     }
 
-    // Build a bitset of symbol indices where a keyword is used as a vis spec key
-    std::vector<bool> vis_key_overrides(scan.symbols.GetSize(), false);
-    for (auto idx : vis_key_symbols) {
-        if (idx < vis_key_overrides.size()) {
-            vis_key_overrides[idx] = true;
-        }
-    }
-
     std::vector<uint32_t> offsets;
     std::vector<uint32_t> lengths;
     std::vector<buffers::parser::ScannerTokenType> types;
     offsets.reserve(scan.symbols.GetSize() * 3 / 2);
     lengths.reserve(scan.symbols.GetSize() * 3 / 2);
     types.reserve(scan.symbols.GetSize() * 3 / 2);
+
+    // Build a bitset of symbol indices that lie inside a vis spec body.
+    std::vector<bool> vis_spec_overrides(scan.symbols.GetSize(), false);
+    for (auto& span : vis_spec_spans) {
+        auto end = std::min<uint32_t>(span.second, vis_spec_overrides.size());
+        for (uint32_t i = span.first; i < end; ++i) {
+            vis_spec_overrides[i] = true;
+        }
+    }
 
     size_t ci = 0;
     scan.symbols.ForEachIn(0, scan.symbols.GetSize() - 1, [&](size_t symbol_id, parser::Parser::symbol_type symbol) {
@@ -91,14 +92,16 @@ std::unique_ptr<buffers::parser::ScannerTokensT> ParsedScript::PackTokens() {
             lengths.push_back(comment.length());
             types.push_back(buffers::parser::ScannerTokenType::COMMENT);
         }
-        // Map as standard token, overriding keywords that the parser consumed as identifiers or vis keys.
+        // Map as standard token, then apply keyword overrides.
         offsets.push_back(symbol.location.offset());
         lengths.push_back(symbol.location.length());
         auto token_type = MapToken(symbol, scan.text_buffer);
-        if (token_type == buffers::parser::ScannerTokenType::KEYWORD && name_overrides[symbol_id]) {
-            token_type = buffers::parser::ScannerTokenType::IDENTIFIER;
-        } else if (token_type == buffers::parser::ScannerTokenType::KEYWORD && vis_key_overrides[symbol_id]) {
-            token_type = buffers::parser::ScannerTokenType::KEYWORD_VIS;
+        if (token_type == buffers::parser::ScannerTokenType::KEYWORD) {
+            if (name_overrides[symbol_id]) {
+                token_type = buffers::parser::ScannerTokenType::IDENTIFIER;
+            } else if (vis_spec_overrides[symbol_id]) {
+                token_type = buffers::parser::ScannerTokenType::KEYWORD_VIS;
+            }
         }
         types.push_back(token_type);
     });
