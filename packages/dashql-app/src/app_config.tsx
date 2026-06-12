@@ -7,6 +7,26 @@ import { createTrace } from './platform/logger/trace_context.js';
 
 const CONFIG_URL = new URL('../static/config.json', import.meta.url);
 
+export interface AIProviderHeader {
+    name: string;
+    value: string;
+}
+
+export interface AIProviderSettings {
+    endpointUrl?: string;
+    model?: string;
+    headers?: AIProviderHeader[];
+}
+
+export const DEFAULT_AI_ENDPOINT_URL = "http://localhost:11434";
+export const DEFAULT_AI_MODEL = "llama3";
+
+export const DEFAULT_AI_PROVIDER_SETTINGS: AIProviderSettings = {
+    endpointUrl: DEFAULT_AI_ENDPOINT_URL,
+    model: DEFAULT_AI_MODEL,
+    headers: [],
+};
+
 export interface AppSettings {
     setupDemoConnection?: boolean;
     pauseAfterAppSetup?: boolean;
@@ -15,6 +35,7 @@ export interface AppSettings {
     tableDebugMode?: boolean;
     formattingDebugMode?: boolean;
     minLogLevel?: number;
+    aiProvider?: AIProviderSettings;
 }
 
 export interface AppConfig {

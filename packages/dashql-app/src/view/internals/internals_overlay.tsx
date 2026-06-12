@@ -4,6 +4,7 @@ import icons from '@ankoh/dashql-svg-symbols';
 import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
 import { AppSettings } from './app_settings_view.js';
+import { AISettingsView } from './ai_settings_view.js';
 import { StorageWriterView } from './storage_writer_view.js';
 import { LogViewer } from './log_viewer.js';
 import { OverlaySize } from '../foundations/overlay.js';
@@ -22,6 +23,7 @@ enum TabKey {
     AppSettings = 2,
     StorageWriter = 3,
     Docker = 4,
+    AISettings = 5,
 }
 
 export const InternalsViewer: React.FC<InternalsViewerProps> = (props: InternalsViewerProps) => {
@@ -34,6 +36,7 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
         if (dockerEnabled) {
             keys.push(TabKey.Docker);
         }
+        keys.push(TabKey.AISettings);
         keys.push(TabKey.AppSettings);
         return keys;
     }, [dockerEnabled]);
@@ -76,6 +79,14 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     description: 'Manage local Hyper containers',
                     disabled: false,
                 },
+                [TabKey.AISettings]: {
+                    tabId: TabKey.AISettings,
+                    icon: `${icons}#sparkle_16`,
+                    labelShort: 'AI',
+                    ariaLabel: 'AI provider settings',
+                    description: 'Configure the AI provider',
+                    disabled: false,
+                },
                 [TabKey.AppSettings]: {
                     tabId: TabKey.AppSettings,
                     icon: `${icons}#settings`,
@@ -98,6 +109,9 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                 ),
                 [TabKey.Docker]: _props => (
                     <DockerManager onClose={props.onClose} />
+                ),
+                [TabKey.AISettings]: _props => (
+                    <AISettingsView onClose={props.onClose} />
                 ),
                 [TabKey.AppSettings]: _props => (
                     <AppSettings onClose={props.onClose} />

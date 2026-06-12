@@ -11,29 +11,46 @@ type Props = {
 };
 
 /// Hydrates AppConfig.settings from the persisted manifest once StorageProvider
-/// is ready.
+/// is ready, and persists subsequent changes back to the manifest.
 export const AppSettingsSync: React.FC<Props> = (props: Props) => {
     const config = useAppConfig();
     const reconfigure = useAppReconfigure();
     const storageReader = useStorageReader();
     const logger = useLogger();
 
-    const hydrated = React.useRef(false);
+    const [hydrated, setHydrated] = React.useState(false);
+    const hydrating = React.useRef(false);
+
     React.useEffect(() => {
-        if (hydrated.current) return;
+        if (hydrating.current) return;
         if (config == null) return;
-        hydrated.current = true;
+        hydrating.current = true;
         storageReader.backend.loadAppSettings().then(stored => {
-            if (stored == null) return;
-            logger.info("Hydrated app settings from manifest", {}, LOG_CTX);
-            reconfigure(c => c == null ? null : {
-                ...c,
-                settings: { ...(c.settings ?? {}), ...stored },
-            });
+            if (stored != null) {
+                logger.info("Hydrated app settings from manifest", {}, LOG_CTX);
+                reconfigure(c => c == null ? null : {
+                    ...c,
+                    settings: { ...(c.settings ?? {}), ...stored },
+                });
+            }
         }).catch(e => {
             logger.warn("Failed to load app settings from manifest", { error: String(e) }, LOG_CTX);
+        }).finally(() => {
+            setHydrated(true);
         });
     }, [config, storageReader, reconfigure, logger]);
+
+    React.useEffect(() => {
+        if (!hydrated) return;
+        if (config?.settings == null) return;
+        const settings = config.settings;
+        const handle = setTimeout(() => {
+            storageReader.backend.saveAppSettings(settings).catch(e => {
+                logger.warn("Failed to persist app settings", { error: String(e) }, LOG_CTX);
+            });
+        }, 250);
+        return () => clearTimeout(handle);
+    }, [hydrated, config?.settings, storageReader, logger]);
 
     return props.children;
 };

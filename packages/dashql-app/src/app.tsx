@@ -22,7 +22,7 @@ import { HyperPlanDemoPage } from './view/demos/plan_demo.js';
 import { JsonViewerExperimentPage } from './view/demos/json_demo.js';
 import { LoggerToast } from './view/logger_toast.js';
 import { NavBarContainer } from './view/navbar.js';
-import { OllamaClientProvider } from './platform/ollama_client_provider.js';
+import { AIClientProvider } from './platform/ai_client_provider.js';
 import { PlatformEventListenerProvider } from './platform/events/event_listener_provider.js';
 import { PlatformTypeProvider } from './platform/platform_type.js';
 import { ProcessProvider } from './platform/process.js';
@@ -91,7 +91,7 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                         <HttpClientProvider>
                                             <DockerClientProvider>
                                             <AppSettingsSync>
-                                                <OllamaClientProvider>
+                                                <AIClientProvider>
                                                     <HyperDatabaseClientProvider>
                                                         <DashQLCoreProvider>
                                                             <DuckDBProvider>
@@ -103,7 +103,7 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                                             </DuckDBProvider>
                                                         </DashQLCoreProvider>
                                                     </HyperDatabaseClientProvider>
-                                                </OllamaClientProvider>
+                                                </AIClientProvider>
                                             </AppSettingsSync>
                                             </DockerClientProvider>
                                         </HttpClientProvider>

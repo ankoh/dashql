@@ -35,7 +35,50 @@
     "AppSettings": {
       "type": "object",
       "description": "Persisted app-level settings",
-      "properties": {},
+      "properties": {
+        "aiProvider": {
+          "$ref": "#/definitions/AIProviderSettings",
+          "description": "Configuration of the OpenAI-compatible AI provider"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AIProviderHeader": {
+      "type": "object",
+      "description": "Additional HTTP header sent with AI provider requests",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Header name"
+        },
+        "value": {
+          "type": "string",
+          "description": "Header value"
+        }
+      },
+      "required": ["name", "value"],
+      "additionalProperties": false
+    },
+    "AIProviderSettings": {
+      "type": "object",
+      "description": "Configuration for an OpenAI-compatible AI provider (Ollama, OpenAI, vLLM, etc.)",
+      "properties": {
+        "endpointUrl": {
+          "type": "string",
+          "description": "Base URL of the OpenAI-compatible server (e.g. http://localhost:11434)"
+        },
+        "model": {
+          "type": "string",
+          "description": "The model identifier to use for chat completions"
+        },
+        "headers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AIProviderHeader"
+          },
+          "description": "Additional HTTP headers (e.g. Authorization)"
+        }
+      },
       "additionalProperties": false
     }
   }
