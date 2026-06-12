@@ -175,6 +175,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                         queryId={queryState.queryId}
                         traceId={queryState.traceId}
                         queryState={queryState}
+                        vegaLiteSpec={scriptData?.annotations.visualizeQuery?.vegaLiteSpec ?? null}
                         onShowTable={() => onShowTable(scriptFileName)}
                         onShowStatus={() => onShowStatus(scriptFileName)}
                     />

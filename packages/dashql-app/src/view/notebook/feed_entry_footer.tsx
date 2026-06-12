@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as styles from './feed_entry_footer.module.css';
 
 import icons from '@ankoh/dashql-svg-symbols';
+import type { TopLevelSpec } from 'vega-lite';
 
 import { QueryExecutionState, QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { TraceLogViewer } from '../internals/trace_log_viewer.js';
@@ -11,12 +12,14 @@ import { useComputationRegistry } from '../../compute/computation_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useRelativeTime } from '../../utils/time_format.js';
 import { VerticalTabs, VerticalTabVariant, type VerticalTabProps } from '../foundations/vertical_tabs.js';
+import { VisualizationView } from '../visualization/visualization_view.js';
 
 const FEED_LIMIT_RESULT_ROWS = 8;
 
 const enum FooterTab {
     Log = 0,
     Table = 1,
+    Visualization = 2,
 }
 
 interface FeedEntryFooterProps {
@@ -24,6 +27,7 @@ interface FeedEntryFooterProps {
     queryId: number;
     traceId: number;
     queryState: QueryExecutionState;
+    vegaLiteSpec: TopLevelSpec | null;
     onShowTable?: () => void;
     onShowStatus?: () => void;
 }
@@ -75,19 +79,20 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
     const { hasResult, totalRows } = useResultRowCount(props.queryState, props.queryId);
     const lastLogTimestamp = useLastTraceTimestamp(props.traceId);
     const lastLogAgo = useRelativeTime(lastLogTimestamp);
+    const hasVisualization = hasResult && props.vegaLiteSpec != null;
     const [selectedTab, setSelectedTab] = React.useState<FooterTab>(
-        () => hasResult ? FooterTab.Table : FooterTab.Log
+        () => hasVisualization ? FooterTab.Visualization : (hasResult ? FooterTab.Table : FooterTab.Log)
     );
 
     const prevHasResult = React.useRef(hasResult);
     React.useEffect(() => {
         if (hasResult && !prevHasResult.current) {
-            setSelectedTab(FooterTab.Table);
+            setSelectedTab(hasVisualization ? FooterTab.Visualization : FooterTab.Table);
         } else if (!hasResult && prevHasResult.current) {
             setSelectedTab(FooterTab.Log);
         }
         prevHasResult.current = hasResult;
-    }, [hasResult]);
+    }, [hasResult, hasVisualization]);
 
     const tabProps = React.useMemo<Record<FooterTab, VerticalTabProps>>(() => ({
         [FooterTab.Log]: {
@@ -105,7 +110,15 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
             description: 'Query results',
             disabled: !hasResult,
         },
-    }), [hasResult]);
+        [FooterTab.Visualization]: {
+            tabId: FooterTab.Visualization,
+            icon: `${icons}#graph_plus`,
+            labelShort: 'Chart',
+            ariaLabel: 'Visualization',
+            description: 'Visualization',
+            disabled: !hasVisualization,
+        },
+    }), [hasResult, hasVisualization]);
 
     const dataRowCount = totalRows != null ? Math.min(totalRows, FEED_LIMIT_RESULT_ROWS) : null;
     const rowCountDetail = totalRows != null
@@ -134,13 +147,19 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 />
             </>
         ),
-    }), [props.traceId, props.queryState, rowCountDetail, lastLogAgo, props.onShowTable, props.onShowStatus]);
+        [FooterTab.Visualization]: () => (
+            <>
+                <TabHeader title="Visualization" onClick={props.onShowTable} />
+                <VisualizationView query={props.queryState} vegaLiteSpec={props.vegaLiteSpec} />
+            </>
+        ),
+    }), [props.traceId, props.queryState, props.vegaLiteSpec, rowCountDetail, lastLogAgo, props.onShowTable, props.onShowStatus]);
 
     return (
         <VerticalTabs
             className={styles.footer_container}
             variant={VerticalTabVariant.Stacked}
-            tabKeys={[FooterTab.Log, FooterTab.Table]}
+            tabKeys={[FooterTab.Log, FooterTab.Table, FooterTab.Visualization]}
             tabProps={tabProps}
             tabRenderers={tabRenderers}
             selectedTab={selectedTab}

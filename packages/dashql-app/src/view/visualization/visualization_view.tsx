@@ -60,6 +60,7 @@ export function VisualizationView(props: Props): React.ReactElement {
                 renderer: 'canvas',
                 ast: true,
                 expr: interp.expressionInterpreter,
+                config: { background: 'transparent' },
             });
         }).then(result => {
             if (!result) return;
