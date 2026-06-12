@@ -166,7 +166,7 @@ importers:
         specifier: ^6.29.0
         version: 6.29.0(vega-lite@5.23.0(vega@5.33.1))(vega@5.33.1)
       vega-interpreter:
-        specifier: ^1.0.5
+        specifier: ^1.2.1
         version: 1.2.1
       vega-lite:
         specifier: ^5.23.0
