@@ -150,3 +150,16 @@ visualize-snapshots:
             y => (field => category, type => nominal)
           )
         );
+
+  - name: vis_width_height
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => bar,
+          width => 800,
+          height => 400
+        );

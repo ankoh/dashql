@@ -18,6 +18,9 @@ AnalyzeVisualizationPass::AnalyzeVisualizationPass(AnalysisState& state)
 void AnalyzeVisualizationPass::NodeState::Clear() {
     encoding_channels.clear();
     mark_type.reset();
+    title.reset();
+    width.reset();
+    height.reset();
     scale.reset();
     axis.reset();
     legend.reset();
@@ -28,6 +31,15 @@ void AnalyzeVisualizationPass::NodeState::MergeFrom(NodeState&& other) {
                              std::make_move_iterator(other.encoding_channels.end()));
     if (!mark_type.has_value() && other.mark_type.has_value()) {
         mark_type = other.mark_type;
+    }
+    if (!title.has_value() && other.title.has_value()) {
+        title = other.title;
+    }
+    if (!width.has_value() && other.width.has_value()) {
+        width = other.width;
+    }
+    if (!height.has_value() && other.height.has_value()) {
+        height = other.height;
     }
     if (!scale.has_value() && other.scale.has_value()) {
         scale = std::move(other.scale);
@@ -296,10 +308,23 @@ void AnalyzeVisualizationPass::Visit(std::span<const buffers::parser::Node> mors
             case NodeType::OBJECT_VIS_SPEC: {
                 MergeChildStates(node_state, node);
 
-                auto [mark_node] = state.GetAttributes<AttributeKey::VIS_SPEC_MARK>(node);
+                auto [mark_node, title_node, width_node, height_node] =
+                    state.GetAttributes<AttributeKey::VIS_SPEC_MARK, AttributeKey::VIS_SPEC_TITLE,
+                                        AttributeKey::VIS_SPEC_WIDTH, AttributeKey::VIS_SPEC_HEIGHT>(node);
                 if (mark_node && mark_node->node_type() == NodeType::ENUM_VIS_MARK_TYPE) {
                     node_state.mark_type =
                         static_cast<buffers::parser::VisMarkType>(mark_node->children_begin_or_value());
+                }
+                if (title_node) {
+                    node_state.title = ReadTextValue(state, title_node);
+                }
+                if (width_node) {
+                    auto v = ReadNumericValue(state, width_node);
+                    if (v) node_state.width = static_cast<int64_t>(*v);
+                }
+                if (height_node) {
+                    auto v = ReadNumericValue(state, height_node);
+                    if (v) node_state.height = static_cast<int64_t>(*v);
                 }
                 break;
             }
@@ -313,6 +338,9 @@ void AnalyzeVisualizationPass::Visit(std::span<const buffers::parser::Node> mors
                 VisualizationSpec spec;
                 spec.ast_node_id = node_id;
                 spec.mark_type = node_state.mark_type;
+                spec.title = node_state.title;
+                spec.width = node_state.width;
+                spec.height = node_state.height;
                 spec.encoding_channels = std::move(node_state.encoding_channels);
 
                 if (select_node) {

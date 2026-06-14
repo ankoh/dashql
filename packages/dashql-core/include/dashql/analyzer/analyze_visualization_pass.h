@@ -18,6 +18,12 @@ struct AnalyzeVisualizationPass : public PassManager::LTRPass {
         std::vector<VisEncodingChannel> encoding_channels;
         /// Mark type found in child
         std::optional<buffers::parser::VisMarkType> mark_type;
+        /// Top-level title
+        std::optional<std::string_view> title;
+        /// Top-level width
+        std::optional<int64_t> width;
+        /// Top-level height
+        std::optional<int64_t> height;
         /// Scale/axis/legend propagated from level 4 up to level 3
         std::optional<VisScale> scale;
         std::optional<VisAxis> axis;
