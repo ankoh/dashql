@@ -15,9 +15,45 @@
 
 .container {
     display: grid;
-    grid-template-rows: var(--nav_bar_height) calc(100% - var(--nav_bar_height));
+    grid-template-rows: var(--nav_bar_height) 1fr;
     grid-template-columns: 1fr;
     height: 100%;
+}
+
+.session_bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: 28px;
+    min-width: 0;
+    flex: 1 1 auto;
+    padding: 0 12px;
+    column-gap: 8px;
+    border-radius: 6px;
+    background-color: rgba(0, 0, 0, 0.3);
+    color: var(--nav_tab_fg);
+}
+
+.session_bar_icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: inherit;
+    fill: currentColor;
+}
+
+.session_bar_path {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: 'Roboto Mono';
+    font-size: 0.8rem;
+    font-weight: 300;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: inherit;
 }
 
 .navbar_mac {
@@ -73,7 +109,7 @@
     flex-direction: row;
     align-items: center;
     column-gap: 4px;
-    margin-right: 16px;
+    margin-right: 8px;
 }
 
 .tabs {
@@ -146,6 +182,7 @@
     grid-column: 1;
     height: 100%;
     width: 100%;
+    min-height: 0;
 
     box-sizing: border-box;
     overflow: hidden;

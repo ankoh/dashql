@@ -19,8 +19,18 @@ export type SessionData = app_session.SessionData;
 export type NotebookMetadata = app_session.NotebookMetadata;
 export type ConnectionParams = app_session.ConnectionParams;
 
+/// The kind of filesystem backend
+export enum StorageBackendType {
+    /// Origin Private File System (browser-only)
+    OPFS = 'opfs',
+    /// Native filesystem (Tauri only)
+    Native = 'native',
+}
+
 /// Storage interface for DashQL
 export interface StorageBackend {
+    /// Get the backend type
+    getBackendType(): StorageBackendType;
     /// Get the schema prefix for this backend (e.g., "opfs://", "file://")
     getSchemaPrefix(): string;
 

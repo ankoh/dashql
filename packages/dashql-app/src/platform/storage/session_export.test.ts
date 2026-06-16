@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import JSZip from 'jszip';
 import { exportSessionAsZip } from './session_export.js';
-import type { StorageBackend, SessionData, PageData } from './storage_backend.js';
+import { type StorageBackend, type SessionData, type PageData, StorageBackendType } from './storage_backend.js';
 import { STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT } from './storage_backend.js';
 
 describe('exportSessionAsZip', () => {
@@ -9,6 +9,7 @@ describe('exportSessionAsZip', () => {
 
     beforeEach(() => {
         mockBackend = {
+            getBackendType: vi.fn(() => StorageBackendType.OPFS),
             getSchemaPrefix: vi.fn(() => 'mock://'),
             constructSessionPath: vi.fn((sessionId: string) => `mock://sessions/${sessionId}`),
             parseSessionPath: vi.fn((sessionPath: string) => sessionPath.replace('mock://', '')),

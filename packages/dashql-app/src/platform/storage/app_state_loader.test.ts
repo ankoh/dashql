@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { restoreAppState } from './app_state_loader.js';
-import type { StorageBackend, SessionData, PageData } from './storage_backend.js';
+import { type StorageBackend, type SessionData, type PageData, StorageBackendType } from './storage_backend.js';
 import type { DashQL } from '../../core/api.js';
 import { Logger } from '../logger/logger.js';
 import { ConnectorType } from '../../connection/connector_info.js';
@@ -20,6 +20,7 @@ describe('restoreAppState', () => {
         progressUpdates = [];
 
         mockBackend = {
+            getBackendType: vi.fn(() => StorageBackendType.OPFS),
             getSchemaPrefix: vi.fn(() => 'mock://'),
             constructSessionPath: vi.fn((sessionId: string) => `mock://sessions/${sessionId}`),
             parseSessionPath: vi.fn((sessionPath: string) => sessionPath.replace('mock://', '')),

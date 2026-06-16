@@ -3,13 +3,12 @@ import * as styles from './navbar.module.css';
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import { AnchorAlignment, AnchorSide } from './foundations/anchored_position.js';
-import { HoverMode, NavBarButtonWithRef, NavBarLink, NavBarButton } from './navbar_button.js';
+import { HoverMode, NavBarButtonWithRef, NavBarLink } from './navbar_button.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
 import { DASHQL_VERSION } from '../globals.js';
 import { VersionCheckIndicator } from './version_viewer.js';
 import { VersionInfoOverlay } from './version_viewer.js';
-import { classNames } from '../utils/classnames.js';
 import { encodeNotebookAsZipUrl, NotebookLinkTarget } from '../notebook/notebook_export.js';
 import { getConnectionParamsFromStateDetails } from '../connection/connection_params.js';
 import { useConnectionState } from '../connection/connection_registry.js';
@@ -17,44 +16,9 @@ import { useLogger } from '../platform/logger/logger_provider.js';
 import { RouteContext, useRouteContext, useRouterNavigate, CHANGE_SESSION } from '../router.js';
 import { useVersionCheck } from '../platform/version/version_check.js';
 import { useNotebookState } from '../notebook/notebook_state_registry.js';
-import { useThrottledMemo } from '../utils/throttle.js';
 import { useLocation } from 'react-router-dom';
 
 const LOG_CTX = "navbar";
-
-const PageTab = (props: {
-    route: string;
-    alt?: string;
-    matchPrefix?: string;
-    location: string;
-    icon: string;
-    label: string | null;
-    state: RouteContext;
-}) => (
-    <div
-        key={props.route}
-        className={classNames(styles.tab, {
-            [styles.active]: props.location == props.route
-                || props.location == props.alt
-                || props.location == props.matchPrefix
-                || (props.matchPrefix != null && props.location.startsWith(`${props.matchPrefix}/`)),
-        })}
-    >
-        <NavBarLink
-            className={styles.tab_button}
-            to={props.route}
-            hover={HoverMode.Darken}
-            state={props.state}
-        >
-            <>
-                <svg width="16px" height="16px">
-                    <use xlinkHref={props.icon} />
-                </svg>
-                {props.label && <span className={styles.tab_button_text}>{props.label}</span>}
-            </>
-        </NavBarLink>
-    </div>
-);
 
 const OpenIn = (props: { url?: string | null; alt?: string; icon?: string; label: string, newWindow?: boolean, state: RouteContext }) => (
     <div className={styles.tab}>
@@ -197,6 +161,8 @@ export const NavBar = (): React.ReactElement => {
     }, [location.pathname]);
 
     const isToolPage = location.pathname === "/tool" || location.pathname.startsWith("/tool/");
+    const sessionPath = connection?.sessionId ?? "";
+    const pageIcon = isToolPage ? `${symbols}#tool` : `${symbols}#book_24`;
     return (
         <div className={isMac ? styles.navbar_mac : styles.navbar_default}
         >
@@ -204,10 +170,16 @@ export const NavBar = (): React.ReactElement => {
             <div className={styles.tabs}
                 data-tauri-drag-region="true"
             >
-                <PageTab label="Notebook" route="/notebook" alt="/" location={location.pathname} icon={`${symbols}#book_24`} state={route} />
-                {isToolPage && (
-                    <PageTab label="Tools" route="/tool/format" matchPrefix="/tool" location={location.pathname} icon={`${symbols}#tool`} state={route} />
-                )}
+                <div className={styles.session_bar}>
+                    <div className={styles.session_bar_icon}>
+                        <svg width="16px" height="16px">
+                            <use xlinkHref={pageIcon} />
+                        </svg>
+                    </div>
+                    <div className={styles.session_bar_path} title={sessionPath}>
+                        {sessionPath}
+                    </div>
+                </div>
             </div>
             <div className={styles.version_container}>
                 <InternalsButton />
