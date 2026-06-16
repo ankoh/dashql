@@ -20,6 +20,13 @@
     height: 100%;
 }
 
+.session_bar_container {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0 8px 0 8px;
+}
+
 .session_bar {
     display: flex;
     flex-direction: row;
@@ -27,11 +34,12 @@
     height: 28px;
     min-width: 0;
     flex: 1 1 auto;
-    padding: 0 12px;
-    column-gap: 8px;
+    padding: 0 12px 0 12px;
+    column-gap: 12px;
     border-radius: 6px;
     background-color: rgba(0, 0, 0, 0.3);
     color: var(--nav_tab_fg);
+    overflow: hidden;
 }
 
 .session_bar_icon {
@@ -121,6 +129,8 @@
     align-items: center;
     column-gap: 4px;
     margin-left: 16px;
+    min-width: 0;
+    overflow: hidden;
 }
 .tab {
     position: relative;

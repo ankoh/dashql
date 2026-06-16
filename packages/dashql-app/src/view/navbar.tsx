@@ -170,14 +170,16 @@ export const NavBar = (): React.ReactElement => {
             <div className={styles.tabs}
                 data-tauri-drag-region="true"
             >
-                <div className={styles.session_bar}>
-                    <div className={styles.session_bar_icon}>
-                        <svg width="16px" height="16px">
-                            <use xlinkHref={pageIcon} />
-                        </svg>
-                    </div>
-                    <div className={styles.session_bar_path} title={sessionPath}>
-                        {sessionPath}
+                <div className={styles.session_bar_container}>
+                    <div className={styles.session_bar}>
+                        <div className={styles.session_bar_icon}>
+                            <svg width="16px" height="16px">
+                                <use xlinkHref={pageIcon} />
+                            </svg>
+                        </div>
+                        <div className={styles.session_bar_path} title={sessionPath}>
+                            {sessionPath}
+                        </div>
                     </div>
                 </div>
             </div>
