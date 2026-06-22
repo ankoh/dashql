@@ -429,8 +429,10 @@
 }
 
 .error_text {
-    color: #cf222e;
+    color: #6e7781;
     font-size: 0.8rem;
+    text-align: center;
+    padding: 24px;
 }
 
 .hyper_settings {
