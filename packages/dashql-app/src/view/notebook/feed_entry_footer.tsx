@@ -112,7 +112,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
         },
         [FooterTab.Visualization]: {
             tabId: FooterTab.Visualization,
-            icon: `${icons}#graph_plus`,
+            icon: `${icons}#graph_24`,
             labelShort: 'Chart',
             ariaLabel: 'Visualization',
             description: 'Visualization',
