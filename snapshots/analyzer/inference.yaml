@@ -1,0 +1,417 @@
+analyzer-snapshots:
+
+  - name: alias_pinned
+    script:
+      input: select f.x, f.y, g.z from foo f, bar g
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "foo f"
+        - type: name/unresolved
+          statement-id: 0
+          text: "bar g"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "f.x"
+        - expression-idx: 1
+          type: colref/unresolved
+          statement-id: 0
+          text: "f.y"
+        - expression-idx: 2
+          type: colref/unresolved
+          statement-id: 0
+          text: "g.z"
+      inferred-tables:
+        - name: foo
+          confidence: confident
+          columns:
+            - name: x
+              confidence: confident
+            - name: y
+              confidence: confident
+        - name: bar
+          confidence: confident
+          columns:
+            - name: z
+              confidence: confident
+
+  - name: alias_pinned_join
+    script:
+      input: select f.x, f.y, g.z from foo f, bar g where f.id = g.id
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "foo f"
+        - type: name/unresolved
+          statement-id: 0
+          text: "bar g"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "f.x"
+        - expression-idx: 1
+          type: colref/unresolved
+          statement-id: 0
+          text: "f.y"
+        - expression-idx: 2
+          type: colref/unresolved
+          statement-id: 0
+          text: "g.z"
+        - expression-idx: 3
+          type: colref/unresolved
+          statement-id: 0
+          text: "f.id"
+        - expression-idx: 4
+          type: colref/unresolved
+          statement-id: 0
+          text: "g.id"
+      inferred-tables:
+        - name: foo
+          confidence: confident
+          columns:
+            - name: x
+              confidence: confident
+            - name: y
+              confidence: confident
+            - name: id
+              confidence: confident
+        - name: bar
+          confidence: confident
+          columns:
+            - name: z
+              confidence: confident
+            - name: id
+              confidence: confident
+
+  - name: single_table_unqualified
+    script:
+      input: select a, b, c from foo
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "foo"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: colref/unresolved
+          statement-id: 0
+          text: "b"
+        - expression-idx: 2
+          type: colref/unresolved
+          statement-id: 0
+          text: "c"
+      inferred-tables:
+        - name: foo
+          confidence: confident
+          columns:
+            - name: a
+              confidence: confident
+            - name: b
+              confidence: confident
+            - name: c
+              confidence: confident
+
+  - name: two_tables_unqualified_candidate
+    script:
+      input: select x from foo f, bar g
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "foo f"
+        - type: name/unresolved
+          statement-id: 0
+          text: "bar g"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "x"
+      inferred-tables:
+        - name: foo
+          confidence: candidate
+          columns:
+            - name: x
+              confidence: candidate
+              candidates:
+                - bar
+
+  - name: unqualified_resolved_by_qualified_peer
+    script:
+      input: select f.id, name from foo f, bar g where f.id = 1
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "foo f"
+        - type: name/unresolved
+          statement-id: 0
+          text: "bar g"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "f.id"
+        - expression-idx: 1
+          type: colref/unresolved
+          statement-id: 0
+          text: "name"
+        - expression-idx: 2
+          type: colref/unresolved
+          statement-id: 0
+          text: "f.id"
+        - expression-idx: 3
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 4
+          type: comparison
+          op: EQUAL
+          arg-left: 2
+          arg-right: 3
+          restriction-target: 2
+          statement-id: 0
+          text: "f.id = 1"
+      constants:
+        - expression: 3
+          text: "1"
+      column-filters:
+        - expression: 4
+          snippet:
+            signature-template: 10922374919875496751
+            signature-raw: 12311314193987265820
+            text: f.id = 1
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
+              ast:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "f.id = 1"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "f.id = 1"
+                    children:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "f.id"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "f.id"
+                            children:
+                              - type: NAME
+                                text: "f"
+                              - type: NAME
+                                text: "id"
+                      - type: LITERAL_INTEGER
+                        text: "1"
+      inferred-tables:
+        - name: foo
+          confidence: confident
+          columns:
+            - name: id
+              confidence: confident
+            - name: name
+              confidence: candidate
+              candidates:
+                - bar
+
+  - name: cross_statement_merge
+    script:
+      input: |-
+        select f.a from foo f;
+        select g.b from foo g
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "foo f"
+        - type: name/unresolved
+          statement-id: 1
+          text: "foo g"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "f.a"
+        - expression-idx: 1
+          type: colref/unresolved
+          statement-id: 1
+          text: "g.b"
+      inferred-tables:
+        - name: foo
+          confidence: confident
+          columns:
+            - name: a
+              confidence: confident
+            - name: b
+              confidence: confident
+
+  - name: created_later_no_inference
+    script:
+      input: |-
+        select f.x from foo f;
+        create table foo(x int)
+      catalog-id: 1
+      tables:
+        - catalog-id: "256.65536.4294967296"
+          name: foo
+          text: "create tab..foo(x int)"
+          columns:
+            - catalog-id: "256.65536.4294967296.0"
+              name: x
+              text: "x int"
+      errors: []
+      table-refs:
+        - type: name/internal
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "foo f"
+      expressions:
+        - expression-idx: 0
+          type: colref/internal
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "f.x"
+
+  - name: cte_not_inferred
+    script:
+      input: with cte as (select 1 as x) select c.x from cte c
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "cte c"
+      expressions:
+        - expression-idx: 0
+          type: colref/local
+          statement-id: 0
+          text: "c.x"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 1
+          text: "1"
+
+  - name: self_join_distinct_aliases
+    script:
+      input: select a.x, b.y from foo a, foo b where a.id = b.id
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "foo a"
+        - type: name/unresolved
+          statement-id: 0
+          text: "foo b"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "a.x"
+        - expression-idx: 1
+          type: colref/unresolved
+          statement-id: 0
+          text: "b.y"
+        - expression-idx: 2
+          type: colref/unresolved
+          statement-id: 0
+          text: "a.id"
+        - expression-idx: 3
+          type: colref/unresolved
+          statement-id: 0
+          text: "b.id"
+      inferred-tables:
+        - name: foo
+          confidence: confident
+          columns:
+            - name: x
+              confidence: confident
+            - name: y
+              confidence: confident
+            - name: id
+              confidence: confident
+
+  - name: duplicate_alias_two_unresolved
+    script:
+      input: select x from foo f, bar f
+      catalog-id: 1
+      errors:
+        - type: DUPLICATE_TABLE_ALIAS
+          message: duplicate table alias f
+          text: "bar f"
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "foo f"
+        - type: name/unresolved
+          statement-id: 0
+          text: "bar f"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "x"
+      inferred-tables:
+        - name: foo
+          confidence: confident
+          columns:
+            - name: x
+              confidence: confident
+
+  - name: cross_statement_candidate_then_confident
+    script:
+      input: |-
+        select name from foo f, bar g;
+        select f.name from foo f
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "foo f"
+        - type: name/unresolved
+          statement-id: 0
+          text: "bar g"
+        - type: name/unresolved
+          statement-id: 1
+          text: "foo f"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "name"
+        - expression-idx: 1
+          type: colref/unresolved
+          statement-id: 1
+          text: "f.name"
+      inferred-tables:
+        - name: foo
+          confidence: confident
+          columns:
+            - name: name
+              confidence: confident

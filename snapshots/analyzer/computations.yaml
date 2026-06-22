@@ -83,3 +83,9 @@ analyzer-snapshots:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: LITERAL_INTEGER
                             text: "1"
+      inferred-tables:
+        - name: foo
+          confidence: confident
+          columns:
+            - name: a
+              confidence: confident

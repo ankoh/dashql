@@ -71,6 +71,12 @@ analyzer-snapshots:
           type: colref/unresolved
           statement-id: 1
           text: "c"
+      inferred-tables:
+        - name: c
+          confidence: confident
+          columns:
+            - name: c
+              confidence: confident
 
   - name: multi_recovery_0
     catalog:
@@ -144,3 +150,9 @@ analyzer-snapshots:
           type: colref/unresolved
           statement-id: 1
           text: "c"
+      inferred-tables:
+        - name: c
+          confidence: confident
+          columns:
+            - name: c
+              confidence: confident

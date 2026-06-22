@@ -105,6 +105,12 @@ analyzer-snapshots:
           catalog: "257.65537.4294967297.0"
           statement-id: 0
           text: "c"
+      inferred-tables:
+        - name: db1.schema1.a
+          confidence: confident
+          columns:
+            - name: a
+              confidence: confident
 
   - name: cross_2_entries_implicit
     catalog:
@@ -143,6 +149,18 @@ analyzer-snapshots:
           type: colref/unresolved
           statement-id: 0
           text: "c"
+      inferred-tables:
+        - name: db1.schema1.a
+          confidence: candidate
+          columns:
+            - name: a
+              confidence: candidate
+              candidates:
+                - db2.schema2.b
+            - name: c
+              confidence: candidate
+              candidates:
+                - db2.schema2.b
 
   - name: cross_2_entries_explicit
     catalog:
@@ -183,6 +201,12 @@ analyzer-snapshots:
           type: colref/unresolved
           statement-id: 0
           text: "c"
+      inferred-tables:
+        - name: db2.schema2.b
+          confidence: confident
+          columns:
+            - name: c
+              confidence: confident
 
   - name: cross_first_schema_wins
     catalog:

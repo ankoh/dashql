@@ -854,6 +854,50 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
         visualization_specs_ofs = builder.CreateVector(spec_offsets);
     }
 
+    // Pack the inferred table schemas
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<buffers::analyzer::InferredTableSchema>>>
+        inferred_table_schemas_ofs;
+    {
+        std::vector<flatbuffers::Offset<buffers::analyzer::InferredTableSchema>> schema_offsets;
+        schema_offsets.reserve(inferred_table_schemas.GetSize());
+        inferred_table_schemas.ForEach([&](size_t, InferredTableSchema& schema) {
+            auto table_name_ofs = schema.table_name.Pack(builder);
+
+            std::vector<flatbuffers::Offset<buffers::analyzer::InferredColumn>> column_offsets;
+            column_offsets.reserve(schema.columns.size());
+            for (auto& column : schema.columns) {
+                auto col_name_ofs = builder.CreateString(column.column_name.get().text);
+
+                flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<buffers::analyzer::QualifiedTableName>>>
+                    candidate_names_ofs;
+                if (!column.candidate_table_names.empty()) {
+                    std::vector<flatbuffers::Offset<buffers::analyzer::QualifiedTableName>> cand_offsets;
+                    cand_offsets.reserve(column.candidate_table_names.size());
+                    for (auto& cand : column.candidate_table_names) {
+                        cand_offsets.push_back(cand.Pack(builder));
+                    }
+                    candidate_names_ofs = builder.CreateVector(cand_offsets);
+                }
+
+                buffers::analyzer::InferredColumnBuilder cb{builder};
+                cb.add_column_name(col_name_ofs);
+                cb.add_confidence(static_cast<buffers::analyzer::InferenceConfidence>(column.confidence));
+                if (!column.candidate_table_names.empty()) {
+                    cb.add_candidate_table_names(candidate_names_ofs);
+                }
+                column_offsets.push_back(cb.Finish());
+            }
+            auto columns_ofs = builder.CreateVector(column_offsets);
+
+            buffers::analyzer::InferredTableSchemaBuilder tb{builder};
+            tb.add_table_name(table_name_ofs);
+            tb.add_confidence(static_cast<buffers::analyzer::InferenceConfidence>(schema.confidence));
+            tb.add_columns(columns_ofs);
+            schema_offsets.push_back(tb.Finish());
+        });
+        inferred_table_schemas_ofs = builder.CreateVector(schema_offsets);
+    }
+
     buffers::analyzer::AnalyzedScriptBuilder out{builder};
     out.add_catalog_entry_id(catalog_entry_id);
     out.add_tables(tables_ofs);
@@ -867,6 +911,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     out.add_name_scopes(name_scopes_ofs);
     out.add_function_declarations(func_decls_ofs);
     out.add_visualization_specs(visualization_specs_ofs);
+    out.add_inferred_table_schemas(inferred_table_schemas_ofs);
     return out.Finish();
 }
 

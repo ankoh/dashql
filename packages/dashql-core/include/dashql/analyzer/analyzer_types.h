@@ -74,6 +74,28 @@ struct TableReference : public IntrusiveListNode {
 
 struct ScopeColumn;
 
+/// The confidence of a schema-inference result.
+/// Kept trivially-copyable; mirrored on the wire by buffers::analyzer::InferenceConfidence.
+enum class InferenceConfidence : uint8_t {
+    /// No inference
+    NONE = 0,
+    /// Owner is one of several feasible unresolved tables (ambiguous, best-guess only)
+    CANDIDATE = 1,
+    /// Owner is forced (alias-qualified, or uniquely determined by constraint propagation)
+    CONFIDENT = 2,
+};
+
+/// The inferred owner of an unresolved column, written back by the schema-inference solver.
+/// Trivially destructible so that Expression remains trivially destructible.
+struct InferredOwner {
+    /// The unresolved table reference that owns this column (ChunkBuffer-stable)
+    std::reference_wrapper<TableReference> table_ref;
+    /// The (un-normalized) table name of the owner
+    QualifiedTableName table_name;
+    /// The confidence of the assignment
+    InferenceConfidence confidence = InferenceConfidence::NONE;
+};
+
 /// An expression
 struct Expression : public IntrusiveListNode {
     using TableColumn = CatalogEntry::TableColumn;
@@ -99,8 +121,12 @@ struct Expression : public IntrusiveListNode {
         std::optional<uint32_t> ast_scope_root;
         /// The resolution state: unresolved, resolved to a catalog table column, or resolved to a scope output column
         ResolvedVariant resolved;
+        /// The inferred owner (only for columns that stay unresolved but are associated with an
+        /// unresolved table during schema inference). Does NOT affect IsResolved().
+        std::optional<InferredOwner> inferred;
 
         bool IsResolved() const { return !std::holds_alternative<std::monostate>(resolved); }
+        bool IsInferred() const { return inferred.has_value(); }
         std::optional<ResolvedColumnIDs> GetResolvedColumnIDs() const;
     };
     /// A literal
@@ -314,15 +340,28 @@ struct ResolvedCTE {
     std::vector<std::reference_wrapper<RegisteredName>> column_aliases;
 };
 
-/// A table-like source in scope (either a catalog table or a CTE)
+/// An unresolved table-like source in scope.
+/// The table name is not present in the catalog, but we still register it by alias so that
+/// columns used against it can be *associated* (not resolved) for schema inference.
+struct UnresolvedRelation {
+    /// The table reference that introduced this relation (ChunkBuffer-stable)
+    std::reference_wrapper<TableReference> table_ref;
+    /// The (un-normalized) table name, used as the identity for schema inference
+    QualifiedTableName table_name;
+};
+
+/// A table-like source in scope (a catalog table, a CTE, or an unresolved relation)
 struct ReferencedTable {
-    std::variant<std::reference_wrapper<const CatalogEntry::TableDeclaration>, std::reference_wrapper<ResolvedCTE>>
+    std::variant<std::reference_wrapper<const CatalogEntry::TableDeclaration>, std::reference_wrapper<ResolvedCTE>,
+                 UnresolvedRelation>
         source;
 
     /// Result of resolving a column name against this table
     using ColumnResolution = Expression::ColumnRef::ResolvedVariant;
     /// Look up a column by name. Returns monostate if not found.
     ColumnResolution ResolveColumn(std::string_view column_name) const;
+    /// Is this an unresolved relation (in scope, but not present in the catalog)?
+    bool IsUnresolvedRelation() const { return std::holds_alternative<UnresolvedRelation>(source); }
 };
 
 /// A naming scope
@@ -352,6 +391,52 @@ struct NameScope : public IntrusiveListNode {
     std::unordered_map<std::string_view, ResolvedCTE> cte_definitions;
     /// The named table-like sources in scope (catalog tables and CTEs brought in via FROM)
     std::unordered_map<std::string_view, ReferencedTable> referenced_tables_by_name;
+};
+
+/// A candidate owner table for a schema-inference constraint.
+struct InferenceCandidate {
+    /// The (un-normalized) table name, used as the solver identity
+    QualifiedTableName table_name;
+    /// The unresolved table reference (for location / writeback)
+    std::reference_wrapper<TableReference> table_ref;
+};
+
+/// A schema-inference constraint: an unresolved column use must be owned by one of the
+/// candidate unresolved tables. `Forced` constraints have exactly one candidate (alias-qualified
+/// use, or the single unresolved table in scope); `Disjunctive` constraints have several.
+struct InferenceConstraint {
+    enum class Kind : uint8_t { Forced, Disjunctive };
+    /// The kind of constraint
+    Kind kind;
+    /// The column-ref occurrence this constraint was derived from
+    uint32_t expression_id;
+    /// The column name that must be owned
+    std::reference_wrapper<RegisteredName> column_name;
+    /// The candidate owner tables (1 for Forced, N for Disjunctive)
+    std::vector<InferenceCandidate> candidates;
+};
+
+/// An inferred column of an unresolved table.
+struct InferredColumn {
+    /// The column name
+    std::reference_wrapper<RegisteredName> column_name;
+    /// The confidence of the inference
+    InferenceConfidence confidence = InferenceConfidence::NONE;
+    /// For CANDIDATE columns: the other feasible owner tables the solver could not rule out.
+    /// Empty when CONFIDENT.
+    std::vector<QualifiedTableName> candidate_table_names;
+};
+
+/// An inferred schema for a table that is not present in the catalog.
+struct InferredTableSchema {
+    /// The (un-normalized) table name (identity key for cross-statement merge)
+    QualifiedTableName table_name;
+    /// The confidence of the schema (max over its columns)
+    InferenceConfidence confidence = InferenceConfidence::NONE;
+    /// The inferred columns (ordered by first appearance)
+    std::vector<InferredColumn> columns;
+    /// The columns indexed by name (points into columns)
+    std::unordered_map<std::string_view, size_t> columns_by_name;
 };
 
 /// A constant expression

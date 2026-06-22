@@ -137,8 +137,10 @@ void AnalyzerSnapshotTest::TestScriptSnapshot(const ScriptAnalysisSnapshot& snap
 
     if (snap.tree && snap.node_id != c4::yml::NONE) {
         auto expected = snap.tree->ref(snap.node_id);
-        const char* keys[] = {
-            "errors", "tables", "table-refs", "expressions", "constants", "column-computations", "column-filters"};
+        const char* keys[] = {"errors",        "tables",
+                              "table-refs",     "expressions",
+                              "constants",      "column-computations",
+                              "column-filters", "inferred-tables"};
         for (const char* key : keys) {
             if (!expected.has_child(key)) continue;
             auto have = node[key];
@@ -614,6 +616,47 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
                             legend_node.append_child() << c4::yml::key("values-node-id") << *l.values_node_id;
                         if (l.name.has_value())
                             legend_node.append_child() << c4::yml::key("name") << std::string(*l.name);
+                    }
+                }
+            }
+        });
+    }
+
+    // Write inferred table schemas (schema inference)
+    if (!script.inferred_table_schemas.IsEmpty()) {
+        auto confidence_str = [](InferenceConfidence c) -> const char* {
+            switch (c) {
+                case InferenceConfidence::CONFIDENT:
+                    return "confident";
+                case InferenceConfidence::CANDIDATE:
+                    return "candidate";
+                case InferenceConfidence::NONE:
+                    return "none";
+            }
+            return "none";
+        };
+        auto list_node = out.append_child();
+        list_node << c4::yml::key("inferred-tables");
+        list_node |= c4::yml::SEQ;
+        script.inferred_table_schemas.ForEach([&](size_t, const AnalyzedScript::InferredTableSchema& schema) {
+            auto yml_schema = list_node.append_child();
+            yml_schema.set_type(c4::yml::MAP);
+            yml_schema.append_child() << c4::yml::key("name") << std::string(schema.table_name.getDebugString());
+            yml_schema.append_child() << c4::yml::key("confidence") << confidence_str(schema.confidence);
+            auto cols_node = yml_schema.append_child();
+            cols_node << c4::yml::key("columns");
+            cols_node |= c4::yml::SEQ;
+            for (auto& col : schema.columns) {
+                auto col_node = cols_node.append_child();
+                col_node.set_type(c4::yml::MAP);
+                col_node.append_child() << c4::yml::key("name") << std::string(col.column_name.get().text);
+                col_node.append_child() << c4::yml::key("confidence") << confidence_str(col.confidence);
+                if (!col.candidate_table_names.empty()) {
+                    auto cand_node = col_node.append_child();
+                    cand_node << c4::yml::key("candidates");
+                    cand_node |= c4::yml::SEQ;
+                    for (auto& cand : col.candidate_table_names) {
+                        cand_node.append_child() << std::string(cand.getDebugString());
                     }
                 }
             }

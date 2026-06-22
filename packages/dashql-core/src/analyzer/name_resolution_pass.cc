@@ -48,6 +48,12 @@ ReferencedTable::ColumnResolution ReferencedTable::ResolveColumn(std::string_vie
         }
         return {};
     }
+    // An unresolved relation has an unknown schema: it can never resolve a column to a catalog or
+    // scope column. The caller distinguishes "table in scope but unknown" from "not in scope" via
+    // ReferencedTable::IsUnresolvedRelation().
+    if (IsUnresolvedRelation()) {
+        return {};
+    }
     auto& cte = std::get<std::reference_wrapper<ResolvedCTE>>(source).get();
     if (!cte.child_scope) return {};
     auto* scope = cte.child_scope;
@@ -231,6 +237,13 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
             register_in_scope(table_ref, alias, ReferencedTable{.source = std::cref(best_match)});
             continue;
         }
+
+        // The table is neither a CTE nor present in the catalog. Register it as an unresolved
+        // relation so that columns used against it (e.g. `f.x`) can be associated for schema
+        // inference. The alias (or the bare table name) acts as the in-scope key.
+        std::string_view alias = table_ref.alias.has_value() ? table_ref.alias.value().first.get().text : ref_name;
+        register_in_scope(table_ref, alias,
+                          ReferencedTable{.source = UnresolvedRelation{std::ref(table_ref), table_name}});
     }
 }
 
@@ -341,6 +354,74 @@ void NameResolutionPass::ResolveColumnRefsFromParents(AnalyzedScript::NameScope&
     }
 }
 
+/// Look up an alias in a scope and its parents. Returns the matching ReferencedTable if found
+/// (whether resolved, a CTE, or an unresolved relation), else nullptr.
+static const ReferencedTable* LookupAliasInScopeChain(AnalyzedScript::NameScope& scope, std::string_view alias) {
+    for (auto* s = &scope; s != nullptr; s = s->parent_scope) {
+        auto it = s->referenced_tables_by_name.find(alias);
+        if (it != s->referenced_tables_by_name.end()) {
+            return &it->second;
+        }
+    }
+    return nullptr;
+}
+
+void NameResolutionPass::AssociateUnresolvedColumns(AnalyzedScript::NameScope& scope) {
+    // Gather the unresolved relations visible directly in this scope. Unqualified columns can only
+    // be owned by an unresolved table in their own scope (we do not pull in parents' unresolved
+    // tables to keep the candidate domain tight). We iterate the ordered table_references list (not
+    // the referenced_tables_by_name hash map) so the candidate order is deterministic (FROM order).
+    std::vector<InferenceCandidate> local_unresolved;
+    for (auto& table_ref : scope.table_references) {
+        auto* rel_expr = std::get_if<AnalyzedScript::TableReference::RelationExpression>(&table_ref.inner);
+        if (!rel_expr || rel_expr->resolved_table.has_value()) continue;
+        // Confirm the alias maps to THIS table ref's unresolved relation. A table whose alias
+        // collided with an earlier one was dropped as a DUPLICATE_TABLE_ALIAS, so its alias resolves
+        // to the surviving ref — skip it here to avoid listing a table as its own ambiguity candidate.
+        std::string_view alias = table_ref.alias.has_value() ? table_ref.alias.value().first.get().text
+                                                             : rel_expr->table_name.table_name.get().text;
+        auto it = scope.referenced_tables_by_name.find(alias);
+        if (it == scope.referenced_tables_by_name.end() || !it->second.IsUnresolvedRelation()) continue;
+        auto& rel = std::get<UnresolvedRelation>(it->second.source);
+        if (&rel.table_ref.get() != &table_ref) continue;
+        local_unresolved.push_back(InferenceCandidate{rel.table_name, rel.table_ref});
+    }
+
+    for (auto& expr : scope.expressions) {
+        auto* col_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
+        if (col_ref == nullptr || col_ref->IsResolved() || col_ref->IsInferred()) continue;
+
+        if (col_ref->column_name.table_alias.has_value()) {
+            // Alias-qualified: the owner is pinned to whatever the alias refers to.
+            std::string_view alias = col_ref->column_name.table_alias->get();
+            const ReferencedTable* ref_table = LookupAliasInScopeChain(scope, alias);
+            // Only associate when the alias names an unresolved relation. If the alias is unknown
+            // (e.g. a derived-table alias we don't model) or names a known table/CTE that simply
+            // lacks the column, this is not an inference (it's a genuine miss / error).
+            if (ref_table == nullptr || !ref_table->IsUnresolvedRelation()) continue;
+            auto& rel = std::get<UnresolvedRelation>(ref_table->source);
+            state.analyzed->inference_constraints.PushBack(InferenceConstraint{
+                .kind = InferenceConstraint::Kind::Forced,
+                .expression_id = expr.expression_id,
+                .column_name = col_ref->column_name.column_name,
+                .candidates = {InferenceCandidate{rel.table_name, rel.table_ref}},
+            });
+        } else {
+            // Unqualified: the candidate domain is the unresolved tables in scope. A resolved table
+            // can never own a still-unresolved column (its schema is complete), so we exclude them.
+            if (local_unresolved.empty()) continue;
+            auto kind = local_unresolved.size() == 1 ? InferenceConstraint::Kind::Forced
+                                                     : InferenceConstraint::Kind::Disjunctive;
+            state.analyzed->inference_constraints.PushBack(InferenceConstraint{
+                .kind = kind,
+                .expression_id = expr.expression_id,
+                .column_name = col_ref->column_name.column_name,
+                .candidates = local_unresolved,
+            });
+        }
+    }
+}
+
 void NameResolutionPass::PopulateOutputColumns(AnalyzedScript::NameScope& scope) {
     for (auto& rt : scope.result_targets) {
         // Note that this is deliberately fuzzy.
@@ -359,6 +440,10 @@ void NameResolutionPass::PopulateOutputColumns(AnalyzedScript::NameScope& scope)
                             .source = std::ref(col),
                         });
                     }
+                } else if (ref_table.IsUnresolvedRelation()) {
+                    // An unresolved relation has an unknown schema: a `SELECT *` cannot enumerate its
+                    // columns, so it contributes no output columns (as before it was registered at all).
+                    continue;
                 } else {
                     auto& cte = std::get<std::reference_wrapper<ResolvedCTE>>(ref_table.source).get();
                     if (cte.child_scope) {
@@ -441,6 +526,13 @@ void NameResolutionPass::ResolveNames() {
             dfs.push({static_cast<AnalyzedScript::NameScope*>(&child), false});
         }
     }
+
+    // Pass 3: associate columns that remain unresolved after all resolution attempts with the
+    // unresolved tables in scope, emitting schema-inference constraints. Runs after Pass 2 so that
+    // columns resolvable from a parent scope (correlated subqueries) are never spuriously associated.
+    // We iterate the name_scopes buffer in creation order (rather than the root_scopes hash set) so
+    // that constraint emission order is deterministic and follows source order.
+    state.analyzed->name_scopes.ForEach([&](size_t, AnalyzedScript::NameScope& scope) { AssociateUnresolvedColumns(scope); });
 }
 
 /// Prepare the analysis pass
@@ -489,6 +581,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                         .column_name = column_name.value(),
                         .ast_scope_root = std::nullopt,
                         .resolved = {},
+                        .inferred = std::nullopt,
                     };
                     auto& n = state.analyzed->AddExpression(node_id, node.symbol_span(), std::move(column_ref));
                     // Mark column refs as (identity) computation
@@ -869,6 +962,169 @@ void NameResolutionPass::Finish() {
             state.analyzed->table_columns_by_name.insert({column.column_name.get().text, column});
         }
     });
+
+    // Solve the schema-inference constraints collected during name resolution.
+    RunSchemaInference();
+}
+
+namespace {
+
+/// Build the (db, schema, table) identity key for an unresolved table name.
+CatalogEntry::QualifiedTableName::Key MakeTableKey(const QualifiedTableName& tn) {
+    return {tn.database_name.get().text, tn.schema_name.get().text, tn.table_name.get().text};
+}
+
+}  // namespace
+
+void NameResolutionPass::RunSchemaInference() {
+    auto& analyzed = *state.analyzed;
+    if (analyzed.inference_constraints.IsEmpty()) return;
+
+    // Get-or-create the inferred schema for a table name.
+    auto get_or_create_schema = [&](const QualifiedTableName& tn) -> AnalyzedScript::InferredTableSchema& {
+        auto key = MakeTableKey(tn);
+        auto it = analyzed.inferred_table_schemas_by_name.find(key);
+        if (it != analyzed.inferred_table_schemas_by_name.end()) {
+            return it->second.get();
+        }
+        auto& schema = analyzed.inferred_table_schemas.PushBack(AnalyzedScript::InferredTableSchema{.table_name = tn});
+        analyzed.inferred_table_schemas_by_name.insert({MakeTableKey(schema.table_name), schema});
+        return schema;
+    };
+
+    // Add (or upgrade) a column on a schema. Returns the column index.
+    auto add_column = [&](AnalyzedScript::InferredTableSchema& schema, RegisteredName& col,
+                          InferenceConfidence conf) -> size_t {
+        std::string_view name = col.text;
+        auto it = schema.columns_by_name.find(name);
+        if (it != schema.columns_by_name.end()) {
+            auto& c = schema.columns[it->second];
+            if (conf > c.confidence) c.confidence = conf;
+            if (conf > schema.confidence) schema.confidence = conf;
+            return it->second;
+        }
+        size_t idx = schema.columns.size();
+        schema.columns_by_name.emplace(name, idx);
+        schema.columns.push_back(AnalyzedScript::InferredColumn{.column_name = col, .confidence = conf});
+        if (conf > schema.confidence) schema.confidence = conf;
+        return idx;
+    };
+
+    // Does a table confidently own a column already?
+    auto table_has_confident_column = [&](const QualifiedTableName& tn, std::string_view col) -> bool {
+        auto it = analyzed.inferred_table_schemas_by_name.find(MakeTableKey(tn));
+        if (it == analyzed.inferred_table_schemas_by_name.end()) return false;
+        auto& schema = it->second.get();
+        auto cit = schema.columns_by_name.find(col);
+        return cit != schema.columns_by_name.end() &&
+               schema.columns[cit->second].confidence == InferenceConfidence::CONFIDENT;
+    };
+
+    // Write the solved owner back onto the originating column-ref expression.
+    auto write_owner = [&](uint32_t expression_id, const InferenceCandidate& owner, InferenceConfidence conf) {
+        auto* expr = state.GetExpression(expression_id);
+        if (!expr) return;
+        if (auto* col_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr->inner)) {
+            col_ref->inferred = InferredOwner{
+                .table_ref = owner.table_ref,
+                .table_name = owner.table_name,
+                .confidence = conf,
+            };
+        }
+    };
+
+    // Per-constraint resolution flag (indexed by the constraint's position in the buffer).
+    std::vector<bool> resolved(analyzed.inference_constraints.GetSize(), false);
+
+    // Step 1: seed forced constraints (alias-qualified uses, join-predicate sides whose operands are
+    // alias-qualified, and unqualified columns with a single unresolved table in scope).
+    {
+        size_t ci = 0;
+        analyzed.inference_constraints.ForEach([&](size_t, AnalyzedScript::InferenceConstraint& c) {
+            if (c.kind == AnalyzedScript::InferenceConstraint::Kind::Forced && !c.candidates.empty()) {
+                auto& cand = c.candidates.front();
+                auto& schema = get_or_create_schema(cand.table_name);
+                add_column(schema, c.column_name.get(), InferenceConfidence::CONFIDENT);
+                write_owner(c.expression_id, cand, InferenceConfidence::CONFIDENT);
+                resolved[ci] = true;
+            }
+            ++ci;
+        });
+    }
+
+    // Step 2: propagate over disjunctive constraints to a fixpoint. A disjunction is "explained" when
+    // its column is already confidently owned by exactly one candidate (exactly-one-owner rule,
+    // fault-tolerant: if several candidates own it, the use is genuinely ambiguous). Iterate because
+    // resolving one disjunction may add columns that explain another.
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        size_t ci = 0;
+        analyzed.inference_constraints.ForEach([&](size_t, AnalyzedScript::InferenceConstraint& c) {
+            size_t idx = ci++;
+            if (resolved[idx] || c.kind != AnalyzedScript::InferenceConstraint::Kind::Disjunctive) return;
+            std::string_view col = c.column_name.get().text;
+
+            // Count candidates that already confidently own the column.
+            std::vector<const InferenceCandidate*> owners;
+            for (auto& cand : c.candidates) {
+                if (table_has_confident_column(cand.table_name, col)) owners.push_back(&cand);
+            }
+            if (owners.size() == 1) {
+                // Exactly one in-scope candidate owns it: the use is confidently that table.
+                write_owner(c.expression_id, *owners.front(), InferenceConfidence::CONFIDENT);
+                resolved[idx] = true;
+                changed = true;
+            } else if (owners.size() > 1) {
+                // Several candidates own the column (e.g. a join key present in both): the use is
+                // ambiguous. Record a best guess plus the full feasible set; add no new columns.
+                write_owner(c.expression_id, *owners.front(), InferenceConfidence::CANDIDATE);
+                resolved[idx] = true;
+                changed = true;
+            }
+        });
+    }
+
+    // Step 3: residual ambiguity. Remaining disjunctions have a column owned by none of their
+    // candidates yet. Assign each to a best-guess table — greedily the candidate that already has the
+    // most inferred columns (a parsimonious "this table is more fleshed out" prior) — recording the
+    // full feasible set so the guess is never presented as authoritative.
+    {
+        constexpr size_t MAX_INFERENCE_CANDIDATES = MAX_TABLE_REF_AMBIGUITY;
+        size_t ci = 0;
+        analyzed.inference_constraints.ForEach([&](size_t, AnalyzedScript::InferenceConstraint& c) {
+            size_t idx = ci++;
+            if (resolved[idx] || c.kind != AnalyzedScript::InferenceConstraint::Kind::Disjunctive) return;
+            if (c.candidates.empty() || c.candidates.size() > MAX_INFERENCE_CANDIDATES) {
+                resolved[idx] = true;
+                return;
+            }
+
+            // Pick the best-guess candidate: the one with the most inferred columns so far.
+            const InferenceCandidate* best = &c.candidates.front();
+            size_t best_cols = 0;
+            for (auto& cand : c.candidates) {
+                auto it = analyzed.inferred_table_schemas_by_name.find(MakeTableKey(cand.table_name));
+                size_t n = it == analyzed.inferred_table_schemas_by_name.end() ? 0 : it->second.get().columns.size();
+                if (n > best_cols) {
+                    best_cols = n;
+                    best = &cand;
+                }
+            }
+
+            // Add the column to the best-guess table as a CANDIDATE column, recording the other
+            // feasible owner tables on the column.
+            auto& schema = get_or_create_schema(best->table_name);
+            size_t col_idx = add_column(schema, c.column_name.get(), InferenceConfidence::CANDIDATE);
+            auto& inferred_col = schema.columns[col_idx];
+            for (auto& cand : c.candidates) {
+                if (&cand == best) continue;
+                inferred_col.candidate_table_names.push_back(cand.table_name);
+            }
+            write_owner(c.expression_id, *best, InferenceConfidence::CANDIDATE);
+            resolved[idx] = true;
+        });
+    }
 }
 
 }  // namespace dashql

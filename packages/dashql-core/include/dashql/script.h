@@ -199,6 +199,9 @@ class AnalyzedScript : public CatalogEntry {
     using ColumnFilter = dashql::ColumnFilter;
     using VisEncodingChannel = dashql::VisEncodingChannel;
     using VisualizationSpec = dashql::VisualizationSpec;
+    using InferenceConstraint = dashql::InferenceConstraint;
+    using InferredColumn = dashql::InferredColumn;
+    using InferredTableSchema = dashql::InferredTableSchema;
 
     /// Owned storage for synthetic notebook output table names.
     /// These are used for catalog registration under dashql.notebook."<path>".
@@ -245,6 +248,15 @@ class AnalyzedScript : public CatalogEntry {
 
     /// The visualization specs in the script
     ChunkBuffer<VisualizationSpec, 4> visualization_specs;
+
+    /// The schema-inference constraints collected from unresolved column uses.
+    /// Each constraint says a column must be owned by one of a set of unresolved tables.
+    ChunkBuffer<InferenceConstraint, 16> inference_constraints;
+    /// The inferred schemas for tables not present in the catalog, keyed by normalized table name.
+    ChunkBuffer<InferredTableSchema, 8> inferred_table_schemas;
+    /// The inferred table schemas indexed by normalized (db, schema, table) name.
+    std::unordered_map<CatalogEntry::QualifiedTableName::Key, std::reference_wrapper<InferredTableSchema>, TupleHasher>
+        inferred_table_schemas_by_name;
 
     /// The column computations indexed by the catalog entry.
     /// This index is used to quickly resolve column computations in this script through catalog ids.

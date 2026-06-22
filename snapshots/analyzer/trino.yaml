@@ -451,6 +451,20 @@ analyzer-snapshots:
                                       - key: SQL_INTERVAL_TYPE
                                         type: ENUM_SQL_INTERVAL_TYPE
                                         value: DAY
+      inferred-tables:
+        - name: iceberg.some_events.some_queries
+          confidence: confident
+          columns:
+            - name: query_hash
+              confidence: confident
+            - name: query
+              confidence: confident
+            - name: tenant
+              confidence: confident
+            - name: query_metrics
+              confidence: confident
+            - name: event_timestamp
+              confidence: confident
 
   - name: trino_inhibitors
     script:
@@ -744,3 +758,21 @@ analyzer-snapshots:
                                 text: "processed_rows_byol"
                       - type: LITERAL_INTEGER
                         text: "0"
+      inferred-tables:
+        - name: iceberg.some_events.some_queries
+          confidence: confident
+          columns:
+            - name: event_timestamp
+              confidence: confident
+            - name: elapsed
+              confidence: confident
+            - name: processed_rows_byol
+              confidence: confident
+            - name: workload_name
+              confidence: confident
+            - name: pre_execution_query_metrics
+              confidence: confident
+            - name: query_plan
+              confidence: confident
+            - name: tenant
+              confidence: confident

@@ -1,0 +1,51 @@
+analyzer-snapshots:
+  # Alias-qualified columns against two unresolved tables -> confident per-table schemas
+  - name: alias_pinned
+    script:
+      input: select f.x, f.y, g.z from foo f, bar g
+  # Join predicate forces the join key onto both unresolved tables
+  - name: alias_pinned_join
+    script:
+      input: select f.x, f.y, g.z from foo f, bar g where f.id = g.id
+  # Single unresolved table, unqualified columns -> confident
+  - name: single_table_unqualified
+    script:
+      input: select a, b, c from foo
+  # Two unresolved tables, an unqualified column owned by neither yet -> candidate
+  - name: two_tables_unqualified_candidate
+    script:
+      input: select x from foo f, bar g
+  # An unqualified column whose owner is forced by a qualified use of the same column
+  - name: unqualified_resolved_by_qualified_peer
+    script:
+      input: select f.id, name from foo f, bar g where f.id = 1
+  # The same unresolved table used across two statements merges into one schema
+  - name: cross_statement_merge
+    script:
+      input: |-
+        select f.a from foo f;
+        select g.b from foo g
+  # A table created later in the script resolves and produces no inference
+  - name: created_later_no_inference
+    script:
+      input: |-
+        select f.x from foo f;
+        create table foo(x int)
+  # A CTE in scope is never inferred
+  - name: cte_not_inferred
+    script:
+      input: with cte as (select 1 as x) select c.x from cte c
+  # Self-join with distinct aliases against the same unresolved table merges into one schema
+  - name: self_join_distinct_aliases
+    script:
+      input: select a.x, b.y from foo a, foo b where a.id = b.id
+  # Duplicate alias over two unresolved tables (error input) must not list a table as its own candidate
+  - name: duplicate_alias_two_unresolved
+    script:
+      input: select x from foo f, bar f
+  # Cross-statement: a candidate column in one statement is forced confident by a qualified use in another
+  - name: cross_statement_candidate_then_confident
+    script:
+      input: |-
+        select name from foo f, bar g;
+        select f.name from foo f

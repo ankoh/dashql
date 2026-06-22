@@ -515,6 +515,12 @@ analyzer-snapshots:
           type: colref/unresolved
           statement-id: 0
           text: "c"
+      inferred-tables:
+        - name: c
+          confidence: confident
+          columns:
+            - name: c
+              confidence: confident
 
   - name: unresolved_1
     catalog:
@@ -610,6 +616,18 @@ analyzer-snapshots:
           type: colref/unresolved
           statement-id: 0
           text: "d"
+      inferred-tables:
+        - name: a
+          confidence: candidate
+          columns:
+            - name: c
+              confidence: candidate
+              candidates:
+                - b
+            - name: d
+              confidence: candidate
+              candidates:
+                - b
 
   - name: nesting_1
     catalog:

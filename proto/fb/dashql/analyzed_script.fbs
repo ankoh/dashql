@@ -294,6 +294,38 @@ table VisualizationSpec {
     vegalite_spec: string;
 }
 
+/// The confidence of a schema-inference result
+enum InferenceConfidence: uint8 {
+    /// No inference
+    NONE = 0,
+    /// Owner is one of several feasible unresolved tables (ambiguous, best-guess only)
+    CANDIDATE = 1,
+    /// Owner is forced (alias-qualified, or uniquely determined by constraint propagation)
+    CONFIDENT = 2,
+}
+
+/// An inferred column of a table that is not present in the catalog
+table InferredColumn {
+    /// The column name
+    column_name: string;
+    /// The confidence of the inference
+    confidence: InferenceConfidence = NONE;
+    /// For CANDIDATE columns: the other feasible owner tables the solver could not rule out.
+    /// Empty when CONFIDENT.
+    candidate_table_names: [QualifiedTableName];
+}
+
+/// An inferred schema for a table that is not present in the catalog, derived from how its
+/// columns are used (e.g. `f.x`, `f.y` against an unresolved `foo f`).
+table InferredTableSchema {
+    /// The table name
+    table_name: QualifiedTableName;
+    /// The confidence of the schema (max over its columns)
+    confidence: InferenceConfidence = NONE;
+    /// The inferred columns
+    columns: [InferredColumn];
+}
+
 table AnalyzedScript {
     /// The external id that the user specified for this catalog entry
     catalog_entry_id: uint32;
@@ -360,4 +392,8 @@ table AnalyzedScript {
 
     /// The visualization specs produced by analyzing VISUALIZE statements
     visualization_specs: [VisualizationSpec];
+
+    /// The inferred schemas for tables that are referenced but not present in the catalog.
+    /// Derived from how columns are used against unresolved tables (schema inference).
+    inferred_table_schemas: [InferredTableSchema];
 }
