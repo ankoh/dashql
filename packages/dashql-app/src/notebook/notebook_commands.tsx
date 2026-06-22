@@ -6,7 +6,7 @@ import { ConnectionHealth, printConnectionHealth } from '../connection/connectio
 import { ConnectorInfo } from '../connection/connector_info.js';
 import { KeyEventHandler, useKeyEvents } from '../utils/key_events.js';
 import { QueryType } from '../connection/query_execution_state.js';
-import { getSelectedEntry, REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE } from './notebook_state.js';
+import { getExecutableQueryText, getSelectedEntry, REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE } from './notebook_state.js';
 import { useCatalogLoaderQueue } from '../connection/catalog_loader.js';
 import { useConnectionState } from '../connection/connection_registry.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
@@ -69,7 +69,10 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         const entry = getSelectedEntry(notebook);
                         if (!entry) break;
                         const scriptData = notebook.scripts[entry.scriptId];
-                        const queryText = scriptData.annotations.visualizeQuery?.sql ?? scriptData.script.toString();
+                        // Scripts are analyzed eagerly at load and kept analyzed as
+                        // they are edited, so the resolved VISUALIZE query / derived
+                        // annotations are already present here.
+                        const queryText = getExecutableQueryText(notebook, scriptData);
                         const [queryId, _run] = executeQuery(notebook.sessionId, {
                             query: queryText,
                             analyzeResults: true,

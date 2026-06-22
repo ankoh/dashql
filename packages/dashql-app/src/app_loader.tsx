@@ -60,6 +60,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
         restoreConnections: new ProgressCounter(),
         restoreCatalogs: new ProgressCounter(),
         restoreNotebooks: new ProgressCounter(),
+        analyzeNotebooks: new ProgressCounter(),
         setupDefaultConnections: new ProgressCounter(),
         setupDefaultNotebooks: new ProgressCounter(),
     }));

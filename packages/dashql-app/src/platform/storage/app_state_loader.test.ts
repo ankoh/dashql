@@ -57,6 +57,12 @@ describe('restoreAppState', () => {
                 replaceText: vi.fn(),
                 analyze: vi.fn(),
                 toString: vi.fn(() => ''),
+                // Methods exercised by Phase 4 eager analysis (analyzeNotebookScript):
+                setNotebookPath: vi.fn(),
+                getParsed: vi.fn(() => null),
+                getAnalyzed: vi.fn(() => null),
+                getStatistics: vi.fn(() => null),
+                moveCursor: vi.fn(() => null),
             })),
             createScriptRegistry: vi.fn(() => ({
                 addScript: vi.fn(),

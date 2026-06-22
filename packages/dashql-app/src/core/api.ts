@@ -377,10 +377,19 @@ export class DashQL {
 
     /// Destroy all registered memory.
     /// This is unsafe because it will just release all memory while javascript might still reference into the heap.
+    /// Test-only teardown helper.
+    ///
+    /// Objects are freed in reverse registration order (LIFO, like RAII) because
+    /// some destructors reach into objects registered earlier: e.g. Script::~Script
+    /// calls catalog.DropScript(*this). A catalog is typically created (and thus
+    /// registered) before the scripts loaded into it, so freeing in registration
+    /// order would destroy the catalog first and leave ~Script touching freed
+    /// memory, corrupting the WASM allocator. Reverse order destroys the scripts
+    /// before the catalog they depend on.
     public resetUnsafe() {
         const entries = Array.from(this.registeredMemory.entries());
-        for (const [_k, v] of entries) {
-            const inner = v.value;
+        for (let i: number = entries.length - 1; i >= 0; --i) {
+            const inner = entries[i][1].value;
             try {
                 inner.value.destroy();
             } catch (e) {

@@ -4,7 +4,8 @@ import { stringifyError } from '../logger/logger.js';
 import { ProgressCounter } from '../../utils/progress.js';
 import type { ConnectionState } from '../../connection/connection_state.js';
 import type { NotebookState, ScriptData as NotebookScriptData } from '../../notebook/notebook_state.js';
-import { createEmptyScriptData } from '../../notebook/notebook_state.js';
+import { analyzeAllScriptsInNotebook, createEmptyScriptData } from '../../notebook/notebook_state.js';
+import type { AnalyzeAllScriptsProgress } from '../../notebook/notebook_state.js';
 import { decodeConnectionFromProto, restoreConnectionState } from '../../connection/connection_import.js';
 import { ConnectorType, type ConnectorInfo } from '../../connection/connector_info.js';
 import type { StorageBackend, SessionEntry, SessionData, PageData } from './storage_backend.js';
@@ -27,6 +28,7 @@ export interface AppStateRestorationProgress {
     restoreConnections: ProgressCounter;
     restoreCatalogs: ProgressCounter;
     restoreNotebooks: ProgressCounter;
+    analyzeNotebooks: ProgressCounter;
 }
 
 /// Restores notebook state from storage
@@ -181,6 +183,7 @@ async function restoreSession(
     restoreConnections: ProgressCounter,
     restoreCatalogs: ProgressCounter,
     restoreNotebooks: ProgressCounter,
+    analyzeNotebooks: ProgressCounter,
     progressConsumer: (progress: AppStateRestorationProgress) => void
 ): Promise<void> {
     const sessionPath = sessionEntry.path;
@@ -193,6 +196,7 @@ async function restoreSession(
         restoreConnections: restoreConnections.clone(),
         restoreCatalogs: restoreCatalogs.clone(),
         restoreNotebooks: restoreNotebooks.clone(),
+        analyzeNotebooks: analyzeNotebooks.clone(),
     });
 
     logger.info("Loading session data", { sessionPath }, LOG_CTX);
@@ -245,6 +249,7 @@ async function restoreSession(
         restoreConnections: restoreConnections.clone(),
         restoreCatalogs: restoreCatalogs.clone(),
         restoreNotebooks: restoreNotebooks.clone(),
+        analyzeNotebooks: analyzeNotebooks.clone(),
     });
 
     try {
@@ -331,10 +336,12 @@ async function restoreSession(
         restoreConnections: restoreConnections.clone(),
         restoreCatalogs: restoreCatalogs.clone(),
         restoreNotebooks: restoreNotebooks.clone(),
+        analyzeNotebooks: analyzeNotebooks.clone(),
     });
 
+    let restoredNotebook: NotebookState | null = null;
     try {
-        const notebookState = await restoreNotebook(
+        restoredNotebook = await restoreNotebook(
             core,
             backend,
             sessionPath,
@@ -345,15 +352,11 @@ async function restoreSession(
             logger
         );
 
-        notebooks.set(sessionId, notebookState);
-        notebooksByConnection.set(sessionId, sessionId);
-        notebooksByConnectionType[connectorInfo.connectorType].push(sessionId);
-
         const notebookDuration = performance.now() - notebookStartTime;
         logger.info("Notebook restored", {
             sessionId,
-            pageCount: Object.keys(notebookState.notebookPages).length.toString(),
-            scriptCount: Object.keys(notebookState.scripts).length.toString(),
+            pageCount: Object.keys(restoredNotebook.notebookPages).length.toString(),
+            scriptCount: Object.keys(restoredNotebook.scripts).length.toString(),
             durationMs: notebookDuration.toFixed(2)
         }, LOG_CTX);
 
@@ -371,10 +374,70 @@ async function restoreSession(
         restoreNotebooks.addFailed();
     }
 
+    // Phase 4: Analyze the restored notebook scripts eagerly.
+    //
+    // The catalog was populated in Phase 2, so analyzing here gives every script
+    // at least one analyzed copy (and derived annotations, incl. the resolved
+    // VISUALIZE query) before the user can interact with it. Without this, the
+    // first execution of a freshly restored VISUALIZE script would send the raw
+    // `visualize (...)` text to the backend.
+    if (restoredNotebook != null) {
+        const analyzeStartTime = performance.now();
+        // Account per script: analyzeAllScriptsInNotebook reports the notebook's
+        // script count up front and the outcome of each script as it finishes.
+        // The work is synchronous, so we only need the totals to be correct once
+        // it returns — the progressConsumer below reports the accumulated state.
+        let scriptCount = 0;
+        let scriptsReported = 0;
+        const analyzeProgress: AnalyzeAllScriptsProgress = {
+            onScriptCount: (count) => {
+                scriptCount = count;
+                analyzeNotebooks.addTotal(count).addStarted(count);
+            },
+            onScriptDone: (ok) => {
+                scriptsReported++;
+                if (ok) {
+                    analyzeNotebooks.addSucceeded();
+                } else {
+                    analyzeNotebooks.addFailed();
+                }
+            },
+        };
+        try {
+            restoredNotebook = analyzeAllScriptsInNotebook(restoredNotebook, logger, analyzeProgress);
+            logger.info("Notebook scripts analyzed", {
+                sessionId,
+                scriptCount: scriptCount.toString(),
+                durationMs: (performance.now() - analyzeStartTime).toFixed(2)
+            }, LOG_CTX);
+        } catch (analyzeError) {
+            // Per-script failures are isolated inside analyzeAllScriptsInNotebook,
+            // so reaching here is an unexpected wholesale failure. Lazy analysis
+            // (editor/execute) still covers these scripts, so it must not abort the
+            // session restore. Reconcile any scripts that never reported so the
+            // counter can still complete.
+            logger.warn("Failed to analyze notebook scripts, will analyze lazily", {
+                sessionId,
+                durationMs: (performance.now() - analyzeStartTime).toFixed(2),
+                error: stringifyError(analyzeError)
+            }, LOG_CTX);
+            for (let i: number = scriptsReported; i < scriptCount; ++i) {
+                analyzeNotebooks.addFailed();
+            }
+        }
+
+        notebooks.set(sessionId, restoredNotebook);
+        notebooksByConnection.set(sessionId, sessionId);
+        notebooksByConnectionType[connectorInfo.connectorType].push(sessionId);
+    }
+    // A notebook that failed to restore contributes no scripts to analyze, so the
+    // analyze counter is left untouched in that case.
+
     progressConsumer({
         restoreConnections: restoreConnections.clone(),
         restoreCatalogs: restoreCatalogs.clone(),
         restoreNotebooks: restoreNotebooks.clone(),
+        analyzeNotebooks: analyzeNotebooks.clone(),
     });
 }
 
@@ -403,6 +466,7 @@ export async function restoreAppState(
     const restoreConnections = new ProgressCounter();
     const restoreCatalogs = new ProgressCounter();
     const restoreNotebooks = new ProgressCounter();
+    const analyzeNotebooks = new ProgressCounter();
 
     try {
         // Load manifest
@@ -416,7 +480,11 @@ export async function restoreAppState(
             durationMs: manifestDuration.toFixed(2)
         }, LOG_CTX);
 
-        // Set totals
+        // Set totals.
+        //
+        // analyzeNotebooks is counted per script, not per session, so its total
+        // is accumulated as each notebook reports its script count in Phase 4
+        // (see onScriptCount) rather than seeded here.
         restoreConnections.addTotal(sessions.length);
         restoreCatalogs.addTotal(sessions.length);
         restoreNotebooks.addTotal(sessions.length);
@@ -425,6 +493,7 @@ export async function restoreAppState(
             restoreConnections: restoreConnections.clone(),
             restoreCatalogs: restoreCatalogs.clone(),
             restoreNotebooks: restoreNotebooks.clone(),
+            analyzeNotebooks: analyzeNotebooks.clone(),
         });
 
         // Process each session
@@ -453,6 +522,7 @@ export async function restoreAppState(
                     restoreConnections,
                     restoreCatalogs,
                     restoreNotebooks,
+                    analyzeNotebooks,
                     progressConsumer
                 );
 
@@ -474,11 +544,15 @@ export async function restoreAppState(
                 restoreConnections.addFailed();
                 restoreCatalogs.addFailed();
                 restoreNotebooks.addFailed();
+                // analyzeNotebooks is counted per script: a session that fails
+                // here failed before Phase 4 ran, so it contributed no scripts and
+                // must not register a failure against the per-script counter.
 
                 progressConsumer({
                     restoreConnections: restoreConnections.clone(),
                     restoreCatalogs: restoreCatalogs.clone(),
                     restoreNotebooks: restoreNotebooks.clone(),
+                    analyzeNotebooks: analyzeNotebooks.clone(),
                 });
             }
         }
@@ -487,6 +561,20 @@ export async function restoreAppState(
             error: stringifyError(manifestError)
         }, LOG_CTX);
     }
+
+    // The analyze counter's total is accumulated per script during Phase 4. If no
+    // notebook reached Phase 4 (empty manifest, or every session failed earlier),
+    // it was never seeded — pin it to 0 so the indicator resolves to "nothing to
+    // do" instead of an indefinite blank state.
+    if (analyzeNotebooks.total == null) {
+        analyzeNotebooks.addTotal(0);
+    }
+    progressConsumer({
+        restoreConnections: restoreConnections.clone(),
+        restoreCatalogs: restoreCatalogs.clone(),
+        restoreNotebooks: restoreNotebooks.clone(),
+        analyzeNotebooks: analyzeNotebooks.clone(),
+    });
 
     const totalDuration = performance.now() - startTime;
     logger.info("Finished loading app state", {

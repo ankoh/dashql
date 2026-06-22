@@ -7,11 +7,16 @@ import {
     ANALYZE_OUTDATED_SCRIPT,
     CATALOG_DID_UPDATE,
     CREATE_NOTEBOOK_ENTRY,
+    CREATE_NOTEBOOK_ENTRY_WITH_TEXT,
     CREATE_PAGE,
     DELETE_NOTEBOOK_ENTRY,
     PROMOTE_UNCOMMITTED_SCRIPT,
     REGISTER_QUERY,
     SELECT_ENTRY,
+    SET_SCRIPT_TEXT,
+    getExecutableQueryText,
+    getScriptKeysInFeedOrder,
+    analyzeAllScriptsInNotebook,
     SELECT_NEXT_ENTRY,
     SELECT_PAGE,
     SELECT_PREV_ENTRY,
@@ -551,6 +556,147 @@ describe('ANALYZE_OUTDATED_SCRIPT', () => {
 });
 
 // ---------------------------------------------------------------------------
+// getExecutableQueryText
+// ---------------------------------------------------------------------------
+
+describe('getExecutableQueryText', () => {
+    const VISUALIZE_SCRIPT =
+        'visualize ( select v as a from generate_series(1, 10) t(v) ) as ( mark => bar, encoding => ( x => (field => a) ) )';
+
+    it('extracts the inner SELECT from a VISUALIZE script even when analysis is still outdated', () => {
+        // Reproduces the first-run race: the script was just inserted and not
+        // analyzed yet, so annotations.visualizeQuery is null. We must still
+        // send the inner SELECT to the backend, not the raw `visualize (...)`.
+        const state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const scriptData = state.scripts[scriptKey];
+        scriptData.script.insertTextAt(0, VISUALIZE_SCRIPT);
+
+        expect(scriptData.scriptAnalysis.outdated).toBe(true);
+        expect(scriptData.annotations.visualizeQuery).toBeNull();
+
+        const text = getExecutableQueryText(state, scriptData);
+        expect(text.toLowerCase()).not.toContain('visualize');
+        expect(text.toLowerCase()).toContain('select v as a');
+    });
+
+    it('uses the cached annotation once the script has been analyzed', () => {
+        const state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        state.scripts[scriptKey].script.insertTextAt(0, VISUALIZE_SCRIPT);
+
+        const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
+        const scriptData = s1.scripts[scriptKey];
+        expect(scriptData.scriptAnalysis.outdated).toBe(false);
+        expect(scriptData.annotations.visualizeQuery?.sql).toBeDefined();
+
+        const text = getExecutableQueryText(s1, scriptData);
+        expect(text).toBe(scriptData.annotations.visualizeQuery!.sql);
+    });
+
+    it('returns the raw script text for a plain SQL statement', () => {
+        const state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const scriptData = state.scripts[scriptKey];
+        scriptData.script.insertTextAt(0, 'SELECT 1 as x');
+
+        const text = getExecutableQueryText(state, scriptData);
+        expect(text).toBe('SELECT 1 as x');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// analyzeAllScriptsInNotebook / getScriptKeysInFeedOrder
+// ---------------------------------------------------------------------------
+
+describe('getScriptKeysInFeedOrder', () => {
+    it('orders pages top-down (sorted folders, sorted files) then the uncommitted script', () => {
+        // buildState gives one Main page with one entry + an uncommitted script.
+        // Add a second page and a second entry on Main to exercise the ordering.
+        let state = buildState();
+        const mainFile = state.notebookUserFocus.fileName;
+        state = reduce(state, { type: CREATE_NOTEBOOK_ENTRY, value: null }); // 2nd entry on Main
+        state = reduce(state, { type: CREATE_PAGE, value: null }); // 'Untitled' page + auto script
+
+        const order = getScriptKeysInFeedOrder(state);
+
+        // Build the expected order independently from the page maps.
+        const expected: number[] = [];
+        for (const folder of getSortedFolderNames(state.notebookPages)) {
+            const page = state.notebookPages[folder];
+            for (const file of getSortedFileNames(page)) {
+                expected.push(page.scripts[file].scriptId);
+            }
+        }
+        expected.push(state.uncommittedScriptId);
+
+        expect(order).toEqual(expected);
+        // 'Main' sorts before 'Untitled', so the original Main entry comes first.
+        const mainFirstScriptId = state.notebookPages[MAIN_FOLDER].scripts[mainFile].scriptId;
+        expect(order[0]).toBe(mainFirstScriptId);
+        // The uncommitted composer script is always last.
+        expect(order[order.length - 1]).toBe(state.uncommittedScriptId);
+    });
+
+    it('has no duplicates and covers every script', () => {
+        let state = buildState();
+        state = reduce(state, { type: CREATE_NOTEBOOK_ENTRY, value: null });
+        const order = getScriptKeysInFeedOrder(state);
+        expect(new Set(order).size).toBe(order.length);
+        expect(new Set(order)).toEqual(new Set(Object.keys(state.scripts).map(Number)));
+    });
+});
+
+describe('analyzeAllScriptsInNotebook', () => {
+    it('analyzes every script in a single pass and reports per-script progress', () => {
+        let state = buildState();
+        state = reduce(state, { type: CREATE_NOTEBOOK_ENTRY, value: null });
+        // Seed real SQL so analysis produces non-null buffers.
+        for (const key of Object.keys(state.scripts)) {
+            state.scripts[+key].script.replaceText('SELECT 1 as x');
+        }
+
+        const counts: boolean[] = [];
+        let reportedTotal = -1;
+        const next = analyzeAllScriptsInNotebook(state, logger, {
+            onScriptCount: (n) => { reportedTotal = n; },
+            onScriptDone: (ok) => { counts.push(ok); },
+        });
+
+        const scriptCount = Object.keys(state.scripts).length;
+        expect(reportedTotal).toBe(scriptCount);
+        expect(counts.length).toBe(scriptCount);
+        expect(counts.every(Boolean)).toBe(true);
+        // Every script now has an analyzed copy and is no longer outdated.
+        for (const key of Object.keys(next.scripts)) {
+            expect(next.scripts[+key].scriptAnalysis.outdated).toBe(false);
+            expect(next.scripts[+key].scriptAnalysis.buffers.analyzed).not.toBeNull();
+        }
+    });
+
+    it('resolves an upward SCRIPT_REFERENCE in a single pass', () => {
+        // A later entry references an earlier one by notebook path. Because we
+        // analyze top-down, the source is already in the catalog when the
+        // referencing visualize entry is analyzed - no second pass needed.
+        let state = buildState();
+        const sourceFile = state.notebookUserFocus.fileName;
+        state.scripts[state.notebookPages[MAIN_FOLDER].scripts[sourceFile].scriptId]
+            .script.replaceText('SELECT 1 as a');
+
+        const s1 = reduce(state, {
+            type: CREATE_NOTEBOOK_ENTRY_WITH_TEXT,
+            value: { text: `visualize dashql.notebook."${MAIN_FOLDER}/${sourceFile}" as ( mark => bar, encoding => ( x => (field => a) ) )` },
+        });
+
+        const next = analyzeAllScriptsInNotebook(s1, logger);
+
+        const visFile = next.notebookUserFocus.fileName;
+        const visScriptId = next.notebookPages[MAIN_FOLDER].scripts[visFile].scriptId;
+        expect(next.scripts[visScriptId].annotations.visualizeQuery).not.toBeNull();
+    });
+});
+
+// ---------------------------------------------------------------------------
 // REGISTER_QUERY
 // ---------------------------------------------------------------------------
 
@@ -566,6 +712,107 @@ describe('REGISTER_QUERY', () => {
         const state = buildState();
         const next = reduce(state, { type: REGISTER_QUERY, value: [99999, 1] });
         expect(next).toBe(state);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// SET_SCRIPT_TEXT
+// ---------------------------------------------------------------------------
+
+describe('SET_SCRIPT_TEXT', () => {
+    it('rewrites the script text in-place', () => {
+        const state = buildState();
+        const scriptKey = getSelectedPage(state)!.scripts[state.notebookUserFocus.fileName].scriptId;
+        const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: 'SELECT 1 as x' } });
+        expect(next.scripts[scriptKey].script.toString()).toBe('SELECT 1 as x');
+    });
+
+    it('re-analyzes the rewritten script', () => {
+        const state = buildState();
+        const scriptKey = getSelectedPage(state)!.scripts[state.notebookUserFocus.fileName].scriptId;
+        const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: 'SELECT 1 as x, 2 as y' } });
+        expect(next.scripts[scriptKey].scriptAnalysis.outdated).toBe(false);
+        expect(next.scripts[scriptKey].scriptAnalysis.buffers.analyzed).not.toBeNull();
+        // The script is registered in the catalog under its notebook path
+        expect(next.scripts[scriptKey].annotations.tableDefs).toContain(`${MAIN_FOLDER}/${state.notebookUserFocus.fileName}`);
+    });
+
+    it('refreshes the resolved VISUALIZE annotation', () => {
+        const state = buildState();
+        const scriptKey = getSelectedPage(state)!.scripts[state.notebookUserFocus.fileName].scriptId;
+        const visualize =
+            'visualize ( select v as a from generate_series(1, 10) t(v) ) as ( mark => bar, encoding => ( x => (field => a) ) )';
+        const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: visualize } });
+        expect(next.scripts[scriptKey].annotations.visualizeQuery).not.toBeNull();
+        expect(next.scripts[scriptKey].annotations.visualizeQuery!.sql.toLowerCase()).toContain('select v as a');
+    });
+
+    it('marks other scripts outdated', () => {
+        const s0 = buildState();
+        const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
+        // Analyze every script first so we can observe the outdated flip
+        let state = s1;
+        for (const key of Object.keys(state.scripts)) {
+            state = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: +key });
+        }
+        const targetKey = +Object.keys(state.scripts)[0];
+        const otherKey = +Object.keys(state.scripts).find(k => +k !== targetKey)!;
+        expect(state.scripts[otherKey].scriptAnalysis.outdated).toBe(false);
+
+        const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: targetKey, text: 'SELECT 1' } });
+        expect(next.scripts[targetKey].scriptAnalysis.outdated).toBe(false);
+        expect(next.scripts[otherKey].scriptAnalysis.outdated).toBe(true);
+    });
+
+    it('is a no-op for an unknown scriptKey', () => {
+        const state = buildState();
+        const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: 99999, text: 'SELECT 1' } });
+        expect(next).toBe(state);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// CREATE_NOTEBOOK_ENTRY_WITH_TEXT
+// ---------------------------------------------------------------------------
+
+describe('CREATE_NOTEBOOK_ENTRY_WITH_TEXT', () => {
+    it('appends a new entry seeded with the provided text', () => {
+        const state = buildState();
+        const prevCount = pageEntryCount(state);
+        const next = reduce(state, { type: CREATE_NOTEBOOK_ENTRY_WITH_TEXT, value: { text: 'SELECT 1 as x' } });
+        expect(pageEntryCount(next)).toBe(prevCount + 1);
+        const focusFile = next.notebookUserFocus.fileName;
+        const newEntry = getSelectedPage(next)!.scripts[focusFile];
+        expect(next.scripts[newEntry.scriptId].script.toString()).toBe('SELECT 1 as x');
+    });
+
+    it('analyzes the new entry before returning', () => {
+        const state = buildState();
+        const next = reduce(state, { type: CREATE_NOTEBOOK_ENTRY_WITH_TEXT, value: { text: 'SELECT 1 as x, 2 as y' } });
+        const focusFile = next.notebookUserFocus.fileName;
+        const newEntry = getSelectedPage(next)!.scripts[focusFile];
+        expect(next.scripts[newEntry.scriptId].scriptAnalysis.outdated).toBe(false);
+        expect(next.scripts[newEntry.scriptId].scriptAnalysis.buffers.analyzed).not.toBeNull();
+    });
+
+    it('moves focus to the newly created entry', () => {
+        const state = buildState();
+        const next = reduce(state, { type: CREATE_NOTEBOOK_ENTRY_WITH_TEXT, value: { text: 'SELECT 1' } });
+        const files = getSortedFileNames(getSelectedPage(next)!);
+        expect(next.notebookUserFocus.fileName).toBe(files[files.length - 1]);
+    });
+
+    it('resolves a VISUALIZE script-reference to an existing entry', () => {
+        const state = buildState();
+        const sourceFile = state.notebookUserFocus.fileName;
+        // Give the focused entry a SELECT so it can be referenced by path
+        const s1 = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: getSelectedPage(state)!.scripts[sourceFile].scriptId, text: 'SELECT 1 as a' } });
+        // Script references are encoded as `dashql.notebook."<folder>/<file>"`.
+        const visualize = `visualize dashql.notebook."${MAIN_FOLDER}/${sourceFile}" as ( mark => bar, encoding => ( x => (field => a) ) )`;
+        const s2 = reduce(s1, { type: CREATE_NOTEBOOK_ENTRY_WITH_TEXT, value: { text: visualize } });
+        const focusFile = s2.notebookUserFocus.fileName;
+        const newEntry = getSelectedPage(s2)!.scripts[focusFile];
+        expect(s2.scripts[newEntry.scriptId].annotations.visualizeQuery).not.toBeNull();
     });
 });
 

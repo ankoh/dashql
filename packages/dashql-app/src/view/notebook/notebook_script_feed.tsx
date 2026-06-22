@@ -14,7 +14,7 @@ import type { RowComponentProps } from 'react-window';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
-import { getSelectedPage, getSelectedPageEntries, getUncommittedScriptData, REGISTER_QUERY, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
+import { getExecutableQueryText, getSelectedPage, getSelectedPageEntries, getUncommittedScriptData, REGISTER_QUERY, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
 import { QueryType } from '../../connection/query_execution_state.js';
 import { useQueryExecutor, useQueryState } from '../../connection/query_executor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
@@ -304,8 +304,10 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         const notebook = props.notebook;
         const scriptKey = notebook.uncommittedScriptId;
         const scriptData = notebook.scripts[scriptKey];
-        const queryText =
-            scriptData?.annotations.visualizeQuery?.sql ?? scriptData?.script.toString() ?? '';
+        // The compose editor keeps the draft analyzed as it is typed, so the
+        // resolved VISUALIZE query / derived annotations are already present (and
+        // carried across promotion, which preserves the script key).
+        const queryText = scriptData ? getExecutableQueryText(notebook, scriptData) : '';
         props.modifyNotebook({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
         if (executeOnSend && !isDisconnected && queryText.trim().length > 0) {
             const [queryId] = executeQuery(notebook.sessionId, {

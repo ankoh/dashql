@@ -8,7 +8,7 @@ import { resolveVisualizeQuery, ScriptTextByPath } from '../connection/visualize
 import { VariantKind } from '../utils/index.js';
 import { REPLACE_NOTEBOOK, CREATE_NOTEBOOK_PAGE, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK_PAGE, DELETE_NOTEBOOK_SCRIPT, groupDraftWrites, groupNotebookWrites, groupPageWrites, groupScriptDeletes, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK_DRAFT, WRITE_NOTEBOOK_SCRIPT } from '../platform/storage/storage_writer.js';
 import { NotebookStateWithoutId } from './notebook_state_registry.js';
-import { Logger } from '../platform/logger/logger.js';
+import { Logger, stringifyError } from '../platform/logger/logger.js';
 import { NotebookScriptAnnotations, NotebookPage, NotebookPageScript, NotebookMetadata as NotebookMetadataType, createEmptyAnnotations, createPageScript, generateScriptFileName } from './notebook_types.js';
 
 const LOG_CTX = 'notebook_state';
@@ -112,6 +112,8 @@ export const DELETE_NOTEBOOK_ENTRY = Symbol('DELETE_NOTEBOOK_ENTRY');
 export const UPDATE_NOTEBOOK_ENTRY = Symbol('UPDATE_NOTEBOOK_ENTRY');
 export const UPDATE_PAGE_FOLDER_NAME = Symbol('UPDATE_PAGE_FOLDER_NAME');
 export const PROMOTE_UNCOMMITTED_SCRIPT = Symbol('PROMOTE_UNCOMMITTED_SCRIPT');
+export const SET_SCRIPT_TEXT = Symbol('SET_SCRIPT_TEXT');
+export const CREATE_NOTEBOOK_ENTRY_WITH_TEXT = Symbol('CREATE_NOTEBOOK_ENTRY_WITH_TEXT');
 
 export type NotebookStateAction =
     | VariantKind<typeof SELECT_PAGE, string>
@@ -131,6 +133,8 @@ export type NotebookStateAction =
     | VariantKind<typeof UPDATE_NOTEBOOK_ENTRY, { fileName: string, newFileName: string }>
     | VariantKind<typeof UPDATE_PAGE_FOLDER_NAME, { folderName: string, newFolderName: string }>
     | VariantKind<typeof PROMOTE_UNCOMMITTED_SCRIPT, null>
+    | VariantKind<typeof SET_SCRIPT_TEXT, { scriptKey: ScriptKey, text: string }>
+    | VariantKind<typeof CREATE_NOTEBOOK_ENTRY_WITH_TEXT, { text: string }>
     ;
 
 const STATS_HISTORY_LIMIT = 20;
@@ -888,6 +892,118 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             );
             return next;
         }
+
+        case SET_SCRIPT_TEXT: {
+            const { scriptKey, text } = action.value;
+            const scriptData = state.scripts[scriptKey];
+            if (!scriptData) {
+                logger.warn("SET_SCRIPT_TEXT references invalid script", { scriptKey: scriptKey.toString() }, LOG_CTX);
+                return state;
+            }
+            // Rewrite the script text in-place
+            scriptData.script.replaceText(text);
+            // Re-analyze through the path-aware helper (destroys the stale buffers, refreshes
+            // buffers + annotations incl. visualizeQuery, reloads the script into the catalog)
+            const scriptLookup = makeScriptLookup(state.notebookPages, state.scripts);
+            const nextScriptData = analyzeNotebookScript(scriptData, state.scriptRegistry, state.connectionCatalog, scriptLookup, logger);
+
+            const nextState: NotebookState = {
+                ...clearSemanticUserFocus(state),
+                scripts: {
+                    ...state.scripts,
+                    [scriptKey]: nextScriptData,
+                },
+            };
+            // The text changed and was reloaded into the catalog; mark all other scripts
+            // outdated so cross-script references re-resolve (mirrors UPDATE_FROM_PROCESSOR).
+            for (const key in nextState.scripts) {
+                if (+key === scriptKey) continue;
+                const other = nextState.scripts[key];
+                nextState.scripts[key] = {
+                    ...other,
+                    scriptAnalysis: { ...other.scriptAnalysis, outdated: true },
+                };
+            }
+
+            // Persist only the updated script (same tail as UPDATE_FROM_PROCESSOR)
+            const sql = nextScriptData.script.toString();
+            if (nextScriptData.folderName === '' || nextScriptData.fileName === '') {
+                storage?.write(
+                    groupDraftWrites(nextState.sessionId),
+                    { type: WRITE_NOTEBOOK_DRAFT, value: [nextState.sessionId, sql] },
+                    DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                );
+            } else {
+                storage?.write(
+                    groupScriptWrites(nextState.sessionId, nextScriptData.folderName, nextScriptData.fileName),
+                    { type: WRITE_NOTEBOOK_SCRIPT, value: [nextState.sessionId, nextScriptData.folderName, nextScriptData.fileName, sql] },
+                    DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                );
+            }
+            return nextState;
+        }
+
+        case CREATE_NOTEBOOK_ENTRY_WITH_TEXT: {
+            const page = getSelectedPage(state);
+            if (!page) return state;
+
+            const { text } = action.value;
+            const folderName = page.folderName;
+            const fileName = generateScriptFileName(page.scripts);
+
+            // Create a new script seeded with the provided text
+            const script = state.instance.createScript(state.connectionCatalog);
+            const scriptKey = script.getCatalogEntryId();
+            script.replaceText(text);
+
+            let scriptData: ScriptData = {
+                scriptKey,
+                script,
+                scriptAnalysis: {
+                    buffers: {
+                        parsed: null,
+                        analyzed: null,
+                        destroy: () => { },
+                    },
+                    outdated: true,
+                },
+                statistics: Immutable.List(),
+                annotations: createEmptyAnnotations(),
+                cursor: null,
+                completion: null,
+                latestQueryId: null,
+                fileName,
+                folderName,
+            };
+
+            const entry: NotebookPageScript = createPageScript(scriptKey, fileName);
+            const newPage: NotebookPage = {
+                ...page,
+                scripts: { ...page.scripts, [fileName]: entry },
+            };
+            const newPages: NotebookPageMap = { ...state.notebookPages, [folderName]: newPage };
+            const newScripts: ScriptDataMap = { ...state.scripts, [scriptKey]: scriptData };
+
+            // Analyze before persisting so annotations (incl. resolved visualizeQuery for a
+            // SCRIPT_REFERENCE to an existing entry) are ready. The lookup spans the new
+            // page/script maps so cross-script references resolve.
+            scriptData = analyzeNotebookScript(scriptData, state.scriptRegistry, state.connectionCatalog, makeScriptLookup(newPages, newScripts), logger);
+            newScripts[scriptKey] = scriptData;
+
+            const next: NotebookState = {
+                ...clearSemanticUserFocus(state),
+                scripts: newScripts,
+                notebookPages: newPages,
+                notebookUserFocus: { ...state.notebookUserFocus, fileName },
+            };
+            const sql = scriptData.script.toString();
+            storage?.write(
+                groupScriptWrites(next.sessionId, folderName, fileName),
+                { type: WRITE_NOTEBOOK_SCRIPT, value: [next.sessionId, folderName, fileName, sql] },
+                DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+            );
+            return next;
+        }
     }
 }
 
@@ -1034,6 +1150,46 @@ export function makeScriptLookup(pages: NotebookPageMap, scripts: ScriptDataMap)
     };
 }
 
+/// Resolve the executable SQL text for a script.
+///
+/// For a VISUALIZE statement this is the extracted inner query (Hyper does not
+/// understand the `visualize` keyword); for any other statement it is the raw
+/// script text.
+///
+/// Scripts are analyzed eagerly at load (see analyzeAllScriptsInNotebook) and
+/// kept analyzed as they are edited, so the cached `annotations.visualizeQuery`
+/// is the normal source of truth here.
+///
+/// The synchronous re-analyze below is only a defensive fallback for the rare
+/// case of a script that has never been analyzed yet (e.g. created mid-session
+/// and neither rendered in an editor nor edited). We must NOT fall back to the
+/// raw script text instead: that would send `visualize (...)` verbatim to the
+/// backend, which is exactly the bug eager analysis exists to prevent. These
+/// fallback buffers are deliberately throwaway — they are analyzed without
+/// setNotebookPath() and are WASM pointers owned and freed here, so they must
+/// not be handed back into the reducer.
+export function getExecutableQueryText(notebook: NotebookState, scriptData: ScriptData): string {
+    const scriptText = scriptData.script.toString();
+
+    // Analyzed copy available? Trust the cached annotation.
+    if (scriptData.scriptAnalysis.buffers.analyzed) {
+        return scriptData.annotations.visualizeQuery?.sql ?? scriptText;
+    }
+
+    // Never analyzed: resolve on demand so we don't send un-extracted text.
+    const buffers = analyzeScript(scriptData.script);
+    try {
+        const resolved = resolveVisualizeQuery(
+            buffers,
+            scriptText,
+            makeScriptLookup(notebook.notebookPages, notebook.scripts),
+        );
+        return resolved?.sql ?? scriptText;
+    } finally {
+        buffers.destroy(buffers);
+    }
+}
+
 export function analyzeNotebookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, scriptLookup: ScriptTextByPath, _logger: Logger): ScriptData {
     const next: ScriptData = { ...scriptData };
     next.scriptAnalysis.buffers.destroy(next.scriptAnalysis.buffers);
@@ -1093,4 +1249,87 @@ export function analyzeOutdatedScriptInNotebook<V extends NotebookStateWithoutId
         next.semanticUserFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, nextScriptData);
     }
     return next;
+}
+
+/// Progress hooks for analyzeAllScriptsInNotebook.
+///
+/// The work is synchronous, so these fire while the caller is blocked — they are
+/// for driving a ProgressCounter (accurate per-script accounting), not for
+/// repainting mid-loop.
+export interface AnalyzeAllScriptsProgress {
+    /// Reports how many scripts will be analyzed, before any work starts.
+    onScriptCount?: (count: number) => void;
+    /// Reports the outcome of a single script once both passes are done.
+    onScriptDone?: (ok: boolean) => void;
+}
+
+/// Returns notebook script keys in script-feed order: pages top-down (sorted
+/// folders, then sorted files within each), followed by the uncommitted composer
+/// script. Any scripts not reachable through the pages/composer are appended so
+/// none are silently dropped.
+export function getScriptKeysInFeedOrder<V extends NotebookStateWithoutId>(state: V): number[] {
+    const ordered: number[] = [];
+    const seen = new Set<number>();
+    const push = (scriptKey: number) => {
+        if (state.scripts[scriptKey] != null && !seen.has(scriptKey)) {
+            seen.add(scriptKey);
+            ordered.push(scriptKey);
+        }
+    };
+    for (const folder of getSortedFolderNames(state.notebookPages)) {
+        const page = state.notebookPages[folder];
+        for (const fileName of getSortedFileNames(page)) {
+            push(page.scripts[fileName].scriptId);
+        }
+    }
+    if (state.uncommittedScriptId !== 0) {
+        push(state.uncommittedScriptId);
+    }
+    // Backstop: include any remaining scripts (e.g. orphaned) so analysis covers them.
+    for (const key in state.scripts) {
+        push(+key);
+    }
+    return ordered;
+}
+
+/// Analyze every script in a notebook eagerly, in a single top-down pass.
+///
+/// This is meant to be run once at load time so that every script has at least
+/// one analyzed copy (and derived annotations, incl. the resolved VISUALIZE
+/// query) before the user can interact with it. Without this, scripts start out
+/// `outdated` with `analyzed: null` and only get analyzed lazily (when rendered
+/// in an editor, edited, or executed) — which is what caused the first-run
+/// VISUALIZE bug where the raw `visualize (...)` text was sent to the backend.
+///
+/// Scripts are analyzed in script-feed order (top-down). Notebook references
+/// point upward — a script references entries declared above it in the feed — so
+/// by the time we analyze a script, every script it depends on has already been
+/// analyzed and loaded into the catalog. A single pass therefore resolves
+/// cross-script references (qualified-name table refs, SCRIPT_REFERENCE
+/// visualizations) without a second reconciliation pass. The catalog must
+/// already be populated (schema loaded) when this is called.
+///
+/// Failures are isolated per script: one un-analyzable script is logged and
+/// reported via `progress.onScriptDone(false)` but does not abort analysis of
+/// the rest of the notebook.
+export function analyzeAllScriptsInNotebook<V extends NotebookStateWithoutId>(state: V, logger: Logger, progress?: AnalyzeAllScriptsProgress): V {
+    const scripts = { ...state.scripts };
+    const orderedKeys = getScriptKeysInFeedOrder(state);
+    progress?.onScriptCount?.(orderedKeys.length);
+
+    // The text-based lookup used for SCRIPT_REFERENCE sources is independent of
+    // analysis, so one lookup over the (shared) script objects covers the pass.
+    const scriptLookup = makeScriptLookup(state.notebookPages, scripts);
+
+    for (const scriptKey of orderedKeys) {
+        let ok = false;
+        try {
+            scripts[scriptKey] = analyzeNotebookScript(scripts[scriptKey], state.scriptRegistry, state.connectionCatalog, scriptLookup, logger);
+            ok = true;
+        } catch (e) {
+            logger.warn("Failed to analyze notebook script", { scriptKey: scriptKey.toString(), error: stringifyError(e) }, LOG_CTX);
+        }
+        progress?.onScriptDone?.(ok);
+    }
+    return { ...state, scripts };
 }

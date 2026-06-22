@@ -33,6 +33,7 @@ export async function loadApp(config: AppConfig, logger: TracedLogger, core: das
         restoreConnections: new ProgressCounter(),
         restoreCatalogs: new ProgressCounter(),
         restoreNotebooks: new ProgressCounter(),
+        analyzeNotebooks: new ProgressCounter(),
         setupDefaultConnections: new ProgressCounter(1),
         setupDefaultNotebooks: new ProgressCounter(1),
     };

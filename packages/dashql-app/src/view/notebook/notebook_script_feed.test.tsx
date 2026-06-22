@@ -85,7 +85,14 @@ function createOnlineConnection(): ConnectionState {
 function makeScriptData(scriptKey: number, text: string, fileName: string = '', folderName: string = '') {
     return {
         scriptKey,
-        script: { toString: () => text } as any,
+        // getExecutableQueryText falls back to re-analyzing on demand when no
+        // analyzed buffer is cached, so stub the analyze surface it touches.
+        script: {
+            toString: () => text,
+            analyze: () => { },
+            getParsed: () => null,
+            getAnalyzed: () => null,
+        } as any,
         scriptAnalysis: {
             buffers: {
                 parsed: null,
