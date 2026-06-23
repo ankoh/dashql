@@ -11,6 +11,7 @@
 #include "dashql/exception.h"
 #include "dashql/script.h"
 #include "dashql/view/plan_view_model.h"
+#include "dashql/visualize/vegalite.h"
 
 using namespace dashql;
 using namespace dashql::parser;
@@ -302,6 +303,17 @@ extern "C" void dashql_catalog_get_statistics(FFIResult* result, dashql::Catalog
     // Return the buffer
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     packBuffer(result, std::move(detached));
+}
+
+/// Transcode a (constrained) Vega-Lite JSON spec into a VISUALIZE statement
+extern "C" void dashql_parse_vegalite_to_visualize(FFIResult* result, const char* json_ptr, size_t json_length) {
+    std::unique_ptr<const char[]> json_buffer{json_ptr};
+    std::string json = (json_ptr && json_length > 0) ? std::string(json_ptr, json_length) : std::string{};
+    auto text = std::make_unique<std::string>(visualize::ParseVegaLiteToVisualize(json));
+    result->data_ptr = text->data();
+    result->data_length = text->length();
+    result->owner_ptr = text.release();
+    result->owner_deleter = [](void* buffer) { delete reinterpret_cast<std::string*>(buffer); };
 }
 
 /// Create a script registry

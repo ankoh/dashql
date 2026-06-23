@@ -107,6 +107,12 @@ extern "C" void dashql_catalog_get_statistics(FFIResult* result, dashql::Catalog
 
 // -----------------------------------------------------------------------------
 
+/// Transcode a (constrained) Vega-Lite JSON spec into a VISUALIZE statement.
+/// The result string is owned by the FFIResult and must be released via dashql_delete_owner.
+extern "C" void dashql_parse_vegalite_to_visualize(FFIResult* result, const char* json_ptr, size_t json_length);
+
+// -----------------------------------------------------------------------------
+
 /// Create a script registry
 extern "C" void dashql_script_registry_new(FFIResult* result);
 /// Clear a registry

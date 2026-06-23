@@ -50,6 +50,7 @@ interface EmscriptenModule {
     _dashql_catalog_describe_entries: (result: number, catalog_ptr: number) => void;
     _dashql_catalog_describe_entries_of: (result: number, catalog_ptr: number, external_id: number) => void;
     _dashql_catalog_flatten: (result: number, catalog_ptr: number) => void;
+    _dashql_parse_vegalite_to_visualize: (result: number, json: number, json_length: number) => void;
     _dashql_catalog_load_script: (catalog_ptr: number, script_ptr: number, rank: number) => void;
     _dashql_catalog_update_script: (catalog_ptr: number, script_ptr: number) => number;
     _dashql_catalog_drop_script: (catalog_ptr: number, script_ptr: number) => void;
@@ -99,6 +100,7 @@ interface DashQLModuleExports {
     dashql_catalog_describe_entries: (result: number, catalog_ptr: number) => void;
     dashql_catalog_describe_entries_of: (result: number, catalog_ptr: number, external_id: number) => void;
     dashql_catalog_flatten: (result: number, catalog_ptr: number) => void;
+    dashql_parse_vegalite_to_visualize: (result: number, json: number, json_length: number) => void;
     dashql_catalog_load_script: (catalog_ptr: number, script_ptr: number, rank: number) => void;
     dashql_catalog_update_script: (catalog_ptr: number, script_ptr: number) => number;
     dashql_catalog_drop_script: (catalog_ptr: number, script_ptr: number) => void;
@@ -235,6 +237,7 @@ export class DashQL {
             dashql_catalog_describe_entries: module._dashql_catalog_describe_entries,
             dashql_catalog_describe_entries_of: module._dashql_catalog_describe_entries_of,
             dashql_catalog_flatten: module._dashql_catalog_flatten,
+            dashql_parse_vegalite_to_visualize: module._dashql_parse_vegalite_to_visualize,
             dashql_catalog_load_script: module._dashql_catalog_load_script,
             dashql_catalog_update_script: module._dashql_catalog_update_script,
             dashql_catalog_drop_script: module._dashql_catalog_drop_script,
@@ -477,6 +480,16 @@ export class DashQL {
         // Clean up the owner
         this.instanceExports.dashql_delete_owner(result.owner_ptr, result.owner_deleter);
         return text;
+    }
+
+    /// Transcode a (constrained) Vega-Lite JSON spec into a VISUALIZE statement.
+    /// Returns an empty string if the JSON is malformed. The source clause is derived from the
+    /// spec's `data` member (see `ParseVegaLiteToVisualize` in `vegalite_parser.cc`).
+    public parseVegaLiteToVisualize(vegaLiteJson: string): string {
+        const [jsonBegin, jsonLength] = this.copyString(vegaLiteJson);
+        return this.readStringResult((resultPtr) =>
+            this.instanceExports.dashql_parse_vegalite_to_visualize(resultPtr, jsonBegin, jsonLength),
+        );
     }
 }
 

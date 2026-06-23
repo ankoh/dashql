@@ -38,6 +38,7 @@ import { VersionCheck } from './platform/version/version_check.js';
 import { NotebookCommands } from './notebook/notebook_commands.js';
 import { NotebookPage } from './view/notebook/notebook_page.js';
 import { NotebookStateRegistry } from './notebook/notebook_state_registry.js';
+import { AgentLoopProvider } from './notebook/agent/agent_loop_provider.js';
 import { getGlobalLogger, LoggerProvider } from './platform/logger/logger_provider.js';
 import { stringifyError } from './platform/logger/logger.js';
 import { DuckDBProvider } from './platform/duckdb/duckdb_provider.js';
@@ -62,11 +63,13 @@ const NotebookProviders = (props: { children: React.ReactElement }) => (
                         <QueryExecutorProvider>
                             <NotebookStateRegistry>
                                 <CatalogLoaderProvider>
-                                    <NotebookCommands>
-                                        <AppLoader>
-                                            {props.children}
-                                        </AppLoader>
-                                    </NotebookCommands>
+                                    <AgentLoopProvider>
+                                        <NotebookCommands>
+                                            <AppLoader>
+                                                {props.children}
+                                            </AppLoader>
+                                        </NotebookCommands>
+                                    </AgentLoopProvider>
                                 </CatalogLoaderProvider>
                             </NotebookStateRegistry>
                         </QueryExecutorProvider>

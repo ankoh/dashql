@@ -14,7 +14,11 @@ import type { RowComponentProps } from 'react-window';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
-import { getExecutableQueryText, getSelectedPage, getSelectedPageEntries, getUncommittedScriptData, REGISTER_QUERY, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
+import { getExecutableQueryText, getSelectedEntry, getSelectedPage, getSelectedPageEntries, getUncommittedScriptData, REGISTER_QUERY, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
+import { useAIClient } from '../../platform/ai_client_provider.js';
+import { useAgentLoopState, useRunAgentLoop, useCancelAgentLoop } from '../../notebook/agent/agent_loop_provider.js';
+import { AgentLoopPhase, agentLoopIsActive, agentLoopPhaseLabel } from '../../notebook/agent/agent_loop_state.js';
+import type { AgentIntent } from '../../notebook/agent/agent_loop_state.js';
 import { QueryType } from '../../connection/query_execution_state.js';
 import { useQueryExecutor, useQueryState } from '../../connection/query_executor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
@@ -265,7 +269,26 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const entries = getSelectedPageEntries(props.notebook);
     const pendingScrollToBottomRef = React.useRef(false);
     const [composeEditorView, setComposeEditorView] = React.useState<EditorView | null>(null);
-    const [inputMode, setInputMode] = React.useState<number>(0); // 0 = SQL, 1 = Natural Language
+    const [inputMode, setInputMode] = React.useState<number>(0); // 0 = SQL, 1 = Natural Language (AI)
+
+    // The AI compose mode is only available when an AI provider is configured.
+    const aiClient = useAIClient();
+    const aiAvailable = aiClient != null;
+    const sessionId = props.notebook.sessionId;
+    const runAgentLoop = useRunAgentLoop();
+    const cancelAgentLoop = useCancelAgentLoop();
+    const agentState = useAgentLoopState(sessionId);
+    const agentActive = agentState != null && agentLoopIsActive(agentState.phase);
+
+    // The user's manual SQL/Chart sub-toggle override (null = let the model classify).
+    const [intentOverride, setIntentOverride] = React.useState<AgentIntent | null>(null);
+
+    // If the provider becomes unavailable while in AI mode, fall back to SQL.
+    React.useEffect(() => {
+        if (!aiAvailable && inputMode === 1) {
+            setInputMode(0);
+        }
+    }, [aiAvailable, inputMode]);
 
     const handleFocus = React.useCallback((fileName: string) => {
         props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
@@ -328,6 +351,38 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         }
     }, [props.notebook, props.modifyNotebook, executeOnSend, isDisconnected, executeQuery]);
 
+    // Send the compose editor's text to the agent loop as a natural-language prompt.
+    // The focused feed entry is the context + default in-place target.
+    const handleSendAI = React.useCallback(() => {
+        if (!aiAvailable) return;
+        const prompt = composeEditorView?.state.doc.toString().trim() ?? '';
+        if (prompt.length === 0) return;
+        const focusedEntry = getSelectedEntry(props.notebook);
+        const contextScriptKey = focusedEntry?.scriptId ?? null;
+        runAgentLoop({
+            sessionId: props.notebook.sessionId,
+            prompt,
+            contextScriptKey,
+            intentOverride,
+            notebook: props.notebook,
+            modifyNotebook: props.modifyNotebook,
+        });
+        // Clear the prompt so the next instruction starts fresh.
+        if (composeEditorView) {
+            composeEditorView.dispatch({
+                changes: { from: 0, to: composeEditorView.state.doc.length, insert: '' },
+            });
+        }
+    }, [aiAvailable, composeEditorView, props.notebook, props.modifyNotebook, runAgentLoop, intentOverride]);
+
+    const handleComposeSend = React.useCallback(() => {
+        if (inputMode === 1) {
+            handleSendAI();
+        } else {
+            handleSend();
+        }
+    }, [inputMode, handleSendAI, handleSend]);
+
     const handleDelete = React.useCallback((fileName: string) => {
         props.modifyNotebook({ type: DELETE_NOTEBOOK_ENTRY, value: fileName });
     }, [props.modifyNotebook]);
@@ -346,7 +401,21 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                     return;
                 }
                 event.preventDefault();
-                handleSend();
+                handleComposeSend();
+            },
+        },
+        {
+            // Tab toggles the compose editor between SQL and AI mode when an AI
+            // provider is configured. We capture it so it pre-empts CodeMirror's
+            // default indent. With no provider it falls through to the editor.
+            key: 'Tab',
+            capture: true,
+            callback: (event: KeyboardEvent) => {
+                if (!composeEditorView?.hasFocus || !aiAvailable) {
+                    return;
+                }
+                event.preventDefault();
+                setInputMode((mode) => (mode === 0 ? 1 : 0));
             },
         },
         {
@@ -364,7 +433,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                 event.stopPropagation();
             },
         },
-    ], [composeEditorView, handleSend]);
+    ], [composeEditorView, handleComposeSend, aiAvailable]);
     useKeyEvents(keyHandlers);
 
     // Height cache for variable-height rows
@@ -517,35 +586,83 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                             <SegmentedControl.Button
                                 leadingVisual={SparklesFillIcon}
                                 selected={inputMode === 1}
-                                disabled
+                                disabled={!aiAvailable}
+                                title={aiAvailable ? 'Tab to toggle' : 'Configure an AI provider in settings'}
                             >
                                 AI
                             </SegmentedControl.Button>
                         </SegmentedControl>
                         <div className={styles.compose_send_group}>
-                            <SegmentedControl
-                                aria-label="Save mode"
-                                size={SegmentedControlSize.Small}
-                                onChange={(index) => setExecuteOnSend(index === 1)}
-                            >
-                                <SegmentedControl.Button selected={!executeOnSend}>
-                                    Save
-                                </SegmentedControl.Button>
-                                <SegmentedControl.Button selected={executeOnSend} disabled={isDisconnected}>
-                                    Execute
-                                </SegmentedControl.Button>
-                            </SegmentedControl>
+                            {inputMode === 1 ? (
+                                <SegmentedControl
+                                    aria-label="Agent intent"
+                                    size={SegmentedControlSize.Small}
+                                    onChange={(index) => setIntentOverride(index === 0 ? 'sql' : 'visualize')}
+                                >
+                                    <SegmentedControl.Button
+                                        selected={(intentOverride ?? agentState?.intent ?? 'sql') === 'sql'}
+                                    >
+                                        Query
+                                    </SegmentedControl.Button>
+                                    <SegmentedControl.Button
+                                        selected={(intentOverride ?? agentState?.intent) === 'visualize'}
+                                    >
+                                        Chart
+                                    </SegmentedControl.Button>
+                                </SegmentedControl>
+                            ) : (
+                                <SegmentedControl
+                                    aria-label="Save mode"
+                                    size={SegmentedControlSize.Small}
+                                    onChange={(index) => setExecuteOnSend(index === 1)}
+                                >
+                                    <SegmentedControl.Button selected={!executeOnSend}>
+                                        Save
+                                    </SegmentedControl.Button>
+                                    <SegmentedControl.Button selected={executeOnSend} disabled={isDisconnected}>
+                                        Execute
+                                    </SegmentedControl.Button>
+                                </SegmentedControl>
+                            )}
                             <IconButton
                                 variant={ButtonVariant.Default}
                                 size={ButtonSize.Small}
                                 className={styles.compose_send_button}
-                                aria-label={executeOnSend ? 'Save & Execute' : 'Save'}
-                                onClick={handleSend}
+                                aria-label={inputMode === 1 ? 'Send to AI' : (executeOnSend ? 'Save & Execute' : 'Save')}
+                                disabled={inputMode === 1 && agentActive}
+                                onClick={handleComposeSend}
                             >
                                 <PaperAirplaneIcon />
                             </IconButton>
                         </div>
                     </div>
+                    {inputMode === 1 && agentState != null && agentState.phase !== AgentLoopPhase.IDLE && (
+                        <div className={styles.compose_status_strip}>
+                            <span className={styles.compose_status_phase}>
+                                {agentLoopPhaseLabel(agentState.phase)}
+                            </span>
+                            {agentActive && agentState.attempt > 0 && (
+                                <span className={styles.compose_status_attempt}>
+                                    attempt {agentState.attempt}/{agentState.maxAttempts}
+                                </span>
+                            )}
+                            {agentState.phase === AgentLoopPhase.FAILED && agentState.error && (
+                                <span className={styles.compose_status_error} title={agentState.error}>
+                                    {agentState.error}
+                                </span>
+                            )}
+                            <span className={styles.compose_status_spacer} />
+                            {agentActive && (
+                                <button
+                                    type="button"
+                                    className={styles.compose_status_cancel}
+                                    onClick={() => cancelAgentLoop(sessionId)}
+                                >
+                                    Cancel
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
