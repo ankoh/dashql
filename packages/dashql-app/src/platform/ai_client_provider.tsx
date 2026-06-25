@@ -29,12 +29,19 @@ export const AIClientProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const httpClient = useHttpClient();
     const config = useAppConfig();
-    const settings = resolveAIClientSettings(config?.settings?.aiProvider);
+    // Only expose a client once the user has actually configured an AI provider. The app ships
+    // without an `aiProvider` block, so a missing endpoint means "not configured" — in that case
+    // useAIClient() stays null, which is how AI-mode features (Switch Mode, the agent loop) gate
+    // themselves. We key off the raw stored endpoint rather than the resolved settings so the
+    // localhost default doesn't make AI look configured when it isn't.
+    const stored = config?.settings?.aiProvider;
+    const configured = (stored?.endpointUrl ?? '').trim().length > 0;
+    const settings = resolveAIClientSettings(stored);
 
     const client = React.useMemo<AIClient | null>(() => {
-        if (logger == null || httpClient == null) return null;
+        if (logger == null || httpClient == null || !configured) return null;
         return new AIClient(logger, httpClient, settings);
-    }, [logger, httpClient, settings.endpointUrl, settings.model, settings.headers]);
+    }, [logger, httpClient, configured, settings.endpointUrl, settings.model, settings.headers]);
 
     return <CLIENT_CTX.Provider value={client}>{props.children}</CLIENT_CTX.Provider>;
 };
