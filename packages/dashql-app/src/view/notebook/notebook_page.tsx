@@ -129,6 +129,15 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                         return;
                     }
                     if (showDetails) return;
+                    // Only leave for the session selector when nothing holds focus. If the user
+                    // is in the compose editor (SQL/AI mode) or has tabbed onto a button, Escape
+                    // should first surrender that focus; a second Escape — with nothing focused —
+                    // then navigates back to the session selector.
+                    const active = document.activeElement as HTMLElement | null;
+                    if (active && active !== document.body && active !== document.documentElement) {
+                        active.blur();
+                        return;
+                    }
                     navigate({ type: CHANGE_SESSION, value: null });
                 },
             },
