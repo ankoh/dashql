@@ -46,7 +46,7 @@ export const COMPOSE_INPUT_MODE_SQL = 0;
 export const COMPOSE_INPUT_MODE_AI = 1;
 
 /// The requested compose input mode lives here rather than in the script feed, so the
-/// "Switch Mode" command and the Ctrl+N shortcut (dispatched from outside the feed) can drive
+/// "Switch Mode" command and the Ctrl+M shortcut (dispatched from outside the feed) can drive
 /// it directly. The feed is just a consumer. Hoisting it here also means the mode persists when
 /// the feed is replaced by the details view and restored.
 export interface ComposeInputModeContextValue {
@@ -269,7 +269,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                 callback: () => commandDispatch(NotebookCommandType.SelectNextNotebookPage),
             },
             {
-                key: 'n',
+                key: 'm',
                 ctrlKey: true,
                 callback: () => commandDispatch(NotebookCommandType.ToggleComposeInputMode),
             },

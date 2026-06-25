@@ -134,7 +134,7 @@ export const NotebookCommandList: React.FC<{
                 <ActionList.ItemText>
                     Switch Mode
                 </ActionList.ItemText>
-                <ActionList.Trailing>Ctrl + N</ActionList.Trailing>
+                <ActionList.Trailing>Ctrl + M</ActionList.Trailing>
             </ActionList.ListItem>
             <ActionList.ListItem onClick={() => openLinkSharing(s => !s)}>
                 <ActionList.Leading>

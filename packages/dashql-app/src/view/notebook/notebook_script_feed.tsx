@@ -271,7 +271,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const pendingScrollToBottomRef = React.useRef(false);
     const [composeEditorView, setComposeEditorView] = React.useState<EditorView | null>(null);
     // The SQL/AI input mode is hoisted into the command context so the "Switch Mode" command
-    // and the Ctrl+N shortcut can drive it from outside the feed.
+    // and the Ctrl+M shortcut can drive it from outside the feed.
     const { mode: inputMode, setMode: setInputMode } = useComposeInputMode();
     // SQL and AI use two distinct editor instances. When a toggle swaps them, the freshly
     // mounted editor should inherit focus so the keyboard flow continues uninterrupted.
@@ -290,7 +290,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const agentState = useAgentLoopState(sessionId);
     const agentActive = agentState != null && agentLoopIsActive(agentState.phase);
 
-    // When the input mode changes (via Ctrl+N, the "Switch Mode" command, or the toggle in the
+    // When the input mode changes (via Ctrl+M, the "Switch Mode" command, or the toggle in the
     // action bar) the editor instance swaps. Request that the freshly mounted editor take focus.
     // Derived during render so the ref is set before the new editor reports its view below.
     const prevInputModeRef = React.useRef(inputMode);
@@ -426,6 +426,27 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             },
         },
         {
+            // Plain Enter, while browsing the feed with nothing focused, opens the
+            // details of the currently focused entry. If the compose editor (SQL/AI),
+            // a rename input, or any other element holds focus, Enter belongs to it —
+            // bail out and let it handle the key. The feed is only mounted when details
+            // are hidden, so this handler is naturally scoped to the feed view.
+            key: 'Enter',
+            ctrlKey: false,
+            capture: true,
+            callback: (event: KeyboardEvent) => {
+                const active = document.activeElement as HTMLElement | null;
+                if (active && active !== document.body && active !== document.documentElement) {
+                    return;
+                }
+                if (entries.length === 0) {
+                    return;
+                }
+                event.preventDefault();
+                props.showDetails();
+            },
+        },
+        {
             // Ctrl+E executes the selected feed entry globally. Suppress it
             // while the compose editor is focused so it doesn't run a
             // background entry the user isn't looking at — Ctrl+Enter is
@@ -440,7 +461,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                 event.stopPropagation();
             },
         },
-    ], [composeEditorView, handleComposeSend]);
+    ], [composeEditorView, handleComposeSend, entries.length, props.showDetails]);
     useKeyEvents(keyHandlers);
 
     // Height cache for variable-height rows
@@ -607,7 +628,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                                 leadingVisual={SparklesFillIcon}
                                 selected={inputMode === 1}
                                 disabled={!aiAvailable}
-                                title={aiAvailable ? 'Ctrl + N to toggle' : 'Configure an AI provider in settings'}
+                                title={aiAvailable ? 'Ctrl + M to toggle' : 'Configure an AI provider in settings'}
                             >
                                 AI
                             </SegmentedControl.Button>
