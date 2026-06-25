@@ -248,26 +248,11 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         : () => commandDispatch(NotebookCommandType.SaveQueryResultsAsArrow),
                 ),
             },
-            {
-                key: 'k',
-                ctrlKey: true,
-                callback: () => commandDispatch(NotebookCommandType.SelectPreviousNotebookScript),
-            },
-            {
-                key: 'j',
-                ctrlKey: true,
-                callback: () => commandDispatch(NotebookCommandType.SelectNextNotebookScript),
-            },
-            {
-                key: 'h',
-                ctrlKey: true,
-                callback: () => commandDispatch(NotebookCommandType.SelectPreviousNotebookPage),
-            },
-            {
-                key: 'l',
-                ctrlKey: true,
-                callback: () => commandDispatch(NotebookCommandType.SelectNextNotebookPage),
-            },
+            // Ctrl+H / Ctrl+L (page-bar navigation) and Ctrl+J / Ctrl+K (feed navigation) are
+            // handled in NotebookPage, where the meta tabs (relations/functions) and the
+            // editing/details view state are in scope. They fold the meta tabs into the same
+            // left/right stepping and become no-ops when the feed isn't showing. They are
+            // intentionally not bound here to avoid double-handling the key.
             {
                 key: 'm',
                 ctrlKey: true,

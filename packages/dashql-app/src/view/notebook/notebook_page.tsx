@@ -12,7 +12,7 @@ import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js'
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
-import { CREATE_PAGE, SELECT_PAGE, UPDATE_PAGE_FOLDER_NAME, getSortedFolderNames } from '../../notebook/notebook_state.js';
+import { CREATE_PAGE, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE, UPDATE_PAGE_FOLDER_NAME, getSortedFolderNames } from '../../notebook/notebook_state.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
@@ -141,8 +141,69 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     navigate({ type: CHANGE_SESSION, value: null });
                 },
             },
+            // Tab navigation across the combined bar: [page tabs..., relations, functions].
+            // The meta tabs (relations/functions) only exist when a connection is present, so they
+            // are only reachable then. Stepping past the last page tab jumps to the first meta tab,
+            // and stepping left off the first meta tab returns to the last page tab.
+            {
+                key: 'l',
+                ctrlKey: true,
+                callback: () => {
+                    if (editingFolder !== null || notebook == null) return;
+                    if (catalogTab === 'functions') return; // already the right-most tab
+                    if (catalogTab === 'relations') { setCatalogTab('functions'); return; }
+                    // Currently on a page tab; step into the meta tabs only from the last page.
+                    const folders = getSortedFolderNames(notebook.notebookPages);
+                    const cur = folders.indexOf(notebook.notebookUserFocus.folderName);
+                    if (conn && folders.length > 0 && cur === folders.length - 1) {
+                        setCatalogTab('relations');
+                        setShowDetails(true);
+                        return;
+                    }
+                    modifyNotebook({ type: SELECT_NEXT_PAGE, value: null });
+                },
+            },
+            {
+                key: 'h',
+                ctrlKey: true,
+                callback: () => {
+                    if (editingFolder !== null || notebook == null) return;
+                    if (catalogTab === 'functions') { setCatalogTab('relations'); return; }
+                    if (catalogTab === 'relations') {
+                        // Stepping left off the first meta tab lands on the last page tab.
+                        const folders = getSortedFolderNames(notebook.notebookPages);
+                        setCatalogTab(null);
+                        setShowDetails(false);
+                        const last = folders[folders.length - 1];
+                        if (last != null && last !== notebook.notebookUserFocus.folderName) {
+                            modifyNotebook({ type: SELECT_PAGE, value: last });
+                        }
+                        return;
+                    }
+                    modifyNotebook({ type: SELECT_PREV_PAGE, value: null });
+                },
+            },
+            // Feed navigation: step the selected entry within the current page. Only meaningful
+            // when the feed is showing, so it is a no-op while a meta tab is open or a page title
+            // is being edited (mirrors the page-bar handlers above).
+            {
+                key: 'j',
+                ctrlKey: true,
+                callback: () => {
+                    if (editingFolder !== null || catalogTab != null || notebook == null) return;
+                    modifyNotebook({ type: SELECT_NEXT_ENTRY, value: null });
+                },
+            },
+            {
+                key: 'k',
+                ctrlKey: true,
+                callback: () => {
+                    if (editingFolder !== null || catalogTab != null || notebook == null) return;
+                    modifyNotebook({ type: SELECT_PREV_ENTRY, value: null });
+                },
+            },
         ],
-        [catalogTab, showDetails, editingFolder, notebook, modifyNotebook, navigate],
+        [catalogTab, showDetails, editingFolder, notebook, modifyNotebook, navigate, conn],
     );
     useKeyEvents(keyHandlers);
 
