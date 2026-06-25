@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ActionList from '../foundations/action_list.js';
-import { LinkIcon, SyncIcon } from '@primer/octicons-react';
+import { LinkIcon, SparklesFillIcon, SyncIcon } from '@primer/octicons-react';
 
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
@@ -10,6 +10,7 @@ import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { NotebookFileSaveOverlay } from './notebook_file_save_overlay.js';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
+import { useAIClient } from '../../platform/ai_client_provider.js';
 
 export const ConnectionCommandList: React.FC<{
     conn: ConnectionState | null;
@@ -57,6 +58,7 @@ export const NotebookCommandList: React.FC<{
     const [linkSharingIsOpen, openLinkSharing] = React.useState<boolean>(false);
     const [fileSaveIsOpen, openFileSave] = React.useState<boolean>(false);
     const notebookCommand = useNotebookCommandDispatch();
+    const aiAvailable = useAIClient() != null;
 
     const ArrowDownIcon = SymbolIcon('arrow_down_16');
     const ArrowUpIcon = SymbolIcon('arrow_up_16');
@@ -121,6 +123,18 @@ export const NotebookCommandList: React.FC<{
                     Next Script
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + J</ActionList.Trailing>
+            </ActionList.ListItem>
+            <ActionList.ListItem
+                onClick={() => notebookCommand(NotebookCommandType.ToggleComposeInputMode)}
+                disabled={!aiAvailable}
+            >
+                <ActionList.Leading>
+                    <SparklesFillIcon />
+                </ActionList.Leading>
+                <ActionList.ItemText>
+                    Switch Mode
+                </ActionList.ItemText>
+                <ActionList.Trailing>Ctrl + N</ActionList.Trailing>
             </ActionList.ListItem>
             <ActionList.ListItem onClick={() => openLinkSharing(s => !s)}>
                 <ActionList.Leading>

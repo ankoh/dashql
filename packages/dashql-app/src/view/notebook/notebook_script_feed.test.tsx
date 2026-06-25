@@ -41,10 +41,19 @@ vi.mock('../../utils/key_events.js', () => ({
         mockState.keyHandlers = handlers;
     },
 }));
-vi.mock('../../notebook/notebook_commands.js', () => ({
-    NotebookCommandType: { ExecuteEditorQuery: 1 },
-    useNotebookCommandDispatch: () => () => { },
-}));
+vi.mock('../../notebook/notebook_commands.js', async () => {
+    const React = await import('react');
+    return {
+        NotebookCommandType: { ExecuteEditorQuery: 1 },
+        useNotebookCommandDispatch: () => () => { },
+        // The feed consumes the compose input mode from the command context; back it with
+        // local state so the SQL/AI toggle works in isolation.
+        useComposeInputMode: () => {
+            const [mode, setMode] = React.useState(0);
+            return { mode, setMode };
+        },
+    };
+});
 vi.mock('../../connection/query_executor.js', () => ({
     useQueryState: (_sessionId: string | null, queryId: number | null) => {
         if (queryId == null) return null;

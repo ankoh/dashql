@@ -16,13 +16,14 @@ import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js'
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
 import { getExecutableQueryText, getSelectedEntry, getSelectedPage, getSelectedPageEntries, getUncommittedScriptData, REGISTER_QUERY, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
 import { useAIClient } from '../../platform/ai_client_provider.js';
+import { useComposeInputMode } from '../../notebook/notebook_commands.js';
 import { useAgentLoopState, useRunAgentLoop, useCancelAgentLoop } from '../../notebook/agent/agent_loop_provider.js';
 import { AgentLoopPhase, agentLoopIsActive, agentLoopPhaseLabel } from '../../notebook/agent/agent_loop_state.js';
-import type { AgentIntent } from '../../notebook/agent/agent_loop_state.js';
 import { QueryType } from '../../connection/query_execution_state.js';
 import { useQueryExecutor, useQueryState } from '../../connection/query_executor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { ScriptEditor } from './script_editor.js';
+import { PromptEditor } from './prompt_editor.js';
 import { ScriptPreview } from './notebook_script_preview.js';
 import { observeSize } from '../foundations/size_observer.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
@@ -269,7 +270,16 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const entries = getSelectedPageEntries(props.notebook);
     const pendingScrollToBottomRef = React.useRef(false);
     const [composeEditorView, setComposeEditorView] = React.useState<EditorView | null>(null);
-    const [inputMode, setInputMode] = React.useState<number>(0); // 0 = SQL, 1 = Natural Language (AI)
+    // The SQL/AI input mode is hoisted into the command context so the "Switch Mode" command
+    // and the Ctrl+N shortcut can drive it from outside the feed.
+    const { mode: inputMode, setMode: setInputMode } = useComposeInputMode();
+    // SQL and AI use two distinct editor instances. When a toggle swaps them, the freshly
+    // mounted editor should inherit focus so the keyboard flow continues uninterrupted.
+    const refocusComposeRef = React.useRef(false);
+    // The AI prompt editor is unmounted whenever we toggle back to SQL, so its draft text lives
+    // here (the SQL draft already persists via the notebook's uncommitted script). This seeds the
+    // editor on remount and is kept current via PromptEditor's onChange.
+    const aiPromptTextRef = React.useRef('');
 
     // The AI compose mode is only available when an AI provider is configured.
     const aiClient = useAIClient();
@@ -280,15 +290,23 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const agentState = useAgentLoopState(sessionId);
     const agentActive = agentState != null && agentLoopIsActive(agentState.phase);
 
-    // The user's manual SQL/Chart sub-toggle override (null = let the model classify).
-    const [intentOverride, setIntentOverride] = React.useState<AgentIntent | null>(null);
+    // When the input mode changes (via Ctrl+N, the "Switch Mode" command, or the toggle in the
+    // action bar) the editor instance swaps. Request that the freshly mounted editor take focus.
+    // Derived during render so the ref is set before the new editor reports its view below.
+    const prevInputModeRef = React.useRef(inputMode);
+    if (prevInputModeRef.current !== inputMode) {
+        prevInputModeRef.current = inputMode;
+        refocusComposeRef.current = true;
+    }
 
-    // If the provider becomes unavailable while in AI mode, fall back to SQL.
-    React.useEffect(() => {
-        if (!aiAvailable && inputMode === 1) {
-            setInputMode(0);
+    // Receive the active compose editor view; carry focus across a mode-swap.
+    const handleComposeView = React.useCallback((view: EditorView) => {
+        setComposeEditorView(view);
+        if (refocusComposeRef.current) {
+            refocusComposeRef.current = false;
+            view.focus();
         }
-    }, [aiAvailable, inputMode]);
+    }, []);
 
     const handleFocus = React.useCallback((fileName: string) => {
         props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
@@ -363,17 +381,20 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             sessionId: props.notebook.sessionId,
             prompt,
             contextScriptKey,
-            intentOverride,
+            // Intent is always classified by the model (no manual Query/Chart override).
+            intentOverride: null,
             notebook: props.notebook,
             modifyNotebook: props.modifyNotebook,
         });
-        // Clear the prompt so the next instruction starts fresh.
+        // Clear the prompt so the next instruction starts fresh (the editor's docChanged also
+        // resets the persisted draft via onChange, but clear the ref explicitly to be safe).
+        aiPromptTextRef.current = '';
         if (composeEditorView) {
             composeEditorView.dispatch({
                 changes: { from: 0, to: composeEditorView.state.doc.length, insert: '' },
             });
         }
-    }, [aiAvailable, composeEditorView, props.notebook, props.modifyNotebook, runAgentLoop, intentOverride]);
+    }, [aiAvailable, composeEditorView, props.notebook, props.modifyNotebook, runAgentLoop]);
 
     const handleComposeSend = React.useCallback(() => {
         if (inputMode === 1) {
@@ -405,20 +426,6 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             },
         },
         {
-            // Tab toggles the compose editor between SQL and AI mode when an AI
-            // provider is configured. We capture it so it pre-empts CodeMirror's
-            // default indent. With no provider it falls through to the editor.
-            key: 'Tab',
-            capture: true,
-            callback: (event: KeyboardEvent) => {
-                if (!composeEditorView?.hasFocus || !aiAvailable) {
-                    return;
-                }
-                event.preventDefault();
-                setInputMode((mode) => (mode === 0 ? 1 : 0));
-            },
-        },
-        {
             // Ctrl+E executes the selected feed entry globally. Suppress it
             // while the compose editor is focused so it doesn't run a
             // background entry the user isn't looking at — Ctrl+Enter is
@@ -433,7 +440,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                 event.stopPropagation();
             },
         },
-    ], [composeEditorView, handleComposeSend, aiAvailable]);
+    ], [composeEditorView, handleComposeSend]);
     useKeyEvents(keyHandlers);
 
     // Height cache for variable-height rows
@@ -564,13 +571,26 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             </div>
             <div className={styles.compose_section} ref={composeSectionRef} style={{ right: composeScrollbarInset }}>
                 <div className={styles.compose_card}>
-                    <ScriptEditor
-                        sessionId={props.notebook.sessionId}
-                        scriptKey={getUncommittedScriptData(props.notebook)?.scriptKey ?? 0}
-                        className={styles.compose_card_body}
-                        autoHeight
-                        setView={setComposeEditorView}
-                    />
+                    {inputMode === 1 ? (
+                        // AI mode: an isolated, plugin-free prompt editor (no SQL parsing,
+                        // autocompletion or notebook-state wiring — the text is just a prompt).
+                        <PromptEditor
+                            className={styles.compose_card_body}
+                            autoHeight
+                            placeholder="Show account balance over time as line chart"
+                            initialText={aiPromptTextRef.current}
+                            onChange={(text) => { aiPromptTextRef.current = text; }}
+                            setView={handleComposeView}
+                        />
+                    ) : (
+                        <ScriptEditor
+                            sessionId={props.notebook.sessionId}
+                            scriptKey={getUncommittedScriptData(props.notebook)?.scriptKey ?? 0}
+                            className={styles.compose_card_body}
+                            autoHeight
+                            setView={handleComposeView}
+                        />
+                    )}
                     <div className={styles.compose_action_bar}>
                         <SegmentedControl
                             aria-label="Input mode"
@@ -587,30 +607,13 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                                 leadingVisual={SparklesFillIcon}
                                 selected={inputMode === 1}
                                 disabled={!aiAvailable}
-                                title={aiAvailable ? 'Tab to toggle' : 'Configure an AI provider in settings'}
+                                title={aiAvailable ? 'Ctrl + N to toggle' : 'Configure an AI provider in settings'}
                             >
                                 AI
                             </SegmentedControl.Button>
                         </SegmentedControl>
                         <div className={styles.compose_send_group}>
-                            {inputMode === 1 ? (
-                                <SegmentedControl
-                                    aria-label="Agent intent"
-                                    size={SegmentedControlSize.Small}
-                                    onChange={(index) => setIntentOverride(index === 0 ? 'sql' : 'visualize')}
-                                >
-                                    <SegmentedControl.Button
-                                        selected={(intentOverride ?? agentState?.intent ?? 'sql') === 'sql'}
-                                    >
-                                        Query
-                                    </SegmentedControl.Button>
-                                    <SegmentedControl.Button
-                                        selected={(intentOverride ?? agentState?.intent) === 'visualize'}
-                                    >
-                                        Chart
-                                    </SegmentedControl.Button>
-                                </SegmentedControl>
-                            ) : (
+                            {inputMode === 0 && (
                                 <SegmentedControl
                                     aria-label="Save mode"
                                     size={SegmentedControlSize.Small}

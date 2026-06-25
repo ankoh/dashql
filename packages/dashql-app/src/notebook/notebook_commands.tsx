@@ -13,6 +13,7 @@ import { useLogger } from '../platform/logger/logger_provider.js';
 import { useQueryExecutor } from '../connection/query_executor.js';
 import { useRouteContext, useRouterNavigate, CHANGE_SESSION } from '../router.js';
 import { useNotebookRegistry, useNotebookState } from './notebook_state_registry.js';
+import { useAIClient } from '../platform/ai_client_provider.js';
 
 const LOG_CTX = "notebook_commands";
 
@@ -28,6 +29,7 @@ export enum NotebookCommandType {
     SelectNextNotebookPage = 11,
     EditNotebookConnection = 8,
     CloseNotebook = 9,
+    ToggleComposeInputMode = 12,
 }
 
 export type ScriptCommandDispatch = (command: NotebookCommandType) => void;
@@ -39,6 +41,21 @@ interface Props {
 const COMMAND_DISPATCH_CTX = React.createContext<ScriptCommandDispatch | null>(null);
 export const useNotebookCommandDispatch = () => React.useContext(COMMAND_DISPATCH_CTX)!;
 
+/// The compose editor's input mode: 0 = SQL, 1 = AI.
+export const COMPOSE_INPUT_MODE_SQL = 0;
+export const COMPOSE_INPUT_MODE_AI = 1;
+
+/// The requested compose input mode lives here rather than in the script feed, so the
+/// "Switch Mode" command and the Ctrl+N shortcut (dispatched from outside the feed) can drive
+/// it directly. The feed is just a consumer. Hoisting it here also means the mode persists when
+/// the feed is replaced by the details view and restored.
+export interface ComposeInputModeContextValue {
+    mode: number;
+    setMode: React.Dispatch<React.SetStateAction<number>>;
+}
+const COMPOSE_INPUT_MODE_CTX = React.createContext<ComposeInputModeContextValue | null>(null);
+export const useComposeInputMode = () => React.useContext(COMPOSE_INPUT_MODE_CTX)!;
+
 export const NotebookCommands: React.FC<Props> = (props: Props) => {
     const route = useRouteContext();
     const navigate = useRouterNavigate();
@@ -49,6 +66,26 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
     const [connection, _dispatchConnection] = useConnectionState(notebook?.sessionId ?? null);
     const executeQuery = useQueryExecutor();
     const refreshCatalog = useCatalogLoaderQueue();
+    const aiAvailable = useAIClient() != null;
+    const aiAvailableRef = React.useRef(aiAvailable);
+    aiAvailableRef.current = aiAvailable;
+
+    // The compose editor's SQL/AI input mode, hoisted here so commands can drive it (see
+    // useComposeInputMode). Kept in a ref too, so the command dispatch callback can toggle it
+    // without listing the mode in its dependency array.
+    const [composeInputMode, setComposeInputMode] = React.useState<number>(0);
+    const composeInputModeRef = React.useRef(composeInputMode);
+    composeInputModeRef.current = composeInputMode;
+    // If the provider becomes unavailable while in AI mode, fall back to SQL.
+    React.useEffect(() => {
+        if (!aiAvailable && composeInputMode === COMPOSE_INPUT_MODE_AI) {
+            setComposeInputMode(COMPOSE_INPUT_MODE_SQL);
+        }
+    }, [aiAvailable, composeInputMode]);
+    const composeInputModeValue = React.useMemo<ComposeInputModeContextValue>(
+        () => ({ mode: composeInputMode, setMode: setComposeInputMode }),
+        [composeInputMode],
+    );
 
     // Setup command dispatch logic
     const commandDispatch = React.useCallback(
@@ -147,6 +184,13 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         });
                     }
                     break;
+                case NotebookCommandType.ToggleComposeInputMode:
+                    // AI mode requires a configured provider; otherwise stay in SQL.
+                    if (!aiAvailableRef.current) break;
+                    setComposeInputMode(composeInputModeRef.current === COMPOSE_INPUT_MODE_SQL
+                        ? COMPOSE_INPUT_MODE_AI
+                        : COMPOSE_INPUT_MODE_SQL);
+                    break;
                 case NotebookCommandType.EditNotebookConnection:
                     // Connection settings are now handled via overlay in the UI
                     break;
@@ -224,6 +268,11 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                 ctrlKey: true,
                 callback: () => commandDispatch(NotebookCommandType.SelectNextNotebookPage),
             },
+            {
+                key: 'n',
+                ctrlKey: true,
+                callback: () => commandDispatch(NotebookCommandType.ToggleComposeInputMode),
+            },
         ],
         [notebook?.connectorInfo, commandDispatch],
     );
@@ -231,5 +280,11 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
     // Setup key event handlers
     useKeyEvents(keyHandlers);
 
-    return <COMMAND_DISPATCH_CTX.Provider value={commandDispatch}>{props.children}</COMMAND_DISPATCH_CTX.Provider>;
+    return (
+        <COMMAND_DISPATCH_CTX.Provider value={commandDispatch}>
+            <COMPOSE_INPUT_MODE_CTX.Provider value={composeInputModeValue}>
+                {props.children}
+            </COMPOSE_INPUT_MODE_CTX.Provider>
+        </COMMAND_DISPATCH_CTX.Provider>
+    );
 };
