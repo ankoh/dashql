@@ -69,7 +69,12 @@ interface CollapsedScriptCardProps {
 
 const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, onFocus, onExpand, onDelete, onRename, onShowTable, onShowStatus }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
-    const EyeIcon: Icon = SymbolIcon(isFocused ? 'eye_16' : 'eye_closed_16');
+    // Both eye states are rendered at once and toggled via CSS visibility. SymbolIcon caches a
+    // distinct component type per symbol, so swapping the bound icon on focus change would
+    // unmount/remount the <svg><use> and force the external symbol reference to re-resolve —
+    // which shows up as a flicker when navigating quickly with Ctrl+H/J/K/L.
+    const EyeOpenIcon: Icon = SymbolIcon('eye_16');
+    const EyeClosedIcon: Icon = SymbolIcon('eye_closed_16');
     const PencilIcon: Icon = SymbolIcon('pencil_16');
     const queryState = useQueryState(sessionId, scriptData?.latestQueryId ?? null);
     const [isReady, setIsReady] = React.useState(false);
@@ -126,7 +131,14 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
         >
             <div className={styles.feed_entry_action_bar} onPointerDown={handleHeaderPointerDown}>
                 <div className={styles.feed_entry_focus}>
-                    <EyeIcon className={isFocused ? styles.feed_entry_focus_icon_focused : styles.feed_entry_focus_icon_unfocused} size={16} />
+                    <EyeOpenIcon
+                        className={isFocused ? styles.feed_entry_focus_icon_focused : styles.feed_entry_focus_icon_hidden}
+                        size={16}
+                    />
+                    <EyeClosedIcon
+                        className={isFocused ? styles.feed_entry_focus_icon_hidden : styles.feed_entry_focus_icon_unfocused}
+                        size={16}
+                    />
                 </div>
                 <div className={styles.feed_entry_file_name}>
                     <NotebookScriptName
