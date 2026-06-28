@@ -26,7 +26,7 @@
 
 .session_item {
     display: grid;
-    grid-template-columns: max-content 1fr;
+    grid-template-columns: max-content 1fr max-content;
     align-items: center;
     column-gap: 8px;
     padding: 6px 12px;
@@ -43,6 +43,29 @@
 .session_item:hover {
     background-color: rgba(208, 215, 222, 0.32);
     border: 1px solid var(--border_color_primary);
+}
+
+/* A session whose metadata was refused a load: muted, not clickable, reason shown inline. */
+.session_item_invalid {
+    cursor: default;
+    opacity: 0.65;
+}
+
+.session_item_invalid:hover {
+    background-color: transparent;
+    border: 1px solid transparent;
+}
+
+.session_item_invalid_icon {
+    color: hsl(35, 90%, 45%);
+}
+
+.session_item_invalid_reason {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: hsl(35, 80%, 38%);
+    white-space: nowrap;
+    padding-left: 8px;
 }
 
 .delete_button_suffix {

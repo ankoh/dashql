@@ -53,7 +53,7 @@ export async function configureAppWithSetupEvent(
             const sessionPath = await importSessionFromZip(
                 zipBlob,
                 backend,
-                () => `imported-${Date.now()}`  // Generate unique session path
+                () => crypto.randomUUID()  // The session UUID is the authoritative identity
             );
 
             logger.info("Session imported", { sessionPath });

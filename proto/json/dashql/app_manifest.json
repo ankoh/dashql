@@ -26,7 +26,16 @@
       "properties": {
         "path": {
           "type": "string",
-          "description": "The session path (folder name)"
+          "description": "The session identity. Going forward this is the bare session UUID; legacy manifests may carry an \"opfs://sessions/<uuid>\" prefix that is normalized to the UUID on read."
+        },
+        "storageType": {
+          "type": "string",
+          "enum": ["opfs", "native"],
+          "description": "Where this session's files live. Defaults to \"opfs\" when omitted (the OPFS root). \"native\" means the files live directly in `nativePath`. Mirrors the `storageType` field on the session itself."
+        },
+        "nativePath": {
+          "type": "string",
+          "description": "Absolute directory holding this session's files. Required when storageType is \"native\"; one directory holds exactly one session."
         }
       },
       "required": ["path"],

@@ -27,69 +27,84 @@ export enum StorageBackendType {
     Native = 'native',
 }
 
-/// Storage interface for DashQL
+/// Storage interface for DashQL.
+///
+/// Identity model: the session UUID is authoritative. Every per-session method is keyed by the bare
+/// `sessionId` (the UUID). Backends translate that UUID into their own physical layout:
+///   - OPFS writes `sessions/<uuid>/…` under the OPFS root.
+///   - The native backend is constructed for a single directory and writes that session's files
+///     directly into it.
+/// There is no storage-prefix concept on this interface anymore; any prefix is purely for display
+/// and lives in `session_locator.ts`.
 export interface StorageBackend {
     /// Get the backend type
     getBackendType(): StorageBackendType;
-    /// Get the schema prefix for this backend (e.g., "opfs://", "file://")
-    getSchemaPrefix(): string;
-
-    /// Construct a fully qualified session path from a UUID
-    constructSessionPath(sessionId: string): string;
-
-    /// Parse a fully qualified session path to get the relative path for file operations
-    parseSessionPath(sessionPath: string): string;
 
     /// Initialize the storage backend (optional)
     initialize?(): Promise<void>;
 
-    /// List all sessions
+    /// List all sessions (registry-level)
     listSessions(manifestPath: string): Promise<SessionEntry[]>;
 
-    /// Load persisted app settings from the manifest
+    /// Load persisted app settings from the manifest (registry-level)
     loadAppSettings(): Promise<AppSettings | null>;
-    /// Persist app settings to the manifest
+    /// Persist app settings to the manifest (registry-level)
     saveAppSettings(settings: AppSettings): Promise<void>;
-    /// Load a session by path
-    loadSession(sessionPath: string): Promise<SessionData>;
+    /// Load a session by UUID
+    loadSession(sessionId: string): Promise<SessionData>;
     /// Save a session
-    saveSessionManifest(sessionPath: string, data: SessionData): Promise<void>;
+    saveSessionManifest(sessionId: string, data: SessionData): Promise<void>;
     /// Delete a session
-    deleteSession(sessionPath: string): Promise<void>;
+    deleteSession(sessionId: string): Promise<void>;
 
     /// Load session catalog schema SQL
-    loadSessionSchema(sessionPath: string): Promise<string | null>;
+    loadSessionSchema(sessionId: string): Promise<string | null>;
     /// Save session catalog schema SQL
-    saveSessionSchema(sessionPath: string, sql: string): Promise<void>;
+    saveSessionSchema(sessionId: string, sql: string): Promise<void>;
 
     /// Load session catalog functions SQL
-    loadSessionFunctions(sessionPath: string): Promise<string | null>;
+    loadSessionFunctions(sessionId: string): Promise<string | null>;
     /// Save session catalog functions SQL
-    saveSessionFunctions(sessionPath: string, sql: string): Promise<void>;
+    saveSessionFunctions(sessionId: string, sql: string): Promise<void>;
 
     /// Load notebook pages
-    loadNotebookPages(sessionPath: string): Promise<PageData[]>;
+    loadNotebookPages(sessionId: string): Promise<PageData[]>;
     /// Create a notebook page
-    createNotebookPage(sessionPath: string, pageName: string): Promise<void>;
+    createNotebookPage(sessionId: string, pageName: string): Promise<void>;
     /// Delete a notebook page
-    deleteNotebookPage(sessionPath: string, pageName: string): Promise<void>;
+    deleteNotebookPage(sessionId: string, pageName: string): Promise<void>;
 
     /// Load a notebook script
-    loadNotebookScript(sessionPath: string, pageName: string, scriptName: string): Promise<ScriptData>;
+    loadNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<ScriptData>;
     /// Save a notebook script
-    saveNotebookScript(sessionPath: string, pageName: string, scriptName: string, sql: string): Promise<void>;
+    saveNotebookScript(sessionId: string, pageName: string, scriptName: string, sql: string): Promise<void>;
     /// Delete a notebook script
-    deleteNotebookScript(sessionPath: string, pageName: string, scriptName: string): Promise<void>;
+    deleteNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<void>;
     /// Reorder notebook scripts (provide all script names in desired order)
-    reorderNotebookScript(sessionPath: string, pageName: string, orderedScriptNames: string[]): Promise<void>;
+    reorderNotebookScript(sessionId: string, pageName: string, orderedScriptNames: string[]): Promise<void>;
 
     /// Load a notebook script draft
-    loadNotebookScriptDraft(sessionPath: string): Promise<string | null>;
+    loadNotebookScriptDraft(sessionId: string): Promise<string | null>;
     /// Save a notebook script draft
-    saveNotebookScriptDraft(sessionPath: string, sql: string): Promise<void>;
+    saveNotebookScriptDraft(sessionId: string, sql: string): Promise<void>;
 
     /// Clear all storage (delete all sessions and reset manifest)
     clearAllStorage?(): Promise<void>;
+}
+
+/// A backend that also owns the session registry (the root manifest).
+///
+/// Only the OPFS backend implements this: the OPFS root manifest is the single registry of every
+/// session, regardless of where each session's files physically live. The composite backend uses
+/// these methods to keep the manifest in sync when a session is relocated to a native directory
+/// (the manifest entry stays in OPFS; only the files move).
+export interface SessionRegistryBackend extends StorageBackend {
+    /// Insert or replace a session's registry entry (matched by UUID), without touching files.
+    upsertSessionEntry(entry: SessionEntry): Promise<void>;
+    /// Remove a session's registry entry (matched by UUID), without touching files.
+    removeSessionEntry(sessionId: string): Promise<void>;
+    /// Delete a session's files only, leaving the registry entry intact.
+    deleteSessionFiles(sessionId: string): Promise<void>;
 }
 
 // Page data contains all scripts in a page

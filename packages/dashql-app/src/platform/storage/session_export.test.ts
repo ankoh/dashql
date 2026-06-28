@@ -10,9 +10,6 @@ describe('exportSessionAsZip', () => {
     beforeEach(() => {
         mockBackend = {
             getBackendType: vi.fn(() => StorageBackendType.OPFS),
-            getSchemaPrefix: vi.fn(() => 'mock://'),
-            constructSessionPath: vi.fn((sessionId: string) => `mock://sessions/${sessionId}`),
-            parseSessionPath: vi.fn((sessionPath: string) => sessionPath.replace('mock://', '')),
             listSessions: vi.fn(),
             loadSession: vi.fn(),
             saveSessionManifest: vi.fn(),

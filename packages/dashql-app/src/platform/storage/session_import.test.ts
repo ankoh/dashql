@@ -4,16 +4,16 @@ import { importSessionFromZip } from './session_import.js';
 import { type StorageBackend, type SessionData, StorageBackendType } from './storage_backend.js';
 import { STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT } from './storage_backend.js';
 
+// The UUID the allocator hands back for an imported session.
+const NEW_ID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+
 describe('importSessionFromZip', () => {
     let mockBackend: StorageBackend;
-    let allocateSessionPath: () => string;
+    let allocateSessionId: () => string;
 
     beforeEach(() => {
         mockBackend = {
             getBackendType: vi.fn(() => StorageBackendType.OPFS),
-            getSchemaPrefix: vi.fn(() => 'mock://'),
-            constructSessionPath: vi.fn((sessionId: string) => `mock://sessions/${sessionId}`),
-            parseSessionPath: vi.fn((sessionPath: string) => sessionPath.replace('mock://', '')),
             listSessions: vi.fn(),
             loadSession: vi.fn(),
             saveSessionManifest: vi.fn(),
@@ -35,8 +35,7 @@ describe('importSessionFromZip', () => {
             saveAppSettings: vi.fn(),
         };
 
-        let counter = 0;
-        allocateSessionPath = vi.fn(() => `session-${++counter}`);
+        allocateSessionId = vi.fn(() => NEW_ID);
     });
 
     async function createZipBlob(files: Record<string, string>): Promise<Blob> {
@@ -66,35 +65,35 @@ describe('importSessionFromZip', () => {
             [`${STORAGE_NOTEBOOK_FOLDER}/page-2/01-script.sql`]: 'SELECT 3;',
         });
 
-        const newSessionPath = await importSessionFromZip(
+        const newSessionId = await importSessionFromZip(
             zipBlob,
             mockBackend,
-            allocateSessionPath
+            allocateSessionId
         );
 
-        expect(newSessionPath).toBe('session-1');
-        expect(allocateSessionPath).toHaveBeenCalledTimes(1);
+        // The import returns the freshly-allocated bare UUID.
+        expect(newSessionId).toBe(NEW_ID);
+        expect(allocateSessionId).toHaveBeenCalledTimes(1);
 
-        // Verify session was saved with new path and new sessionId
+        // Verify the session was saved keyed by the new UUID, which is also stamped onto the data.
         expect(mockBackend.saveSessionManifest).toHaveBeenCalledTimes(1);
         const savedCall = vi.mocked(mockBackend.saveSessionManifest).mock.calls[0];
-        expect(savedCall[0]).toBe('session-1');  // First arg is sessionPath
-        expect(savedCall[1].sessionPath).toBe('session-1');
+        expect(savedCall[0]).toBe(NEW_ID);  // First arg is the session UUID (routing key)
+        expect(savedCall[1].sessionId).toBe(NEW_ID);
         expect(savedCall[1].title).toBe('Original Session');
-        // sessionId should be a new UUID, not the original one
-        expect(savedCall[1].sessionId).not.toBe('original-uuid');
-        expect(savedCall[1].sessionId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+        // The display-only sessionPath is dropped on import; it is reconstructed from the UUID for the UI.
+        expect(savedCall[1].sessionPath).toBeUndefined();
 
-        // Verify pages were created
+        // Verify pages were created keyed by the new UUID
         expect(mockBackend.createNotebookPage).toHaveBeenCalledTimes(2);
-        expect(mockBackend.createNotebookPage).toHaveBeenCalledWith('session-1', 'page-1');
-        expect(mockBackend.createNotebookPage).toHaveBeenCalledWith('session-1', 'page-2');
+        expect(mockBackend.createNotebookPage).toHaveBeenCalledWith(NEW_ID, 'page-1');
+        expect(mockBackend.createNotebookPage).toHaveBeenCalledWith(NEW_ID, 'page-2');
 
         // Verify scripts were saved
         expect(mockBackend.saveNotebookScript).toHaveBeenCalledTimes(3);
-        expect(mockBackend.saveNotebookScript).toHaveBeenCalledWith('session-1', 'page-1', '01-script.sql', 'SELECT 1;');
-        expect(mockBackend.saveNotebookScript).toHaveBeenCalledWith('session-1', 'page-1', '02-script.sql', 'SELECT 2;');
-        expect(mockBackend.saveNotebookScript).toHaveBeenCalledWith('session-1', 'page-2', '01-script.sql', 'SELECT 3;');
+        expect(mockBackend.saveNotebookScript).toHaveBeenCalledWith(NEW_ID, 'page-1', '01-script.sql', 'SELECT 1;');
+        expect(mockBackend.saveNotebookScript).toHaveBeenCalledWith(NEW_ID, 'page-1', '02-script.sql', 'SELECT 2;');
+        expect(mockBackend.saveNotebookScript).toHaveBeenCalledWith(NEW_ID, 'page-2', '01-script.sql', 'SELECT 3;');
     });
 
     it('imports composer script if present', async () => {
@@ -113,9 +112,9 @@ describe('importSessionFromZip', () => {
             [`${STORAGE_NOTEBOOK_FOLDER}/${STORAGE_SCRIPT_DRAFT}`]: composerSql,
         });
 
-        await importSessionFromZip(zipBlob, mockBackend, allocateSessionPath);
+        await importSessionFromZip(zipBlob, mockBackend, allocateSessionId);
 
-        expect(mockBackend.saveNotebookScriptDraft).toHaveBeenCalledWith('session-1', composerSql);
+        expect(mockBackend.saveNotebookScriptDraft).toHaveBeenCalledWith(NEW_ID, composerSql);
     });
 
     it('handles empty notebook', async () => {
@@ -131,13 +130,13 @@ describe('importSessionFromZip', () => {
             [STORAGE_SESSION_FILE]: JSON.stringify(sessionData),
         });
 
-        const newSessionPath = await importSessionFromZip(
+        const newSessionId = await importSessionFromZip(
             zipBlob,
             mockBackend,
-            allocateSessionPath
+            allocateSessionId
         );
 
-        expect(newSessionPath).toBe('session-1');
+        expect(newSessionId).toBe(NEW_ID);
         expect(mockBackend.saveSessionManifest).toHaveBeenCalledTimes(1);
         expect(mockBackend.createNotebookPage).not.toHaveBeenCalled();
         expect(mockBackend.saveNotebookScript).not.toHaveBeenCalled();
@@ -150,7 +149,7 @@ describe('importSessionFromZip', () => {
         });
 
         await expect(
-            importSessionFromZip(zipBlob, mockBackend, allocateSessionPath)
+            importSessionFromZip(zipBlob, mockBackend, allocateSessionId)
         ).rejects.toThrow(`Invalid ZIP: missing ${STORAGE_SESSION_FILE}`);
     });
 
@@ -171,13 +170,13 @@ describe('importSessionFromZip', () => {
             [`${STORAGE_NOTEBOOK_FOLDER}/page-2/01-script.sql`]: 'SELECT 2;',
         });
 
-        await importSessionFromZip(zipBlob, mockBackend, allocateSessionPath);
+        await importSessionFromZip(zipBlob, mockBackend, allocateSessionId);
 
         // Pages should be created in sorted order
         const calls = vi.mocked(mockBackend.createNotebookPage).mock.calls;
-        expect(calls[0]).toEqual(['session-1', 'page-1']);
-        expect(calls[1]).toEqual(['session-1', 'page-2']);
-        expect(calls[2]).toEqual(['session-1', 'page-3']);
+        expect(calls[0]).toEqual([NEW_ID, 'page-1']);
+        expect(calls[1]).toEqual([NEW_ID, 'page-2']);
+        expect(calls[2]).toEqual([NEW_ID, 'page-3']);
     });
 
     it('sorts scripts within pages by name during import', async () => {
@@ -197,13 +196,13 @@ describe('importSessionFromZip', () => {
             [`${STORAGE_NOTEBOOK_FOLDER}/page-1/02-script.sql`]: 'SELECT 2;',
         });
 
-        await importSessionFromZip(zipBlob, mockBackend, allocateSessionPath);
+        await importSessionFromZip(zipBlob, mockBackend, allocateSessionId);
 
         // Scripts should be saved in sorted order
         const calls = vi.mocked(mockBackend.saveNotebookScript).mock.calls;
-        expect(calls[0]).toEqual(['session-1', 'page-1', '01-script.sql', 'SELECT 1;']);
-        expect(calls[1]).toEqual(['session-1', 'page-1', '02-script.sql', 'SELECT 2;']);
-        expect(calls[2]).toEqual(['session-1', 'page-1', '03-script.sql', 'SELECT 3;']);
+        expect(calls[0]).toEqual([NEW_ID, 'page-1', '01-script.sql', 'SELECT 1;']);
+        expect(calls[1]).toEqual([NEW_ID, 'page-1', '02-script.sql', 'SELECT 2;']);
+        expect(calls[2]).toEqual([NEW_ID, 'page-1', '03-script.sql', 'SELECT 3;']);
     });
 
     it('ignores non-SQL files in page folders', async () => {
@@ -222,11 +221,11 @@ describe('importSessionFromZip', () => {
             [`${STORAGE_NOTEBOOK_FOLDER}/page-1/config.json`]: '{}',
         });
 
-        await importSessionFromZip(zipBlob, mockBackend, allocateSessionPath);
+        await importSessionFromZip(zipBlob, mockBackend, allocateSessionId);
 
         // Only the SQL file should be imported
         expect(mockBackend.saveNotebookScript).toHaveBeenCalledTimes(1);
-        expect(mockBackend.saveNotebookScript).toHaveBeenCalledWith('session-1', 'page-1', '01-script.sql', 'SELECT 1;');
+        expect(mockBackend.saveNotebookScript).toHaveBeenCalledWith(NEW_ID, 'page-1', '01-script.sql', 'SELECT 1;');
     });
 
     it('imports all page folders regardless of naming', async () => {
@@ -245,18 +244,18 @@ describe('importSessionFromZip', () => {
             [`${STORAGE_NOTEBOOK_FOLDER}/temp/01-script.sql`]: 'SELECT TEMP;',
         });
 
-        await importSessionFromZip(zipBlob, mockBackend, allocateSessionPath);
+        await importSessionFromZip(zipBlob, mockBackend, allocateSessionId);
 
         // All three pages should be created (sorted lexicographically)
         expect(mockBackend.createNotebookPage).toHaveBeenCalledTimes(3);
-        expect(mockBackend.createNotebookPage).toHaveBeenCalledWith('session-1', 'invalid');
-        expect(mockBackend.createNotebookPage).toHaveBeenCalledWith('session-1', 'page-1');
-        expect(mockBackend.createNotebookPage).toHaveBeenCalledWith('session-1', 'temp');
+        expect(mockBackend.createNotebookPage).toHaveBeenCalledWith(NEW_ID, 'invalid');
+        expect(mockBackend.createNotebookPage).toHaveBeenCalledWith(NEW_ID, 'page-1');
+        expect(mockBackend.createNotebookPage).toHaveBeenCalledWith(NEW_ID, 'temp');
 
         // All scripts should be saved
         expect(mockBackend.saveNotebookScript).toHaveBeenCalledTimes(3);
-        expect(mockBackend.saveNotebookScript).toHaveBeenCalledWith('session-1', 'invalid', '01-script.sql', 'SELECT INVALID;');
-        expect(mockBackend.saveNotebookScript).toHaveBeenCalledWith('session-1', 'page-1', '01-script.sql', 'SELECT 1;');
-        expect(mockBackend.saveNotebookScript).toHaveBeenCalledWith('session-1', 'temp', '01-script.sql', 'SELECT TEMP;');
+        expect(mockBackend.saveNotebookScript).toHaveBeenCalledWith(NEW_ID, 'invalid', '01-script.sql', 'SELECT INVALID;');
+        expect(mockBackend.saveNotebookScript).toHaveBeenCalledWith(NEW_ID, 'page-1', '01-script.sql', 'SELECT 1;');
+        expect(mockBackend.saveNotebookScript).toHaveBeenCalledWith(NEW_ID, 'temp', '01-script.sql', 'SELECT TEMP;');
     });
 });

@@ -13,8 +13,8 @@ describe('disambiguatePaths', () => {
             '/x/y/z/file2',
         ]);
 
-        expect(result[0].displayPath).toBe('file1/');
-        expect(result[1].displayPath).toBe('file2/');
+        expect(result[0].displayPath).toBe('file1');
+        expect(result[1].displayPath).toBe('file2');
     });
 
     it('should add parent directory when basenames collide', () => {
@@ -23,8 +23,8 @@ describe('disambiguatePaths', () => {
             '/x/y/c/file',
         ]);
 
-        expect(result[0].displayPath).toBe('…/b/c/file/');
-        expect(result[1].displayPath).toBe('…/y/c/file/');
+        expect(result[0].displayPath).toBe('…/b/c/file');
+        expect(result[1].displayPath).toBe('…/y/c/file');
     });
 
     it('should handle three-way collisions', () => {
@@ -34,9 +34,9 @@ describe('disambiguatePaths', () => {
             '/x/c/file',
         ]);
 
-        expect(result[0].displayPath).toBe('…/b/file/');
-        expect(result[1].displayPath).toBe('…/a/c/file/');
-        expect(result[2].displayPath).toBe('…/x/c/file/');
+        expect(result[0].displayPath).toBe('…/b/file');
+        expect(result[1].displayPath).toBe('…/a/c/file');
+        expect(result[2].displayPath).toBe('…/x/c/file');
     });
 
     it('should handle paths with different depths', () => {
@@ -45,8 +45,8 @@ describe('disambiguatePaths', () => {
             '/x/y/z/file',
         ]);
 
-        expect(result[0].displayPath).toBe('…/a/file/');
-        expect(result[1].displayPath).toBe('…/z/file/');
+        expect(result[0].displayPath).toBe('…/a/file');
+        expect(result[1].displayPath).toBe('…/z/file');
     });
 
     it('should show full path when all segments are needed', () => {
@@ -55,8 +55,8 @@ describe('disambiguatePaths', () => {
             '/a/b/d',
         ]);
 
-        expect(result[0].displayPath).toBe('c/');
-        expect(result[1].displayPath).toBe('d/');
+        expect(result[0].displayPath).toBe('c');
+        expect(result[1].displayPath).toBe('d');
     });
 
     it('should handle UUIDs (common session path format)', () => {
@@ -67,9 +67,9 @@ describe('disambiguatePaths', () => {
         ]);
 
         // UUIDs have no path separator, so each should be unique as-is
-        expect(result[0].displayPath).toBe('550e8400-e29b-41d4-a716-446655440000/');
-        expect(result[1].displayPath).toBe('6ba7b810-9dad-11d1-80b4-00c04fd430c8/');
-        expect(result[2].displayPath).toBe('6ba7b811-9dad-11d1-80b4-00c04fd430c8/');
+        expect(result[0].displayPath).toBe('550e8400-e29b-41d4-a716-446655440000');
+        expect(result[1].displayPath).toBe('6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+        expect(result[2].displayPath).toBe('6ba7b811-9dad-11d1-80b4-00c04fd430c8');
     });
 
     it('should handle paths with folder structure and UUIDs', () => {
@@ -78,8 +78,8 @@ describe('disambiguatePaths', () => {
             'opfs://sessions/project-b/550e8400-e29b-41d4-a716-446655440000',
         ]);
 
-        expect(result[0].displayPath).toBe('opfs://…/project-a/550e8400-e29b-41d4-a716-446655440000/');
-        expect(result[1].displayPath).toBe('opfs://…/project-b/550e8400-e29b-41d4-a716-446655440000/');
+        expect(result[0].displayPath).toBe('opfs://…/project-a/550e8400-e29b-41d4-a716-446655440000');
+        expect(result[1].displayPath).toBe('opfs://…/project-b/550e8400-e29b-41d4-a716-446655440000');
     });
 
     it('should track segment count correctly', () => {
@@ -88,8 +88,8 @@ describe('disambiguatePaths', () => {
             '/x/y/c/file',
         ]);
 
-        expect(result[0].segmentCount).toBe(3); // b/c/file/
-        expect(result[1].segmentCount).toBe(3); // y/c/file/
+        expect(result[0].segmentCount).toBe(3); // b/c/file
+        expect(result[1].segmentCount).toBe(3); // y/c/file
     });
 
     it('should preserve schema prefix when truncating', () => {
@@ -98,7 +98,7 @@ describe('disambiguatePaths', () => {
             'opfs://x/y/c/file',
         ]);
 
-        expect(result[0].displayPath).toBe('opfs://…/b/c/file/');
-        expect(result[1].displayPath).toBe('opfs://…/y/c/file/');
+        expect(result[0].displayPath).toBe('opfs://…/b/c/file');
+        expect(result[1].displayPath).toBe('opfs://…/y/c/file');
     });
 });

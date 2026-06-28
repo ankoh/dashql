@@ -9,6 +9,7 @@ import type { AnalyzeAllScriptsProgress } from '../../notebook/notebook_state.js
 import { decodeConnectionFromProto, restoreConnectionState } from '../../connection/connection_import.js';
 import { ConnectorType, type ConnectorInfo } from '../../connection/connector_info.js';
 import type { StorageBackend, SessionEntry, SessionData, PageData } from './storage_backend.js';
+import { validateSessionData, describeInvalidSession, isValidUuid, SessionValidationError, type InvalidSession } from './session_validation.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../../connection/catalog_update_state.js';
 import { createEmptyAnnotations } from '../../notebook/notebook_types.js';
 import * as Immutable from 'immutable';
@@ -22,6 +23,21 @@ export interface RestoredAppState {
     notebooks: Map<string, NotebookState>;
     notebooksByConnection: Map<string, string>;
     notebooksByConnectionType: string[][];
+    /// Sessions whose metadata failed validation and were refused a load (keyed by bare UUID).
+    /// These never enter the connection/notebook maps; the session selector surfaces them as
+    /// invalid (blocked from opening, still deletable).
+    invalidSessions: Map<string, InvalidSession>;
+}
+
+/// Thrown by `restoreSession` when a session's metadata fails the up-front validation gate.
+///
+/// Distinguished from an arbitrary restore error so the loader can record it as a (skipped)
+/// invalid session and surface it in the UI, rather than counting it as a hard failure.
+class InvalidSessionError extends Error {
+    constructor(public readonly invalid: InvalidSession) {
+        super(`invalid session ${invalid.sessionId}: ${invalid.error}`);
+        this.name = 'InvalidSessionError';
+    }
 }
 
 export interface AppStateRestorationProgress {
@@ -186,7 +202,18 @@ async function restoreSession(
     analyzeNotebooks: ProgressCounter,
     progressConsumer: (progress: AppStateRestorationProgress) => void
 ): Promise<void> {
+    // The session UUID is the authoritative identity and the key the backend routes on. Gate it up
+    // front: a manifest entry whose path is not a valid UUID can't be loaded (the backend would
+    // build a bogus path and throw), so surface it as an invalid session rather than a hard failure.
     const sessionPath = sessionEntry.path;
+    if (!isValidUuid(sessionPath)) {
+        const invalid = describeInvalidSession(sessionEntry, SessionValidationError.InvalidSessionId, null);
+        logger.warn("Refusing to load session with an invalid id", {
+            sessionPath,
+            reason: invalid.error,
+        }, LOG_CTX);
+        throw new InvalidSessionError(invalid);
+    }
 
     // Phase 1: Restore connection
     logger.info("Restoring connection", { sessionPath }, LOG_CTX);
@@ -201,16 +228,29 @@ async function restoreSession(
 
     logger.info("Loading session data", { sessionPath }, LOG_CTX);
     const sessionData: SessionData = await backend.loadSession(sessionPath);
+
+    // Fail-fast metadata validation: refuse to load a session whose metadata is structurally
+    // unusable (no id, no connection params, or params that map to no known connector). This runs
+    // before any heavy restore work and surfaces the session as invalid in the selector rather than
+    // letting it blow up mid-restore. Runtime hiccups (catalog/notebook) remain non-fatal below.
+    const validation = validateSessionData(sessionData);
+    if (!validation.ok) {
+        const invalid = describeInvalidSession(sessionEntry, validation.error, sessionData);
+        logger.warn("Refusing to load invalid session", {
+            sessionPath,
+            sessionId: invalid.sessionId,
+            reason: invalid.error,
+        }, LOG_CTX);
+        throw new InvalidSessionError(invalid);
+    }
+
     const { connectionParams } = sessionData;
+    // Validation above guarantees a syntactically valid UUID, so the persisted id is the
+    // authoritative identity for the in-memory maps, router, and backend routing as-is.
     const sessionId = sessionData.sessionId;
     logger.info("Session data loaded", { sessionId }, LOG_CTX);
 
-    // Validate connectionParams exists
-    if (!connectionParams) {
-        throw new Error(`Session ${sessionId} has no connectionParams`);
-    }
-
-    // Decode connection details
+    // Decode connection details (validation above guarantees the params map to a known connector)
     const [connectorInfo, details] = decodeConnectionFromProto(
         connectionParams as any,
         sessionId
@@ -457,6 +497,7 @@ export async function restoreAppState(
     const connectionSignatures = new Map<string, string | null>();
     const notebooks = new Map<string, NotebookState>();
     const notebooksByConnection = new Map<string, string>();
+    const invalidSessions = new Map<string, InvalidSession>();
 
     // Initialize indices (sized for all ConnectorType values: 0-3)
     const connectionStatesByType: string[][] = [[], [], [], []];
@@ -534,6 +575,26 @@ export async function restoreAppState(
                 }, LOG_CTX);
             } catch (error) {
                 const sessionDuration = performance.now() - sessionStartTime;
+
+                if (error instanceof InvalidSessionError) {
+                    // Metadata validation refused this session up front. Record it so the selector
+                    // can show it as invalid (blocked, deletable), and account it as *skipped*
+                    // rather than *failed* — nothing was attempted, the metadata was simply
+                    // unusable. The session contributed no connection/catalog/notebook/scripts.
+                    invalidSessions.set(error.invalid.sessionId, error.invalid);
+                    restoreConnections.addSkipped();
+                    restoreCatalogs.addSkipped();
+                    restoreNotebooks.addSkipped();
+
+                    progressConsumer({
+                        restoreConnections: restoreConnections.clone(),
+                        restoreCatalogs: restoreCatalogs.clone(),
+                        restoreNotebooks: restoreNotebooks.clone(),
+                        analyzeNotebooks: analyzeNotebooks.clone(),
+                    });
+                    continue;
+                }
+
                 logger.error("Failed to restore session", {
                     index: `${i + 1}/${sessions.length}`,
                     sessionPath: sessionEntry.path,
@@ -580,6 +641,7 @@ export async function restoreAppState(
     logger.info("Finished loading app state", {
         connections: connectionStates.size.toString(),
         notebooks: notebooks.size.toString(),
+        invalidSessions: invalidSessions.size.toString(),
         connectionsSucceeded: restoreConnections.succeeded.toString(),
         connectionsFailed: restoreConnections.failed.toString(),
         connectionsSkipped: restoreConnections.skipped.toString(),
@@ -593,5 +655,6 @@ export async function restoreAppState(
         notebooks,
         notebooksByConnection,
         notebooksByConnectionType,
+        invalidSessions,
     };
 }

@@ -6,7 +6,7 @@ import { STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT } f
 export async function importSessionFromZip(
     zipBlob: Blob,
     backend: StorageBackend,
-    allocateSessionPath: () => string
+    allocateSessionId: () => string
 ): Promise<string> {
     const zip = await JSZip.loadAsync(zipBlob);
 
@@ -18,21 +18,21 @@ export async function importSessionFromZip(
 
     const sessionData: SessionData = JSON.parse(await manifestFile.async('text'));
 
-    // Always generate a new UUID for imported sessions to avoid conflicts
-    const newSessionId = crypto.randomUUID();
-    const newSessionPath = allocateSessionPath();
+    // Always allocate a fresh session UUID for imported sessions to avoid conflicts. The UUID is
+    // the authoritative identity; the imported session is implicitly OPFS-backed.
+    const newSessionId = allocateSessionId();
 
     sessionData.sessionId = newSessionId;
-    sessionData.sessionPath = newSessionPath;
-    await backend.saveSessionManifest(newSessionPath, sessionData);
+    delete sessionData.sessionPath;
+    await backend.saveSessionManifest(newSessionId, sessionData);
 
     // Import pages and scripts
     const notebookFolder = zip.folder(STORAGE_NOTEBOOK_FOLDER);
     if (notebookFolder) {
-        await importNotebookFromZip(notebookFolder, backend, newSessionPath);
+        await importNotebookFromZip(notebookFolder, backend, newSessionId);
     }
 
-    return newSessionPath;
+    return newSessionId;
 }
 
 /**

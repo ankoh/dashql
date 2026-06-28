@@ -7,11 +7,20 @@
   "properties": {
     "sessionId": {
       "type": "string",
-      "description": "Unique session identifier (UUID v4)"
+      "description": "Unique session identifier (UUID v4). This is the authoritative identity; the storage location prefix is display-only."
     },
     "sessionPath": {
       "type": "string",
-      "description": "The session path (folder name, e.g., \"my-analysis\")"
+      "description": "Display-only path (e.g., \"opfs://sessions/<uuid>\" or \"file://<dir>\"). Not authoritative and may be absent on newly written sessions; readers must tolerate its absence."
+    },
+    "storageType": {
+      "type": "string",
+      "enum": ["opfs", "native"],
+      "description": "Where this session's files live. Defaults to \"opfs\" when omitted."
+    },
+    "nativePath": {
+      "type": "string",
+      "description": "Absolute directory holding this session's files when storageType is \"native\"."
     },
     "title": {
       "type": "string",
@@ -36,7 +45,7 @@
       "description": "When was last accessed"
     }
   },
-  "required": ["sessionId", "sessionPath", "title", "connectionParams", "notebook"],
+  "required": ["sessionId", "title", "connectionParams", "notebook"],
   "additionalProperties": false,
   "definitions": {
     "NotebookOriginType": {

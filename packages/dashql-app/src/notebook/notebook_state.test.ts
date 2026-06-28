@@ -14,6 +14,7 @@ import {
     REGISTER_QUERY,
     SELECT_ENTRY,
     SET_SCRIPT_TEXT,
+    destroyState,
     getExecutableQueryText,
     getScriptKeysInFeedOrder,
     analyzeAllScriptsInNotebook,
@@ -813,6 +814,52 @@ describe('CREATE_NOTEBOOK_ENTRY_WITH_TEXT', () => {
         const focusFile = s2.notebookUserFocus.fileName;
         const newEntry = getSelectedPage(s2)!.scripts[focusFile];
         expect(s2.scripts[newEntry.scriptId].annotations.visualizeQuery).not.toBeNull();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// destroyState (notebook teardown on session delete)
+// ---------------------------------------------------------------------------
+
+describe('destroyState', () => {
+    // A live Wasm Ptr is registered in core.registeredMemory under its resultPtr; destroy()
+    // unregisters it. So "is this object still alive?" reduces to a registry membership check.
+    function isAlive(ptr: { resultPtr: number | null }): boolean {
+        return ptr.resultPtr != null && dql!.registeredMemory.has(ptr.resultPtr);
+    }
+
+    it('frees the script registry and every owned script', () => {
+        const state = buildState();
+        const scriptPtrs = Object.values(state.scripts).map(s => s.script.ptr);
+        const registryPtr = state.scriptRegistry.ptr!;
+
+        // Everything is alive before teardown.
+        expect(isAlive(registryPtr)).toBe(true);
+        for (const p of scriptPtrs) {
+            expect(isAlive(p)).toBe(true);
+        }
+
+        destroyState(state);
+
+        // The notebook-owned Wasm is gone.
+        expect(isAlive(registryPtr)).toBe(false);
+        for (const p of scriptPtrs) {
+            expect(isAlive(p)).toBe(false);
+        }
+    });
+
+    it('leaves the shared connection catalog alive (it is owned by the connection)', () => {
+        const state = buildState();
+        const catalogPtr = state.connectionCatalog.ptr!;
+
+        destroyState(state);
+
+        // destroyState drops the notebook's scripts FROM the catalog but must never destroy the
+        // catalog itself — the connection owns it and DELETE_CONNECTION frees it separately.
+        expect(isAlive(catalogPtr)).toBe(true);
+
+        // Cleanup the catalog we created for this test.
+        state.connectionCatalog.destroy();
     });
 });
 

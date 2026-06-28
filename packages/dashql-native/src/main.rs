@@ -47,7 +47,7 @@ use oauth_callback::start_oauth_callback_server;
 #[tokio::main]
 async fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![dashql_is_debug_build, start_oauth_callback_server])
+        .invoke_handler(tauri::generate_handler![dashql_is_debug_build, start_oauth_callback_server, grant_fs_scope])
         .register_asynchronous_uri_scheme_protocol(
             "dashql-native",
             move |_runtime, request, responder| {
@@ -119,4 +119,18 @@ async fn main() {
 #[tauri::command]
 async fn dashql_is_debug_build() -> bool {
     cfg!(debug_assertions)
+}
+
+/// Grant the runtime filesystem scope for a directory chosen by the user.
+///
+/// Tauri's runtime fs scope is in-memory only and is lost on reload/restart. The OPFS root manifest
+/// is the single source of truth for which native directories belong to dashql, so on boot the
+/// frontend re-grants scope for each relocated session's directory via this command before reading
+/// it. Granting recursively covers nested notebook/… paths. `allow_directory` is idempotent.
+#[tauri::command]
+async fn grant_fs_scope(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    use tauri_plugin_fs::FsExt;
+    app.fs_scope()
+        .allow_directory(&path, true)
+        .map_err(|e| e.to_string())
 }

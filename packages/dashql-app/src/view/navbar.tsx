@@ -5,6 +5,7 @@ import symbols from '@ankoh/dashql-svg-symbols';
 import { AnchorAlignment, AnchorSide } from './foundations/anchored_position.js';
 import { HoverMode, NavBarButtonWithRef, NavBarLink } from './navbar_button.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
+import { SessionStorageOverlay } from './storage/session_storage_overlay.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
 import { DASHQL_VERSION } from '../globals.js';
 import { VersionCheckIndicator } from './version_viewer.js';
@@ -12,6 +13,8 @@ import { VersionInfoOverlay } from './version_viewer.js';
 import { encodeNotebookAsZipUrl, NotebookLinkTarget } from '../notebook/notebook_export.js';
 import { getConnectionParamsFromStateDetails } from '../connection/connection_params.js';
 import { useConnectionState } from '../connection/connection_registry.js';
+import { useStorageReader } from '../platform/storage/storage_provider.js';
+import { displayPath } from '../platform/storage/session_locator.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { RouteContext, useRouteContext, useRouterNavigate, CHANGE_SESSION } from '../router.js';
 import { useVersionCheck } from '../platform/version/version_check.js';
@@ -70,6 +73,59 @@ const InternalsButton = (_props: {}) => {
     );
 };
 
+/// The clickable session path bar. Forwards a ref + anchor props so it can anchor the overlay
+/// while keeping the bar's flex layout (icon + ellipsized path).
+const SessionBarButton = React.forwardRef<HTMLButtonElement, {
+    sessionPath: string;
+    pageIcon: string;
+    onClick?: (event: React.MouseEvent) => void;
+} & object>((props, ref) => {
+    const { sessionPath, pageIcon, ...anchorProps } = props;
+    return (
+        <button
+            ref={ref}
+            type="button"
+            className={styles.session_bar}
+            title={sessionPath}
+            {...anchorProps}
+        >
+            <div className={styles.session_bar_icon}>
+                <svg width="16px" height="16px">
+                    <use xlinkHref={pageIcon} />
+                </svg>
+            </div>
+            <div className={styles.session_bar_path}>
+                {sessionPath}
+            </div>
+        </button>
+    );
+});
+
+const SessionBar = (props: { sessionId: string | null; sessionPath: string; pageIcon: string }) => {
+    const [showStorageOverlay, setShowStorageOverlay] = React.useState<boolean>(false);
+
+    return (
+        <div className={styles.session_bar_container}>
+            <SessionStorageOverlay
+                sessionId={props.sessionId}
+                isOpen={showStorageOverlay}
+                onClose={() => setShowStorageOverlay(false)}
+                renderAnchor={(p: object) => (
+                    <SessionBarButton
+                        {...p}
+                        sessionPath={props.sessionPath}
+                        pageIcon={props.pageIcon}
+                        onClick={() => setShowStorageOverlay(true)}
+                    />
+                )}
+                side={AnchorSide.OutsideBottom}
+                align={AnchorAlignment.Start}
+                anchorOffset={8}
+            />
+        </div>
+    );
+};
+
 const VersionButton = (_props: {}) => {
     const [showVersionOverlay, setShowVersionOverlay] = React.useState<boolean>(false);
     const versionCheck = useVersionCheck();
@@ -112,6 +168,7 @@ export const NavBar = (): React.ReactElement => {
     const navigate = useRouterNavigate();
     const platform = usePlatformType();
     const location = useLocation();
+    const storageReader = useStorageReader();
 
     const [notebook, _modifyNotebook] = useNotebookState(route.sessionId ?? null);
     const [connection, _modifyConnection] = useConnectionState(route.sessionId ?? notebook?.sessionId ?? null);
@@ -161,7 +218,10 @@ export const NavBar = (): React.ReactElement => {
     }, [location.pathname]);
 
     const isToolPage = location.pathname === "/tool" || location.pathname.startsWith("/tool/");
-    const sessionPath = connection?.sessionId ?? "";
+    const sessionId = connection?.sessionId ?? null;
+    // The session bar shows a display path (opfs://… or file://…) reconstructed from the uuid +
+    // its recorded physical location; the uuid stays the authoritative identity.
+    const sessionPath = sessionId ? displayPath(sessionId, storageReader.getSessionLocation(sessionId)) : "";
     const pageIcon = isToolPage ? `${symbols}#tool` : `${symbols}#book_24`;
     return (
         <div className={isMac ? styles.navbar_mac : styles.navbar_default}
@@ -170,18 +230,7 @@ export const NavBar = (): React.ReactElement => {
             <div className={styles.tabs}
                 data-tauri-drag-region="true"
             >
-                <div className={styles.session_bar_container}>
-                    <div className={styles.session_bar}>
-                        <div className={styles.session_bar_icon}>
-                            <svg width="16px" height="16px">
-                                <use xlinkHref={pageIcon} />
-                            </svg>
-                        </div>
-                        <div className={styles.session_bar_path} title={sessionPath}>
-                            {sessionPath}
-                        </div>
-                    </div>
-                </div>
+                <SessionBar sessionId={sessionId} sessionPath={sessionPath} pageIcon={pageIcon} />
             </div>
             <div className={styles.version_container}>
                 <InternalsButton />

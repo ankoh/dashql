@@ -17,10 +17,13 @@ import { ProgressCounter } from './utils/progress.js';
 import { NotebookState } from './notebook/notebook_state.js';
 import { isDemoConnector } from './connection/dataless/dataless_connection_state.js';
 import { DatalessConnectionStateDetails } from './connection/dataless/dataless_connection_state.js';
+import { InvalidSession } from './platform/storage/session_validation.js';
 
 export interface AppLoadingResult {
     /// The demo notebook
     demo: NotebookState;
+    /// Sessions whose metadata failed validation and were refused a load (keyed by bare UUID).
+    invalidSessions: Map<string, InvalidSession>;
 }
 
 /// Main logic to setup the application
@@ -173,6 +176,7 @@ export async function loadApp(config: AppConfig, logger: TracedLogger, core: das
 
     return {
         demo: demoNotebook,
+        invalidSessions: state.invalidSessions,
     };
 }
 

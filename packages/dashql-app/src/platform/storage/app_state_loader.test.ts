@@ -5,6 +5,27 @@ import type { DashQL } from '../../core/api.js';
 import { Logger } from '../logger/logger.js';
 import { ConnectorType } from '../../connection/connector_info.js';
 
+// Session identity is the bare UUID, used as both the manifest entry path and the session's own
+// `sessionId`. The loader gates on UUID validity, so fixtures must use real UUIDs.
+const HYPER_ID = 'a0000000-0000-4000-8000-000000000001';
+const DEMO_ID = 'a0000000-0000-4000-8000-000000000002';
+const DATALESS_ID = 'a0000000-0000-4000-8000-000000000003';
+const GOOD_ID = 'a0000000-0000-4000-8000-000000000004';
+const BAD_ID = 'a0000000-0000-4000-8000-000000000005';
+const UNCONFIGURED_ID = 'a0000000-0000-4000-8000-000000000006';
+const UNKNOWN_CONNECTOR_ID = 'a0000000-0000-4000-8000-000000000007';
+const NO_PARAMS_ID = 'a0000000-0000-4000-8000-000000000008';
+const NO_ID_PATH = 'a0000000-0000-4000-8000-000000000009';
+const THROWING_ID = 'a0000000-0000-4000-8000-00000000000a';
+const NO_SCHEMA_ID = 'a0000000-0000-4000-8000-00000000000b';
+const SCHEMA_ID = 'a0000000-0000-4000-8000-00000000000c';
+const CATALOG_FAIL_ID = 'a0000000-0000-4000-8000-00000000000d';
+const MULTI_PAGE_ID = 'a0000000-0000-4000-8000-00000000000e';
+const EMPTY_NOTEBOOK_ID = 'a0000000-0000-4000-8000-00000000000f';
+const NOTEBOOK_FAIL_ID = 'a0000000-0000-4000-8000-000000000010';
+const SF_ID = 'a0000000-0000-4000-8000-000000000011';
+const TRINO_ID = 'a0000000-0000-4000-8000-000000000012';
+
 class NullLogger extends Logger {
     public destroy(): void { }
     protected flushPendingRecords(): void { }
@@ -21,9 +42,6 @@ describe('restoreAppState', () => {
 
         mockBackend = {
             getBackendType: vi.fn(() => StorageBackendType.OPFS),
-            getSchemaPrefix: vi.fn(() => 'mock://'),
-            constructSessionPath: vi.fn((sessionId: string) => `mock://sessions/${sessionId}`),
-            parseSessionPath: vi.fn((sessionPath: string) => sessionPath.replace('mock://', '')),
             listSessions: vi.fn(),
             loadSession: vi.fn(),
             saveSessionManifest: vi.fn(),
@@ -93,10 +111,10 @@ describe('restoreAppState', () => {
     });
 
     it('restores a single HYPER session correctly', async () => {
-        const sessionEntry = { path: 'test-session-1' };
+        const sessionEntry = { path: HYPER_ID };
         const sessionData: SessionData = {
-            sessionId: 'uuid-1',
-            sessionPath: 'test-session-1',
+            sessionId: HYPER_ID,
+            sessionPath: HYPER_ID,
             title: 'Test Session',
             connectionParams: {
                 hyper: {
@@ -137,19 +155,19 @@ describe('restoreAppState', () => {
         );
 
         expect(result.connectionStates.size).toBe(1);
-        expect(result.connectionStates.has('uuid-1')).toBe(true);
+        expect(result.connectionStates.has(HYPER_ID)).toBe(true);
         expect(result.notebooks.size).toBe(1);
-        expect(result.notebooks.has('uuid-1')).toBe(true);
+        expect(result.notebooks.has(HYPER_ID)).toBe(true);
 
-        const connection = result.connectionStates.get('uuid-1')!;
-        expect(connection.sessionId).toBe('uuid-1');
+        const connection = result.connectionStates.get(HYPER_ID)!;
+        expect(connection.sessionId).toBe(HYPER_ID);
         expect(connection.connectorInfo.connectorType).toBe(ConnectorType.HYPER);
 
         // Verify connection is in correct type index
-        expect(result.connectionStatesByType[ConnectorType.HYPER]).toContain('uuid-1');
+        expect(result.connectionStatesByType[ConnectorType.HYPER]).toContain(HYPER_ID);
 
-        const notebook = result.notebooks.get('uuid-1')!;
-        expect(notebook.sessionId).toBe('uuid-1');
+        const notebook = result.notebooks.get(HYPER_ID)!;
+        expect(notebook.sessionId).toBe(HYPER_ID);
         expect(Object.keys(notebook.notebookPages).length).toBe(1);
 
         // Verify progress tracking
@@ -161,20 +179,20 @@ describe('restoreAppState', () => {
     });
 
     it('restores both demo and regular DATALESS sessions', async () => {
-        const demoSession = { path: 'demo-session' };
-        const datalessSession = { path: 'dataless-session' };
+        const demoSession = { path: DEMO_ID };
+        const datalessSession = { path: DATALESS_ID };
 
         const demoData: SessionData = {
-            sessionId: 'demo-uuid',
-            sessionPath: 'demo-session',
+            sessionId: DEMO_ID,
+            sessionPath: DEMO_ID,
             title: 'Demo',
             connectionParams: { dataless: { demoConnector: true } },
             notebook: { originalFileName: 'demo.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
         const datalessData: SessionData = {
-            sessionId: 'dataless-uuid',
-            sessionPath: 'dataless-session',
+            sessionId: DATALESS_ID,
+            sessionPath: DATALESS_ID,
             title: 'Dataless',
             connectionParams: { dataless: {} },
             notebook: { originalFileName: 'dataless.sql', createdAt: '2024-01-01T00:00:00Z' }
@@ -182,8 +200,8 @@ describe('restoreAppState', () => {
 
         vi.mocked(mockBackend.listSessions).mockResolvedValue([demoSession, datalessSession]);
         vi.mocked(mockBackend.loadSession).mockImplementation(async (path) => {
-            if (path === 'demo-session') return demoData;
-            if (path === 'dataless-session') return datalessData;
+            if (path === DEMO_ID) return demoData;
+            if (path === DATALESS_ID) return datalessData;
             throw new Error('Unknown session');
         });
         vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null);
@@ -199,13 +217,13 @@ describe('restoreAppState', () => {
 
         // Both sessions should be restored
         expect(result.connectionStates.size).toBe(2);
-        expect(result.connectionStates.has('demo-uuid')).toBe(true);
-        expect(result.connectionStates.has('dataless-uuid')).toBe(true);
+        expect(result.connectionStates.has(DEMO_ID)).toBe(true);
+        expect(result.connectionStates.has(DATALESS_ID)).toBe(true);
         expect(result.notebooks.size).toBe(2);
 
         // Verify both DATALESS connections are in correct type index
-        expect(result.connectionStatesByType[ConnectorType.DATALESS]).toContain('demo-uuid');
-        expect(result.connectionStatesByType[ConnectorType.DATALESS]).toContain('dataless-uuid');
+        expect(result.connectionStatesByType[ConnectorType.DATALESS]).toContain(DEMO_ID);
+        expect(result.connectionStatesByType[ConnectorType.DATALESS]).toContain(DATALESS_ID);
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.succeeded).toBe(2);
@@ -214,12 +232,12 @@ describe('restoreAppState', () => {
     });
 
     it('handles corrupted session gracefully', async () => {
-        const goodSession = { path: 'good-session' };
-        const badSession = { path: 'bad-session' };
+        const goodSession = { path: GOOD_ID };
+        const badSession = { path: BAD_ID };
 
         const goodData: SessionData = {
-            sessionId: 'good-uuid',
-            sessionPath: 'good-session',
+            sessionId: GOOD_ID,
+            sessionPath: GOOD_ID,
             title: 'Good',
             connectionParams: { dataless: {} },
             notebook: { originalFileName: 'good.sql', createdAt: '2024-01-01T00:00:00Z' }
@@ -227,7 +245,7 @@ describe('restoreAppState', () => {
 
         vi.mocked(mockBackend.listSessions).mockResolvedValue([goodSession, badSession]);
         vi.mocked(mockBackend.loadSession).mockImplementation(async (path) => {
-            if (path === 'good-session') return goodData;
+            if (path === GOOD_ID) return goodData;
             throw new Error('Session corrupted');
         });
         vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null);
@@ -243,7 +261,7 @@ describe('restoreAppState', () => {
 
         // Good DATALESS session should be restored, bad session should fail
         expect(result.connectionStates.size).toBe(1);
-        expect(result.connectionStates.has('good-uuid')).toBe(true);
+        expect(result.connectionStates.has(GOOD_ID)).toBe(true);
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.failed).toBe(1); // bad session
@@ -251,10 +269,10 @@ describe('restoreAppState', () => {
     });
 
     it('restores sessions without setupParams (inactive connections are never written, but handle gracefully)', async () => {
-        const sessionEntry = { path: 'unconfigured-session' };
+        const sessionEntry = { path: UNCONFIGURED_ID };
         const sessionData: SessionData = {
-            sessionId: 'unconfigured-uuid',
-            sessionPath: 'unconfigured-session',
+            sessionId: UNCONFIGURED_ID,
+            sessionPath: UNCONFIGURED_ID,
             title: 'Unconfigured',
             connectionParams: {
                 hyper: {
@@ -281,20 +299,44 @@ describe('restoreAppState', () => {
 
         // Should restore even without setupParams
         expect(result.connectionStates.size).toBe(1);
-        expect(result.connectionStates.has('unconfigured-uuid')).toBe(true);
+        expect(result.connectionStates.has(UNCONFIGURED_ID)).toBe(true);
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.succeeded).toBe(1);
         expect(finalProgress.restoreConnections.failed).toBe(0);
     });
 
-    it('handles completely invalid connectionParams', async () => {
-        const sessionEntry = { path: 'invalid-session' };
+    it('marks a session whose manifest entry path is not a valid UUID as invalid (skipped, not failed)', async () => {
+        // The first gate rejects a bad routing key before any loadSession call.
+        const sessionEntry = { path: 'imported-1700000000000' };
+
+        vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
+
+        const result = await restoreAppState(
+            mockCore,
+            mockBackend,
+            logger,
+            (progress) => progressUpdates.push(progress)
+        );
+
+        // Never attempted a load — surfaced as invalid, keyed by the raw manifest path.
+        expect(mockBackend.loadSession).not.toHaveBeenCalled();
+        expect(result.connectionStates.size).toBe(0);
+        const invalid = result.invalidSessions.get('imported-1700000000000')!;
+        expect(invalid.error).toBe('invalid_session_id');
+
+        const finalProgress = progressUpdates[progressUpdates.length - 1];
+        expect(finalProgress.restoreConnections.failed).toBe(0);
+        expect(finalProgress.restoreConnections.skipped).toBe(1);
+    });
+
+    it('marks a session with an unknown connector as invalid (skipped, not failed)', async () => {
+        const sessionEntry = { path: UNKNOWN_CONNECTOR_ID };
         const sessionData: SessionData = {
-            sessionId: 'invalid-uuid',
-            sessionPath: 'invalid-session',
+            sessionId: UNKNOWN_CONNECTOR_ID,
+            sessionPath: UNKNOWN_CONNECTOR_ID,
             title: 'Invalid',
-            // Completely invalid format
+            // Completely invalid format — matches no known connector
             connectionParams: { garbage: 'data' } as any,
             notebook: { originalFileName: 'invalid.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
@@ -309,17 +351,117 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
+        // Refused a load: not in the connection map, surfaced as invalid instead.
         expect(result.connectionStates.size).toBe(0);
+        expect(result.invalidSessions.size).toBe(1);
+        const invalid = result.invalidSessions.get(UNKNOWN_CONNECTOR_ID)!;
+        expect(invalid.sessionId).toBe(UNKNOWN_CONNECTOR_ID);
+        expect(invalid.error).toBe('unknown_connector');
+
+        // Accounted as skipped, not failed — nothing was attempted.
+        const finalProgress = progressUpdates[progressUpdates.length - 1];
+        expect(finalProgress.restoreConnections.failed).toBe(0);
+        expect(finalProgress.restoreConnections.skipped).toBe(1);
+    });
+
+    it('marks a session with no connectionParams as invalid', async () => {
+        const sessionEntry = { path: NO_PARAMS_ID };
+        const sessionData = {
+            sessionId: NO_PARAMS_ID,
+            sessionPath: NO_PARAMS_ID,
+            title: 'No Params',
+            // connectionParams deliberately omitted
+            notebook: { originalFileName: 'x.sql', createdAt: '2024-01-01T00:00:00Z' }
+        } as any as SessionData;
+
+        vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
+        vi.mocked(mockBackend.loadSession).mockResolvedValue(sessionData);
+
+        const result = await restoreAppState(
+            mockCore,
+            mockBackend,
+            logger,
+            (progress) => progressUpdates.push(progress)
+        );
+
+        expect(result.connectionStates.size).toBe(0);
+        expect(result.invalidSessions.get(NO_PARAMS_ID)?.error).toBe('missing_connection_params');
+
+        const finalProgress = progressUpdates[progressUpdates.length - 1];
+        expect(finalProgress.restoreConnections.failed).toBe(0);
+        expect(finalProgress.restoreConnections.skipped).toBe(1);
+    });
+
+    it('marks a session with an empty sessionId as invalid (keyed by manifest path)', async () => {
+        // The manifest entry path is a valid UUID (passes the first gate), but the loaded session
+        // data has an empty sessionId, so validateSessionData rejects it.
+        const sessionEntry = { path: NO_ID_PATH };
+        const sessionData = {
+            sessionId: '',
+            sessionPath: NO_ID_PATH,
+            title: 'No Id',
+            connectionParams: { dataless: {} },
+            notebook: { originalFileName: 'x.sql', createdAt: '2024-01-01T00:00:00Z' }
+        } as any as SessionData;
+
+        vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
+        vi.mocked(mockBackend.loadSession).mockResolvedValue(sessionData);
+
+        const result = await restoreAppState(
+            mockCore,
+            mockBackend,
+            logger,
+            (progress) => progressUpdates.push(progress)
+        );
+
+        expect(result.connectionStates.size).toBe(0);
+        // Keyed by the manifest entry path (the authoritative registry/delete key).
+        expect(result.invalidSessions.get(NO_ID_PATH)?.error).toBe('missing_session_id');
+    });
+
+    it('still hard-fails (not skips) a session whose load throws', async () => {
+        const goodSession = { path: GOOD_ID };
+        const throwingSession = { path: THROWING_ID };
+
+        const goodData: SessionData = {
+            sessionId: GOOD_ID,
+            sessionPath: GOOD_ID,
+            title: 'Good',
+            connectionParams: { dataless: {} },
+            notebook: { originalFileName: 'good.sql', createdAt: '2024-01-01T00:00:00Z' }
+        };
+
+        vi.mocked(mockBackend.listSessions).mockResolvedValue([goodSession, throwingSession]);
+        vi.mocked(mockBackend.loadSession).mockImplementation(async (path) => {
+            if (path === GOOD_ID) return goodData;
+            throw new Error('I/O error reading session');
+        });
+        vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadNotebookPages).mockResolvedValue([]);
+        vi.mocked(mockBackend.loadNotebookScriptDraft).mockResolvedValue(null);
+
+        const result = await restoreAppState(
+            mockCore,
+            mockBackend,
+            logger,
+            (progress) => progressUpdates.push(progress)
+        );
+
+        // The throwing session is a genuine failure, not a validation-skip.
+        expect(result.connectionStates.size).toBe(1);
+        expect(result.invalidSessions.size).toBe(0);
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.failed).toBe(1);
+        expect(finalProgress.restoreConnections.skipped).toBe(0);
+        expect(finalProgress.restoreConnections.succeeded).toBe(1);
     });
 
     it('handles missing catalog schema gracefully', async () => {
-        const sessionEntry = { path: 'no-schema-session' };
+        const sessionEntry = { path: NO_SCHEMA_ID };
         const sessionData: SessionData = {
-            sessionId: 'no-schema-uuid',
-            sessionPath: 'no-schema-session',
+            sessionId: NO_SCHEMA_ID,
+            sessionPath: NO_SCHEMA_ID,
             title: 'No Schema',
             connectionParams: {
                 hyper: {
@@ -354,10 +496,10 @@ describe('restoreAppState', () => {
     });
 
     it('restores catalog schema correctly', async () => {
-        const sessionEntry = { path: 'schema-session' };
+        const sessionEntry = { path: SCHEMA_ID };
         const sessionData: SessionData = {
-            sessionId: 'schema-uuid',
-            sessionPath: 'schema-session',
+            sessionId: SCHEMA_ID,
+            sessionPath: SCHEMA_ID,
             title: 'Schema Test',
             connectionParams: {
                 hyper: {
@@ -386,7 +528,7 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        const connection = result.connectionStates.get('schema-uuid')!;
+        const connection = result.connectionStates.get(SCHEMA_ID)!;
         expect(connection.catalogUpdates.restoredAt).not.toBeNull();
 
         // Verify catalogRelationScript was updated with schema
@@ -396,10 +538,10 @@ describe('restoreAppState', () => {
     });
 
     it('handles catalog restoration failure gracefully', async () => {
-        const sessionEntry = { path: 'catalog-fail-session' };
+        const sessionEntry = { path: CATALOG_FAIL_ID };
         const sessionData: SessionData = {
-            sessionId: 'catalog-fail-uuid',
-            sessionPath: 'catalog-fail-session',
+            sessionId: CATALOG_FAIL_ID,
+            sessionPath: CATALOG_FAIL_ID,
             title: 'Catalog Fail',
             connectionParams: {
                 hyper: {
@@ -437,10 +579,10 @@ describe('restoreAppState', () => {
     });
 
     it('restores notebooks with multiple pages and scripts', async () => {
-        const sessionEntry = { path: 'multi-page-session' };
+        const sessionEntry = { path: MULTI_PAGE_ID };
         const sessionData: SessionData = {
-            sessionId: 'multi-page-uuid',
-            sessionPath: 'multi-page-session',
+            sessionId: MULTI_PAGE_ID,
+            sessionPath: MULTI_PAGE_ID,
             title: 'Multi Page',
             connectionParams: {
                 hyper: {
@@ -487,7 +629,7 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        const notebook = result.notebooks.get('multi-page-uuid')!;
+        const notebook = result.notebooks.get(MULTI_PAGE_ID)!;
         expect(Object.keys(notebook.notebookPages).length).toBe(3);
         expect(Object.keys(notebook.notebookPages['page-1'].scripts).length).toBe(2);
         expect(Object.keys(notebook.notebookPages['page-2'].scripts).length).toBe(1);
@@ -498,10 +640,10 @@ describe('restoreAppState', () => {
     });
 
     it('creates at least one empty page for notebooks with no pages', async () => {
-        const sessionEntry = { path: 'empty-notebook-session' };
+        const sessionEntry = { path: EMPTY_NOTEBOOK_ID };
         const sessionData: SessionData = {
-            sessionId: 'empty-notebook-uuid',
-            sessionPath: 'empty-notebook-session',
+            sessionId: EMPTY_NOTEBOOK_ID,
+            sessionPath: EMPTY_NOTEBOOK_ID,
             title: 'Empty Notebook',
             connectionParams: {
                 hyper: {
@@ -528,17 +670,17 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        const notebook = result.notebooks.get('empty-notebook-uuid')!;
+        const notebook = result.notebooks.get(EMPTY_NOTEBOOK_ID)!;
         const folders = Object.keys(notebook.notebookPages);
         expect(folders.length).toBe(1);
         expect(Object.keys(notebook.notebookPages[folders[0]].scripts).length).toBe(0);
     });
 
     it('handles notebook restoration failure without affecting connection', async () => {
-        const sessionEntry = { path: 'notebook-fail-session' };
+        const sessionEntry = { path: NOTEBOOK_FAIL_ID };
         const sessionData: SessionData = {
-            sessionId: 'notebook-fail-uuid',
-            sessionPath: 'notebook-fail-session',
+            sessionId: NOTEBOOK_FAIL_ID,
+            sessionPath: NOTEBOOK_FAIL_ID,
             title: 'Notebook Fail',
             connectionParams: {
                 hyper: {
@@ -574,13 +716,13 @@ describe('restoreAppState', () => {
     });
 
     it('restores multiple sessions of different types', async () => {
-        const hyperSession = { path: 'hyper-session' };
-        const salesforceSession = { path: 'salesforce-session' };
-        const trinoSession = { path: 'trino-session' };
+        const hyperSession = { path: HYPER_ID };
+        const salesforceSession = { path: SF_ID };
+        const trinoSession = { path: TRINO_ID };
 
         const hyperData: SessionData = {
-            sessionId: 'hyper-uuid',
-            sessionPath: 'hyper-session',
+            sessionId: HYPER_ID,
+            sessionPath: HYPER_ID,
             title: 'Hyper',
             connectionParams: {
                 hyper: {
@@ -595,8 +737,8 @@ describe('restoreAppState', () => {
         };
 
         const salesforceData: SessionData = {
-            sessionId: 'sf-uuid',
-            sessionPath: 'salesforce-session',
+            sessionId: SF_ID,
+            sessionPath: SF_ID,
             title: 'Salesforce',
             connectionParams: {
                 salesforce: {
@@ -613,8 +755,8 @@ describe('restoreAppState', () => {
         };
 
         const trinoData: SessionData = {
-            sessionId: 'trino-uuid',
-            sessionPath: 'trino-session',
+            sessionId: TRINO_ID,
+            sessionPath: TRINO_ID,
             title: 'Trino',
             connectionParams: {
                 trino: {
@@ -631,9 +773,9 @@ describe('restoreAppState', () => {
 
         vi.mocked(mockBackend.listSessions).mockResolvedValue([hyperSession, salesforceSession, trinoSession]);
         vi.mocked(mockBackend.loadSession).mockImplementation(async (path) => {
-            if (path === 'hyper-session') return hyperData;
-            if (path === 'salesforce-session') return salesforceData;
-            if (path === 'trino-session') return trinoData;
+            if (path === HYPER_ID) return hyperData;
+            if (path === SF_ID) return salesforceData;
+            if (path === TRINO_ID) return trinoData;
             throw new Error('Unknown session');
         });
         vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null);
@@ -651,9 +793,9 @@ describe('restoreAppState', () => {
         expect(result.notebooks.size).toBe(3);
 
         // Verify type indices are populated correctly
-        expect(result.connectionStatesByType[ConnectorType.HYPER]).toContain('hyper-uuid');
-        expect(result.connectionStatesByType[ConnectorType.SALESFORCE_DATA_CLOUD]).toContain('sf-uuid');
-        expect(result.connectionStatesByType[ConnectorType.TRINO]).toContain('trino-uuid');
+        expect(result.connectionStatesByType[ConnectorType.HYPER]).toContain(HYPER_ID);
+        expect(result.connectionStatesByType[ConnectorType.SALESFORCE_DATA_CLOUD]).toContain(SF_ID);
+        expect(result.connectionStatesByType[ConnectorType.TRINO]).toContain(TRINO_ID);
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.succeeded).toBe(3);

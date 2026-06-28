@@ -1,0 +1,92 @@
+.body {
+    height: 100%;
+    display: grid;
+    grid-template-rows: 40px 1fr;
+    position: relative;
+}
+
+/* Header — mirrors storage_writer_view.module.css */
+.header_container {
+    grid-row: 1;
+    width: 100%;
+
+    display: grid;
+    grid-template-rows: 100%;
+    grid-template-columns: max-content auto max-content;
+
+    border-bottom: 1px solid var(--border_color_primary);
+    border-top-right-radius: var(--border_radius);
+    border-top-left-radius: var(--border_radius);
+}
+
+.header_left_container {
+    grid-column: 1;
+    margin-left: 16px;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    column-gap: 8px;
+}
+
+.header_right_container {
+    grid-column: 3;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    column-gap: 8px;
+    padding: 0px 4px;
+    overflow: hidden;
+}
+
+.title {
+    font-size: 1rem;
+}
+
+/* Body */
+.body_content {
+    grid-row: 2;
+    width: 100%;
+    min-height: 0;
+    overflow: auto;
+    padding: 16px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    row-gap: 12px;
+}
+
+.param_row {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    column-gap: 12px;
+    align-items: baseline;
+}
+
+.param_label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text_color_secondary, #6e7781);
+}
+
+.param_value {
+    font-family: 'Roboto Mono';
+    font-size: 0.8rem;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.action_row {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    row-gap: 6px;
+}
+
+.action_hint {
+    font-size: 0.75rem;
+    color: var(--text_color_secondary, #6e7781);
+}

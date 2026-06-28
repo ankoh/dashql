@@ -1,7 +1,9 @@
 import * as React from 'react';
 import { StorageWriter } from './storage_writer.js';
-import type { StorageBackend } from './storage_backend.js';
+import { type StorageBackend, StorageBackendType } from './storage_backend.js';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
+import { CompositeStorageBackend } from './composite_storage_backend.js';
+import { type SessionLocation } from './session_locator.js';
 import { useLogger } from '../logger/logger_provider.js';
 import type { DashQL } from '../../core/api.js';
 import { restoreAppState, type RestoredAppState, type AppStateRestorationProgress } from './app_state_loader.js';
@@ -14,6 +16,8 @@ export interface StorageReader {
     backend: StorageBackend;
     restoreAppState(core: DashQL, progressConsumer: (progress: AppStateRestorationProgress) => void): Promise<RestoredAppState>;
     waitForInitialRestore(): Promise<void>;
+    /// The physical location of a session's files (used by the UI for a display path).
+    getSessionLocation(sessionId: string): SessionLocation;
 }
 const StorageReaderContext = React.createContext<StorageReader | null>(null);
 
@@ -26,7 +30,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
     const logger = useLogger();
     const [backend, setBackend] = React.useState<StorageBackend | null>(providedBackend || null);
 
-    // Initialize OPFS backend if no backend was provided
+    // Initialize the configured backend if no backend was provided
     React.useEffect(() => {
         if (providedBackend) {
             logger.info("Using provided storage backend", {}, "storage_provider");
@@ -35,18 +39,23 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
         }
 
         const initBackend = async () => {
-            logger.info("Initializing OPFS storage backend", {}, "storage_provider");
             const initStartTime = performance.now();
 
+            // The OPFS root manifest is the single registry of every session. The composite backend
+            // serves registry ops from OPFS and routes per-session ops by uuid -> location, building
+            // the location map (and re-granting native fs scopes) from the manifest during init.
+            logger.info("Initializing storage backend", {}, "storage_provider");
             const opfsBackend = new OPFSStorageBackend();
-            await opfsBackend.initialize();
+            const composite = new CompositeStorageBackend(opfsBackend, logger);
+            await composite.initialize();
 
             const initDuration = performance.now() - initStartTime;
-            logger.info("OPFS storage backend initialized", {
+            logger.info("Storage backend initialized", {
+                backend: composite.getBackendType(),
                 durationMs: initDuration.toFixed(2)
             }, "storage_provider");
 
-            setBackend(opfsBackend);
+            setBackend(composite);
         };
 
         initBackend();
@@ -71,7 +80,14 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
             async waitForInitialRestore(): Promise<void> {
                 // Nothing to wait for in current implementation
                 return Promise.resolve();
-            }
+            },
+            getSessionLocation(sessionId: string): SessionLocation {
+                if (backend instanceof CompositeStorageBackend) {
+                    return backend.getSessionLocation(sessionId);
+                }
+                // A bare backend (e.g. an injected test backend) has no per-session routing.
+                return { type: backend.getBackendType() === StorageBackendType.Native ? StorageBackendType.Native : StorageBackendType.OPFS };
+            },
         };
     }, [backend, logger]);
 

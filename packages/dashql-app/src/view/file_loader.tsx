@@ -79,7 +79,7 @@ async function loadSessionFromFile(
         const sessionId = await importSessionFromZip(
             zipBlob,
             backend,
-            () => backend.constructSessionPath(`imported-${Date.now()}`)
+            () => crypto.randomUUID()
         );
 
         progress.importFinishedAt = new Date();

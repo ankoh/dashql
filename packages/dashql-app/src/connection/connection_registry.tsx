@@ -50,10 +50,10 @@ export const ConnectionRegistry: React.FC<Props> = (props: Props) => {
 
 export function useConnectionStateAllocator(): ConnectionAllocator {
     const [_reg, setReg] = React.useContext(CONNECTION_REGISTRY_CTX)!;
-    const storageWriter = useStorageWriter();
     return React.useCallback((state: ConnectionStateWithoutId) => {
-        const uuid = crypto.randomUUID();
-        const sessionId = storageWriter.backend.constructSessionPath(uuid);
+        // The session UUID is the authoritative identity. New sessions are implicitly OPFS-backed;
+        // their physical location is recorded in the manifest when first persisted.
+        const sessionId = crypto.randomUUID();
         const conn: ConnectionState = { ...state, sessionId };
         setReg((reg) => {
             reg.connectionMap.set(sessionId, conn);
@@ -64,7 +64,7 @@ export function useConnectionStateAllocator(): ConnectionAllocator {
         // Don't persist yet - wait until connection is configured
         // Persistence happens in connection reducer when CHANNEL_READY/HEALTH_CHECK_SUCCEEDED
         return conn;
-    }, [setReg, storageWriter]);
+    }, [setReg]);
 }
 
 export function useConnectionRegistry(): [ConnectionRegistry, Dispatch<SetConnectionRegistryAction>] {

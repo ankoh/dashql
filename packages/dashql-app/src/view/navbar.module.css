@@ -28,6 +28,11 @@
 }
 
 .session_bar {
+    -webkit-appearance: none;
+    appearance: none;
+    border: 1px solid transparent;
+    font-family: inherit;
+
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -40,6 +45,17 @@
     background-color: rgba(0, 0, 0, 0.3);
     color: var(--nav_tab_fg);
     overflow: hidden;
+    cursor: pointer;
+    transition: background-color 0.1s ease-in-out;
+}
+
+.session_bar:hover {
+    background-color: rgba(0, 0, 0, 0.45);
+}
+
+.session_bar:focus-visible {
+    outline: none;
+    border: var(--nav_border_active);
 }
 
 .session_bar_icon {

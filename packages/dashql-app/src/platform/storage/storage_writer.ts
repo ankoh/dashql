@@ -93,6 +93,10 @@ export class StorageWriter {
     statistics: StorageWriteStatisticsMap;
     /// The listeners for
     statisticsSubscribers: Set<StorageWriteStatisticsSubscriber>;
+    /// Is the writer paused? While paused, debounced timers don't process tasks.
+    paused: boolean;
+    /// The executions that are currently in flight (used by flush() to await completion).
+    inFlight: Set<Promise<void>>;
 
     constructor(logger: Logger, backend: StorageBackend) {
         this.logger = logger;
@@ -100,6 +104,50 @@ export class StorageWriter {
         this.pendingTasks = new Map();
         this.statistics = Immutable.Map();
         this.statisticsSubscribers = new Set();
+        this.paused = false;
+        this.inFlight = new Set();
+    }
+
+    /// Pause the writer.
+    /// Cancels all pending debounce timers so nothing is written until resume()/flush() is called.
+    /// Tasks scheduled while paused stay pending and are re-armed on resume().
+    public pause(): void {
+        this.paused = true;
+        for (const task of this.pendingTasks.values()) {
+            clearTimeout(task.timer);
+        }
+    }
+
+    /// Resume the writer, re-arming debounce timers for any tasks accumulated while paused.
+    public resume(): void {
+        if (!this.paused) {
+            return;
+        }
+        this.paused = false;
+        for (const [key, task] of this.pendingTasks) {
+            task.timer = setTimeout(() => this.processTask(key), task.debounceDurationMs);
+        }
+    }
+
+    /// Flush the writer: process every pending task immediately and await all in-flight writes.
+    /// Works regardless of the paused state and leaves the paused state unchanged.
+    public async flush(): Promise<void> {
+        const wasPaused = this.paused;
+        // Temporarily allow processing even if paused.
+        this.paused = false;
+        const keys = [...this.pendingTasks.keys()];
+        for (const key of keys) {
+            const task = this.pendingTasks.get(key);
+            if (task) {
+                clearTimeout(task.timer);
+            }
+            await this.processTask(key);
+        }
+        this.paused = wasPaused;
+        // Await any executions that were already in flight (e.g. a timer that fired just before).
+        while (this.inFlight.size > 0) {
+            await Promise.all([...this.inFlight]);
+        }
     }
 
     public getStatistics(): StorageWriteStatisticsMap {
@@ -150,16 +198,28 @@ export class StorageWriter {
         if (!task) {
             return;
         }
+        // If a timer fires while paused, leave the task pending - it'll be re-armed on resume().
+        if (this.paused) {
+            return;
+        }
         this.pendingTasks.delete(key);
+        const execution = (async () => {
+            try {
+                await this.executeTask(key, task.latestTask);
+                task.resolveLatestTask(true);
+            } catch (e: any) {
+                this.logger.error("executing write task failed", {
+                    key: key,
+                    error: stringifyError(e)
+                })
+                task.resolveLatestTask(false);
+            }
+        })();
+        this.inFlight.add(execution);
         try {
-            await this.executeTask(key, task.latestTask);
-            task.resolveLatestTask(true);
-        } catch (e: any) {
-            this.logger.error("executing write task failed", {
-                key: key,
-                error: stringifyError(e)
-            })
-            task.resolveLatestTask(false);
+            await execution;
+        } finally {
+            this.inFlight.delete(execution);
         }
     }
 
@@ -226,9 +286,11 @@ export class StorageWriter {
                     createdAt: new Date().toISOString(),
                 };
 
+                // sessionPath is a display-only field, recomputed from the uuid + location for
+                // the UI; we don't persist it here. storageType/nativePath are stamped by the
+                // composite backend, which knows the session's physical location.
                 const connData: SessionData = {
                     sessionId: conn.sessionId,
-                    sessionPath,
                     title: conn.connectorInfo.names.fileShort || "Untitled",
                     connectionParams,
                     notebook: notebookMetadata,
@@ -330,7 +392,6 @@ export class StorageWriter {
 
                 const connData: SessionData = {
                     sessionId: notebook.sessionId,
-                    sessionPath,
                     title: notebook.notebookMetadata.originalFileName || "Untitled",
                     connectionParams,
                     notebook: notebookMetadata,

@@ -1,50 +1,287 @@
-import { type StorageBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type AppSettings, StorageBackendType, STORAGE_SESSIONS_FOLDER } from './storage_backend.js';
+import { type StorageBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type AppSettings, StorageBackendType, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS } from './storage_backend.js';
 
-/// Stub for the native filesystem storage backend.
-/// All operations throw - the native backend is not yet implemented.
+import { exists, mkdir, readDir, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
+import { join } from '@tauri-apps/api/path';
+
+/// Native filesystem storage backend for a single session (Tauri only).
+///
+/// One directory holds exactly one session. Unlike OPFS, there is no `sessions/<uuid>` nesting and
+/// no manifest file in the directory: the session's files (`dashql-session.json`,
+/// `dashql-relations.sql`, `dashql-functions.sql`, `notebook/…`) are written *directly* under the
+/// configured directory. The session UUID passed to each method identifies the session for the
+/// caller's routing, but does not affect the on-disk layout (the directory already is the session).
+///
+/// The session *registry* (which sessions exist, and where each lives) is owned by the OPFS root
+/// manifest, not here. The registry-level methods on this backend are therefore inert; the
+/// composite backend always routes those to OPFS.
 export class NativeStorageBackend implements StorageBackend {
+    /// The absolute directory on disk that holds this session's files
+    private readonly dir: string;
+
+    constructor(dir: string) {
+        this.dir = dir;
+    }
+
     getBackendType(): StorageBackendType {
         return StorageBackendType.Native;
     }
 
-    getSchemaPrefix(): string {
-        return 'file://';
+    /// The absolute directory backing this session
+    getDir(): string {
+        return this.dir;
     }
 
-    constructSessionPath(sessionId: string): string {
-        return `file://${STORAGE_SESSIONS_FOLDER}/${sessionId}`;
-    }
-
-    parseSessionPath(sessionPath: string): string {
-        const prefix = this.getSchemaPrefix();
-        if (sessionPath.startsWith(prefix)) {
-            return sessionPath.substring(prefix.length);
+    async initialize(): Promise<void> {
+        if (!(await exists(this.dir))) {
+            await mkdir(this.dir, { recursive: true });
         }
-        return sessionPath;
     }
 
-    private notImplemented(): never {
-        throw new Error('NativeStorageBackend is not implemented yet');
+    /// Resolve a relative storage path against the absolute directory using OS-correct separators
+    private async abs(relative: string): Promise<string> {
+        const parts = relative.split('/').filter(p => p.length > 0);
+        return await join(this.dir, ...parts);
     }
 
-    async listSessions(_manifestPath: string): Promise<SessionEntry[]> { this.notImplemented(); }
-    async loadAppSettings(): Promise<AppSettings | null> { this.notImplemented(); }
-    async saveAppSettings(_settings: AppSettings): Promise<void> { this.notImplemented(); }
-    async loadSession(_sessionPath: string): Promise<SessionData> { this.notImplemented(); }
-    async saveSessionManifest(_sessionPath: string, _data: SessionData): Promise<void> { this.notImplemented(); }
-    async deleteSession(_sessionPath: string): Promise<void> { this.notImplemented(); }
-    async loadSessionSchema(_sessionPath: string): Promise<string | null> { this.notImplemented(); }
-    async saveSessionSchema(_sessionPath: string, _sql: string): Promise<void> { this.notImplemented(); }
-    async loadSessionFunctions(_sessionPath: string): Promise<string | null> { this.notImplemented(); }
-    async saveSessionFunctions(_sessionPath: string, _sql: string): Promise<void> { this.notImplemented(); }
-    async loadNotebookPages(_sessionPath: string): Promise<PageData[]> { this.notImplemented(); }
-    async createNotebookPage(_sessionPath: string, _pageName: string): Promise<void> { this.notImplemented(); }
-    async deleteNotebookPage(_sessionPath: string, _pageName: string): Promise<void> { this.notImplemented(); }
-    async loadNotebookScript(_sessionPath: string, _pageName: string, _scriptName: string): Promise<ScriptData> { this.notImplemented(); }
-    async saveNotebookScript(_sessionPath: string, _pageName: string, _scriptName: string, _sql: string): Promise<void> { this.notImplemented(); }
-    async deleteNotebookScript(_sessionPath: string, _pageName: string, _scriptName: string): Promise<void> { this.notImplemented(); }
-    async reorderNotebookScript(_sessionPath: string, _pageName: string, _orderedScriptNames: string[]): Promise<void> { this.notImplemented(); }
-    async loadNotebookScriptDraft(_sessionPath: string): Promise<string | null> { this.notImplemented(); }
-    async saveNotebookScriptDraft(_sessionPath: string, _sql: string): Promise<void> { this.notImplemented(); }
-    async clearAllStorage(): Promise<void> { this.notImplemented(); }
+    /// Ensure a directory (given as a relative path) exists
+    private async ensureDir(relative: string): Promise<void> {
+        const dir = relative.length > 0 ? await this.abs(relative) : this.dir;
+        if (!(await exists(dir))) {
+            await mkdir(dir, { recursive: true });
+        }
+    }
+
+    /// Natural sort for strings with numeric components (e.g., "page-1" < "page-2" < "page-10")
+    private naturalSort(a: string, b: string): number {
+        return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+    }
+
+    // ---- Registry-level operations (owned by OPFS; inert here) -------------------------------
+
+    async listSessions(_manifestPath: string): Promise<SessionEntry[]> {
+        // The registry lives in the OPFS root manifest, never in a native session directory.
+        return [];
+    }
+
+    async loadAppSettings(): Promise<AppSettings | null> {
+        return null;
+    }
+
+    async saveAppSettings(_settings: AppSettings): Promise<void> {
+        // No-op: app settings live on the OPFS root manifest.
+    }
+
+    // ---- Per-session operations ---------------------------------------------------------------
+
+    async loadSession(sessionId: string): Promise<SessionData> {
+        const metaFile = await this.abs(STORAGE_SESSION_FILE);
+        const text = await readTextFile(metaFile);
+        const data: SessionData = JSON.parse(text);
+
+        // sessionId is required - will throw if missing
+        if (!data.sessionId) {
+            throw new Error(`Session ${sessionId} is missing required sessionId field. Please migrate the session or regenerate it.`);
+        }
+
+        return data;
+    }
+
+    async saveSessionManifest(_sessionId: string, data: SessionData): Promise<void> {
+        await this.ensureDir('');
+        const metaFile = await this.abs(STORAGE_SESSION_FILE);
+        await writeTextFile(metaFile, JSON.stringify(data, null, 2));
+    }
+
+    async deleteSession(_sessionId: string): Promise<void> {
+        // Remove the whole session directory if it exists - if it doesn't, it's already deleted.
+        if (await exists(this.dir)) {
+            await remove(this.dir, { recursive: true });
+        }
+    }
+
+    async loadSessionSchema(_sessionId: string): Promise<string | null> {
+        const schemaFile = await this.abs(STORAGE_SCRIPT_SCHEMA);
+        if (!(await exists(schemaFile))) {
+            return null;
+        }
+        return await readTextFile(schemaFile);
+    }
+
+    async saveSessionSchema(_sessionId: string, sql: string): Promise<void> {
+        await this.ensureDir('');
+        const schemaFile = await this.abs(STORAGE_SCRIPT_SCHEMA);
+        await writeTextFile(schemaFile, sql);
+    }
+
+    async loadSessionFunctions(_sessionId: string): Promise<string | null> {
+        const functionsFile = await this.abs(STORAGE_SCRIPT_FUNCTIONS);
+        if (!(await exists(functionsFile))) {
+            return null;
+        }
+        return await readTextFile(functionsFile);
+    }
+
+    async saveSessionFunctions(_sessionId: string, sql: string): Promise<void> {
+        await this.ensureDir('');
+        const functionsFile = await this.abs(STORAGE_SCRIPT_FUNCTIONS);
+        await writeTextFile(functionsFile, sql);
+    }
+
+    async loadNotebookPages(_sessionId: string): Promise<PageData[]> {
+        const notebookDir = await this.abs(STORAGE_NOTEBOOK_FOLDER);
+        if (!(await exists(notebookDir))) {
+            return [];
+        }
+
+        const entries = await readDir(notebookDir);
+        const pages: PageData[] = [];
+        for (const entry of entries) {
+            if (entry.isDirectory) {
+                const scripts = await this.loadScriptsInPage(`${STORAGE_NOTEBOOK_FOLDER}/${entry.name}`);
+                pages.push({ name: entry.name, scripts });
+            }
+        }
+        pages.sort((a, b) => this.naturalSort(a.name, b.name));
+        return pages;
+    }
+
+    private async loadScriptsInPage(pageRel: string): Promise<ScriptData[]> {
+        const pageDir = await this.abs(pageRel);
+        const scripts: ScriptData[] = [];
+        if (!(await exists(pageDir))) {
+            return scripts;
+        }
+
+        const entries = await readDir(pageDir);
+        for (const entry of entries) {
+            if (entry.isFile && entry.name.endsWith('.sql') && entry.name !== STORAGE_SCRIPT_DRAFT) {
+                const sql = await readTextFile(await this.abs(`${pageRel}/${entry.name}`));
+                scripts.push({ name: entry.name, sql });
+            }
+        }
+        scripts.sort((a, b) => this.naturalSort(a.name, b.name));
+        return scripts;
+    }
+
+    async createNotebookPage(_sessionId: string, pageName: string): Promise<void> {
+        await this.ensureDir(`${STORAGE_NOTEBOOK_FOLDER}/${pageName}`);
+    }
+
+    async deleteNotebookPage(_sessionId: string, pageName: string): Promise<void> {
+        const pageDir = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${pageName}`);
+        if (await exists(pageDir)) {
+            await remove(pageDir, { recursive: true });
+        }
+    }
+
+    async loadNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<ScriptData> {
+        const scriptFile = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${scriptName}`);
+        if (!(await exists(scriptFile))) {
+            throw new Error(`Script not found: session ${sessionId}, page ${pageName}, script ${scriptName}`);
+        }
+        const sql = await readTextFile(scriptFile);
+        return { name: scriptName, sql };
+    }
+
+    async saveNotebookScript(
+        _sessionId: string,
+        pageName: string,
+        scriptName: string,
+        sql: string
+    ): Promise<void> {
+        await this.ensureDir(`${STORAGE_NOTEBOOK_FOLDER}/${pageName}`);
+        const scriptFile = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${scriptName}`);
+        await writeTextFile(scriptFile, sql);
+    }
+
+    async deleteNotebookScript(_sessionId: string, pageName: string, scriptName: string): Promise<void> {
+        const scriptFile = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${scriptName}`);
+        if (await exists(scriptFile)) {
+            await remove(scriptFile);
+        }
+    }
+
+    async reorderNotebookScript(
+        _sessionId: string,
+        pageName: string,
+        orderedScriptNames: string[]
+    ): Promise<void> {
+        const pageRel = `${STORAGE_NOTEBOOK_FOLDER}/${pageName}`;
+        const pageDir = await this.abs(pageRel);
+
+        // Load current scripts to validate
+        const scripts = await this.loadScriptsInPage(pageRel);
+        const scriptSet = new Set(scripts.map(s => s.name));
+
+        // Validate all requested names exist
+        for (const name of orderedScriptNames) {
+            if (!scriptSet.has(name)) {
+                throw new Error(`Script ${name} not found in page ${pageName}`);
+            }
+        }
+
+        // Create a map of old names to script content
+        const scriptMap = new Map(scripts.map(s => [s.name, s.sql]));
+
+        // Rename each script with new numeric prefix in desired order.
+        // plugin-fs has no atomic rename across the existing names, so we mirror the OPFS
+        // temp-file dance: write temp files, delete originals, then rename temps to final names.
+        const tempFiles: Array<{ tempName: string; finalName: string; sql: string }> = [];
+
+        for (let i = 0; i < orderedScriptNames.length; i++) {
+            const oldName = orderedScriptNames[i];
+            const sql = scriptMap.get(oldName)!;
+            const prefix = String(i + 1).padStart(2, '0');
+
+            // Extract base name without old prefix
+            const baseName = oldName.replace(/^\d+-/, '');
+            const finalName = `${prefix}-${baseName}`;
+            const tempName = `_temp-${i}.sql`;
+
+            // Write to temporary file first
+            await writeTextFile(await this.abs(`${pageRel}/${tempName}`), sql);
+
+            tempFiles.push({ tempName, finalName, sql });
+        }
+
+        // Delete all original .sql files (but not draft, and not the temp files we just wrote)
+        const entries = await readDir(pageDir);
+        for (const entry of entries) {
+            const name = entry.name;
+            if (entry.isFile && name.endsWith('.sql') && name !== STORAGE_SCRIPT_DRAFT && !name.startsWith('_temp-')) {
+                await remove(await this.abs(`${pageRel}/${name}`));
+            }
+        }
+
+        // Rename temp files to final names
+        for (const { tempName, finalName, sql } of tempFiles) {
+            await writeTextFile(await this.abs(`${pageRel}/${finalName}`), sql);
+            await remove(await this.abs(`${pageRel}/${tempName}`));
+        }
+    }
+
+    async loadNotebookScriptDraft(_sessionId: string): Promise<string | null> {
+        const draftFile = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${STORAGE_SCRIPT_DRAFT}`);
+        if (!(await exists(draftFile))) {
+            return null;
+        }
+        return await readTextFile(draftFile);
+    }
+
+    async saveNotebookScriptDraft(_sessionId: string, sql: string): Promise<void> {
+        await this.ensureDir(STORAGE_NOTEBOOK_FOLDER);
+        const draftFile = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${STORAGE_SCRIPT_DRAFT}`);
+        await writeTextFile(draftFile, sql);
+    }
+
+    async clearAllStorage(): Promise<void> {
+        // Removes this session's directory and everything in it.
+        try {
+            if (await exists(this.dir)) {
+                await remove(this.dir, { recursive: true });
+            }
+        } catch (error) {
+            console.warn('Failed to clear native session directory:', error);
+        }
+    }
 }

@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import { NotebookState, NotebookStateAction, reduceNotebookState } from './notebook_state.js';
+import { NotebookState, NotebookStateAction, destroyState, reduceNotebookState } from './notebook_state.js';
 import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES, ConnectorType } from '../connection/connector_info.js';
 import { useConnectionRegistry } from '../connection/connection_registry.js';
 import { useStorageWriter } from '../platform/storage/storage_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { REPLACE_NOTEBOOK, DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK, groupNotebookWrites } from "../platform/storage/storage_writer.js";
+import { REPLACE_NOTEBOOK, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupNotebookWrites } from "../platform/storage/storage_writer.js";
 
 /// The notebook registry.
 ///
@@ -78,6 +78,47 @@ export function useNotebookStateAllocator(): NotebookAllocator {
     }, [setReg, storage]);
 }
 
+/// Remove a notebook from all three registry indices.
+///
+/// Pure and idempotent (a missing entry is a no-op), so it is safe to run inside a React state
+/// updater that may be invoked more than once. It touches no Wasm — freeing the notebook's Wasm is
+/// the caller's responsibility and must happen separately (see useNotebookDeletion), because that
+/// teardown is order-sensitive against the shared connection catalog.
+export function removeNotebookFromRegistry(reg: NotebookRegistry, sessionId: string): NotebookRegistry {
+    const entry = reg.notebookMap.get(sessionId);
+    if (!entry) return reg;
+    reg.notebookMap.delete(sessionId);
+    // 1:1 mapping: sessionId -> sessionId
+    reg.notebooksByConnection.delete(sessionId);
+    const connectorType = entry.connectorInfo.connectorType;
+    reg.notebooksByConnectionType[connectorType] =
+        reg.notebooksByConnectionType[connectorType].filter(sid => sid !== sessionId);
+    return { ...reg };
+}
+
+/// Delete the notebook backing a session and free its Wasm.
+///
+/// A notebook shares the connection's catalog by reference (see notebook_setup) but exclusively
+/// owns its script registry and every script in it. destroyState() drops those scripts from the
+/// shared catalog and then frees them — so it MUST run while that catalog is still alive, i.e.
+/// *before* the connection is deleted (DELETE_CONNECTION destroys the catalog). We therefore tear
+/// the Wasm down synchronously here, in the event handler, and keep the registry-map removal a
+/// pure updater (safe to run more than once). Callers must invoke this before dispatching
+/// DELETE_CONNECTION for the same session.
+export function useNotebookDeletion(): (sessionId: string) => void {
+    const [reg, setReg] = React.useContext(NOTEBOOK_REGISTRY_CTX)!;
+    return React.useCallback((sessionId: string) => {
+        // Free the notebook-owned Wasm now, before the shared catalog can be destroyed. The
+        // registry closure is recreated on every change, so this read is current at call time.
+        const notebook = reg.notebookMap.get(sessionId);
+        if (notebook) {
+            destroyState(notebook);
+        }
+        // Drop the entry from all three indices.
+        setReg((prev) => removeNotebookFromRegistry(prev, sessionId));
+    }, [reg, setReg]);
+}
+
 export function useNotebookState(id: string | null): [NotebookState | null, ModifyNotebook] {
     const [registry, setRegistry] = React.useContext(NOTEBOOK_REGISTRY_CTX)!;
     const [connReg] = useConnectionRegistry();
@@ -105,15 +146,7 @@ export function useNotebookState(id: string | null): [NotebookState | null, Modi
                     continue;
                 }
                 const next = reduceNotebookState(prev, action, storageWriter, logger, active);
-                // @ts-ignore - DELETE_NOTEBOOK is a storage task, not a state action, but we check for it here
-                if ((action as any).type == DELETE_NOTEBOOK) {
-                    reg.notebookMap.delete(id);
-                    reg.notebooksByConnectionType[prev.connectorInfo.connectorType] = reg.notebooksByConnectionType[prev.connectorInfo.connectorType].filter(c => c != id);
-                    // Since 1:1 mapping, just delete the sessionId entry
-                    reg.notebooksByConnection.delete(id);
-                } else {
-                    reg.notebookMap.set(id, next);
-                }
+                reg.notebookMap.set(id, next);
             }
             return { ...reg };
         });

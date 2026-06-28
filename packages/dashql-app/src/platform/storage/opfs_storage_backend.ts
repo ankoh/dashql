@@ -1,29 +1,18 @@
-import { type StorageBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type StorageManifest, type AppSettings, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_SESSIONS_FOLDER, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS } from './storage_backend.js';
+import { type SessionRegistryBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type StorageManifest, type AppSettings, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_SESSIONS_FOLDER, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS } from './storage_backend.js';
 
-export class OPFSStorageBackend implements StorageBackend {
+/// Origin Private File System storage backend.
+///
+/// This backend owns the session registry (the root manifest), which lists *every* session
+/// regardless of where its files physically live. Sessions stored in OPFS keep their files under
+/// `sessions/<uuid>/…`; sessions relocated to a native directory keep only a registry entry here
+/// (their files live on disk, managed by `NativeStorageBackend`).
+///
+/// Every per-session method is keyed by the bare session UUID.
+export class OPFSStorageBackend implements SessionRegistryBackend {
     private rootHandle: FileSystemDirectoryHandle | null = null;
 
     getBackendType(): StorageBackendType {
         return StorageBackendType.OPFS;
-    }
-
-    getSchemaPrefix(): string {
-        return 'opfs://';
-    }
-
-    constructSessionPath(sessionId: string): string {
-        return `opfs://${STORAGE_SESSIONS_FOLDER}/${sessionId}`;
-    }
-
-    parseSessionPath(sessionPath: string): string {
-        // Extract the relative path from fully qualified path
-        // "opfs://sessions/uuid" -> "sessions/uuid"
-        const prefix = this.getSchemaPrefix();
-        if (sessionPath.startsWith(prefix)) {
-            return sessionPath.substring(prefix.length);
-        }
-        // Fallback for legacy paths without schema
-        return sessionPath;
     }
 
     async initialize(): Promise<void> {
@@ -35,6 +24,11 @@ export class OPFSStorageBackend implements StorageBackend {
             throw new Error('OPFSStorageBackend not initialized. Call initialize() first.');
         }
         return this.rootHandle;
+    }
+
+    /// The relative folder that holds a session's files, e.g. "sessions/<uuid>"
+    private sessionRelPath(sessionId: string): string {
+        return `${STORAGE_SESSIONS_FOLDER}/${sessionId}`;
     }
 
     /// Natural sort for strings with numeric components (e.g., "page-1" < "page-2" < "page-10")
@@ -72,9 +66,8 @@ export class OPFSStorageBackend implements StorageBackend {
         }
     }
 
-    async loadSession(sessionPath: string): Promise<SessionData> {
-        const relativePath = this.parseSessionPath(sessionPath);
-        const sessionDir = await this.getSessionDir(relativePath, false);
+    async loadSession(sessionId: string): Promise<SessionData> {
+        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), false);
         const metaFile = await sessionDir.getFileHandle(STORAGE_SESSION_FILE);
         const file = await metaFile.getFile();
         const text = await file.text();
@@ -82,25 +75,32 @@ export class OPFSStorageBackend implements StorageBackend {
 
         // sessionId is required - will throw if missing
         if (!data.sessionId) {
-            throw new Error(`Session at ${sessionPath} is missing required sessionId field. Please migrate the session or regenerate it.`);
+            throw new Error(`Session ${sessionId} is missing required sessionId field. Please migrate the session or regenerate it.`);
         }
 
         return data;
     }
 
-    async saveSessionManifest(sessionPath: string, data: SessionData): Promise<void> {
-        const relativePath = this.parseSessionPath(sessionPath);
-        const sessionDir = await this.getSessionDir(relativePath, true);
+    async saveSessionManifest(sessionId: string, data: SessionData): Promise<void> {
+        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), true);
         const metaFile = await sessionDir.getFileHandle(STORAGE_SESSION_FILE, { create: true });
         const writable = await metaFile.createWritable();
         await writable.write(JSON.stringify(data, null, 2));
         await writable.close();
 
-        await this.updateManifest(sessionPath, 'add');
+        await this.upsertSessionEntry({ path: sessionId, storageType: StorageBackendType.OPFS });
     }
 
-    async deleteSession(sessionPath: string): Promise<void> {
-        const relativePath = this.parseSessionPath(sessionPath);
+    async deleteSession(sessionId: string): Promise<void> {
+        await this.deleteSessionFiles(sessionId);
+        // Always try to update the manifest even if the session files weren't found
+        // (in case the manifest still has a stale reference).
+        await this.removeSessionEntry(sessionId);
+    }
+
+    /// Delete a session's files only, leaving the registry entry intact.
+    async deleteSessionFiles(sessionId: string): Promise<void> {
+        const relativePath = this.sessionRelPath(sessionId);
         const root = this.ensureInitialized();
 
         try {
@@ -115,22 +115,15 @@ export class OPFSStorageBackend implements StorageBackend {
             }
         } catch (error) {
             // If sessions folder or session doesn't exist, that's fine - it's already deleted
-            if ((error as any).name === 'NotFoundError') {
-                console.log(`Session ${sessionPath} not found in storage, treating as already deleted`);
-            } else {
+            if ((error as any).name !== 'NotFoundError') {
                 throw error;
             }
         }
-
-        // Always try to update manifest even if session wasn't found
-        // (in case manifest still has a stale reference)
-        await this.updateManifest(sessionPath, 'remove');
     }
 
-    async loadSessionSchema(sessionPath: string): Promise<string | null> {
+    async loadSessionSchema(sessionId: string): Promise<string | null> {
         try {
-            const relativePath = this.parseSessionPath(sessionPath);
-            const sessionDir = await this.getSessionDir(relativePath, false);
+            const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), false);
             const schemaFile = await sessionDir.getFileHandle(STORAGE_SCRIPT_SCHEMA, { create: false });
             const file = await schemaFile.getFile();
             return await file.text();
@@ -139,19 +132,17 @@ export class OPFSStorageBackend implements StorageBackend {
         }
     }
 
-    async saveSessionSchema(sessionPath: string, sql: string): Promise<void> {
-        const relativePath = this.parseSessionPath(sessionPath);
-        const sessionDir = await this.getSessionDir(relativePath, true);
+    async saveSessionSchema(sessionId: string, sql: string): Promise<void> {
+        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), true);
         const schemaFile = await sessionDir.getFileHandle(STORAGE_SCRIPT_SCHEMA, { create: true });
         const writable = await schemaFile.createWritable();
         await writable.write(sql);
         await writable.close();
     }
 
-    async loadSessionFunctions(sessionPath: string): Promise<string | null> {
+    async loadSessionFunctions(sessionId: string): Promise<string | null> {
         try {
-            const relativePath = this.parseSessionPath(sessionPath);
-            const sessionDir = await this.getSessionDir(relativePath, false);
+            const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), false);
             const functionsFile = await sessionDir.getFileHandle(STORAGE_SCRIPT_FUNCTIONS, { create: false });
             const file = await functionsFile.getFile();
             return await file.text();
@@ -160,18 +151,22 @@ export class OPFSStorageBackend implements StorageBackend {
         }
     }
 
-    async saveSessionFunctions(sessionPath: string, sql: string): Promise<void> {
-        const relativePath = this.parseSessionPath(sessionPath);
-        const sessionDir = await this.getSessionDir(relativePath, true);
+    async saveSessionFunctions(sessionId: string, sql: string): Promise<void> {
+        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), true);
         const functionsFile = await sessionDir.getFileHandle(STORAGE_SCRIPT_FUNCTIONS, { create: true });
         const writable = await functionsFile.createWritable();
         await writable.write(sql);
         await writable.close();
     }
 
-    async loadNotebookPages(sessionPath: string): Promise<PageData[]> {
-        const relativePath = this.parseSessionPath(sessionPath);
-        const sessionDir = await this.getSessionDir(relativePath, false);
+    async loadNotebookPages(sessionId: string): Promise<PageData[]> {
+        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), false).catch((error) => {
+            if ((error as any).name === 'NotFoundError') return null;
+            throw error;
+        });
+        if (!sessionDir) {
+            return [];
+        }
         let notebookDir: FileSystemDirectoryHandle;
         try {
             notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: false });
@@ -207,24 +202,21 @@ export class OPFSStorageBackend implements StorageBackend {
         return scripts;
     }
 
-    async createNotebookPage(sessionPath: string, pageName: string): Promise<void> {
-        const relativePath = this.parseSessionPath(sessionPath);
-        const sessionDir = await this.getSessionDir(relativePath, true);
+    async createNotebookPage(sessionId: string, pageName: string): Promise<void> {
+        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), true);
         const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: true });
         await notebookDir.getDirectoryHandle(pageName, { create: true });
     }
 
-    async deleteNotebookPage(sessionPath: string, pageName: string): Promise<void> {
-        const relativePath = this.parseSessionPath(sessionPath);
-        const sessionDir = await this.getSessionDir(relativePath, false);
+    async deleteNotebookPage(sessionId: string, pageName: string): Promise<void> {
+        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), false);
         const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER);
         await notebookDir.removeEntry(pageName, { recursive: true });
     }
 
 
-    async loadNotebookScript(sessionPath: string, pageName: string, scriptName: string): Promise<ScriptData> {
-        const relativePath = this.parseSessionPath(sessionPath);
-        const pageDir = await this.getPageDir(relativePath, pageName, false);
+    async loadNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<ScriptData> {
+        const pageDir = await this.getPageDir(this.sessionRelPath(sessionId), pageName, false);
 
         try {
             const fileHandle = await pageDir.getFileHandle(scriptName);
@@ -232,37 +224,34 @@ export class OPFSStorageBackend implements StorageBackend {
             const sql = await file.text();
             return { name: scriptName, sql };
         } catch {
-            throw new Error(`Script not found: session ${sessionPath}, page ${pageName}, script ${scriptName}`);
+            throw new Error(`Script not found: session ${sessionId}, page ${pageName}, script ${scriptName}`);
         }
     }
 
     async saveNotebookScript(
-        sessionPath: string,
+        sessionId: string,
         pageName: string,
         scriptName: string,
         sql: string
     ): Promise<void> {
-        const relativePath = this.parseSessionPath(sessionPath);
-        const pageDir = await this.getPageDir(relativePath, pageName, true);
+        const pageDir = await this.getPageDir(this.sessionRelPath(sessionId), pageName, true);
         const fileHandle = await pageDir.getFileHandle(scriptName, { create: true });
         const writable = await fileHandle.createWritable();
         await writable.write(sql);
         await writable.close();
     }
 
-    async deleteNotebookScript(sessionPath: string, pageName: string, scriptName: string): Promise<void> {
-        const relativePath = this.parseSessionPath(sessionPath);
-        const pageDir = await this.getPageDir(relativePath, pageName, false);
+    async deleteNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<void> {
+        const pageDir = await this.getPageDir(this.sessionRelPath(sessionId), pageName, false);
         await pageDir.removeEntry(scriptName);
     }
 
     async reorderNotebookScript(
-        sessionPath: string,
+        sessionId: string,
         pageName: string,
         orderedScriptNames: string[]
     ): Promise<void> {
-        const relativePath = this.parseSessionPath(sessionPath);
-        const pageDir = await this.getPageDir(relativePath, pageName, false);
+        const pageDir = await this.getPageDir(this.sessionRelPath(sessionId), pageName, false);
 
         // Load current scripts to validate
         const scripts = await this.loadScriptsInPage(pageDir);
@@ -317,10 +306,9 @@ export class OPFSStorageBackend implements StorageBackend {
         }
     }
 
-    async loadNotebookScriptDraft(sessionPath: string): Promise<string | null> {
+    async loadNotebookScriptDraft(sessionId: string): Promise<string | null> {
         try {
-            const relativePath = this.parseSessionPath(sessionPath);
-            const sessionDir = await this.getSessionDir(relativePath, false);
+            const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), false);
             const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: false });
             const draftFile = await notebookDir.getFileHandle(STORAGE_SCRIPT_DRAFT, { create: false });
             const file = await draftFile.getFile();
@@ -330,9 +318,8 @@ export class OPFSStorageBackend implements StorageBackend {
         }
     }
 
-    async saveNotebookScriptDraft(sessionPath: string, sql: string): Promise<void> {
-        const relativePath = this.parseSessionPath(sessionPath);
-        const sessionDir = await this.getSessionDir(relativePath, true);
+    async saveNotebookScriptDraft(sessionId: string, sql: string): Promise<void> {
+        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), true);
         const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: true });
         const draftFile = await notebookDir.getFileHandle(STORAGE_SCRIPT_DRAFT, { create: true });
         const writable = await draftFile.createWritable();
@@ -343,34 +330,21 @@ export class OPFSStorageBackend implements StorageBackend {
     async clearAllStorage(): Promise<void> {
         const root = this.ensureInitialized();
 
-        // Step 1: Load manifest to get all session paths
-        let sessionPaths: string[] = [];
-        try {
-            const sessions = await this.listSessions(STORAGE_MANIFEST_FILE);
-            sessionPaths = sessions.map(s => s.path);
-            console.log(`Found ${sessionPaths.length} sessions in manifest`);
-        } catch (error) {
-            // If manifest doesn't exist or fails to load, we'll try to clean up what we can find
-            console.warn('Could not load manifest during clearAllStorage:', error);
-        }
-
-        // Step 2: Clear the manifest (reset sessions to empty array) FIRST
-        // This ensures the app won't try to restore sessions even if directory cleanup fails
+        // Step 1: Clear the manifest (reset sessions to empty array) FIRST.
+        // This ensures the app won't try to restore sessions even if directory cleanup fails.
         try {
             const emptyManifest: StorageManifest = { sessions: [] };
             const manifestFile = await root.getFileHandle(STORAGE_MANIFEST_FILE, { create: true });
             const writable = await manifestFile.createWritable();
             await writable.write(JSON.stringify(emptyManifest, null, 2));
             await writable.close();
-            console.log('Manifest cleared (reset to empty sessions array)');
         } catch (error) {
             console.warn('Failed to clear manifest:', error);
         }
 
-        // Step 3: Delete the entire sessions folder
+        // Step 2: Delete the entire sessions folder
         try {
             await root.removeEntry(STORAGE_SESSIONS_FOLDER, { recursive: true });
-            console.log('Deleted sessions folder');
         } catch (error) {
             console.warn('Failed to delete sessions folder:', error);
         }
@@ -424,28 +398,27 @@ export class OPFSStorageBackend implements StorageBackend {
         await writable.close();
     }
 
-    private async updateManifest(sessionPath: string, operation: 'add' | 'remove'): Promise<void> {
+    /// Insert or replace a session's registry entry (matched by UUID), without touching files.
+    async upsertSessionEntry(entry: SessionEntry): Promise<void> {
         const root = this.ensureInitialized();
         const manifest = await this.readManifest(root);
 
-        if (operation === 'add') {
-            // Check if session already exists
-            const existingIndex = manifest.sessions.findIndex((s: SessionEntry) => s.path === sessionPath);
-
-            if (existingIndex < 0) {
-                // Add new entry
-                manifest.sessions.push({
-                    path: sessionPath
-                });
-                // Sort by path
-                manifest.sessions.sort((a: SessionEntry, b: SessionEntry) => a.path.localeCompare(b.path));
-            }
-            // If session already exists, no need to update (no title field anymore)
+        const existingIndex = manifest.sessions.findIndex(s => s.path === entry.path);
+        if (existingIndex < 0) {
+            manifest.sessions.push(entry);
         } else {
-            // Remove session
-            manifest.sessions = manifest.sessions.filter((s: SessionEntry) => s.path !== sessionPath);
+            manifest.sessions[existingIndex] = entry;
         }
+        manifest.sessions.sort((a, b) => a.path.localeCompare(b.path));
 
+        await this.writeManifest(root, manifest);
+    }
+
+    /// Remove a session's registry entry (matched by UUID), without touching files.
+    async removeSessionEntry(sessionId: string): Promise<void> {
+        const root = this.ensureInitialized();
+        const manifest = await this.readManifest(root);
+        manifest.sessions = manifest.sessions.filter(s => s.path !== sessionId);
         await this.writeManifest(root, manifest);
     }
 

@@ -23,6 +23,7 @@ import { useStorage } from './platform/storage/storage_provider.js';
 import { useNotebookRegistry } from './notebook/notebook_state_registry.js';
 import { useDemoNotebookSetup } from './connection/dataless/dataless_notebook.js';
 import { useDuckDBSetup } from './platform/duckdb/duckdb_provider.js';
+import { InvalidSession } from './platform/storage/session_validation.js';
 
 async function loadFonts(): Promise<void> {
     await Promise.all([
@@ -56,6 +57,9 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const appEvents = usePlatformEventListener();
     const abortDefaultNotebookSwitch = React.useRef(new AbortController());
     const [loadedCore, setLoadedCore] = React.useState<any>(null);
+    // Sessions whose metadata was refused a load. Surfaced (marked invalid, blocked, deletable) in
+    // the session selector instead of being silently dropped.
+    const [invalidSessions, setInvalidSessions] = React.useState<Map<string, InvalidSession>>(() => new Map());
     const [loadingProgress, setLoadingProgress] = React.useState<AppLoadingProgress>(() => ({
         restoreConnections: new ProgressCounter(),
         restoreCatalogs: new ProgressCounter(),
@@ -175,6 +179,14 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             traced.info("Loading application state and notebooks", {}, "app_loader");
             const loaded = await loadApp(config, traced, core, storageReader, setConnReg, allocateConnection, connDispatch, setNotebookReg, setupDemo, setLoadingProgress, abort.signal);
 
+            // Surface any sessions that were refused a load in the selector
+            if (loaded.invalidSessions.size > 0) {
+                traced.warn("Some sessions were refused a load", {
+                    count: loaded.invalidSessions.size.toString()
+                }, "app_loader");
+                setInvalidSessions(loaded.invalidSessions);
+            }
+
             // Get session ID directly from the loaded notebook
             const demoSessionId = loaded.demo.sessionId;
 
@@ -207,6 +219,23 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
         run();
     }, [config]);
 
+    // Delete an invalid session: remove its files from storage and drop it from the selector list.
+    // Invalid sessions never entered the connection/notebook registries, so there is nothing to
+    // dispatch there — only the persisted files and our local list need cleaning up.
+    const deleteInvalidSession = React.useCallback(async (sessionId: string) => {
+        try {
+            await storageWriter.backend.deleteSession(sessionId);
+        } catch (e) {
+            logger.error("Failed to delete invalid session", { sessionId, error: String(e) }, "app_loader");
+        }
+        setInvalidSessions(prev => {
+            if (!prev.has(sessionId)) return prev;
+            const next = new Map(prev);
+            next.delete(sessionId);
+            return next;
+        });
+    }, [storageWriter, logger]);
+
     // Setup done but no session selected, or session setup in progress? Show session selector
     if (routeContext.appLoadingStatus == AppLoadingStatus.SETUP_DONE &&
         (routeContext.sessionId === null || routeContext.sessionSetupStatus === SessionSetupStatus.CONFIGURING)) {
@@ -216,6 +245,8 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             allocateConnection={allocateConnection}
             setupNotebook={setupNotebook}
             core={loadedCore}
+            invalidSessions={invalidSessions}
+            onDeleteInvalidSession={deleteInvalidSession}
         />;
     }
 

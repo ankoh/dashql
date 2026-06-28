@@ -3,9 +3,9 @@
  * needed to make each path unique.
  *
  * For example:
- * - ["/a/b/c/file1", "/x/y/z/file2"] -> ["file1/", "file2/"]
- * - ["/a/b/c/file", "/x/y/c/file"] -> ["…/c/file/", "…/c/file/"] (if only showing 2 segments)
- * - ["/a/b/file", "/a/c/file", "/x/c/file"] -> ["b/file/", "…/c/file/", "…/c/file/"] (if segments cut)
+ * - ["/a/b/c/file1", "/x/y/z/file2"] -> ["file1", "file2"]
+ * - ["/a/b/c/file", "/x/y/c/file"] -> ["…/c/file", "…/c/file"] (if only showing 2 segments)
+ * - ["/a/b/file", "/a/c/file", "/x/c/file"] -> ["b/file", "…/c/file", "…/c/file"] (if segments cut)
  */
 
 interface PathEntry {
@@ -35,14 +35,14 @@ function splitPath(path: string): { prefix: string; segments: string[] } {
 }
 
 /**
- * Get the last N segments of a path as a joined string with trailing slash.
+ * Get the last N segments of a path as a joined string.
  * Prepends "…" (ellipsis) if not showing all segments, preserving the schema prefix.
  */
 function getPathSuffix(schemaPrefix: string, segments: string[], count: number): string {
     const start = Math.max(0, segments.length - count);
     const path = segments.slice(start).join('/');
     const truncated = count > 1;
-    const pathPart = truncated ? `…/${path}/` : `${path}/`;
+    const pathPart = truncated ? `…/${path}` : path;
     return schemaPrefix + pathPart;
 }
 
