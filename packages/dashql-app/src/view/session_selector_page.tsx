@@ -27,6 +27,7 @@ import { useStorageReader, useStorageWriter } from '../platform/storage/storage_
 import { displayPath as sessionDisplayPath } from '../platform/storage/session_locator.js';
 import { disambiguatePathMap } from '../utils/path_disambiguation.js';
 import { SymbolIcon } from './foundations/symbol_icon';
+import { useKeyEvents, KeyEventHandler } from '../utils/key_events.js';
 import { AnchorAlignment, AnchorSide } from './foundations/anchored_position.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { InvalidSession, describeSessionValidationError } from '../platform/storage/session_validation.js';
@@ -232,6 +233,28 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
         }
         navigate({ type: CANCEL_SESSION_SETUP, value: null });
     }, [configSessionId, props.connectionRegistry, connectionDispatch, navigate]);
+
+    // Escape from the connection setup panel returns to the session selector, mirroring the Back
+    // button. Bubble phase so an open internals overlay (capture phase, stops propagation) closes
+    // first. As in the notebook, Escape surrenders focus before leaving: while a setup field or
+    // button holds focus, the first Escape blurs it and a second one navigates back — so a user
+    // typing in a config field isn't bounced out by a stray keystroke.
+    const keyHandlers = React.useMemo<KeyEventHandler[]>(() => [
+        {
+            key: 'Escape',
+            ctrlKey: false,
+            callback: () => {
+                if (!configSessionId) return;
+                const active = document.activeElement as HTMLElement | null;
+                if (active && active !== document.body && active !== document.documentElement) {
+                    active.blur();
+                    return;
+                }
+                handleBack();
+            },
+        },
+    ], [configSessionId, handleBack]);
+    useKeyEvents(keyHandlers);
 
     const handleConnected = React.useCallback((sessionId: string) => {
         const conn = props.connectionRegistry.connectionMap.get(sessionId);
