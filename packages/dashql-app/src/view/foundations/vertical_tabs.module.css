@@ -17,7 +17,7 @@
     height: 100%;
 
     display: grid;
-    grid-template-columns: max-content 1fr;
+    grid-template-columns: 49px 1fr;
     grid-template-rows: 100%;
     overflow: hidden;
 }
@@ -113,6 +113,8 @@
     row-gap: 4px;
     flex: 1;
     overflow: auto;
+    min-width: 0;
+    width: auto;
 }
 
 .tabs_footer {
