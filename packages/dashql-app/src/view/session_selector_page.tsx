@@ -239,12 +239,20 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
     // first. As in the notebook, Escape surrenders focus before leaving: while a setup field or
     // button holds focus, the first Escape blurs it and a second one navigates back — so a user
     // typing in a config field isn't bounced out by a stray keystroke.
+    //
+    // In the session list (no config panel), Escape instead leaves edit (delete) mode if it's
+    // active, mirroring the toggle button.
     const keyHandlers = React.useMemo<KeyEventHandler[]>(() => [
         {
             key: 'Escape',
             ctrlKey: false,
             callback: () => {
-                if (!configSessionId) return;
+                if (!configSessionId) {
+                    if (isEditMode) {
+                        setIsEditMode(false);
+                    }
+                    return;
+                }
                 const active = document.activeElement as HTMLElement | null;
                 if (active && active !== document.body && active !== document.documentElement) {
                     active.blur();
@@ -253,7 +261,7 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
                 handleBack();
             },
         },
-    ], [configSessionId, handleBack]);
+    ], [configSessionId, isEditMode, handleBack]);
     useKeyEvents(keyHandlers);
 
     const handleConnected = React.useCallback((sessionId: string) => {
