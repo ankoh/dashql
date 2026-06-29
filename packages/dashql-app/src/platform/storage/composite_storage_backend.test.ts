@@ -14,82 +14,17 @@ import { TestLogger } from '../logger/test_logger.js';
 const grantSpy = vi.hoisted(() => vi.fn(async (_path: string) => { }));
 vi.mock('./native_fs_scope.js', () => ({ grantFsScope: grantSpy }));
 
-// In-memory filesystem shared with the plugin-fs mock so the *real* NativeStorageBackend works.
-const fsStore = vi.hoisted(() => ({
-    files: new Map<string, string>(),
-    dirs: new Set<string>(),
-}));
-
-vi.mock('@tauri-apps/api/path', () => ({
-    join: async (...parts: string[]) => parts.filter(p => p.length > 0).join('/'),
-}));
-
-vi.mock('@tauri-apps/plugin-fs', () => {
-    const { files, dirs } = fsStore;
-    const parentOf = (p: string) => {
-        const i = p.lastIndexOf('/');
-        return i < 0 ? '' : p.substring(0, i);
-    };
-    const nameOf = (p: string) => {
-        const i = p.lastIndexOf('/');
-        return i < 0 ? p : p.substring(i + 1);
-    };
-    const isAncestorDir = (p: string) => {
-        for (const f of files.keys()) if (f.startsWith(p + '/')) return true;
-        for (const d of dirs) if (d.startsWith(p + '/')) return true;
-        return false;
-    };
-    return {
-        exists: async (p: string) => files.has(p) || dirs.has(p) || isAncestorDir(p),
-        mkdir: async (p: string) => {
-            // Register the dir and all ancestors, preserving any leading slash (absolute paths)
-            // the same way writeTextFile's parent walk does.
-            dirs.add(p);
-            let parent = parentOf(p);
-            while (parent) {
-                dirs.add(parent);
-                parent = parentOf(parent);
-            }
-        },
-        readDir: async (p: string) => {
-            const children = new Map<string, { isFile: boolean; isDirectory: boolean }>();
-            for (const f of files.keys()) {
-                if (parentOf(f) === p) children.set(nameOf(f), { isFile: true, isDirectory: false });
-            }
-            for (const d of dirs) {
-                if (parentOf(d) === p) children.set(nameOf(d), { isFile: false, isDirectory: true });
-            }
-            return [...children.entries()].map(([name, kind]) => ({
-                name,
-                isFile: kind.isFile,
-                isDirectory: kind.isDirectory,
-                isSymlink: false,
-            }));
-        },
-        readTextFile: async (p: string) => {
-            if (!files.has(p)) throw new Error(`File not found: ${p}`);
-            return files.get(p)!;
-        },
-        writeTextFile: async (p: string, data: string) => {
-            files.set(p, data);
-            let parent = parentOf(p);
-            while (parent) {
-                dirs.add(parent);
-                parent = parentOf(parent);
-            }
-        },
-        remove: async (p: string, opts?: { recursive?: boolean }) => {
-            files.delete(p);
-            dirs.delete(p);
-            if (opts?.recursive) {
-                for (const f of [...files.keys()]) if (f.startsWith(p + '/')) files.delete(f);
-                for (const d of [...dirs]) if (d.startsWith(p + '/')) dirs.delete(d);
-            }
-        },
-    };
-});
+// The plugin-fs mock is backed by a *shared* in-memory store (see test_fs_mock.ts) so the *real*
+// NativeStorageBackend works. It must be shared with native_storage_backend.test.ts because the app
+// runs vitest with `isolate: false`: when both files land on the same worker, the real
+// native_storage_backend.ts is imported once and bound to whichever file's mock loaded first, so a
+// per-file store would be read/written by the other file's backend. The factories use async
+// `import()` so both files resolve the same singleton store.
+vi.mock('@tauri-apps/api/path', async () => (await import('./test_fs_mock.js')).makePathMock());
+vi.mock('@tauri-apps/plugin-fs', async () => (await import('./test_fs_mock.js')).makeFsMock());
 
 // Import after the mocks are registered.
+import { fsStore, resetFsStore } from './test_fs_mock.js';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
 
 /// An in-memory stand-in for the OPFS registry backend.
@@ -211,8 +146,7 @@ describe('CompositeStorageBackend', () => {
     let logger: TestLogger;
 
     beforeEach(() => {
-        fsStore.files.clear();
-        fsStore.dirs.clear();
+        resetFsStore();
         grantSpy.mockClear();
         opfs = new MemoryRegistry();
         logger = new TestLogger();
