@@ -5,7 +5,6 @@ import { EditorView } from '@codemirror/view';
 import { EditorState, EditorSelection } from '@codemirror/state';
 import { DashQLCompletionAbortEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 
-import { motion, AnimatePresence } from 'framer-motion';
 import icons from '@ankoh/dashql-svg-symbols';
 
 import type { Icon } from '@primer/octicons-react';
@@ -437,167 +436,158 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
     return (
         <div className={styles.entry_body_container}>
-            <AnimatePresence mode="wait">
-                <motion.div
-                    ref={containerRef}
-                    key={notebookEntry?.scriptId}
-                    className={styles.entry_body_card}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{
-                        duration: 0.1,
-                        ease: [0.33, 1, 0.68, 1]
-                    }}
-                >
-                    <div className={styles.entry_card_container}>
-                        <div className={styles.entry_card_action_bar}>
-                            <div className={styles.entry_card_file_name}>
-                                <NotebookScriptName
-                                    folder={folderName}
-                                    file={scriptFileName}
-                                    onFolderClick={props.hideDetails}
-                                    onFileClick={startEditingName}
-                                    editing={isEditingName ? {
-                                        value: draftFileName,
-                                        onChange: setDraftFileName,
-                                        onCommit: saveNameEdit,
-                                        onCancel: cancelNameEdit,
-                                        inputRef: editInputRef,
-                                    } : undefined}
-                                    fileNameTrailing={
-                                        <span className={styles.entry_card_file_name_actions}>
+            <div
+                ref={containerRef}
+                key={notebookEntry?.scriptId}
+                className={styles.entry_body_card}
+            >
+                <div className={styles.entry_card_container}>
+                    <div className={styles.entry_card_action_bar}>
+                        <div className={styles.entry_card_file_name}>
+                            <NotebookScriptName
+                                folder={folderName}
+                                file={scriptFileName}
+                                onFolderClick={props.hideDetails}
+                                onFileClick={startEditingName}
+                                editing={isEditingName ? {
+                                    value: draftFileName,
+                                    onChange: setDraftFileName,
+                                    onCommit: saveNameEdit,
+                                    onCancel: cancelNameEdit,
+                                    inputRef: editInputRef,
+                                } : undefined}
+                                fileNameTrailing={
+                                    <span className={styles.entry_card_file_name_actions}>
+                                        <IconButton
+                                            variant={ButtonVariant.Invisible}
+                                            size={ButtonSize.Tiny}
+                                            aria-label="Rename script"
+                                            onClick={startEditingName}
+                                            className={styles.entry_card_file_name_action_button}
+                                        >
+                                            <PencilIcon size={12} />
+                                        </IconButton>
+                                    </span>
+                                }
+                            />
+                        </div>
+                        {scriptDebugMode && scriptData != null && (
+                            <div className={styles.entry_card_stats_bar}>
+                                <ScriptStatisticsBar stats={scriptData.statistics} />
+                            </div>
+                        )}
+                        <IconButton
+                            className={styles.entry_card_collapse_button}
+                            variant={ButtonVariant.Invisible}
+                            onClick={props.hideDetails}
+                            aria-label="Collapse"
+                            aria-labelledby="collapse-entry"
+                        >
+                            <ScreenNormalIcon size={16} />
+                        </IconButton>
+                    </div>
+                    <VerticalTabs
+                        className={styles.entry_card_tabs}
+                        variant={VerticalTabVariant.Stacked}
+                        selectedTab={selectedTab}
+                        selectTab={handleSelectTab}
+                        splitModeEnabled={splitModeEnabled}
+                        splitTab={splitTab}
+                        primaryTabKey={TabKey.Editor}
+                        onToggleSplitMode={toggleSplitMode}
+                        onSelectSplitTab={handleSelectSplitTab}
+                        tabProps={{
+                            [TabKey.Editor]: {
+                                tabId: TabKey.Editor,
+                                icon: `${icons}#file`,
+                                labelShort: 'Editor',
+                                ariaLabel: 'Script editor',
+                                description: 'Edit script',
+                                disabled: false
+                            },
+                            [TabKey.QueryStatusPanel]: {
+                                tabId: TabKey.QueryStatusPanel,
+                                icon: `${icons}#plan`,
+                                labelShort: 'Status',
+                                ariaLabel: 'Query status',
+                                description: 'Query status',
+                                disabled: tabState.current.enabledTabs < 2,
+                            },
+                            [TabKey.QueryResultView]: {
+                                tabId: TabKey.QueryResultView,
+                                icon: `${icons}#table_24`,
+                                labelShort: 'Data',
+                                ariaLabel: 'Query results',
+                                description: 'Query results',
+                                disabled: tabState.current.enabledTabs < 3,
+                            },
+                            [TabKey.Visualization]: {
+                                tabId: TabKey.Visualization,
+                                icon: `${icons}#graph_24`,
+                                labelShort: 'Chart',
+                                ariaLabel: 'Visualization',
+                                description: 'Visualization',
+                                disabled: tabState.current.enabledTabs < 4,
+                            },
+                        }}
+                        tabKeys={[
+                            TabKey.Editor,
+                            TabKey.QueryStatusPanel,
+                            TabKey.QueryResultView,
+                            TabKey.Visualization,
+                        ]}
+                        tabRenderers={{
+                            [TabKey.Editor]: _props => (
+                                <div className={styles.editor_container}>
+                                    <ScriptEditor
+                                        sessionId={props.notebook.sessionId}
+                                        scriptKey={notebookEntry.scriptId}
+                                        setView={setEditorView}
+                                    />
+                                    <div className={styles.format_toggle}>
+                                        {!formatPending && (
                                             <IconButton
                                                 variant={ButtonVariant.Invisible}
-                                                size={ButtonSize.Tiny}
-                                                aria-label="Rename script"
-                                                onClick={startEditingName}
-                                                className={styles.entry_card_file_name_action_button}
+                                                onClick={handleFormat}
+                                                aria-label="Pretty format"
                                             >
-                                                <PencilIcon size={12} />
+                                                <PencilAIIcon />
                                             </IconButton>
-                                        </span>
-                                    }
-                                />
-                            </div>
-                            {scriptDebugMode && scriptData != null && (
-                                <div className={styles.entry_card_stats_bar}>
-                                    <ScriptStatisticsBar stats={scriptData.statistics} />
-                                </div>
-                            )}
-                            <IconButton
-                                className={styles.entry_card_collapse_button}
-                                variant={ButtonVariant.Invisible}
-                                onClick={props.hideDetails}
-                                aria-label="Collapse"
-                                aria-labelledby="collapse-entry"
-                            >
-                                <ScreenNormalIcon size={16} />
-                            </IconButton>
-                        </div>
-                        <VerticalTabs
-                            className={styles.entry_card_tabs}
-                            variant={VerticalTabVariant.Stacked}
-                            selectedTab={selectedTab}
-                            selectTab={handleSelectTab}
-                            splitModeEnabled={splitModeEnabled}
-                            splitTab={splitTab}
-                            primaryTabKey={TabKey.Editor}
-                            onToggleSplitMode={toggleSplitMode}
-                            onSelectSplitTab={handleSelectSplitTab}
-                            tabProps={{
-                                [TabKey.Editor]: {
-                                    tabId: TabKey.Editor,
-                                    icon: `${icons}#file`,
-                                    labelShort: 'Editor',
-                                    ariaLabel: 'Script editor',
-                                    description: 'Edit script',
-                                    disabled: false
-                                },
-                                [TabKey.QueryStatusPanel]: {
-                                    tabId: TabKey.QueryStatusPanel,
-                                    icon: `${icons}#plan`,
-                                    labelShort: 'Status',
-                                    ariaLabel: 'Query status',
-                                    description: 'Query status',
-                                    disabled: tabState.current.enabledTabs < 2,
-                                },
-                                [TabKey.QueryResultView]: {
-                                    tabId: TabKey.QueryResultView,
-                                    icon: `${icons}#table_24`,
-                                    labelShort: 'Data',
-                                    ariaLabel: 'Query results',
-                                    description: 'Query results',
-                                    disabled: tabState.current.enabledTabs < 3,
-                                },
-                                [TabKey.Visualization]: {
-                                    tabId: TabKey.Visualization,
-                                    icon: `${icons}#graph_24`,
-                                    labelShort: 'Chart',
-                                    ariaLabel: 'Visualization',
-                                    description: 'Visualization',
-                                    disabled: tabState.current.enabledTabs < 4,
-                                },
-                            }}
-                            tabKeys={[
-                                TabKey.Editor,
-                                TabKey.QueryStatusPanel,
-                                TabKey.QueryResultView,
-                                TabKey.Visualization,
-                            ]}
-                            tabRenderers={{
-                                [TabKey.Editor]: _props => (
-                                    <div className={styles.editor_container}>
-                                        <ScriptEditor
-                                            sessionId={props.notebook.sessionId}
-                                            scriptKey={notebookEntry.scriptId}
-                                            setView={setEditorView}
-                                        />
-                                        <div className={styles.format_toggle}>
-                                            {!formatPending && (
+                                        )}
+                                        {formatPending && (
+                                            <ButtonGroup>
                                                 <IconButton
-                                                    variant={ButtonVariant.Invisible}
-                                                    onClick={handleFormat}
-                                                    aria-label="Pretty format"
+                                                    variant={ButtonVariant.Default}
+                                                    onClick={handleFormatAccept}
+                                                    aria-label="Accept format"
                                                 >
-                                                    <PencilAIIcon />
+                                                    <CheckIcon />
                                                 </IconButton>
-                                            )}
-                                            {formatPending && (
-                                                <ButtonGroup>
-                                                    <IconButton
-                                                        variant={ButtonVariant.Default}
-                                                        onClick={handleFormatAccept}
-                                                        aria-label="Accept format"
-                                                    >
-                                                        <CheckIcon />
-                                                    </IconButton>
-                                                    <IconButton
-                                                        variant={ButtonVariant.Default}
-                                                        onClick={handleFormatCancel}
-                                                        aria-label="Cancel format"
-                                                    >
-                                                        <FormatXIcon />
-                                                    </IconButton>
-                                                </ButtonGroup>
-                                            )}
-                                        </div>
+                                                <IconButton
+                                                    variant={ButtonVariant.Default}
+                                                    onClick={handleFormatCancel}
+                                                    aria-label="Cancel format"
+                                                >
+                                                    <FormatXIcon />
+                                                </IconButton>
+                                            </ButtonGroup>
+                                        )}
                                     </div>
-                                ),
-                                [TabKey.QueryStatusPanel]: _props => (
-                                    <QueryStatusPanel query={activeQueryState} />
-                                ),
-                                [TabKey.QueryResultView]: _props => (
-                                    <QueryResultView query={activeQueryState} debugMode={tableDebugMode} />
-                                ),
-                                [TabKey.Visualization]: _props => (
-                                    <VisualizationView query={activeQueryState} vegaLiteSpec={vegaLiteSpec} />
-                                ),
-                            }}
-                        />
-                    </div>
-                </motion.div>
-            </AnimatePresence>
+                                </div>
+                            ),
+                            [TabKey.QueryStatusPanel]: _props => (
+                                <QueryStatusPanel query={activeQueryState} />
+                            ),
+                            [TabKey.QueryResultView]: _props => (
+                                <QueryResultView query={activeQueryState} debugMode={tableDebugMode} />
+                            ),
+                            [TabKey.Visualization]: _props => (
+                                <VisualizationView query={activeQueryState} vegaLiteSpec={vegaLiteSpec} />
+                            ),
+                        }}
+                    />
+                </div>
+            </div>
         </div>
     );
 };
