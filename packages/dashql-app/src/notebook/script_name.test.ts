@@ -3,9 +3,9 @@ import { describe, it, expect } from 'vitest';
 import { randomScriptName } from './script_name.js';
 
 describe('randomScriptName', () => {
-    it('produces a hyphenated two-word lowercase name', () => {
+    it('produces an underscore-joined two-word lowercase name', () => {
         const name = randomScriptName(undefined, () => 0);
-        expect(name).toMatch(/^[a-z]+-[a-z]+$/);
+        expect(name).toMatch(/^[a-z]+_[a-z]+$/);
     });
 
     it('is deterministic for a given rng', () => {
@@ -13,8 +13,8 @@ describe('randomScriptName', () => {
         const a = randomScriptName(undefined, () => 0);
         const b = randomScriptName(undefined, () => 0);
         expect(a).toBe(b);
-        // Two distinct words composed with a hyphen.
-        expect(a.split('-')).toHaveLength(2);
+        // Two words composed with an underscore.
+        expect(a.split('_')).toHaveLength(2);
     });
 
     it('avoids names already taken when possible', () => {

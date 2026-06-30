@@ -743,10 +743,10 @@ describe('planScriptInsertion', () => {
         expect(plan.newFileName).toBe('6_script.sql');
     });
 
-    it('defaults to a random "<adjective>-<animal>" base when none is requested', () => {
+    it('defaults to a random "<adjective>_<animal>" base when none is requested', () => {
         const plan = planScriptInsertion(scriptsFromNames(['1_a.sql', '2_b.sql']));
-        // Sorts last (prefix 3) and carries a hyphenated two-word clean name, not the literal "script".
-        expect(plan.newFileName).toMatch(/^3_[a-z]+-[a-z]+\.sql$/);
+        // Sorts last (prefix 3) and carries an underscore-joined two-word clean name, not "script".
+        expect(plan.newFileName).toMatch(/^3_[a-z]+_[a-z]+\.sql$/);
         expect(scriptDisplayName(plan.newFileName)).not.toBe('script');
     });
 });

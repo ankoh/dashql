@@ -1,4 +1,4 @@
-visualize dashql.notebook."vis_data/script" as (
+visualize dashql.notebook."vis_data/random" as (
 	mark => line,
     encoding => (
     	x => (field => x),

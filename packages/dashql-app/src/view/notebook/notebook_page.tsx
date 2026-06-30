@@ -117,6 +117,12 @@ const SortablePageTab: React.FC<SortablePageTabProps> = (props) => {
                         onClick={(e) => e.stopPropagation()}
                         // The input lives inside a dnd listener; stop pointer events from arming a drag.
                         onPointerDown={(e) => e.stopPropagation()}
+                        // A page name is an identifier, not prose: suppress the browser's text
+                        // assistance so e.g. "random" isn't auto-capitalised to "Random".
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
                     />
                 ) : (
                     <>
