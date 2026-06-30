@@ -592,7 +592,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleShowTable, handleShowStatus, handleShowVisualization, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
-        <div className={styles.feed_body_container}>
+        <div className={styles.feed_body_container} data-tauri-drag-region="deep">
             <div className={styles.feed_list_container} ref={listContainerRef}>
                 <List
                     key={props.notebook.notebookUserFocus.folderName}

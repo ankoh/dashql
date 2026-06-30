@@ -224,12 +224,16 @@ export const NavBar = (): React.ReactElement => {
     const sessionPath = sessionId ? displayPath(sessionId, storageReader.getSessionLocation(sessionId)) : "";
     const pageIcon = isToolPage ? `${symbols}#tool` : `${symbols}#book_24`;
     return (
+        // `deep` makes the whole toolbar a native window-drag surface: clicks anywhere drag the
+        // window except on genuinely interactive elements (the session bar button, version buttons,
+        // …), which Tauri's drag.js still treats as clickable and lets through. A bare/`true` value
+        // would only drag on direct clicks on this exact element — which the session bar button now
+        // fully covers, so dragging would never trigger.
         <div className={isMac ? styles.navbar_mac : styles.navbar_default}
+            data-tauri-drag-region="deep"
         >
             {isBrowser && <BrandLogo onClose={handleCloseNotebook} />}
-            <div className={styles.tabs}
-                data-tauri-drag-region="true"
-            >
+            <div className={styles.tabs}>
                 <SessionBar sessionId={sessionId} sessionPath={sessionPath} pageIcon={pageIcon} />
             </div>
             <div className={styles.version_container}>

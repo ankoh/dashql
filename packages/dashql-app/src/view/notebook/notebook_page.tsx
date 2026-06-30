@@ -250,7 +250,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const isDisconnected = conn?.connectionHealth !== ConnectionHealth.ONLINE;
     return (
         <div className={styles.page}>
-            <div className={styles.header_container}>
+            <div className={styles.header_container} data-tauri-drag-region="deep">
                 <div className={styles.header_left_container}>
                     <div className={styles.page_title}>Notebook</div>
                 </div>
@@ -404,7 +404,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                                 : <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} showDetails={(initialTab?: DetailsTabKey) => { setDetailsInitialTab(initialTab); setShowDetails(true); }} scrollTarget={feedScrollTarget} conn={conn ?? null} openConnectionOverlay={() => setConnectionOverlayOpen(true)} />
                 }
             </div>
-            <div className={styles.action_sidebar}>
+            <div className={styles.action_sidebar} data-tauri-drag-region="deep">
                 <div className={styles.action_sidebar_header}>
                     {conn && <ConnectionStatus ref={connectionStatusRef} conn={conn} sessionId={route.sessionId} onClick={() => setConnectionOverlayOpen(true)} />}
                 </div>
