@@ -280,10 +280,21 @@ export class StorageWriter {
                     break;
                 }
 
+                // Preserve the original createdAt across rewrites; only stamp it on the first write.
+                // Otherwise every connection-state change would churn the manifest with a fresh
+                // timestamp even when nothing else changed.
+                let createdAt: string;
+                try {
+                    const existingSession = await this.backend.loadSession(sessionPath);
+                    createdAt = existingSession.notebook?.createdAt ?? new Date().toISOString();
+                } catch {
+                    createdAt = new Date().toISOString();
+                }
+
                 // For now, create minimal notebook metadata
                 const notebookMetadata: StorageNotebookMetadata = {
                     originalFileName: undefined,
-                    createdAt: new Date().toISOString(),
+                    createdAt,
                 };
 
                 // sessionPath is a display-only field, recomputed from the uuid + location for
@@ -376,18 +387,22 @@ export class StorageWriter {
                     this.registerWrite(`${sessionPath}/notebook/dashql-draft.sql`, composerSql.length, t1.getTime() - t0.getTime());
                 }
 
-                // Save session last so it never references content that doesn't exist yet
+                // Save session last so it never references content that doesn't exist yet.
+                // Preserve the original createdAt across rewrites; only stamp it on the first write.
                 let connectionParams: any;
+                let createdAt: string;
                 try {
                     const existingSession = await this.backend.loadSession(sessionPath);
                     connectionParams = existingSession.connectionParams;
+                    createdAt = existingSession.notebook?.createdAt ?? new Date().toISOString();
                 } catch {
                     connectionParams = createDefaultConnectionParamsForConnector(notebook.connectorInfo);
+                    createdAt = new Date().toISOString();
                 }
 
                 const notebookMetadata: StorageNotebookMetadata = {
                     originalFileName: notebook.notebookMetadata.originalFileName,
-                    createdAt: new Date().toISOString(),
+                    createdAt,
                 };
 
                 const connData: SessionData = {
