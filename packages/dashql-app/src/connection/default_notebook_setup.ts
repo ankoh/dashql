@@ -41,7 +41,7 @@ export function createDefaultNotebook(
     mainScript.replaceText(mainScriptText);
 
     const mainFolderName = 'Main';
-    const mainFileName = generateScriptFileName({});
+    const mainFileName = generateScriptFileName({}, 'example_script');
 
     let mainScriptData = createScriptData(mainScript, mainFileName, mainFolderName);
     // Initial analyze: only the main script exists, so cross-script references can't resolve yet.

@@ -7,6 +7,7 @@ import { type ConnectionState } from './connection_state.js';
 import { createDatalessConnectionState } from './dataless/dataless_connection_state.js';
 import type { NotebookStateWithoutId } from '../notebook/notebook_state_registry.js';
 import type { NotebookState } from '../notebook/notebook_state.js';
+import { scriptDisplayName } from '../notebook/notebook_types.js';
 import { Logger } from '../platform/logger/logger.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -51,7 +52,7 @@ describe('createDefaultNotebook', () => {
         expect(allocateNotebookState).toHaveBeenCalledTimes(1);
         expect(Object.keys(notebook.notebookPages)).toHaveLength(1);
         expect(notebook.notebookUserFocus.folderName).toBe('Main');
-        expect(notebook.notebookUserFocus.fileName.length).toBeGreaterThan(0);
+        expect(scriptDisplayName(notebook.notebookUserFocus.fileName)).toBe('example_script');
         expect(notebook.notebookUserFocus.interactionCounter).toBe(0);
 
         const queryPage = notebook.notebookPages['Main'];
