@@ -1,0 +1,1 @@
+select v as x, random() as y from generate_series(1, 10) t(v)

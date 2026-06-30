@@ -1,0 +1,23 @@
+{
+  "sessionId": "81428ffe-ebdd-46d4-a990-be2bed3fbdaa",
+  "title": "hyper",
+  "connectionParams": {
+    "hyper": {
+      "protocol": "V3_DOCKER",
+      "endpoint": "http://localhost:7484",
+      "tls": {
+        "clientKeyPath": "",
+        "clientCertPath": "",
+        "caCertsPath": ""
+      },
+      "attachedDatabases": [],
+      "metadata": {
+        "message": "",
+        "details": {}
+      }
+    }
+  },
+  "notebook": {
+    "createdAt": "2026-06-30T06:59:47.146Z"
+  }
+}
