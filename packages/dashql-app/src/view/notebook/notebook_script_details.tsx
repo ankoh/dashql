@@ -18,7 +18,7 @@ import { QueryStatusPanel } from '../query_status/query_status_panel.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { useQueryState } from '../../connection/query_executor.js';
 import { getSelectedEntry, getSelectedPage, NotebookState, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
-import { stripPageOrderPrefix, scriptDisplayName } from '../../notebook/notebook_types.js';
+import { normalizePageName, scriptDisplayName } from '../../notebook/notebook_types.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { useAppConfig } from '../../app_config.js';
 import { ScriptEditor } from './script_editor.js';
@@ -72,7 +72,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     // raw scriptFileName stays the rename identity; the label and draft use the clean display name
     // (no prefix, no ".sql").
     const selectedPage = getSelectedPage(props.notebook);
-    const folderName = stripPageOrderPrefix(selectedPage?.folderName ?? '') || 'Untitled';
+    const folderName = normalizePageName(selectedPage?.folderName ?? '') || 'Untitled';
     const scriptFileName = notebookEntry?.fileName ?? '01-script.sql';
     const scriptDisplay = scriptDisplayName(scriptFileName);
 

@@ -106,7 +106,7 @@ const PAGE_ORDER_PREFIX_RE = /^(\d+)_/;
 
 /// The display / logical name of a page, with any storage ordering prefix removed.
 /// "03_main" -> "main"; "main" -> "main".
-export function stripPageOrderPrefix(folderName: string): string {
+export function normalizePageName(folderName: string): string {
     return folderName.replace(PAGE_ORDER_PREFIX_RE, '');
 }
 
@@ -140,7 +140,7 @@ const SCRIPT_EXTENSION_RE = /\.sql$/i;
 /// kept. "2_extract.sql" -> "extract.sql"; legacy "01-script.sql" -> "script.sql". This is the name
 /// a script is registered under in the notebook reference namespace, so reordering (which only
 /// rewrites the prefix) never changes how the script is referenced.
-export function stripScriptOrderPrefix(fileName: string): string {
+export function normalizeScriptName(fileName: string): string {
     return fileName.replace(SCRIPT_ORDER_PREFIX_RE, '');
 }
 
@@ -164,7 +164,7 @@ export function formatScriptOrderPrefix(index1: number, total: number): string {
 /// "2_extract.sql" -> "extract"; "01-script.sql" -> "script". Used for tab/feed/details labels and
 /// to pre-fill the rename input.
 export function scriptDisplayName(fileName: string): string {
-    return stripScriptOrderPrefix(fileName).replace(SCRIPT_EXTENSION_RE, '');
+    return normalizeScriptName(fileName).replace(SCRIPT_EXTENSION_RE, '');
 }
 
 /// Return a script base name (no prefix, no extension) that is unique among the display names of the
@@ -232,7 +232,7 @@ export function planScriptInsertion(
     for (const key of keys) {
         const n = scriptOrderIndex(key);
         if (n === 0) continue;
-        const desired = `${String(n).padStart(width, '0')}_${stripScriptOrderPrefix(key)}`;
+        const desired = `${String(n).padStart(width, '0')}_${normalizeScriptName(key)}`;
         if (desired !== key) repad.push({ oldFileName: key, newFileName: desired });
     }
 

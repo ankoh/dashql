@@ -1,6 +1,6 @@
 import { type StorageBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type AppSettings, StorageBackendType, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS } from './storage_backend.js';
 
-import { exists, mkdir, readDir, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists, mkdir, readDir, readTextFile, remove, rename, writeTextFile } from '@tauri-apps/plugin-fs';
 import { join } from '@tauri-apps/api/path';
 
 /// Native filesystem storage backend for a single session (Tauri only).
@@ -174,6 +174,26 @@ export class NativeStorageBackend implements StorageBackend {
         }
     }
 
+    async renameNotebookPage(_sessionId: string, oldPageName: string, newPageName: string): Promise<void> {
+        if (oldPageName === newPageName) {
+            return;
+        }
+        const oldDir = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${oldPageName}`);
+        const newDir = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${newPageName}`);
+        // If the source is missing there is nothing on disk to move yet (e.g. the page was created and
+        // renamed before its first flush); leave it to the pending write of the new name.
+        if (!(await exists(oldDir))) {
+            return;
+        }
+        // Atomic directory rename onto a destination the caller guarantees is free. Callers schedule
+        // these so the destination is always free at flush time: within one reprefix pass the
+        // destination "<n>_<clean>" carries a globally-unique clean name, so it can equal no other
+        // page's current name; across passes the writer flushes renames in insertion order, and each
+        // pass's destinations are the next pass's sources, so every destination has already been
+        // vacated by the time its rename runs.
+        await rename(oldDir, newDir);
+    }
+
     async loadNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<ScriptData> {
         const scriptFile = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${scriptName}`);
         if (!(await exists(scriptFile))) {
@@ -199,6 +219,22 @@ export class NativeStorageBackend implements StorageBackend {
         if (await exists(scriptFile)) {
             await remove(scriptFile);
         }
+    }
+
+    async renameNotebookScript(_sessionId: string, pageName: string, oldScriptName: string, newScriptName: string): Promise<void> {
+        if (oldScriptName === newScriptName) {
+            return;
+        }
+        const oldFile = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${oldScriptName}`);
+        const newFile = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${newScriptName}`);
+        // A missing source means the script hasn't been flushed yet; the pending write under the new
+        // name will create it, so there is nothing to move here.
+        if (!(await exists(oldFile))) {
+            return;
+        }
+        // Atomic file rename. The new clean base is disambiguated unique within the page, so the
+        // destination is free.
+        await rename(oldFile, newFile);
     }
 
     async loadNotebookScriptDraft(_sessionId: string): Promise<string | null> {

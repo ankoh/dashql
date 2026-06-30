@@ -13,7 +13,7 @@ import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
 import { CREATE_PAGE, REORDER_PAGES, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE, UPDATE_PAGE_FOLDER_NAME, getSortedFolderNames } from '../../notebook/notebook_state.js';
-import { stripPageOrderPrefix } from '../../notebook/notebook_types.js';
+import { normalizePageName } from '../../notebook/notebook_types.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
 import {
     DndContext,
@@ -429,7 +429,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                                 const isSelected = catalogTab == null && folderName === notebook.notebookUserFocus.folderName;
                                 const isEditing = editingFolder === folderName;
                                 // The ordering prefix is an on-disk implementation detail; show the clean name.
-                                const label = stripPageOrderPrefix(folderName) || 'Untitled';
+                                const label = normalizePageName(folderName) || 'Untitled';
                                 return (
                                     <SortablePageTab
                                         key={folderName}

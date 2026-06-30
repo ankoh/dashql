@@ -31,7 +31,7 @@ import {
     SET_SCRIPT_TEXT,
 } from '../notebook_state.js';
 import { resolveSymbolSpan } from '../../core/tokens.js';
-import { stripPageOrderPrefix, scriptDisplayName } from '../notebook_types.js';
+import { normalizePageName, scriptDisplayName } from '../notebook_types.js';
 
 /// The minimal AI client surface the driver needs (so tests can inject a mock).
 export interface AgentAIClient {
@@ -355,7 +355,7 @@ export function determineVisSource(notebook: NotebookState, contextScriptData: S
     if (contextScriptData.folderName && contextScriptData.fileName) {
         return {
             kind: 'script-reference',
-            folderName: stripPageOrderPrefix(contextScriptData.folderName),
+            folderName: normalizePageName(contextScriptData.folderName),
             fileName: scriptDisplayName(contextScriptData.fileName),
         };
     }

@@ -91,6 +91,30 @@ export function makeFsMock() {
                 for (const d of [...dirs]) if (d.startsWith(p + '/')) dirs.delete(d);
             }
         },
+        rename: async (from: string, to: string) => {
+            // Move a file or a whole directory subtree, re-keying every path prefixed by `from`.
+            // Mirrors Tauri's atomic rename: the destination's parent is registered like writeTextFile.
+            const reKey = (k: string) => (k === from ? to : k.startsWith(from + '/') ? to + k.substring(from.length) : null);
+            for (const [k, v] of [...files.entries()]) {
+                const nk = reKey(k);
+                if (nk !== null) {
+                    files.delete(k);
+                    files.set(nk, v);
+                }
+            }
+            for (const d of [...dirs]) {
+                const nd = reKey(d);
+                if (nd !== null) {
+                    dirs.delete(d);
+                    dirs.add(nd);
+                }
+            }
+            let parent = parentOf(to);
+            while (parent) {
+                dirs.add(parent);
+                parent = parentOf(parent);
+            }
+        },
     };
 }
 

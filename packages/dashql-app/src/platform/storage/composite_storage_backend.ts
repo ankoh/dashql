@@ -204,6 +204,9 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
     async deleteNotebookPage(sessionId: string, pageName: string): Promise<void> {
         return (await this.backendFor(sessionId)).deleteNotebookPage(sessionId, pageName);
     }
+    async renameNotebookPage(sessionId: string, oldPageName: string, newPageName: string): Promise<void> {
+        return (await this.backendFor(sessionId)).renameNotebookPage(sessionId, oldPageName, newPageName);
+    }
     async loadNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<ScriptData> {
         return (await this.backendFor(sessionId)).loadNotebookScript(sessionId, pageName, scriptName);
     }
@@ -212,6 +215,9 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
     }
     async deleteNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<void> {
         return (await this.backendFor(sessionId)).deleteNotebookScript(sessionId, pageName, scriptName);
+    }
+    async renameNotebookScript(sessionId: string, pageName: string, oldScriptName: string, newScriptName: string): Promise<void> {
+        return (await this.backendFor(sessionId)).renameNotebookScript(sessionId, pageName, oldScriptName, newScriptName);
     }
     async loadNotebookScriptDraft(sessionId: string): Promise<string | null> {
         return (await this.backendFor(sessionId)).loadNotebookScriptDraft(sessionId);

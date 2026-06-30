@@ -73,6 +73,13 @@ export interface StorageBackend {
     createNotebookPage(sessionId: string, pageName: string): Promise<void>;
     /// Delete a notebook page
     deleteNotebookPage(sessionId: string, pageName: string): Promise<void>;
+    /// Rename a notebook page (folder), moving its contents with it.
+    ///
+    /// This is the in-place alternative to delete-old + recreate-new: it keeps the scripts inside the
+    /// page exactly as they are on disk (no per-script rewrite). Native does an atomic directory
+    /// rename; OPFS, which has no atomic directory rename, moves each file into a fresh folder and
+    /// removes the old one. Callers must guarantee `oldPageName` exists and `newPageName` does not.
+    renameNotebookPage(sessionId: string, oldPageName: string, newPageName: string): Promise<void>;
 
     /// Load a notebook script
     loadNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<ScriptData>;
@@ -80,6 +87,10 @@ export interface StorageBackend {
     saveNotebookScript(sessionId: string, pageName: string, scriptName: string, sql: string): Promise<void>;
     /// Delete a notebook script
     deleteNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<void>;
+    /// Rename a notebook script (file) within a page, preserving its contents (no rewrite from
+    /// memory). Native renames the file; OPFS moves it (with a copy+delete fallback). Callers must
+    /// guarantee `oldScriptName` exists and `newScriptName` does not.
+    renameNotebookScript(sessionId: string, pageName: string, oldScriptName: string, newScriptName: string): Promise<void>;
 
     /// Load a notebook script draft
     loadNotebookScriptDraft(sessionId: string): Promise<string | null>;

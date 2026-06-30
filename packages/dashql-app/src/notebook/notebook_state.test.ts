@@ -31,9 +31,9 @@ import {
     getSortedFolderNames,
 } from './notebook_state.js';
 import { createDatalessConnectorInfo } from '../connection/connector_info.js';
-import { StorageWriter, StorageWriteTaskVariant, WRITE_NOTEBOOK_SCRIPT, DELETE_NOTEBOOK_SCRIPT } from "../platform/storage/storage_writer.js";
+import { StorageWriter, StorageWriteTaskVariant, WRITE_NOTEBOOK_SCRIPT, DELETE_NOTEBOOK_SCRIPT, RENAME_NOTEBOOK_PAGE, RENAME_NOTEBOOK_SCRIPT, CREATE_NOTEBOOK_PAGE, DELETE_NOTEBOOK_PAGE } from "../platform/storage/storage_writer.js";
 import { Logger } from '../platform/logger/logger.js';
-import { createEmptyMetadata, createPageScript, generateScriptFileName, stripPageOrderPrefix, pageOrderPrefixString, formatPageOrderPrefix, stripScriptOrderPrefix, scriptOrderPrefixString, formatScriptOrderPrefix, scriptDisplayName, uniqueScriptBase, planScriptInsertion, NotebookPageScript } from './notebook_types.js';
+import { createEmptyMetadata, createPageScript, generateScriptFileName, normalizePageName, pageOrderPrefixString, formatPageOrderPrefix, normalizeScriptName, scriptOrderPrefixString, formatScriptOrderPrefix, scriptDisplayName, uniqueScriptBase, planScriptInsertion, NotebookPageScript } from './notebook_types.js';
 
 class NullLogger extends Logger {
     public destroy(): void { }
@@ -52,10 +52,12 @@ class NullStorageBackend {
     async loadNotebookPages(): Promise<any[]> { return []; }
     async createNotebookPage(): Promise<void> { }
     async deleteNotebookPage(): Promise<void> { }
+    async renameNotebookPage(): Promise<void> { }
     async reorderNotebookPage(): Promise<void> { }
     async loadNotebookScript(): Promise<any> { return {}; }
     async saveNotebookScript(): Promise<void> { }
     async deleteNotebookScript(): Promise<void> { }
+    async renameNotebookScript(): Promise<void> { }
     async loadNotebookScriptDraft(): Promise<string | null> { return null; }
     async saveNotebookScriptDraft(): Promise<void> { }
 }
@@ -155,8 +157,11 @@ describe('SELECT_PAGE', () => {
         const s0 = buildState();
         const s1 = reduce(s0, { type: CREATE_PAGE, value: null });
         expect(folderNames(s1).length).toBe(2);
-        const s2 = reduce(s1, { type: SELECT_PAGE, value: MAIN_FOLDER });
-        expect(s2.notebookUserFocus.folderName).toBe(MAIN_FOLDER);
+        // Creating a page re-prefixes the original page (e.g. "Main" -> "1_Main"); navigate to it
+        // under its current (prefixed) name.
+        const mainFolder = folderNames(s1)[0];
+        const s2 = reduce(s1, { type: SELECT_PAGE, value: mainFolder });
+        expect(s2.notebookUserFocus.folderName).toBe(mainFolder);
     });
 
     it('is a no-op for an unknown folder name', () => {
@@ -248,17 +253,45 @@ describe('CREATE_PAGE', () => {
         expect(next.scripts[next.uncommittedScriptId]).toBeDefined();
     });
 
-    it('moves focus to the new page', () => {
+    it('moves focus to the new (prefixed) page', () => {
         const state = buildState();
         const next = reduce(state, { type: CREATE_PAGE, value: null });
-        expect(next.notebookUserFocus.folderName).toBe('Untitled');
+        expect(normalizePageName(next.notebookUserFocus.folderName)).toBe('Untitled');
     });
 
     it('new page has an auto-created script', () => {
         const state = buildState();
         const next = reduce(state, { type: CREATE_PAGE, value: null });
-        const newPage = next.notebookPages['Untitled'];
+        const newPage = next.notebookPages[next.notebookUserFocus.folderName];
         expect(Object.keys(newPage.scripts).length).toBe(1);
+    });
+
+    it('prefixes the new page and appends it fully to the right', () => {
+        const state = buildState();
+        const next = reduce(state, { type: CREATE_PAGE, value: null });
+        const sorted = getSortedFolderNames(next.notebookPages);
+        // Both pages now carry a dense numeric prefix; the new "Untitled" sorts last.
+        expect(sorted).toEqual(['1_Main', '2_Untitled']);
+        expect(normalizePageName(sorted[sorted.length - 1])).toBe('Untitled');
+    });
+
+    it('normalises still-unprefixed sibling pages on create', () => {
+        // A notebook that mixes prefixed and prefix-free pages (as a freshly migrated example does).
+        const state = buildMultiPageState(['1_main', '2_explain', 'vis_data', 'vis_spec']);
+        const next = reduce(state, { type: CREATE_PAGE, value: null });
+        const sorted = getSortedFolderNames(next.notebookPages);
+        // Every page ends up prefixed, original order preserved, new page last.
+        expect(sorted.map(normalizePageName)).toEqual(['main', 'explain', 'vis_data', 'vis_spec', 'Untitled']);
+        expect(sorted).toEqual(['1_main', '2_explain', '3_vis_data', '4_vis_spec', '5_Untitled']);
+    });
+
+    it('keeps adding new pages to the right across repeated creates', () => {
+        let s = buildState();
+        s = reduce(s, { type: CREATE_PAGE, value: null });
+        s = reduce(s, { type: CREATE_PAGE, value: null });
+        const sorted = getSortedFolderNames(s.notebookPages);
+        expect(sorted.map(normalizePageName)).toEqual(['Main', 'Untitled', 'Untitled 2']);
+        expect(sorted).toEqual(['1_Main', '2_Untitled', '3_Untitled 2']);
     });
 });
 
@@ -464,11 +497,13 @@ describe('UPDATE_NOTEBOOK_ENTRY', () => {
 });
 
 describe('UPDATE_PAGE_FOLDER_NAME', () => {
-    it('renames the targeted page', () => {
+    it('renames the targeted page, assigning it an ordering prefix', () => {
         const state = buildState();
         const next = reduce(state, { type: UPDATE_PAGE_FOLDER_NAME, value: { folderName: MAIN_FOLDER, newFolderName: 'Analytics' } });
-        expect(next.notebookPages['Analytics']).toBeDefined();
+        // The renamed page gains a numeric prefix (single page in a single-page notebook -> "1_").
+        expect(next.notebookPages['1_Analytics']).toBeDefined();
         expect(next.notebookPages[MAIN_FOLDER]).toBeUndefined();
+        expect(normalizePageName(next.notebookUserFocus.folderName)).toBe('Analytics');
     });
 
     it('is a no-op for an unknown folder name', () => {
@@ -527,11 +562,11 @@ describe('UPDATE_PAGE_FOLDER_NAME', () => {
 // ---------------------------------------------------------------------------
 
 describe('page order prefix helpers', () => {
-    it('stripPageOrderPrefix removes a leading <digits>_ prefix', () => {
-        expect(stripPageOrderPrefix('03_main')).toBe('main');
-        expect(stripPageOrderPrefix('1_vis_data')).toBe('vis_data');
-        expect(stripPageOrderPrefix('main')).toBe('main');
-        expect(stripPageOrderPrefix('Untitled 2')).toBe('Untitled 2');
+    it('normalizePageName removes a leading <digits>_ prefix', () => {
+        expect(normalizePageName('03_main')).toBe('main');
+        expect(normalizePageName('1_vis_data')).toBe('vis_data');
+        expect(normalizePageName('main')).toBe('main');
+        expect(normalizePageName('Untitled 2')).toBe('Untitled 2');
     });
 
     it('pageOrderPrefixString returns the prefix including the underscore, else empty', () => {
@@ -583,7 +618,7 @@ describe('REORDER_PAGES', () => {
         // Default lexicographic order is alpha, beta, gamma. Request gamma, alpha, beta.
         const next = reduce(state, { type: REORDER_PAGES, value: ['gamma', 'alpha', 'beta'] });
         const sorted = getSortedFolderNames(next.notebookPages);
-        expect(sorted.map(stripPageOrderPrefix)).toEqual(['gamma', 'alpha', 'beta']);
+        expect(sorted.map(normalizePageName)).toEqual(['gamma', 'alpha', 'beta']);
         // Prefixes are dense and single-digit for a 3-page notebook.
         expect(sorted).toEqual(['1_gamma', '2_alpha', '3_beta']);
     });
@@ -601,7 +636,7 @@ describe('REORDER_PAGES', () => {
         // Reorder beta to the front, then re-analyze: the catalog path must still be the clean name.
         const s2 = reduce(s1, { type: REORDER_PAGES, value: ['beta', 'alpha'] });
         const movedFolder = getSortedFolderNames(s2.notebookPages)[0];
-        expect(stripPageOrderPrefix(movedFolder)).toBe('beta');
+        expect(normalizePageName(movedFolder)).toBe('beta');
         const s3 = reduce(s2, { type: ANALYZE_OUTDATED_SCRIPT, value: betaScriptId });
         expect(s3.scripts[betaScriptId].annotations.tableDefs).toContain(`beta/${cleanFile}`);
         expect(s3.scripts[betaScriptId].annotations.tableDefs).not.toContain(`${movedFolder}/${cleanFile}`);
@@ -617,7 +652,7 @@ describe('REORDER_PAGES', () => {
         const state = buildMultiPageState(['alpha', 'beta', 'gamma']);
         const next = reduce(state, { type: REORDER_PAGES, value: ['gamma'] });
         const sorted = getSortedFolderNames(next.notebookPages);
-        expect(sorted.map(stripPageOrderPrefix)).toEqual(['gamma', 'alpha', 'beta']);
+        expect(sorted.map(normalizePageName)).toEqual(['gamma', 'alpha', 'beta']);
     });
 
     it('moves focus to the renamed folder of the previously focused page', () => {
@@ -625,7 +660,7 @@ describe('REORDER_PAGES', () => {
         const s1 = reduce(state, { type: SELECT_PAGE, value: 'beta' });
         expect(s1.notebookUserFocus.folderName).toBe('beta');
         const s2 = reduce(s1, { type: REORDER_PAGES, value: ['gamma', 'beta', 'alpha'] });
-        expect(stripPageOrderPrefix(s2.notebookUserFocus.folderName)).toBe('beta');
+        expect(normalizePageName(s2.notebookUserFocus.folderName)).toBe('beta');
         expect(s2.notebookPages[s2.notebookUserFocus.folderName]).toBeDefined();
     });
 
@@ -636,14 +671,115 @@ describe('REORDER_PAGES', () => {
     });
 });
 
-describe('UPDATE_PAGE_FOLDER_NAME preserves ordering prefix', () => {
-    it('keeps the page in place by retaining its prefix on rename', () => {
+describe('UPDATE_PAGE_FOLDER_NAME keeps the page in its slot', () => {
+    it('retains the page position (re-deriving the prefix) on rename', () => {
         const state = buildMultiPageState(['1_alpha', '2_beta']);
         const next = reduce(state, { type: UPDATE_PAGE_FOLDER_NAME, value: { folderName: '2_beta', newFolderName: 'reports' } });
         expect(next.notebookPages['2_reports']).toBeDefined();
         expect(next.notebookPages['2_beta']).toBeUndefined();
         // Order is unchanged: alpha still before the renamed page.
-        expect(getSortedFolderNames(next.notebookPages).map(stripPageOrderPrefix)).toEqual(['alpha', 'reports']);
+        expect(getSortedFolderNames(next.notebookPages).map(normalizePageName)).toEqual(['alpha', 'reports']);
+    });
+
+    it('assigns a prefix when renaming a page that had none, keeping its slot', () => {
+        // Mixed notebook: a prefix-free page sitting after a prefixed one.
+        const state = buildMultiPageState(['1_alpha', 'zebra']);
+        const next = reduce(state, { type: UPDATE_PAGE_FOLDER_NAME, value: { folderName: 'zebra', newFolderName: 'reports' } });
+        // 'zebra' is in slot 2 of the view order, so it becomes '2_reports'.
+        expect(next.notebookPages['2_reports']).toBeDefined();
+        expect(next.notebookPages['zebra']).toBeUndefined();
+        expect(getSortedFolderNames(next.notebookPages)).toEqual(['1_alpha', '2_reports']);
+    });
+
+    it('normalises still-unprefixed sibling pages on rename', () => {
+        const state = buildMultiPageState(['1_main', '2_explain', 'vis_data', 'vis_spec']);
+        // Rename the first page; the trailing prefix-free pages must be normalised too.
+        const next = reduce(state, { type: UPDATE_PAGE_FOLDER_NAME, value: { folderName: '1_main', newFolderName: 'overview' } });
+        expect(getSortedFolderNames(next.notebookPages)).toEqual(['1_overview', '2_explain', '3_vis_data', '4_vis_spec']);
+    });
+
+    it('is a no-op when the clean name is unchanged', () => {
+        const state = buildMultiPageState(['1_alpha', '2_beta']);
+        const next = reduce(state, { type: UPDATE_PAGE_FOLDER_NAME, value: { folderName: '2_beta', newFolderName: 'beta' } });
+        expect(next).toBe(state);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Rename persistence plan: structural renames move files in place rather than
+// delete-old + recreate-new. Asserted via the RecordingStorageWriter.
+// ---------------------------------------------------------------------------
+
+describe('rename persistence plan', () => {
+    function record(state: NotebookState, action: Parameters<typeof reduceNotebookState>[1]) {
+        const recorder = new RecordingStorageWriter(logger, backend);
+        const next = reduceNotebookState(state, action, recorder, logger, true);
+        return { next, records: recorder.records };
+    }
+
+    it('UPDATE_PAGE_FOLDER_NAME renames the folder in place (no delete/recreate of the page)', () => {
+        const state = buildMultiPageState(['1_alpha', '2_beta']);
+        const { records } = record(state, { type: UPDATE_PAGE_FOLDER_NAME, value: { folderName: '2_beta', newFolderName: 'reports' } });
+
+        const renames = records.filter(r => r.task.type === RENAME_NOTEBOOK_PAGE).map(r => r.task.value);
+        expect(renames).toEqual([[state.sessionId, '2_beta', '2_reports']]);
+        // The renamed page is moved, not torn down and rebuilt.
+        expect(records.some(r => r.task.type === DELETE_NOTEBOOK_PAGE)).toBe(false);
+        expect(records.some(r => r.task.type === CREATE_NOTEBOOK_PAGE)).toBe(false);
+    });
+
+    it('REORDER_PAGES renames each moved folder in place', () => {
+        const state = buildMultiPageState(['1_alpha', '2_beta', '3_gamma']);
+        const { records } = record(state, { type: REORDER_PAGES, value: ['3_gamma', '1_alpha', '2_beta'] });
+
+        const renames = records.filter(r => r.task.type === RENAME_NOTEBOOK_PAGE).map(r => r.task.value);
+        // gamma->slot1, alpha->slot2, beta->slot3. The clean names are held stable.
+        expect(renames).toEqual([
+            [state.sessionId, '3_gamma', '1_gamma'],
+            [state.sessionId, '1_alpha', '2_alpha'],
+            [state.sessionId, '2_beta', '3_beta'],
+        ]);
+        expect(records.some(r => r.task.type === DELETE_NOTEBOOK_PAGE)).toBe(false);
+    });
+
+    it('CREATE_PAGE creates the new page but only renames the pre-existing siblings it reprefixes', () => {
+        // Two prefix-free siblings force a reprefix; the brand-new page has nothing on disk yet.
+        const state = buildMultiPageState(['alpha', 'beta']);
+        const { records } = record(state, { type: CREATE_PAGE, value: null });
+
+        const created = records.filter(r => r.task.type === CREATE_NOTEBOOK_PAGE).map(r => (r.task.value as any[])[1]);
+        const renamed = records.filter(r => r.task.type === RENAME_NOTEBOOK_PAGE).map(r => r.task.value);
+        // The freshly created (never-flushed) page is written via CREATE, landing last (slot 3).
+        expect(created).toEqual(['3_Untitled']);
+        // The two persisted siblings are moved in place to gain their prefixes.
+        expect(renamed).toEqual([
+            [state.sessionId, 'alpha', '1_alpha'],
+            [state.sessionId, 'beta', '2_beta'],
+        ]);
+    });
+
+    it('UPDATE_NOTEBOOK_ENTRY renames the script file in place (no delete + rewrite)', () => {
+        const state = buildState();
+        const oldFile = Object.keys(getSelectedPage(state)!.scripts)[0];
+        const { next, records } = record(state, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: oldFile, newFileName: 'renamed' } });
+
+        const newFile = getSortedFileNames(getSelectedPage(next)!)[0];
+        expect(newFile).not.toBe(oldFile);
+        const renames = records.filter(r => r.task.type === RENAME_NOTEBOOK_SCRIPT).map(r => r.task.value);
+        expect(renames).toEqual([[state.sessionId, MAIN_FOLDER, oldFile, newFile]]);
+        // No delete of the old file and no content rewrite of either name.
+        expect(records.some(r => r.task.type === DELETE_NOTEBOOK_SCRIPT)).toBe(false);
+        expect(records.some(r => r.task.type === WRITE_NOTEBOOK_SCRIPT)).toBe(false);
+    });
+
+    it('UPDATE_NOTEBOOK_ENTRY without a name change writes content under the unchanged name', () => {
+        const state = buildState();
+        const file = Object.keys(getSelectedPage(state)!.scripts)[0];
+        // Re-submitting the current display name is not a rename.
+        const { records } = record(state, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: file, newFileName: scriptDisplayName(file) } });
+        expect(records.some(r => r.task.type === RENAME_NOTEBOOK_SCRIPT)).toBe(false);
+        const written = records.filter(r => r.task.type === WRITE_NOTEBOOK_SCRIPT).map(r => (r.task.value as string[])[2]);
+        expect(written).toEqual([file]);
     });
 });
 
@@ -652,10 +788,10 @@ describe('UPDATE_PAGE_FOLDER_NAME preserves ordering prefix', () => {
 // ---------------------------------------------------------------------------
 
 describe('script order prefix helpers', () => {
-    it('stripScriptOrderPrefix removes a leading <digits><sep> prefix, keeping the extension', () => {
-        expect(stripScriptOrderPrefix('2_extract.sql')).toBe('extract.sql');
-        expect(stripScriptOrderPrefix('01-script.sql')).toBe('script.sql'); // legacy hyphen
-        expect(stripScriptOrderPrefix('extract.sql')).toBe('extract.sql');
+    it('normalizeScriptName removes a leading <digits><sep> prefix, keeping the extension', () => {
+        expect(normalizeScriptName('2_extract.sql')).toBe('extract.sql');
+        expect(normalizeScriptName('01-script.sql')).toBe('script.sql'); // legacy hyphen
+        expect(normalizeScriptName('extract.sql')).toBe('extract.sql');
     });
 
     it('scriptOrderPrefixString returns the prefix verbatim (with its separator), else empty', () => {
@@ -1111,8 +1247,10 @@ describe('getScriptKeysInFeedOrder', () => {
         expected.push(state.uncommittedScriptId);
 
         expect(order).toEqual(expected);
-        // 'Main' sorts before 'Untitled', so the original Main entry comes first.
-        const mainFirstScriptId = state.notebookPages[MAIN_FOLDER].scripts[mainFile].scriptId;
+        // 'Main' sorts before 'Untitled', so the original Main entry comes first. CREATE_PAGE
+        // re-prefixed the page ('Main' -> '1_Main'), so resolve it under its current name.
+        const mainFolder = getSortedFolderNames(state.notebookPages)[0];
+        const mainFirstScriptId = state.notebookPages[mainFolder].scripts[mainFile].scriptId;
         expect(order[0]).toBe(mainFirstScriptId);
         // The uncommitted composer script is always last.
         expect(order[order.length - 1]).toBe(state.uncommittedScriptId);

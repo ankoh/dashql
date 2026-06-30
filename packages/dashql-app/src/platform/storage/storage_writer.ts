@@ -63,9 +63,11 @@ export const WRITE_NOTEBOOK_SCRIPT = Symbol('WRITE_NOTEBOOK_SCRIPT');
 export const WRITE_NOTEBOOK_DRAFT = Symbol('WRITE_NOTEBOOK_DRAFT');
 export const CREATE_NOTEBOOK_PAGE = Symbol('CREATE_NOTEBOOK_PAGE');
 export const DELETE_NOTEBOOK_PAGE = Symbol('DELETE_NOTEBOOK_PAGE');
+export const RENAME_NOTEBOOK_PAGE = Symbol('RENAME_NOTEBOOK_PAGE');
 export const DELETE_SESSION = Symbol('DELETE_SESSION');
 export const DELETE_NOTEBOOK = Symbol('DELETE_NOTEBOOK');
 export const DELETE_NOTEBOOK_SCRIPT = Symbol('DELETE_NOTEBOOK_SCRIPT');
+export const RENAME_NOTEBOOK_SCRIPT = Symbol('RENAME_NOTEBOOK_SCRIPT');
 
 export type StorageWriteTaskVariant =
     | VariantKind<typeof WRITE_SESSION_MANIFEST, [string, ConnectionState]>
@@ -76,9 +78,11 @@ export type StorageWriteTaskVariant =
     | VariantKind<typeof WRITE_NOTEBOOK_DRAFT, [string, string]>  // sessionPath, sql
     | VariantKind<typeof CREATE_NOTEBOOK_PAGE, [string, string, { scriptId: number, fileName: string, sql: string }[]]>  // sessionPath, pageName, scripts
     | VariantKind<typeof DELETE_NOTEBOOK_PAGE, [string, string]>  // sessionPath, pageName
+    | VariantKind<typeof RENAME_NOTEBOOK_PAGE, [string, string, string]>  // sessionPath, oldPageName, newPageName
     | VariantKind<typeof DELETE_SESSION, string>
     | VariantKind<typeof DELETE_NOTEBOOK, string>
     | VariantKind<typeof DELETE_NOTEBOOK_SCRIPT, [string, string, string]>  // sessionPath, pageName, scriptName
+    | VariantKind<typeof RENAME_NOTEBOOK_SCRIPT, [string, string, string, string]>  // sessionPath, pageName, oldScriptName, newScriptName
     ;
 
 export type StorageWriteKey = string;
@@ -92,6 +96,13 @@ export const groupScriptWrites = (sessionPath: string, folderName: string, fileN
     `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${folderName}/${fileName}`;
 export const groupScriptDeletes = (sessionPath: string, pageName: string, scriptName: string) =>
     `delete:${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${scriptName}`;
+/// A page/script rename lives in its own `rename:` keyspace, keyed by the *source* path. Keeping it
+/// off the write/delete keyspaces means a later content write (or delete) of the destination never
+/// coalesces onto — and so never clobbers — a still-pending rename of the same name.
+export const groupPageRenames = (sessionPath: string, oldPageName: string) =>
+    `rename:${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${oldPageName}`;
+export const groupScriptRenames = (sessionPath: string, pageName: string, oldScriptName: string) =>
+    `rename:${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${oldScriptName}`;
 
 interface AsyncStorageWriteTask {
     /// The latest task
@@ -540,6 +551,17 @@ export class StorageWriter {
                 await this.backend.deleteNotebookPage(sessionPath, pageName);
                 break;
             }
+            case RENAME_NOTEBOOK_PAGE: {
+                const [sessionPath, oldPageName, newPageName] = task.value;
+                this.logger.info("Renaming notebook page", {
+                    task: key,
+                    sessionPath,
+                    oldPageName,
+                    newPageName,
+                }, LOG_CTX);
+                await this.backend.renameNotebookPage(sessionPath, oldPageName, newPageName);
+                break;
+            }
             case DELETE_NOTEBOOK_SCRIPT: {
                 const [sessionPath, pageName, scriptName] = task.value;
                 this.logger.info("Deleting notebook script", {
@@ -549,6 +571,18 @@ export class StorageWriter {
                     scriptName,
                 }, LOG_CTX);
                 await this.backend.deleteNotebookScript(sessionPath, pageName, scriptName);
+                break;
+            }
+            case RENAME_NOTEBOOK_SCRIPT: {
+                const [sessionPath, pageName, oldScriptName, newScriptName] = task.value;
+                this.logger.info("Renaming notebook script", {
+                    task: key,
+                    sessionPath,
+                    pageName,
+                    oldScriptName,
+                    newScriptName,
+                }, LOG_CTX);
+                await this.backend.renameNotebookScript(sessionPath, pageName, oldScriptName, newScriptName);
                 break;
             }
         }

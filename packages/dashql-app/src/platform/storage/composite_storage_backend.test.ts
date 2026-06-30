@@ -102,6 +102,13 @@ class MemoryRegistry implements SessionRegistryBackend {
     async deleteNotebookPage(sessionId: string, pageName: string): Promise<void> {
         this.pages.get(sessionId)?.delete(pageName);
     }
+    async renameNotebookPage(sessionId: string, oldPageName: string, newPageName: string): Promise<void> {
+        const p = this.pages.get(sessionId);
+        const page = p?.get(oldPageName);
+        if (!p || !page) return;
+        p.delete(oldPageName);
+        p.set(newPageName, page);
+    }
     async loadNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<ScriptData> {
         const sql = this.pages.get(sessionId)?.get(pageName)?.get(scriptName);
         if (sql == null) throw new Error('Script not found');
@@ -116,6 +123,13 @@ class MemoryRegistry implements SessionRegistryBackend {
     }
     async deleteNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<void> {
         this.pages.get(sessionId)?.get(pageName)?.delete(scriptName);
+    }
+    async renameNotebookScript(sessionId: string, pageName: string, oldScriptName: string, newScriptName: string): Promise<void> {
+        const page = this.pages.get(sessionId)?.get(pageName);
+        if (!page || !page.has(oldScriptName)) return;
+        const sql = page.get(oldScriptName)!;
+        page.delete(oldScriptName);
+        page.set(newScriptName, sql);
     }
     async loadNotebookScriptDraft(sessionId: string): Promise<string | null> { return this.drafts.get(sessionId) ?? null; }
     async saveNotebookScriptDraft(sessionId: string, sql: string): Promise<void> { this.drafts.set(sessionId, sql); }

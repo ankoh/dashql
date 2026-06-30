@@ -1,7 +1,14 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import type { SessionData } from './storage_backend.js';
 import { STORAGE_MANIFEST_FILE, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT } from './storage_backend.js';
+
+/// When true, mock file handles expose a `move()` method (as Chromium does); when false they don't,
+/// so the OPFS backend takes its copy+delete fallback (the WKWebView/Firefox path). Default false so
+/// the bulk of the suite exercises the conservative fallback; the move()-path test flips it on.
+let MOCK_SUPPORTS_MOVE = false;
+/// Count of move() invocations, so a test can assert the native path was actually taken.
+let mockMoveCalls = 0;
 
 class MockFileSystemFileHandle {
     public kind = 'file' as const;
@@ -11,7 +18,16 @@ class MockFileSystemFileHandle {
         private storage: Map<string, string>,
         private structure: Map<string, Set<string>>,
         private parentPath: string
-    ) { }
+    ) {
+        // Define move() as an own property only when enabled, so `typeof handle.move === 'function'`
+        // (the feature check in the backend) reflects the simulated browser. It delegates to the
+        // private doMove(); naming them differently avoids the own-property shadowing the method and
+        // recursing into itself.
+        if (MOCK_SUPPORTS_MOVE) {
+            (this as any).move = (arg1: MockFileSystemDirectoryHandle | string, arg2?: string) =>
+                this.doMove(arg1, arg2);
+        }
+    }
 
     async getFile(): Promise<File> {
         const content = this.storage.get(this.name) || '';
@@ -20,6 +36,29 @@ class MockFileSystemFileHandle {
 
     async createWritable(): Promise<MockFileSystemWritableFileStream> {
         return new MockFileSystemWritableFileStream(this.name, this.storage, this.structure, this.parentPath);
+    }
+
+    /// Mirror FileSystemFileHandle.move(): move(newName) renames in place; move(destDir, newName)
+    /// relocates across directories. Re-keys this file in the shared storage/structure maps.
+    private async doMove(arg1: MockFileSystemDirectoryHandle | string, arg2?: string): Promise<void> {
+        mockMoveCalls += 1;
+        const destDirPath = typeof arg1 === 'string' ? this.parentPath : (arg1 as any).name as string;
+        const destName = typeof arg1 === 'string' ? arg1 : arg2!;
+        const oldFull = this.name;
+        const newFull = destDirPath ? `${destDirPath}/${destName}` : destName;
+
+        const content = this.storage.get(oldFull) ?? '';
+        this.storage.delete(oldFull);
+        this.storage.set(newFull, content);
+
+        const oldName = oldFull.substring(this.parentPath.length + (this.parentPath ? 1 : 0));
+        this.structure.get(this.parentPath)?.delete(oldName);
+        const destChildren = this.structure.get(destDirPath) ?? new Set();
+        destChildren.add(destName);
+        this.structure.set(destDirPath, destChildren);
+
+        this.name = newFull;
+        this.parentPath = destDirPath;
     }
 }
 
@@ -31,8 +70,11 @@ class MockFileSystemWritableFileStream {
         private parentPath: string
     ) { }
 
-    async write(data: string): Promise<void> {
-        this.storage.set(this.name, data);
+    async write(data: string | Blob): Promise<void> {
+        // The backend normally writes SQL strings, but the OPFS rename fallback (used when
+        // FileSystemFileHandle.move() is unavailable, e.g. WKWebView) streams a File/Blob; accept both.
+        const text = typeof data === 'string' ? data : await data.text();
+        this.storage.set(this.name, text);
         // Add file to parent's structure
         const fileName = this.name.substring(this.parentPath.length + (this.parentPath ? 1 : 0));
         const children = this.structure.get(this.parentPath) || new Set();
@@ -73,7 +115,11 @@ class MockFileSystemDirectoryHandle {
         const dirKey = name + '/';
 
         if (!children.has(dirKey) && !options?.create) {
-            throw new Error(`Directory not found: ${name}`);
+            // Match the real OPFS API, which throws a NotFoundError DOMException (the backend
+            // distinguishes it by `error.name`, e.g. to no-op a rename of a never-flushed page).
+            const error: any = new Error(`Directory not found: ${name}`);
+            error.name = 'NotFoundError';
+            throw error;
         }
 
         if (options?.create) {
@@ -288,6 +334,26 @@ describe('OPFSStorageBackend', () => {
             const pages = await backend.loadNotebookPages('test-session');
             expect(pages.map(p => p.name)).toEqual(['page-1', 'page-2', 'page-3']);
         });
+
+        // The mock file handle has no move(), so these renames exercise the copy+delete fallback —
+        // the same path dashql takes in WKWebView, where FileSystemFileHandle.move() is unavailable.
+        it('renames a page, carrying its scripts across unchanged', async () => {
+            await backend.createNotebookPage('test-session', '1_old');
+            await backend.saveNotebookScript('test-session', '1_old', '1_a.sql', 'SELECT 1;');
+            await backend.saveNotebookScript('test-session', '1_old', '2_b.sql', 'SELECT 2;');
+
+            await backend.renameNotebookPage('test-session', '1_old', '1_new');
+
+            const pages = await backend.loadNotebookPages('test-session');
+            expect(pages.map(p => p.name)).toEqual(['1_new']);
+            expect(pages[0].scripts.map(s => s.name)).toEqual(['1_a.sql', '2_b.sql']);
+            expect(pages[0].scripts.map(s => s.sql)).toEqual(['SELECT 1;', 'SELECT 2;']);
+        });
+
+        it('renaming a never-flushed page is a no-op (nothing on disk to move)', async () => {
+            await backend.renameNotebookPage('test-session', '1_ghost', '1_new');
+            expect(await backend.loadNotebookPages('test-session')).toEqual([]);
+        });
     });
 
     describe('Notebook Scripts', () => {
@@ -344,6 +410,60 @@ describe('OPFSStorageBackend', () => {
 
             const pages = await backend.loadNotebookPages('test-session');
             expect(pages[0].scripts.map(s => s.name)).toEqual(['01-script.sql', '02-script.sql', '03-script.sql']);
+        });
+
+        it('renames a script in place, preserving its contents (copy+delete fallback)', async () => {
+            await backend.saveNotebookScript('test-session', 'page-1', '1_old.sql', 'SELECT 42;');
+
+            await backend.renameNotebookScript('test-session', 'page-1', '1_old.sql', '1_new.sql');
+
+            await expect(
+                backend.loadNotebookScript('test-session', 'page-1', '1_old.sql')
+            ).rejects.toThrow('Script not found');
+            const moved = await backend.loadNotebookScript('test-session', 'page-1', '1_new.sql');
+            expect(moved.sql).toBe('SELECT 42;');
+        });
+
+        it('renaming a never-flushed script is a no-op', async () => {
+            await backend.renameNotebookScript('test-session', 'page-1', '1_ghost.sql', '1_new.sql');
+            const pages = await backend.loadNotebookPages('test-session');
+            expect(pages[0].scripts).toEqual([]);
+        });
+
+        // Covers the primary (Chromium) path where FileSystemFileHandle.move() exists, rather than the
+        // copy+delete fallback every other test exercises.
+        describe('with native FileSystemFileHandle.move()', () => {
+            beforeEach(() => { MOCK_SUPPORTS_MOVE = true; mockMoveCalls = 0; });
+            afterEach(() => { MOCK_SUPPORTS_MOVE = false; });
+
+            it('renames a script via move() (no copy+delete)', async () => {
+                await backend.saveNotebookScript('test-session', 'page-1', '1_old.sql', 'SELECT 42;');
+
+                await backend.renameNotebookScript('test-session', 'page-1', '1_old.sql', '1_new.sql');
+
+                expect(mockMoveCalls).toBe(1);
+                await expect(
+                    backend.loadNotebookScript('test-session', 'page-1', '1_old.sql')
+                ).rejects.toThrow('Script not found');
+                expect((await backend.loadNotebookScript('test-session', 'page-1', '1_new.sql')).sql).toBe('SELECT 42;');
+            });
+
+            it('renames a page by moving each file across directories via move()', async () => {
+                await backend.saveNotebookScript('test-session', '1_old', '1_a.sql', 'SELECT 1;');
+                await backend.saveNotebookScript('test-session', '1_old', '2_b.sql', 'SELECT 2;');
+
+                await backend.renameNotebookPage('test-session', '1_old', '1_new');
+
+                expect(mockMoveCalls).toBe(2); // one cross-directory move per file
+                // The describe's beforeEach seeds an empty `page-1`, so target the renamed page rather
+                // than asserting the whole list: the old folder is gone and the new one holds both files.
+                const pages = await backend.loadNotebookPages('test-session');
+                expect(pages.map(p => p.name)).not.toContain('1_old');
+                const moved = pages.find(p => p.name === '1_new');
+                expect(moved).toBeDefined();
+                expect(moved!.scripts.map(s => s.name)).toEqual(['1_a.sql', '2_b.sql']);
+                expect(moved!.scripts.map(s => s.sql)).toEqual(['SELECT 1;', 'SELECT 2;']);
+            });
         });
     });
 

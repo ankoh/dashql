@@ -3,7 +3,17 @@ import * as core from '../../core/index.js';
 import { beforeAll, afterEach, describe, expect, it } from 'vitest';
 
 import { type StorageBackend, type SessionData, type PageData, type ScriptData, StorageBackendType } from './storage_backend.js';
-import { StorageWriter, WRITE_SESSION_MANIFEST, groupSessionWrites } from './storage_writer.js';
+import {
+    StorageWriter,
+    WRITE_SESSION_MANIFEST,
+    RENAME_NOTEBOOK_PAGE,
+    RENAME_NOTEBOOK_SCRIPT,
+    WRITE_NOTEBOOK_SCRIPT,
+    groupSessionWrites,
+    groupPageRenames,
+    groupScriptRenames,
+    groupScriptWrites,
+} from './storage_writer.js';
 import { type ConnectionState } from '../../connection/connection_state.js';
 import { createDatalessConnectionState } from '../../connection/dataless/dataless_connection_state.js';
 import { Logger } from '../logger/logger.js';
@@ -45,9 +55,45 @@ class CountingBackend implements StorageBackend {
     async loadNotebookPages(): Promise<PageData[]> { return []; }
     async createNotebookPage(): Promise<void> { }
     async deleteNotebookPage(): Promise<void> { }
+    async renameNotebookPage(): Promise<void> { }
     async loadNotebookScript(): Promise<ScriptData> { return { name: '', sql: '' }; }
     async saveNotebookScript(): Promise<void> { }
     async deleteNotebookScript(): Promise<void> { }
+    async renameNotebookScript(): Promise<void> { }
+    async loadNotebookScriptDraft(): Promise<string | null> { return null; }
+    async saveNotebookScriptDraft(): Promise<void> { }
+}
+
+/// Records every notebook mutation call in order, so tests can assert that a rename reaches the
+/// backend and that a rename followed by a content write of the new name dispatch as two ordered ops.
+class CallLogBackend implements StorageBackend {
+    calls: string[] = [];
+
+    getBackendType(): StorageBackendType { return StorageBackendType.OPFS; }
+    async listSessions(): Promise<any[]> { return []; }
+    async loadAppSettings(): Promise<any> { return null; }
+    async saveAppSettings(): Promise<void> { }
+    async loadSession(): Promise<SessionData> { throw new Error('not used'); }
+    async saveSessionManifest(): Promise<void> { }
+    async deleteSession(): Promise<void> { }
+    async loadSessionSchema(): Promise<string | null> { return null; }
+    async saveSessionSchema(): Promise<void> { }
+    async loadSessionFunctions(): Promise<string | null> { return null; }
+    async saveSessionFunctions(): Promise<void> { }
+    async loadNotebookPages(): Promise<PageData[]> { return []; }
+    async createNotebookPage(): Promise<void> { }
+    async deleteNotebookPage(): Promise<void> { }
+    async renameNotebookPage(_s: string, oldName: string, newName: string): Promise<void> {
+        this.calls.push(`renamePage:${oldName}->${newName}`);
+    }
+    async loadNotebookScript(): Promise<ScriptData> { return { name: '', sql: '' }; }
+    async saveNotebookScript(_s: string, page: string, name: string, sql: string): Promise<void> {
+        this.calls.push(`write:${page}/${name}=${sql}`);
+    }
+    async deleteNotebookScript(): Promise<void> { }
+    async renameNotebookScript(_s: string, page: string, oldName: string, newName: string): Promise<void> {
+        this.calls.push(`renameScript:${page}/${oldName}->${newName}`);
+    }
     async loadNotebookScriptDraft(): Promise<string | null> { return null; }
     async saveNotebookScriptDraft(): Promise<void> { }
 }
@@ -110,5 +156,41 @@ describe('StorageWriter session manifest writes', () => {
         const persisted = backend.sessions.get(conn.sessionId)!;
         expect(persisted.title).toBe('Renamed');
         expect(persisted.notebook.createdAt).toBe(createdAt);
+    });
+});
+
+describe('StorageWriter notebook renames', () => {
+    const SID = 'b0000000-0000-4000-8000-000000000001';
+
+    it('dispatches a RENAME_NOTEBOOK_PAGE task to the backend', async () => {
+        const backend = new CallLogBackend();
+        const writer = new StorageWriter(logger, backend);
+        await writer.write(groupPageRenames(SID, '1_old'), { type: RENAME_NOTEBOOK_PAGE, value: [SID, '1_old', '1_new'] });
+        await writer.flush();
+        expect(backend.calls).toEqual(['renamePage:1_old->1_new']);
+    });
+
+    it('dispatches a RENAME_NOTEBOOK_SCRIPT task to the backend', async () => {
+        const backend = new CallLogBackend();
+        const writer = new StorageWriter(logger, backend);
+        await writer.write(groupScriptRenames(SID, 'page', '1_old.sql'), { type: RENAME_NOTEBOOK_SCRIPT, value: [SID, 'page', '1_old.sql', '1_new.sql'] });
+        await writer.flush();
+        expect(backend.calls).toEqual(['renameScript:page/1_old.sql->1_new.sql']);
+    });
+
+    it('keeps a rename and a later write of the new name as two distinct, ordered ops', async () => {
+        // A rename of A->B, then a content edit of B (the post-rename name), is exactly the sequence a
+        // user produces by renaming a script and then typing into it. The rename lives in its own
+        // `rename:` keyspace keyed by the source, the write in the destination keyspace, so they do not
+        // coalesce — and since the rename is scheduled first, the move runs before the content write.
+        const backend = new CallLogBackend();
+        const writer = new StorageWriter(logger, backend);
+
+        const p = writer.write(groupScriptRenames(SID, 'page', '1_a.sql'), { type: RENAME_NOTEBOOK_SCRIPT, value: [SID, 'page', '1_a.sql', '1_b.sql'] });
+        const w = writer.write(groupScriptWrites(SID, 'page', '1_b.sql'), { type: WRITE_NOTEBOOK_SCRIPT, value: [SID, 'page', '1_b.sql', 'SELECT 1;'] });
+        await writer.flush();
+        await Promise.all([p, w]);
+
+        expect(backend.calls).toEqual(['renameScript:page/1_a.sql->1_b.sql', 'write:page/1_b.sql=SELECT 1;']);
     });
 });

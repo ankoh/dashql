@@ -142,6 +142,25 @@ describe('NativeStorageBackend (one-dir-one-session)', () => {
         it('returns an empty array when the notebook folder does not exist', async () => {
             expect(await backend.loadNotebookPages(SID)).toEqual([]);
         });
+
+        it('renames a page atomically, carrying its scripts across unchanged', async () => {
+            await backend.createNotebookPage(SID, '1_old');
+            await backend.saveNotebookScript(SID, '1_old', '1_a.sql', 'SELECT 1;');
+            await backend.saveNotebookScript(SID, '1_old', '2_b.sql', 'SELECT 2;');
+
+            await backend.renameNotebookPage(SID, '1_old', '1_new');
+
+            const pages = await backend.loadNotebookPages(SID);
+            expect(pages.map(p => p.name)).toEqual(['1_new']);
+            expect(pages[0].scripts.map(s => s.name)).toEqual(['1_a.sql', '2_b.sql']);
+            expect(fsStore.dirs.has(`${DIR}/notebook/1_old`)).toBe(false);
+            expect(fsStore.files.has(`${DIR}/notebook/1_new/1_a.sql`)).toBe(true);
+        });
+
+        it('renaming a never-flushed page is a no-op (nothing on disk to move)', async () => {
+            await backend.renameNotebookPage(SID, '1_ghost', '1_new');
+            expect(await backend.loadNotebookPages(SID)).toEqual([]);
+        });
     });
 
     describe('Notebook Scripts', () => {
@@ -181,6 +200,24 @@ describe('NativeStorageBackend (one-dir-one-session)', () => {
 
             const pages = await backend.loadNotebookPages(SID);
             expect(pages[0].scripts.map(s => s.name)).toEqual(['01-script.sql', '02-script.sql', '10-script.sql']);
+        });
+
+        it('renames a script atomically, preserving its contents', async () => {
+            await backend.saveNotebookScript(SID, 'page-1', '1_old.sql', 'SELECT 42;');
+
+            await backend.renameNotebookScript(SID, 'page-1', '1_old.sql', '1_new.sql');
+
+            await expect(
+                backend.loadNotebookScript(SID, 'page-1', '1_old.sql')
+            ).rejects.toThrow('Script not found');
+            const moved = await backend.loadNotebookScript(SID, 'page-1', '1_new.sql');
+            expect(moved.sql).toBe('SELECT 42;');
+        });
+
+        it('renaming a never-flushed script is a no-op', async () => {
+            await backend.renameNotebookScript(SID, 'page-1', '1_ghost.sql', '1_new.sql');
+            const pages = await backend.loadNotebookPages(SID);
+            expect(pages[0].scripts).toEqual([]);
         });
     });
 

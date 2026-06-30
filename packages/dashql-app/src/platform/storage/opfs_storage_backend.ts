@@ -214,6 +214,72 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         await notebookDir.removeEntry(pageName, { recursive: true });
     }
 
+    async renameNotebookPage(sessionId: string, oldPageName: string, newPageName: string): Promise<void> {
+        if (oldPageName === newPageName) {
+            return;
+        }
+        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), true);
+        const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: true });
+
+        // The source folder may not exist yet (the page was created and renamed before its first
+        // flush); there is then nothing on disk to move, so leave it for the pending write.
+        let oldDir: FileSystemDirectoryHandle;
+        try {
+            oldDir = await notebookDir.getDirectoryHandle(oldPageName, { create: false });
+        } catch (error) {
+            if ((error as any).name === 'NotFoundError') {
+                return;
+            }
+            throw error;
+        }
+
+        // OPFS has no atomic directory rename, so create the target folder and move every file into
+        // it. Collect names up front: moving (or copy+delete) mutates the source dir, and mutating it
+        // mid-iteration is unsafe. Pages only ever contain files (scripts), so nested dirs are ignored.
+        const newDir = await notebookDir.getDirectoryHandle(newPageName, { create: true });
+        const fileNames: string[] = [];
+        for await (const [name, handle] of oldDir.entries()) {
+            if (handle.kind === 'file') {
+                fileNames.push(name);
+            }
+        }
+        for (const name of fileNames) {
+            await this.moveFile(oldDir, name, newDir, name);
+        }
+        await notebookDir.removeEntry(oldPageName, { recursive: true });
+    }
+
+    /// Move a single file between (or within) OPFS directories, preserving its contents byte-for-byte.
+    ///
+    /// Prefers the non-standard `FileSystemFileHandle.move()` (Chromium) for a true in-place move, and
+    /// falls back to copy-then-delete where it is unavailable (Safari/Firefox). The same-directory case
+    /// (`srcDir === destDir`) is a pure rename.
+    private async moveFile(
+        srcDir: FileSystemDirectoryHandle,
+        srcName: string,
+        destDir: FileSystemDirectoryHandle,
+        destName: string,
+    ): Promise<void> {
+        if (srcDir === destDir && srcName === destName) {
+            return;
+        }
+        const srcHandle = await srcDir.getFileHandle(srcName, { create: false });
+        const move = (srcHandle as any).move as ((...args: any[]) => Promise<void>) | undefined;
+        if (typeof move === 'function') {
+            // move(name) renames in place; move(destDir, name) relocates across directories.
+            await (srcDir === destDir ? move.call(srcHandle, destName) : move.call(srcHandle, destDir, destName));
+            return;
+        }
+        // Fallback: stream the source File (a Blob, so this is binary-safe) into the new handle, then
+        // drop the original.
+        const file = await srcHandle.getFile();
+        const destHandle = await destDir.getFileHandle(destName, { create: true });
+        const writable = await destHandle.createWritable();
+        await writable.write(file);
+        await writable.close();
+        await srcDir.removeEntry(srcName);
+    }
+
 
     async loadNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<ScriptData> {
         const pageDir = await this.getPageDir(this.sessionRelPath(sessionId), pageName, false);
@@ -244,6 +310,29 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
     async deleteNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<void> {
         const pageDir = await this.getPageDir(this.sessionRelPath(sessionId), pageName, false);
         await pageDir.removeEntry(scriptName);
+    }
+
+    async renameNotebookScript(sessionId: string, pageName: string, oldScriptName: string, newScriptName: string): Promise<void> {
+        if (oldScriptName === newScriptName) {
+            return;
+        }
+        // Navigate without creating anything: if the page or the source file isn't flushed yet, the
+        // pending write under the new name creates both, so there is nothing to move. Walk by hand
+        // (rather than via getPageDir, which re-wraps NotFoundError into a generic Error) so a missing
+        // page/file surfaces as a clean NotFoundError we can no-op on.
+        let pageDir: FileSystemDirectoryHandle;
+        try {
+            const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), false);
+            const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: false });
+            pageDir = await notebookDir.getDirectoryHandle(pageName, { create: false });
+            await pageDir.getFileHandle(oldScriptName, { create: false });
+        } catch (error) {
+            if ((error as any).name === 'NotFoundError') {
+                return;
+            }
+            throw error;
+        }
+        await this.moveFile(pageDir, oldScriptName, pageDir, newScriptName);
     }
 
     async loadNotebookScriptDraft(sessionId: string): Promise<string | null> {

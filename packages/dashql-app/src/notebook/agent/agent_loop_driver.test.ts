@@ -37,10 +37,12 @@ class NullStorageBackend {
     async loadNotebookPages(): Promise<any[]> { return []; }
     async createNotebookPage(): Promise<void> { }
     async deleteNotebookPage(): Promise<void> { }
+    async renameNotebookPage(): Promise<void> { }
     async reorderNotebookPage(): Promise<void> { }
     async loadNotebookScript(): Promise<any> { return {}; }
     async saveNotebookScript(): Promise<void> { }
     async deleteNotebookScript(): Promise<void> { }
+    async renameNotebookScript(): Promise<void> { }
     async loadNotebookScriptDraft(): Promise<string | null> { return null; }
     async saveNotebookScriptDraft(): Promise<void> { }
 }
