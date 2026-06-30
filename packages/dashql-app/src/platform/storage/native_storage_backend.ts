@@ -93,10 +93,10 @@ export class NativeStorageBackend implements StorageBackend {
     }
 
     async deleteSession(_sessionId: string): Promise<void> {
-        // Remove the whole session directory if it exists - if it doesn't, it's already deleted.
-        if (await exists(this.dir)) {
-            await remove(this.dir, { recursive: true });
-        }
+        // No-op: a native session lives in a user-owned folder on disk. Deleting the session in
+        // dashql only unregisters it — the registry entry lives in the OPFS root manifest and is
+        // dropped by the composite backend. The files on disk are deliberately left intact so the
+        // folder can be re-loaded later (and so we never destroy data the user put there).
     }
 
     async loadSessionSchema(_sessionId: string): Promise<string | null> {
@@ -275,13 +275,8 @@ export class NativeStorageBackend implements StorageBackend {
     }
 
     async clearAllStorage(): Promise<void> {
-        // Removes this session's directory and everything in it.
-        try {
-            if (await exists(this.dir)) {
-                await remove(this.dir, { recursive: true });
-            }
-        } catch (error) {
-            console.warn('Failed to clear native session directory:', error);
-        }
+        // No-op: like deleteSession, this never touches the user-owned folder on disk. "Clear all
+        // storage" only resets the OPFS root (registry + OPFS-backed sessions); native sessions are
+        // simply unregistered when the manifest is wiped, and their files stay put on disk.
     }
 }

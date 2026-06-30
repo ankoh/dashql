@@ -280,14 +280,19 @@ describe('CompositeStorageBackend', () => {
             expect(composite.getSessionLocation(OPFS_ID).type).toBe(StorageBackendType.OPFS); // default
         });
 
-        it('deletes a native session: removes the directory and the OPFS registry entry', async () => {
+        it('deletes a native session: drops the OPFS registry entry but keeps the files on disk', async () => {
             await seedNativeSession(NATIVE_ID, NATIVE_DIR, 'Native');
             await composite.initialize();
+            const filesBefore = [...fsStore.files.keys()].filter(p => p.startsWith(`${NATIVE_DIR}/`)).sort();
+            expect(filesBefore.length).toBeGreaterThan(0);
 
             await composite.deleteSession(NATIVE_ID);
 
-            expect([...fsStore.files.keys()].filter(p => p.startsWith(`${NATIVE_DIR}/`))).toEqual([]);
+            // The session is unregistered (gone from the manifest and the location map)...
             expect(opfs.manifest.find(s => s.path === NATIVE_ID)).toBeUndefined();
+            expect(composite.getSessionLocation(NATIVE_ID).type).toBe(StorageBackendType.OPFS); // default for unknown
+            // ...but its user-owned folder on disk is left intact.
+            expect([...fsStore.files.keys()].filter(p => p.startsWith(`${NATIVE_DIR}/`)).sort()).toEqual(filesBefore);
         });
     });
 

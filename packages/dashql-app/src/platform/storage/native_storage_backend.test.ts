@@ -240,16 +240,28 @@ describe('NativeStorageBackend (one-dir-one-session)', () => {
             await backend.saveNotebookScript(SID, 'page-1', '01-script.sql', 'SELECT 1;');
         }
 
-        it('deleteSession removes the whole directory', async () => {
+        it('deleteSession leaves the user-owned folder on disk untouched', async () => {
             await seed();
+            const before = [...fsStore.files.keys()].filter(p => p.startsWith(`${DIR}/`)).sort();
+            expect(before.length).toBeGreaterThan(0);
+
             await backend.deleteSession(SID);
-            expect([...fsStore.files.keys()].filter(p => p.startsWith(`${DIR}/`))).toEqual([]);
+
+            // Deleting a native session only unregisters it (handled by the composite via the OPFS
+            // manifest); the files on disk are deliberately preserved.
+            const after = [...fsStore.files.keys()].filter(p => p.startsWith(`${DIR}/`)).sort();
+            expect(after).toEqual(before);
         });
 
-        it('clearAllStorage removes the whole directory', async () => {
+        it('clearAllStorage leaves the user-owned folder on disk untouched', async () => {
             await seed();
+            const before = [...fsStore.files.keys()].filter(p => p.startsWith(`${DIR}/`)).sort();
+            expect(before.length).toBeGreaterThan(0);
+
             await backend.clearAllStorage();
-            expect([...fsStore.files.keys()].filter(p => p.startsWith(`${DIR}/`))).toEqual([]);
+
+            const after = [...fsStore.files.keys()].filter(p => p.startsWith(`${DIR}/`)).sort();
+            expect(after).toEqual(before);
         });
 
         it('deleteSession on an already-empty directory does not throw', async () => {

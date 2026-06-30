@@ -12,7 +12,7 @@ import { SELECT_SESSION, BEGIN_SESSION_SETUP, CANCEL_SESSION_SETUP, SKIP_SESSION
 import { SessionSetupStatus } from '../session_setup_status.js';
 import { ConnectionRegistry, useDynamicConnectionDispatch } from '../connection/connection_registry.js';
 import { DELETE_CONNECTION } from '../connection/connection_state.js';
-import { TrashIcon, CircleSlashIcon, DashIcon, PlusIcon, AlertIcon, FileDirectoryIcon } from '@primer/octicons-react';
+import { TrashIcon, CircleSlashIcon, DashIcon, PlusIcon, AlertIcon, FileDirectoryIcon, UnlinkIcon } from '@primer/octicons-react';
 import { NotebookRegistry, useNotebookDeletion } from '../notebook/notebook_state_registry.js';
 import { ConnectionState, ConnectionStateWithoutId, ConnectionHealth } from '../connection/connection_state.js';
 import {
@@ -25,6 +25,7 @@ import { NotebookSetup } from '../notebook/notebook_setup.js';
 import type { DashQL } from '../core/index.js';
 import { useStorageReader, useStorageWriter } from '../platform/storage/storage_provider.js';
 import { displayPath as sessionDisplayPath } from '../platform/storage/session_locator.js';
+import { StorageBackendType } from '../platform/storage/storage_backend.js';
 import { CompositeStorageBackend } from '../platform/storage/composite_storage_backend.js';
 import { addNativeSessionFromFolder } from '../platform/storage/storage_migration_flow.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
@@ -56,6 +57,9 @@ interface SessionItemData {
     displayPath: string;
     connectorType: ConnectorType;
     lastAccessed: Date | null;
+    /// True when the session's files live in a native folder on disk. Deleting such a session only
+    /// unlinks it (the folder stays put), so the delete affordance shows an unlink icon, not a trash.
+    isNative: boolean;
     /// Set when the session's metadata was refused a load; carries the reason to display.
     invalidReason: string | null;
 }
@@ -117,7 +121,8 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
             const notebook = props.notebookRegistry.notebookMap.get(sessionId);
             if (!notebook) continue;
 
-            const displayPath = sessionDisplayPath(sessionId, storageReader.getSessionLocation(sessionId));
+            const location = storageReader.getSessionLocation(sessionId);
+            const displayPath = sessionDisplayPath(sessionId, location);
 
             // Get display name from notebook or connection signature
             const displayName = notebook.notebookMetadata.originalFileName ||
@@ -135,6 +140,7 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
                 displayPath,
                 connectorType: connection.connectorInfo.connectorType,
                 lastAccessed,
+                isNative: location.type === StorageBackendType.Native,
                 invalidReason: null,
             });
         }
@@ -166,6 +172,7 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
                 displayPath: inv.title,
                 connectorType: inv.connectorType ?? ConnectorType.DATALESS,
                 lastAccessed: null,
+                isNative: storageReader.getSessionLocation(inv.sessionId).type === StorageBackendType.Native,
                 invalidReason: describeSessionValidationError(inv.error),
             });
         }
@@ -495,10 +502,15 @@ const SessionItem: React.FC<SessionItemProps> = ({ session, onClick, onDelete, i
                 <IconButton
                     className={styles.delete_button_suffix}
                     variant={ButtonVariant.Invisible}
-                    aria-label="Delete session"
+                    // Native sessions live in a user-owned folder we never delete — removing one only
+                    // unlinks it from dashql, so show an unlink icon. OPFS sessions are truly deleted.
+                    aria-label={session.isNative ? "Unlink session" : "Delete session"}
                     onClick={handleDelete}
                 >
-                    <TrashIcon size={16} />
+                    {session.isNative
+                        ? <UnlinkIcon size={16} />
+                        : <TrashIcon size={16} />
+                    }
                 </IconButton>
             )}
         </div>

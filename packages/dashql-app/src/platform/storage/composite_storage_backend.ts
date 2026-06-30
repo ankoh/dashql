@@ -172,7 +172,10 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
             // OPFS deletes files and removes the registry entry in one step.
             await this.opfs.deleteSession(sessionId);
         } else {
-            // Native: remove the directory, then drop the registry entry kept in OPFS.
+            // Native: the files live in a user-owned folder on disk, so we never delete them
+            // (deleteSession on the native backend is a no-op). Deleting just unregisters the
+            // session by dropping the registry entry kept in OPFS; the folder stays on disk and
+            // can be re-loaded later.
             await backend.deleteSession(sessionId);
             await this.opfs.removeSessionEntry(sessionId);
         }
@@ -221,16 +224,9 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
     }
 
     async clearAllStorage(): Promise<void> {
-        // Clear native session directories first, then the OPFS root (registry + opfs sessions).
-        for (const native of this.nativeCache.values()) {
-            await native.clearAllStorage?.();
-        }
-        for (const [uuid, loc] of this.locations) {
-            if (loc.type === StorageBackendType.Native && loc.nativePath && !this.nativeCache.has(uuid)) {
-                const native = new NativeStorageBackend(loc.nativePath);
-                await native.clearAllStorage?.();
-            }
-        }
+        // Only the OPFS root is wiped (registry + OPFS-backed sessions). Native sessions live in
+        // user-owned folders on disk that we never delete; they're simply unregistered when the
+        // OPFS manifest is reset. We drop the in-memory location/backend caches to match.
         this.nativeCache.clear();
         this.locations.clear();
         await this.opfs.clearAllStorage?.();
