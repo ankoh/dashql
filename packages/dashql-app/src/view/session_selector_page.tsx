@@ -12,7 +12,7 @@ import { SELECT_SESSION, BEGIN_SESSION_SETUP, CANCEL_SESSION_SETUP, SKIP_SESSION
 import { SessionSetupStatus } from '../session_setup_status.js';
 import { ConnectionRegistry, useDynamicConnectionDispatch } from '../connection/connection_registry.js';
 import { DELETE_CONNECTION } from '../connection/connection_state.js';
-import { TrashIcon, CircleSlashIcon, DashIcon, PlusIcon, AlertIcon } from '@primer/octicons-react';
+import { TrashIcon, CircleSlashIcon, DashIcon, PlusIcon, AlertIcon, FileDirectoryIcon } from '@primer/octicons-react';
 import { NotebookRegistry, useNotebookDeletion } from '../notebook/notebook_state_registry.js';
 import { ConnectionState, ConnectionStateWithoutId, ConnectionHealth } from '../connection/connection_state.js';
 import {
@@ -25,7 +25,10 @@ import { NotebookSetup } from '../notebook/notebook_setup.js';
 import type { DashQL } from '../core/index.js';
 import { useStorageReader, useStorageWriter } from '../platform/storage/storage_provider.js';
 import { displayPath as sessionDisplayPath } from '../platform/storage/session_locator.js';
-import { disambiguatePathMap } from '../utils/path_disambiguation.js';
+import { CompositeStorageBackend } from '../platform/storage/composite_storage_backend.js';
+import { addNativeSessionFromFolder } from '../platform/storage/storage_migration_flow.js';
+import { PlatformType, usePlatformType } from '../platform/platform_type.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
 import { SymbolIcon } from './foundations/symbol_icon';
 import { useKeyEvents, KeyEventHandler } from '../utils/key_events.js';
 import { AnchorAlignment, AnchorSide } from './foundations/anchored_position.js';
@@ -78,7 +81,15 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
     const deleteNotebook = useNotebookDeletion();
     const storageWriter = useStorageWriter();
     const storageReader = useStorageReader();
+    const logger = useLogger();
+    const platform = usePlatformType();
     const listRef = useListRef(null);
+
+    // Opening a folder-backed session needs the native filesystem and a per-session-routing
+    // composite backend (web OPFS has neither a folder picker nor on-disk sessions to load).
+    const canOpenFolder =
+        platform === PlatformType.MACOS &&
+        storageReader.backend instanceof CompositeStorageBackend;
 
     // Compute the internals button only once to prevent svg flickering
     const internalsButton = React.useMemo(() => {
@@ -99,29 +110,14 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
     const sessions = React.useMemo(() => {
         const result: SessionItemData[] = [];
 
-        // First pass: collect each session's display path (opfs://… or file://…), reconstructed
-        // from its uuid + physical location — the same value the session bar shows. We disambiguate
-        // on this so the selector shows a recognizable, prefixed path rather than a bare uuid.
-        const sessionPathMap = new Map<string, string>();
-
-        for (const [sessionId] of props.connectionRegistry.connectionMap) {
-            const notebook = props.notebookRegistry.notebookMap.get(sessionId);
-            if (!notebook) continue;
-
-            sessionPathMap.set(sessionId, sessionDisplayPath(sessionId, storageReader.getSessionLocation(sessionId)));
-        }
-
-        // Compute disambiguated paths
-        const disambiguatedPaths = disambiguatePathMap(sessionPathMap);
-
-        // Second pass: build session data with disambiguated paths
+        // Build session data using each session's full display path (opfs://sessions/<uuid> or
+        // file://<absolute-path>), reconstructed from its uuid + physical location — the same value
+        // the session bar shows.
         for (const [sessionId, connection] of props.connectionRegistry.connectionMap) {
             const notebook = props.notebookRegistry.notebookMap.get(sessionId);
             if (!notebook) continue;
 
-            // Get disambiguated path (already includes schema prefix)
-            const pathInfo = disambiguatedPaths.get(sessionId);
-            const displayPath = pathInfo?.displayPath || sessionDisplayPath(sessionId, storageReader.getSessionLocation(sessionId));
+            const displayPath = sessionDisplayPath(sessionId, storageReader.getSessionLocation(sessionId));
 
             // Get display name from notebook or connection signature
             const displayName = notebook.notebookMetadata.originalFileName ||
@@ -222,6 +218,19 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
         // Show configuration card — notebook is created later when the connection goes online
         navigate({ type: BEGIN_SESSION_SETUP, value: allocatedConnection.sessionId });
     }, [props, navigate]);
+
+    const handleOpenFolder = React.useCallback(async () => {
+        if (!(storageReader.backend instanceof CompositeStorageBackend)) {
+            return;
+        }
+        try {
+            // On success the flow registers the session and triggers a full reload, so we never
+            // reach steady state here. Errors are logged (and surfaced via the toast) inside the flow.
+            await addNativeSessionFromFolder(storageReader.backend, logger);
+        } catch {
+            // Keep the button usable; the failure was already reported to the user.
+        }
+    }, [storageReader.backend, logger]);
 
     const handleBack = React.useCallback(() => {
         if (configSessionId) {
@@ -375,6 +384,15 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
                                 )}
                                 <div className={baseStyles.card_actions}>
                                     <div className={baseStyles.card_actions_right}>
+                                        {canOpenFolder && (
+                                            <IconButton
+                                                variant={ButtonVariant.Invisible}
+                                                aria-label={"Open session folder"}
+                                                onClick={handleOpenFolder}
+                                            >
+                                                <FileDirectoryIcon size={16} />
+                                            </IconButton>
+                                        )}
                                         <IconButton
                                             variant={isEditMode ? ButtonVariant.Default : ButtonVariant.Invisible}
                                             aria-label={isEditMode ? 'Done removing' : 'Remove sessions'}
