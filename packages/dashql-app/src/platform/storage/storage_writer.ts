@@ -11,6 +11,46 @@ import { STORAGE_NOTEBOOK_FOLDER } from './storage_backend.js';
 
 const LOG_CTX = 'storage_writer';
 
+/// Order-independent deep equality for plain JSON values (objects, arrays, primitives).
+/// Session manifests are plain JSON (no Dates/Maps/functions), so this is sufficient.
+function jsonDeepEqual(a: any, b: any): boolean {
+    if (a === b) {
+        return true;
+    }
+    if (typeof a !== typeof b || a === null || b === null || typeof a !== 'object') {
+        return false;
+    }
+    if (Array.isArray(a) || Array.isArray(b)) {
+        if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) {
+            return false;
+        }
+        return a.every((v, i) => jsonDeepEqual(v, b[i]));
+    }
+    const aKeys = Object.keys(a);
+    const bKeys = Object.keys(b);
+    if (aKeys.length !== bKeys.length) {
+        return false;
+    }
+    return aKeys.every(k => Object.prototype.hasOwnProperty.call(b, k) && jsonDeepEqual(a[k], b[k]));
+}
+
+/// Compare the manifest fields the writer owns (sessionId, title, connectionParams, notebook).
+/// Other fields (storageType/nativePath/sessionPath) are display- or registry-only and are not
+/// written into the session file, so they're deliberately ignored.
+///
+/// Both sides are round-tripped through JSON first so this compares exactly what would be
+/// persisted: serialization drops `undefined`-valued keys, so a freshly built params object with
+/// `{ foo: undefined }` must compare equal to the reloaded `{}` it serializes to.
+function sessionManifestEquals(a: SessionData, b: SessionData): boolean {
+    const project = (s: SessionData) => JSON.parse(JSON.stringify({
+        sessionId: s.sessionId,
+        title: s.title,
+        connectionParams: s.connectionParams,
+        notebook: s.notebook,
+    }));
+    return jsonDeepEqual(project(a), project(b));
+}
+
 export const DEBOUNCE_DURATION_SESSION_WRITE = 100;
 export const DEBOUNCE_DURATION_NOTEBOOK_WRITE = 100;
 export const DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE = 100;
@@ -280,21 +320,21 @@ export class StorageWriter {
                     break;
                 }
 
-                // Preserve the original createdAt across rewrites; only stamp it on the first write.
-                // Otherwise every connection-state change would churn the manifest with a fresh
-                // timestamp even when nothing else changed.
-                let createdAt: string;
+                // Load whatever is already on disk so we can (a) preserve the original createdAt
+                // instead of churning a fresh timestamp on every write, and (b) skip the write
+                // entirely when nothing actually changed. WRITE_SESSION_MANIFEST is scheduled on
+                // every connection-state change, so most of these tasks rewrite identical content.
+                let existingSession: SessionData | null = null;
                 try {
-                    const existingSession = await this.backend.loadSession(sessionPath);
-                    createdAt = existingSession.notebook?.createdAt ?? new Date().toISOString();
+                    existingSession = await this.backend.loadSession(sessionPath);
                 } catch {
-                    createdAt = new Date().toISOString();
+                    existingSession = null;
                 }
 
                 // For now, create minimal notebook metadata
                 const notebookMetadata: StorageNotebookMetadata = {
                     originalFileName: undefined,
-                    createdAt,
+                    createdAt: existingSession?.notebook?.createdAt ?? new Date().toISOString(),
                 };
 
                 // sessionPath is a display-only field, recomputed from the uuid + location for
@@ -306,6 +346,14 @@ export class StorageWriter {
                     connectionParams,
                     notebook: notebookMetadata,
                 };
+
+                // Skip the write if the persisted manifest already matches what we'd write.
+                if (existingSession != null && sessionManifestEquals(existingSession, connData)) {
+                    this.logger.debug("Skipping session write: manifest unchanged", {
+                        sessionId: conn.sessionId,
+                    }, LOG_CTX);
+                    break;
+                }
 
                 const timeBefore = new Date();
                 await this.backend.saveSessionManifest(sessionPath, connData);
