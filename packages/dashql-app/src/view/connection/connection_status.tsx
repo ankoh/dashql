@@ -33,10 +33,10 @@ export const ConnectionStatus = React.forwardRef<HTMLButtonElement, ButtonProps>
     const health = props.conn.connectionHealth ?? 0;
     const connectorIcon = props.conn.connectorInfo.icons.colored;
 
-    const isDatalessNonDemo =
+    const isDemo =
         props.conn.connectorInfo.connectorType === ConnectorType.DATALESS &&
-        !isDemoConnector(props.conn.details.value as DatalessConnectionStateDetails);
-    const connStatusText = isDatalessNonDemo ? "Dataless" : "Demo";
+        isDemoConnector(props.conn.details.value as DatalessConnectionStateDetails);
+    const connStatusText = isDemo ? "Demo" : props.conn.connectorInfo.names.displayShort;
     const connStatusColor = CONNECTION_HEALTH_COLORS[health];
 
     const handleClick = () => {
@@ -61,7 +61,7 @@ export const ConnectionStatus = React.forwardRef<HTMLButtonElement, ButtonProps>
             ref={ref}
             variant={ButtonVariant.Default}
             leadingVisual={ConnectorIconVisual}
-            trailingVisual={isDatalessNonDemo ? undefined : StatusDotVisual}
+            trailingVisual={props.conn.connectorInfo.features.healthChecks ? StatusDotVisual : undefined}
             onClick={handleClick}
             aria-label={props.compact ? connStatusText : undefined}
         >

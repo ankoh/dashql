@@ -213,9 +213,6 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
     async deleteNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<void> {
         return (await this.backendFor(sessionId)).deleteNotebookScript(sessionId, pageName, scriptName);
     }
-    async reorderNotebookScript(sessionId: string, pageName: string, orderedScriptNames: string[]): Promise<void> {
-        return (await this.backendFor(sessionId)).reorderNotebookScript(sessionId, pageName, orderedScriptNames);
-    }
     async loadNotebookScriptDraft(sessionId: string): Promise<string | null> {
         return (await this.backendFor(sessionId)).loadNotebookScriptDraft(sessionId);
     }

@@ -48,7 +48,6 @@ class CountingBackend implements StorageBackend {
     async loadNotebookScript(): Promise<ScriptData> { return { name: '', sql: '' }; }
     async saveNotebookScript(): Promise<void> { }
     async deleteNotebookScript(): Promise<void> { }
-    async reorderNotebookScript(): Promise<void> { }
     async loadNotebookScriptDraft(): Promise<string | null> { return null; }
     async saveNotebookScriptDraft(): Promise<void> { }
 }

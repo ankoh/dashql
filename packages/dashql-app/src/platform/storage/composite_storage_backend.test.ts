@@ -117,7 +117,6 @@ class MemoryRegistry implements SessionRegistryBackend {
     async deleteNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<void> {
         this.pages.get(sessionId)?.get(pageName)?.delete(scriptName);
     }
-    async reorderNotebookScript(): Promise<void> { /* not exercised */ }
     async loadNotebookScriptDraft(sessionId: string): Promise<string | null> { return this.drafts.get(sessionId) ?? null; }
     async saveNotebookScriptDraft(sessionId: string, sql: string): Promise<void> { this.drafts.set(sessionId, sql); }
 

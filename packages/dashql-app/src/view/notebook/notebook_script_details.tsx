@@ -18,7 +18,7 @@ import { QueryStatusPanel } from '../query_status/query_status_panel.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { useQueryState } from '../../connection/query_executor.js';
 import { getSelectedEntry, getSelectedPage, NotebookState, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
-import { stripPageOrderPrefix } from '../../notebook/notebook_types.js';
+import { stripPageOrderPrefix, scriptDisplayName } from '../../notebook/notebook_types.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { useAppConfig } from '../../app_config.js';
 import { ScriptEditor } from './script_editor.js';
@@ -68,32 +68,35 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     const notebookEntry = getSelectedEntry(props.notebook);
     const scriptData = notebookEntry != null ? props.notebook.scripts[notebookEntry.scriptId] : null;
 
-    // Get folder name and script file name (display-only: strip the on-disk ordering prefix)
+    // Get folder name and script file name (display-only: strip the on-disk ordering prefix). The
+    // raw scriptFileName stays the rename identity; the label and draft use the clean display name
+    // (no prefix, no ".sql").
     const selectedPage = getSelectedPage(props.notebook);
     const folderName = stripPageOrderPrefix(selectedPage?.folderName ?? '') || 'Untitled';
     const scriptFileName = notebookEntry?.fileName ?? '01-script.sql';
+    const scriptDisplay = scriptDisplayName(scriptFileName);
 
     const PencilIcon: Icon = SymbolIcon('pencil_16');
     const PencilAIIcon: Icon = SymbolIcon('pencil_ai_16');
     const CheckIcon: Icon = SymbolIcon('check_16');
     const FormatXIcon: Icon = SymbolIcon('x_16');
     const [isEditingName, setIsEditingName] = React.useState(false);
-    const [draftFileName, setDraftFileName] = React.useState(scriptFileName);
+    const [draftFileName, setDraftFileName] = React.useState(scriptDisplay);
     const editInputRef = React.useRef<HTMLInputElement>(null);
 
     const startEditingName = React.useCallback((event?: React.MouseEvent) => {
         event?.stopPropagation();
-        setDraftFileName(scriptFileName);
+        setDraftFileName(scriptDisplay);
         setIsEditingName(true);
-    }, [scriptFileName]);
+    }, [scriptDisplay]);
 
     const saveNameEdit = React.useCallback(() => {
         const trimmed = draftFileName.trim();
-        if (trimmed && trimmed !== scriptFileName) {
+        if (trimmed && trimmed !== scriptDisplay) {
             props.modifyNotebook({ type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: scriptFileName, newFileName: trimmed } });
         }
         setIsEditingName(false);
-    }, [draftFileName, scriptFileName, props.modifyNotebook]);
+    }, [draftFileName, scriptDisplay, scriptFileName, props.modifyNotebook]);
 
     const cancelNameEdit = React.useCallback(() => {
         setIsEditingName(false);
@@ -446,7 +449,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                         <div className={styles.entry_card_file_name}>
                             <NotebookScriptName
                                 folder={folderName}
-                                file={scriptFileName}
+                                file={scriptDisplay}
                                 onFolderClick={props.hideDetails}
                                 onFileClick={startEditingName}
                                 editing={isEditingName ? {

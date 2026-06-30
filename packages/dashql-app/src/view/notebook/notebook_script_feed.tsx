@@ -13,7 +13,7 @@ import type { RowComponentProps } from 'react-window';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
-import { getExecutableQueryText, getSelectedEntry, getSelectedPage, getSelectedPageEntries, getUncommittedScriptData, REGISTER_QUERY, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
+import { getExecutableQueryText, getSelectedEntry, getSelectedPage, getSelectedPageEntries, getSortedFileNames, getUncommittedScriptData, REGISTER_QUERY, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY, REORDER_NOTEBOOK_SCRIPTS } from '../../notebook/notebook_state.js';
 import { useAIClient } from '../../platform/ai_client_provider.js';
 import { useComposeInputMode } from '../../notebook/notebook_commands.js';
 import { useAgentLoopState, useRunAgentLoop, useCancelAgentLoop } from '../../notebook/agent/agent_loop_provider.js';
@@ -26,7 +26,7 @@ import { PromptEditor } from './prompt_editor.js';
 import { ScriptPreview } from './notebook_script_preview.js';
 import { observeSize } from '../foundations/size_observer.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
-import { stripPageOrderPrefix } from '../../notebook/notebook_types.js';
+import { stripPageOrderPrefix, scriptDisplayName } from '../../notebook/notebook_types.js';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { SegmentedControl, SegmentedControlSize } from '../foundations/segmented_control.js';
 import { NotebookScriptName } from './notebook_script_name.js';
@@ -59,17 +59,23 @@ interface CollapsedScriptCardProps {
     scriptFileName: string;
     scriptDebugMode: boolean;
     canDelete: boolean;
+    canMoveUp: boolean;
+    canMoveDown: boolean;
     onFocus: (fileName: string) => void;
     onExpand: (fileName: string) => void;
     onDelete: (fileName: string) => void;
     onRename: (oldFileName: string, newFileName: string) => void;
+    onMoveUp: (fileName: string) => void;
+    onMoveDown: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowStatus: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, onFocus, onExpand, onDelete, onRename, onShowTable, onShowStatus, onShowVisualization }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowTable, onShowStatus, onShowVisualization }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
+    const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
+    const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
     // Both eye states are rendered at once and toggled via CSS visibility. SymbolIcon caches a
     // distinct component type per symbol, so swapping the bound icon on focus change would
     // unmount/remount the <svg><use> and force the external symbol reference to re-resolve —
@@ -80,22 +86,25 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
     const queryState = useQueryState(sessionId, scriptData?.latestQueryId ?? null);
     const [isReady, setIsReady] = React.useState(false);
     const [isEditing, setIsEditing] = React.useState(false);
-    const [draftFileName, setDraftFileName] = React.useState(scriptFileName);
+    // The label and the rename input show the clean display name (no ordering prefix, no ".sql");
+    // the raw scriptFileName remains the identity passed to handlers and to UPDATE_NOTEBOOK_ENTRY.
+    const displayName = scriptDisplayName(scriptFileName);
+    const [draftFileName, setDraftFileName] = React.useState(displayName);
     const editInputRef = React.useRef<HTMLInputElement>(null);
 
     const startEditing = React.useCallback((event: React.MouseEvent) => {
         event.stopPropagation();
-        setDraftFileName(scriptFileName);
+        setDraftFileName(displayName);
         setIsEditing(true);
-    }, [scriptFileName]);
+    }, [displayName]);
 
     const saveEdit = React.useCallback(() => {
         const trimmed = draftFileName.trim();
-        if (trimmed && trimmed !== scriptFileName) {
+        if (trimmed && trimmed !== displayName) {
             onRename(scriptFileName, trimmed);
         }
         setIsEditing(false);
-    }, [draftFileName, scriptFileName, onRename]);
+    }, [draftFileName, displayName, scriptFileName, onRename]);
 
     const cancelEdit = React.useCallback(() => {
         setIsEditing(false);
@@ -141,7 +150,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                 <div className={styles.feed_entry_file_name}>
                     <NotebookScriptName
                         folder={folderName}
-                        file={scriptFileName}
+                        file={displayName}
                         onFileClick={startEditing}
                         editing={isEditing ? {
                             value: draftFileName,
@@ -170,6 +179,22 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                         <ScriptStatisticsBar stats={scriptData.statistics} />
                     </div>
                 )}
+                <IconButton
+                    variant={ButtonVariant.Invisible}
+                    onClick={(event) => { event.stopPropagation(); onMoveUp(scriptFileName); }}
+                    aria-label="Move script up"
+                    disabled={!canMoveUp}
+                >
+                    <MoveUpIcon size={16} />
+                </IconButton>
+                <IconButton
+                    variant={ButtonVariant.Invisible}
+                    onClick={(event) => { event.stopPropagation(); onMoveDown(scriptFileName); }}
+                    aria-label="Move script down"
+                    disabled={!canMoveDown}
+                >
+                    <MoveDownIcon size={16} />
+                </IconButton>
                 <IconButton
                     variant={ButtonVariant.Invisible}
                     onClick={() => onDelete(scriptFileName)}
@@ -213,6 +238,8 @@ interface ScriptFeedRowProps {
     onExpand: (fileName: string) => void;
     onDelete: (fileName: string) => void;
     onRename: (oldFileName: string, newFileName: string) => void;
+    onMoveUp: (fileName: string) => void;
+    onMoveDown: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowStatus: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
@@ -222,12 +249,15 @@ interface ScriptFeedRowProps {
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onShowTable, onShowStatus, onShowVisualization, onHeightMeasured } = props;
+    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowTable, onShowStatus, onShowVisualization, onHeightMeasured } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
     const scriptData = entry != null ? scripts[entry.scriptId] : undefined;
     const scriptFileName = entry?.fileName ?? '01-script.sql';
+    // entries are in feed order, so position bounds drive the move-button enablement.
+    const canMoveUp = !isFillerRow && entryIndex > 0;
+    const canMoveDown = !isFillerRow && entryIndex < entries.length - 1;
 
     const outerRef = React.useRef<HTMLDivElement>(null);
 
@@ -264,10 +294,14 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     scriptFileName={scriptFileName}
                     scriptDebugMode={scriptDebugMode}
                     canDelete={canDelete}
+                    canMoveUp={canMoveUp}
+                    canMoveDown={canMoveDown}
                     onFocus={onFocus}
                     onExpand={onExpand}
                     onDelete={onDelete}
                     onRename={onRename}
+                    onMoveUp={onMoveUp}
+                    onMoveDown={onMoveDown}
                     onShowTable={onShowTable}
                     onShowStatus={onShowStatus}
                     onShowVisualization={onShowVisualization}
@@ -430,6 +464,21 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         props.modifyNotebook({ type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: oldFileName, newFileName } });
     }, [props.modifyNotebook]);
 
+    // Move a script one position up/down within its page by swapping it with its neighbour in the
+    // feed order and dispatching the new full order to REORDER_NOTEBOOK_SCRIPTS.
+    const moveScript = React.useCallback((fileName: string, delta: number) => {
+        const page = getSelectedPage(props.notebook);
+        if (page == null) return;
+        const order = getSortedFileNames(page);
+        const from = order.indexOf(fileName);
+        const to = from + delta;
+        if (from < 0 || to < 0 || to >= order.length) return;
+        [order[from], order[to]] = [order[to], order[from]];
+        props.modifyNotebook({ type: REORDER_NOTEBOOK_SCRIPTS, value: order });
+    }, [props.notebook, props.modifyNotebook]);
+    const handleMoveUp = React.useCallback((fileName: string) => moveScript(fileName, -1), [moveScript]);
+    const handleMoveDown = React.useCallback((fileName: string) => moveScript(fileName, 1), [moveScript]);
+
     const keyHandlers = React.useMemo<KeyEventHandler[]>(() => [
         {
             key: 'Enter',
@@ -580,13 +629,15 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onExpand: handleExpand,
         onDelete: handleDelete,
         onRename: handleRename,
+        onMoveUp: handleMoveUp,
+        onMoveDown: handleMoveDown,
         onShowTable: handleShowTable,
         onShowStatus: handleShowStatus,
         onShowVisualization: handleShowVisualization,
         onHeightMeasured: handleHeightMeasured,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleShowTable, handleShowStatus, handleShowVisualization, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleShowTable, handleShowStatus, handleShowVisualization, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container} data-tauri-drag-region="deep">

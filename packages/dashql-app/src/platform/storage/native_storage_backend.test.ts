@@ -210,24 +210,6 @@ describe('NativeStorageBackend (one-dir-one-session)', () => {
         });
     });
 
-    describe('Script Reordering', () => {
-        beforeEach(async () => {
-            await backend.createNotebookPage(SID, 'page-1');
-        });
-
-        it('reorders scripts within a page', async () => {
-            await backend.saveNotebookScript(SID, 'page-1', '01-script.sql', 'SELECT 1;');
-            await backend.saveNotebookScript(SID, 'page-1', '02-script.sql', 'SELECT 2;');
-            await backend.saveNotebookScript(SID, 'page-1', '03-script.sql', 'SELECT 3;');
-
-            // Move script 3 to position 1 (scripts 3, 1, 2)
-            await backend.reorderNotebookScript(SID, 'page-1', ['03-script.sql', '01-script.sql', '02-script.sql']);
-
-            const pages = await backend.loadNotebookPages(SID);
-            expect(pages[0].scripts.map(s => s.sql)).toEqual(['SELECT 3;', 'SELECT 1;', 'SELECT 2;']);
-        });
-    });
-
     describe('deleteSession / clearAllStorage', () => {
         async function seed(): Promise<void> {
             await backend.saveSessionManifest(SID, {

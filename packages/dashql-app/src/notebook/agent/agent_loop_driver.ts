@@ -31,6 +31,7 @@ import {
     SET_SCRIPT_TEXT,
 } from '../notebook_state.js';
 import { resolveSymbolSpan } from '../../core/tokens.js';
+import { stripPageOrderPrefix, scriptDisplayName } from '../notebook_types.js';
 
 /// The minimal AI client surface the driver needs (so tests can inject a mock).
 export interface AgentAIClient {
@@ -348,12 +349,14 @@ export function determineVisSource(notebook: NotebookState, contextScriptData: S
         const reused = extractVisSourceFromScript(contextScriptData);
         if (reused != null) return reused;
     }
-    // Reference the focused SQL script by its notebook path.
+    // Reference the focused SQL script by its notebook path. Use the clean display names (folder
+    // without its ordering prefix, file without prefix and ".sql") so the encoded reference matches
+    // how the script is registered in the catalog (dashql.notebook."<clean folder>/<clean file>").
     if (contextScriptData.folderName && contextScriptData.fileName) {
         return {
             kind: 'script-reference',
-            folderName: contextScriptData.folderName,
-            fileName: contextScriptData.fileName,
+            folderName: stripPageOrderPrefix(contextScriptData.folderName),
+            fileName: scriptDisplayName(contextScriptData.fileName),
         };
     }
     return { kind: 'none' };

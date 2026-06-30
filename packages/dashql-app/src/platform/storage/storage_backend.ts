@@ -80,8 +80,6 @@ export interface StorageBackend {
     saveNotebookScript(sessionId: string, pageName: string, scriptName: string, sql: string): Promise<void>;
     /// Delete a notebook script
     deleteNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<void>;
-    /// Reorder notebook scripts (provide all script names in desired order)
-    reorderNotebookScript(sessionId: string, pageName: string, orderedScriptNames: string[]): Promise<void>;
 
     /// Load a notebook script draft
     loadNotebookScriptDraft(sessionId: string): Promise<string | null>;

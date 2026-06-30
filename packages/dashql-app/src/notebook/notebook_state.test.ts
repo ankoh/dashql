@@ -24,15 +24,16 @@ import {
     UPDATE_NOTEBOOK_ENTRY,
     UPDATE_PAGE_FOLDER_NAME,
     REORDER_PAGES,
+    REORDER_NOTEBOOK_SCRIPTS,
     getSelectedPage,
     getSelectedPageEntries,
     getSortedFileNames,
     getSortedFolderNames,
 } from './notebook_state.js';
 import { createDatalessConnectorInfo } from '../connection/connector_info.js';
-import { StorageWriter, StorageWriteTaskVariant } from "../platform/storage/storage_writer.js";
+import { StorageWriter, StorageWriteTaskVariant, WRITE_NOTEBOOK_SCRIPT, DELETE_NOTEBOOK_SCRIPT } from "../platform/storage/storage_writer.js";
 import { Logger } from '../platform/logger/logger.js';
-import { createEmptyMetadata, createPageScript, generateScriptFileName, stripPageOrderPrefix, pageOrderPrefixString, formatPageOrderPrefix } from './notebook_types.js';
+import { createEmptyMetadata, createPageScript, generateScriptFileName, stripPageOrderPrefix, pageOrderPrefixString, formatPageOrderPrefix, stripScriptOrderPrefix, scriptOrderPrefixString, formatScriptOrderPrefix, scriptDisplayName, uniqueScriptBase, planScriptInsertion, NotebookPageScript } from './notebook_types.js';
 
 class NullLogger extends Logger {
     public destroy(): void { }
@@ -55,13 +56,22 @@ class NullStorageBackend {
     async loadNotebookScript(): Promise<any> { return {}; }
     async saveNotebookScript(): Promise<void> { }
     async deleteNotebookScript(): Promise<void> { }
-    async reorderNotebookScript(): Promise<void> { }
     async loadNotebookScriptDraft(): Promise<string | null> { return null; }
     async saveNotebookScriptDraft(): Promise<void> { }
 }
 
 class NullStorageWriter extends StorageWriter {
     public override async write(_key: string, _task: StorageWriteTaskVariant, _debounce?: number): Promise<boolean> {
+        return true;
+    }
+}
+
+/// Captures every (key, task) the reducer schedules so tests can assert on the persistence plan
+/// (e.g. that a script's write is never shadowed by a delete on the same on-disk path).
+class RecordingStorageWriter extends StorageWriter {
+    public records: { key: string; task: StorageWriteTaskVariant }[] = [];
+    public override async write(key: string, task: StorageWriteTaskVariant, _debounce?: number): Promise<boolean> {
+        this.records.push({ key, task });
         return true;
     }
 }
@@ -356,12 +366,49 @@ describe('DELETE_NOTEBOOK_ENTRY', () => {
 // ---------------------------------------------------------------------------
 
 describe('UPDATE_NOTEBOOK_ENTRY', () => {
-    it('renames the targeted entry', () => {
+    it('renames the targeted entry, editing only the clean name and preserving the ordering prefix', () => {
+        const state = buildState();
+        const oldFile = state.notebookUserFocus.fileName; // "1_script.sql"
+        // The rename input edits the clean display name; the reducer keeps the prefix and ".sql".
+        const next = reduce(state, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: oldFile, newFileName: 'query' } });
+        const files = getSortedFileNames(getSelectedPage(next)!);
+        expect(files.map(scriptDisplayName)).toEqual(['query']);
+        expect(getSelectedPage(next)!.scripts[oldFile]).toBeUndefined();
+        // The ordering prefix is preserved across the rename.
+        expect(scriptOrderPrefixString(files[0])).toBe(scriptOrderPrefixString(oldFile));
+    });
+
+    it('normalises a typed-in prefix/suffix down to the clean name', () => {
+        const state = buildState();
+        const oldFile = state.notebookUserFocus.fileName; // "1_script.sql"
+        // Whatever prefix/extension the user types is stripped to the bare clean base.
+        const next = reduce(state, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: oldFile, newFileName: '07-query.sql' } });
+        const files = getSortedFileNames(getSelectedPage(next)!);
+        expect(files.map(scriptDisplayName)).toEqual(['query']);
+        // The script keeps ITS prefix, not the "07" the user typed.
+        expect(scriptOrderPrefixString(files[0])).toBe(scriptOrderPrefixString(oldFile));
+    });
+
+    it('disambiguates a clean name that collides with another script', () => {
+        const s0 = buildState();
+        const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
+        const files = getSortedFileNames(getSelectedPage(s1)!);
+        // Rename the first script to "shared", then rename the second to "shared" too.
+        const s2 = reduce(s1, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: files[0], newFileName: 'shared' } });
+        const files2 = getSortedFileNames(getSelectedPage(s2)!);
+        const s3 = reduce(s2, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: files2[1], newFileName: 'shared' } });
+        const display = getSortedFileNames(getSelectedPage(s3)!).map(scriptDisplayName);
+        expect(display).toContain('shared');
+        expect(display).toContain('shared-2');
+        // The two scripts keep distinct clean names (the SQL reference namespace stays unique).
+        expect(new Set(display).size).toBe(display.length);
+    });
+
+    it('ignores an empty (whitespace-only) clean name', () => {
         const state = buildState();
         const oldFile = state.notebookUserFocus.fileName;
-        const next = reduce(state, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: oldFile, newFileName: '01-query.sql' } });
-        expect(getSelectedPage(next)!.scripts['01-query.sql']).toBeDefined();
-        expect(getSelectedPage(next)!.scripts[oldFile]).toBeUndefined();
+        const next = reduce(state, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: oldFile, newFileName: '   ' } });
+        expect(next).toBe(state);
     });
 
     it('is a no-op for an unknown file name', () => {
@@ -393,24 +440,26 @@ describe('UPDATE_NOTEBOOK_ENTRY', () => {
         expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
     });
 
-    it('updates catalog path after re-analysis following rename', () => {
+    it('updates catalog path after re-analysis following rename, using clean names', () => {
         const state = buildState();
         const oldName = state.notebookUserFocus.fileName;
         const folder = MAIN_FOLDER;
         const scriptId = getSelectedPage(state)!.scripts[oldName].scriptId;
         state.scripts[scriptId].script.insertTextAt(0, 'SELECT 1 as x, 2 as y');
 
+        // The catalog path is the clean folder/file: no ordering prefix, no ".sql".
         const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
-        expect(s1.scripts[scriptId].annotations.tableDefs).toContain(`${folder}/${oldName}`);
+        expect(s1.scripts[scriptId].annotations.tableDefs).toContain(`${folder}/${scriptDisplayName(oldName)}`);
 
-        const newName = '02-renamed.sql';
-        const s2 = reduce(s1, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: oldName, newFileName: newName } });
+        const s2 = reduce(s1, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: oldName, newFileName: 'renamed' } });
         expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(true);
+        const newName = getSortedFileNames(getSelectedPage(s2)!)[0];
 
         const s3 = reduce(s2, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
         expect(s3.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
-        expect(s3.scripts[scriptId].annotations.tableDefs).toContain(`${folder}/${newName}`);
-        expect(s3.scripts[scriptId].annotations.tableDefs).not.toContain(`${folder}/${oldName}`);
+        expect(s3.scripts[scriptId].annotations.tableDefs).toContain(`${folder}/renamed`);
+        expect(scriptDisplayName(newName)).toBe('renamed');
+        expect(s3.scripts[scriptId].annotations.tableDefs).not.toContain(`${folder}/${scriptDisplayName(oldName)}`);
     });
 });
 
@@ -452,23 +501,24 @@ describe('UPDATE_PAGE_FOLDER_NAME', () => {
         expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
     });
 
-    it('updates catalog path after re-analysis following folder rename', () => {
+    it('updates catalog path after re-analysis following folder rename, using clean names', () => {
         const state = buildState();
         const file = state.notebookUserFocus.fileName;
+        const cleanFile = scriptDisplayName(file);
         const oldFolder = MAIN_FOLDER;
         const scriptId = getSelectedPage(state)!.scripts[file].scriptId;
         state.scripts[scriptId].script.insertTextAt(0, 'SELECT 1 as x');
 
         const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
-        expect(s1.scripts[scriptId].annotations.tableDefs).toContain(`${oldFolder}/${file}`);
+        expect(s1.scripts[scriptId].annotations.tableDefs).toContain(`${oldFolder}/${cleanFile}`);
 
         const newFolder = 'Analytics';
         const s2 = reduce(s1, { type: UPDATE_PAGE_FOLDER_NAME, value: { folderName: oldFolder, newFolderName: newFolder } });
         expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(true);
 
         const s3 = reduce(s2, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
-        expect(s3.scripts[scriptId].annotations.tableDefs).toContain(`${newFolder}/${file}`);
-        expect(s3.scripts[scriptId].annotations.tableDefs).not.toContain(`${oldFolder}/${file}`);
+        expect(s3.scripts[scriptId].annotations.tableDefs).toContain(`${newFolder}/${cleanFile}`);
+        expect(s3.scripts[scriptId].annotations.tableDefs).not.toContain(`${oldFolder}/${cleanFile}`);
     });
 });
 
@@ -541,19 +591,20 @@ describe('REORDER_PAGES', () => {
     it('keeps the clean (SQL-visible) reference namespace stable across a reorder', () => {
         const state = buildMultiPageState(['alpha', 'beta']);
         const betaFile = Object.keys(state.notebookPages['beta'].scripts)[0];
+        const cleanFile = scriptDisplayName(betaFile);
         const betaScriptId = state.notebookPages['beta'].scripts[betaFile].scriptId;
 
         // Analyze beta so its catalog path (tableDefs) is populated with the clean name.
         const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: betaScriptId });
-        expect(s1.scripts[betaScriptId].annotations.tableDefs).toContain(`beta/${betaFile}`);
+        expect(s1.scripts[betaScriptId].annotations.tableDefs).toContain(`beta/${cleanFile}`);
 
         // Reorder beta to the front, then re-analyze: the catalog path must still be the clean name.
         const s2 = reduce(s1, { type: REORDER_PAGES, value: ['beta', 'alpha'] });
         const movedFolder = getSortedFolderNames(s2.notebookPages)[0];
         expect(stripPageOrderPrefix(movedFolder)).toBe('beta');
         const s3 = reduce(s2, { type: ANALYZE_OUTDATED_SCRIPT, value: betaScriptId });
-        expect(s3.scripts[betaScriptId].annotations.tableDefs).toContain(`beta/${betaFile}`);
-        expect(s3.scripts[betaScriptId].annotations.tableDefs).not.toContain(`${movedFolder}/${betaFile}`);
+        expect(s3.scripts[betaScriptId].annotations.tableDefs).toContain(`beta/${cleanFile}`);
+        expect(s3.scripts[betaScriptId].annotations.tableDefs).not.toContain(`${movedFolder}/${cleanFile}`);
     });
 
     it('is a no-op when the requested order matches the current order', () => {
@@ -593,6 +644,309 @@ describe('UPDATE_PAGE_FOLDER_NAME preserves ordering prefix', () => {
         expect(next.notebookPages['2_beta']).toBeUndefined();
         // Order is unchanged: alpha still before the renamed page.
         expect(getSortedFolderNames(next.notebookPages).map(stripPageOrderPrefix)).toEqual(['alpha', 'reports']);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Script ordering prefix helpers
+// ---------------------------------------------------------------------------
+
+describe('script order prefix helpers', () => {
+    it('stripScriptOrderPrefix removes a leading <digits><sep> prefix, keeping the extension', () => {
+        expect(stripScriptOrderPrefix('2_extract.sql')).toBe('extract.sql');
+        expect(stripScriptOrderPrefix('01-script.sql')).toBe('script.sql'); // legacy hyphen
+        expect(stripScriptOrderPrefix('extract.sql')).toBe('extract.sql');
+    });
+
+    it('scriptOrderPrefixString returns the prefix verbatim (with its separator), else empty', () => {
+        expect(scriptOrderPrefixString('2_extract.sql')).toBe('2_');
+        expect(scriptOrderPrefixString('01-script.sql')).toBe('01-'); // legacy hyphen preserved
+        expect(scriptOrderPrefixString('extract.sql')).toBe('');
+    });
+
+    it('formatScriptOrderPrefix pads to just the digits the total requires, using "_"', () => {
+        expect(formatScriptOrderPrefix(1, 9)).toBe('1_');
+        expect(formatScriptOrderPrefix(1, 10)).toBe('01_');
+        expect(formatScriptOrderPrefix(12, 12)).toBe('12_');
+        expect(formatScriptOrderPrefix(7, 100)).toBe('007_');
+    });
+
+    it('scriptDisplayName drops both the ordering prefix AND the ".sql" extension', () => {
+        expect(scriptDisplayName('1_foo.sql')).toBe('foo');
+        expect(scriptDisplayName('2_extract.sql')).toBe('extract');
+        expect(scriptDisplayName('01-script.sql')).toBe('script'); // legacy hyphen
+        expect(scriptDisplayName('plain.sql')).toBe('plain');
+        expect(scriptDisplayName('noext')).toBe('noext');
+    });
+
+    it('uniqueScriptBase disambiguates against existing display names, excluding the renamed file', () => {
+        const scripts: { [fileName: string]: NotebookPageScript } = {
+            '1_script.sql': createPageScript(1, '1_script.sql'),
+            '2_extract.sql': createPageScript(2, '2_extract.sql'),
+        };
+        expect(uniqueScriptBase('fresh', scripts)).toBe('fresh');
+        expect(uniqueScriptBase('script', scripts)).toBe('script-2');
+        // Excluding a file lets it keep its own name on a no-op rename.
+        expect(uniqueScriptBase('script', scripts, '1_script.sql')).toBe('script');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// planScriptInsertion
+// ---------------------------------------------------------------------------
+
+describe('planScriptInsertion', () => {
+    function scriptsFromNames(names: string[]): { [fileName: string]: NotebookPageScript } {
+        const map: { [fileName: string]: NotebookPageScript } = {};
+        names.forEach((name, i) => { map[name] = createPageScript(i + 1, name); });
+        return map;
+    }
+
+    // These tests pin an explicit base to keep the planning logic (ordering, re-pad) deterministic.
+    // The default random base is covered separately below.
+    it('names the new script one past the highest prefix so it sorts last', () => {
+        const plan = planScriptInsertion(scriptsFromNames(['1_a.sql', '2_b.sql']), 'script');
+        expect(plan.newFileName).toBe('3_script.sql');
+        expect(plan.repad).toEqual([]);
+    });
+
+    it('disambiguates the requested base against an existing clash', () => {
+        const plan = planScriptInsertion(scriptsFromNames(['1_script.sql']), 'script');
+        expect(plan.newFileName).toBe('2_script-2.sql');
+    });
+
+    it('re-pads existing scripts to a wider prefix when the digit count grows', () => {
+        // 9 existing single-digit scripts; inserting the 10th widens the prefix to 2 digits.
+        const names = Array.from({ length: 9 }, (_, i) => `${i + 1}_s${i + 1}.sql`);
+        const plan = planScriptInsertion(scriptsFromNames(names), 'script');
+        expect(plan.newFileName).toBe('10_script.sql');
+        // Every existing script is re-padded to width 2, keeping its number and clean name.
+        expect(plan.repad).toEqual(names.map((name, i) => ({
+            oldFileName: name,
+            newFileName: `0${i + 1}_s${i + 1}.sql`,
+        })));
+    });
+
+    it('normalises legacy hyphen-separated names while re-padding', () => {
+        const names = ['01-a.sql', '02-b.sql'];
+        const plan = planScriptInsertion(scriptsFromNames(names), 'script');
+        // Adding a 3rd script keeps width 1, but the legacy "0N-" entries normalise to "N_".
+        expect(plan.newFileName).toBe('3_script.sql');
+        expect(plan.repad).toEqual([
+            { oldFileName: '01-a.sql', newFileName: '1_a.sql' },
+            { oldFileName: '02-b.sql', newFileName: '2_b.sql' },
+        ]);
+    });
+
+    it('appends at the bottom even when prefixes are sparse', () => {
+        const plan = planScriptInsertion(scriptsFromNames(['1_a.sql', '5_b.sql']), 'script');
+        expect(plan.newFileName).toBe('6_script.sql');
+    });
+
+    it('defaults to a random "<adjective>-<animal>" base when none is requested', () => {
+        const plan = planScriptInsertion(scriptsFromNames(['1_a.sql', '2_b.sql']));
+        // Sorts last (prefix 3) and carries a hyphenated two-word clean name, not the literal "script".
+        expect(plan.newFileName).toMatch(/^3_[a-z]+-[a-z]+\.sql$/);
+        expect(scriptDisplayName(plan.newFileName)).not.toBe('script');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// REORDER_NOTEBOOK_SCRIPTS
+// ---------------------------------------------------------------------------
+
+// Builds a single 'Main' page holding scripts at the given file names, each seeded with SQL.
+function buildScriptState(fileNames: string[]): NotebookState {
+    const state = buildState();
+    const scripts: NotebookState['scripts'] = {
+        [state.uncommittedScriptId]: state.scripts[state.uncommittedScriptId],
+    };
+    const pageScripts: { [fileName: string]: NotebookPageScript } = {};
+    for (const fileName of fileNames) {
+        const [key, data] = createEmptyScriptData(state.instance, state.connectionCatalog);
+        data.script.insertTextAt(0, 'SELECT 1 as x');
+        scripts[key] = { ...data, folderName: MAIN_FOLDER, fileName };
+        pageScripts[fileName] = createPageScript(key, fileName);
+    }
+    return {
+        ...state,
+        scripts,
+        notebookPages: { [MAIN_FOLDER]: { folderName: MAIN_FOLDER, scripts: pageScripts } },
+        notebookUserFocus: { folderName: MAIN_FOLDER, fileName: fileNames[0] ?? '', interactionCounter: 0 },
+    };
+}
+
+describe('REORDER_NOTEBOOK_SCRIPTS', () => {
+    it('assigns dense ordering prefixes that sort to the requested order', () => {
+        const state = buildScriptState(['1_a.sql', '2_b.sql', '3_c.sql']);
+        const next = reduce(state, { type: REORDER_NOTEBOOK_SCRIPTS, value: ['3_c.sql', '1_a.sql', '2_b.sql'] });
+        const files = getSortedFileNames(getSelectedPage(next)!);
+        expect(files).toEqual(['1_c.sql', '2_a.sql', '3_b.sql']);
+        expect(files.map(scriptDisplayName)).toEqual(['c', 'a', 'b']);
+    });
+
+    it('keeps the clean (SQL-visible) reference namespace stable across a reorder', () => {
+        const state = buildScriptState(['1_a.sql', '2_b.sql']);
+        const bFile = '2_b.sql';
+        const bScriptId = state.notebookPages[MAIN_FOLDER].scripts[bFile].scriptId;
+
+        const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: bScriptId });
+        expect(s1.scripts[bScriptId].annotations.tableDefs).toContain(`${MAIN_FOLDER}/b`);
+
+        // Move b to the front: its prefix changes (2_ -> 1_) but its clean name stays "b".
+        const s2 = reduce(s1, { type: REORDER_NOTEBOOK_SCRIPTS, value: ['2_b.sql', '1_a.sql'] });
+        const movedFile = getSortedFileNames(getSelectedPage(s2)!)[0];
+        expect(scriptDisplayName(movedFile)).toBe('b');
+        expect(movedFile).not.toBe(bFile);
+
+        const s3 = reduce(s2, { type: ANALYZE_OUTDATED_SCRIPT, value: bScriptId });
+        expect(s3.scripts[bScriptId].annotations.tableDefs).toContain(`${MAIN_FOLDER}/b`);
+    });
+
+    it('is a no-op when the requested order matches the current feed order', () => {
+        const state = buildScriptState(['1_a.sql', '2_b.sql', '3_c.sql']);
+        const next = reduce(state, { type: REORDER_NOTEBOOK_SCRIPTS, value: ['1_a.sql', '2_b.sql', '3_c.sql'] });
+        expect(next).toBe(state);
+    });
+
+    it('appends omitted files after the requested ones without dropping any', () => {
+        const state = buildScriptState(['1_a.sql', '2_b.sql', '3_c.sql']);
+        const next = reduce(state, { type: REORDER_NOTEBOOK_SCRIPTS, value: ['3_c.sql'] });
+        const files = getSortedFileNames(getSelectedPage(next)!);
+        expect(files.map(scriptDisplayName)).toEqual(['c', 'a', 'b']);
+    });
+
+    it('follows the focused file across its rename', () => {
+        const state = buildScriptState(['1_a.sql', '2_b.sql', '3_c.sql']);
+        const s1 = reduce(state, { type: SELECT_ENTRY, value: '3_c.sql' });
+        expect(s1.notebookUserFocus.fileName).toBe('3_c.sql');
+        const s2 = reduce(s1, { type: REORDER_NOTEBOOK_SCRIPTS, value: ['3_c.sql', '1_a.sql', '2_b.sql'] });
+        expect(scriptDisplayName(s2.notebookUserFocus.fileName)).toBe('c');
+        expect(getSelectedPage(s2)!.scripts[s2.notebookUserFocus.fileName]).toBeDefined();
+    });
+
+    it('normalises legacy hyphen-separated names to the "_" form on reorder', () => {
+        const state = buildScriptState(['01-a.sql', '02-b.sql']);
+        const next = reduce(state, { type: REORDER_NOTEBOOK_SCRIPTS, value: ['02-b.sql', '01-a.sql'] });
+        const files = getSortedFileNames(getSelectedPage(next)!);
+        expect(files).toEqual(['1_b.sql', '2_a.sql']);
+    });
+
+    it('is a no-op when there is no selected page', () => {
+        const state = buildScriptState(['1_a.sql']);
+        const headless: NotebookState = { ...state, notebookPages: {}, notebookUserFocus: { folderName: '', fileName: '', interactionCounter: 0 } };
+        const next = reduce(headless, { type: REORDER_NOTEBOOK_SCRIPTS, value: ['1_a.sql'] });
+        expect(next).toBe(headless);
+    });
+
+    it('never deletes a path that another script is being written to (clean-name collision)', () => {
+        // Two scripts in one page share the clean name "script" (the legacy default, and what the
+        // re-pad normaliser produces). Swapping them maps each one's new path onto the other's old
+        // path. Because deletes and writes use distinct keyspaces, scheduling a delete for a path that
+        // is also a write target would race the write and could clobber the file on disk — so the
+        // delete for any reused path must be suppressed.
+        const recorder = new RecordingStorageWriter(logger, backend);
+        const state = buildScriptState(['1_script.sql', '2_script.sql']);
+        const next = reduceNotebookState(
+            state,
+            { type: REORDER_NOTEBOOK_SCRIPTS, value: ['2_script.sql', '1_script.sql'] },
+            recorder,
+            logger,
+            true,
+        );
+
+        // In-memory order is swapped and both clean names are preserved.
+        const files = getSortedFileNames(getSelectedPage(next)!);
+        expect(files).toEqual(['1_script.sql', '2_script.sql']);
+        expect(files.map(scriptDisplayName)).toEqual(['script', 'script']);
+
+        const written = new Set(
+            recorder.records.filter(r => r.task.type === WRITE_NOTEBOOK_SCRIPT).map(r => (r.task.value as string[])[2]),
+        );
+        const deleted = new Set(
+            recorder.records.filter(r => r.task.type === DELETE_NOTEBOOK_SCRIPT).map(r => (r.task.value as string[])[2]),
+        );
+        // Both paths are (re)written, and neither is deleted — no write can be shadowed by a delete.
+        expect([...written].sort()).toEqual(['1_script.sql', '2_script.sql']);
+        for (const path of written) {
+            expect(deleted.has(path)).toBe(false);
+        }
+    });
+});
+
+// ---------------------------------------------------------------------------
+// CREATE_NOTEBOOK_ENTRY appends at the bottom with re-pad
+// ---------------------------------------------------------------------------
+
+describe('CREATE_NOTEBOOK_ENTRY ordering', () => {
+    it('adds the new script at the bottom of the feed', () => {
+        const state = buildScriptState(['1_a.sql', '2_b.sql']);
+        const next = reduce(state, { type: CREATE_NOTEBOOK_ENTRY, value: null });
+        const files = getSortedFileNames(getSelectedPage(next)!);
+        expect(files[files.length - 1]).toBe(next.notebookUserFocus.fileName);
+        // The new bottom script sorts after the existing two.
+        expect(files.map(scriptDisplayName).slice(0, 2)).toEqual(['a', 'b']);
+    });
+
+    it('re-pads existing scripts to a uniform width when the 10th script is added', () => {
+        const names = Array.from({ length: 9 }, (_, i) => `${i + 1}_s${i + 1}.sql`);
+        const state = buildScriptState(names);
+        const next = reduce(state, { type: CREATE_NOTEBOOK_ENTRY, value: null });
+        const files = getSortedFileNames(getSelectedPage(next)!);
+        expect(files.length).toBe(10);
+        // The existing 9 scripts now carry a 2-digit prefix; feed order is preserved. The 10th gets a
+        // random base, so only its prefix and ".sql" extension are pinned here.
+        expect(files.slice(0, 9)).toEqual([
+            '01_s1.sql', '02_s2.sql', '03_s3.sql', '04_s4.sql', '05_s5.sql',
+            '06_s6.sql', '07_s7.sql', '08_s8.sql', '09_s9.sql',
+        ]);
+        expect(files[9]).toMatch(/^10_.+\.sql$/);
+        // The clean names are unchanged by re-padding (the SQL namespace stays stable).
+        expect(files.slice(0, 9).map(scriptDisplayName)).toEqual([
+            's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9',
+        ]);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// makeScriptLookup / clean-name references
+// ---------------------------------------------------------------------------
+
+describe('clean-name script references', () => {
+    it('resolves a VISUALIZE reference written against the clean folder/file name', () => {
+        // Source script "1_a.sql" in "Main" is referenced as dashql.notebook."Main/a".
+        const state = buildScriptState(['1_a.sql']);
+        const sourceId = state.notebookPages[MAIN_FOLDER].scripts['1_a.sql'].scriptId;
+        const s1 = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: sourceId, text: 'SELECT 1 as a' } });
+
+        const visualize = `visualize dashql.notebook."${MAIN_FOLDER}/a" as ( mark => bar, encoding => ( x => (field => a) ) )`;
+        const s2 = reduce(s1, { type: CREATE_NOTEBOOK_ENTRY_WITH_TEXT, value: { text: visualize } });
+        const focusFile = s2.notebookUserFocus.fileName;
+        const visId = getSelectedPage(s2)!.scripts[focusFile].scriptId;
+        expect(s2.scripts[visId].annotations.visualizeQuery).not.toBeNull();
+        expect(s2.scripts[visId].annotations.visualizeQuery!.sql.toLowerCase()).toContain('select 1 as a');
+    });
+
+    it('a clean-name reference still resolves after the source script is reordered', () => {
+        const state = buildScriptState(['1_a.sql', '2_b.sql']);
+        const aId = state.notebookPages[MAIN_FOLDER].scripts['1_a.sql'].scriptId;
+        const s1 = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: aId, text: 'SELECT 1 as a' } });
+
+        // A third script visualises "Main/a" by its clean name.
+        const visualize = `visualize dashql.notebook."${MAIN_FOLDER}/a" as ( mark => bar, encoding => ( x => (field => a) ) )`;
+        const s2 = reduce(s1, { type: CREATE_NOTEBOOK_ENTRY_WITH_TEXT, value: { text: visualize } });
+        const visFile = s2.notebookUserFocus.fileName;
+        const visId = getSelectedPage(s2)!.scripts[visFile].scriptId;
+        expect(s2.scripts[visId].annotations.visualizeQuery).not.toBeNull();
+
+        // Reorder so "a" moves to the bottom (its prefix changes), then re-analyze the vis script.
+        const order = getSortedFileNames(getSelectedPage(s2)!).filter(f => scriptDisplayName(f) !== 'a');
+        const s3 = reduce(s2, { type: REORDER_NOTEBOOK_SCRIPTS, value: [...order, '1_a.sql'] });
+        const visFileAfter = getSortedFileNames(getSelectedPage(s3)!).find(f => getSelectedPage(s3)!.scripts[f].scriptId === visId)!;
+        const s4 = reduce(s3, { type: SET_SCRIPT_TEXT, value: { scriptKey: visId, text: s3.scripts[visId].script.toString() } });
+        // The reference still resolves because it points at the stable clean name "Main/a".
+        expect(s4.scripts[visId].annotations.visualizeQuery).not.toBeNull();
+        void visFileAfter;
     });
 });
 
@@ -859,8 +1213,8 @@ describe('SET_SCRIPT_TEXT', () => {
         const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: 'SELECT 1 as x, 2 as y' } });
         expect(next.scripts[scriptKey].scriptAnalysis.outdated).toBe(false);
         expect(next.scripts[scriptKey].scriptAnalysis.buffers.analyzed).not.toBeNull();
-        // The script is registered in the catalog under its notebook path
-        expect(next.scripts[scriptKey].annotations.tableDefs).toContain(`${MAIN_FOLDER}/${state.notebookUserFocus.fileName}`);
+        // The script is registered in the catalog under its clean notebook path (no prefix, no ".sql")
+        expect(next.scripts[scriptKey].annotations.tableDefs).toContain(`${MAIN_FOLDER}/${scriptDisplayName(state.notebookUserFocus.fileName)}`);
     });
 
     it('refreshes the resolved VISUALIZE annotation', () => {

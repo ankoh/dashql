@@ -24,7 +24,6 @@ describe('exportSessionAsZip', () => {
             loadNotebookScript: vi.fn(),
             saveNotebookScript: vi.fn(),
             deleteNotebookScript: vi.fn(),
-            reorderNotebookScript: vi.fn(),
             loadNotebookScriptDraft: vi.fn(),
             saveNotebookScriptDraft: vi.fn(),
             loadAppSettings: vi.fn(),

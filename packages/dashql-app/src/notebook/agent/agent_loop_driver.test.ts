@@ -41,7 +41,6 @@ class NullStorageBackend {
     async loadNotebookScript(): Promise<any> { return {}; }
     async saveNotebookScript(): Promise<void> { }
     async deleteNotebookScript(): Promise<void> { }
-    async reorderNotebookScript(): Promise<void> { }
     async loadNotebookScriptDraft(): Promise<string | null> { return null; }
     async saveNotebookScriptDraft(): Promise<void> { }
 }

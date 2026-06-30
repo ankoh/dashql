@@ -201,65 +201,6 @@ export class NativeStorageBackend implements StorageBackend {
         }
     }
 
-    async reorderNotebookScript(
-        _sessionId: string,
-        pageName: string,
-        orderedScriptNames: string[]
-    ): Promise<void> {
-        const pageRel = `${STORAGE_NOTEBOOK_FOLDER}/${pageName}`;
-        const pageDir = await this.abs(pageRel);
-
-        // Load current scripts to validate
-        const scripts = await this.loadScriptsInPage(pageRel);
-        const scriptSet = new Set(scripts.map(s => s.name));
-
-        // Validate all requested names exist
-        for (const name of orderedScriptNames) {
-            if (!scriptSet.has(name)) {
-                throw new Error(`Script ${name} not found in page ${pageName}`);
-            }
-        }
-
-        // Create a map of old names to script content
-        const scriptMap = new Map(scripts.map(s => [s.name, s.sql]));
-
-        // Rename each script with new numeric prefix in desired order.
-        // plugin-fs has no atomic rename across the existing names, so we mirror the OPFS
-        // temp-file dance: write temp files, delete originals, then rename temps to final names.
-        const tempFiles: Array<{ tempName: string; finalName: string; sql: string }> = [];
-
-        for (let i = 0; i < orderedScriptNames.length; i++) {
-            const oldName = orderedScriptNames[i];
-            const sql = scriptMap.get(oldName)!;
-            const prefix = String(i + 1).padStart(2, '0');
-
-            // Extract base name without old prefix
-            const baseName = oldName.replace(/^\d+-/, '');
-            const finalName = `${prefix}-${baseName}`;
-            const tempName = `_temp-${i}.sql`;
-
-            // Write to temporary file first
-            await writeTextFile(await this.abs(`${pageRel}/${tempName}`), sql);
-
-            tempFiles.push({ tempName, finalName, sql });
-        }
-
-        // Delete all original .sql files (but not draft, and not the temp files we just wrote)
-        const entries = await readDir(pageDir);
-        for (const entry of entries) {
-            const name = entry.name;
-            if (entry.isFile && name.endsWith('.sql') && name !== STORAGE_SCRIPT_DRAFT && !name.startsWith('_temp-')) {
-                await remove(await this.abs(`${pageRel}/${name}`));
-            }
-        }
-
-        // Rename temp files to final names
-        for (const { tempName, finalName, sql } of tempFiles) {
-            await writeTextFile(await this.abs(`${pageRel}/${finalName}`), sql);
-            await remove(await this.abs(`${pageRel}/${tempName}`));
-        }
-    }
-
     async loadNotebookScriptDraft(_sessionId: string): Promise<string | null> {
         const draftFile = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${STORAGE_SCRIPT_DRAFT}`);
         if (!(await exists(draftFile))) {

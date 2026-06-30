@@ -381,33 +381,6 @@ describe('OPFSStorageBackend', () => {
         });
     });
 
-    describe('Script Reordering', () => {
-        beforeEach(async () => {
-            const sessionData: SessionData = {
-                sessionId: crypto.randomUUID(),
-                sessionPath: 'test-session',
-                title: 'Test Session',
-                connectionParams: { dataless: {} },
-                notebook: {},
-            };
-            await backend.saveSessionManifest('test-session', sessionData);
-            await backend.createNotebookPage('test-session', 'page-1');
-        });
-
-        it('reorders scripts within a page', async () => {
-            await backend.saveNotebookScript('test-session', 'page-1', '01-script.sql', 'SELECT 1;');
-            await backend.saveNotebookScript('test-session', 'page-1', '02-script.sql', 'SELECT 2;');
-            await backend.saveNotebookScript('test-session', 'page-1', '03-script.sql', 'SELECT 3;');
-
-            // Move script 3 to position 1 (scripts 3, 1, 2)
-            await backend.reorderNotebookScript('test-session', 'page-1', ['03-script.sql', '01-script.sql', '02-script.sql']);
-
-            const pages = await backend.loadNotebookPages('test-session');
-            const scripts = pages[0].scripts;
-            expect(scripts.map(s => s.sql)).toEqual(['SELECT 3;', 'SELECT 1;', 'SELECT 2;']);
-        });
-    });
-
     describe('Page Reordering', () => {
         beforeEach(async () => {
             const sessionData: SessionData = {
