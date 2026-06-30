@@ -8,11 +8,13 @@ import {
     type AppSettings,
     StorageBackendType,
     STORAGE_MANIFEST_FILE,
+    STORAGE_SESSION_FILE,
 } from './storage_backend.js';
 import { NativeStorageBackend } from './native_storage_backend.js';
 import { type SessionLocation, locationFromEntry } from './session_locator.js';
 import { grantFsScope } from './native_fs_scope.js';
 import { copySession, verifySession } from './storage_migration.js';
+import { validateSessionData, describeSessionValidationError } from './session_validation.js';
 import type { Logger } from '../logger/logger.js';
 
 const LOG_CTX = 'composite_storage_backend';
@@ -286,5 +288,60 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
         // 5. Now it's safe to drop the OPFS copy of the files (registry entry stays).
         await this.opfs.deleteSessionFiles(uuid);
         this.logger.info('relocated session to native storage', { sessionId: uuid, dir }, LOG_CTX);
+    }
+
+    /// Load a pre-existing native session directory into the registry.
+    ///
+    /// Unlike `relocateSessionToNative`, this copies nothing: the directory already holds a complete
+    /// session written by a previous run (or another machine). We simply read its session manifest,
+    /// validate the metadata up front (the same fail-fast gate the loader uses), and record a
+    /// `location=native` entry in the OPFS root manifest so the next restore picks it up.
+    ///
+    /// Returns the loaded session's UUID. Throws if the directory holds no readable session, the
+    /// metadata is invalid, or a session with the same UUID is already registered (we never silently
+    /// overwrite an existing entry — the caller surfaces the error).
+    async loadNativeSession(dir: string): Promise<string> {
+        await this.ensureScope(dir);
+        const native = new NativeStorageBackend(dir);
+        await native.initialize();
+
+        // Read the session manifest the directory already contains. A missing/unparseable file
+        // means this isn't a dashql session folder; surface that as a clear error.
+        let sessionData: SessionData;
+        try {
+            // The UUID argument is only used for the error message here — the native backend reads
+            // the single session file directly from the directory regardless of the id passed.
+            sessionData = await native.loadSession(dir);
+        } catch (e: any) {
+            throw new Error(`No dashql session found in ${dir} (expected ${STORAGE_SESSION_FILE})`);
+        }
+
+        // Fail-fast metadata validation, mirroring the loader: refuse a folder whose session is
+        // structurally unusable rather than registering an entry that would fail at restore.
+        const validation = validateSessionData(sessionData);
+        if (!validation.ok) {
+            throw new Error(`Session in ${dir} is invalid: ${describeSessionValidationError(validation.error)}`);
+        }
+
+        // Validation guarantees a syntactically valid UUID; it is the authoritative identity.
+        const uuid = sessionData.sessionId;
+
+        // Never clobber a session that's already registered (same folder added twice, or a UUID
+        // collision with an existing OPFS/native session).
+        if (this.locations.has(uuid)) {
+            throw new Error(`Session ${uuid} is already registered`);
+        }
+
+        // Record the native location in the OPFS root manifest and cache the backend/location.
+        await this.opfs.upsertSessionEntry({
+            path: uuid,
+            storageType: StorageBackendType.Native,
+            nativePath: dir,
+        });
+        this.locations.set(uuid, { type: StorageBackendType.Native, nativePath: dir });
+        this.nativeCache.set(uuid, native);
+
+        this.logger.info('loaded native session', { sessionId: uuid, dir }, LOG_CTX);
+        return uuid;
     }
 }

@@ -342,4 +342,91 @@ describe('CompositeStorageBackend', () => {
             ).rejects.toThrow(/not an OPFS session/);
         });
     });
+
+    describe('loadNativeSession', () => {
+        /// Write a complete session into a directory on disk *without* registering it (as if a
+        /// previous run left it there). Mirrors what the native backend persists for a real session.
+        async function writeSessionToDir(id: string, dir: string, title: string): Promise<void> {
+            const { NativeStorageBackend } = await import('./native_storage_backend.js');
+            const nb = new NativeStorageBackend(dir);
+            await nb.initialize();
+            await nb.saveSessionManifest(id, sessionData(id, title, {
+                storageType: StorageBackendType.Native,
+                nativePath: dir,
+            }));
+            await nb.saveSessionSchema(id, '-- loaded schema');
+            await nb.createNotebookPage(id, 'page-1');
+            await nb.saveNotebookScript(id, 'page-1', '01-script.sql', 'SELECT 1;');
+        }
+
+        it('registers an existing on-disk session and routes to it, copying nothing', async () => {
+            await writeSessionToDir(NATIVE_ID, NATIVE_DIR, 'Loaded');
+            await composite.initialize();
+            const filesBefore = fsStore.files.size;
+
+            const loaded = await composite.loadNativeSession(NATIVE_DIR);
+
+            expect(loaded).toBe(NATIVE_ID);
+            // Scope was granted for the folder.
+            expect(grantSpy).toHaveBeenCalledWith(NATIVE_DIR);
+            // The manifest now carries a native entry pointing at the folder.
+            const entry = opfs.manifest.find(s => s.path === NATIVE_ID);
+            expect(entry?.storageType).toBe(StorageBackendType.Native);
+            expect(entry?.nativePath).toBe(NATIVE_DIR);
+            // Nothing was copied; the on-disk files are untouched.
+            expect(fsStore.files.size).toBe(filesBefore);
+            expect(opfs.sessions.has(NATIVE_ID)).toBe(false);
+            // Reads now route to the folder.
+            expect(composite.getSessionLocation(NATIVE_ID)).toEqual({
+                type: StorageBackendType.Native,
+                nativePath: NATIVE_DIR,
+            });
+            expect((await composite.loadSession(NATIVE_ID)).title).toBe('Loaded');
+            expect(await composite.loadSessionSchema(NATIVE_ID)).toBe('-- loaded schema');
+        });
+
+        it('the loaded session survives a re-init from the manifest', async () => {
+            await writeSessionToDir(NATIVE_ID, NATIVE_DIR, 'Loaded');
+            await composite.initialize();
+            await composite.loadNativeSession(NATIVE_DIR);
+
+            // A fresh composite over the same OPFS manifest (i.e. an app reload) picks it up.
+            const reloaded = new CompositeStorageBackend(opfs, logger);
+            await reloaded.initialize();
+            expect(reloaded.getSessionLocation(NATIVE_ID).type).toBe(StorageBackendType.Native);
+            expect((await reloaded.loadSession(NATIVE_ID)).title).toBe('Loaded');
+        });
+
+        it('throws when the folder holds no session', async () => {
+            await composite.initialize();
+            await expect(
+                composite.loadNativeSession('/Users/test/empty-dir')
+            ).rejects.toThrow(/No dashql session found/);
+            expect(opfs.manifest).toHaveLength(0);
+        });
+
+        it('throws when the session metadata is invalid', async () => {
+            const { NativeStorageBackend } = await import('./native_storage_backend.js');
+            const nb = new NativeStorageBackend(NATIVE_DIR);
+            await nb.initialize();
+            // A session file whose id is not a valid UUID is refused by the validation gate.
+            await nb.saveSessionManifest('bad', sessionData('not-a-uuid', 'Bad'));
+
+            await composite.initialize();
+            await expect(
+                composite.loadNativeSession(NATIVE_DIR)
+            ).rejects.toThrow(/is invalid/);
+            expect(opfs.manifest).toHaveLength(0);
+        });
+
+        it('throws when a session with the same id is already registered', async () => {
+            await writeSessionToDir(NATIVE_ID, NATIVE_DIR, 'Loaded');
+            await composite.initialize();
+            await composite.loadNativeSession(NATIVE_DIR);
+
+            await expect(
+                composite.loadNativeSession(NATIVE_DIR)
+            ).rejects.toThrow(/already registered/);
+        });
+    });
 });

@@ -60,3 +60,48 @@ export async function relocateSessionToNative(
         throw e;
     }
 }
+
+/// Add a pre-existing session from a folder on disk, from the UI (native app only).
+///
+/// Prompts the user for a folder that already holds a dashql session (e.g. one created by a previous
+/// run, or relocated to native storage), registers it in the OPFS root manifest as a native session,
+/// and reloads the app so the tested storage init + restore path brings it into the registries.
+///
+/// Nothing is copied or written into the folder — the folder is the source of truth and stays put.
+/// On any failure (folder holds no session, invalid metadata, already registered) nothing is changed.
+///
+/// Returns false if the user cancelled the folder picker; true after a successful load kicks off the
+/// reload (the function does not return in practice on success).
+export async function addNativeSessionFromFolder(
+    backend: CompositeStorageBackend,
+    logger: Logger,
+): Promise<boolean> {
+    // recursive:true so the picker's auto-grant also covers the session's nested notebook/… paths.
+    const folder = await open({
+        directory: true,
+        multiple: false,
+        recursive: true,
+        title: 'Open an existing session folder',
+    });
+    if (folder == null || Array.isArray(folder)) {
+        // User cancelled.
+        return false;
+    }
+
+    try {
+        // Loading only touches the OPFS manifest (no per-session writes the writer could race),
+        // so unlike relocate there's no need to pause/flush the writer here.
+        const sessionId = await backend.loadNativeSession(folder);
+        logger.info('added native session from folder', { sessionId, folder }, LOG_CTX);
+
+        // Reload to re-run StorageProvider init + restoreAppState, which loads the new session.
+        globalThis.location.reload();
+        return true;
+    } catch (e: any) {
+        logger.error('adding native session from folder failed', {
+            folder,
+            error: (e as Error)?.message ?? String(e),
+        }, LOG_CTX);
+        throw e;
+    }
+}
