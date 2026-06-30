@@ -26,9 +26,30 @@ A Rust binary that uses `tauri_utils::acl::build` functions directly to:
    hardcoded `PLUGINS` constant) using `autogenerate_command_permissions()`
    and `define_permissions()`
 2. Parse plugin permission TOMLs from external crate sources
-3. Build merged `Manifest` objects for all plugins and core modules
-4. Parse capabilities from `acl_capabilities.json`
-5. Write `acl-manifests.json` and `capabilities.json` to the output directory
+3. Autogenerate `allow-*`/`deny-*` permissions for the app's own
+   `#[tauri::command]` functions (passed via `--app-command`) and register them
+   under the `__app-acl__` manifest key (`APP_ACL_KEY`), mirroring
+   `tauri-build`'s `app_manifest_permissions`
+4. Build merged `Manifest` objects for all plugins and core modules
+5. Parse capabilities from `acl_capabilities.json`
+6. Write `acl-manifests.json` and `capabilities.json` to the output directory
+
+### App-local commands (`__app-acl__`)
+
+Stock `tauri_build::build()` builds a manifest under `APP_ACL_KEY`
+(`"__app-acl__"`) holding `allow-<cmd>`/`deny-<cmd>` permissions for every
+app-local `#[tauri::command]`. Without it, the runtime authority rejects those
+commands with `"<cmd> not allowed. Plugin not found"` whenever the command must
+pass the ACL — which happens for any **remote** origin, i.e. the localhost dev
+server (`bazel run :dev`). Production builds load embedded assets (a *local*
+origin) and skip the ACL check for app commands, so the gap was invisible there.
+
+The app commands are listed in two places that must stay in sync with the
+`generate_handler!` list in `src/main.rs`:
+- `BUILD.bazel` `gen_tauri_acl(app_commands = [...])` (snake_case) — generates
+  the permissions.
+- `acl_capabilities.json` `permissions` (as `allow-<kebab-case>`) — grants them
+  to the window so they resolve for the localhost remote origin.
 
 **`gen_tauri_acl` Starlark rule** (`packages/tauri-aclgen/tauri_acl.bzl`)
 
@@ -112,6 +133,13 @@ When upgrading tauri:
    `tauri`'s `build.rs` — update if commands were added/removed.
 2. Update plugin crate version suffixes in `MODULE.bazel` `use_repo()` and
    `BUILD.bazel` plugin labels.
+
+When adding/removing an app-local `#[tauri::command]`:
+1. Add it to `generate_handler!` in `src/main.rs`.
+2. Add it to `gen_tauri_acl(app_commands = [...])` in `BUILD.bazel` (snake_case).
+3. Grant it in `acl_capabilities.json` `permissions` (as `allow-<kebab-case>`).
+   Skipping 2–3 makes the command fail in the dev server (remote origin) with
+   `"<cmd> not allowed. Plugin not found"`.
 
 ## Files
 

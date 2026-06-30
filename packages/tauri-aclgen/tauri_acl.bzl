@@ -22,6 +22,10 @@ def _gen_tauri_acl_impl(ctx):
             args.add("--plugin-file", "%s=%s" % (plugin_name, f.path))
             inputs.append(f)
 
+    # Add app-local command names (the app's own #[tauri::command] functions).
+    for cmd in ctx.attr.app_commands:
+        args.add("--app-command", cmd)
+
     ctx.actions.run(
         executable = ctx.executable.tool,
         arguments = [args],
@@ -48,6 +52,9 @@ gen_tauri_acl = rule(
         "plugins": attr.label_keyed_string_dict(
             allow_files = [".toml"],
             doc = "Map of plugin permission filegroups to plugin names",
+        ),
+        "app_commands": attr.string_list(
+            doc = "App-local #[tauri::command] names (snake_case) to grant permissions for",
         ),
         "tool": attr.label(
             executable = True,

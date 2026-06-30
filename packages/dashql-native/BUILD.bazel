@@ -31,6 +31,14 @@ gen_tauri_acl(
     name = "tauri_acl",
     core_config = "acl_core_permissions.toml",
     capabilities = ["acl_capabilities.json"],
+    # App-local #[tauri::command] functions registered in src/main.rs. Must be
+    # kept in sync with the generate_handler! list there and granted in
+    # acl_capabilities.json (as allow-<kebab-case>).
+    app_commands = [
+        "dashql_is_debug_build",
+        "start_oauth_callback_server",
+        "grant_fs_scope",
+    ],
     plugins = {
         "@crates__tauri-plugin-deep-link-2.4.9//:permission_files": "deep-link",
         "@crates__tauri-plugin-dialog-2.7.1//:permission_files": "dialog",
