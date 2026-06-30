@@ -391,15 +391,6 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
                                 )}
                                 <div className={baseStyles.card_actions}>
                                     <div className={baseStyles.card_actions_right}>
-                                        {canOpenFolder && (
-                                            <IconButton
-                                                variant={ButtonVariant.Invisible}
-                                                aria-label={"Open session folder"}
-                                                onClick={handleOpenFolder}
-                                            >
-                                                <FileDirectoryIcon size={16} />
-                                            </IconButton>
-                                        )}
                                         <IconButton
                                             variant={isEditMode ? ButtonVariant.Default : ButtonVariant.Invisible}
                                             aria-label={isEditMode ? 'Done removing' : 'Remove sessions'}
@@ -418,6 +409,15 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
                                         >
                                             <PlusIcon size={16} />
                                         </IconButton>
+                                        {canOpenFolder && (
+                                            <IconButton
+                                                variant={ButtonVariant.Invisible}
+                                                aria-label={"Open session folder"}
+                                                onClick={handleOpenFolder}
+                                            >
+                                                <FileDirectoryIcon size={16} />
+                                            </IconButton>
+                                        )}
                                     </div>
                                 </div>
                             </div>
