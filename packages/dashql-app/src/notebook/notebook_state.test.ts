@@ -23,6 +23,7 @@ import {
     SELECT_PREV_ENTRY,
     UPDATE_NOTEBOOK_ENTRY,
     UPDATE_PAGE_FOLDER_NAME,
+    REORDER_PAGES,
     getSelectedPage,
     getSelectedPageEntries,
     getSortedFileNames,
@@ -31,7 +32,7 @@ import {
 import { createDatalessConnectorInfo } from '../connection/connector_info.js';
 import { StorageWriter, StorageWriteTaskVariant } from "../platform/storage/storage_writer.js";
 import { Logger } from '../platform/logger/logger.js';
-import { createEmptyMetadata, createPageScript, generateScriptFileName } from './notebook_types.js';
+import { createEmptyMetadata, createPageScript, generateScriptFileName, stripPageOrderPrefix, pageOrderPrefixString, formatPageOrderPrefix } from './notebook_types.js';
 
 class NullLogger extends Logger {
     public destroy(): void { }
@@ -468,6 +469,130 @@ describe('UPDATE_PAGE_FOLDER_NAME', () => {
         const s3 = reduce(s2, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
         expect(s3.scripts[scriptId].annotations.tableDefs).toContain(`${newFolder}/${file}`);
         expect(s3.scripts[scriptId].annotations.tableDefs).not.toContain(`${oldFolder}/${file}`);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Page ordering prefix helpers
+// ---------------------------------------------------------------------------
+
+describe('page order prefix helpers', () => {
+    it('stripPageOrderPrefix removes a leading <digits>_ prefix', () => {
+        expect(stripPageOrderPrefix('03_main')).toBe('main');
+        expect(stripPageOrderPrefix('1_vis_data')).toBe('vis_data');
+        expect(stripPageOrderPrefix('main')).toBe('main');
+        expect(stripPageOrderPrefix('Untitled 2')).toBe('Untitled 2');
+    });
+
+    it('pageOrderPrefixString returns the prefix including the underscore, else empty', () => {
+        expect(pageOrderPrefixString('03_main')).toBe('03_');
+        expect(pageOrderPrefixString('main')).toBe('');
+    });
+
+    it('formatPageOrderPrefix pads only to the digits the total requires', () => {
+        expect(formatPageOrderPrefix(1, 9)).toBe('1_');
+        expect(formatPageOrderPrefix(1, 10)).toBe('01_');
+        expect(formatPageOrderPrefix(12, 12)).toBe('12_');
+        expect(formatPageOrderPrefix(7, 100)).toBe('007_');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// REORDER_PAGES
+// ---------------------------------------------------------------------------
+
+// Builds a state with several named pages, each holding one script seeded with SQL.
+function buildMultiPageState(folderNames: string[]): NotebookState {
+    const state = buildState();
+    // Drop the default 'Main' page; rebuild pages from the requested names.
+    const pages: NotebookState['notebookPages'] = {};
+    const scripts: NotebookState['scripts'] = {
+        [state.uncommittedScriptId]: state.scripts[state.uncommittedScriptId],
+    };
+    let firstFolder = '';
+    let firstFile = '';
+    for (const folderName of folderNames) {
+        const [key, data] = createEmptyScriptData(state.instance, state.connectionCatalog);
+        const fileName = generateScriptFileName({});
+        data.script.insertTextAt(0, 'SELECT 1 as x');
+        scripts[key] = { ...data, folderName, fileName };
+        pages[folderName] = { folderName, scripts: { [fileName]: createPageScript(key, fileName) } };
+        if (firstFolder === '') { firstFolder = folderName; firstFile = fileName; }
+    }
+    return {
+        ...state,
+        scripts,
+        notebookPages: pages,
+        notebookUserFocus: { folderName: firstFolder, fileName: firstFile, interactionCounter: 0 },
+    };
+}
+
+describe('REORDER_PAGES', () => {
+    it('assigns dense ordering prefixes that sort to the requested order', () => {
+        const state = buildMultiPageState(['alpha', 'beta', 'gamma']);
+        // Default lexicographic order is alpha, beta, gamma. Request gamma, alpha, beta.
+        const next = reduce(state, { type: REORDER_PAGES, value: ['gamma', 'alpha', 'beta'] });
+        const sorted = getSortedFolderNames(next.notebookPages);
+        expect(sorted.map(stripPageOrderPrefix)).toEqual(['gamma', 'alpha', 'beta']);
+        // Prefixes are dense and single-digit for a 3-page notebook.
+        expect(sorted).toEqual(['1_gamma', '2_alpha', '3_beta']);
+    });
+
+    it('keeps the clean (SQL-visible) reference namespace stable across a reorder', () => {
+        const state = buildMultiPageState(['alpha', 'beta']);
+        const betaFile = Object.keys(state.notebookPages['beta'].scripts)[0];
+        const betaScriptId = state.notebookPages['beta'].scripts[betaFile].scriptId;
+
+        // Analyze beta so its catalog path (tableDefs) is populated with the clean name.
+        const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: betaScriptId });
+        expect(s1.scripts[betaScriptId].annotations.tableDefs).toContain(`beta/${betaFile}`);
+
+        // Reorder beta to the front, then re-analyze: the catalog path must still be the clean name.
+        const s2 = reduce(s1, { type: REORDER_PAGES, value: ['beta', 'alpha'] });
+        const movedFolder = getSortedFolderNames(s2.notebookPages)[0];
+        expect(stripPageOrderPrefix(movedFolder)).toBe('beta');
+        const s3 = reduce(s2, { type: ANALYZE_OUTDATED_SCRIPT, value: betaScriptId });
+        expect(s3.scripts[betaScriptId].annotations.tableDefs).toContain(`beta/${betaFile}`);
+        expect(s3.scripts[betaScriptId].annotations.tableDefs).not.toContain(`${movedFolder}/${betaFile}`);
+    });
+
+    it('is a no-op when the requested order matches the current order', () => {
+        const state = buildMultiPageState(['alpha', 'beta', 'gamma']);
+        const next = reduce(state, { type: REORDER_PAGES, value: ['alpha', 'beta', 'gamma'] });
+        expect(next).toBe(state);
+    });
+
+    it('appends omitted pages after the requested ones without dropping any', () => {
+        const state = buildMultiPageState(['alpha', 'beta', 'gamma']);
+        const next = reduce(state, { type: REORDER_PAGES, value: ['gamma'] });
+        const sorted = getSortedFolderNames(next.notebookPages);
+        expect(sorted.map(stripPageOrderPrefix)).toEqual(['gamma', 'alpha', 'beta']);
+    });
+
+    it('moves focus to the renamed folder of the previously focused page', () => {
+        const state = buildMultiPageState(['alpha', 'beta', 'gamma']);
+        const s1 = reduce(state, { type: SELECT_PAGE, value: 'beta' });
+        expect(s1.notebookUserFocus.folderName).toBe('beta');
+        const s2 = reduce(s1, { type: REORDER_PAGES, value: ['gamma', 'beta', 'alpha'] });
+        expect(stripPageOrderPrefix(s2.notebookUserFocus.folderName)).toBe('beta');
+        expect(s2.notebookPages[s2.notebookUserFocus.folderName]).toBeDefined();
+    });
+
+    it('re-densifies prefixes on a notebook that already has them', () => {
+        const state = buildMultiPageState(['1_alpha', '2_beta', '3_gamma']);
+        const next = reduce(state, { type: REORDER_PAGES, value: ['3_gamma', '1_alpha', '2_beta'] });
+        expect(getSortedFolderNames(next.notebookPages)).toEqual(['1_gamma', '2_alpha', '3_beta']);
+    });
+});
+
+describe('UPDATE_PAGE_FOLDER_NAME preserves ordering prefix', () => {
+    it('keeps the page in place by retaining its prefix on rename', () => {
+        const state = buildMultiPageState(['1_alpha', '2_beta']);
+        const next = reduce(state, { type: UPDATE_PAGE_FOLDER_NAME, value: { folderName: '2_beta', newFolderName: 'reports' } });
+        expect(next.notebookPages['2_reports']).toBeDefined();
+        expect(next.notebookPages['2_beta']).toBeUndefined();
+        // Order is unchanged: alpha still before the renamed page.
+        expect(getSortedFolderNames(next.notebookPages).map(stripPageOrderPrefix)).toEqual(['alpha', 'reports']);
     });
 });
 

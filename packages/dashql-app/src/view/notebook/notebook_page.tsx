@@ -12,8 +12,26 @@ import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js'
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
-import { CREATE_PAGE, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE, UPDATE_PAGE_FOLDER_NAME, getSortedFolderNames } from '../../notebook/notebook_state.js';
+import { CREATE_PAGE, REORDER_PAGES, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE, UPDATE_PAGE_FOLDER_NAME, getSortedFolderNames } from '../../notebook/notebook_state.js';
+import { stripPageOrderPrefix } from '../../notebook/notebook_types.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
+import {
+    DndContext,
+    DragEndEvent,
+    KeyboardSensor,
+    PointerSensor,
+    closestCenter,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    arrayMove,
+    horizontalListSortingStrategy,
+    sortableKeyboardCoordinates,
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
@@ -35,6 +53,93 @@ interface FeedScrollTarget {
 }
 
 interface Props { }
+
+interface SortablePageTabProps {
+    /// The page's storage folder name (carries any ordering prefix); the sortable id and selection key.
+    folderName: string;
+    /// The display label (folder name with the ordering prefix stripped).
+    label: string;
+    isSelected: boolean;
+    isEditing: boolean;
+    editingPageTitle: string;
+    editInputRef: React.RefObject<HTMLInputElement | null>;
+    onSelect: () => void;
+    onStartEditing: (event: React.MouseEvent) => void;
+    onEditingTitleChange: (value: string) => void;
+    onSavePageEdit: () => void;
+    onEditKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+}
+
+/// A single draggable page tab. Split out because @dnd-kit's useSortable is a hook and must run
+/// once per tab. Dragging is pointer/keyboard-driven; a plain click still selects the page because
+/// the PointerSensor only starts a drag after a small activation distance (see the sensor config).
+const SortablePageTab: React.FC<SortablePageTabProps> = (props) => {
+    const PencilIcon = SymbolIcon('pencil_16');
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: props.folderName,
+        // While the inline rename input is open, a drag would steal pointer/keyboard focus from it.
+        disabled: props.isEditing,
+    });
+    const style: React.CSSProperties = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        // Lift the dragged tab above its neighbours and hint the cursor.
+        zIndex: isDragging ? 1 : undefined,
+        opacity: isDragging ? 0.8 : undefined,
+    };
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            // Spread dnd-kit's attributes/listeners first so the tablist roles below win over
+            // useSortable's default role="button".
+            {...attributes}
+            {...listeners}
+            className={props.isSelected ? styles.page_tab_selected : styles.page_tab}
+            role="tab"
+            id={`notebook-page-tab-${props.folderName}`}
+            aria-selected={props.isSelected}
+            onClick={() => {
+                if (props.isEditing) return; // Don't change page while editing
+                props.onSelect();
+            }}
+        >
+            <div className={styles.page_tab_button}>
+                {props.isEditing ? (
+                    <input
+                        ref={props.editInputRef}
+                        type="text"
+                        className={styles.page_tab_input}
+                        value={props.editingPageTitle}
+                        onChange={(e) => props.onEditingTitleChange(e.target.value)}
+                        onBlur={props.onSavePageEdit}
+                        onKeyDown={props.onEditKeyDown}
+                        onClick={(e) => e.stopPropagation()}
+                        // The input lives inside a dnd listener; stop pointer events from arming a drag.
+                        onPointerDown={(e) => e.stopPropagation()}
+                    />
+                ) : (
+                    <>
+                        <span className={styles.page_tab_label}>{props.label}</span>
+                        <div className={styles.page_tab_actions}>
+                            <IconButton
+                                variant={ButtonVariant.Invisible}
+                                size={ButtonSize.Tiny}
+                                aria-label="Rename page"
+                                onClick={props.onStartEditing}
+                                // Don't let grabbing the pencil start a tab drag.
+                                onPointerDown={(e) => e.stopPropagation()}
+                                className={styles.page_tab_action_button}
+                            >
+                                <PencilIcon size={12} />
+                            </IconButton>
+                        </div>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+};
 
 export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const route = useRouteContext();
@@ -64,6 +169,23 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const restoreSelectedFeedScroll = React.useCallback(() => {
         requestFeedScroll(notebook?.notebookUserFocus.fileName ?? '');
     }, [notebook?.notebookUserFocus.fileName, requestFeedScroll]);
+
+    // Page-tab drag-and-drop. The PointerSensor's activation distance lets a plain click through
+    // to tab selection while still allowing a drag once the pointer moves a few pixels.
+    const dndSensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    );
+    const handlePageDragEnd = React.useCallback((event: DragEndEvent) => {
+        const { active, over } = event;
+        if (notebook == null || over == null || active.id === over.id) return;
+        const folders = getSortedFolderNames(notebook.notebookPages);
+        const fromIndex = folders.indexOf(String(active.id));
+        const toIndex = folders.indexOf(String(over.id));
+        if (fromIndex < 0 || toIndex < 0) return;
+        const reordered = arrayMove(folders, fromIndex, toIndex);
+        modifyNotebook({ type: REORDER_PAGES, value: reordered });
+    }, [notebook, modifyNotebook]);
 
     const startEditingPage = React.useCallback((folderName: string, currentTitle: string, event: React.MouseEvent) => {
         event.stopPropagation();
@@ -295,64 +417,40 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             </div>
             <div className={styles.page_tabs_container}>
                 <div className={styles.page_tabs} role="tablist" aria-label="Notebook pages">
-                    {getSortedFolderNames(notebook.notebookPages).map((folderName) => {
-                        const page = notebook.notebookPages[folderName];
-                        const isSelected = catalogTab == null && folderName === notebook.notebookUserFocus.folderName;
-                        const isEditing = editingFolder === folderName;
-                        const label = page.folderName || 'Untitled';
-
-                        const PencilIcon = SymbolIcon('pencil_16');
-                        const canEdit = true; // Allow editing folder name for all pages
-
-                        return (
-                            <div
-                                key={folderName}
-                                className={isSelected ? styles.page_tab_selected : styles.page_tab}
-                                onClick={() => {
-                                    if (isEditing) return; // Don't change page while editing
-                                    setCatalogTab(null);
-                                    if (isSelected) {
-                                        setShowDetails(false);
-                                    } else {
-                                        modifyNotebook({ type: SELECT_PAGE, value: folderName });
-                                        setShowDetails(false);
-                                    }
-                                }}
-                            >
-                                <div className={styles.page_tab_button}>
-                                    {isEditing ? (
-                                        <input
-                                            ref={editInputRef}
-                                            type="text"
-                                            className={styles.page_tab_input}
-                                            value={editingPageTitle}
-                                            onChange={(e) => setEditingPageTitle(e.target.value)}
-                                            onBlur={savePageEdit}
-                                            onKeyDown={handleEditKeyDown}
-                                            onClick={(e) => e.stopPropagation()}
-                                        />
-                                    ) : (
-                                        <>
-                                            <span className={styles.page_tab_label}>{label}</span>
-                                            <div className={styles.page_tab_actions}>
-                                                {canEdit && (
-                                                    <IconButton
-                                                        variant={ButtonVariant.Invisible}
-                                                        size={ButtonSize.Tiny}
-                                                        aria-label="Rename page"
-                                                        onClick={(e) => startEditingPage(folderName, label, e)}
-                                                        className={styles.page_tab_action_button}
-                                                    >
-                                                        <PencilIcon size={12} />
-                                                    </IconButton>
-                                                )}
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })}
+                    <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handlePageDragEnd}>
+                        <SortableContext items={getSortedFolderNames(notebook.notebookPages)} strategy={horizontalListSortingStrategy}>
+                            {getSortedFolderNames(notebook.notebookPages).map((folderName) => {
+                                const isSelected = catalogTab == null && folderName === notebook.notebookUserFocus.folderName;
+                                const isEditing = editingFolder === folderName;
+                                // The ordering prefix is an on-disk implementation detail; show the clean name.
+                                const label = stripPageOrderPrefix(folderName) || 'Untitled';
+                                return (
+                                    <SortablePageTab
+                                        key={folderName}
+                                        folderName={folderName}
+                                        label={label}
+                                        isSelected={isSelected}
+                                        isEditing={isEditing}
+                                        editingPageTitle={editingPageTitle}
+                                        editInputRef={editInputRef}
+                                        onSelect={() => {
+                                            setCatalogTab(null);
+                                            if (isSelected) {
+                                                setShowDetails(false);
+                                            } else {
+                                                modifyNotebook({ type: SELECT_PAGE, value: folderName });
+                                                setShowDetails(false);
+                                            }
+                                        }}
+                                        onStartEditing={(e) => startEditingPage(folderName, label, e)}
+                                        onEditingTitleChange={setEditingPageTitle}
+                                        onSavePageEdit={savePageEdit}
+                                        onEditKeyDown={handleEditKeyDown}
+                                    />
+                                );
+                            })}
+                        </SortableContext>
+                    </DndContext>
                     <button
                         type="button"
                         className={styles.page_tab_add}

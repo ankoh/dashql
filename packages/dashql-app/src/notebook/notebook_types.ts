@@ -89,6 +89,41 @@ export function createEmptyMetadata(): NotebookMetadata {
     };
 }
 
+/// A leading numeric ordering prefix on a page folder name, e.g. "03_" in "03_main".
+///
+/// The prefix encodes the tab order *on disk* (folders sort lexicographically, so a
+/// zero-padded numeric prefix yields the desired tab order). It is deliberately hidden from
+/// the UI and from the logical SQL-reference namespace: a page's clean name is its stable
+/// identity, so reordering a tab (which rewrites the prefix) must not change its display
+/// label or break cross-script references that point at it.
+///
+/// Anchored at the start and requires the `<digits>_` shape. Note the known ambiguity: a page
+/// a user literally names `2024_report` parses as prefix `2024` + clean `report`. This is
+/// accepted as part of the lean "prefix lives in the folder name" model.
+const PAGE_ORDER_PREFIX_RE = /^(\d+)_/;
+
+/// The display / logical name of a page, with any storage ordering prefix removed.
+/// "03_main" -> "main"; "main" -> "main".
+export function stripPageOrderPrefix(folderName: string): string {
+    return folderName.replace(PAGE_ORDER_PREFIX_RE, '');
+}
+
+/// The leading ordering prefix of a page folder name *including* the trailing underscore
+/// ("03_main" -> "03_"), or the empty string if the folder carries none. Used to preserve a
+/// page's position across a rename.
+export function pageOrderPrefixString(folderName: string): string {
+    const m = PAGE_ORDER_PREFIX_RE.exec(folderName);
+    return m ? m[0] : '';
+}
+
+/// Format a 1-based ordering prefix, zero-padded to just the digit count required by `total`
+/// (total <= 9 -> "1_"; total in 10..99 -> "01_"). The uniform width keeps a plain
+/// lexicographic sort of the resulting folder names in numeric order.
+export function formatPageOrderPrefix(index1: number, total: number): string {
+    const width = String(Math.max(total, 1)).length;
+    return `${String(index1).padStart(width, '0')}_`;
+}
+
 /// Helper to generate a script file name that doesn't collide with existing entries
 export function generateScriptFileName(existingScripts: { [fileName: string]: NotebookPageScript }): string {
     const count = Object.keys(existingScripts).length;

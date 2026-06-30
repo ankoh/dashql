@@ -9,7 +9,7 @@ import { VariantKind } from '../utils/index.js';
 import { REPLACE_NOTEBOOK, CREATE_NOTEBOOK_PAGE, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK_PAGE, DELETE_NOTEBOOK_SCRIPT, groupDraftWrites, groupNotebookWrites, groupPageWrites, groupScriptDeletes, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK_DRAFT, WRITE_NOTEBOOK_SCRIPT } from '../platform/storage/storage_writer.js';
 import { NotebookStateWithoutId } from './notebook_state_registry.js';
 import { Logger, stringifyError } from '../platform/logger/logger.js';
-import { NotebookScriptAnnotations, NotebookPage, NotebookPageScript, NotebookMetadata as NotebookMetadataType, createEmptyAnnotations, createPageScript, generateScriptFileName } from './notebook_types.js';
+import { NotebookScriptAnnotations, NotebookPage, NotebookPageScript, NotebookMetadata as NotebookMetadataType, createEmptyAnnotations, createPageScript, generateScriptFileName, stripPageOrderPrefix, pageOrderPrefixString, formatPageOrderPrefix } from './notebook_types.js';
 
 const LOG_CTX = 'notebook_state';
 
@@ -111,6 +111,7 @@ export const CREATE_NOTEBOOK_ENTRY = Symbol('CREATE_NOTEBOOK_ENTRY');
 export const DELETE_NOTEBOOK_ENTRY = Symbol('DELETE_NOTEBOOK_ENTRY');
 export const UPDATE_NOTEBOOK_ENTRY = Symbol('UPDATE_NOTEBOOK_ENTRY');
 export const UPDATE_PAGE_FOLDER_NAME = Symbol('UPDATE_PAGE_FOLDER_NAME');
+export const REORDER_PAGES = Symbol('REORDER_PAGES');
 export const PROMOTE_UNCOMMITTED_SCRIPT = Symbol('PROMOTE_UNCOMMITTED_SCRIPT');
 export const SET_SCRIPT_TEXT = Symbol('SET_SCRIPT_TEXT');
 export const CREATE_NOTEBOOK_ENTRY_WITH_TEXT = Symbol('CREATE_NOTEBOOK_ENTRY_WITH_TEXT');
@@ -132,6 +133,7 @@ export type NotebookStateAction =
     | VariantKind<typeof DELETE_NOTEBOOK_ENTRY, string>
     | VariantKind<typeof UPDATE_NOTEBOOK_ENTRY, { fileName: string, newFileName: string }>
     | VariantKind<typeof UPDATE_PAGE_FOLDER_NAME, { folderName: string, newFolderName: string }>
+    | VariantKind<typeof REORDER_PAGES, string[]>  // folder names in the desired new view order
     | VariantKind<typeof PROMOTE_UNCOMMITTED_SCRIPT, null>
     | VariantKind<typeof SET_SCRIPT_TEXT, { scriptKey: ScriptKey, text: string }>
     | VariantKind<typeof CREATE_NOTEBOOK_ENTRY_WITH_TEXT, { text: string }>
@@ -164,12 +166,23 @@ export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQ
     return [scriptKey, scriptData];
 }
 
+/// Find a clean (prefix-free) page name that collides with no other page's clean name.
+///
+/// Collisions are checked on clean names because the ordering prefix is not part of a page's
+/// identity — two pages may not share a clean name even if their prefixes differ. The returned
+/// value is always prefix-free; callers re-apply an ordering prefix as needed.
 function uniqueFolderName(baseName: string, pages: NotebookPageMap, excludeFolder: string = ''): string {
-    const taken = (name: string) => name !== excludeFolder && pages[name] !== undefined;
-    if (!taken(baseName)) return baseName;
-    let suffix = 2;
-    while (taken(`${baseName} ${suffix}`)) suffix++;
-    return `${baseName} ${suffix}`;
+    const base = stripPageOrderPrefix(baseName);
+    const takenCleanNames = new Set<string>();
+    for (const key in pages) {
+        if (key === excludeFolder) continue;
+        takenCleanNames.add(stripPageOrderPrefix(key));
+    }
+    let candidate = base;
+    for (let suffix = 2; takenCleanNames.has(candidate); ++suffix) {
+        candidate = `${base} ${suffix}`;
+    }
+    return candidate;
 }
 
 enum FocusUpdate {
@@ -179,8 +192,18 @@ enum FocusUpdate {
 };
 
 /// Returns the sorted list of folder names for view-layer iteration.
+///
+/// Folder names may carry a numeric ordering prefix ("03_main"); sorting numerically (matching
+/// the storage backends' natural sort on load) yields the intended tab order and keeps a page
+/// in place when its prefix width grows (e.g. "9_x" before "10_y").
 export function getSortedFolderNames(pages: NotebookPageMap): string[] {
-    return Object.keys(pages).sort((a, b) => a.localeCompare(b));
+    return sortFolderNamesNumerically(Object.keys(pages));
+}
+
+/// Sort raw folder names with the numeric-aware ordering used for the tab bar. Exposed so callers
+/// that only have the names (and not a full NotebookPageMap) order them identically.
+export function sortFolderNamesNumerically(folderNames: string[]): string[] {
+    return [...folderNames].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 }
 
 /// Returns the sorted list of file names within a page.
@@ -788,7 +811,10 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 console.warn("Update references invalid folder name");
                 return state;
             }
-            const newFolderName = uniqueFolderName(requestedName, state.notebookPages, oldFolderName);
+            // Preserve the page's ordering prefix across the rename so it keeps its tab position;
+            // only the clean (display) part of the name changes.
+            const cleanName = uniqueFolderName(requestedName, state.notebookPages, oldFolderName);
+            const newFolderName = `${pageOrderPrefixString(oldFolderName)}${cleanName}`;
             const renamed = oldFolderName !== newFolderName;
 
             // Update all scripts in this page with the new folder name; mark outdated on rename for catalog path update
@@ -835,6 +861,100 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 storage?.write(
                     groupPageWrites(next.sessionId, newFolderName),
                     { type: CREATE_NOTEBOOK_PAGE, value: [next.sessionId, newFolderName, scriptEntries] },
+                    DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                );
+            }
+            return next;
+        }
+
+        case REORDER_PAGES: {
+            const requestedOrder = action.value;
+
+            // Build the target order: the requested folders (that still exist, de-duplicated),
+            // then any pages the caller omitted, appended in their current view order so none are
+            // dropped. The result is a total order over exactly the current pages.
+            const seen = new Set<string>();
+            const order: string[] = [];
+            for (const folder of requestedOrder) {
+                if (state.notebookPages[folder] && !seen.has(folder)) {
+                    seen.add(folder);
+                    order.push(folder);
+                }
+            }
+            const currentOrder = getSortedFolderNames(state.notebookPages);
+            for (const folder of currentOrder) {
+                if (!seen.has(folder)) {
+                    seen.add(folder);
+                    order.push(folder);
+                }
+            }
+
+            // If the resolved order matches the current view order, change nothing — a same-order
+            // reorder must not churn the disk or prefix a still-lean session. (The tab UI already
+            // suppresses drop-in-place; this keeps the reducer consistent for any caller.)
+            if (order.length === currentOrder.length && order.every((f, i) => f === currentOrder[i])) {
+                return state;
+            }
+
+            // Assign a dense ordering prefix to each page in the new order. A page whose storage
+            // key is already exactly the target name is left untouched (no rename, no disk churn) —
+            // this keeps still-lean sessions lean until a real reorder moves a page.
+            const total = order.length;
+            const renames: { oldFolder: string; newFolder: string }[] = [];
+            const newPages: NotebookPageMap = {};
+            const newScripts: ScriptDataMap = { ...state.scripts };
+            for (let i = 0; i < order.length; ++i) {
+                const oldFolder = order[i];
+                const page = state.notebookPages[oldFolder];
+                const newFolder = `${formatPageOrderPrefix(i + 1, total)}${stripPageOrderPrefix(oldFolder)}`;
+                if (newFolder === oldFolder) {
+                    newPages[oldFolder] = page;
+                    continue;
+                }
+                renames.push({ oldFolder, newFolder });
+                // The clean name is unchanged, so the catalog path is stable; no re-analyze needed.
+                for (const fileName in page.scripts) {
+                    const entry = page.scripts[fileName];
+                    const sd = newScripts[entry.scriptId];
+                    if (sd) newScripts[entry.scriptId] = { ...sd, folderName: newFolder };
+                }
+                newPages[newFolder] = { ...page, folderName: newFolder };
+            }
+
+            if (renames.length === 0) {
+                return state;
+            }
+
+            const newFocusFolder = renames.find(r => r.oldFolder === state.notebookUserFocus.folderName)?.newFolder
+                ?? state.notebookUserFocus.folderName;
+
+            const next: NotebookState = {
+                ...state,
+                notebookPages: newPages,
+                scripts: newScripts,
+                notebookUserFocus: { ...state.notebookUserFocus, folderName: newFocusFolder },
+            };
+
+            // Persist each moved page as delete-old + create-new (no atomic folder rename exists in
+            // either backend; this mirrors UPDATE_PAGE_FOLDER_NAME). The two writes for one page use
+            // distinct group keys, and a page that is both another page's old and new key across a
+            // permutation is keyed by its full path, so deletes and creates never clobber each other.
+            for (const { oldFolder } of renames) {
+                storage?.write(
+                    groupPageWrites(next.sessionId, oldFolder),
+                    { type: DELETE_NOTEBOOK_PAGE, value: [next.sessionId, oldFolder] },
+                    DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                );
+            }
+            for (const { newFolder } of renames) {
+                const page = newPages[newFolder];
+                const scriptEntries = Object.values(page.scripts).map(entry => {
+                    const sd = newScripts[entry.scriptId];
+                    return { scriptId: entry.scriptId, fileName: entry.fileName, sql: sd ? sd.script.toString() : '' };
+                });
+                storage?.write(
+                    groupPageWrites(next.sessionId, newFolder),
+                    { type: CREATE_NOTEBOOK_PAGE, value: [next.sessionId, newFolder, scriptEntries] },
                     DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
                 );
             }
@@ -1143,8 +1263,18 @@ function deriveScriptAnnotations(
 }
 
 export function makeScriptLookup(pages: NotebookPageMap, scripts: ScriptDataMap): ScriptTextByPath {
+    // SQL references address pages by their clean name (without the ordering prefix), so resolve
+    // against an index keyed by clean name. Fall back to the raw key for direct lookups by an
+    // already-prefixed folder name. If two pages strip to the same clean name (only possible
+    // transiently mid-rename), the lexicographically-first prefixed key wins, matching tab order.
+    const byCleanName = new Map<string, NotebookPage>();
+    for (const key of Object.keys(pages).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))) {
+        const clean = stripPageOrderPrefix(key);
+        if (!byCleanName.has(clean)) byCleanName.set(clean, pages[key]);
+    }
     return (folder, file) => {
-        const scriptId = pages[folder]?.scripts[file]?.scriptId;
+        const page = pages[folder] ?? byCleanName.get(folder);
+        const scriptId = page?.scripts[file]?.scriptId;
         if (scriptId == null) return null;
         return scripts[scriptId]?.script.toString() ?? null;
     };
@@ -1194,9 +1324,12 @@ export function analyzeNotebookScript(scriptData: ScriptData, registry: core.Das
     const next: ScriptData = { ...scriptData };
     next.scriptAnalysis.buffers.destroy(next.scriptAnalysis.buffers);
 
-    // Set the notebook path so the analyzer registers this script in the catalog
+    // Set the notebook path so the analyzer registers this script in the catalog.
+    // Register under the *clean* folder name (without the ordering prefix) so the SQL-visible
+    // reference namespace is stable: reordering a page rewrites its prefix but must not change
+    // how scripts in it are referenced (dashql.notebook."<folder>/<file>").
     if (next.folderName && next.fileName) {
-        next.script.setNotebookPath(`${next.folderName}/${next.fileName}`);
+        next.script.setNotebookPath(`${stripPageOrderPrefix(next.folderName)}/${next.fileName}`);
     }
 
     // Analyze the script

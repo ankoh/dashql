@@ -4,7 +4,7 @@ import { stringifyError } from '../logger/logger.js';
 import { ProgressCounter } from '../../utils/progress.js';
 import type { ConnectionState } from '../../connection/connection_state.js';
 import type { NotebookState, ScriptData as NotebookScriptData } from '../../notebook/notebook_state.js';
-import { analyzeAllScriptsInNotebook, createEmptyScriptData } from '../../notebook/notebook_state.js';
+import { analyzeAllScriptsInNotebook, createEmptyScriptData, sortFolderNamesNumerically } from '../../notebook/notebook_state.js';
 import type { AnalyzeAllScriptsProgress } from '../../notebook/notebook_state.js';
 import { decodeConnectionFromProto, restoreConnectionState } from '../../connection/connection_import.js';
 import { ConnectorType, type ConnectorInfo } from '../../connection/connector_info.js';
@@ -159,8 +159,9 @@ async function restoreNotebook(
         logger.info("No draft script found", { sessionId }, LOG_CTX);
     }
 
-    // Pick the first sorted page as the initial focus
-    const sortedFolders = Object.keys(notebookPages).sort((a, b) => a.localeCompare(b));
+    // Pick the first sorted page as the initial focus. Use the same numeric-aware ordering the
+    // tab bar renders with, so the focused page matches the first tab even with ordering prefixes.
+    const sortedFolders = sortFolderNamesNumerically(Object.keys(notebookPages));
     const initialFolder = sortedFolders[0] ?? '';
     const initialPage = initialFolder ? notebookPages[initialFolder] : null;
     const initialFile = initialPage

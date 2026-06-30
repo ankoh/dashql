@@ -19,6 +19,7 @@ import { QueryStatusPanel } from '../query_status/query_status_panel.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { useQueryState } from '../../connection/query_executor.js';
 import { getSelectedEntry, getSelectedPage, NotebookState, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
+import { stripPageOrderPrefix } from '../../notebook/notebook_types.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { useAppConfig } from '../../app_config.js';
 import { ScriptEditor } from './script_editor.js';
@@ -68,9 +69,9 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     const notebookEntry = getSelectedEntry(props.notebook);
     const scriptData = notebookEntry != null ? props.notebook.scripts[notebookEntry.scriptId] : null;
 
-    // Get folder name and script file name
+    // Get folder name and script file name (display-only: strip the on-disk ordering prefix)
     const selectedPage = getSelectedPage(props.notebook);
-    const folderName = selectedPage?.folderName ?? 'Untitled';
+    const folderName = stripPageOrderPrefix(selectedPage?.folderName ?? '') || 'Untitled';
     const scriptFileName = notebookEntry?.fileName ?? '01-script.sql';
 
     const PencilIcon: Icon = SymbolIcon('pencil_16');

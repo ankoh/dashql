@@ -26,6 +26,7 @@ import { PromptEditor } from './prompt_editor.js';
 import { ScriptPreview } from './notebook_script_preview.js';
 import { observeSize } from '../foundations/size_observer.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
+import { stripPageOrderPrefix } from '../../notebook/notebook_types.js';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { SegmentedControl, SegmentedControlSize } from '../foundations/segmented_control.js';
 import { NotebookScriptName } from './notebook_script_name.js';
@@ -559,9 +560,9 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         return () => observer.disconnect();
     }, [listHeight, fillerRowHeight, entries.length, heightsVersion]);
 
-    // Get folder name from current page
+    // Get folder name from current page (display-only: strip the on-disk ordering prefix)
     const selectedPage = getSelectedPage(props.notebook);
-    const folderName = selectedPage?.folderName ?? 'Untitled';
+    const folderName = stripPageOrderPrefix(selectedPage?.folderName ?? '') || 'Untitled';
 
     // Row props — heightsVersion is included so react-window re-evaluates row heights on change
     const focusedFileName = props.notebook.notebookUserFocus.fileName;
