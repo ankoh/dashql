@@ -10,7 +10,7 @@
     "flatbuffers": "25.9.23"
   },
   "devDependencies": {
-"@bufbuild/buf": "^1.70.0",
+    "@bufbuild/buf": "^1.70.0",
     "@bufbuild/protobuf": "^2.12.0",
     "@bufbuild/protoc-gen-es": "^2.12.0",
     "@codemirror/commands": "^6.10.3",
@@ -46,7 +46,6 @@
     "dexie": "^4.4.3",
     "eslint": "^10.4.1",
     "flatbuffers": "^25.9.23",
-    "framer-motion": "^12.40.0",
     "immutable": "^5.1.6",
     "jsdom": "^29.1.1",
     "json-schema-to-typescript": "^15.0.4",
