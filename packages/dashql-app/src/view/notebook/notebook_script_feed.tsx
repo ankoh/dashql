@@ -4,7 +4,6 @@ import * as styles from './notebook_script_feed.module.css';
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '@primer/octicons-react';
 import { CodeIcon, PaperAirplaneIcon, SparklesFillIcon } from '@primer/octicons-react';
-import { motion } from 'framer-motion';
 
 import { useAppConfig } from '../../app_config.js';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
@@ -123,11 +122,8 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
     }, [scriptFileName, onExpand]);
 
     return (
-        <motion.div
+        <div
             className={styles.feed_entry_card}
-            initial={{ y: 4, opacity: 0 }}
-            animate={{ y: isReady ? 0 : 4, opacity: isReady ? 1 : 0 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
             onPointerEnter={() => onFocus(scriptFileName)}
         >
             <div className={styles.feed_entry_action_bar} onPointerDown={handleHeaderPointerDown}>
@@ -200,7 +196,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                     />
                 </div>
             )}
-        </motion.div>
+        </div>
     );
 };
 
