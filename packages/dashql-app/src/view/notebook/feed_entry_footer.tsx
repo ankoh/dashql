@@ -30,6 +30,7 @@ interface FeedEntryFooterProps {
     vegaLiteSpec: TopLevelSpec | null;
     onShowTable?: () => void;
     onShowStatus?: () => void;
+    onShowVisualization?: () => void;
 }
 
 function useResultRowCount(queryState: QueryExecutionState, queryId: number): { hasResult: boolean; totalRows: number | null } {
@@ -149,11 +150,11 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
         ),
         [FooterTab.Visualization]: () => (
             <>
-                <TabHeader title="Visualization" onClick={props.onShowTable} />
+                <TabHeader title="Visualization" onClick={props.onShowVisualization} />
                 <VisualizationView query={props.queryState} vegaLiteSpec={props.vegaLiteSpec} />
             </>
         ),
-    }), [props.traceId, props.queryState, props.vegaLiteSpec, rowCountDetail, lastLogAgo, props.onShowTable, props.onShowStatus]);
+    }), [props.traceId, props.queryState, props.vegaLiteSpec, rowCountDetail, lastLogAgo, props.onShowTable, props.onShowStatus, props.onShowVisualization]);
 
     return (
         <VerticalTabs

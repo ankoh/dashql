@@ -65,9 +65,10 @@ interface CollapsedScriptCardProps {
     onRename: (oldFileName: string, newFileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowStatus: (fileName: string) => void;
+    onShowVisualization: (fileName: string) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, onFocus, onExpand, onDelete, onRename, onShowTable, onShowStatus }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, onFocus, onExpand, onDelete, onRename, onShowTable, onShowStatus, onShowVisualization }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     // Both eye states are rendered at once and toggled via CSS visibility. SymbolIcon caches a
     // distinct component type per symbol, so swapping the bound icon on focus change would
@@ -195,6 +196,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                         vegaLiteSpec={scriptData?.annotations.visualizeQuery?.vegaLiteSpec ?? null}
                         onShowTable={() => onShowTable(scriptFileName)}
                         onShowStatus={() => onShowStatus(scriptFileName)}
+                        onShowVisualization={() => onShowVisualization(scriptFileName)}
                     />
                 </div>
             )}
@@ -216,13 +218,14 @@ interface ScriptFeedRowProps {
     onRename: (oldFileName: string, newFileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowStatus: (fileName: string) => void;
+    onShowVisualization: (fileName: string) => void;
     onHeightMeasured: (index: number, height: number) => void;
     fillerRowHeight: number;
     heightsVersion: number;
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onShowTable, onShowStatus, onHeightMeasured } = props;
+    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onShowTable, onShowStatus, onShowVisualization, onHeightMeasured } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -270,6 +273,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onRename={onRename}
                     onShowTable={onShowTable}
                     onShowStatus={onShowStatus}
+                    onShowVisualization={onShowVisualization}
                 />
             </div>
         </div>
@@ -337,6 +341,11 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const handleShowStatus = React.useCallback((fileName: string) => {
         props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
         props.showDetails(DetailsTabKey.QueryStatusPanel);
+    }, [props.modifyNotebook, props.showDetails]);
+
+    const handleShowVisualization = React.useCallback((fileName: string) => {
+        props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
+        props.showDetails(DetailsTabKey.Visualization);
     }, [props.modifyNotebook, props.showDetails]);
 
     const isDisconnected = props.conn?.connectionHealth !== ConnectionHealth.ONLINE;
@@ -576,10 +585,11 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onRename: handleRename,
         onShowTable: handleShowTable,
         onShowStatus: handleShowStatus,
+        onShowVisualization: handleShowVisualization,
         onHeightMeasured: handleHeightMeasured,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleShowTable, handleShowStatus, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleShowTable, handleShowStatus, handleShowVisualization, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container}>

@@ -531,7 +531,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                 },
                                 [TabKey.Visualization]: {
                                     tabId: TabKey.Visualization,
-                                    icon: `${icons}#graph_plus`,
+                                    icon: `${icons}#graph_24`,
                                     labelShort: 'Chart',
                                     ariaLabel: 'Visualization',
                                     description: 'Visualization',
