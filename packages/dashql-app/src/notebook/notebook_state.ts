@@ -1522,28 +1522,35 @@ export function makeScriptLookup(pages: NotebookPageMap, scripts: ScriptDataMap)
 /// understand the `visualize` keyword); for any other statement it is the raw
 /// script text.
 ///
-/// Scripts are analyzed eagerly at load (see analyzeAllScriptsInNotebook) and
-/// kept analyzed as they are edited, so the cached `annotations.visualizeQuery`
-/// is the normal source of truth here.
+/// The cached `annotations.visualizeQuery.sql` is the source of truth ONLY while
+/// the script is up to date. A VISUALIZE that references another script
+/// (`dashql.notebook."x/foo"`, see resolveVisualizeQuery's SCRIPT_REFERENCE case)
+/// embeds the *current* text of that source script — so the cached SQL goes stale
+/// when the source is edited. Any edit to any script marks every *other* script
+/// `outdated` (see SET_SCRIPT_TEXT / UPDATE_FROM_PROCESSOR) but does NOT re-derive
+/// their annotations, so `!outdated` is precisely the condition under which the
+/// cached SQL is still valid. Trusting it while outdated was the bug where
+/// re-running a vis after changing its source's generate_series kept the old range.
 ///
-/// The synchronous re-analyze below is only a defensive fallback for the rare
-/// case of a script that has never been analyzed yet (e.g. created mid-session
-/// and neither rendered in an editor nor edited). We must NOT fall back to the
-/// raw script text instead: that would send `visualize (...)` verbatim to the
-/// backend, which is exactly the bug eager analysis exists to prevent. These
-/// fallback buffers are deliberately throwaway — they are analyzed without
-/// setNotebookPath() and are WASM pointers owned and freed here, so they must
-/// not be handed back into the reducer.
+/// When outdated (a source may have changed) we re-resolve against a fresh lookup.
+/// The vis script's own analysis (AST + vega-lite spec) is unaffected by source
+/// edits, so we reuse the existing analyzed buffers. The synchronous re-analyze is
+/// only a fallback for a script never analyzed yet (e.g. created mid-session and
+/// neither rendered in an editor nor edited): we must NOT fall back to the raw
+/// script text, which would send `visualize (...)` verbatim to the backend. Those
+/// fallback buffers are deliberately throwaway — analyzed without setNotebookPath()
+/// and owned/freed here — so they must not be handed back into the reducer.
 export function getExecutableQueryText(notebook: NotebookState, scriptData: ScriptData): string {
     const scriptText = scriptData.script.toString();
 
-    // Analyzed copy available? Trust the cached annotation.
-    if (scriptData.scriptAnalysis.buffers.analyzed) {
+    // Fresh analyzed copy → the cached resolution still reflects the current sources.
+    if (scriptData.scriptAnalysis.buffers.analyzed && !scriptData.scriptAnalysis.outdated) {
         return scriptData.annotations.visualizeQuery?.sql ?? scriptText;
     }
 
-    // Never analyzed: resolve on demand so we don't send un-extracted text.
-    const buffers = analyzeScript(scriptData.script);
+    // Outdated or never analyzed → re-resolve against the current notebook.
+    const haveAnalyzed = scriptData.scriptAnalysis.buffers.analyzed != null;
+    const buffers = haveAnalyzed ? scriptData.scriptAnalysis.buffers : analyzeScript(scriptData.script);
     try {
         const resolved = resolveVisualizeQuery(
             buffers,
@@ -1552,7 +1559,7 @@ export function getExecutableQueryText(notebook: NotebookState, scriptData: Scri
         );
         return resolved?.sql ?? scriptText;
     } finally {
-        buffers.destroy(buffers);
+        if (!haveAnalyzed) buffers.destroy(buffers);
     }
 }
 

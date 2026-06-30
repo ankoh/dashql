@@ -221,6 +221,20 @@
 .functions_tab:hover,
 .functions_tab_selected:hover {
 }
+/* dnd-kit makes each page tab keyboard-focusable (tabIndex=0) so it can be drag-reordered
+   via the keyboard sensor, and the add button is natively focusable. Tab interaction uses
+   clicks and Ctrl+H/L, and the selected tab is shown by the underline, so the browser's
+   default blue focus ring is just visual noise that doesn't fit the tab styling — suppress
+   it across the whole bar (page tabs, the add button, and the relations/functions tabs). */
+.page_tab:focus,
+.page_tab_selected:focus,
+.page_tab_add:focus,
+.catalog_tab:focus,
+.catalog_tab_selected:focus,
+.functions_tab:focus,
+.functions_tab_selected:focus {
+    outline: none;
+}
 .page_tab_selected {
     position: relative;
     font-weight: 500;

@@ -1196,7 +1196,7 @@ describe('getExecutableQueryText', () => {
         expect(text.toLowerCase()).toContain('select v as a');
     });
 
-    it('uses the cached annotation once the script has been analyzed', () => {
+    it('extracts the inner SELECT once the script has been analyzed', () => {
         const state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];
         state.scripts[scriptKey].script.insertTextAt(0, VISUALIZE_SCRIPT);
@@ -1207,7 +1207,8 @@ describe('getExecutableQueryText', () => {
         expect(scriptData.annotations.visualizeQuery?.sql).toBeDefined();
 
         const text = getExecutableQueryText(s1, scriptData);
-        expect(text).toBe(scriptData.annotations.visualizeQuery!.sql);
+        expect(text.toLowerCase()).not.toContain('visualize');
+        expect(text.toLowerCase()).toContain('select v as a');
     });
 
     it('returns the raw script text for a plain SQL statement', () => {
@@ -1218,6 +1219,33 @@ describe('getExecutableQueryText', () => {
 
         const text = getExecutableQueryText(state, scriptData);
         expect(text).toBe('SELECT 1 as x');
+    });
+
+    it('re-resolves a SCRIPT_REFERENCE against the source script\'s current text', () => {
+        // Regression: a `visualize dashql.notebook."Main/a"` embeds the *current*
+        // text of source script "a". Editing "a" only marks the vis script
+        // outdated; it does not re-derive its cached visualizeQuery. Re-executing
+        // the vis must still pick up the edited source, not the stale snapshot.
+        const state = buildScriptState(['1_a.sql']);
+        const sourceId = state.notebookPages[MAIN_FOLDER].scripts['1_a.sql'].scriptId;
+        const s1 = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: sourceId, text: 'select v as a from generate_series(1, 100) t(v)' } });
+
+        const visualize = `visualize dashql.notebook."${MAIN_FOLDER}/a" as ( mark => line, encoding => ( x => (field => a) ) )`;
+        const s2 = reduce(s1, { type: CREATE_NOTEBOOK_ENTRY_WITH_TEXT, value: { text: visualize } });
+        const visId = getSelectedPage(s2)!.scripts[s2.notebookUserFocus.fileName].scriptId;
+
+        // The vis resolves against the source's initial text.
+        expect(getExecutableQueryText(s2, s2.scripts[visId]).toLowerCase()).toContain('generate_series(1, 100)');
+
+        // Edit the source script's range; the vis script is now marked outdated but its cached SQL is stale.
+        const s3 = reduce(s2, { type: SET_SCRIPT_TEXT, value: { scriptKey: sourceId, text: 'select v as a from generate_series(1, 1) t(v)' } });
+        expect(s3.scripts[visId].scriptAnalysis.outdated).toBe(true);
+        expect(s3.scripts[visId].annotations.visualizeQuery!.sql.toLowerCase()).toContain('generate_series(1, 100)');
+
+        // Re-executing the vis must reflect the edited source, not the stale cache.
+        const executed = getExecutableQueryText(s3, s3.scripts[visId]).toLowerCase();
+        expect(executed).toContain('generate_series(1, 1)');
+        expect(executed).not.toContain('generate_series(1, 100)');
     });
 });
 
