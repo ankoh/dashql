@@ -65,7 +65,6 @@ export const NotebookCommandList: React.FC<{
     const ArrowLeftIcon = SymbolIcon('arrow_left_16');
     const ArrowRightIcon = SymbolIcon('arrow_right_16');
     const FileZipIcon = SymbolIcon('file_zip_16');
-    const XIcon = SymbolIcon('x_16');
 
     const folders = props.notebook ? getSortedFolderNames(props.notebook.notebookPages) : [];
     const focusedFolder = props.notebook?.notebookUserFocus.folderName ?? '';
@@ -76,6 +75,18 @@ export const NotebookCommandList: React.FC<{
 
     return (
         <>
+            <ActionList.ListItem
+                onClick={() => notebookCommand(NotebookCommandType.ToggleComposeInputMode)}
+                disabled={!aiAvailable}
+            >
+                <ActionList.Leading>
+                    <SparklesFillIcon />
+                </ActionList.Leading>
+                <ActionList.ItemText>
+                    Switch Mode
+                </ActionList.ItemText>
+                <ActionList.Trailing>Ctrl + M</ActionList.Trailing>
+            </ActionList.ListItem>
             <ActionList.ListItem
                 onClick={() => notebookCommand(NotebookCommandType.SelectPreviousNotebookPage)}
                 disabled={folderIndex <= 0}
@@ -124,18 +135,6 @@ export const NotebookCommandList: React.FC<{
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + J</ActionList.Trailing>
             </ActionList.ListItem>
-            <ActionList.ListItem
-                onClick={() => notebookCommand(NotebookCommandType.ToggleComposeInputMode)}
-                disabled={!aiAvailable}
-            >
-                <ActionList.Leading>
-                    <SparklesFillIcon />
-                </ActionList.Leading>
-                <ActionList.ItemText>
-                    Switch Mode
-                </ActionList.ItemText>
-                <ActionList.Trailing>Ctrl + M</ActionList.Trailing>
-            </ActionList.ListItem>
             <ActionList.ListItem onClick={() => openLinkSharing(s => !s)}>
                 <ActionList.Leading>
                     <LinkIcon />
@@ -159,16 +158,6 @@ export const NotebookCommandList: React.FC<{
                     />
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + S</ActionList.Trailing>
-            </ActionList.ListItem>
-            <ActionList.ListItem
-                onClick={() => notebookCommand(NotebookCommandType.CloseNotebook)}
-            >
-                <ActionList.Leading>
-                    <XIcon />
-                </ActionList.Leading>
-                <ActionList.ItemText>
-                    Close Notebook
-                </ActionList.ItemText>
             </ActionList.ListItem>
         </>
     );

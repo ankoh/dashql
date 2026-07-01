@@ -134,7 +134,7 @@ export function SessionStorageOverlay(props: SessionStorageOverlayProps) {
             anchorOffset={props.anchorOffset}
             overlayProps={{
                 width: OverlaySize.L,
-                height: OverlaySize.M,
+                height: OverlaySize.XS,
             }}
         >
             <SessionStorageViewer sessionId={props.sessionId} onClose={props.onClose} />

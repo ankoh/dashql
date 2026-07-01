@@ -2,6 +2,8 @@ import * as React from 'react';
 import * as styles from './navbar.module.css';
 import symbols from '@ankoh/dashql-svg-symbols';
 
+import { XIcon } from '@primer/octicons-react';
+
 import { AnchorAlignment, AnchorSide } from './foundations/anchored_position.js';
 import { HoverMode, NavBarButtonWithRef, NavBarLink } from './navbar_button.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
@@ -74,26 +76,20 @@ const InternalsButton = (_props: {}) => {
 };
 
 /// The clickable session path bar. Forwards a ref + anchor props so it can anchor the overlay
-/// while keeping the bar's flex layout (icon + ellipsized path).
+/// while keeping the bar's flex layout (ellipsized path).
 const SessionBarButton = React.forwardRef<HTMLButtonElement, {
     sessionPath: string;
-    pageIcon: string;
     onClick?: (event: React.MouseEvent) => void;
 } & object>((props, ref) => {
-    const { sessionPath, pageIcon, ...anchorProps } = props;
+    const { sessionPath, ...anchorProps } = props;
     return (
         <button
             ref={ref}
             type="button"
-            className={styles.session_bar}
+            className={styles.session_bar_button}
             title={sessionPath}
             {...anchorProps}
         >
-            <div className={styles.session_bar_icon}>
-                <svg width="16px" height="16px">
-                    <use xlinkHref={pageIcon} />
-                </svg>
-            </div>
             <div className={styles.session_bar_path}>
                 {sessionPath}
             </div>
@@ -101,27 +97,37 @@ const SessionBarButton = React.forwardRef<HTMLButtonElement, {
     );
 });
 
-const SessionBar = (props: { sessionId: string | null; sessionPath: string; pageIcon: string }) => {
+const SessionBar = (props: { sessionId: string | null; sessionPath: string; onClose: () => void }) => {
     const [showStorageOverlay, setShowStorageOverlay] = React.useState<boolean>(false);
 
     return (
         <div className={styles.session_bar_container}>
-            <SessionStorageOverlay
-                sessionId={props.sessionId}
-                isOpen={showStorageOverlay}
-                onClose={() => setShowStorageOverlay(false)}
-                renderAnchor={(p: object) => (
-                    <SessionBarButton
-                        {...p}
-                        sessionPath={props.sessionPath}
-                        pageIcon={props.pageIcon}
-                        onClick={() => setShowStorageOverlay(true)}
-                    />
-                )}
-                side={AnchorSide.OutsideBottom}
-                align={AnchorAlignment.Start}
-                anchorOffset={8}
-            />
+            <div className={styles.session_bar}>
+                <SessionStorageOverlay
+                    sessionId={props.sessionId}
+                    isOpen={showStorageOverlay}
+                    onClose={() => setShowStorageOverlay(false)}
+                    renderAnchor={(p: object) => (
+                        <SessionBarButton
+                            {...p}
+                            sessionPath={props.sessionPath}
+                            onClick={() => setShowStorageOverlay(true)}
+                        />
+                    )}
+                    side={AnchorSide.OutsideBottom}
+                    align={AnchorAlignment.Start}
+                    anchorOffset={8}
+                />
+                <button
+                    type="button"
+                    className={styles.session_bar_close}
+                    title="Close Notebook"
+                    aria-label="Close Notebook"
+                    onClick={props.onClose}
+                >
+                    <XIcon />
+                </button>
+            </div>
         </div>
     );
 };
@@ -217,12 +223,10 @@ export const NavBar = (): React.ReactElement => {
         logger.debug("Navigated to path", { "path": location.pathname }, LOG_CTX);
     }, [location.pathname]);
 
-    const isToolPage = location.pathname === "/tool" || location.pathname.startsWith("/tool/");
     const sessionId = connection?.sessionId ?? null;
     // The session bar shows a display path (opfs://… or file://…) reconstructed from the uuid +
     // its recorded physical location; the uuid stays the authoritative identity.
     const sessionPath = sessionId ? displayPath(sessionId, storageReader.getSessionLocation(sessionId)) : "";
-    const pageIcon = isToolPage ? `${symbols}#tool` : `${symbols}#book_24`;
     return (
         // `deep` makes the whole toolbar a native window-drag surface: clicks anywhere drag the
         // window except on genuinely interactive elements (the session bar button, version buttons,
@@ -234,7 +238,7 @@ export const NavBar = (): React.ReactElement => {
         >
             {isBrowser && <BrandLogo onClose={handleCloseNotebook} />}
             <div className={styles.tabs}>
-                <SessionBar sessionId={sessionId} sessionPath={sessionPath} pageIcon={pageIcon} />
+                <SessionBar sessionId={sessionId} sessionPath={sessionPath} onClose={handleCloseNotebook} />
             </div>
             <div className={styles.version_container}>
                 <InternalsButton />

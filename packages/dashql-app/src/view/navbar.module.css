@@ -10,7 +10,7 @@
     --nav_tab_fg: white;
     --nav_tab_fg_active: white;
     --nav_tab_border: 1px solid black;
-    --nav_border_active: 1px solid hsl(210deg, 12%, 28%);
+    --nav_border_active: 1px solid rgba(0, 0, 0, 0.2);
 }
 
 .container {
@@ -28,43 +28,79 @@
 }
 
 .session_bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    min-width: 0;
+    flex: 1 1 auto;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--border_radius);
+    background-color: rgba(0, 0, 0, 0.3);
+    color: var(--nav_tab_fg);
+    overflow: hidden;
+}
+
+.session_bar:focus-within {
+    border: var(--nav_border_active);
+}
+
+/* The clickable path region: grows to fill the pill, opening the storage overlay. */
+.session_bar_button {
     -webkit-appearance: none;
     appearance: none;
-    border: 1px solid transparent;
+    border: none;
     font-family: inherit;
 
     display: flex;
     flex-direction: row;
     align-items: center;
-    height: 28px;
+    height: 100%;
     min-width: 0;
     flex: 1 1 auto;
     padding: 0 12px 0 12px;
-    column-gap: 12px;
-    border-radius: 6px;
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: transparent;
     color: var(--nav_tab_fg);
     overflow: hidden;
     cursor: pointer;
     transition: background-color 0.1s ease-in-out;
 }
 
-.session_bar:hover {
-    background-color: rgba(0, 0, 0, 0.45);
-}
-
-.session_bar:focus-visible {
+.session_bar_button:focus-visible {
     outline: none;
-    border: var(--nav_border_active);
 }
 
-.session_bar_icon {
+/* The close button, right-aligned within the pill. */
+.session_bar_close {
+    -webkit-appearance: none;
+    appearance: none;
+    border: none;
+    font-family: inherit;
+
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: inherit;
+    width: 32px;
+    height: 100%;
+    padding: 0;
+    border-radius: var(--border_radius);
+    background-color: transparent;
+    color: var(--nav_tab_fg);
     fill: currentColor;
+    cursor: pointer;
+    transition: background-color 0.1s ease-in-out;
+}
+
+.session_bar_close:hover {
+    background-color: rgba(0, 0, 0, 0.45);
+}
+
+.session_bar_close:focus-visible {
+    outline: none;
+    border: var(--nav_border_active);
 }
 
 .session_bar_path {
@@ -151,12 +187,12 @@
 .tab {
     position: relative;
     color: var(--nav_tab_fg);
-    height: 30px;
+    height: 28px;
     border-radius: var(--border_radius);
     border: 1px solid transparent !important;
 }
 .tab:hover {
-    background-color: var(--nav_tab_bg_active);
+    background-color: rgba(0, 0, 0, 0.45);
     border: var(--nav_border_active) !important;
 }
 .tab.active {
