@@ -881,19 +881,19 @@ parser-snapshots:
         - text: [200,201]
       comments: []
 
-  - name: vis_statement_nested_object_value
+  - name: vis_statement_mark_def_simple
     input: |-
       VISUALIZE sales AS (
-        mark => (type => 'bar', title => 'My Chart')
+        mark => (type => bar, filled => true, opacity => 0.8)
       );
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 8
+          ast-size: 9
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE .. Chart')\n)"
+            text: "VISUALIZE .. => 0.8)\n)"
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_TABLEREF
@@ -907,23 +907,224 @@ parser-snapshots:
                         text: "sales"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
-                text: "mark => (t..My Chart')"
+                text: "mark => (t..ty => 0.8)"
                 children:
                   - key: VIS_SPEC_MARK
-                    type: OBJECT_VIS_SPEC
-                    text: "(type => '..My Chart')"
+                    type: OBJECT_VIS_MARK
+                    text: "(type => b..ty => 0.8)"
                     children:
-                      - key: VIS_SPEC_TYPE
-                        type: LITERAL_STRING
-                        text: "'bar'"
-                      - key: VIS_SPEC_TITLE
-                        type: LITERAL_STRING
-                        text: "'My Chart'"
+                      - key: VIS_MARK_TYPE
+                        type: ENUM_VIS_MARK_TYPE
+                        text: "bar"
+                        children: []
+                      - key: VIS_MARK_FILLED
+                        type: BOOL
+                        value: 1
+                      - key: VIS_MARK_OPACITY
+                        type: LITERAL_FLOAT
+                        text: "0.8"
       scanner-errors: []
       parser-errors: []
       line-breaks:
         - text: [20,21]
-        - text: [67,68]
+        - text: [76,77]
+      comments: []
+
+  - name: vis_statement_mark_def_point_toggle
+    input: |-
+      VISUALIZE sales AS (
+        mark => (type => line, point => true)
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 8
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..=> true)\n)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "sales"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "sales"
+                    children:
+                      - type: NAME
+                        text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: OBJECT_VIS_SPEC
+                text: "mark => (t..t => true)"
+                children:
+                  - key: VIS_SPEC_MARK
+                    type: OBJECT_VIS_MARK
+                    text: "(type => l..t => true)"
+                    children:
+                      - key: VIS_MARK_TYPE
+                        type: ENUM_VIS_MARK_TYPE
+                        text: "line"
+                        children: []
+                      - key: VIS_MARK_POINT
+                        type: BOOL
+                        value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [20,21]
+        - text: [60,61]
+      comments: []
+
+  - name: vis_statement_mark_def_nested_overlay
+    input: |-
+      VISUALIZE sales AS (
+        mark => (type => line, point => (filled => false, fill => 'white'))
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 10
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..white'))\n)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "sales"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "sales"
+                    children:
+                      - type: NAME
+                        text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: OBJECT_VIS_SPEC
+                text: "mark => (t.. 'white'))"
+                children:
+                  - key: VIS_SPEC_MARK
+                    type: OBJECT_VIS_MARK
+                    text: "(type => l.. 'white'))"
+                    children:
+                      - key: VIS_MARK_TYPE
+                        type: ENUM_VIS_MARK_TYPE
+                        text: "line"
+                        children: []
+                      - key: VIS_MARK_POINT
+                        type: OBJECT_VIS_MARK
+                        text: "(filled =>..> 'white')"
+                        children:
+                          - key: VIS_MARK_FILLED
+                            type: BOOL
+                            value: 0
+                          - key: VIS_MARK_FILL
+                            type: LITERAL_STRING
+                            text: "'white'"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [20,21]
+        - text: [90,91]
+      comments: []
+
+  - name: vis_statement_mark_def_broad
+    input: |-
+      VISUALIZE sales AS (
+        mark => (
+          type => area,
+          line => (stroke => 'red', stroke_width => 2),
+          point => false,
+          color => 'steelblue',
+          stroke_dash => [4, 2],
+          interpolate => 'monotone',
+          tension => 0.5,
+          tooltip => true
+        )
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 19
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..true\n  )\n)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "sales"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "sales"
+                    children:
+                      - type: NAME
+                        text: "sales"
+              - key: VIS_VISUALISE_SPEC
+                type: OBJECT_VIS_SPEC
+                text: "mark => (\n..> true\n  )"
+                children:
+                  - key: VIS_SPEC_MARK
+                    type: OBJECT_VIS_MARK
+                    text: "(\n    type..> true\n  )"
+                    children:
+                      - key: VIS_MARK_TYPE
+                        type: ENUM_VIS_MARK_TYPE
+                        text: "area"
+                        children: []
+                      - key: VIS_MARK_LINE
+                        type: OBJECT_VIS_MARK
+                        text: "(stroke =>..idth => 2)"
+                        children:
+                          - key: VIS_MARK_STROKE
+                            type: LITERAL_STRING
+                            text: "'red'"
+                          - key: VIS_MARK_STROKE_WIDTH
+                            type: LITERAL_INTEGER
+                            text: "2"
+                      - key: VIS_MARK_POINT
+                        type: BOOL
+                        value: 0
+                      - key: VIS_MARK_COLOR
+                        type: LITERAL_STRING
+                        text: "'steelblue'"
+                      - key: VIS_MARK_STROKE_DASH
+                        type: OBJECT_EXT_VARARG_ARRAY
+                        text: "[4, 2]"
+                        children:
+                          - key: EXT_VARARG_ARRAY_VALUES
+                            type: ARRAY
+                            text: "[4, 2]"
+                            children:
+                              - type: LITERAL_INTEGER
+                                text: "4"
+                              - type: LITERAL_INTEGER
+                                text: "2"
+                      - key: VIS_MARK_INTERPOLATE
+                        type: LITERAL_STRING
+                        text: "'monotone'"
+                      - key: VIS_MARK_TENSION
+                        type: LITERAL_FLOAT
+                        text: "0.5"
+                      - key: VIS_MARK_TOOLTIP
+                        type: BOOL
+                        value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [20,21]
+        - text: [32,33]
+        - text: [50,51]
+        - text: [100,101]
+        - text: [120,121]
+        - text: [146,147]
+        - text: [173,174]
+        - text: [204,205]
+        - text: [224,225]
+        - text: [244,245]
+        - text: [248,249]
       comments: []
 
   - name: vis_statement_array_value

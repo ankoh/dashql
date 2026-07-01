@@ -369,6 +369,109 @@ void WriteLegend(W& writer, const VisLegend& l) {
     writer.EndObject();
 }
 
+/// Write a mark definition as a Vega-Lite mark object. `point` / `line` overlays
+/// recurse: a boolean toggle writes a bool, a nested definition writes an object.
+template <typename W>
+void WriteMark(W& writer, const VisMark& m, const AnalyzedScript& script) {
+    writer.StartObject();
+    if (m.type.has_value()) {
+        auto* tt = buffers::parser::VisMarkTypeTypeTable();
+        writer.Key("type");
+        writer.String(ToLower(tt->names[static_cast<uint8_t>(*m.type)]).c_str());
+    }
+    if (m.filled.has_value()) {
+        writer.Key("filled");
+        writer.Bool(*m.filled);
+    }
+    if (m.fill.has_value()) {
+        writer.Key("fill");
+        writer.String(m.fill->data(), m.fill->size());
+    }
+    if (m.stroke.has_value()) {
+        writer.Key("stroke");
+        writer.String(m.stroke->data(), m.stroke->size());
+    }
+    if (m.color.has_value()) {
+        writer.Key("color");
+        writer.String(m.color->data(), m.color->size());
+    }
+    if (m.opacity.has_value()) {
+        writer.Key("opacity");
+        writer.Double(*m.opacity);
+    }
+    if (m.fill_opacity.has_value()) {
+        writer.Key("fillOpacity");
+        writer.Double(*m.fill_opacity);
+    }
+    if (m.stroke_opacity.has_value()) {
+        writer.Key("strokeOpacity");
+        writer.Double(*m.stroke_opacity);
+    }
+    if (m.stroke_width.has_value()) {
+        writer.Key("strokeWidth");
+        writer.Double(*m.stroke_width);
+    }
+    if (m.stroke_dash_node_id.has_value()) {
+        writer.Key("strokeDash");
+        WriteArrayNode(writer, *m.stroke_dash_node_id, script);
+    }
+    if (m.size.has_value()) {
+        writer.Key("size");
+        writer.Double(*m.size);
+    }
+    if (m.shape.has_value()) {
+        writer.Key("shape");
+        writer.String(m.shape->data(), m.shape->size());
+    }
+    if (m.angle.has_value()) {
+        writer.Key("angle");
+        writer.Double(*m.angle);
+    }
+    if (m.radius.has_value()) {
+        writer.Key("radius");
+        writer.Double(*m.radius);
+    }
+    if (m.corner_radius.has_value()) {
+        writer.Key("cornerRadius");
+        writer.Double(*m.corner_radius);
+    }
+    if (m.orient.has_value()) {
+        writer.Key("orient");
+        writer.String(m.orient->data(), m.orient->size());
+    }
+    if (m.interpolate.has_value()) {
+        writer.Key("interpolate");
+        writer.String(m.interpolate->data(), m.interpolate->size());
+    }
+    if (m.tension.has_value()) {
+        writer.Key("tension");
+        writer.Double(*m.tension);
+    }
+    if (m.thickness.has_value()) {
+        writer.Key("thickness");
+        writer.Double(*m.thickness);
+    }
+    if (m.tooltip.has_value()) {
+        writer.Key("tooltip");
+        writer.Bool(*m.tooltip);
+    }
+    if (m.point) {
+        writer.Key("point");
+        WriteMark(writer, *m.point, script);
+    } else if (m.point_enabled.has_value()) {
+        writer.Key("point");
+        writer.Bool(*m.point_enabled);
+    }
+    if (m.line) {
+        writer.Key("line");
+        WriteMark(writer, *m.line, script);
+    } else if (m.line_enabled.has_value()) {
+        writer.Key("line");
+        writer.Bool(*m.line_enabled);
+    }
+    writer.EndObject();
+}
+
 template <typename W>
 void WriteBin(W& writer, const VisBin& b) {
     bool has_params = b.step.has_value() || b.maxbins.has_value() || b.minstep.has_value() || b.anchor.has_value() ||
@@ -440,7 +543,12 @@ std::string GenerateVegaLiteSpec(const VisualizationSpec& spec, const AnalyzedSc
         writer.EndObject();
     }
 
-    if (spec.mark_type.has_value()) {
+    if (spec.mark.has_value() && spec.mark->HasProperties()) {
+        // Structured mark definition: `mark => (type => line, point => (...))`
+        writer.Key("mark");
+        WriteMark(writer, *spec.mark, script);
+    } else if (spec.mark_type.has_value()) {
+        // Bare mark type: `mark => bar` stays a plain string for compactness.
         auto* tt = buffers::parser::VisMarkTypeTypeTable();
         std::string mark = ToLower(tt->names[static_cast<uint8_t>(*spec.mark_type)]);
         writer.Key("mark");

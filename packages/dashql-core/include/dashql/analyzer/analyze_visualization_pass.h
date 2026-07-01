@@ -18,6 +18,8 @@ struct AnalyzeVisualizationPass : public PassManager::LTRPass {
         std::vector<VisEncodingChannel> encoding_channels;
         /// Mark type found in child
         std::optional<buffers::parser::VisMarkType> mark_type;
+        /// Structured mark definition found in child (object form)
+        std::optional<VisMark> mark;
         /// Top-level title
         std::optional<std::string_view> title;
         /// Top-level width

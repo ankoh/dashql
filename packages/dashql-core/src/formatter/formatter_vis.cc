@@ -136,6 +136,28 @@ std::string_view GetVisAttributeKeyText(AttributeKey key) {
         case AttributeKey::VIS_LEGEND_OFFSET: return "offset";
         case AttributeKey::VIS_LEGEND_ZINDEX: return "z_index";
         case AttributeKey::VIS_LEGEND_NAME: return "name";
+        case AttributeKey::VIS_MARK_TYPE: return "type";
+        case AttributeKey::VIS_MARK_POINT: return "point";
+        case AttributeKey::VIS_MARK_LINE: return "line";
+        case AttributeKey::VIS_MARK_FILLED: return "filled";
+        case AttributeKey::VIS_MARK_FILL: return "fill";
+        case AttributeKey::VIS_MARK_STROKE: return "stroke";
+        case AttributeKey::VIS_MARK_COLOR: return "color";
+        case AttributeKey::VIS_MARK_OPACITY: return "opacity";
+        case AttributeKey::VIS_MARK_FILL_OPACITY: return "fill_opacity";
+        case AttributeKey::VIS_MARK_STROKE_OPACITY: return "stroke_opacity";
+        case AttributeKey::VIS_MARK_STROKE_WIDTH: return "stroke_width";
+        case AttributeKey::VIS_MARK_STROKE_DASH: return "stroke_dash";
+        case AttributeKey::VIS_MARK_SIZE: return "size";
+        case AttributeKey::VIS_MARK_SHAPE: return "shape";
+        case AttributeKey::VIS_MARK_ANGLE: return "angle";
+        case AttributeKey::VIS_MARK_RADIUS: return "radius";
+        case AttributeKey::VIS_MARK_CORNER_RADIUS: return "corner_radius";
+        case AttributeKey::VIS_MARK_ORIENT: return "orient";
+        case AttributeKey::VIS_MARK_INTERPOLATE: return "interpolate";
+        case AttributeKey::VIS_MARK_TENSION: return "tension";
+        case AttributeKey::VIS_MARK_THICKNESS: return "thickness";
+        case AttributeKey::VIS_MARK_TOOLTIP: return "tooltip";
         default: return "";
     }
 }

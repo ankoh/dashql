@@ -8,6 +8,10 @@
 %type <buffers::parser::AttributeKey> vis_spec_key;
 %type <buffers::parser::Node> vis_mark_value;
 %type <buffers::parser::Node> vis_mark_type;
+%type <BackedUniquePtr<NodeList>> vis_mark_list;
+%type <buffers::parser::Node> opt_vis_mark_field;
+%type <buffers::parser::Node> vis_mark_overlay;
+%type <buffers::parser::AttributeKey> vis_mark_key;
 
 %type <BackedUniquePtr<NodeList>> vis_encoding_list;
 %type <buffers::parser::Node> opt_vis_encoding_field;

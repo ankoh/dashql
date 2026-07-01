@@ -127,3 +127,9 @@ X(VIS_UNRESERVED, "tick_count",     TICKCOUNT)
 X(VIS_UNRESERVED, "ticks",          TICKS)
 X(VIS_UNRESERVED, "tick_size",      TICKSIZE)
 X(VIS_UNRESERVED, "z_index",       ZINDEX)
+
+// Vega-Lite mark definition properties
+X(VIS_UNRESERVED, "corner_radius",  CORNERRADIUS)
+X(VIS_UNRESERVED, "filled",         FILLED)
+X(VIS_UNRESERVED, "tension",        TENSION)
+X(VIS_UNRESERVED, "thickness",      THICKNESS)

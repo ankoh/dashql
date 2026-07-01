@@ -1911,6 +1911,7 @@ FmtReg Formatter::FormatNode(size_t node_id) {
         case NodeType::OBJECT_VIS_VISUALISE:
             return FormatVisualize(node_id);
         case NodeType::OBJECT_VIS_SPEC:
+        case NodeType::OBJECT_VIS_MARK:
         case NodeType::OBJECT_VIS_ENCODING:
         case NodeType::OBJECT_VIS_FIELD_DEF:
         case NodeType::OBJECT_VIS_SCALE:

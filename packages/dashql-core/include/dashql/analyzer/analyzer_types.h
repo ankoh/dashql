@@ -4,6 +4,7 @@
 #include <flatbuffers/flatbuffer_builder.h>
 
 #include <functional>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string_view>
@@ -609,6 +610,80 @@ struct VisLegend {
     std::optional<std::string_view> name;
 };
 
+/// A visualization mark definition.
+///
+/// Mirrors a Vega-Lite MarkDef. A mark is either a bare type (`mark => bar`,
+/// captured by `type` alone) or a structured object with styling properties and
+/// optional `point` / `line` overlays. The overlays are themselves mark
+/// definitions (Vega-Lite allows `point`/`line` to be a boolean toggle or a
+/// nested MarkDef), hence the recursive `std::unique_ptr<VisMark>` members.
+struct VisMark {
+    /// The AST node id of the OBJECT_VIS_MARK node
+    uint32_t ast_node_id = 0;
+    /// The mark type (bar, line, point, area, etc.)
+    std::optional<buffers::parser::VisMarkType> type;
+    /// Whether the mark is filled (vs. stroke-only)
+    std::optional<bool> filled;
+    /// The fill color
+    std::optional<std::string_view> fill;
+    /// The stroke color
+    std::optional<std::string_view> stroke;
+    /// The default color (fill or stroke depending on the mark)
+    std::optional<std::string_view> color;
+    /// The overall opacity
+    std::optional<double> opacity;
+    /// The fill opacity
+    std::optional<double> fill_opacity;
+    /// The stroke opacity
+    std::optional<double> stroke_opacity;
+    /// The stroke width in pixels
+    std::optional<double> stroke_width;
+    /// AST node id for the stroke dash array
+    std::optional<uint32_t> stroke_dash_node_id;
+    /// The mark size (area in pixels for point/circle/square)
+    std::optional<double> size;
+    /// The shape for point marks (circle, square, cross, etc.)
+    std::optional<std::string_view> shape;
+    /// The rotation angle in degrees
+    std::optional<double> angle;
+    /// The polar radius for arc/text marks
+    std::optional<double> radius;
+    /// The corner radius for bar/rect marks
+    std::optional<double> corner_radius;
+    /// The orientation (horizontal, vertical)
+    std::optional<std::string_view> orient;
+    /// The line interpolation method (linear, monotone, step, etc.)
+    std::optional<std::string_view> interpolate;
+    /// The line tension for spline interpolation (0-1)
+    std::optional<double> tension;
+    /// The tick/rule thickness in pixels
+    std::optional<double> thickness;
+    /// Whether to show tooltips
+    std::optional<bool> tooltip;
+    /// The point overlay (true/false toggle uses `point_enabled`, nested object uses `point`)
+    std::optional<bool> point_enabled;
+    /// The structured point overlay definition
+    std::unique_ptr<VisMark> point;
+    /// The line overlay (true/false toggle uses `line_enabled`, nested object uses `line`)
+    std::optional<bool> line_enabled;
+    /// The structured line overlay definition
+    std::unique_ptr<VisMark> line;
+
+    VisMark() = default;
+    VisMark(VisMark&&) = default;
+    VisMark& operator=(VisMark&&) = default;
+    VisMark(const VisMark&) = delete;
+    VisMark& operator=(const VisMark&) = delete;
+
+    /// Whether this mark carries any property beyond a bare type, requiring the
+    /// Vega-Lite object form instead of a plain mark-type string.
+    bool HasProperties() const {
+        return filled || fill || stroke || color || opacity || fill_opacity || stroke_opacity || stroke_width ||
+               stroke_dash_node_id || size || shape || angle || radius || corner_radius || orient || interpolate ||
+               tension || thickness || tooltip || point_enabled || point || line_enabled || line;
+    }
+};
+
 /// A visualization encoding channel
 struct VisEncodingChannel {
     /// The channel attribute key (VIS_ENCODING_X, VIS_ENCODING_Y, etc.)
@@ -663,6 +738,9 @@ struct VisualizationSpec {
     std::optional<uint32_t> ast_statement_id;
     /// The mark type (bar, line, point, area, etc.)
     std::optional<buffers::parser::VisMarkType> mark_type;
+    /// The structured mark definition (present when the mark carries properties
+    /// beyond a bare type, e.g. `mark => (type => line, point => (...))`)
+    std::optional<VisMark> mark;
     /// The AST node id of the data source (table ref or SELECT subquery)
     std::optional<uint32_t> source_node_id;
     /// The resolved source classification, populated in AnalyzeVisualizationPass::Finish

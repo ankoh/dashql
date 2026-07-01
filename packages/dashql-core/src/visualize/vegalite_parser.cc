@@ -177,6 +177,43 @@ std::optional<std::string> EmitSubObject(const rapidjson::Value& obj, bool type_
     return out;
 }
 
+/// Emit a mark definition `( type => …, point => (…), filled => …, … )` from a Vega-Lite
+/// mark object. `type` is a bare enum keyword; `point` / `line` recurse (a boolean toggle
+/// stays a boolean, a nested object becomes a parenthesised sub-mark).
+std::string EmitMark(const rapidjson::Value& obj) {
+    std::vector<std::string> parts;
+    for (auto it = obj.MemberBegin(); it != obj.MemberEnd(); ++it) {
+        std::string key = it->name.GetString();
+        if (key == "type") {
+            if (it->value.IsString()) {
+                std::string ty = it->value.GetString();
+                for (auto& c : ty) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+                parts.push_back("type => " + ty);
+            }
+            continue;
+        }
+        if (key == "point" || key == "line") {
+            if (it->value.IsObject()) {
+                parts.push_back(key + " => " + EmitMark(it->value));
+            } else if (it->value.IsBool()) {
+                parts.push_back(key + " => " + (it->value.GetBool() ? std::string("true") : std::string("false")));
+            }
+            continue;
+        }
+        auto emitted = EmitValue(it->value, /*as_ident=*/false);
+        if (!emitted) continue;
+        parts.push_back(ToSnakeCase(key) + " => " + *emitted);
+    }
+    if (parts.empty()) return "()";
+    std::string out = "(";
+    for (size_t i = 0; i < parts.size(); ++i) {
+        if (i > 0) out += ", ";
+        out += parts[i];
+    }
+    out += ")";
+    return out;
+}
+
 /// Emit a `bin => …` value. Vega-Lite allows `true`/`false` or an object of bin parameters.
 std::optional<std::string> EmitBin(const rapidjson::Value& bin) {
     if (bin.IsBool()) return bin.GetBool() ? std::string("true") : std::string("false");
@@ -308,19 +345,24 @@ std::string ParseVegaLiteToVisualize(const std::string& vegalite_json) {
     // Collect the top-level `<key> => <value>` lines (each prefixed with 2 spaces).
     std::vector<std::string> lines;
 
-    // mark — accepts a string or `{ "type": <mark> }`.
-    std::optional<std::string> mark;
+    // mark — accepts a string, a bare `{ "type": <mark> }`, or a full mark definition
+    // object (`{ "type": …, "point": {…}, "filled": …, … }`).
     if (doc.HasMember("mark")) {
         const auto& mark_val = doc["mark"];
         if (mark_val.IsString()) {
-            mark = mark_val.GetString();
-        } else if (mark_val.IsObject() && mark_val.HasMember("type") && mark_val["type"].IsString()) {
-            mark = mark_val["type"].GetString();
+            std::string mark = mark_val.GetString();
+            for (auto& c : mark) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            lines.push_back("  mark => " + mark);
+        } else if (mark_val.IsObject()) {
+            // A lone `type` collapses back to the bare form; anything richer keeps the object.
+            if (mark_val.MemberCount() == 1 && mark_val.HasMember("type") && mark_val["type"].IsString()) {
+                std::string mark = mark_val["type"].GetString();
+                for (auto& c : mark) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+                lines.push_back("  mark => " + mark);
+            } else if (mark_val.MemberCount() > 0) {
+                lines.push_back("  mark => " + EmitMark(mark_val));
+            }
         }
-    }
-    if (mark) {
-        for (auto& c : *mark) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-        lines.push_back("  mark => " + *mark);
     }
 
     if (doc.HasMember("title") && doc["title"].IsString()) {

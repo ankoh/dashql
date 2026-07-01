@@ -37,6 +37,199 @@ visualize-snapshots:
         mark => bar
       );
 
+  - name: vis_mark_def_simple
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => (type => bar, filled => true, opacity => 0.8)
+        );
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "name": "sales"
+        },
+        "mark": {
+          "type": "bar",
+          "filled": true,
+          "opacity": 0.8
+        }
+      }
+    roundtrip: |-
+      VISUALIZE sales AS (
+        mark => (type => bar, filled => true, opacity => 0.8)
+      );
+
+  - name: vis_mark_def_point_toggle
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => (type => line, point => true)
+        );
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "name": "sales"
+        },
+        "mark": {
+          "type": "line",
+          "point": true
+        }
+      }
+    roundtrip: |-
+      VISUALIZE sales AS (
+        mark => (type => line, point => true)
+      );
+
+  - name: vis_mark_def_nested_overlay
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => (type => line, point => (filled => false, fill => 'white'))
+        );
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "name": "sales"
+        },
+        "mark": {
+          "type": "line",
+          "point": {
+            "filled": false,
+            "fill": "white"
+          }
+        }
+      }
+    roundtrip: |-
+      VISUALIZE sales AS (
+        mark => (type => line, point => (filled => false, fill => 'white'))
+      );
+
+  - name: vis_mark_def_broad
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => (
+            type => area,
+            line => (stroke => 'red', stroke_width => 2),
+            point => false,
+            color => 'steelblue',
+            stroke_dash => [4, 2],
+            interpolate => 'monotone',
+            tension => 0.5,
+            tooltip => true
+          )
+        );
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "name": "sales"
+        },
+        "mark": {
+          "type": "area",
+          "color": "steelblue",
+          "strokeDash": [
+            4,
+            2
+          ],
+          "interpolate": "monotone",
+          "tension": 0.5,
+          "tooltip": true,
+          "point": false,
+          "line": {
+            "stroke": "red",
+            "strokeWidth": 2.0
+          }
+        }
+      }
+    roundtrip: |-
+      VISUALIZE sales AS (
+        mark => (type => area, color => 'steelblue', stroke_dash => [4, 2], interpolate => 'monotone', tension => 0.5, tooltip => true, point => false, line => (stroke => 'red', stroke_width => 2))
+      );
+
   - name: vis_encoding_field_type
     catalog:
       script:

@@ -6,6 +6,7 @@
 #include "dashql/analyzer/analysis_state.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
+#include "dashql/utils/string_trimming.h"
 
 namespace dashql {
 
@@ -18,6 +19,7 @@ AnalyzeVisualizationPass::AnalyzeVisualizationPass(AnalysisState& state)
 void AnalyzeVisualizationPass::NodeState::Clear() {
     encoding_channels.clear();
     mark_type.reset();
+    mark.reset();
     title.reset();
     width.reset();
     height.reset();
@@ -31,6 +33,9 @@ void AnalyzeVisualizationPass::NodeState::MergeFrom(NodeState&& other) {
                              std::make_move_iterator(other.encoding_channels.end()));
     if (!mark_type.has_value() && other.mark_type.has_value()) {
         mark_type = other.mark_type;
+    }
+    if (!mark.has_value() && other.mark.has_value()) {
+        mark = std::move(other.mark);
     }
     if (!title.has_value() && other.title.has_value()) {
         title = other.title;
@@ -73,6 +78,14 @@ std::optional<std::string_view> ReadTextValue(AnalysisState& state, const buffer
     }
 }
 
+/// Read a textual value with surrounding single quotes stripped, so a string
+/// literal like `'white'` yields the bare `white` for JSON emission.
+std::optional<std::string_view> ReadUnquotedTextValue(AnalysisState& state, const buffers::parser::Node* node) {
+    auto text = ReadTextValue(state, node);
+    if (!text) return std::nullopt;
+    return trim_view(*text, is_no_quote);
+}
+
 std::optional<double> ReadNumericValue(AnalysisState& state, const buffers::parser::Node* node) {
     if (!node) return std::nullopt;
     if (node->node_type() == NodeType::LITERAL_INTEGER || node->node_type() == NodeType::LITERAL_FLOAT ||
@@ -98,6 +111,102 @@ std::optional<bool> ReadBoolValue(AnalysisState& state, const buffers::parser::N
 }
 
 uint32_t NodeId(AnalysisState& state, const buffers::parser::Node* node) { return node - state.ast.data(); }
+
+/// Recursively extract a mark definition from an OBJECT_VIS_MARK node.
+/// Mark properties are literals/enums read directly off the AST subtree, so this
+/// is self-contained and does not depend on the merge-up node states. `point` and
+/// `line` overlays recurse: they are either a boolean toggle or a nested mark.
+VisMark ExtractVisMark(AnalysisState& state, const buffers::parser::Node& node) {
+    using AttributeKey = buffers::parser::AttributeKey;
+
+    VisMark mark;
+    mark.ast_node_id = NodeId(state, &node);
+
+    auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
+    for (auto& child : children) {
+        switch (child.attribute_key()) {
+            case AttributeKey::VIS_MARK_TYPE:
+                if (child.node_type() == NodeType::ENUM_VIS_MARK_TYPE) {
+                    mark.type = static_cast<buffers::parser::VisMarkType>(child.children_begin_or_value());
+                }
+                break;
+            case AttributeKey::VIS_MARK_POINT:
+                if (child.node_type() == NodeType::OBJECT_VIS_MARK) {
+                    mark.point = std::make_unique<VisMark>(ExtractVisMark(state, child));
+                } else {
+                    mark.point_enabled = ReadBoolValue(state, &child);
+                }
+                break;
+            case AttributeKey::VIS_MARK_LINE:
+                if (child.node_type() == NodeType::OBJECT_VIS_MARK) {
+                    mark.line = std::make_unique<VisMark>(ExtractVisMark(state, child));
+                } else {
+                    mark.line_enabled = ReadBoolValue(state, &child);
+                }
+                break;
+            case AttributeKey::VIS_MARK_FILLED:
+                mark.filled = ReadBoolValue(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_FILL:
+                mark.fill = ReadUnquotedTextValue(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_STROKE:
+                mark.stroke = ReadUnquotedTextValue(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_COLOR:
+                mark.color = ReadUnquotedTextValue(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_OPACITY:
+                mark.opacity = ReadNumericValue(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_FILL_OPACITY:
+                mark.fill_opacity = ReadNumericValue(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_STROKE_OPACITY:
+                mark.stroke_opacity = ReadNumericValue(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_STROKE_WIDTH:
+                mark.stroke_width = ReadNumericValue(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_STROKE_DASH:
+                mark.stroke_dash_node_id = NodeId(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_SIZE:
+                mark.size = ReadNumericValue(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_SHAPE:
+                mark.shape = ReadUnquotedTextValue(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_ANGLE:
+                mark.angle = ReadNumericValue(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_RADIUS:
+                mark.radius = ReadNumericValue(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_CORNER_RADIUS:
+                mark.corner_radius = ReadNumericValue(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_ORIENT:
+                mark.orient = ReadUnquotedTextValue(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_INTERPOLATE:
+                mark.interpolate = ReadUnquotedTextValue(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_TENSION:
+                mark.tension = ReadNumericValue(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_THICKNESS:
+                mark.thickness = ReadNumericValue(state, &child);
+                break;
+            case AttributeKey::VIS_MARK_TOOLTIP:
+                mark.tooltip = ReadBoolValue(state, &child);
+                break;
+            default:
+                break;
+        }
+    }
+    return mark;
+}
 
 }  // namespace
 
@@ -314,6 +423,12 @@ void AnalyzeVisualizationPass::Visit(std::span<const buffers::parser::Node> mors
                 if (mark_node && mark_node->node_type() == NodeType::ENUM_VIS_MARK_TYPE) {
                     node_state.mark_type =
                         static_cast<buffers::parser::VisMarkType>(mark_node->children_begin_or_value());
+                } else if (mark_node && mark_node->node_type() == NodeType::OBJECT_VIS_MARK) {
+                    VisMark m = ExtractVisMark(state, *mark_node);
+                    // Mirror the resolved type into mark_type so existing consumers
+                    // (analyzer snapshot dump, callers reading the bare type) keep working.
+                    node_state.mark_type = m.type;
+                    node_state.mark = std::move(m);
                 }
                 if (title_node) {
                     node_state.title = ReadTextValue(state, title_node);
@@ -338,6 +453,7 @@ void AnalyzeVisualizationPass::Visit(std::span<const buffers::parser::Node> mors
                 VisualizationSpec spec;
                 spec.ast_node_id = node_id;
                 spec.mark_type = node_state.mark_type;
+                spec.mark = std::move(node_state.mark);
                 spec.title = node_state.title;
                 spec.width = node_state.width;
                 spec.height = node_state.height;

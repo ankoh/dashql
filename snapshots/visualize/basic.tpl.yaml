@@ -8,6 +8,59 @@ visualize-snapshots:
       input: |
         VISUALIZE sales AS (mark => bar);
 
+  - name: vis_mark_def_simple
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => (type => bar, filled => true, opacity => 0.8)
+        );
+
+  - name: vis_mark_def_point_toggle
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => (type => line, point => true)
+        );
+
+  - name: vis_mark_def_nested_overlay
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => (type => line, point => (filled => false, fill => 'white'))
+        );
+
+  - name: vis_mark_def_broad
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+    script:
+      input: |
+        VISUALIZE sales AS (
+          mark => (
+            type => area,
+            line => (stroke => 'red', stroke_width => 2),
+            point => false,
+            color => 'steelblue',
+            stroke_dash => [4, 2],
+            interpolate => 'monotone',
+            tension => 0.5,
+            tooltip => true
+          )
+        );
+
   - name: vis_encoding_field_type
     catalog:
       script:

@@ -99,13 +99,71 @@ vis_spec_key:
   | TYPE_P          { $$ = Key::VIS_SPEC_TYPE; }
     ;
 
+// A mark value is either a bare mark type (`mark => line`) or a structured mark
+// definition object (`mark => (type => line, point => (...), filled => false)`).
+// The object re-enters a dedicated vis_mark_list so bison reports mark-appropriate
+// expected symbols for autocompletion, mirroring scale/axis/legend.
 vis_mark_value:
     vis_mark_type {
         $$ = $1;
     }
-  | LRB vis_spec_list RRB {
-        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($2), false);
+  | LRB vis_mark_list RRB {
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_MARK, std::move($2), false);
     }
+    ;
+
+vis_mark_list:
+    vis_mark_list COMMA opt_vis_mark_field  { $1->push_back($3); $$ = std::move($1); }
+  | opt_vis_mark_field                      { $$ = ctx.List({$1}); }
+    ;
+
+opt_vis_mark_field:
+    TYPE_P EQUALS_GREATER vis_mark_type {
+        $$ = Attr(Key::VIS_MARK_TYPE, $3);
+    }
+  | POINT EQUALS_GREATER vis_mark_overlay {
+        $$ = Attr(Key::VIS_MARK_POINT, $3);
+    }
+  | LINE EQUALS_GREATER vis_mark_overlay {
+        $$ = Attr(Key::VIS_MARK_LINE, $3);
+    }
+  | vis_mark_key EQUALS_GREATER vis_value {
+        $$ = Attr($1, $3);
+    }
+  | %empty { $$ = Null(); }
+    ;
+
+// `point` and `line` overlays accept either a boolean toggle (`point => true`) or
+// a nested mark definition object (`point => (filled => false, fill => 'white')`).
+vis_mark_overlay:
+    LRB vis_mark_list RRB {
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_MARK, std::move($2), false);
+    }
+  | sql_a_expr_const {
+        $$ = ctx.Expression(std::move($1));
+    }
+    ;
+
+vis_mark_key:
+    FILLED          { $$ = Key::VIS_MARK_FILLED; }
+  | FILL            { $$ = Key::VIS_MARK_FILL; }
+  | STROKE          { $$ = Key::VIS_MARK_STROKE; }
+  | COLOR           { $$ = Key::VIS_MARK_COLOR; }
+  | OPACITY         { $$ = Key::VIS_MARK_OPACITY; }
+  | FILLOPACITY     { $$ = Key::VIS_MARK_FILL_OPACITY; }
+  | STROKEOPACITY   { $$ = Key::VIS_MARK_STROKE_OPACITY; }
+  | STROKEWIDTH     { $$ = Key::VIS_MARK_STROKE_WIDTH; }
+  | STROKEDASH      { $$ = Key::VIS_MARK_STROKE_DASH; }
+  | SIZE            { $$ = Key::VIS_MARK_SIZE; }
+  | SHAPE           { $$ = Key::VIS_MARK_SHAPE; }
+  | ANGLE           { $$ = Key::VIS_MARK_ANGLE; }
+  | RADIUS          { $$ = Key::VIS_MARK_RADIUS; }
+  | CORNERRADIUS    { $$ = Key::VIS_MARK_CORNER_RADIUS; }
+  | ORIENT          { $$ = Key::VIS_MARK_ORIENT; }
+  | INTERPOLATE     { $$ = Key::VIS_MARK_INTERPOLATE; }
+  | TENSION         { $$ = Key::VIS_MARK_TENSION; }
+  | THICKNESS       { $$ = Key::VIS_MARK_THICKNESS; }
+  | TOOLTIP         { $$ = Key::VIS_MARK_TOOLTIP; }
     ;
 
 vis_mark_type:

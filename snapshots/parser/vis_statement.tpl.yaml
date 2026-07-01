@@ -93,10 +93,34 @@ parser-snapshots:
           color => (field => region, type => nominal)
         )
       );
-  - name: vis_statement_nested_object_value
+  - name: vis_statement_mark_def_simple
     input: |
       VISUALIZE sales AS (
-        mark => (type => 'bar', title => 'My Chart')
+        mark => (type => bar, filled => true, opacity => 0.8)
+      );
+  - name: vis_statement_mark_def_point_toggle
+    input: |
+      VISUALIZE sales AS (
+        mark => (type => line, point => true)
+      );
+  - name: vis_statement_mark_def_nested_overlay
+    input: |
+      VISUALIZE sales AS (
+        mark => (type => line, point => (filled => false, fill => 'white'))
+      );
+  - name: vis_statement_mark_def_broad
+    input: |
+      VISUALIZE sales AS (
+        mark => (
+          type => area,
+          line => (stroke => 'red', stroke_width => 2),
+          point => false,
+          color => 'steelblue',
+          stroke_dash => [4, 2],
+          interpolate => 'monotone',
+          tension => 0.5,
+          tooltip => true
+        )
       );
   - name: vis_statement_array_value
     input: |
