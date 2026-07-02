@@ -46,7 +46,7 @@
     "dexie": "^4.4.4",
     "eslint": "^10.4.1",
     "flatbuffers": "^25.9.23",
-    "immutable": "^5.1.6",
+    "immutable": "^5.1.8",
     "jsdom": "^29.1.1",
     "json-schema-to-typescript": "^15.0.4",
     "jszip": "^3.10.1",
