@@ -34,7 +34,19 @@ export interface PlanRenderingState {
     edgePathBuilder: PathBuilder;
 }
 
+export interface PlanRendererOptions {
+    /// Render per-operator execution progress indicators.
+    /// Enable this for live query execution; disable it to show a static plan without status icons.
+    showProgress: boolean;
+}
+
+const DEFAULT_PLAN_RENDERER_OPTIONS: PlanRendererOptions = {
+    showProgress: true,
+};
+
 export class PlanRenderer {
+    /// The renderer options
+    options: PlanRendererOptions;
     /// The plan stages
     fragments: PlanFragmentRenderer[] = [];
     /// The plan pipelines
@@ -52,7 +64,9 @@ export class PlanRenderer {
     state: PlanRenderingState | null = null;
 
     /// Constructor
-    constructor() { }
+    constructor(options: Partial<PlanRendererOptions> = {}) {
+        this.options = { ...DEFAULT_PLAN_RENDERER_OPTIONS, ...options };
+    }
     /// Reset the renderer
     public reset() {
         this.operators = [];
@@ -295,17 +309,25 @@ export class PlanOperatorRenderer {
         this.operatorRect.setAttribute("stroke-width", "1px");
         this.operatorNode.appendChild(this.operatorRect);
 
-        const iconX = state.layoutConfig.input!.nodePaddingLeft;
-        const iconY = state.layoutConfig.input!.nodeHeight / 2 - state.layoutConfig.input!.iconWidth / 2;
-        this.operatorIcon = state.symbols.getStatusIcon(iconX, iconY, state.layoutConfig.input!.iconWidth, state.layoutConfig.input!.iconWidth, dashql.buffers.view.PlanExecutionStatus.UNKNOWN);
-        this.operatorNode.appendChild(this.operatorIcon);
+        if (renderer.options.showProgress) {
+            const iconX = state.layoutConfig.input!.nodePaddingLeft;
+            const iconY = state.layoutConfig.input!.nodeHeight / 2 - state.layoutConfig.input!.iconWidth / 2;
+            this.operatorIcon = state.symbols.getStatusIcon(iconX, iconY, state.layoutConfig.input!.iconWidth, state.layoutConfig.input!.iconWidth, dashql.buffers.view.PlanExecutionStatus.UNKNOWN);
+            this.operatorNode.appendChild(this.operatorIcon);
+        }
 
         this.labelNode = document.createElementNS(SVG_NS, "text");
         this.labelNode.setAttribute("dominant-baseline", "auto");
-        this.labelNode.setAttribute("text-anchor", "left");
+        this.labelNode.setAttribute("text-anchor", "middle");
         this.labelNode.setAttribute("font-family", "Roboto Mono");
         this.labelNode.setAttribute("font-size", "0.85rem");
-        const textX = state.layoutConfig.input!.nodePaddingLeft + state.layoutConfig.input!.iconWidth + state.layoutConfig.input!.iconMarginRight;
+        // Center the label within its content region: from the end of the icon region to the right padding.
+        // The layout reserves slightly more width per char than the font actually advances; centering splits
+        // that slack evenly so the left and right padding stay equal regardless of label length or progress mode.
+        // When progress is hidden the icon width and margin are zeroed, so the region is just [padLeft, width - padRight].
+        const regionStart = state.layoutConfig.input!.nodePaddingLeft + state.layoutConfig.input!.iconWidth + state.layoutConfig.input!.iconMarginRight;
+        const regionEnd = this.layoutRect.width - state.layoutConfig.input!.nodePaddingRight;
+        const textX = (regionStart + regionEnd) / 2;
         const textY = state.layoutConfig.input!.nodeHeight / 2 + 5;
         this.labelNode.setAttribute("x", textX.toString());
         this.labelNode.setAttribute("y", textY.toString());
