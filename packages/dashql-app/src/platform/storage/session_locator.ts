@@ -29,7 +29,7 @@ export function locationFromEntry(entry: SessionEntry): SessionLocation {
 /// identity or routing — the UUID + `SessionLocation` are the source of truth.
 export function displayPath(uuid: string, loc: SessionLocation): string {
     if (loc.type === StorageBackendType.Native && loc.nativePath) {
-        return `file://${loc.nativePath}`;
+        return `fs://${loc.nativePath}`;
     }
     return `opfs://${STORAGE_SESSIONS_FOLDER}/${uuid}`;
 }

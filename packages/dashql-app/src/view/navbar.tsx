@@ -224,7 +224,7 @@ export const NavBar = (): React.ReactElement => {
     }, [location.pathname]);
 
     const sessionId = connection?.sessionId ?? null;
-    // The session bar shows a display path (opfs://… or file://…) reconstructed from the uuid +
+    // The session bar shows a display path (opfs://… or fs://…) reconstructed from the uuid +
     // its recorded physical location; the uuid stays the authoritative identity.
     const sessionPath = sessionId ? displayPath(sessionId, storageReader.getSessionLocation(sessionId)) : "";
     return (

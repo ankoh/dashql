@@ -115,7 +115,7 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
         const result: SessionItemData[] = [];
 
         // Build session data using each session's full display path (opfs://sessions/<uuid> or
-        // file://<absolute-path>), reconstructed from its uuid + physical location — the same value
+        // fs://<absolute-path>), reconstructed from its uuid + physical location — the same value
         // the session bar shows.
         for (const [sessionId, connection] of props.connectionRegistry.connectionMap) {
             const notebook = props.notebookRegistry.notebookMap.get(sessionId);

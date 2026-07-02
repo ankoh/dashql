@@ -39,9 +39,9 @@ describe('displayPath', () => {
         expect(displayPath(UUID, loc)).toBe(`opfs://sessions/${UUID}`);
     });
 
-    it('renders a display file:// path for a native session', () => {
+    it('renders a display fs:// path for a native session', () => {
         const loc: SessionLocation = { type: StorageBackendType.Native, nativePath: '/Users/test/my-session' };
-        expect(displayPath(UUID, loc)).toBe('file:///Users/test/my-session');
+        expect(displayPath(UUID, loc)).toBe('fs:///Users/test/my-session');
     });
 
     it('falls back to the opfs:// path when a native location has no path', () => {

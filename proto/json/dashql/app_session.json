@@ -11,7 +11,7 @@
     },
     "sessionPath": {
       "type": "string",
-      "description": "Display-only path (e.g., \"opfs://sessions/<uuid>\" or \"file://<dir>\"). Not authoritative and may be absent on newly written sessions; readers must tolerate its absence."
+      "description": "Display-only path (e.g., \"opfs://sessions/<uuid>\" or \"fs://<dir>\"). Not authoritative and may be absent on newly written sessions; readers must tolerate its absence."
     },
     "storageType": {
       "type": "string",
