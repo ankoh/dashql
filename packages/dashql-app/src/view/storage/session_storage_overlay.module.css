@@ -59,7 +59,7 @@
 
 .param_row {
     display: grid;
-    grid-template-columns: 100px 1fr;
+    grid-template-columns: 56px 1fr;
     column-gap: 12px;
     align-items: baseline;
 }
@@ -74,19 +74,7 @@
     font-family: 'Roboto Mono';
     font-size: 0.8rem;
     min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.action_row {
-    margin-top: 8px;
-    display: flex;
-    flex-direction: column;
-    row-gap: 6px;
-}
-
-.action_hint {
-    font-size: 0.75rem;
-    color: var(--text_color_secondary, #6e7781);
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }

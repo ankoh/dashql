@@ -2,7 +2,7 @@ visualize dashql.notebook."vis_data/random" as (
     mark => (
         type => line,
         point => (
-            filled => false,
+        	filled => false,
             fill => 'white'
         )
     ),

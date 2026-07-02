@@ -1,11 +1,11 @@
 import * as React from 'react';
 import * as styles from './session_storage_overlay.module.css';
 
-import { XIcon } from '@primer/octicons-react';
+import { XIcon, FileDirectoryIcon } from '@primer/octicons-react';
 
 import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
-import { Button, ButtonVariant, IconButton } from '../foundations/button.js';
+import { ButtonVariant, IconButton } from '../foundations/button.js';
 import { OverlaySize } from '../foundations/overlay.js';
 import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
 import { StorageBackendType } from '../../platform/storage/storage_backend.js';
@@ -15,14 +15,29 @@ import { useStorageReader, useStorageWriter } from '../../platform/storage/stora
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { relocateSessionToNative } from '../../platform/storage/storage_migration_flow.js';
 
-/// The shared header for the storage view: title on the left, close button on the right.
-function StorageViewHeader(props: { title: string; onClose: () => void }) {
+/// The shared header for the storage view: title on the left, actions + close button on the right.
+function StorageViewHeader(props: {
+    onClose: () => void;
+    canRelocate?: boolean;
+    migrating?: boolean;
+    onRelocate?: () => void;
+}) {
     return (
         <div className={styles.header_container}>
             <div className={styles.header_left_container}>
-                <div className={styles.title}>{props.title}</div>
+                <div className={styles.title}>Session Storage</div>
             </div>
             <div className={styles.header_right_container}>
+                {props.canRelocate && (
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        aria-label="Store locally"
+                        disabled={props.migrating}
+                        onClick={props.onRelocate}
+                    >
+                        <FileDirectoryIcon />
+                    </IconButton>
+                )}
                 <IconButton
                     variant={ButtonVariant.Invisible}
                     aria-label="close-overlay"
@@ -81,32 +96,22 @@ export const SessionStorageViewer: React.FC<SessionStorageViewerProps> = (props)
         }
     }, [props.sessionId, reader.backend, writer, logger]);
 
-    const title = isNative ? 'Native File System' : 'Origin Private File System';
-    const backendValue = isNative ? 'Native storage (on disk)' : 'Browser storage (OPFS)';
+    const backendValue = isNative ? 'Host File System' : 'Origin Private File System (Browser)';
     const schemaValue = props.sessionId && location ? displayPath(props.sessionId, location) : '';
 
     return (
         <div className={styles.body}>
-            <StorageViewHeader title={title} onClose={props.onClose} />
+            <StorageViewHeader
+                onClose={props.onClose}
+                canRelocate={canRelocate}
+                migrating={migrating}
+                onRelocate={onRelocate}
+            />
             <div className={styles.body_content}>
                 <ParamRow label="Backend" value={backendValue} />
                 <ParamRow label="Location" value={schemaValue} />
                 {isNative && location?.nativePath && (
                     <ParamRow label="Folder" value={location.nativePath} />
-                )}
-                {canRelocate && (
-                    <div className={styles.action_row}>
-                        <Button
-                            variant={ButtonVariant.Default}
-                            disabled={migrating}
-                            onClick={onRelocate}
-                        >
-                            {migrating ? 'Migrating…' : 'Migrate to native storage'}
-                        </Button>
-                        <div className={styles.action_hint}>
-                            Copies this session into a folder on disk and stores it there.
-                        </div>
-                    </div>
                 )}
             </div>
         </div>
