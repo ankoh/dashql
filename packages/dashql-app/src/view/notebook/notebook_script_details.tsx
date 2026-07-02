@@ -510,7 +510,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                             },
                             [TabKey.QueryStatusPanel]: {
                                 tabId: TabKey.QueryStatusPanel,
-                                icon: `${icons}#plan`,
+                                icon: `${icons}#log_24`,
                                 labelShort: 'Status',
                                 ariaLabel: 'Query status',
                                 description: 'Query status',
