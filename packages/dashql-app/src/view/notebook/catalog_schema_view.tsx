@@ -30,15 +30,16 @@ const CatalogScriptCard: React.FC<CatalogScriptCardProps> = (props) => {
         if (text === prevTextRef.current) return;
         prevTextRef.current = text;
 
-        view.dispatch({
-            changes: { from: 0, to: view.state.doc.length, insert: text },
-        });
-
         const buffers = analyzeScript(props.script);
         prevBuffersRef.current?.destroy(prevBuffersRef.current);
         prevBuffersRef.current = buffers;
 
+        // Replace the document text and publish the pre-analyzed buffers in a single
+        // transaction. Splitting these into two dispatches forced two full layout passes
+        // (and a frame of unstyled text) on large scripts; ScriptEditor and ScriptPreview
+        // both apply changes+effects atomically, and this mirrors that.
         view.dispatch({
+            changes: { from: 0, to: view.state.doc.length, insert: text },
             effects: [
                 DashQLUpdateEffect.of({
                     config: {},

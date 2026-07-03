@@ -307,8 +307,11 @@ const ScannerDecorationField: StateField<ScriptDecorationState> = StateField.def
         if (processor.scriptBuffers.parsed === state.scriptBuffers.parsed) {
             return state;
         }
-        // Rebuild decorations
-        const s = { ...state };
+        // Rebuild decorations.
+        // Copy scriptBuffers too: a shallow `{ ...state }` would keep the same nested
+        // scriptBuffers object, so assigning `.parsed` below would mutate the previous
+        // state's buffers and corrupt the `=== state.scriptBuffers.parsed` check above.
+        const s = { ...state, scriptBuffers: { ...state.scriptBuffers } };
         s.scriptBuffers.parsed = processor.scriptBuffers.parsed;
         s.decorations = (new RangeSetBuilder<Decoration>()).finish();
         if (s.scriptBuffers.parsed) {
@@ -409,8 +412,11 @@ const FocusDecorationField: StateField<FocusDecorationState> = StateField.define
         ) {
             return state;
         }
-        // Rebuild decorations
-        const s = { ...state };
+        // Rebuild decorations.
+        // Copy scriptBuffers too: a shallow `{ ...state }` would keep the same nested
+        // scriptBuffers object, so assigning `.parsed`/`.analyzed` below would mutate the
+        // previous state's buffers and corrupt the `===` change checks above.
+        const s = { ...state, scriptBuffers: { ...state.scriptBuffers } };
         s.scriptKey = processor.scriptKey;
         s.scriptBuffers.parsed = processor.scriptBuffers.parsed;
         s.scriptBuffers.analyzed = processor.scriptBuffers.analyzed;
