@@ -123,48 +123,11 @@
     border-radius: 8px;
 }
 
-.compose_status_strip {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    max-width: var(--notebook_list_entry_max_width);
-    padding: 6px 10px;
-    border-top: 1px solid var(--log_border_color);
-    font-size: 12px;
-    color: var(--fg_muted_color, #57606a);
+.compose_progress_spinner {
+    display: block;
+    flex-shrink: 0;
+    color: var(--base_color_neutral_5);
 }
-
-.compose_status_phase {
-    font-weight: 600;
-}
-
-.compose_status_attempt {
-    color: var(--fg_muted_color, #57606a);
-}
-
-.compose_status_error {
-    color: var(--danger_fg_color, #cf222e);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1;
-}
-
-.compose_status_spacer {
-    flex: 1;
-}
-
-.compose_status_cancel {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--accent_fg_color, #0969da);
-    font-size: 12px;
-    padding: 0;
-}
-
 
 .feed_entry_card {
     border: 1px solid var(--log_border_color);

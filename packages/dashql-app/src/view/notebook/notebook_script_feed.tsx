@@ -3,7 +3,7 @@ import * as styles from './notebook_script_feed.module.css';
 
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '@primer/octicons-react';
-import { CodeIcon, PaperAirplaneIcon, SparklesFillIcon } from '@primer/octicons-react';
+import { CodeIcon, PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon } from '@primer/octicons-react';
 
 import { useAppConfig } from '../../app_config.js';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
@@ -17,7 +17,7 @@ import { getExecutableQueryText, getSelectedEntry, getSelectedPage, getSelectedP
 import { useAIClient } from '../../platform/ai_client_provider.js';
 import { useComposeInputMode } from '../../notebook/notebook_commands.js';
 import { useLatestAgentRunState, useAgentRunState, useStartAgentRun, useCancelAgentRun } from '../../notebook/agent/agent_run_provider.js';
-import { AgentRunPhase, agentRunIsActive, agentRunPhaseLabel } from '../../notebook/agent/agent_run_state.js';
+import { AgentRunPhase, agentRunIsActive } from '../../notebook/agent/agent_run_state.js';
 import { QueryType } from '../../connection/query_execution_state.js';
 import { useQueryExecutor, useQueryState } from '../../connection/query_executor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
@@ -30,6 +30,7 @@ import { normalizePageName, scriptDisplayName } from '../../notebook/notebook_ty
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { SegmentedControl, SegmentedControlSize } from '../foundations/segmented_control.js';
 import { NotebookScriptName } from './notebook_script_name.js';
+import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
 import { TabKey as DetailsTabKey } from './notebook_script_details.js';
 
@@ -386,6 +387,55 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         }
     }, [isDisconnected]);
 
+    // Re-execute the visualization after the agent finishes editing it.
+    //
+    // The reducer that applies the agent's result (SET_SCRIPT_TEXT) already *reevaluates* the
+    // script: it re-analyzes and refreshes annotations.visualizeQuery, and the editor/preview
+    // re-sync from the new scriptData. What it can't do is re-run the resolved query — so a
+    // VISUALIZE the agent just rewrote would still render its stale result. We kick that
+    // re-execution here, where the live notebook, executor and connection state are available.
+    //
+    // Scope: only in-place edits of a VISUALIZE script (the run's context script now resolves a
+    // visualizeQuery). SQL scripts are intentionally left alone for now — re-running them will be
+    // covered by query-result caching later. A visualize run that *creates* a new entry over a SQL
+    // script isn't covered either: its context script is the SQL source, not the new chart entry.
+    const executedAgentRunRef = React.useRef<number | null>(null);
+    React.useEffect(() => {
+        if (agentState == null || agentState.phase !== AgentRunPhase.SUCCEEDED) {
+            return;
+        }
+        // Handle each successful run exactly once (the effect re-runs as notebook state settles).
+        if (executedAgentRunRef.current === agentState.runId) {
+            return;
+        }
+        const scriptKey = agentState.contextScriptKey;
+        if (scriptKey == null || isDisconnected) {
+            return;
+        }
+        const scriptData = props.notebook.scripts[scriptKey];
+        if (scriptData == null || scriptData.annotations.visualizeQuery == null) {
+            return;
+        }
+        executedAgentRunRef.current = agentState.runId;
+        // Resolve against the current notebook so a freshly rewritten VISUALIZE source is reflected.
+        const queryText = getExecutableQueryText(props.notebook, scriptData);
+        if (queryText.trim().length === 0) {
+            return;
+        }
+        const [queryId] = executeQuery(props.notebook.sessionId, {
+            query: queryText,
+            analyzeResults: true,
+            metadata: {
+                queryType: QueryType.USER_PROVIDED,
+                title: 'Notebook Query',
+                description: null,
+                issuer: 'Agent Visualization Re-execution',
+                userProvided: true,
+            },
+        });
+        props.modifyNotebook({ type: REGISTER_QUERY, value: [scriptData.scriptKey, queryId] });
+    }, [agentState, props.notebook, props.modifyNotebook, isDisconnected, executeQuery]);
+
     const handleSend = React.useCallback(() => {
         pendingScrollToBottomRef.current = true;
         const notebook = props.notebook;
@@ -711,45 +761,41 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                                     </SegmentedControl.Button>
                                 </SegmentedControl>
                             )}
-                            <IconButton
-                                variant={ButtonVariant.Default}
-                                size={ButtonSize.Small}
-                                className={styles.compose_send_button}
-                                aria-label={inputMode === 1 ? 'Send to AI' : (executeOnSend ? 'Save & Execute' : 'Save')}
-                                disabled={inputMode === 1 && agentActive}
-                                onClick={handleComposeSend}
-                            >
-                                <PaperAirplaneIcon />
-                            </IconButton>
+                            {/* While an agent run is active the send button becomes a stop button
+                                that cancels it — progress is now shown in the focused card's Log tab,
+                                so there is no separate status strip anymore. */}
+                            {inputMode === 1 && agentActive ? (
+                                <>
+                                    <StatusIndicator
+                                        className={styles.compose_progress_spinner}
+                                        status={IndicatorStatus.Running}
+                                        width="16px"
+                                        height="16px"
+                                        fill="currentColor"
+                                    />
+                                    <IconButton
+                                        variant={ButtonVariant.Default}
+                                        size={ButtonSize.Small}
+                                        className={styles.compose_send_button}
+                                        aria-label="Stop agent run"
+                                        onClick={() => cancelAgentRun(sessionId)}
+                                    >
+                                        <SquareFillIcon />
+                                    </IconButton>
+                                </>
+                            ) : (
+                                <IconButton
+                                    variant={ButtonVariant.Default}
+                                    size={ButtonSize.Small}
+                                    className={styles.compose_send_button}
+                                    aria-label={inputMode === 1 ? 'Send to AI' : (executeOnSend ? 'Save & Execute' : 'Save')}
+                                    onClick={handleComposeSend}
+                                >
+                                    <PaperAirplaneIcon />
+                                </IconButton>
+                            )}
                         </div>
                     </div>
-                    {inputMode === 1 && agentState != null && agentState.phase !== AgentRunPhase.IDLE && (
-                        <div className={styles.compose_status_strip}>
-                            <span className={styles.compose_status_phase}>
-                                {agentRunPhaseLabel(agentState.phase)}
-                            </span>
-                            {agentActive && agentState.attempt > 0 && (
-                                <span className={styles.compose_status_attempt}>
-                                    attempt {agentState.attempt}/{agentState.maxAttempts}
-                                </span>
-                            )}
-                            {agentState.phase === AgentRunPhase.FAILED && agentState.error && (
-                                <span className={styles.compose_status_error} title={agentState.error}>
-                                    {agentState.error}
-                                </span>
-                            )}
-                            <span className={styles.compose_status_spacer} />
-                            {agentActive && (
-                                <button
-                                    type="button"
-                                    className={styles.compose_status_cancel}
-                                    onClick={() => cancelAgentRun(sessionId)}
-                                >
-                                    Cancel
-                                </button>
-                            )}
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

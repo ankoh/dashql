@@ -37,6 +37,11 @@ import { createTrace, TraceContext } from '../../platform/logger/trace_context.j
 
 const LOG_CTX = 'agent_run';
 
+/// How often to emit a heartbeat log while an AI generate call is in flight. The generate calls are
+/// the only long-running, silent steps in a run, so without this the Log tab stalls for seconds at a
+/// time and looks hung.
+const HEARTBEAT_INTERVAL_MS = 3000;
+
 /// The minimal AI client surface the driver needs (so tests can inject a mock).
 export interface AgentAIClient {
     generate(prompt: string, signal: AbortSignal): Promise<string>;
@@ -124,6 +129,48 @@ function throwIfAborted(signal: AbortSignal): void {
     if (signal.aborted) throw new AbortError();
 }
 
+/// A reader-friendly noun for the artifact an intent produces. Used to word the progress log so it
+/// says what the agent is actually working on ("Generating a chart …") instead of a bare phase name.
+function intentNoun(intent: AgentIntent): string {
+    return intent === 'visualize' ? 'chart' : 'SQL query';
+}
+
+/// Clip a string for inclusion in a single log line so a long prompt doesn't blow up the row.
+function truncateForLog(text: string, max = 160): string {
+    const collapsed = text.replace(/\s+/g, ' ').trim();
+    return collapsed.length > max ? `${collapsed.slice(0, max - 1)}…` : collapsed;
+}
+
+/// Summarize a list of verification errors into one log line: the first error, plus a "(+N more)"
+/// tail when there are others, so the reader sees the concrete problem without a wall of text.
+function summarizeErrors(errors: string[]): string {
+    if (errors.length === 0) return '';
+    const first = truncateForLog(errors[0], 200);
+    return errors.length > 1 ? `${first} (+${errors.length - 1} more)` : first;
+}
+
+/// Await a long-running promise while emitting a periodic heartbeat log, so the trace log keeps
+/// showing signs of life during an otherwise silent AI generate call. The heartbeat is cleared as
+/// soon as the promise settles (in a `finally`), so it never outlives the call or leaks a timer.
+/// `label` names what we're waiting on ("a response for the SQL query", …).
+async function withHeartbeat<T>(
+    label: string,
+    log: LoggerLike | null,
+    work: Promise<T>,
+): Promise<T> {
+    if (log == null) return work;
+    let elapsed = 0;
+    const timer = setInterval(() => {
+        elapsed += HEARTBEAT_INTERVAL_MS;
+        log.info(`Still waiting for ${label} (${Math.round(elapsed / 1000)}s elapsed)`, {}, LOG_CTX);
+    }, HEARTBEAT_INTERVAL_MS);
+    try {
+        return await work;
+    } finally {
+        clearInterval(timer);
+    }
+}
+
 /// Run the agentic edit loop. Resolves when the run reaches a terminal phase; never rejects
 /// (all errors are funneled into AGENT_FAILED / AGENT_CANCELLED dispatches).
 export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps): Promise<void> {
@@ -144,22 +191,27 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
         deps.dispatchAgent(action);
         if (tracedLog == null) return;
         switch (action.type) {
-            case AGENT_SET_INTENT:
+            case AGENT_SET_INTENT: {
+                const noun = intentNoun(action.value.intent);
                 tracedLog.info(
                     action.value.override
-                        ? `Intent overridden to ${action.value.intent}`
-                        : `Classified as ${action.value.intent}`,
+                        ? `Using the manually selected intent: writing a ${noun}`
+                        : `Classified the request as writing a ${noun}`,
                     {}, LOG_CTX);
                 break;
+            }
             case AGENT_PHASE:
                 tracedLog.info(action.value.message, { attempt: action.value.attempt.toString() }, LOG_CTX);
                 break;
             case AGENT_ATTEMPT_RESULT:
                 if (action.value.errors.length === 0) {
-                    tracedLog.info(`Attempt ${action.value.attempt} verified clean`, {}, LOG_CTX);
+                    tracedLog.info(
+                        `Attempt ${action.value.attempt} passed verification with no errors`,
+                        {}, LOG_CTX);
                 } else {
+                    const count = action.value.errors.length;
                     tracedLog.warn(
-                        `Attempt ${action.value.attempt} had ${action.value.errors.length} error(s)`,
+                        `Attempt ${action.value.attempt} failed verification with ${count} ${count === 1 ? 'error' : 'errors'}: ${summarizeErrors(action.value.errors)}`,
                         { errors: action.value.errors.join('; ') }, LOG_CTX);
                 }
                 break;
@@ -170,7 +222,7 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
                 tracedLog.error(action.value.error, {}, LOG_CTX);
                 break;
             case AGENT_CANCELLED:
-                tracedLog.warn('Run cancelled', {}, LOG_CTX);
+                tracedLog.warn('Run cancelled before completion', {}, LOG_CTX);
                 break;
             default:
                 break;
@@ -178,13 +230,13 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
     };
 
     // Attach the run to the context script (if any) so the feed entry can resolve it (and stream
-    // its trace) by run id — the same handle-based lookup queries use. A run that creates a
-    // brand-new entry has no context script yet; its progress is still visible in the compose
-    // status strip.
+    // its trace) by run id — the same handle-based lookup queries use. This is what surfaces the
+    // run in the focused card's Log tab. A run that creates a brand-new entry has no context script
+    // yet, so its progress only becomes visible once the resulting entry is registered.
     if (params.contextScriptKey != null) {
         deps.registerAgentRun?.(params.contextScriptKey, params.runId);
     }
-    tracedLog?.info('Starting agent run', { prompt: params.prompt }, LOG_CTX);
+    tracedLog?.info(`Starting agent run for prompt: "${truncateForLog(params.prompt)}"`, { prompt: params.prompt }, LOG_CTX);
 
     dispatchAgent({
         type: AGENT_START,
@@ -215,7 +267,11 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
             intent = params.intentOverride;
             dispatchAgent({ type: AGENT_SET_INTENT, value: { intent, override: true, timestamp: now() } });
         } else {
-            const classification = await aiClient.generate(buildClassifyPrompt(params.prompt), signal);
+            const classification = await withHeartbeat<string>(
+                'the model to classify the request',
+                tracedLog,
+                aiClient.generate(buildClassifyPrompt(params.prompt), signal),
+            );
             throwIfAborted(signal);
             intent = parseIntent(classification);
             dispatchAgent({ type: AGENT_SET_INTENT, value: { intent, override: false, timestamp: now() } });
@@ -238,6 +294,7 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
         let succeeded = false;
         let finalAttempt = 0;
 
+        const noun = intentNoun(intent);
         for (let attempt = 1; attempt <= maxAttempts; ++attempt) {
             finalAttempt = attempt;
             const repairing = attempt > 1;
@@ -246,16 +303,22 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
                 value: {
                     phase: repairing ? AgentRunPhase.REPAIRING : AgentRunPhase.GENERATING,
                     attempt,
-                    message: repairing ? `Repairing (attempt ${attempt})` : 'Generating',
+                    message: repairing
+                        ? `Repairing the ${noun} after verification errors (attempt ${attempt} of ${maxAttempts})`
+                        : `Generating a ${noun} from your request (attempt ${attempt} of ${maxAttempts})`,
                     timestamp: now(),
                 },
             });
 
             // Build + send the generation prompt.
-            const prompt = intent === 'visualize'
+            const prompt: string = intent === 'visualize'
                 ? buildVisualizePrompt({ context, userPrompt: params.prompt, previousCandidate, errors })
                 : buildSqlPrompt({ context, userPrompt: params.prompt, previousCandidate, errors });
-            const completion = await aiClient.generate(prompt, signal);
+            const completion: string = await withHeartbeat(
+                `the model to ${repairing ? 'repair' : 'generate'} the ${noun}`,
+                tracedLog,
+                aiClient.generate(prompt, signal),
+            );
             throwIfAborted(signal);
 
             // Turn the completion into candidate DSL/SQL.
@@ -295,7 +358,12 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
             // Verify against the parser + analyzer.
             dispatchAgent({
                 type: AGENT_PHASE,
-                value: { phase: AgentRunPhase.VERIFYING, attempt, message: 'Verifying', timestamp: now() },
+                value: {
+                    phase: AgentRunPhase.VERIFYING,
+                    attempt,
+                    message: `Verifying the generated ${noun} by parsing and analyzing it against the catalog`,
+                    timestamp: now(),
+                },
             });
             // An empty candidate would parse "clean" but apply nothing — reject it so the
             // loop repairs instead of silently succeeding with no output.
@@ -336,8 +404,8 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
                 type: AGENT_FAILED,
                 value: {
                     error: errors.length > 0
-                        ? `Could not produce a valid result after ${maxAttempts} attempts: ${errors[0]}`
-                        : `Could not produce a valid result after ${maxAttempts} attempts`,
+                        ? `Gave up after ${maxAttempts} attempts — the generated ${noun} still had errors: ${summarizeErrors(errors)}`
+                        : `Gave up after ${maxAttempts} attempts without producing a valid ${noun}`,
                     timestamp: now(),
                 },
             });
@@ -345,18 +413,29 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
         }
 
         // --- Apply ----------------------------------------------------------
+        const applyAction = chooseApplyAction(intent, contextScriptData, candidateText);
+        const targetName = contextScriptData != null ? scriptDisplayName(contextScriptData.fileName) : null;
+        const inPlace = applyAction.type === SET_SCRIPT_TEXT;
         dispatchAgent({
             type: AGENT_PHASE,
-            value: { phase: AgentRunPhase.APPLYING, attempt: finalAttempt, message: 'Applying', timestamp: now() },
+            value: {
+                phase: AgentRunPhase.APPLYING,
+                attempt: finalAttempt,
+                message: inPlace
+                    ? `Applying the ${noun} to ${targetName ? `"${targetName}"` : 'the focused script'}`
+                    : `Adding a new notebook entry with the generated ${noun}`,
+                timestamp: now(),
+            },
         });
 
-        const applyAction = chooseApplyAction(intent, contextScriptData, candidateText);
         deps.modifyNotebook(applyAction);
 
         dispatchAgent({
             type: AGENT_SUCCEEDED,
             value: {
-                message: applyAction.type === SET_SCRIPT_TEXT ? 'Updated script in place' : 'Created a new entry',
+                message: inPlace
+                    ? `Done — updated ${targetName ? `"${targetName}"` : 'the focused script'} with the new ${noun}`
+                    : `Done — created a new notebook entry with the ${noun}`,
                 timestamp: now(),
             },
         });

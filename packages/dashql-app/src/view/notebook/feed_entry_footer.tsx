@@ -6,6 +6,8 @@ import type { TopLevelSpec } from 'vega-lite';
 import { SparklesFillIcon } from '@primer/octicons-react';
 
 import { QueryExecutionState, QueryExecutionStatus } from '../../connection/query_execution_state.js';
+import { LogRecord } from '../../platform/logger/log_buffer.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 import { TraceLogViewer } from '../internals/trace_log_viewer.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { TableColumnHeader } from '../query_result/data_table_cell.js';
@@ -16,6 +18,8 @@ import { VerticalTabs, VerticalTabVariant, type VerticalTabProps } from '../foun
 import { VisualizationView } from '../visualization/visualization_view.js';
 
 const FEED_LIMIT_RESULT_ROWS = 8;
+/// The Log tab's viewport auto-expands to fit its rows and caps at this many (then scrolls).
+const FEED_LIMIT_LOG_ROWS = 8;
 
 const enum FooterTab {
     Log = 0,
@@ -49,6 +53,28 @@ function useResultRowCount(queryState: QueryExecutionState | null): { hasResult:
         ? (computationState.tableComputations[queryState!.queryId]?.dataTable.numRows ?? null)
         : null;
     return { hasResult, totalRows };
+}
+
+/// Track the timestamp of the most recent log record on a trace. Returns 0 when the trace has no
+/// id or no records yet. Used to decide which log source (query vs agent) is "most recent" so the
+/// Log tab can auto-follow whichever trace is currently producing output.
+function useTraceLastTimestamp(traceId: number | null): number {
+    const logger = useLogger();
+    const [lastTimestamp, setLastTimestamp] = React.useState(0);
+    React.useEffect(() => {
+        if (traceId == null) {
+            setLastTimestamp(0);
+            return;
+        }
+        const initial = logger.buffer.collectTraceLogs(traceId);
+        setLastTimestamp(initial.length > 0 ? initial[initial.length - 1].timestamp : 0);
+        const observer = (record: LogRecord) => {
+            setLastTimestamp(prev => Math.max(prev, record.timestamp));
+        };
+        logger.buffer.subscribeTrace(traceId, observer);
+        return () => logger.buffer.unsubscribeTrace(traceId, observer);
+    }, [traceId, logger]);
+    return lastTimestamp;
 }
 
 interface TabHeaderProps {
@@ -92,6 +118,38 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
         }
         prevHasResult.current = hasResult;
     }, [hasResult, hasVisualization]);
+
+    // Auto-follow the log source that most recently produced output: whichever trace's last-message
+    // timestamp just advanced becomes the selected source. A manual segmented-control click persists
+    // until the next message arrives on either trace.
+    const queryLastTs = useTraceLastTimestamp(queryTraceId);
+    const agentLastTs = useTraceLastTimestamp(agentTraceId);
+    const prevQueryTs = React.useRef(queryLastTs);
+    const prevAgentTs = React.useRef(agentLastTs);
+    React.useEffect(() => {
+        const queryAdvanced = queryLastTs > prevQueryTs.current;
+        const agentAdvanced = agentLastTs > prevAgentTs.current;
+        prevQueryTs.current = queryLastTs;
+        prevAgentTs.current = agentLastTs;
+        if (queryAdvanced && agentAdvanced) {
+            setLogSource(agentLastTs >= queryLastTs ? LogSource.Agent : LogSource.Query);
+        } else if (agentAdvanced) {
+            setLogSource(LogSource.Agent);
+        } else if (queryAdvanced) {
+            setLogSource(LogSource.Query);
+        }
+    }, [queryLastTs, agentLastTs]);
+
+    // A freshly started agent run (new trace id) pulls the footer to the Log tab so its progress is
+    // visible in the card immediately after the user submits the prompt.
+    const prevAgentTraceId = React.useRef(agentTraceId);
+    React.useEffect(() => {
+        if (agentTraceId != null && agentTraceId !== prevAgentTraceId.current) {
+            setSelectedTab(FooterTab.Log);
+            setLogSource(LogSource.Agent);
+        }
+        prevAgentTraceId.current = agentTraceId;
+    }, [agentTraceId]);
 
     const tabProps = React.useMemo<Record<FooterTab, VerticalTabProps>>(() => ({
         [FooterTab.Log]: {
@@ -156,7 +214,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                         </SegmentedControl.Button>
                     </SegmentedControl>
                 </div>
-                <TraceLogViewer traceId={activeLogTraceId ?? undefined} height={96} />
+                <TraceLogViewer traceId={activeLogTraceId ?? undefined} maxRows={FEED_LIMIT_LOG_ROWS} />
             </>
         ),
         [FooterTab.Table]: () => (

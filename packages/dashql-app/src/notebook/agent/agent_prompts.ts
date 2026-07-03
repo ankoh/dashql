@@ -75,34 +75,94 @@ export function buildSqlPrompt(input: GenerationPromptInput): string {
 
 /// Build the visualization generation / repair prompt. The model emits a constrained
 /// Vega-Lite spec which we transcode into a DashQL VISUALIZE statement.
+///
+/// The prompt is deliberately explicit about (a) the exact machine-readable surface we can
+/// transcode — anything outside it is silently dropped or fails transcoding — and (b) editorial
+/// guidance on how to pick a good chart, since the model otherwise defaults to bland bar charts
+/// with un-aggregated data. Keep the hard constraints (JSON-only, no `data` member, real columns
+/// only) verbatim: `extractJsonObject` and the WASM transcoder depend on them.
 export function buildVisualizePrompt(input: GenerationPromptInput): string {
-    const lines = [
-        'You are a data-visualization assistant for the DashQL notebook.',
-        'Return ONLY a single JSON object for a restricted Vega-Lite specification.',
-        'No markdown code fences, no prose, no explanation.',
-        '',
-        'Use only this restricted surface:',
-        '- "mark": one of bar, line, area, point, circle, square, rect, arc, rule, tick, text.',
-        '  (a string, or an object {"type": <mark>}).',
-        '- "encoding": an object whose keys are channels:',
-        '  x, y, x2, y2, color, fill, stroke, size, shape, opacity, theta, angle,',
-        '  tooltip, detail, order, row, column.',
-        '  Each channel is an object with: "field" (a column name), "type"',
-        '  (nominal | ordinal | quantitative | temporal), and optionally',
-        '  "aggregate" (sum | mean | count | min | max | median), "bin" (true or an',
-        '  object), "timeUnit" (year | month | day | …), "sort", "scale", "axis", "legend".',
-        '- Optional top-level "title" (string), "width" (number), "height" (number).',
-        'Do NOT include a "data" field — the data source is supplied separately.',
-        'Do NOT invent column names; use only columns present in the context schema.',
-        '',
-        '--- Context ---',
-        input.context,
-        '--- End context ---',
-        '',
-        `Instruction: ${input.userPrompt}`,
-        ...repairBlock(input),
-    ];
-    return lines.join('\n');
+    const prompt = `You are an expert data-visualization assistant for the DashQL notebook.
+Your job is to turn a natural-language request into ONE effective chart, expressed as a
+restricted Vega-Lite specification that DashQL transcodes into a VISUALIZE statement.
+
+OUTPUT FORMAT (strict):
+- Return ONLY a single JSON object. No markdown code fences, no prose, no explanation,
+  no leading or trailing text. The first character of your reply must be "{".
+
+SCOPE — a SINGLE view only:
+- The only top-level keys that are honored are: "mark", "encoding", "title", "width",
+  "height". Everything else at the top level is IGNORED — do NOT use "layer", "facet",
+  "repeat", "concat", "hconcat", "vconcat", "transform", "params", "selection", "config",
+  "resolve", "projection" or "datasets". Express the request as one mark + one encoding.
+- Do NOT include a "data" field — the data source is supplied separately by DashQL.
+
+MARK — "mark" is either a string or an object {"type": <mark>, …}. Mark types:
+  bar, line, area, point, circle, square, rect, arc, rule, tick, text, trail,
+  boxplot, geoshape, image.
+  As an object it may also carry: "point"/"line" (boolean or a nested mark object, e.g.
+  a line with visible points), "filled", "fill", "stroke", "color", "opacity",
+  "fillOpacity", "strokeOpacity", "strokeWidth", "strokeDash", "size", "shape", "angle",
+  "radius", "cornerRadius", "orient", "interpolate", "tension", "thickness", "tooltip".
+
+ENCODING — "encoding" maps channels to field definitions. Available channels:
+  - Position:   x, y, x2, y2, xOffset, yOffset
+  - Polar/arc:  theta, theta2, radius, radius2, angle
+  - Mark style: color, fill, stroke, opacity, fillOpacity, strokeOpacity, strokeWidth,
+                strokeDash, size, shape
+  - Labels:     text, tooltip, detail, order, key, href
+  - Faceting:   row, column, facet   (small multiples — still one mark/encoding)
+  - Geographic: latitude, longitude, latitude2, longitude2
+
+FIELD DEFINITION — each channel maps to an object with any of:
+  - "field": a column name that EXISTS in the context schema below.
+  - "type": nominal | ordinal | quantitative | temporal | geojson.
+  - "aggregate": sum | mean | average | count | min | max | median | stdev | variance …
+  - "bin": true, or an object like {"maxbins": 20, "step": 5}.
+  - "timeUnit" (temporal): year | quarter | month | week | day | date | hours | minutes …
+  - "sort": "ascending" | "descending" | "-x" | "-y" | a field name.
+  - "stack": "zero" | "normalize" | "center" | true | false (position channels).
+  - "title", "format", "formatType", "bandPosition", "impute", "condition".
+  - "value" / "datum": a constant encoding instead of a field.
+  - "scale": object with any of type (linear, log, pow, sqrt, symlog, time, utc, ordinal,
+    band, point, quantile, quantize, threshold, sequential), domain, domainMin, domainMax,
+    domainMid, range, rangeMin, rangeMax, scheme, interpolate, nice, zero, clamp, padding,
+    paddingInner, paddingOuter, reverse, round, exponent, bins.
+  - "axis": object with any of orient, format, formatType, grid, ticks, tickCount, tickSize,
+    labelAngle, labelFontSize, labelOverlap, direction, offset, values, zindex, title, domain.
+  - "legend": object with any of type, orient, format, formatType, direction, title, values,
+    padding, offset, zindex.
+
+HARD RULES:
+- Do NOT invent, rename, or guess column names. Use ONLY columns that appear in the
+  context schema. If a requested column is absent, choose the closest matching real column.
+- Choose "type" from the column's data type: numeric measures are quantitative, dates/
+  timestamps are temporal, free-text categories are nominal, discrete ranks/buckets are ordinal.
+- Prefer the standard Vega-Lite property names above; unrecognized properties are dropped.
+
+CHART-DESIGN GUIDANCE (pick the most informative chart, not just the first that fits):
+- Trend over time → line (or area) with the temporal column on x and a quantitative measure
+  on y; add a "timeUnit" when the request implies a granularity (per month, per day, …).
+- Comparison across categories → bar with the category on x (or y for many/long labels) and
+  an aggregated measure on the other axis; sort bars by the measure ("-y" or "-x") unless the
+  category has a natural order.
+- Part-to-whole → arc (pie/donut) with theta as the aggregated measure and color as the category;
+  prefer a bar chart when there are more than ~6 categories.
+- Distribution of one measure → bar with "bin": true on x and {"aggregate": "count"} on y.
+- Relationship between two measures → point (scatter); add color/size for a third dimension.
+- Use "color" to encode a secondary category (grouped/stacked bars, multi-series lines).
+- Add "tooltip" for the fields a reader would want to inspect, and give the chart a concise
+  "title" that states what it shows.
+- Keep it to a single, readable chart — do not overload it with unnecessary channels.
+
+--- Context (focused script + available columns) ---
+${input.context}
+--- End context ---
+
+Instruction: ${input.userPrompt}`;
+
+    const repair = repairBlock(input);
+    return repair.length > 0 ? `${prompt}\n${repair.join('\n')}` : prompt;
 }
 
 /// Defensively isolate the SQL body from a completion: strip markdown fences and any

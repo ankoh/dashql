@@ -55,7 +55,7 @@ export function useAgentRunState(runId: number | null): AgentRunState | null {
 }
 
 /// Read the latest agent-run state for a session (null if no run yet / reset). Backed by the
-/// per-session index over the run registry; used by the compose status strip.
+/// per-session index over the run registry; used by the compose bar to toggle send↔stop.
 export function useLatestAgentRunState(sessionId: string | null): AgentRunState | null {
     const ctx = React.useContext(AGENT_RUN_CTX);
     if (ctx == null || sessionId == null) return null;

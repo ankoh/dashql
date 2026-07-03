@@ -170,6 +170,10 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptD
         maxWidthChars,
         scriptData.script,
         scriptData.scriptKey,
+        // Re-analysis produces a fresh `buffers` object even when `script` is mutated in place
+        // (e.g. the agent's SET_SCRIPT_TEXT calls `script.replaceText()`, keeping the same JS
+        // reference). Depend on it so the preview reformats when the underlying text changes.
+        scriptData.scriptAnalysis.buffers,
         onReady,
     ]);
 

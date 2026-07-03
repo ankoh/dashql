@@ -12,12 +12,17 @@ import { LogJsonModal } from './log_json_modal.js';
 import {
     LogRow,
     LogRowProps,
+    ROW_HEIGHT,
     computeLogRowHeight,
 } from './log_viewer.js';
 
 interface TraceLogViewerProps {
     traceId?: number;
+    /// Fixed pixel height of the log viewport. Ignored when `maxRows` is set.
     height?: number;
+    /// When set, the viewport auto-expands to fit the current row count and caps at this many rows
+    /// (after which it scrolls). Takes precedence over `height`.
+    maxRows?: number;
 }
 
 export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogViewerProps) => {
@@ -58,28 +63,35 @@ export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogVie
         };
     }, [props.traceId, logger]);
 
-    // Determine log container dimensions
+    // The number of rows currently displayed.
+    const rowCount = props.traceId !== undefined ? filteredLogs.length : logger.buffer.length;
+
+    // Determine log container dimensions. When `maxRows` is set, the viewport auto-expands to fit
+    // the current rows (so it grows as logs stream in) and caps at `maxRows` rows, after which it
+    // scrolls. Otherwise it falls back to the fixed `height` prop.
     const containerRef = React.useRef<HTMLDivElement>(null);
     const containerSize = observeSize(containerRef);
     const containerWidth = containerSize?.width ?? 200;
-    const containerHeight = props.height ?? 200;
+    const containerHeight = props.maxRows != null
+        ? Math.min(rowCount, props.maxRows) * ROW_HEIGHT
+        : (props.height ?? 200);
 
     // Redraw whenever the log version changes or filtered logs change
     const seenLogRows = React.useRef<number>(0);
     const listRef = useListRef(null);
     React.useEffect(() => {
-        if (listRef.current) {
-            const rowCount = props.traceId !== undefined ? filteredLogs.length : logger.buffer.length;
-            seenLogRows.current = rowCount;
+        if (!listRef.current) return;
+        seenLogRows.current = rowCount;
+        if (rowCount === 0) return;
 
-            // Scroll to last row
-            if (rowCount > 0) {
-                listRef.current.scrollToRow({
-                    index: rowCount - 1,
-                    align: 'end',
-                });
-            }
-        }
+        // Scroll to the last row. Unlike the modal log viewer, our container height is a fixed
+        // prop rather than a measured size, so the effect never re-fires after layout settles.
+        // We scroll synchronously and again on the next frame, once react-window has committed the
+        // freshly-appended rows, so the view reliably sticks to the bottom as new logs stream in.
+        const scrollToLast = () => listRef.current?.scrollToRow({ index: rowCount - 1, align: 'end' });
+        scrollToLast();
+        const raf = requestAnimationFrame(scrollToLast);
+        return () => cancelAnimationFrame(raf);
     }, [logVersion, containerHeight, filteredLogs, props.traceId, logger]);
 
     // Helper to show JSON modal for a log record
@@ -149,9 +161,6 @@ export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogVie
         selectedRecordIndex: jsonModalRecordIndex,
         filteredLogs: props.traceId !== undefined ? filteredLogs : undefined,
     }), [logger, showJsonRecord, jsonModalRecordIndex, props.traceId, filteredLogs]);
-
-    // Determine row count
-    const rowCount = props.traceId !== undefined ? filteredLogs.length : logger.buffer.length;
 
     return (
         <>

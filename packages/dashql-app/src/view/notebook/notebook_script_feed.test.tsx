@@ -75,7 +75,7 @@ vi.mock('../../notebook/agent/agent_run_provider.js', () => ({
 vi.mock('../internals/trace_log_viewer.js', async () => {
     const React = await import('react');
     return {
-        TraceLogViewer: (props: { traceId?: number; height?: number }) =>
+        TraceLogViewer: (props: { traceId?: number; height?: number; maxRows?: number }) =>
             React.createElement('div', { 'data-testid': 'trace-log-viewer', 'data-trace-id': props.traceId }),
     };
 });
