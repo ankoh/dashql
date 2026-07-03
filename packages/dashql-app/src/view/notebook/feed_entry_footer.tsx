@@ -145,7 +145,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                             selected={resolvedLogSource === LogSource.Query}
                             disabled={queryTraceId == null}
                         >
-                            Script
+                            Execution
                         </SegmentedControl.Button>
                         <SegmentedControl.Button
                             leadingVisual={SparklesFillIcon}
