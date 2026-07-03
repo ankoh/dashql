@@ -509,15 +509,14 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 }
             </div>
             <div className={styles.action_sidebar} data-tauri-drag-region="deep">
-                <div className={styles.action_sidebar_header}>
-                    {conn && <ConnectionStatus ref={connectionStatusRef} conn={conn} sessionId={route.sessionId} onClick={() => setConnectionOverlayOpen(true)} />}
-                </div>
                 <div className={styles.action_sidebar_body}>
                     <ActionList.List aria-label="Actions">
                         <ActionList.GroupHeading>Connection</ActionList.GroupHeading>
                         <ConnectionCommandList
                             conn={conn ?? null}
                             notebook={notebook}
+                            onOpenSettings={() => setConnectionOverlayOpen(true)}
+                            settingsRef={connectionStatusRef}
                         />
                         <ActionList.GroupHeading>Notebook</ActionList.GroupHeading>
                         <NotebookCommandList

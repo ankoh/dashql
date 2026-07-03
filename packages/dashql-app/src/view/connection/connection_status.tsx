@@ -31,7 +31,7 @@ export const CONNECTION_HEALTH_COLORS: string[] = [
 
 export const ConnectionStatus = React.forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
     const health = props.conn.connectionHealth ?? 0;
-    const connectorIcon = props.conn.connectorInfo.icons.colored;
+    const connectorIcon = props.conn.connectorInfo.icons.outlines;
 
     const isDemo =
         props.conn.connectorInfo.connectorType === ConnectorType.DATALESS &&
@@ -45,6 +45,7 @@ export const ConnectionStatus = React.forwardRef<HTMLButtonElement, ButtonProps>
         }
     };
 
+    // This status button is the small-screen connector affordance, so it uses the outline variant.
     const ConnectorIconVisual = React.useCallback(() => (
         <svg width="16" height="16">
             <use xlinkHref={`${symbols}#${connectorIcon}`} />

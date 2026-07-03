@@ -27,9 +27,10 @@ export interface ListItemProps {
     tabIndex?: number;
 }
 
-export function ListItem(props: ListItemProps) {
+export const ListItem = React.forwardRef<HTMLButtonElement, ListItemProps>((props, ref) => {
     return (
         <button
+            ref={ref}
             type="button"
             className={classNames(styles.item_container, props.className, {
                 [styles.disabled]: props.disabled,
@@ -44,7 +45,7 @@ export function ListItem(props: ListItemProps) {
             {props.children}
         </button>
     );
-}
+});
 
 export interface LeadingProps {
     children?: React.ReactElement | string;

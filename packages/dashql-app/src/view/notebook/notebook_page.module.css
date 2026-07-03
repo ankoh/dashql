@@ -139,11 +139,6 @@
         flex-direction: column;
         background-color: white;
     }
-    .action_sidebar_header {
-        padding: 8px;
-        display: flex;
-        justify-content: end;
-    }
     .action_sidebar_body {
         border-radius: var(--border_radius);
         flex: 1;

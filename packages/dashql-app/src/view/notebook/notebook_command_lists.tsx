@@ -1,4 +1,5 @@
 import * as React from 'react';
+import symbols from '@ankoh/dashql-svg-symbols';
 import * as ActionList from '../foundations/action_list.js';
 import { LinkIcon, SparklesFillIcon, SyncIcon } from '@primer/octicons-react';
 
@@ -10,18 +11,46 @@ import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { NotebookFileSaveOverlay } from './notebook_file_save_overlay.js';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
+import { CONNECTION_HEALTH_COLORS } from '../connection/connection_status.js';
 import { useAIClient } from '../../platform/ai_client_provider.js';
 
 export const ConnectionCommandList: React.FC<{
     conn: ConnectionState | null;
     notebook: NotebookState | null;
+    onOpenSettings?: () => void;
+    settingsRef?: React.Ref<HTMLButtonElement>;
 }> = (props) => {
     const notebookCommand = useNotebookCommandDispatch();
 
     const isDisconnected = props.conn?.connectionHealth !== ConnectionHealth.ONLINE;
     const DatabaseQueryIcon = SymbolIcon('search_16');
+
+    const connectorIcon = props.conn?.connectorInfo.icons.outlines;
+    const health = props.conn?.connectionHealth ?? 0;
+    const statusColor = CONNECTION_HEALTH_COLORS[health];
+    const showHealthCheck = props.conn?.connectorInfo.features.healthChecks ?? false;
     return (
         <>
+            <ActionList.ListItem
+                ref={props.settingsRef}
+                onClick={props.onOpenSettings}
+            >
+                <ActionList.Leading>
+                    <svg width="16" height="16">
+                        <use xlinkHref={`${symbols}#${connectorIcon}`} />
+                    </svg>
+                </ActionList.Leading>
+                <ActionList.ItemText>
+                    Edit Connection
+                </ActionList.ItemText>
+                {showHealthCheck ? (
+                    <ActionList.Trailing>
+                        <svg width="8" height="8" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="4" cy="4" r="4" fill={statusColor} />
+                        </svg>
+                    </ActionList.Trailing>
+                ) : <></>}
+            </ActionList.ListItem>
             <ActionList.ListItem
                 disabled={isDisconnected || !props.conn?.connectorInfo.features.executeQueryAction}
                 onClick={() => notebookCommand(NotebookCommandType.ExecuteEditorQuery)}
