@@ -1,7 +1,7 @@
 import * as React from 'react';
 import symbols from '@ankoh/dashql-svg-symbols';
 import * as ActionList from '../foundations/action_list.js';
-import { LinkIcon, SparklesFillIcon, SyncIcon } from '@primer/octicons-react';
+import { LinkIcon, PaperAirplaneIcon, SparklesFillIcon, SyncIcon } from '@primer/octicons-react';
 
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
@@ -23,7 +23,6 @@ export const ConnectionCommandList: React.FC<{
     const notebookCommand = useNotebookCommandDispatch();
 
     const isDisconnected = props.conn?.connectionHealth !== ConnectionHealth.ONLINE;
-    const DatabaseQueryIcon = SymbolIcon('search_16');
 
     const connectorIcon = props.conn?.connectorInfo.icons.outlines;
     const health = props.conn?.connectionHealth ?? 0;
@@ -56,7 +55,7 @@ export const ConnectionCommandList: React.FC<{
                 onClick={() => notebookCommand(NotebookCommandType.ExecuteEditorQuery)}
             >
                 <ActionList.Leading>
-                    <DatabaseQueryIcon />
+                    <PaperAirplaneIcon />
                 </ActionList.Leading>
                 <ActionList.ItemText>
                     Execute Script

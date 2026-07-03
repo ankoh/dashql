@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './notebook_page.module.css';
 
-import { LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
+import { PaperAirplaneIcon, SparklesFillIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
 
 import * as ActionList from '../foundations/action_list.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
@@ -15,6 +15,7 @@ import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_s
 import { CREATE_PAGE, REORDER_PAGES, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE, UPDATE_PAGE_FOLDER_NAME, getSortedFolderNames } from '../../notebook/notebook_state.js';
 import { normalizePageName } from '../../notebook/notebook_types.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
+import { useAIClient } from '../../platform/ai_client_provider.js';
 import {
     DndContext,
     DragEndEvent,
@@ -32,7 +33,6 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH, CHANGE_SESSION } from '../../router.js';
@@ -154,7 +154,6 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const notebookRegistry = useNotebookRegistry()[0];
     const [notebook, modifyNotebook] = useNotebookState(route.sessionId ?? null);
     const [conn, _modifyConn] = useConnectionState(notebook?.sessionId ?? null);
-    const [sharingIsOpen, setSharingIsOpen] = React.useState<boolean>(false);
     const [connectionOverlayOpen, setConnectionOverlayOpen] = React.useState<boolean>(false);
     const [showDetails, setShowDetails] = React.useState<boolean>(false);
     const [detailsInitialTab, setDetailsInitialTab] = React.useState<DetailsTabKey | undefined>(undefined);
@@ -166,6 +165,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const connectionStatusRef = React.useRef<HTMLButtonElement>(null);
 
     const sessionCommand = useNotebookCommandDispatch();
+    const aiAvailable = useAIClient() != null;
     const requestFeedScroll = React.useCallback((fileName: string) => {
         setFeedScrollTarget(prev => ({
             fileName,
@@ -408,13 +408,13 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                             </IconButton>
                             <IconButton
                                 variant={ButtonVariant.Default}
-                                aria-label="Share Notebook"
-                                onClick={() => setSharingIsOpen(s => !s)}
+                                aria-label="Switch Mode"
+                                disabled={!aiAvailable}
+                                onClick={() => sessionCommand(NotebookCommandType.ToggleComposeInputMode)}
                             >
-                                <LinkIcon />
+                                <SparklesFillIcon />
                             </IconButton>
                         </ButtonGroup>
-                        <NotebookURLShareOverlay isOpen={sharingIsOpen} setIsOpen={setSharingIsOpen} />
                     </div>
                     <IconButton variant={ButtonVariant.Default} aria-label="Open Notebook Actions">
                         <ThreeBarsIcon />
