@@ -30,7 +30,7 @@ export const ConnectionCommandList: React.FC<{
                     <DatabaseQueryIcon />
                 </ActionList.Leading>
                 <ActionList.ItemText>
-                    Execute Query
+                    Execute Script
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + E</ActionList.Trailing>
             </ActionList.ListItem>

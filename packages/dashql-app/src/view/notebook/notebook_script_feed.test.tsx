@@ -27,6 +27,7 @@ const mockState = vi.hoisted(() => ({
         callback: (event: KeyboardEvent) => void;
     }>,
     queryStates: new Map<number, { traceId: number; status: number }>(),
+    agentRuns: new Map<number, { traceId: number }>(),
 }));
 vi.mock('react-window', async () => fakeReactWindowModule(await import('react'), mockState.scrollToRowMock));
 vi.mock('./script_editor.js', async () => fakeScriptEditorModule(await import('react'), mockState));
@@ -61,6 +62,16 @@ vi.mock('../../connection/query_executor.js', () => ({
     },
     useQueryExecutor: () => vi.fn(),
 }));
+vi.mock('../../notebook/agent/agent_run_provider.js', () => ({
+    // Resolve an agent run by its id from the backing map, mirroring useQueryState.
+    useAgentRunState: (runId: number | null) => {
+        if (runId == null) return null;
+        return mockState.agentRuns.get(runId) ?? null;
+    },
+    useLatestAgentRunState: () => null,
+    useStartAgentRun: () => vi.fn(),
+    useCancelAgentRun: () => vi.fn(),
+}));
 vi.mock('../internals/trace_log_viewer.js', async () => {
     const React = await import('react');
     return {
@@ -71,8 +82,11 @@ vi.mock('../internals/trace_log_viewer.js', async () => {
 vi.mock('./feed_entry_footer.js', async () => {
     const React = await import('react');
     return {
-        FeedEntryFooter: (props: { traceId?: number }) =>
-            React.createElement('div', { 'data-testid': 'trace-log-viewer', 'data-trace-id': props.traceId }),
+        FeedEntryFooter: (props: { queryState?: { traceId?: number } | null; agentTraceId?: number | null }) =>
+            React.createElement('div', {
+                'data-testid': 'trace-log-viewer',
+                'data-trace-id': props.queryState?.traceId ?? props.agentTraceId ?? undefined,
+            }),
     };
 });
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
@@ -115,6 +129,7 @@ function makeScriptData(scriptKey: number, text: string, fileName: string = '', 
         cursor: null,
         completion: null,
         latestQueryId: null,
+        latestAgentRunId: null,
         fileName,
         folderName,
     };
@@ -185,6 +200,7 @@ describe('NotebookScriptFeed', () => {
         mockState.composeEditorFocused = true;
         mockState.keyHandlers = [];
         mockState.queryStates.clear();
+        mockState.agentRuns.clear();
     });
 
     afterEach(() => {
@@ -465,6 +481,22 @@ describe('NotebookScriptFeed', () => {
         });
         const viewers = container.querySelectorAll('[data-testid="trace-log-viewer"]');
         expect(viewers.length).toBe(1);
+    });
+
+    it('shows execution footer for an agent run without a query', () => {
+        // The script references a run by id; the run (resolved from the registry) carries the trace.
+        mockState.agentRuns.set(5, { traceId: 200 });
+        const notebook = createNotebookState();
+        notebook.scripts[101] = { ...notebook.scripts[101], latestAgentRunId: 5 };
+        renderFeed({
+            notebook,
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+        const viewers = container.querySelectorAll('[data-testid="trace-log-viewer"]');
+        expect(viewers.length).toBe(1);
+        expect(viewers[0].getAttribute('data-trace-id')).toBe('200');
     });
 
     it('scrolls to the bottom after send once the promoted entry appears', () => {

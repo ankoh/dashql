@@ -32,6 +32,7 @@ export function useNotebookSetup(): NotebookSetup {
             cursor: null,
             completion: null,
             latestQueryId: null,
+            latestAgentRunId: null,
             fileName,
             folderName,
         };

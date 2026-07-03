@@ -9,10 +9,10 @@ import {
     AGENT_START,
     AGENT_SUCCEEDED,
     AgentIntent,
-    AgentLoopAction,
-    AgentLoopPhase,
+    AgentRunAction,
+    AgentRunPhase,
     DEFAULT_MAX_ATTEMPTS,
-} from './agent_loop_state.js';
+} from './agent_run_state.js';
 import {
     buildClassifyPrompt,
     buildSqlPrompt,
@@ -32,6 +32,10 @@ import {
 } from '../notebook_state.js';
 import { resolveSymbolSpan } from '../../core/tokens.js';
 import { normalizePageName, scriptDisplayName } from '../notebook_types.js';
+import { LoggerLike } from '../../platform/logger/logger.js';
+import { createTrace, TraceContext } from '../../platform/logger/trace_context.js';
+
+const LOG_CTX = 'agent_run';
 
 /// The minimal AI client surface the driver needs (so tests can inject a mock).
 export interface AgentAIClient {
@@ -91,12 +95,18 @@ export interface AgentRunParams {
 /// inject fakes (mock AI client, fake clock, in-memory dispatch).
 export interface AgentRunDeps {
     aiClient: AgentAIClient;
-    /// Update the observable agent-loop state.
-    dispatchAgent: (action: AgentLoopAction) => void;
+    /// Update the observable agent-run state.
+    dispatchAgent: (action: AgentRunAction) => void;
     /// Read the current notebook state (called lazily so the driver sees fresh state).
     getNotebook: () => NotebookState | null;
     /// Apply a result to the notebook.
     modifyNotebook: (action: NotebookStateAction) => void;
+    /// Record the agent run's id on a script so the feed can resolve the run (and its trace) the
+    /// same way it resolves a query by its latestQueryId. Optional so isolated tests can omit it.
+    registerAgentRun?: (scriptKey: number, runId: number) => void;
+    /// The base logger; the driver binds the run's trace to it so progress lands in the trace log.
+    /// Optional so isolated tests can omit it.
+    logger?: LoggerLike & { withTrace(ctx: TraceContext): LoggerLike };
     /// Monotonic-ish clock for timeline timestamps (injected for testability).
     now: () => number;
     /// Optional context-contributor override (defaults to the standard chain).
@@ -116,16 +126,71 @@ function throwIfAborted(signal: AbortSignal): void {
 
 /// Run the agentic edit loop. Resolves when the run reaches a terminal phase; never rejects
 /// (all errors are funneled into AGENT_FAILED / AGENT_CANCELLED dispatches).
-export async function runAgentLoop(params: AgentRunParams, deps: AgentRunDeps): Promise<void> {
+export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps): Promise<void> {
     const maxAttempts = params.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
     const abort = new AbortController();
     const signal = abort.signal;
-    const { dispatchAgent, aiClient, now } = deps;
+    const { aiClient, now } = deps;
+
+    // Start a trace for this run so its progress is observable in the feed's "Agent Logs" view.
+    // Each meaningful state transition is mirrored into this trace's log via the dispatch wrapper.
+    const trace = createTrace();
+    const tracedLog = deps.logger?.withTrace(trace) ?? null;
+
+    // Forward every agent action to the observable state and mirror the meaningful transitions
+    // into the run's trace log. Keeping this a single wrapper means every existing dispatch site
+    // stays unchanged while its message also reaches the trace log.
+    const dispatchAgent = (action: AgentRunAction) => {
+        deps.dispatchAgent(action);
+        if (tracedLog == null) return;
+        switch (action.type) {
+            case AGENT_SET_INTENT:
+                tracedLog.info(
+                    action.value.override
+                        ? `Intent overridden to ${action.value.intent}`
+                        : `Classified as ${action.value.intent}`,
+                    {}, LOG_CTX);
+                break;
+            case AGENT_PHASE:
+                tracedLog.info(action.value.message, { attempt: action.value.attempt.toString() }, LOG_CTX);
+                break;
+            case AGENT_ATTEMPT_RESULT:
+                if (action.value.errors.length === 0) {
+                    tracedLog.info(`Attempt ${action.value.attempt} verified clean`, {}, LOG_CTX);
+                } else {
+                    tracedLog.warn(
+                        `Attempt ${action.value.attempt} had ${action.value.errors.length} error(s)`,
+                        { errors: action.value.errors.join('; ') }, LOG_CTX);
+                }
+                break;
+            case AGENT_SUCCEEDED:
+                tracedLog.info(action.value.message, {}, LOG_CTX);
+                break;
+            case AGENT_FAILED:
+                tracedLog.error(action.value.error, {}, LOG_CTX);
+                break;
+            case AGENT_CANCELLED:
+                tracedLog.warn('Run cancelled', {}, LOG_CTX);
+                break;
+            default:
+                break;
+        }
+    };
+
+    // Attach the run to the context script (if any) so the feed entry can resolve it (and stream
+    // its trace) by run id — the same handle-based lookup queries use. A run that creates a
+    // brand-new entry has no context script yet; its progress is still visible in the compose
+    // status strip.
+    if (params.contextScriptKey != null) {
+        deps.registerAgentRun?.(params.contextScriptKey, params.runId);
+    }
+    tracedLog?.info('Starting agent run', { prompt: params.prompt }, LOG_CTX);
 
     dispatchAgent({
         type: AGENT_START,
         value: {
             runId: params.runId,
+            traceId: trace.traceId,
             prompt: params.prompt,
             contextScriptKey: params.contextScriptKey,
             intentOverride: params.intentOverride,
@@ -179,7 +244,7 @@ export async function runAgentLoop(params: AgentRunParams, deps: AgentRunDeps): 
             dispatchAgent({
                 type: AGENT_PHASE,
                 value: {
-                    phase: repairing ? AgentLoopPhase.REPAIRING : AgentLoopPhase.GENERATING,
+                    phase: repairing ? AgentRunPhase.REPAIRING : AgentRunPhase.GENERATING,
                     attempt,
                     message: repairing ? `Repairing (attempt ${attempt})` : 'Generating',
                     timestamp: now(),
@@ -230,7 +295,7 @@ export async function runAgentLoop(params: AgentRunParams, deps: AgentRunDeps): 
             // Verify against the parser + analyzer.
             dispatchAgent({
                 type: AGENT_PHASE,
-                value: { phase: AgentLoopPhase.VERIFYING, attempt, message: 'Verifying', timestamp: now() },
+                value: { phase: AgentRunPhase.VERIFYING, attempt, message: 'Verifying', timestamp: now() },
             });
             // An empty candidate would parse "clean" but apply nothing — reject it so the
             // loop repairs instead of silently succeeding with no output.
@@ -282,7 +347,7 @@ export async function runAgentLoop(params: AgentRunParams, deps: AgentRunDeps): 
         // --- Apply ----------------------------------------------------------
         dispatchAgent({
             type: AGENT_PHASE,
-            value: { phase: AgentLoopPhase.APPLYING, attempt: finalAttempt, message: 'Applying', timestamp: now() },
+            value: { phase: AgentRunPhase.APPLYING, attempt: finalAttempt, message: 'Applying', timestamp: now() },
         });
 
         const applyAction = chooseApplyAction(intent, contextScriptData, candidateText);

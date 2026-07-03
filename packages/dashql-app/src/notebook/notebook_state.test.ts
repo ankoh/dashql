@@ -12,6 +12,7 @@ import {
     DELETE_NOTEBOOK_ENTRY,
     PROMOTE_UNCOMMITTED_SCRIPT,
     REGISTER_QUERY,
+    REGISTER_AGENT_RUN,
     SELECT_ENTRY,
     SET_SCRIPT_TEXT,
     destroyState,
@@ -1357,6 +1358,34 @@ describe('REGISTER_QUERY', () => {
     it('returns the unchanged state for an unknown scriptKey', () => {
         const state = buildState();
         const next = reduce(state, { type: REGISTER_QUERY, value: [99999, 1] });
+        expect(next).toBe(state);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// REGISTER_AGENT_RUN
+// ---------------------------------------------------------------------------
+
+describe('REGISTER_AGENT_RUN', () => {
+    it('records latestAgentRunId on the referenced script', () => {
+        const state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const next = reduce(state, { type: REGISTER_AGENT_RUN, value: [scriptKey, 77] });
+        expect(next.scripts[scriptKey].latestAgentRunId).toBe(77);
+    });
+
+    it('leaves latestQueryId untouched', () => {
+        const state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const withQuery = reduce(state, { type: REGISTER_QUERY, value: [scriptKey, 42] });
+        const next = reduce(withQuery, { type: REGISTER_AGENT_RUN, value: [scriptKey, 77] });
+        expect(next.scripts[scriptKey].latestQueryId).toBe(42);
+        expect(next.scripts[scriptKey].latestAgentRunId).toBe(77);
+    });
+
+    it('returns the unchanged state for an unknown scriptKey', () => {
+        const state = buildState();
+        const next = reduce(state, { type: REGISTER_AGENT_RUN, value: [99999, 1] });
         expect(next).toBe(state);
     });
 });

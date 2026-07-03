@@ -89,6 +89,8 @@ export interface ScriptData {
     completion: DashQLCompletionState | null;
     /// The latest query id
     latestQueryId: number | null;
+    /// The latest agent-run id
+    latestAgentRunId: number | null;
     /// The file name of this script (empty string for uncommitted/draft script)
     fileName: string;
     /// The folder name of the page this script belongs to (empty string for uncommitted/draft script)
@@ -107,6 +109,7 @@ export const ANALYZE_OUTDATED_SCRIPT = Symbol('ANALYZE_OUTDATED_SCRIPT');
 export const UPDATE_FROM_PROCESSOR = Symbol('UPDATE_FROM_PROCESSOR');
 export const CATALOG_DID_UPDATE = Symbol('CATALOG_DID_UPDATE');
 export const REGISTER_QUERY = Symbol('REGISTER_QUERY');
+export const REGISTER_AGENT_RUN = Symbol('REGISTER_AGENT_RUN');
 export const CREATE_NOTEBOOK_ENTRY = Symbol('CREATE_NOTEBOOK_ENTRY');
 export const DELETE_NOTEBOOK_ENTRY = Symbol('DELETE_NOTEBOOK_ENTRY');
 export const UPDATE_NOTEBOOK_ENTRY = Symbol('UPDATE_NOTEBOOK_ENTRY');
@@ -130,6 +133,7 @@ export type NotebookStateAction =
     | VariantKind<typeof UPDATE_FROM_PROCESSOR, DashQLProcessorUpdateOut>
     | VariantKind<typeof CATALOG_DID_UPDATE, null>
     | VariantKind<typeof REGISTER_QUERY, [ScriptKey, number]>
+    | VariantKind<typeof REGISTER_AGENT_RUN, [ScriptKey, number]>
     | VariantKind<typeof CREATE_NOTEBOOK_ENTRY, null>
     | VariantKind<typeof DELETE_NOTEBOOK_ENTRY, string>
     | VariantKind<typeof UPDATE_NOTEBOOK_ENTRY, { fileName: string, newFileName: string }>
@@ -162,6 +166,7 @@ export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQ
         cursor: null,
         completion: null,
         latestQueryId: null,
+        latestAgentRunId: null,
         fileName,
         folderName,
     };
@@ -443,6 +448,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 cursor: null,
                 completion: null,
                 latestQueryId: null,
+                latestAgentRunId: null,
                 fileName,
                 folderName,
             };
@@ -754,6 +760,25 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             }
         }
 
+        case REGISTER_AGENT_RUN: {
+            const [scriptKey, runId] = action.value;
+            const scriptData = state.scripts[scriptKey];
+            if (!scriptData) {
+                logger.warn("Orphan agent run references invalid script", {
+                    scriptKey: scriptKey.toString(),
+                    runId: runId.toString(),
+                }, LOG_CTX);
+                return state;
+            } else {
+                const next = { ...state };
+                next.scripts[scriptKey] = {
+                    ...scriptData,
+                    latestAgentRunId: runId,
+                };
+                return next;
+            }
+        }
+
         case DELETE_NOTEBOOK_ENTRY: {
             const page = getSelectedPage(state);
             if (!page || !page.scripts[action.value]) return state;
@@ -860,6 +885,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 cursor: null,
                 completion: null,
                 latestQueryId: null,
+                latestAgentRunId: null,
                 fileName,
                 folderName,
             };
@@ -1311,6 +1337,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 cursor: null,
                 completion: null,
                 latestQueryId: null,
+                latestAgentRunId: null,
                 fileName,
                 folderName,
             };

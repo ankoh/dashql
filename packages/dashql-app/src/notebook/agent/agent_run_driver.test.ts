@@ -1,12 +1,12 @@
 import * as core from '../../core/index.js';
 
-import { runAgentLoop, AgentRunDeps, AgentAIClient, chooseApplyAction } from './agent_loop_driver.js';
+import { startAgentRun, AgentRunDeps, AgentAIClient, chooseApplyAction } from './agent_run_driver.js';
 import {
-    AgentLoopAction,
-    AgentLoopPhase,
-    AgentLoopState,
-    reduceAgentLoop,
-} from './agent_loop_state.js';
+    AgentRunAction,
+    AgentRunPhase,
+    AgentRunState,
+    reduceAgentRun,
+} from './agent_run_state.js';
 import {
     NotebookState,
     NotebookStateAction,
@@ -139,28 +139,31 @@ async function drive(
     focusedKey: number | null,
     aiClient: AgentAIClient,
     opts: { intentOverride?: 'sql' | 'visualize' | null } = {},
-): Promise<{ agent: AgentLoopState | null; notebook: NotebookState; applied: NotebookStateAction[] }> {
-    let agent: AgentLoopState | null = null;
+): Promise<{ agent: AgentRunState | null; notebook: NotebookState; applied: NotebookStateAction[]; registered: Array<[number, number]> }> {
+    let agent: AgentRunState | null = null;
     let current = notebook;
     const applied: NotebookStateAction[] = [];
+    const registered: Array<[number, number]> = [];
     let clock = 0;
 
     const deps: AgentRunDeps = {
         aiClient,
-        dispatchAgent: (action: AgentLoopAction) => { agent = reduceAgentLoop(agent, action); },
+        dispatchAgent: (action: AgentRunAction) => { agent = reduceAgentRun(agent, action); },
         getNotebook: () => current,
         modifyNotebook: (action: NotebookStateAction) => {
             applied.push(action);
             current = reduceNotebookState(current, action, storage, logger, true);
         },
+        registerAgentRun: (scriptKey: number, runId: number) => { registered.push([scriptKey, runId]); },
+        logger,
         now: () => ++clock,
     };
 
-    await runAgentLoop(
+    await startAgentRun(
         { runId: 1, prompt: 'do the thing', contextScriptKey: focusedKey, intentOverride: opts.intentOverride ?? null },
         deps,
     );
-    return { agent, notebook: current, applied };
+    return { agent, notebook: current, applied, registered };
 }
 
 describe('chooseApplyAction', () => {
@@ -184,13 +187,13 @@ describe('chooseApplyAction', () => {
     });
 });
 
-describe('runAgentLoop — SQL path', () => {
+describe('startAgentRun — SQL path', () => {
     it('honors a sql intent override and edits the focused script in place', async () => {
         const { state, focusedKey } = buildNotebook('select category, amount from sales');
         const ai = new MockAIClient('sql', ['select category from sales']);
         const { agent, notebook, applied } = await drive(state, focusedKey, ai, { intentOverride: 'sql' });
 
-        expect(agent!.phase).toBe(AgentLoopPhase.SUCCEEDED);
+        expect(agent!.phase).toBe(AgentRunPhase.SUCCEEDED);
         expect(agent!.intent).toBe('sql');
         // No classify call should have been made (override).
         expect(ai.prompts.some(p => /exactly one lowercase word/.test(p))).toBe(false);
@@ -205,7 +208,7 @@ describe('runAgentLoop — SQL path', () => {
         const ai = new MockAIClient('sql', ['select form sales (', 'select category from sales']);
         const { agent, applied } = await drive(state, focusedKey, ai, { intentOverride: 'sql' });
 
-        expect(agent!.phase).toBe(AgentLoopPhase.SUCCEEDED);
+        expect(agent!.phase).toBe(AgentRunPhase.SUCCEEDED);
         expect(agent!.attempt).toBe(2);
         // The repair prompt must have carried the previous errors.
         const repairPrompt = ai.prompts[ai.prompts.length - 1];
@@ -219,7 +222,7 @@ describe('runAgentLoop — SQL path', () => {
         const ai = new MockAIClient('sql', ['nonsense (', 'still broken (', 'broken yet again (']);
         const { agent, applied } = await drive(state, focusedKey, ai, { intentOverride: 'sql' });
 
-        expect(agent!.phase).toBe(AgentLoopPhase.FAILED);
+        expect(agent!.phase).toBe(AgentRunPhase.FAILED);
         expect(agent!.error).toBeTruthy();
         expect(applied).toHaveLength(0);
     });
@@ -231,9 +234,26 @@ describe('runAgentLoop — SQL path', () => {
         expect(agent!.intent).toBe('sql');
         expect(ai.prompts.some(p => /exactly one lowercase word/.test(p))).toBe(true);
     });
+
+    it('registers the agent-run id on the context script', async () => {
+        const { state, focusedKey } = buildNotebook('select category, amount from sales');
+        const ai = new MockAIClient('sql', ['select category from sales']);
+        const { registered } = await drive(state, focusedKey, ai, { intentOverride: 'sql' });
+        expect(registered).toHaveLength(1);
+        expect(registered[0][0]).toBe(focusedKey);
+        // The registered handle is the run id (1 in drive()), not the trace id.
+        expect(registered[0][1]).toBe(1);
+    });
+
+    it('does not register a run when there is no context script', async () => {
+        const { state } = buildNotebook('select category, amount from sales');
+        const ai = new MockAIClient('sql', ['select category from sales']);
+        const { registered } = await drive(state, null, ai, { intentOverride: 'sql' });
+        expect(registered).toHaveLength(0);
+    });
 });
 
-describe('runAgentLoop — visualize path', () => {
+describe('startAgentRun — visualize path', () => {
     it('transcodes a Vega-Lite spec and creates a new entry referencing the focused SQL script', async () => {
         const { state, focusedKey } = buildNotebook('select category, amount from sales');
         const spec = JSON.stringify({
@@ -246,7 +266,7 @@ describe('runAgentLoop — visualize path', () => {
         const ai = new MockAIClient('visualize', [spec]);
         const { agent, applied } = await drive(state, focusedKey, ai, { intentOverride: 'visualize' });
 
-        expect(agent!.phase).toBe(AgentLoopPhase.SUCCEEDED);
+        expect(agent!.phase).toBe(AgentRunPhase.SUCCEEDED);
         expect(applied).toHaveLength(1);
         expect(applied[0].type).toBe(CREATE_NOTEBOOK_ENTRY_WITH_TEXT);
         const text = (applied[0].value as any).text as string;
@@ -262,7 +282,7 @@ describe('runAgentLoop — visualize path', () => {
         }) + '\n```';
         const ai = new MockAIClient('visualize', [fenced]);
         const { agent, applied } = await drive(state, focusedKey, ai, { intentOverride: 'visualize' });
-        expect(agent!.phase).toBe(AgentLoopPhase.SUCCEEDED);
+        expect(agent!.phase).toBe(AgentRunPhase.SUCCEEDED);
         expect(applied).toHaveLength(1);
     });
 });

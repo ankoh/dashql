@@ -16,8 +16,8 @@ import { ConnectionHealth, ConnectionState } from '../../connection/connection_s
 import { getExecutableQueryText, getSelectedEntry, getSelectedPage, getSelectedPageEntries, getSortedFileNames, getUncommittedScriptData, REGISTER_QUERY, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY, REORDER_NOTEBOOK_SCRIPTS } from '../../notebook/notebook_state.js';
 import { useAIClient } from '../../platform/ai_client_provider.js';
 import { useComposeInputMode } from '../../notebook/notebook_commands.js';
-import { useAgentLoopState, useRunAgentLoop, useCancelAgentLoop } from '../../notebook/agent/agent_loop_provider.js';
-import { AgentLoopPhase, agentLoopIsActive, agentLoopPhaseLabel } from '../../notebook/agent/agent_loop_state.js';
+import { useLatestAgentRunState, useAgentRunState, useStartAgentRun, useCancelAgentRun } from '../../notebook/agent/agent_run_provider.js';
+import { AgentRunPhase, agentRunIsActive, agentRunPhaseLabel } from '../../notebook/agent/agent_run_state.js';
 import { QueryType } from '../../connection/query_execution_state.js';
 import { useQueryExecutor, useQueryState } from '../../connection/query_executor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
@@ -68,11 +68,10 @@ interface CollapsedScriptCardProps {
     onMoveUp: (fileName: string) => void;
     onMoveDown: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
-    onShowStatus: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowTable, onShowStatus, onShowVisualization }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowTable, onShowVisualization }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
     const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
@@ -84,6 +83,10 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
     const EyeClosedIcon: Icon = SymbolIcon('eye_closed_16');
     const PencilIcon: Icon = SymbolIcon('pencil_16');
     const queryState = useQueryState(sessionId, scriptData?.latestQueryId ?? null);
+    // Resolve the agent run by its id (handle) just like the query above — the run carries its
+    // own trace id, so the footer no longer needs a denormalized trace id on ScriptData.
+    const agentRunState = useAgentRunState(scriptData?.latestAgentRunId ?? null);
+    const agentTraceId = agentRunState?.traceId ?? null;
     const [isReady, setIsReady] = React.useState(false);
     const [isEditing, setIsEditing] = React.useState(false);
     // The label and the rename input show the clean display name (no ordering prefix, no ".sql");
@@ -208,16 +211,14 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
             <div className={styles.feed_body} onPointerDownCapture={handlePreviewPointerDown}>
                 {scriptData != null ? <ScriptPreview className={styles.script_preview_editor} scriptData={scriptData} onReady={setIsReady} /> : null}
             </div>
-            {queryState != null && (
+            {(queryState != null || agentTraceId != null) && (
                 <div className={styles.feed_entry_execution_footer}>
                     <FeedEntryFooter
                         sessionId={sessionId}
-                        queryId={queryState.queryId}
-                        traceId={queryState.traceId}
                         queryState={queryState}
+                        agentTraceId={agentTraceId}
                         vegaLiteSpec={scriptData?.annotations.visualizeQuery?.vegaLiteSpec ?? null}
                         onShowTable={() => onShowTable(scriptFileName)}
-                        onShowStatus={() => onShowStatus(scriptFileName)}
                         onShowVisualization={() => onShowVisualization(scriptFileName)}
                     />
                 </div>
@@ -241,7 +242,6 @@ interface ScriptFeedRowProps {
     onMoveUp: (fileName: string) => void;
     onMoveDown: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
-    onShowStatus: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
     onHeightMeasured: (index: number, height: number) => void;
     fillerRowHeight: number;
@@ -249,7 +249,7 @@ interface ScriptFeedRowProps {
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowTable, onShowStatus, onShowVisualization, onHeightMeasured } = props;
+    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowTable, onShowVisualization, onHeightMeasured } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -303,7 +303,6 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onMoveUp={onMoveUp}
                     onMoveDown={onMoveDown}
                     onShowTable={onShowTable}
-                    onShowStatus={onShowStatus}
                     onShowVisualization={onShowVisualization}
                 />
             </div>
@@ -332,10 +331,10 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const aiClient = useAIClient();
     const aiAvailable = aiClient != null;
     const sessionId = props.notebook.sessionId;
-    const runAgentLoop = useRunAgentLoop();
-    const cancelAgentLoop = useCancelAgentLoop();
-    const agentState = useAgentLoopState(sessionId);
-    const agentActive = agentState != null && agentLoopIsActive(agentState.phase);
+    const startAgentRun = useStartAgentRun();
+    const cancelAgentRun = useCancelAgentRun();
+    const agentState = useLatestAgentRunState(sessionId);
+    const agentActive = agentState != null && agentRunIsActive(agentState.phase);
 
     // When the input mode changes (via Ctrl+M, the "Switch Mode" command, or the toggle in the
     // action bar) the editor instance swaps. Request that the freshly mounted editor take focus.
@@ -367,11 +366,6 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const handleShowTable = React.useCallback((fileName: string) => {
         props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
         props.showDetails(DetailsTabKey.QueryResultView);
-    }, [props.modifyNotebook, props.showDetails]);
-
-    const handleShowStatus = React.useCallback((fileName: string) => {
-        props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
-        props.showDetails(DetailsTabKey.QueryStatusPanel);
     }, [props.modifyNotebook, props.showDetails]);
 
     const handleShowVisualization = React.useCallback((fileName: string) => {
@@ -421,7 +415,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         }
     }, [props.notebook, props.modifyNotebook, executeOnSend, isDisconnected, executeQuery]);
 
-    // Send the compose editor's text to the agent loop as a natural-language prompt.
+    // Send the compose editor's text to the agent run as a natural-language prompt.
     // The focused feed entry is the context + default in-place target.
     const handleSendAI = React.useCallback(() => {
         if (!aiAvailable) return;
@@ -429,7 +423,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         if (prompt.length === 0) return;
         const focusedEntry = getSelectedEntry(props.notebook);
         const contextScriptKey = focusedEntry?.scriptId ?? null;
-        runAgentLoop({
+        startAgentRun({
             sessionId: props.notebook.sessionId,
             prompt,
             contextScriptKey,
@@ -446,7 +440,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                 changes: { from: 0, to: composeEditorView.state.doc.length, insert: '' },
             });
         }
-    }, [aiAvailable, composeEditorView, props.notebook, props.modifyNotebook, runAgentLoop]);
+    }, [aiAvailable, composeEditorView, props.notebook, props.modifyNotebook, startAgentRun]);
 
     const handleComposeSend = React.useCallback(() => {
         if (inputMode === 1) {
@@ -632,12 +626,11 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onMoveUp: handleMoveUp,
         onMoveDown: handleMoveDown,
         onShowTable: handleShowTable,
-        onShowStatus: handleShowStatus,
         onShowVisualization: handleShowVisualization,
         onHeightMeasured: handleHeightMeasured,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleShowTable, handleShowStatus, handleShowVisualization, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleShowTable, handleShowVisualization, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container} data-tauri-drag-region="deep">
@@ -730,17 +723,17 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                             </IconButton>
                         </div>
                     </div>
-                    {inputMode === 1 && agentState != null && agentState.phase !== AgentLoopPhase.IDLE && (
+                    {inputMode === 1 && agentState != null && agentState.phase !== AgentRunPhase.IDLE && (
                         <div className={styles.compose_status_strip}>
                             <span className={styles.compose_status_phase}>
-                                {agentLoopPhaseLabel(agentState.phase)}
+                                {agentRunPhaseLabel(agentState.phase)}
                             </span>
                             {agentActive && agentState.attempt > 0 && (
                                 <span className={styles.compose_status_attempt}>
                                     attempt {agentState.attempt}/{agentState.maxAttempts}
                                 </span>
                             )}
-                            {agentState.phase === AgentLoopPhase.FAILED && agentState.error && (
+                            {agentState.phase === AgentRunPhase.FAILED && agentState.error && (
                                 <span className={styles.compose_status_error} title={agentState.error}>
                                     {agentState.error}
                                 </span>
@@ -750,7 +743,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                                 <button
                                     type="button"
                                     className={styles.compose_status_cancel}
-                                    onClick={() => cancelAgentLoop(sessionId)}
+                                    onClick={() => cancelAgentRun(sessionId)}
                                 >
                                     Cancel
                                 </button>

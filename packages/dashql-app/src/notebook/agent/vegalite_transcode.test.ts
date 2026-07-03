@@ -1,6 +1,6 @@
 import * as core from '../../core/index.js';
 
-import { VisSource, visSourceToData } from './agent_loop_driver.js';
+import { VisSource, visSourceToData } from './agent_run_driver.js';
 import { verifyScript } from './agent_verify.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

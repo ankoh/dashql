@@ -114,6 +114,7 @@ async function restoreNotebook(
                 cursor: null,
                 completion: null,
                 latestQueryId: null,
+                latestAgentRunId: null,
                 fileName: scriptFile.name,
                 folderName: page.name,
             };

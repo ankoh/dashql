@@ -5,7 +5,8 @@
     height: 32px;
     display: flex;
     align-items: center;
-    padding: 0 8px;
+    gap: 8px;
+    padding: 0 4px 0px 8px;
     font-size: 0.8rem;
     border-bottom: 1px solid rgb(210, 210, 210);
     color: hsl(210, 12%, 36%);
@@ -27,4 +28,13 @@
 
 .tab_header_detail {
     flex-shrink: 0;
+    margin-left: auto;
+    margin-right: 4px;
+}
+
+/* The log tab header carries a "Logs" title on the left (like the other tabs) plus a
+   right-aligned segmented control (Query / Agent), and is intentionally not clickable. */
+.log_tab_header {
+    composes: tab_header;
+    height: 32px;
 }

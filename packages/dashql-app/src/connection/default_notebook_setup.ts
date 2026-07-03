@@ -24,6 +24,7 @@ function createScriptData(script: core.DashQLScript, fileName: string, folderNam
         cursor: null,
         completion: null,
         latestQueryId: null,
+        latestAgentRunId: null,
         fileName,
         folderName,
     };

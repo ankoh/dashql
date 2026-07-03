@@ -6,8 +6,16 @@ import { Tooltip } from './tooltip';
 // ==================== Types ====================
 
 export enum SegmentedControlSize {
+    Tiny,
     Small,
     Medium,
+}
+
+export enum SegmentedControlVariant {
+    /** The default variant with an outer border and dividers between segments */
+    Default,
+    /** A borderless variant (no outer border, no dividers) — like the Button's invisible variant */
+    Invisible,
 }
 
 export interface SegmentedControlProps {
@@ -20,6 +28,8 @@ export interface SegmentedControlProps {
     onChange?: (selectedIndex: number) => void;
     /** The size of the buttons */
     size?: SegmentedControlSize;
+    /** The visual variant of the control */
+    variant?: SegmentedControlVariant;
     className?: string;
     children?: React.ReactNode;
 }
@@ -135,6 +145,7 @@ const Root: React.FC<SegmentedControlProps> = ({
     fullWidth,
     onChange,
     size,
+    variant,
     className,
 }) => {
     const isUncontrolled = onChange === undefined ||
@@ -169,7 +180,9 @@ const Root: React.FC<SegmentedControlProps> = ({
                 styles.segmented_control,
                 {
                     [styles.full_width]: fullWidth,
+                    [styles.size_tiny]: size === SegmentedControlSize.Tiny,
                     [styles.size_small]: size === SegmentedControlSize.Small,
+                    [styles.variant_invisible]: variant === SegmentedControlVariant.Invisible,
                 },
                 className
             )}

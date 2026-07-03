@@ -3,14 +3,15 @@ import * as styles from './feed_entry_footer.module.css';
 
 import icons from '@ankoh/dashql-svg-symbols';
 import type { TopLevelSpec } from 'vega-lite';
+import { SparklesFillIcon } from '@primer/octicons-react';
 
 import { QueryExecutionState, QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { TraceLogViewer } from '../internals/trace_log_viewer.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { TableColumnHeader } from '../query_result/data_table_cell.js';
 import { useComputationRegistry } from '../../compute/computation_registry.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
-import { useRelativeTime } from '../../utils/time_format.js';
+import { SegmentedControl, SegmentedControlSize, SegmentedControlVariant } from '../foundations/segmented_control.js';
+import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant, type VerticalTabProps } from '../foundations/vertical_tabs.js';
 import { VisualizationView } from '../visualization/visualization_view.js';
 
@@ -22,45 +23,32 @@ const enum FooterTab {
     Visualization = 2,
 }
 
+/// Which trace the log tab is showing.
+const enum LogSource {
+    Query = 0,
+    Agent = 1,
+}
+
 interface FeedEntryFooterProps {
     sessionId: string;
-    queryId: number;
-    traceId: number;
-    queryState: QueryExecutionState;
+    /// The latest query execution for this script (null if only an agent run has happened).
+    queryState: QueryExecutionState | null;
+    /// The latest agent-run trace id for this script (null if no agent run has happened).
+    agentTraceId: number | null;
     vegaLiteSpec: TopLevelSpec | null;
     onShowTable?: () => void;
-    onShowStatus?: () => void;
     onShowVisualization?: () => void;
 }
 
-function useResultRowCount(queryState: QueryExecutionState, queryId: number): { hasResult: boolean; totalRows: number | null } {
+function useResultRowCount(queryState: QueryExecutionState | null): { hasResult: boolean; totalRows: number | null } {
     const [computationState] = useComputationRegistry();
-    const hasResult = queryState.status === QueryExecutionStatus.SUCCEEDED
-        && computationState.tableComputations[queryId] != null;
+    const hasResult = queryState != null
+        && queryState.status === QueryExecutionStatus.SUCCEEDED
+        && computationState.tableComputations[queryState.queryId] != null;
     const totalRows = hasResult
-        ? (computationState.tableComputations[queryId]?.dataTable.numRows ?? null)
+        ? (computationState.tableComputations[queryState!.queryId]?.dataTable.numRows ?? null)
         : null;
     return { hasResult, totalRows };
-}
-
-function useLastTraceTimestamp(traceId: number): number | null {
-    const logger = useLogger();
-    const [timestamp, setTimestamp] = React.useState<number | null>(() => {
-        const logs = logger.buffer.collectTraceLogs(traceId);
-        return logs.length > 0 ? logs[logs.length - 1].timestamp : null;
-    });
-
-    React.useEffect(() => {
-        const observer = (record: { timestamp: number }) => {
-            setTimestamp(record.timestamp);
-        };
-        logger.buffer.subscribeTrace(traceId, observer);
-        return () => {
-            logger.buffer.unsubscribeTrace(traceId, observer);
-        };
-    }, [traceId, logger]);
-
-    return timestamp;
 }
 
 interface TabHeaderProps {
@@ -77,10 +65,20 @@ const TabHeader: React.FC<TabHeaderProps> = ({ title, detail, onClick }) => (
 );
 
 export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
-    const { hasResult, totalRows } = useResultRowCount(props.queryState, props.queryId);
-    const lastLogTimestamp = useLastTraceTimestamp(props.traceId);
-    const lastLogAgo = useRelativeTime(lastLogTimestamp);
+    const { hasResult, totalRows } = useResultRowCount(props.queryState);
     const hasVisualization = hasResult && props.vegaLiteSpec != null;
+
+    // The two log sources: the query execution's trace and the latest agent run's trace.
+    const queryTraceId = props.queryState?.traceId ?? null;
+    const agentTraceId = props.agentTraceId;
+    const [logSource, setLogSource] = React.useState<LogSource>(LogSource.Query);
+    // Fall back to whichever source is available if the selected one has no trace.
+    const resolvedLogSource = (logSource === LogSource.Query && queryTraceId != null) ? LogSource.Query
+        : (logSource === LogSource.Agent && agentTraceId != null) ? LogSource.Agent
+            : (queryTraceId != null) ? LogSource.Query
+                : LogSource.Agent;
+    const activeLogTraceId = resolvedLogSource === LogSource.Query ? queryTraceId : agentTraceId;
+
     const [selectedTab, setSelectedTab] = React.useState<FooterTab>(
         () => hasVisualization ? FooterTab.Visualization : (hasResult ? FooterTab.Table : FooterTab.Log)
     );
@@ -128,33 +126,63 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
             : `${totalRows} ${totalRows === 1 ? 'row' : 'rows'}`)
         : null;
 
+    // Query and Agent share the command-list icons (query = search_16, agent = SparklesFillIcon).
+    const QueryLogIcon = SymbolIcon('search_16');
+
     const tabRenderers = React.useMemo(() => ({
         [FooterTab.Log]: () => (
             <>
-                <TabHeader title="Log" detail={lastLogAgo} onClick={props.onShowStatus} />
-                <TraceLogViewer traceId={props.traceId} height={96} />
+                <div className={styles.log_tab_header}>
+                    <span className={styles.tab_header_title}>Logs</span>
+                    <SegmentedControl
+                        aria-label="Log source"
+                        size={SegmentedControlSize.Tiny}
+                        variant={SegmentedControlVariant.Invisible}
+                        onChange={(index) => setLogSource(index === 1 ? LogSource.Agent : LogSource.Query)}
+                    >
+                        <SegmentedControl.Button
+                            leadingVisual={QueryLogIcon}
+                            selected={resolvedLogSource === LogSource.Query}
+                            disabled={queryTraceId == null}
+                        >
+                            Script
+                        </SegmentedControl.Button>
+                        <SegmentedControl.Button
+                            leadingVisual={SparklesFillIcon}
+                            selected={resolvedLogSource === LogSource.Agent}
+                            disabled={agentTraceId == null}
+                        >
+                            Agent
+                        </SegmentedControl.Button>
+                    </SegmentedControl>
+                </div>
+                <TraceLogViewer traceId={activeLogTraceId ?? undefined} height={96} />
             </>
         ),
         [FooterTab.Table]: () => (
             <>
                 <TabHeader title="Query Results" detail={rowCountDetail} onClick={props.onShowTable} />
-                <QueryResultView
-                    query={props.queryState}
-                    debugMode={false}
-                    maxRows={FEED_LIMIT_RESULT_ROWS}
-                    columnHeader={TableColumnHeader.OnlyColumnName}
-                    cellBackground="var(--notebook_feed_entry_footer_background)"
-                    onShowTable={props.onShowTable}
-                />
+                {props.queryState != null && (
+                    <QueryResultView
+                        query={props.queryState}
+                        debugMode={false}
+                        maxRows={FEED_LIMIT_RESULT_ROWS}
+                        columnHeader={TableColumnHeader.OnlyColumnName}
+                        cellBackground="var(--notebook_feed_entry_footer_background)"
+                        onShowTable={props.onShowTable}
+                    />
+                )}
             </>
         ),
         [FooterTab.Visualization]: () => (
             <>
                 <TabHeader title="Visualization" onClick={props.onShowVisualization} />
-                <VisualizationView query={props.queryState} vegaLiteSpec={props.vegaLiteSpec} />
+                {props.queryState != null && (
+                    <VisualizationView query={props.queryState} vegaLiteSpec={props.vegaLiteSpec} />
+                )}
             </>
         ),
-    }), [props.traceId, props.queryState, props.vegaLiteSpec, rowCountDetail, lastLogAgo, props.onShowTable, props.onShowStatus, props.onShowVisualization]);
+    }), [activeLogTraceId, resolvedLogSource, queryTraceId, agentTraceId, QueryLogIcon, props.queryState, props.vegaLiteSpec, rowCountDetail, props.onShowTable, props.onShowVisualization]);
 
     return (
         <VerticalTabs

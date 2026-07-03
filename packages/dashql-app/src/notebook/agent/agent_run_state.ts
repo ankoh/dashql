@@ -8,7 +8,7 @@ export const DEFAULT_MAX_ATTEMPTS = 3;
 
 /// The phases of an agent run. The loop advances monotonically through these except for the
 /// GENERATING↔VERIFYING↔REPAIRING cycle which repeats up to `maxAttempts`.
-export enum AgentLoopPhase {
+export enum AgentRunPhase {
     IDLE = 0,
     CLASSIFYING = 1,
     GENERATING = 2,
@@ -21,15 +21,15 @@ export enum AgentLoopPhase {
 }
 
 /// Is the run in a terminal phase?
-export function agentLoopIsDone(phase: AgentLoopPhase): boolean {
-    return phase === AgentLoopPhase.SUCCEEDED
-        || phase === AgentLoopPhase.FAILED
-        || phase === AgentLoopPhase.CANCELLED;
+export function agentRunIsDone(phase: AgentRunPhase): boolean {
+    return phase === AgentRunPhase.SUCCEEDED
+        || phase === AgentRunPhase.FAILED
+        || phase === AgentRunPhase.CANCELLED;
 }
 
 /// Is the run currently active (started, not yet terminal)?
-export function agentLoopIsActive(phase: AgentLoopPhase): boolean {
-    return phase !== AgentLoopPhase.IDLE && !agentLoopIsDone(phase);
+export function agentRunIsActive(phase: AgentRunPhase): boolean {
+    return phase !== AgentRunPhase.IDLE && !agentRunIsDone(phase);
 }
 
 /// A single recorded transition in the observable timeline. The timestamp is injected by the
@@ -37,7 +37,7 @@ export function agentLoopIsActive(phase: AgentLoopPhase): boolean {
 /// testable.
 export interface AgentStep {
     /// The phase this step entered.
-    phase: AgentLoopPhase;
+    phase: AgentRunPhase;
     /// The attempt this step belongs to (1-based; 0 before the generate loop starts).
     attempt: number;
     /// A human-readable message for the UI timeline.
@@ -47,11 +47,14 @@ export interface AgentStep {
 }
 
 /// The observable state of one agent run for one session.
-export interface AgentLoopState {
+export interface AgentRunState {
     /// A monotonically increasing run id (per provider) identifying this run.
     runId: number;
+    /// The trace id of this run's log (mirrors QueryExecutionState.traceId). The feed resolves
+    /// the run by its id and reads this to stream the run's "Agent Logs".
+    traceId: number;
     /// The current phase.
-    phase: AgentLoopPhase;
+    phase: AgentRunPhase;
     /// The classified intent (defaults to 'sql' until classification completes).
     intent: AgentIntent;
     /// The user's manual override of the intent, if any.
@@ -90,6 +93,7 @@ export const AGENT_RESET = Symbol('AGENT_RESET');
 /// Payload for AGENT_START.
 export interface AgentStartPayload {
     runId: number;
+    traceId: number;
     prompt: string;
     contextScriptKey: number | null;
     intentOverride: AgentIntent | null;
@@ -100,7 +104,7 @@ export interface AgentStartPayload {
 
 /// Payload for AGENT_PHASE — a phase transition with a timeline message.
 export interface AgentPhasePayload {
-    phase: AgentLoopPhase;
+    phase: AgentRunPhase;
     attempt: number;
     message: string;
     timestamp: number;
@@ -115,7 +119,7 @@ export interface AgentAttemptResultPayload {
     timestamp: number;
 }
 
-export type AgentLoopAction =
+export type AgentRunAction =
     | VariantKind<typeof AGENT_START, AgentStartPayload>
     | VariantKind<typeof AGENT_SET_INTENT, { intent: AgentIntent; override: boolean; timestamp: number }>
     | VariantKind<typeof AGENT_PHASE, AgentPhasePayload>
@@ -126,10 +130,11 @@ export type AgentLoopAction =
     | VariantKind<typeof AGENT_RESET, null>;
 
 /// Build the initial state for a run from its AGENT_START payload.
-function startState(payload: AgentStartPayload): AgentLoopState {
+function startState(payload: AgentStartPayload): AgentRunState {
     return {
         runId: payload.runId,
-        phase: AgentLoopPhase.CLASSIFYING,
+        traceId: payload.traceId,
+        phase: AgentRunPhase.CLASSIFYING,
         intent: payload.intentOverride ?? 'sql',
         intentOverride: payload.intentOverride,
         prompt: payload.prompt,
@@ -140,7 +145,7 @@ function startState(payload: AgentStartPayload): AgentLoopState {
         lastErrors: [],
         vegaLiteSpec: null,
         log: [{
-            phase: AgentLoopPhase.CLASSIFYING,
+            phase: AgentRunPhase.CLASSIFYING,
             attempt: 0,
             message: 'Starting agent run',
             timestamp: payload.timestamp,
@@ -150,12 +155,12 @@ function startState(payload: AgentStartPayload): AgentLoopState {
     };
 }
 
-function appendStep(state: AgentLoopState, step: AgentStep): AgentStep[] {
+function appendStep(state: AgentRunState, step: AgentStep): AgentStep[] {
     return [...state.log, step];
 }
 
-/// The pure reducer for a single session's agent loop.
-export function reduceAgentLoop(state: AgentLoopState | null, action: AgentLoopAction): AgentLoopState | null {
+/// The pure reducer for a single agent run.
+export function reduceAgentRun(state: AgentRunState | null, action: AgentRunAction): AgentRunState | null {
     switch (action.type) {
         case AGENT_START:
             return startState(action.value);
@@ -221,10 +226,10 @@ export function reduceAgentLoop(state: AgentLoopState | null, action: AgentLoopA
         case AGENT_SUCCEEDED:
             return {
                 ...state,
-                phase: AgentLoopPhase.SUCCEEDED,
+                phase: AgentRunPhase.SUCCEEDED,
                 error: null,
                 log: appendStep(state, {
-                    phase: AgentLoopPhase.SUCCEEDED,
+                    phase: AgentRunPhase.SUCCEEDED,
                     attempt: state.attempt,
                     message: action.value.message,
                     timestamp: action.value.timestamp,
@@ -234,10 +239,10 @@ export function reduceAgentLoop(state: AgentLoopState | null, action: AgentLoopA
         case AGENT_FAILED:
             return {
                 ...state,
-                phase: AgentLoopPhase.FAILED,
+                phase: AgentRunPhase.FAILED,
                 error: action.value.error,
                 log: appendStep(state, {
-                    phase: AgentLoopPhase.FAILED,
+                    phase: AgentRunPhase.FAILED,
                     attempt: state.attempt,
                     message: action.value.error,
                     timestamp: action.value.timestamp,
@@ -247,9 +252,9 @@ export function reduceAgentLoop(state: AgentLoopState | null, action: AgentLoopA
         case AGENT_CANCELLED:
             return {
                 ...state,
-                phase: AgentLoopPhase.CANCELLED,
+                phase: AgentRunPhase.CANCELLED,
                 log: appendStep(state, {
-                    phase: AgentLoopPhase.CANCELLED,
+                    phase: AgentRunPhase.CANCELLED,
                     attempt: state.attempt,
                     message: 'Run cancelled',
                     timestamp: action.value.timestamp,
@@ -262,17 +267,17 @@ export function reduceAgentLoop(state: AgentLoopState | null, action: AgentLoopA
 }
 
 /// A short human-readable label for a phase (for the UI status strip).
-export function agentLoopPhaseLabel(phase: AgentLoopPhase): string {
+export function agentRunPhaseLabel(phase: AgentRunPhase): string {
     switch (phase) {
-        case AgentLoopPhase.IDLE: return 'Idle';
-        case AgentLoopPhase.CLASSIFYING: return 'Classifying';
-        case AgentLoopPhase.GENERATING: return 'Generating';
-        case AgentLoopPhase.VERIFYING: return 'Verifying';
-        case AgentLoopPhase.REPAIRING: return 'Repairing';
-        case AgentLoopPhase.APPLYING: return 'Applying';
-        case AgentLoopPhase.SUCCEEDED: return 'Done';
-        case AgentLoopPhase.FAILED: return 'Failed';
-        case AgentLoopPhase.CANCELLED: return 'Cancelled';
+        case AgentRunPhase.IDLE: return 'Idle';
+        case AgentRunPhase.CLASSIFYING: return 'Classifying';
+        case AgentRunPhase.GENERATING: return 'Generating';
+        case AgentRunPhase.VERIFYING: return 'Verifying';
+        case AgentRunPhase.REPAIRING: return 'Repairing';
+        case AgentRunPhase.APPLYING: return 'Applying';
+        case AgentRunPhase.SUCCEEDED: return 'Done';
+        case AgentRunPhase.FAILED: return 'Failed';
+        case AgentRunPhase.CANCELLED: return 'Cancelled';
         default: return 'Unknown';
     }
 }

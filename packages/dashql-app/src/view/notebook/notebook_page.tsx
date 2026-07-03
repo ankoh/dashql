@@ -391,7 +391,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                             {catalogTab == null && (
                                 <IconButton
                                     variant={ButtonVariant.Default}
-                                    aria-label="Execute Query"
+                                    aria-label="Execute Script"
                                     disabled={isDisconnected}
                                     onClick={() => sessionCommand(NotebookCommandType.ExecuteEditorQuery)}
                                 >

@@ -3,6 +3,12 @@
     Adapted for dashql styling system
 */
 
+:root {
+    /* Background of the selected segment in the invisible variant (mirrors the active-tab
+       background of the vertical tab bar). */
+    --segmented_control_invisible_selected_background: rgba(208,215,222,0.32);
+}
+
 .segmented_control {
     --segmented-control-icon-width: 32px;
     --segmented-control-button-inner-padding: 12px;
@@ -28,6 +34,32 @@
 .segmented_control.size_small {
     height: 28px;
     font-size: 12px;
+}
+
+.segmented_control.size_tiny {
+    --segmented-control-icon-width: 24px;
+    --segmented-control-button-inner-padding: 8px;
+    height: 24px;
+    font-size: 11px;
+}
+
+/* ==================== Invisible variant ====================
+   Borderless like the Button's invisible variant: no outer border, no background,
+   and no dividers between segments. */
+
+.segmented_control.variant_invisible {
+    background-color: transparent;
+    border-color: transparent;
+}
+
+.segmented_control.variant_invisible .item:not(:last-child)::after {
+    background-color: transparent;
+}
+
+/* Use the greyish active-tab background of the vertical tab bar for the selected segment
+   instead of the default white pill. */
+.segmented_control.variant_invisible .button[aria-current='true'] .content {
+    background-color: var(--segmented_control_invisible_selected_background);
 }
 
 /* ==================== Item ==================== */
@@ -171,6 +203,10 @@
     line-height: calc(20 / 12);
 }
 
+.size_tiny .text {
+    line-height: calc(16 / 11);
+}
+
 /* ==================== Leading Visual ==================== */
 
 .leading_visual {
@@ -197,4 +233,10 @@
     padding: 0 5px;
     font-size: 11px;
     min-height: 18px;
+}
+
+.size_tiny .counter {
+    padding: 0 4px;
+    font-size: 10px;
+    min-height: 16px;
 }
