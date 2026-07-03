@@ -3,7 +3,7 @@ import { Decoration, DecorationSet, EditorView } from '@codemirror/view';
 import { EditorState, Transaction, StateField, RangeSetBuilder } from '@codemirror/state';
 
 import { DashQLProcessorPlugin, DashQLScriptBuffers, DashQLScriptKey } from './dashql_processor.js';
-import { buildDecorationsFromTokens } from './dashql_decorations_standalone.js';
+import { createScannerHighlightPlugin } from './dashql_decorations_standalone.js';
 import { FocusType, SemanticUserFocus } from '../../notebook/focus.js';
 
 import './dashql_decorations.css';
@@ -287,39 +287,11 @@ interface ScriptDecorationState {
     scriptBuffers: DashQLScriptBuffers;
 }
 
-/// Decorations derived from DashQL scanner tokens
-const ScannerDecorationField: StateField<ScriptDecorationState> = StateField.define<ScriptDecorationState>({
-    // Create the initial state
-    create: () => {
-        const config: ScriptDecorationState = {
-            decorations: new RangeSetBuilder<Decoration>().finish(),
-            scriptBuffers: {
-                parsed: null,
-                analyzed: null,
-                destroy: () => { },
-            },
-        };
-        return config;
-    },
-    // Mirror the DashQL state
-    update: (state: ScriptDecorationState, transaction: Transaction) => {
-        const processor = transaction.state.field(DashQLProcessorPlugin);
-        if (processor.scriptBuffers.parsed === state.scriptBuffers.parsed) {
-            return state;
-        }
-        // Rebuild decorations.
-        // Copy scriptBuffers too: a shallow `{ ...state }` would keep the same nested
-        // scriptBuffers object, so assigning `.parsed` below would mutate the previous
-        // state's buffers and corrupt the `=== state.scriptBuffers.parsed` check above.
-        const s = { ...state, scriptBuffers: { ...state.scriptBuffers } };
-        s.scriptBuffers.parsed = processor.scriptBuffers.parsed;
-        s.decorations = (new RangeSetBuilder<Decoration>()).finish();
-        if (s.scriptBuffers.parsed) {
-            s.decorations = buildDecorationsFromTokens(transaction.state, s.scriptBuffers.parsed);
-        }
-        return s;
-    },
-});
+/// Syntax highlighting derived from DashQL scanner tokens.
+/// Viewport-limited: decorates only the visible tokens, reading the parsed buffer from the processor.
+const ScannerHighlightPlugin = createScannerHighlightPlugin(
+    view => view.state.field(DashQLProcessorPlugin).scriptBuffers.parsed,
+);
 
 /// Decorations for scanner, parser or analyzer errors in the DashQL script
 const ErrorDecorationField: StateField<ScriptDecorationState> = StateField.define<ScriptDecorationState>({
@@ -431,12 +403,11 @@ const FocusDecorationField: StateField<FocusDecorationState> = StateField.define
     },
 });
 
-const ScannerDecorations = EditorView.decorations.from(ScannerDecorationField, state => state.decorations);
 const ErrorDecorations = EditorView.decorations.from(ErrorDecorationField, state => state.decorations);
 const AnalyzerDecorations = EditorView.decorations.from(AnalyzerDecorationsField, state => state.decorations);
 const FocusDecorations = EditorView.decorations.from(FocusDecorationField, state => state.decorations);
 
-export const DashQLScannerDecorationPlugin = [ScannerDecorationField, ScannerDecorations];
+export const DashQLScannerDecorationPlugin = [ScannerHighlightPlugin];
 
 /// Bundle the decoration extensions
-export const DashQLDecorationPlugin = [ScannerDecorationField, ScannerDecorations, ErrorDecorationField, ErrorDecorations, AnalyzerDecorationsField, AnalyzerDecorations, FocusDecorationField, FocusDecorations];
+export const DashQLDecorationPlugin = [ScannerHighlightPlugin, ErrorDecorationField, ErrorDecorations, AnalyzerDecorationsField, AnalyzerDecorations, FocusDecorationField, FocusDecorations];
