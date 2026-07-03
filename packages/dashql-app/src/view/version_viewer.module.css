@@ -4,6 +4,26 @@
     grid-template-columns: 100%;
 }
 
+.restart_overlay {
+    display: grid;
+    grid-template-rows: 48px max-content;
+    grid-template-columns: 100%;
+    min-width: 280px;
+}
+
+.restart_body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    row-gap: 16px;
+}
+
+.restart_text {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: var(--text_color_secondary, #57606a);
+}
+
 .header_container {
     grid-row: 1;
     width: 100%;

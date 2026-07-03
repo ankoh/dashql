@@ -132,8 +132,33 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
 
     if (versionCheck == VersionCheckStatusCode.RestartPending) {
         return (
-            <div className={styles.overlay}>
-                <Button onClick={() => process.relaunch()}>Relaunch</Button>
+            <div className={styles.restart_overlay}>
+                <div className={styles.header_container}>
+                    <div className={styles.header_left_container}>
+                        <div className={styles.title}>Update ready</div>
+                    </div>
+                    <div className={styles.header_right_container}>
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Close"
+                            onClick={props.onClose}
+                        >
+                            <XIcon />
+                        </IconButton>
+                    </div>
+                </div>
+                <div className={styles.restart_body}>
+                    <div className={styles.restart_text}>
+                        A new version has been installed. Relaunch to apply the update.
+                    </div>
+                    <Button
+                        variant={ButtonVariant.Primary}
+                        block
+                        onClick={() => process.relaunch()}
+                    >
+                        Relaunch
+                    </Button>
+                </div>
             </div>
         );
     }
