@@ -12,13 +12,11 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    pages:
-        name: GitHub Page
+    pages_artifact:
+        name: GitHub Page Artifact
         runs-on: ubuntu-24.04
         permissions:
             contents: read
-            pages: write
-            id-token: write
         steps:
             - uses: actions/download-artifact@v8
               with:
@@ -29,7 +27,19 @@ jobs:
               with:
                   path: ${{ runner.temp }}/artifacts/pages
 
-            - uses: actions/deploy-pages@v5
+    pages_deploy:
+        name: GitHub Page Deploy
+        runs-on: ubuntu-24.04
+        needs: [pages_artifact]
+        permissions:
+            pages: write
+            id-token: write
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+            - id: deployment
+              uses: actions/deploy-pages@v5
 
     native:
         name: Native apps
