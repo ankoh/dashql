@@ -71,6 +71,8 @@ extern "C" void dashql_script_get_scanned(FFIResult* result, dashql::Script* scr
 extern "C" void dashql_script_get_parsed(FFIResult* result, dashql::Script* script);
 /// Get the analyzed script
 extern "C" void dashql_script_get_analyzed(FFIResult* result, dashql::Script* script);
+/// Compute a statement-level semantic diff from a source (old) script to a target (new) script
+extern "C" void dashql_script_compute_diff(FFIResult* result, dashql::Script* source, dashql::Script* target);
 /// Get script statistics
 extern "C" void dashql_script_get_statistics(FFIResult* result, dashql::Script* script);
 /// Move the cursor in a script to a position

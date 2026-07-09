@@ -1,0 +1,105 @@
+diff-snapshots:
+  # Identical scripts -> every statement is KEEP.
+  - name: identical
+    source: |
+      select a from t;
+      select b from u;
+    target: |
+      select a from t;
+      select b from u;
+
+  # Appending a statement -> the new statement is an INSERT.
+  - name: append_statement
+    source: |
+      select a from t;
+    target: |
+      select a from t;
+      select b from u;
+
+  # Removing a statement -> the dropped statement is a DELETE.
+  - name: remove_statement
+    source: |
+      select a from t;
+      select b from u;
+    target: |
+      select a from t;
+
+  # Reordering identical statements -> a MOVE (proves order-insensitivity).
+  - name: reorder_statements
+    source: |
+      select a from t;
+      select b from u;
+    target: |
+      select b from u;
+      select a from t;
+
+  # A tiny statement changed enough that similarity drops below UPDATE_SIMILARITY_THRESHOLD
+  # (0.75) -> falls back to DELETE + INSERT rather than UPDATE. Adding a column to a
+  # single-column select is a large *relative* change, so no UPDATE is emitted.
+  - name: small_change_below_threshold
+    source: |
+      select a from t;
+    target: |
+      select a, b from t;
+
+  # Adding a column to a wide select stays above threshold -> UPDATE, highlighting the addition.
+  - name: update_add_column_wide
+    source: |
+      select a, b, c, d from t;
+    target: |
+      select a, b, c, d, e from t;
+
+  # Editing a literal -> UPDATE highlighting just the changed literal.
+  - name: update_literal
+    source: |
+      select a from t where x = 1;
+    target: |
+      select a from t where x = 2;
+
+  # Empty source, non-empty target -> all INSERT.
+  - name: empty_to_nonempty
+    source: |
+    target: |
+      select a from t;
+      select b from u;
+
+  # Non-empty source, empty target -> all DELETE.
+  - name: nonempty_to_empty
+    source: |
+      select a from t;
+      select b from u;
+    target: |
+
+  # An identical statement preceded by a comment sits at a different token offset.
+  # Guards against raw-offset regressions in span resolution.
+  - name: leading_comment_offset
+    source: |
+      select a from t;
+    target: |
+      -- a leading comment
+      select a from t;
+
+  # A VISUALIZE pair differing only in the mark type (an ENUM_VIS_* value).
+  # Guards the node-type classifier wart (ENUM_VIS_* sits between OBJECT_KEYS_ and VIS_OBJECT_KEYS_).
+  - name: update_vis_mark_type
+    source: |
+      VISUALIZE sales AS (mark => line);
+    target: |
+      VISUALIZE sales AS (mark => bar);
+
+  # A VISUALIZE spec whose attributes appear in a different order but are otherwise identical.
+  # Guards the unsorted-object-attribute fix (scratch stable-sort by key before the merge-join).
+  - name: reorder_object_attributes
+    source: |
+      VISUALIZE sales AS (mark => bar, width => 800, height => 400);
+    target: |
+      VISUALIZE sales AS (height => 400, width => 800, mark => bar);
+
+  # Two candidate targets for an updated source; the closer one must win the UPDATE.
+  # Pins the max-score UPDATE-candidate selection (a deliberate divergence from legacy).
+  - name: update_picks_closest
+    source: |
+      select a, b, c from t;
+    target: |
+      select a, b, c, d from t;
+      select x from t;

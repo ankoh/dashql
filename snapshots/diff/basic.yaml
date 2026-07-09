@@ -1,0 +1,192 @@
+diff-snapshots:
+
+  - name: identical
+    source: |-
+      select a from t;
+      select b from u;
+    target: |-
+      select a from t;
+      select b from u;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a from t"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 1
+          target-span: "select b from u"
+
+  - name: append_statement
+    source: |-
+      select a from t;
+    target: |-
+      select a from t;
+      select b from u;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a from t"
+        - code: INSERT
+          target-statement: 1
+          target-span: "select b from u"
+
+  - name: remove_statement
+    source: |-
+      select a from t;
+      select b from u;
+    target: |-
+      select a from t;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a from t"
+        - code: DELETE
+          source-statement: 1
+          source-span: "select b from u"
+
+  - name: reorder_statements
+    source: |-
+      select a from t;
+      select b from u;
+    target: |-
+      select b from u;
+      select a from t;
+    expected:
+      ops:
+        - code: MOVE
+          source-statement: 0
+          target-statement: 1
+          target-span: "select a from t"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 0
+          target-span: "select b from u"
+
+  - name: small_change_below_threshold
+    source: |-
+      select a from t;
+    target: |-
+      select a, b from t;
+    expected:
+      ops:
+        - code: DELETE
+          source-statement: 0
+          source-span: "select a from t"
+        - code: INSERT
+          target-statement: 0
+          target-span: "select a, b from t"
+
+  - name: update_add_column_wide
+    source: |-
+      select a, b, c, d from t;
+    target: |-
+      select a, b, c, d, e from t;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "e"
+
+  - name: update_literal
+    source: |-
+      select a from t where x = 1;
+    target: |-
+      select a from t where x = 2;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "2"
+
+  - name: empty_to_nonempty
+    source: |-
+    target: |-
+      select a from t;
+      select b from u;
+    expected:
+      ops:
+        - code: INSERT
+          target-statement: 0
+          target-span: "select a from t"
+        - code: INSERT
+          target-statement: 1
+          target-span: "select b from u"
+
+  - name: nonempty_to_empty
+    source: |-
+      select a from t;
+      select b from u;
+    target: |-
+    expected:
+      ops:
+        - code: DELETE
+          source-statement: 0
+          source-span: "select a from t"
+        - code: DELETE
+          source-statement: 1
+          source-span: "select b from u"
+
+  - name: leading_comment_offset
+    source: |-
+      select a from t;
+    target: |-
+      -- a leading comment
+      select a from t;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a from t"
+
+  - name: update_vis_mark_type
+    source: |-
+      VISUALIZE sales AS (mark => line);
+    target: |-
+      VISUALIZE sales AS (mark => bar);
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "bar"
+
+  - name: reorder_object_attributes
+    source: |-
+      VISUALIZE sales AS (mark => bar, width => 800, height => 400);
+    target: |-
+      VISUALIZE sales AS (height => 400, width => 800, mark => bar);
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "VISUALIZE ..rk => bar)"
+
+  - name: update_picks_closest
+    source: |-
+      select a, b, c from t;
+    target: |-
+      select a, b, c, d from t;
+      select x from t;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "d"
+        - code: INSERT
+          target-statement: 1
+          target-span: "select x from t"

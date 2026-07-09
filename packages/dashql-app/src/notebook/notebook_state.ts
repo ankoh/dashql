@@ -1,7 +1,7 @@
 import * as core from '../core/index.js';
 import * as Immutable from 'immutable';
 
-import { analyzeScript, DashQLCompletionState, DashQLProcessorUpdateOut, DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
+import { analyzeScript, DashQLCompletionState, DashQLPendingDiff, DashQLProcessorUpdateOut, DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, SemanticUserFocus } from './focus.js';
 import { ConnectorInfo } from '../connection/connector_info.js';
 import { resolveVisualizeQuery, ScriptTextByPath } from '../connection/visualize_executor.js';
@@ -87,6 +87,10 @@ export interface ScriptData {
     cursor: core.FlatBufferPtr<core.buffers.cursor.ScriptCursor> | null;
     /// The completion state.
     completion: DashQLCompletionState | null;
+    /// A pending, staged rewrite (agent suggestion) shown as an in-place diff.
+    /// Set by SET_SCRIPT_TEXT for agent edits; cleared once the user accepts/rejects it in the
+    /// editor (which round-trips back through UPDATE_FROM_PROCESSOR).
+    pendingDiff: DashQLPendingDiff | null;
     /// The latest query id
     latestQueryId: number | null;
     /// The latest agent-run id
@@ -141,7 +145,7 @@ export type NotebookStateAction =
     | VariantKind<typeof REORDER_PAGES, string[]>  // folder names in the desired new view order
     | VariantKind<typeof REORDER_NOTEBOOK_SCRIPTS, string[]>  // file names of the selected page in the desired new feed order
     | VariantKind<typeof PROMOTE_UNCOMMITTED_SCRIPT, null>
-    | VariantKind<typeof SET_SCRIPT_TEXT, { scriptKey: ScriptKey, text: string }>
+    | VariantKind<typeof SET_SCRIPT_TEXT, { scriptKey: ScriptKey, text: string, withDiff?: boolean }>
     | VariantKind<typeof CREATE_NOTEBOOK_ENTRY_WITH_TEXT, { text: string }>
     ;
 
@@ -165,6 +169,7 @@ export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQ
         annotations: createEmptyAnnotations(),
         cursor: null,
         completion: null,
+        pendingDiff: null,
         latestQueryId: null,
         latestAgentRunId: null,
         fileName,
@@ -447,6 +452,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 annotations: createEmptyAnnotations(),
                 cursor: null,
                 completion: null,
+                pendingDiff: null,
                 latestQueryId: null,
                 latestAgentRunId: null,
                 fileName,
@@ -656,6 +662,11 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     }
                 }
             }
+            // Did the pending diff change? The editor clears it on accept/reject (and auto-accept);
+            // free the superseded buffer, mirroring the completion-buffer discipline above.
+            if (update.scriptPendingDiff !== prevScript.pendingDiff) {
+                prevScript.pendingDiff?.diffBuffer.destroy();
+            }
             // Construct the new script data
             const nextScriptAnalysis: ScriptAnalysis = {
                 buffers: update.scriptBuffers,
@@ -666,6 +677,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 scriptAnalysis: nextScriptAnalysis,
                 cursor: update.scriptCursor,
                 completion: update.scriptCompletion,
+                pendingDiff: update.scriptPendingDiff,
                 statistics: rotateScriptStatistics(prevScript.statistics, prevScript.script.getStatistics() ?? null),
                 annotations: deriveScriptAnnotations(
                     update.scriptBuffers,
@@ -884,6 +896,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 annotations: createEmptyAnnotations(),
                 cursor: null,
                 completion: null,
+                pendingDiff: null,
                 latestQueryId: null,
                 latestAgentRunId: null,
                 fileName,
@@ -1256,11 +1269,23 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
         }
 
         case SET_SCRIPT_TEXT: {
-            const { scriptKey, text } = action.value;
+            const { scriptKey, text, withDiff } = action.value;
             const scriptData = state.scripts[scriptKey];
             if (!scriptData) {
                 logger.warn("SET_SCRIPT_TEXT references invalid script", { scriptKey: scriptKey.toString() }, LOG_CTX);
                 return state;
+            }
+            // Compute a staged diff against the prior text *before* we overwrite it (a genuine text
+            // change is required — an unchanged rewrite produces no overlay). The prior script still
+            // holds the old text here; diff it against a throwaway target seeded with the new text.
+            const priorText = scriptData.script.toString();
+            let pendingDiff: DashQLPendingDiff | null = null;
+            if (withDiff && text !== priorText) {
+                pendingDiff = computePendingDiff(state.instance, state.connectionCatalog, scriptData.script, text, priorText, logger);
+            }
+            // A staged diff on this script replaces any earlier one — free the superseded buffer.
+            if (scriptData.pendingDiff != null) {
+                scriptData.pendingDiff.diffBuffer.destroy();
             }
             // Rewrite the script text in-place
             scriptData.script.replaceText(text);
@@ -1268,6 +1293,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             // buffers + annotations incl. visualizeQuery, reloads the script into the catalog)
             const scriptLookup = makeScriptLookup(state.notebookPages, state.scripts);
             const nextScriptData = analyzeNotebookScript(scriptData, state.scriptRegistry, state.connectionCatalog, scriptLookup, logger);
+            nextScriptData.pendingDiff = pendingDiff;
 
             const nextState: NotebookState = {
                 ...clearSemanticUserFocus(state),
@@ -1336,6 +1362,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 annotations: createEmptyAnnotations(),
                 cursor: null,
                 completion: null,
+                pendingDiff: null,
                 latestQueryId: null,
                 latestAgentRunId: null,
                 fileName,
@@ -1395,6 +1422,7 @@ function destroyScriptData(data: ScriptData) {
     data.scriptAnalysis.buffers.destroy(data.scriptAnalysis.buffers);
     data.script.destroy();
     data.completion?.buffer.destroy();
+    data.pendingDiff?.diffBuffer.destroy();
     data.cursor?.destroy();
     for (const stats of data.statistics) {
         stats.destroy();
@@ -1587,6 +1615,43 @@ export function getExecutableQueryText(notebook: NotebookState, scriptData: Scri
         return resolved?.sql ?? scriptText;
     } finally {
         if (!haveAnalyzed) buffers.destroy(buffers);
+    }
+}
+
+/// Compute a staged, statement-level semantic diff from a script's prior text to a new text.
+///
+/// `priorScript` still holds the old text; it is parsed here (parsing suffices for the AST the diff
+/// needs). The new text is loaded into a throwaway target script created in a fresh catalog so it
+/// never touches the notebook's catalog. Returns null (and logs) on any failure, so a diff problem
+/// never blocks applying the rewrite. The returned FlatBufferPtr is owned by the caller (stored on
+/// ScriptData.pendingDiff, freed when the diff is superseded, accepted/rejected, or the script is
+/// destroyed).
+function computePendingDiff(
+    instance: core.DashQL,
+    _catalog: core.DashQLCatalog,
+    priorScript: core.DashQLScript,
+    newText: string,
+    priorText: string,
+    logger: Logger,
+): DashQLPendingDiff | null {
+    let targetCatalog: core.DashQLCatalog | null = null;
+    let targetScript: core.DashQLScript | null = null;
+    try {
+        // Ensure the prior script is parsed (the diff walks the parsed AST).
+        priorScript.parse();
+        // Seed a throwaway target with the new text in its own catalog (kept out of the notebook's).
+        targetCatalog = instance.createCatalog();
+        targetScript = instance.createScript(targetCatalog);
+        targetScript.insertTextAt(0, newText);
+        targetScript.parse();
+        const diffBuffer = priorScript.computeDiff(targetScript);
+        return { priorText, diffBuffer };
+    } catch (e: any) {
+        logger.warn("Failed to compute script diff", { error: stringifyError(e) }, LOG_CTX);
+        return null;
+    } finally {
+        targetScript?.destroy();
+        targetCatalog?.destroy();
     }
 }
 

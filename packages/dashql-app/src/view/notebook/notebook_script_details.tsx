@@ -168,6 +168,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                         scriptBuffers: previewBuffers,
                         scriptCursor: null,
                         scriptCompletion: null,
+                        scriptPendingDiff: null,
                         derivedFocus: null,
                         onUpdate: () => { },
                     }),

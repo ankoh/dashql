@@ -47,6 +47,7 @@ export const CatalogScriptCard: React.FC<CatalogScriptCardProps> = (props) => {
                     scriptBuffers: buffers,
                     scriptCursor: null,
                     scriptCompletion: null,
+                    scriptPendingDiff: null,
                     derivedFocus: null,
                     onUpdate: () => { },
                 }),

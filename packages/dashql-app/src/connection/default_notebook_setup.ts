@@ -23,6 +23,7 @@ function createScriptData(script: core.DashQLScript, fileName: string, folderNam
         annotations: createEmptyAnnotations(),
         cursor: null,
         completion: null,
+        pendingDiff: null,
         latestQueryId: null,
         latestAgentRunId: null,
         fileName,

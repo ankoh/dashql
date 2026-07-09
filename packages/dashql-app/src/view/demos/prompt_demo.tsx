@@ -142,6 +142,7 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
                 scriptBuffers: initialBuffers,
                 scriptCursor: null,
                 scriptCompletion: null,
+                scriptPendingDiff: null,
                 derivedFocus: null,
                 onUpdate,
             }),

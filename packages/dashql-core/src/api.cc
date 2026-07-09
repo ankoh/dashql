@@ -10,6 +10,7 @@
 #include "dashql/catalog_object.h"
 #include "dashql/exception.h"
 #include "dashql/script.h"
+#include "dashql/script_diff.h"
 #include "dashql/view/plan_view_model.h"
 #include "dashql/visualize/vegalite.h"
 
@@ -170,6 +171,20 @@ extern "C" void dashql_script_get_analyzed(FFIResult* result, Script* script) {
     // Pack a parsed script
     flatbuffers::FlatBufferBuilder fb;
     fb.Finish(script->analyzed_script->Pack(fb));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
+    packBuffer(result, std::move(detached));
+}
+
+/// Compute a statement-level semantic diff from a source (old) script to a target (new) script
+extern "C" void dashql_script_compute_diff(FFIResult* result, Script* source, Script* target) {
+    if (source->parsed_script == nullptr || target->parsed_script == nullptr) {
+        throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
+    }
+
+    // Compute and pack the diff
+    ScriptDiff diff{*source->parsed_script, *target->parsed_script};
+    flatbuffers::FlatBufferBuilder fb;
+    fb.Finish(diff.Pack(fb));
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     packBuffer(result, std::move(detached));
 }

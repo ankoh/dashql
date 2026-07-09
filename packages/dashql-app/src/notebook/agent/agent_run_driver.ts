@@ -468,13 +468,15 @@ export function chooseApplyAction(
 ): NotebookStateAction {
     if (intent === 'sql') {
         if (contextScriptData != null) {
-            return { type: SET_SCRIPT_TEXT, value: { scriptKey: contextScriptData.scriptKey, text } };
+            // In-place rewrite of an existing script: stage it as a diff (withDiff) so the editor
+            // shows an accept/reject overlay instead of silently replacing the text.
+            return { type: SET_SCRIPT_TEXT, value: { scriptKey: contextScriptData.scriptKey, text, withDiff: true } };
         }
         return { type: CREATE_NOTEBOOK_ENTRY_WITH_TEXT, value: { text } };
     }
     // visualize
     if (focusedIsVisualize(contextScriptData)) {
-        return { type: SET_SCRIPT_TEXT, value: { scriptKey: contextScriptData!.scriptKey, text } };
+        return { type: SET_SCRIPT_TEXT, value: { scriptKey: contextScriptData!.scriptKey, text, withDiff: true } };
     }
     return { type: CREATE_NOTEBOOK_ENTRY_WITH_TEXT, value: { text } };
 }

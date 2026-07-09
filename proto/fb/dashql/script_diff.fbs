@@ -1,0 +1,36 @@
+include "dashql/parsed_script.fbs";
+
+namespace dashql.buffers.diff;
+
+/// A statement-level semantic diff operation.
+///
+/// Emitted by ScriptDiff, a modified patience diff over the statements of two parsed scripts.
+/// See `dashql/script_diff.h` for the algorithm.
+enum ScriptDiffOpCode: uint8 {
+    DELETE,
+    INSERT,
+    KEEP,
+    MOVE,
+    UPDATE,
+}
+
+/// A single diff operation.
+///
+/// `source_statement` / `target_statement` are statement indices into the source (old) and target
+/// (new) parsed scripts. The sentinel value 0xFFFFFFFF means "none" (e.g. no source for an INSERT,
+/// no target for a DELETE). `source_span` / `target_span` are the text spans of the respective
+/// statement root nodes, resolved to text offsets. `target_changes` holds the changed sub-ranges
+/// within the target statement for UPDATE ops (intra-statement highlighting); empty otherwise.
+table ScriptDiffOp {
+    code: ScriptDiffOpCode;
+    source_statement: uint32 = 4294967295;
+    target_statement: uint32 = 4294967295;
+    source_span: dashql.buffers.parser.TextSpan;
+    target_span: dashql.buffers.parser.TextSpan;
+    target_changes: [dashql.buffers.parser.TextSpan];
+}
+
+/// A semantic diff between two parsed scripts.
+table ScriptDiff {
+    ops: [ScriptDiffOp];
+}

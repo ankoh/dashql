@@ -7,6 +7,8 @@ import { DashQLGutterPlugin } from './dashql_gutters.js';
 import { DashQLCompletionHintPlugin } from './dashql_completion_hint.js';
 import { DashQLCompletionListPlugin } from './dashql_completion_list.js';
 import { DashQLCompletionListenerPlugin } from './dashql_completion_listener.js';
+import { DashQLDiffDecorationPlugin } from './dashql_diff_decorations.js';
+import { DashQLDiffHintPlugin } from './dashql_diff_hint.js';
 import { DashQLAutoclosePlugin } from './dashql_autoclose.js';
 import { DashQLQuoteTombstonePlugin } from './dashql_quote_tombstone.js';
 
@@ -23,6 +25,8 @@ export const DashQLExtensions = [
     DashQLCompletionHintPlugin,
     DashQLCompletionListPlugin,
     DashQLCompletionListenerPlugin,
+    DashQLDiffDecorationPlugin,
+    DashQLDiffHintPlugin,
     DashQLDecorationPlugin,
     DashQLCursorDiagnosticsPlugin,
     DashQLGutterPlugin,

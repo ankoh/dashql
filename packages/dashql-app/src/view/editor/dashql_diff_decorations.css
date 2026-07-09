@@ -1,0 +1,30 @@
+/* Whole inserted statement (present in the new text only) */
+.cm-dashql-diff-insert {
+    background-color: rgba(46, 160, 67, 0.18);
+}
+
+/* An updated statement — subtle tint over the whole statement */
+.cm-dashql-diff-update {
+    background-color: rgba(46, 160, 67, 0.08);
+}
+
+/* A statement that only changed position */
+.cm-dashql-diff-move {
+    background-color: rgba(56, 139, 253, 0.12);
+}
+
+/* A changed sub-range within an updated statement — stronger highlight */
+.cm-dashql-diff-change {
+    background-color: rgba(46, 160, 67, 0.32);
+    border-radius: 2px;
+}
+
+/* Gutter marker for a deleted statement */
+.dashql-gutter-diff-delete {
+    display: inline-block;
+    width: 3px;
+    height: 100%;
+    min-height: 1em;
+    background-color: rgb(207, 34, 46);
+    border-radius: 1px;
+}

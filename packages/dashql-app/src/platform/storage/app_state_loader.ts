@@ -113,6 +113,7 @@ async function restoreNotebook(
                 statistics: Immutable.List(),
                 cursor: null,
                 completion: null,
+                pendingDiff: null,
                 latestQueryId: null,
                 latestAgentRunId: null,
                 fileName: scriptFile.name,

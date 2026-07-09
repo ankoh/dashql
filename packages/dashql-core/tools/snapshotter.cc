@@ -16,9 +16,11 @@
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
 #include "dashql/script.h"
+#include "dashql/script_diff.h"
 #include "dashql/script_registry.h"
 #include "dashql/testing/analyzer_snapshot_test.h"
 #include "dashql/testing/completion_snapshot_test.h"
+#include "dashql/testing/diff_snapshot_test.h"
 #include "dashql/testing/parser_snapshot_test.h"
 #include "dashql/testing/plan_view_model_snapshot_test.h"
 #include "dashql/testing/yaml_tests.h"
@@ -33,7 +35,7 @@ using namespace dashql::testing;
 DEFINE_string(source_dir, "", "Source directory");
 DEFINE_string(
     filter, "",
-    "Snapshot category to update (parser, analyzer, completion, registry, formatter, plan_view_model, visualize). Empty = all.");
+    "Snapshot category to update (parser, analyzer, completion, registry, formatter, plan_view_model, visualize, diff). Empty = all.");
 
 static void generate_parser_snapshots(const std::filesystem::path& snapshot_dir) {
     for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
@@ -821,6 +823,102 @@ static void generate_visualize_snapshots(const std::filesystem::path& snapshot_d
     }
 }
 
+static void generate_diff_snapshots(const std::filesystem::path& snapshot_dir) {
+    for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
+        auto path = p.path();
+        if (path.extension() != ".yaml") continue;
+        if (path.stem().extension() != ".tpl") continue;
+
+        auto out = path;
+        out.replace_extension();
+        out.replace_extension(".yaml");  // basic.tpl.yaml -> basic.yaml
+
+        std::ifstream in(path, std::ios::in | std::ios::binary);
+        if (!in) {
+            std::cout << "[" << path.filename().string() << "] failed to read file" << std::endl;
+            continue;
+        }
+        std::stringstream buf;
+        buf << in.rdbuf();
+        std::string content = buf.str();
+
+        c4::yml::Tree tpl_tree;
+        c4::yml::parse_in_arena(c4::to_csubstr(content), &tpl_tree);
+        auto tpl_root = tpl_tree.rootref();
+        if (!tpl_root.has_child("diff-snapshots")) {
+            std::cout << "[" << path.filename().string() << "] no diff-snapshots key" << std::endl;
+            continue;
+        }
+
+        std::cout << "FILE " << out << std::endl;
+        c4::yml::Tree out_tree;
+        auto out_root = out_tree.rootref();
+        out_root.set_type(c4::yml::MAP);
+        auto snapshots_node = out_root.append_child();
+        snapshots_node << c4::yml::key("diff-snapshots");
+        snapshots_node |= c4::yml::SEQ;
+
+        auto read_text = [](c4::yml::ConstNodeRef node) -> std::string {
+            if (!node.has_val()) return {};
+            c4::csubstr v = node.val();
+            if (!v.str) return {};
+            std::string_view trimmed =
+                trim_view_right(trim_view_left(std::string_view{v.str, v.len}, is_no_space), is_no_newline);
+            return std::string(trimmed);
+        };
+
+        auto tpl_snapshots = tpl_root["diff-snapshots"];
+        for (auto test_node : tpl_snapshots.children()) {
+            std::string name;
+            if (test_node.has_child("name")) {
+                c4::csubstr v = test_node["name"].val();
+                if (v.str) name.assign(v.str, v.len);
+            }
+            std::string source_buffer = test_node.has_child("source") ? read_text(test_node["source"]) : std::string();
+            std::string target_buffer = test_node.has_child("target") ? read_text(test_node["target"]) : std::string();
+            std::cout << "  TEST " << name << std::endl;
+
+            try {
+                rope::Rope source_rope{1024, source_buffer};
+                auto source_scanned = parser::Scanner::Scan(source_rope, 0, 1);
+                auto source_parsed = parser::Parser::Parse(source_scanned);
+
+                rope::Rope target_rope{1024, target_buffer};
+                auto target_scanned = parser::Scanner::Scan(target_rope, 0, 2);
+                auto target_parsed = parser::Parser::Parse(target_scanned);
+
+                ScriptDiff diff{*source_parsed, *target_parsed};
+                auto& ops = diff.Compute();
+
+                auto item = snapshots_node.append_child();
+                item.set_type(c4::yml::MAP);
+                item.append_child() << c4::yml::key("name") << name;
+
+                auto source_node = item.append_child();
+                source_node << c4::yml::key("source") << source_buffer;
+                source_node.set_val_style(c4::yml::VAL_LITERAL);
+                auto target_node = item.append_child();
+                target_node << c4::yml::key("target") << target_buffer;
+                target_node.set_val_style(c4::yml::VAL_LITERAL);
+
+                auto expected_node = item.append_child();
+                expected_node << c4::yml::key("expected");
+                expected_node |= c4::yml::MAP;
+                DiffSnapshotTest::EncodeDiff(expected_node, ops, source_buffer, target_buffer);
+            } catch (const dashql::Exception& e) {
+                std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(e.GetCode()) << std::endl;
+                continue;
+            }
+        }
+
+        c4::yml::NodeRef to_emit = out_tree.ref(out_tree.first_child(out_tree.root_id()));
+        std::string emitted = c4::yml::emitrs_yaml<std::string>(to_emit, c4::yml::EmitOptions().max_depth(128));
+        InjectBlankLinesInSnapshot(emitted);
+        std::ofstream outs(out, std::ofstream::out | std::ofstream::trunc);
+        outs << emitted;
+    }
+}
+
 int main(int argc, char* argv[]) {
     gflags::SetUsageMessage("Usage: ./snapshotter --source_dir <dir> [--filter <category>]");
     gflags::ParseCommandLineFlags(&argc, &argv, false);
@@ -841,5 +939,6 @@ int main(int argc, char* argv[]) {
     if (f.empty() || f == "spark_plan")
         generate_spark_plan_snapshots(source_dir / "snapshots" / "plans" / "spark" / "tests");
     if (f.empty() || f == "visualize") generate_visualize_snapshots(source_dir / "snapshots" / "visualize");
+    if (f.empty() || f == "diff") generate_diff_snapshots(source_dir / "snapshots" / "diff");
     return 0;
 }

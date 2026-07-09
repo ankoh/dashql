@@ -34,6 +34,7 @@ LIB_SRCS = [
     "src/script.cc",
     "src/script_comparison.cc",
     "src/script_cursor.cc",
+    "src/script_diff.cc",
     "src/script_registry.cc",
     "src/script_signature.cc",
     "src/script_snippet.cc",
@@ -143,6 +144,7 @@ WASM_LINKOPTS = [
         "'_dashql_script_get_scanned'," +
         "'_dashql_script_get_parsed'," +
         "'_dashql_script_get_analyzed'," +
+        "'_dashql_script_compute_diff'," +
         "'_dashql_script_get_statistics'," +
         "'_dashql_script_format'," +
         "'_dashql_script_move_cursor'," +
@@ -238,6 +240,7 @@ cc_library(
 test_utils_SRCS = [
     "src/testing/analyzer_snapshot_test.cc",
     "src/testing/completion_snapshot_test.cc",
+    "src/testing/diff_snapshot_test.cc",
     "src/testing/formatter_snapshot_test.cc",
     "src/testing/parser_snapshot_test.cc",
     "src/testing/plan_view_model_snapshot_test.cc",
@@ -270,6 +273,7 @@ TEST_SRCS = [
     "test/completion_snapshot_test_suite.cc",
     "test/completion_test.cc",
     "test/cursor_test.cc",
+    "test/diff_snapshot_test_suite.cc",
     "test/formatter_snapshot_test_suite.cc",
     "test/hyper_plan_snapshot_test_suite.cc",
     "test/hyper_plan_test.cc",
@@ -438,6 +442,16 @@ cc_test(
     size = "small",
     srcs = ["test/visualize_snapshot_test_suite.cc"],
     data = ["//snapshots/visualize:files"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
+)
+cc_test(
+    name = "diff_tests",
+    size = "small",
+    srcs = ["test/diff_snapshot_test_suite.cc"],
+    data = ["//snapshots/diff:files"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,

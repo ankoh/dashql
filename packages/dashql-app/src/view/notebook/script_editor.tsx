@@ -47,6 +47,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
         view,
         scriptData?.script,
         scriptData?.scriptAnalysis.buffers,
+        scriptData?.pendingDiff,
         notebook?.semanticUserFocus,
         notebook?.connectionCatalog,
     ]);
@@ -143,6 +144,7 @@ function updateEditor(view: EditorView, notebook: NotebookState, scriptData: Scr
             scriptBuffers: scriptData.scriptAnalysis.buffers,
             scriptCursor: scriptData.cursor,
             scriptCompletion: scriptData.completion,
+            scriptPendingDiff: scriptData.pendingDiff,
 
             derivedFocus: notebook?.semanticUserFocus ?? null,
 

@@ -33,6 +33,20 @@ export enum DashQLCompletionStatus {
     SELECTED_TEMPLATE,
 }
 
+/// A pending, staged script rewrite (e.g. an agent suggestion) shown as an in-place diff.
+///
+/// The editor already holds the *new* (target) text; `priorText` is the verbatim text that was in
+/// the script before the rewrite, restored on reject. `diffBuffer` is the statement-level semantic
+/// diff (source = prior, target = new) used to highlight the changed statements and sub-ranges.
+/// Whole-suggestion accept/reject: accept keeps the new text, reject restores `priorText`, and any
+/// genuine user edit auto-accepts.
+export interface DashQLPendingDiff {
+    /// The verbatim text before the rewrite (restored on reject)
+    priorText: string;
+    /// The semantic diff from the prior text (source) to the new text (target)
+    diffBuffer: dashql.FlatBufferPtr<dashql.buffers.diff.ScriptDiff>;
+}
+
 /// A completion state
 export interface DashQLCompletionState {
     /// The status
@@ -72,6 +86,8 @@ export interface DashQLProcessorUpdateOut {
     scriptCursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor> | null;
     /// The completion candidate state (if any)
     scriptCompletion: DashQLCompletionState | null;
+    /// The pending staged rewrite shown as an in-place diff (if any)
+    scriptPendingDiff: DashQLPendingDiff | null;
 };
 /// A state that is propagated from the outside into processor
 export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
@@ -142,6 +158,11 @@ export const DashQLCompletionNextCandidateVariantEffect: StateEffectType<null> =
 /// Effect to select the previous candidate variant
 export const DashQLCompletionPreviousCandidateVariantEffect: StateEffectType<null> = StateEffect.define<null>();
 
+/// Effect to accept a pending diff (keep the new text, clear the overlay)
+export const DashQLDiffAcceptEffect: StateEffectType<null> = StateEffect.define<null>();
+/// Effect to reject a pending diff (restore the prior text, clear the overlay)
+export const DashQLDiffRejectEffect: StateEffectType<null> = StateEffect.define<null>();
+
 // Copy an object if it equals another object
 function copyLazily(nextState: DashQLProcessorState, prevState: DashQLProcessorState): DashQLProcessorState {
     return nextState === prevState ? { ...prevState } : nextState;
@@ -166,6 +187,7 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
             },
             scriptCursor: null,
             scriptCompletion: null,
+            scriptPendingDiff: null,
 
             derivedFocus: null as SemanticUserFocus | null,
 
@@ -206,6 +228,7 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
                 const redundantUpdate = prevState.script == effect.value.script
                     && prevState.scriptBuffers == effect.value.scriptBuffers
                     && prevState.scriptCursor == effect.value.scriptCursor
+                    && prevState.scriptPendingDiff == effect.value.scriptPendingDiff
                     && prevState.derivedFocus == effect.value.derivedFocus
                     && !transaction.docChanged
                     && !selectionChanged;
@@ -252,6 +275,9 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
 
         // Check additional completion effects
         state = updateCompletion(state, prevState, transaction);
+
+        // Check pending-diff effects (accept / reject) and auto-accept on genuine user edits
+        state = updateDiff(state, prevState, transaction, externalUpdate);
 
         // Did anything change?
         // Then tell the user about it.
@@ -567,6 +593,44 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                     break;
             }
         }
+    }
+    return state;
+}
+
+// Helper to update the pending diff based on a transaction.
+//
+// Handles the explicit accept/reject effects and auto-accepts as soon as the user genuinely edits
+// the document. The transaction that *starts* a diff carries new script buffers via
+// `DashQLUpdateEffect` and returns early (the `scriptBuffers` guard in `update`) before this runs,
+// so here we only ever see later user edits or accept/reject effects.
+function updateDiff(state: DashQLProcessorState, prevState: DashQLProcessorState, transaction: Transaction, externalUpdate: boolean): DashQLProcessorState {
+    // Handle the explicit accept / reject effects.
+    for (const effect of transaction.effects) {
+        if (effect.is(DashQLDiffAcceptEffect) || effect.is(DashQLDiffRejectEffect)) {
+            // Clearing the pending diff drops the overlay. Accept keeps the current (new) text;
+            // reject relies on the dispatcher having restored the prior text via `changes` in the
+            // same transaction (already mirrored to the rope by the docChanged branch in `update`).
+            // The FlatBufferPtr is owned by the notebook's ScriptData and freed there once the
+            // cleared state round-trips back through UPDATE_FROM_PROCESSOR.
+            if (state.scriptPendingDiff != null) {
+                state = copyLazily(state, prevState);
+                state.scriptPendingDiff = null;
+            }
+            return state;
+        }
+    }
+
+    // No pending diff? Nothing to auto-accept.
+    if (state.scriptPendingDiff == null) {
+        return state;
+    }
+
+    // Auto-accept as soon as the user genuinely edits the document. User-originated doc changes
+    // always carry a userEvent annotation; the agent's external text replacement does not (and is
+    // additionally guarded by `externalUpdate`), so staging a rewrite never self-accepts.
+    if (transaction.docChanged && !externalUpdate && transaction.annotation(Transaction.userEvent) != null) {
+        state = copyLazily(state, prevState);
+        state.scriptPendingDiff = null;
     }
     return state;
 }

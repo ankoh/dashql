@@ -179,6 +179,7 @@ function SqlTextView(props: SqlTextViewProps) {
                         scriptBuffers: buffers,
                         scriptCursor: null,
                         scriptCompletion: null,
+                        scriptPendingDiff: null,
                         derivedFocus: null,
                         onUpdate: () => { },
                     }),

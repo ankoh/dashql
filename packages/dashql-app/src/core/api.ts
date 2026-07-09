@@ -41,6 +41,7 @@ interface EmscriptenModule {
     _dashql_script_get_catalog_entry_id: (ptr: number) => number;
     _dashql_script_get_parsed: (result: number, ptr: number) => void;
     _dashql_script_get_analyzed: (result: number, ptr: number) => void;
+    _dashql_script_compute_diff: (result: number, source: number, target: number) => void;
     _dashql_script_set_notebook_path: (ptr: number, path: number, path_length: number) => void;
     _dashql_script_get_statistics: (result: number, ptr: number) => void;
     _dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean, catalog: number) => void;
@@ -91,6 +92,7 @@ interface DashQLModuleExports {
     dashql_script_set_notebook_path: (ptr: number, path: number, path_length: number) => void;
     dashql_script_get_parsed: (result: number, ptr: number) => void;
     dashql_script_get_analyzed: (result: number, ptr: number) => void;
+    dashql_script_compute_diff: (result: number, source: number, target: number) => void;
     dashql_script_get_statistics: (result: number, ptr: number) => void;
     dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean, catalog: number) => void;
 
@@ -151,6 +153,7 @@ const CATALOG_STATISTICS_TYPE = Symbol('CATALOG_STATISTICS_TYPE');
 const CATALOG_TYPE = Symbol('CATALOG_TYPE');
 const COMPLETION_TYPE = Symbol('COMPLETION_TYPE');
 const CURSOR_TYPE = Symbol('CURSOR_TYPE');
+const SCRIPT_DIFF_TYPE = Symbol('SCRIPT_DIFF_TYPE');
 const FLAT_CATALOG_TYPE = Symbol('FLAT_CATALOG_TYPE');
 const FLAT_PLAN_VIEW_MODEL_TYPE = Symbol('FLAT_PLAN_VIEW_MODEL_TYPE');
 const PARSED_SCRIPT_TYPE = Symbol('PARSED_SCRIPT_TYPE');
@@ -168,6 +171,7 @@ export type DashQLRegisteredMemory =
     | VariantKind<typeof CATALOG_TYPE, Ptr<typeof CATALOG_TYPE>>
     | VariantKind<typeof COMPLETION_TYPE, FlatBufferPtr<buffers.completion.Completion>>
     | VariantKind<typeof CURSOR_TYPE, FlatBufferPtr<buffers.cursor.ScriptCursor>>
+    | VariantKind<typeof SCRIPT_DIFF_TYPE, FlatBufferPtr<buffers.diff.ScriptDiff>>
     | VariantKind<typeof FLAT_CATALOG_TYPE, FlatBufferPtr<buffers.catalog.FlatCatalog>>
     | VariantKind<typeof FLAT_PLAN_VIEW_MODEL_TYPE, FlatBufferPtr<buffers.view.PlanViewModel>>
     | VariantKind<typeof PARSED_SCRIPT_TYPE, FlatBufferPtr<buffers.parser.ParsedScript>>
@@ -227,6 +231,7 @@ export class DashQL {
             dashql_script_set_notebook_path: module._dashql_script_set_notebook_path,
             dashql_script_get_parsed: module._dashql_script_get_parsed,
             dashql_script_get_analyzed: module._dashql_script_get_analyzed,
+            dashql_script_compute_diff: module._dashql_script_compute_diff,
             dashql_script_move_cursor: module._dashql_script_move_cursor,
             dashql_script_complete_at_cursor: module._dashql_script_complete_at_cursor,
             dashql_script_select_completion_candidate_at_cursor: module._dashql_script_select_completion_candidate_at_cursor,
@@ -753,6 +758,18 @@ export class DashQLScript {
             () => new buffers.analyzer.AnalyzedScript()
         );
         this.ptr.api.registerMemory({ type: ANALYZED_SCRIPT_TYPE, value: resultBuffer });
+        return resultBuffer;
+    }
+    /// Compute a statement-level semantic diff from this (source/old) script to another (target/new) script
+    public computeDiff(target: DashQLScript): FlatBufferPtr<buffers.diff.ScriptDiff> {
+        const sourcePtr = this.ptr.assertNotNull();
+        const targetPtr = target.ptr.assertNotNull();
+        const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.diff.ScriptDiff, buffers.diff.ScriptDiffT>(
+            SCRIPT_DIFF_TYPE,
+            (resultPtr) => this.ptr.api.instanceExports.dashql_script_compute_diff(resultPtr, sourcePtr, targetPtr),
+            () => new buffers.diff.ScriptDiff()
+        );
+        this.ptr.api.registerMemory({ type: SCRIPT_DIFF_TYPE, value: resultBuffer });
         return resultBuffer;
     }
     /// Move the cursor
