@@ -118,7 +118,7 @@ importers:
         specifier: ^10.4.1
         version: 10.4.1
       immutable:
-        specifier: ^5.1.8
+        specifier: ^5.1.9
         version: 5.1.9
       jsdom:
         specifier: ^29.1.1
