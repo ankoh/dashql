@@ -138,7 +138,10 @@ async function drive(
     notebook: NotebookState,
     focusedKey: number | null,
     aiClient: AgentAIClient,
-    opts: { intentOverride?: 'sql' | 'visualize' | null } = {},
+    opts: {
+        intentOverride?: 'sql' | 'visualize' | null;
+        resolveOutputColumns?: (scriptKey: number) => Array<{ name: string; type: string | null }> | null;
+    } = {},
 ): Promise<{ agent: AgentRunState | null; notebook: NotebookState; applied: NotebookStateAction[]; registered: Array<[number, number]> }> {
     let agent: AgentRunState | null = null;
     let current = notebook;
@@ -155,6 +158,7 @@ async function drive(
             current = reduceNotebookState(current, action, storage, logger, true);
         },
         registerAgentRun: (scriptKey: number, runId: number) => { registered.push([scriptKey, runId]); },
+        resolveOutputColumns: opts.resolveOutputColumns,
         logger,
         now: () => ++clock,
     };
@@ -284,5 +288,72 @@ describe('startAgentRun — visualize path', () => {
         const { agent, applied } = await drive(state, focusedKey, ai, { intentOverride: 'visualize' });
         expect(agent!.phase).toBe(AgentRunPhase.SUCCEEDED);
         expect(applied).toHaveLength(1);
+    });
+});
+
+/// Return the generation (non-classify) prompt the model was asked with. With an intent override
+/// there is no classify call, so the first captured prompt is the generation prompt.
+function generationPrompt(ai: MockAIClient): string {
+    const gen = ai.prompts.find(p => !/exactly one lowercase word/.test(p));
+    expect(gen).toBeDefined();
+    return gen!;
+}
+
+describe('startAgentRun — context', () => {
+    it('SQL context carries the script text and referenced-table schema, no chart context', async () => {
+        const { state, focusedKey } = buildNotebook('select category, amount from sales');
+        const ai = new MockAIClient('sql', ['select category from sales']);
+        await drive(state, focusedKey, ai, { intentOverride: 'sql' });
+
+        const prompt = generationPrompt(ai);
+        expect(prompt).toContain('Current script:');
+        expect(prompt).toContain('select category, amount from sales');
+        expect(prompt).toContain('Referenced table schemas:');
+        // Columns come from the flattened catalog snapshot, which orders them by name.
+        expect(prompt).toContain('sales(amount, category, ts)');
+        // No visualize-only blocks leak into the SQL prompt.
+        expect(prompt).not.toContain('Source query (feeds the chart):');
+        expect(prompt).not.toContain('Output columns');
+    });
+
+    it('visualize context carries the source query and the resolved output columns', async () => {
+        const { state, focusedKey } = buildNotebook('select category, amount from sales');
+        const spec = JSON.stringify({
+            mark: 'bar',
+            encoding: { x: { field: 'category', type: 'nominal' }, y: { field: 'amount', type: 'quantitative' } },
+        });
+        const ai = new MockAIClient('visualize', [spec]);
+        await drive(state, focusedKey, ai, {
+            intentOverride: 'visualize',
+            // Stand in for the connection state's last-execution result schema.
+            resolveOutputColumns: (scriptKey) =>
+                scriptKey === focusedKey
+                    ? [{ name: 'category', type: 'Utf8' }, { name: 'amount', type: 'Int32' }]
+                    : null,
+        });
+
+        const prompt = generationPrompt(ai);
+        // The source SELECT that feeds the chart is present …
+        expect(prompt).toContain('Source query (feeds the chart):');
+        expect(prompt).toContain('select category, amount from sales');
+        // … along with the output columns (name + type) resolved from the last run.
+        expect(prompt).toContain('Output columns');
+        expect(prompt).toContain('- category (Utf8)');
+        expect(prompt).toContain('- amount (Int32)');
+    });
+
+    it('visualize context omits the output columns when the source has never run', async () => {
+        const { state, focusedKey } = buildNotebook('select category, amount from sales');
+        const spec = JSON.stringify({
+            mark: 'bar',
+            encoding: { x: { field: 'category', type: 'nominal' }, y: { field: 'amount', type: 'quantitative' } },
+        });
+        const ai = new MockAIClient('visualize', [spec]);
+        // No resolver → no last-execution schema available.
+        await drive(state, focusedKey, ai, { intentOverride: 'visualize' });
+
+        const prompt = generationPrompt(ai);
+        expect(prompt).toContain('Source query (feeds the chart):');
+        expect(prompt).not.toContain('Output columns');
     });
 });

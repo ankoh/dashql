@@ -155,7 +155,7 @@ CHART-DESIGN GUIDANCE (pick the most informative chart, not just the first that 
   "title" that states what it shows.
 - Keep it to a single, readable chart — do not overload it with unnecessary channels.
 
---- Context (focused script + available columns) ---
+--- Context (source query + its output columns + current chart, when available) ---
 ${input.context}
 --- End context ---
 

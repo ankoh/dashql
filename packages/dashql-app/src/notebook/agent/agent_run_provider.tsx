@@ -11,6 +11,7 @@ import {
     reduceAgentRun,
 } from './agent_run_state.js';
 import { startAgentRun } from './agent_run_driver.js';
+import { OutputColumnResolver } from './agent_context.js';
 import { NotebookState, REGISTER_AGENT_RUN } from '../notebook_state.js';
 import { ModifyNotebook } from '../notebook_state_registry.js';
 
@@ -30,6 +31,9 @@ export interface StartAgentRunArgs {
     notebook: NotebookState;
     /// The notebook dispatch used to apply the result.
     modifyNotebook: ModifyNotebook;
+    /// Resolve a script's last-execution output columns (for the visualize context). Optional so
+    /// callers without connection state in scope can omit it.
+    resolveOutputColumns?: OutputColumnResolver;
 }
 
 export type StartAgentRun = (args: StartAgentRunArgs) => void;
@@ -168,6 +172,7 @@ export const AgentRunProvider: React.FC<Props> = (props: Props) => {
                 getNotebook: () => args.notebook,
                 modifyNotebook: args.modifyNotebook,
                 registerAgentRun: (scriptKey, id) => args.modifyNotebook({ type: REGISTER_AGENT_RUN, value: [scriptKey, id] }),
+                resolveOutputColumns: args.resolveOutputColumns,
                 logger,
                 now: () => Date.now(),
             },

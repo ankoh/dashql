@@ -1,7 +1,21 @@
 import * as core from '../../core/index.js';
 
 import { AgentIntent } from './agent_prompts.js';
-import { NotebookState, ScriptData } from '../notebook_state.js';
+import { getExecutableQueryText, NotebookState, ScriptData } from '../notebook_state.js';
+
+/// A column of a query's output schema: its name and (best-effort) type.
+export interface OutputColumn {
+    /// The column name.
+    name: string;
+    /// The column's type rendered as a string (e.g. "Utf8", "Int32"), or null if unknown.
+    type: string | null;
+}
+
+/// Resolve the output columns (result schema) a script produced on its most recent execution.
+/// Returns null when the script has never run (or its result schema isn't available yet) — output
+/// columns only exist after execution, they are not part of static analysis. Supplied by the caller
+/// (the feed) because the execution result lives in the connection state, not the notebook state.
+export type OutputColumnResolver = (scriptKey: number) => OutputColumn[] | null;
 
 /// Input handed to every context contributor.
 export interface AgentContextInput {
@@ -11,6 +25,8 @@ export interface AgentContextInput {
     contextScriptData: ScriptData | null;
     /// The (possibly overridden) intent for this run.
     intent: AgentIntent;
+    /// Resolve a script's last-execution output columns (null if never run / unavailable).
+    resolveOutputColumns?: OutputColumnResolver;
 }
 
 /// A context contributor returns a context fragment, or null if it has nothing to add.
@@ -18,10 +34,16 @@ export interface AgentContextInput {
 /// prompt's context block. This keeps context construction pluggable — new contributors
 /// (last query result, full catalog, neighbouring scripts, …) can be slotted in later
 /// without touching the driver.
+///
+/// Contributors are intent-aware: each returns null for the intents it doesn't serve, so the
+/// SQL and visualize paths get different context from the same chain. SQL edits get the query
+/// text plus the base schema of the referenced relations; visualize edits get the source query
+/// text, the current chart spec, and the output schema the chart binds to.
 export type AgentContextContributor = (input: AgentContextInput) => string | null;
 
-/// The focused script's current SQL text.
+/// SQL only: the focused script's current SQL text.
 export const focusedScriptContributor: AgentContextContributor = (input) => {
+    if (input.intent !== 'sql') return null;
     const data = input.contextScriptData;
     if (data == null) return null;
     const text = data.script.toString().trim();
@@ -29,11 +51,12 @@ export const focusedScriptContributor: AgentContextContributor = (input) => {
     return `Current script:\n${text}`;
 };
 
-/// The schema (table + column names) of the tables *referenced* by the focused script.
+/// SQL only: the schema (table + column names) of the tables *referenced* by the focused script.
 /// Deliberately scoped to referenced tables only — not the whole catalog — so the prompt
 /// stays small and on-topic. Resolves references from the focused script's analyzed buffer
 /// and looks up column detail from the connection catalog.
 export const referencedTablesSchemaContributor: AgentContextContributor = (input) => {
+    if (input.intent !== 'sql') return null;
     const data = input.contextScriptData;
     if (data == null) return null;
     const analyzed = data.scriptAnalysis.buffers.analyzed;
@@ -54,10 +77,61 @@ export const referencedTablesSchemaContributor: AgentContextContributor = (input
     return lines.join('\n');
 };
 
-/// The default v1 contributor chain.
+/// Visualize only: the source query that feeds the chart, plus (when editing an existing chart)
+/// the current Vega-Lite spec. A VISUALIZE statement charts the output of a source SELECT; the
+/// model reasons about that data, not the DashQL `VISUALIZE (…)` wrapper — so we send the source
+/// query and the chart spec rather than the focused script text verbatim.
+export const visualizeSourceContributor: AgentContextContributor = (input) => {
+    if (input.intent !== 'visualize') return null;
+    const data = input.contextScriptData;
+    if (data == null) return null;
+
+    const parts: string[] = [];
+    const vis = data.annotations.visualizeQuery;
+    if (vis != null) {
+        // Focused script is already a VISUALIZE: send its resolved source SELECT (re-resolved when
+        // the analysis is outdated so a changed source is reflected) and the current chart spec.
+        const sql = getExecutableQueryText(input.notebook, data).trim();
+        if (sql.length > 0) parts.push(`Source query (feeds the chart):\n${sql}`);
+        try {
+            parts.push(`Current chart (Vega-Lite spec):\n${JSON.stringify(vis.vegaLiteSpec, null, 2)}`);
+        } catch {
+            // A non-serializable spec is simply omitted — the source query + output schema still help.
+        }
+    } else {
+        // Focused script is a plain SQL query we're about to chart: its text is the source query.
+        const sql = data.script.toString().trim();
+        if (sql.length > 0) parts.push(`Source query (feeds the chart):\n${sql}`);
+    }
+    return parts.length > 0 ? parts.join('\n\n') : null;
+};
+
+/// Visualize only: the output schema (columns + types) of the source query, taken from its most
+/// recent execution. This is the schema the chart's encodings bind to, so it's the most useful
+/// signal for picking fields. Best-effort: absent when the source has never run (output columns
+/// are not available from static analysis).
+export const visualizeOutputSchemaContributor: AgentContextContributor = (input) => {
+    if (input.intent !== 'visualize') return null;
+    const data = input.contextScriptData;
+    if (data == null) return null;
+    const columns = input.resolveOutputColumns?.(data.scriptKey) ?? null;
+    if (columns == null || columns.length === 0) return null;
+
+    const lines = ['Output columns (result schema of the source query):'];
+    for (const c of columns) {
+        lines.push(c.type ? `- ${c.name} (${c.type})` : `- ${c.name}`);
+    }
+    return lines.join('\n');
+};
+
+/// The default contributor chain. Contributors self-select by intent, so the same chain yields
+/// SQL context (script + referenced-table schemas) or visualize context (source query + current
+/// chart spec + output schema) depending on the run's intent.
 export const DEFAULT_CONTRIBUTORS: AgentContextContributor[] = [
     focusedScriptContributor,
     referencedTablesSchemaContributor,
+    visualizeSourceContributor,
+    visualizeOutputSchemaContributor,
 ];
 
 /// Build the prompt context block by running the contributor chain and joining fragments.

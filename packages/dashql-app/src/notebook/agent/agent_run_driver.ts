@@ -21,7 +21,7 @@ import {
     extractSql,
     parseIntent,
 } from './agent_prompts.js';
-import { buildAgentContext, AgentContextContributor } from './agent_context.js';
+import { buildAgentContext, AgentContextContributor, OutputColumnResolver } from './agent_context.js';
 import { verifyScript } from './agent_verify.js';
 import {
     CREATE_NOTEBOOK_ENTRY_WITH_TEXT,
@@ -116,6 +116,9 @@ export interface AgentRunDeps {
     now: () => number;
     /// Optional context-contributor override (defaults to the standard chain).
     contributors?: AgentContextContributor[];
+    /// Resolve a script's last-execution output columns for the visualize context (optional; the
+    /// execution result lives in the connection state, which the driver doesn't otherwise see).
+    resolveOutputColumns?: OutputColumnResolver;
 }
 
 class AbortError extends Error {
@@ -283,7 +286,7 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
             : null;
 
         const context = buildAgentContext(
-            { notebook, contextScriptData, intent },
+            { notebook, contextScriptData, intent, resolveOutputColumns: deps.resolveOutputColumns },
             deps.contributors,
         );
 

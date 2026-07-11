@@ -18,6 +18,7 @@ import { useAIClient } from '../../platform/ai_client_provider.js';
 import { useComposeInputMode } from '../../notebook/notebook_commands.js';
 import { useLatestAgentRunState, useAgentRunState, useStartAgentRun, useCancelAgentRun } from '../../notebook/agent/agent_run_provider.js';
 import { AgentRunPhase, agentRunIsActive } from '../../notebook/agent/agent_run_state.js';
+import { OutputColumn } from '../../notebook/agent/agent_context.js';
 import { QueryType } from '../../connection/query_execution_state.js';
 import { useQueryExecutor, useQueryState } from '../../connection/query_executor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
@@ -51,6 +52,23 @@ export interface NotebookScriptListProps {
 const ESTIMATED_ROW_HEIGHT = 120;
 const FEED_EDGE_PADDING = 8;
 const FEED_BOTTOM_FADE_HEIGHT = 24;
+
+/// Resolve the output columns (result schema) a script produced on its most recent execution, for
+/// the agent's visualize context. Output columns only exist after execution, so this reads the
+/// script's latest query from the connection state; it returns null when the script has never run
+/// or its result schema isn't available yet.
+function outputColumnsForScript(
+    notebook: NotebookState,
+    conn: ConnectionState | null,
+    scriptKey: number,
+): OutputColumn[] | null {
+    const queryId = notebook.scripts[scriptKey]?.latestQueryId ?? null;
+    if (conn == null || queryId == null) return null;
+    const query = conn.queriesActive.get(queryId) ?? conn.queriesFinished.get(queryId) ?? null;
+    const schema = query?.resultSchema ?? null;
+    if (schema == null) return null;
+    return schema.fields.map(f => ({ name: f.name, type: f.type?.toString() ?? null }));
+}
 
 interface CollapsedScriptCardProps {
     sessionId: string;
@@ -502,6 +520,9 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             intentOverride: null,
             notebook: props.notebook,
             modifyNotebook: props.modifyNotebook,
+            // For visualize runs, expose each script's last-execution output schema (from the
+            // connection state) so the agent context can describe the columns the chart binds to.
+            resolveOutputColumns: (scriptKey) => outputColumnsForScript(props.notebook, props.conn, scriptKey),
         });
         // Clear the prompt so the next instruction starts fresh (the editor's docChanged also
         // resets the persisted draft via onChange, but clear the ref explicitly to be safe).
@@ -511,7 +532,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                 changes: { from: 0, to: composeEditorView.state.doc.length, insert: '' },
             });
         }
-    }, [aiAvailable, composeEditorView, props.notebook, props.modifyNotebook, startAgentRun]);
+    }, [aiAvailable, composeEditorView, props.notebook, props.conn, props.modifyNotebook, startAgentRun]);
 
     const handleComposeSend = React.useCallback(() => {
         if (inputMode === 1) {
