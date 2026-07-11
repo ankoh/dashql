@@ -189,6 +189,22 @@ function appendCommittedEntry(notebook: NotebookState): NotebookState {
     };
 }
 
+/// Stage a pending agent diff on an entry's script data (mirrors what SET_SCRIPT_TEXT with
+/// withDiff: true produces). Only the presence of `pendingDiff` matters to the feed card.
+function withPendingDiff(notebook: NotebookState, scriptKey: number, priorText: string): NotebookState {
+    const prev = notebook.scripts[scriptKey];
+    return {
+        ...notebook,
+        scripts: {
+            ...notebook.scripts,
+            [scriptKey]: {
+                ...prev,
+                pendingDiff: { priorText, diffBuffer: { destroy: () => { } } } as any,
+            },
+        },
+    };
+}
+
 describe('NotebookScriptFeed', () => {
     let container: HTMLDivElement;
     let root: Root;
@@ -249,6 +265,41 @@ describe('NotebookScriptFeed', () => {
             value: '02-script.sql',
         });
         expect(showDetails).toHaveBeenCalledTimes(1);
+    });
+
+    it('mounts the editable diff editor in place of the preview while an agent rewrite is pending', () => {
+        renderFeed({
+            notebook: withPendingDiff(createNotebookState(), 101, 'select 0'),
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+
+        // The entry with the staged diff swaps its read-only preview for the editable editor (which
+        // carries the diff overlay + Accept/Reject panel); the other entry keeps its preview.
+        expect(container.querySelectorAll('[data-testid="script-preview"]').length).toBe(1);
+        // Two editors now: the compose-card editor + the pending-diff entry editor.
+        expect(container.querySelectorAll('[data-testid="script-editor"]').length).toBe(2);
+    });
+
+    it('does not expand into details when the pending-diff editor body is clicked', () => {
+        const showDetails = vi.fn();
+        renderFeed({
+            notebook: withPendingDiff(createNotebookState(), 101, 'select 0'),
+            modifyNotebook: vi.fn(),
+            showDetails,
+            scrollTarget: null,
+        });
+
+        // The pending-diff entry's body hosts the interactive editor; a pointerdown there must not
+        // hijack the click to expand the card (that would steal Accept/Reject interactions).
+        const editors = container.querySelectorAll('[data-testid="script-editor"]');
+        const cardEditor = editors[editors.length - 1];
+        act(() => {
+            cardEditor.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }));
+        });
+
+        expect(showDetails).not.toHaveBeenCalled();
     });
 
     it('dispatches DELETE_NOTEBOOK_ENTRY when delete is clicked', () => {

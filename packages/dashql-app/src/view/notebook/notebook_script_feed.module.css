@@ -235,6 +235,19 @@
     overflow-y: auto;
 }
 
+.diff_editor.diff_editor {
+    padding: 0;
+    overflow-x: hidden;
+}
+
+.diff_editor :global(.cm-editor) {
+    font-size: 0.85rem;
+}
+
+.diff_editor :global(.cm-scroller) {
+    padding: 8px 8px;
+}
+
 .feed_entry_execution_footer {
     border-top: 1px solid var(--log_border_color);
     overflow: hidden;

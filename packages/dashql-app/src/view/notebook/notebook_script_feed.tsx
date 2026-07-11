@@ -88,6 +88,10 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
     // own trace id, so the footer no longer needs a denormalized trace id on ScriptData.
     const agentRunState = useAgentRunState(scriptData?.latestAgentRunId ?? null);
     const agentTraceId = agentRunState?.traceId ?? null;
+    // A staged agent rewrite waiting to be accepted/rejected. While set, the card mounts the full
+    // editable editor (below) instead of the read-only preview so the in-place diff overlay and its
+    // Accept/Reject panel show directly on the entry card.
+    const hasPendingDiff = scriptData?.pendingDiff != null;
     const [isReady, setIsReady] = React.useState(false);
     const [isEditing, setIsEditing] = React.useState(false);
     // The label and the rename input show the clean display name (no ordering prefix, no ".sql");
@@ -132,8 +136,13 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
         if (event.button !== 0 || event.defaultPrevented) {
             return;
         }
+        // While a pending diff is shown the body hosts the interactive diff editor (Accept/Reject,
+        // cursor placement); don't hijack those clicks to expand the card into Details.
+        if (hasPendingDiff) {
+            return;
+        }
         onExpand(scriptFileName);
-    }, [scriptFileName, onExpand]);
+    }, [scriptFileName, onExpand, hasPendingDiff]);
 
     return (
         <div
@@ -210,7 +219,19 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                 </IconButton>
             </div>
             <div className={styles.feed_body} onPointerDownCapture={handlePreviewPointerDown}>
-                {scriptData != null ? <ScriptPreview className={styles.script_preview_editor} scriptData={scriptData} onReady={setIsReady} /> : null}
+                {scriptData == null ? null : hasPendingDiff ? (
+                    // Agent staged a rewrite: mount the full editable editor so the in-place diff
+                    // decorations and the Accept ⏎ / Reject ⎋ panel render on the card. Accepting or
+                    // rejecting clears pendingDiff, which flips this back to the read-only preview.
+                    <ScriptEditor
+                        sessionId={sessionId}
+                        scriptKey={scriptData.scriptKey}
+                        className={styles.diff_editor}
+                        autoHeight
+                    />
+                ) : (
+                    <ScriptPreview className={styles.script_preview_editor} scriptData={scriptData} onReady={setIsReady} />
+                )}
             </div>
             {(queryState != null || agentTraceId != null) && (
                 <div className={styles.feed_entry_execution_footer}>
