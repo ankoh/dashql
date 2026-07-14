@@ -20,8 +20,9 @@ interface TraceLogViewerProps {
     traceId?: number;
     /// Fixed pixel height of the log viewport. Ignored when `maxRows` is set.
     height?: number;
-    /// When set, the viewport auto-expands to fit the current row count and caps at this many rows
-    /// (after which it scrolls). Takes precedence over `height`.
+    /// Scrollless preview mode: the viewport auto-expands to fit the current row count and caps at
+    /// this many rows. Beyond the cap the inner scrollbar is suppressed and only the last `maxRows`
+    /// rows are shown (no nested scroller). Takes precedence over `height`.
     maxRows?: number;
 }
 
@@ -66,9 +67,11 @@ export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogVie
     // The number of rows currently displayed.
     const rowCount = props.traceId !== undefined ? filteredLogs.length : logger.buffer.length;
 
-    // Determine log container dimensions. When `maxRows` is set, the viewport auto-expands to fit
-    // the current rows (so it grows as logs stream in) and caps at `maxRows` rows, after which it
-    // scrolls. Otherwise it falls back to the fixed `height` prop.
+    // Determine log container dimensions. When `maxRows` is set (scrollless preview mode), the
+    // viewport auto-expands to fit the current rows (so it grows as logs stream in) and caps at
+    // `maxRows` rows; beyond the cap the inner scrollbar is suppressed and the list stays pinned to
+    // the last `maxRows` rows (see the scroll-to-last effect below), so the feed's own scroller
+    // stays the only one. Otherwise it falls back to the fixed `height` prop and scrolls normally.
     const containerRef = React.useRef<HTMLDivElement>(null);
     const containerSize = observeSize(containerRef);
     const containerWidth = containerSize?.width ?? 200;
@@ -167,7 +170,7 @@ export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogVie
             <div className={styles.log_grid_container} ref={containerRef} style={{ height: containerHeight, position: 'relative' }}>
                 <List
                     listRef={listRef}
-                    style={{ width: containerWidth, height: containerHeight }}
+                    style={{ width: containerWidth, height: containerHeight, overflowY: props.maxRows != null ? 'hidden' : undefined }}
                     rowCount={rowCount}
                     rowHeight={computeLogRowHeight}
                     rowComponent={LogRow}

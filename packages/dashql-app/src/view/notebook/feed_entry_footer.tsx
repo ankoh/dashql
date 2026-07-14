@@ -77,6 +77,24 @@ function useTraceLastTimestamp(traceId: number | null): number {
     return lastTimestamp;
 }
 
+/// Track the number of log records on a trace, updating as records stream in. Returns 0 when the
+/// trace has no id. Drives the Log tab's "N of M rows" indicator (mirrors the Data tab's row count).
+function useTraceLogCount(traceId: number | null): number {
+    const logger = useLogger();
+    const [count, setCount] = React.useState(0);
+    React.useEffect(() => {
+        if (traceId == null) {
+            setCount(0);
+            return;
+        }
+        setCount(logger.buffer.collectTraceLogs(traceId).length);
+        const observer = () => setCount(prev => prev + 1);
+        logger.buffer.subscribeTrace(traceId, observer);
+        return () => logger.buffer.unsubscribeTrace(traceId, observer);
+    }, [traceId, logger]);
+    return count;
+}
+
 interface TabHeaderProps {
     title: string;
     detail?: string | null;
@@ -184,6 +202,14 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
             : `${totalRows} ${totalRows === 1 ? 'row' : 'rows'}`)
         : null;
 
+    // "N of M rows" indicator for the Log tab, mirroring the Data tab. Only the last
+    // FEED_LIMIT_LOG_ROWS rows are visible in the scrollless preview, so we surface the total.
+    const totalLogRows = useTraceLogCount(activeLogTraceId);
+    const shownLogRows = Math.min(totalLogRows, FEED_LIMIT_LOG_ROWS);
+    const logCountDetail = totalLogRows > FEED_LIMIT_LOG_ROWS
+        ? `${shownLogRows} of ${totalLogRows} rows`
+        : `${totalLogRows} ${totalLogRows === 1 ? 'row' : 'rows'}`;
+
     // Query and Agent share the command-list icons (query = search_16, agent = SparklesFillIcon).
     const QueryLogIcon = SymbolIcon('search_16');
 
@@ -192,7 +218,9 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
             <>
                 <div className={styles.log_tab_header}>
                     <span className={styles.tab_header_title}>Logs</span>
+                    <span className={styles.tab_header_detail}>{logCountDetail}</span>
                     <SegmentedControl
+                        className={styles.log_source_control}
                         aria-label="Log source"
                         size={SegmentedControlSize.Tiny}
                         variant={SegmentedControlVariant.Invisible}
@@ -240,7 +268,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 )}
             </>
         ),
-    }), [activeLogTraceId, resolvedLogSource, queryTraceId, agentTraceId, QueryLogIcon, props.queryState, props.vegaLiteSpec, rowCountDetail, props.onShowTable, props.onShowVisualization]);
+    }), [activeLogTraceId, resolvedLogSource, queryTraceId, agentTraceId, QueryLogIcon, props.queryState, props.vegaLiteSpec, rowCountDetail, logCountDetail, props.onShowTable, props.onShowVisualization]);
 
     return (
         <VerticalTabs
