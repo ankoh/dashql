@@ -1,0 +1,41 @@
+# dashql-cloud — Cloudflare Worker (workers-rs) for the dashql service: an OpenAI-compatible
+# SLM gateway (ai.dashql.app) plus the account dashboard (account.dashql.app).
+#
+# This crate is INTENTIONALLY isolated from the repo's root Cargo workspace:
+#  * the root Cargo.toml uses an explicit `members` list (not a glob), and this crate is not on it;
+#  * the empty [workspace] table below makes this an isolated workspace root, so Cargo never
+#    attaches it to the parent and Bazel's crate_universe (which consumes the root workspace)
+#    never ingests it. See docs/wip/account.md.
+[workspace]
+
+[package]
+name = "dashql-cloud"
+version = "0.1.0"
+edition = "2021"
+authors = ["dashql"]
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+worker = "0.5"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Pure-Rust crypto (no `ring`, so it compiles to wasm32-unknown-unknown):
+rsa = "0.9"
+# `oid` feature provides Sha256: AssociatedOid, required by pkcs1v15::VerifyingKey::<Sha256>::new
+# (the DigestInfo-prefixed variant used for JWT RS256 verification).
+sha2 = { version = "0.10", features = ["oid"] }
+hmac = "0.12"
+base64 = "0.22"
+# WASM randomness for API-key generation. `getrandom`'s `js` feature routes to Web Crypto.
+getrandom = { version = "0.2", features = ["js"] }
+hex = "0.4"
+
+[profile.release]
+# Keep the WASM bundle small (Workers enforces a compressed-size limit).
+opt-level = "s"
+lto = true
+strip = true
+codegen-units = 1
