@@ -137,7 +137,11 @@
     max-width: var(--notebook_list_entry_max_width);
     overflow: hidden;
     display: grid;
-    grid-template-rows: 40px 1fr auto;
+    /* Row 1 is the fixed-height action bar; every following row (optional AI bar, body, optional
+       footer) auto-sizes to its content. The card itself is content-height, so an explicit body
+       track is unnecessary and would misalign as the optional rows appear/disappear. */
+    grid-template-rows: 40px;
+    grid-auto-rows: auto;
 }
 
 .feed_entry_action_bar {
@@ -212,6 +216,62 @@
     border: 1px solid var(--log_border_color);
     border-radius: var(--border_radius);
     overflow: hidden;
+}
+
+/* The AI bar sits between the action bar and the body. Two shapes share the same footprint:
+   `.ai_bar_running` (a clickable strip: spinner + latest log line) while the run is in flight, and
+   `.ai_bar` (label + Accept/Reject) once a rewrite is staged. */
+.ai_bar,
+.ai_bar_running {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0px 8px;
+    height: 40px;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--log_border_color);
+    color: hsl(210, 12%, 36%);
+    background-color: var(--notebook_feed_entry_headerbar_background);
+}
+
+/* The running strip is a full-width button — reset the default button chrome so it reads as a bar.
+   font-size is set explicitly (not just inherited) so the label matches the staged-rewrite bar's
+   label exactly rather than picking up the button user-agent size. */
+.ai_bar_running {
+    width: 100%;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.85rem;
+}
+
+.ai_bar_running:hover {
+    background-color: hsl(210, 24%, 95%);
+}
+
+.ai_bar_icon,
+.ai_bar_spinner {
+    flex-shrink: 0;
+    color: hsl(210, 10%, 40%);
+}
+
+/* The message truncates so a long log line never wraps the bar onto a second row. */
+.ai_bar_message {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ai_bar_actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .feed_body {

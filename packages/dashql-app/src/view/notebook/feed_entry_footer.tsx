@@ -40,6 +40,10 @@ interface FeedEntryFooterProps {
     /// The latest agent-run trace id for this script (null if no agent run has happened).
     agentTraceId: number | null;
     vegaLiteSpec: TopLevelSpec | null;
+    /// A monotonically increasing nonce: whenever it advances, jump to the Agent Log tab. Bumped by
+    /// the card's AI bar when the user clicks it, so the footer reveals the agent log on demand
+    /// instead of auto-hijacking the tab the moment a run starts.
+    requestAgentLog?: number;
     onShowTable?: () => void;
     onShowVisualization?: () => void;
 }
@@ -158,16 +162,19 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
         }
     }, [queryLastTs, agentLastTs]);
 
-    // A freshly started agent run (new trace id) pulls the footer to the Log tab so its progress is
-    // visible in the card immediately after the user submits the prompt.
-    const prevAgentTraceId = React.useRef(agentTraceId);
+    // The card's AI bar drives the footer to the Agent Log tab on demand: a run no longer yanks the
+    // footer to the log the moment it starts (the user is rarely interested in the raw trace — the
+    // AI bar's spinner + latest line is enough). Clicking the AI bar bumps `requestAgentLog`, and
+    // only then do we reveal the agent log here. The nonce is ignored on mount (initial value).
+    const requestAgentLog = props.requestAgentLog;
+    const prevRequestAgentLog = React.useRef(requestAgentLog);
     React.useEffect(() => {
-        if (agentTraceId != null && agentTraceId !== prevAgentTraceId.current) {
+        if (requestAgentLog != null && requestAgentLog !== prevRequestAgentLog.current && agentTraceId != null) {
             setSelectedTab(FooterTab.Log);
             setLogSource(LogSource.Agent);
         }
-        prevAgentTraceId.current = agentTraceId;
-    }, [agentTraceId]);
+        prevRequestAgentLog.current = requestAgentLog;
+    }, [requestAgentLog, agentTraceId]);
 
     const tabProps = React.useMemo<Record<FooterTab, VerticalTabProps>>(() => ({
         [FooterTab.Log]: {

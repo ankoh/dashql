@@ -27,7 +27,7 @@ const mockState = vi.hoisted(() => ({
         callback: (event: KeyboardEvent) => void;
     }>,
     queryStates: new Map<number, { traceId: number; status: number }>(),
-    agentRuns: new Map<number, { traceId: number }>(),
+    agentRuns: new Map<number, { traceId: number; phase?: number; log?: Array<{ message: string }> }>(),
 }));
 vi.mock('react-window', async () => fakeReactWindowModule(await import('react'), mockState.scrollToRowMock));
 vi.mock('./script_editor.js', async () => fakeScriptEditorModule(await import('react'), mockState));
@@ -537,7 +537,8 @@ describe('NotebookScriptFeed', () => {
 
     it('shows execution footer for an agent run without a query', () => {
         // The script references a run by id; the run (resolved from the registry) carries the trace.
-        mockState.agentRuns.set(5, { traceId: 200 });
+        // Terminal phase (SUCCEEDED) so the in-flight AI bar isn't what surfaces the footer here.
+        mockState.agentRuns.set(5, { traceId: 200, phase: 6 /* SUCCEEDED */, log: [{ message: 'Done' }] });
         const notebook = createNotebookState();
         notebook.scripts[101] = { ...notebook.scripts[101], latestAgentRunId: 5 };
         renderFeed({
@@ -549,6 +550,47 @@ describe('NotebookScriptFeed', () => {
         const viewers = container.querySelectorAll('[data-testid="trace-log-viewer"]');
         expect(viewers.length).toBe(1);
         expect(viewers[0].getAttribute('data-trace-id')).toBe('200');
+    });
+
+    it('shows the AI bar with the latest log line while an agent run is active', () => {
+        // An active run (non-terminal phase) renders the clickable AI bar showing the latest
+        // log message; the body still shows the current output rather than the raw trace.
+        mockState.agentRuns.set(7, {
+            traceId: 200,
+            phase: 2 /* GENERATING */,
+            log: [{ message: 'Starting agent run' }, { message: 'Generating a SQL query from your request' }],
+        });
+        const notebook = createNotebookState();
+        notebook.scripts[101] = { ...notebook.scripts[101], latestAgentRunId: 7 };
+        renderFeed({
+            notebook,
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+        const aiBar = container.querySelector('[aria-label="Show agent log"]');
+        expect(aiBar).not.toBeNull();
+        expect(aiBar!.textContent).toContain('Generating a SQL query from your request');
+        // The staged-rewrite editor is not mounted for an active run — only the compose editor is.
+        expect(container.querySelectorAll('[data-testid="script-editor"]').length).toBe(1);
+    });
+
+    it('shows Accept/Reject in the AI bar once a rewrite is staged', () => {
+        // A finished run that left a pending diff: the AI bar turns into the Accept/Reject controls.
+        mockState.agentRuns.set(8, { traceId: 200, phase: 6 /* SUCCEEDED */, log: [{ message: 'Done' }] });
+        let notebook = withPendingDiff(createNotebookState(), 101, 'select 0');
+        notebook.scripts[101] = { ...notebook.scripts[101], latestAgentRunId: 8 };
+        renderFeed({
+            notebook,
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+        const buttonLabels = Array.from(container.querySelectorAll('button')).map(b => b.textContent);
+        expect(buttonLabels.some(label => label?.includes('Accept'))).toBe(true);
+        expect(buttonLabels.some(label => label?.includes('Reject'))).toBe(true);
+        // No running spinner strip while a rewrite is staged.
+        expect(container.querySelector('[aria-label="Show agent log"]')).toBeNull();
     });
 
     it('scrolls to the bottom after send once the promoted entry appears', () => {

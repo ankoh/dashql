@@ -11,7 +11,7 @@ import { ScriptStatisticsBar } from './script_statistics_bar.js';
 import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 
-import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
 import { getExecutableQueryText, getSelectedEntry, getSelectedPage, getSelectedPageEntries, getSortedFileNames, getUncommittedScriptData, REGISTER_QUERY, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY, REORDER_NOTEBOOK_SCRIPTS } from '../../notebook/notebook_state.js';
 import { useAIClient } from '../../platform/ai_client_provider.js';
@@ -23,6 +23,7 @@ import { QueryType } from '../../connection/query_execution_state.js';
 import { useQueryExecutor, useQueryState } from '../../connection/query_executor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { ScriptEditor } from './script_editor.js';
+import { acceptPendingDiff, rejectPendingDiff } from '../editor/dashql_diff_hint.js';
 import { PromptEditor } from './prompt_editor.js';
 import { ScriptPreview } from './notebook_script_preview.js';
 import { observeSize } from '../foundations/size_observer.js';
@@ -106,10 +107,30 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
     // own trace id, so the footer no longer needs a denormalized trace id on ScriptData.
     const agentRunState = useAgentRunState(scriptData?.latestAgentRunId ?? null);
     const agentTraceId = agentRunState?.traceId ?? null;
+    // While a run is in flight the card shows a compact "AI bar" above the body (spinner + latest
+    // log line) instead of yanking the user to the raw agent trace. The body keeps rendering the
+    // current output; the user opts into the full trace by clicking the bar.
+    const agentActive = agentRunState != null && agentRunIsActive(agentRunState.phase);
+    const agentLatestMessage = agentRunState != null && agentRunState.log.length > 0
+        ? agentRunState.log[agentRunState.log.length - 1].message
+        : null;
     // A staged agent rewrite waiting to be accepted/rejected. While set, the card mounts the full
-    // editable editor (below) instead of the read-only preview so the in-place diff overlay and its
-    // Accept/Reject panel show directly on the entry card.
+    // editable editor (below) instead of the read-only preview so the in-place diff overlay shows on
+    // the entry card; the Accept/Reject buttons live in the AI bar above it.
     const hasPendingDiff = scriptData?.pendingDiff != null;
+    // A monotonic nonce handed to the footer: bumped when the user clicks the AI bar so the footer
+    // reveals the Agent Log tab on demand (a run no longer auto-switches it).
+    const [agentLogRequest, setAgentLogRequest] = React.useState(0);
+    const showAgentLog = React.useCallback(() => setAgentLogRequest(n => n + 1), []);
+    // The pending-diff editor's CodeMirror view, captured so the AI bar's Accept/Reject buttons can
+    // drive the same accept/reject the ⏎/⎋ keys do while the editor is focused.
+    const diffViewRef = React.useRef<EditorView | null>(null);
+    const acceptDiff = React.useCallback(() => {
+        if (diffViewRef.current) acceptPendingDiff(diffViewRef.current);
+    }, []);
+    const rejectDiff = React.useCallback(() => {
+        if (diffViewRef.current) rejectPendingDiff(diffViewRef.current);
+    }, []);
     const [isReady, setIsReady] = React.useState(false);
     const [isEditing, setIsEditing] = React.useState(false);
     // The label and the rename input show the clean display name (no ordering prefix, no ".sql");
@@ -236,16 +257,60 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                     <TrashIcon size={16} />
                 </IconButton>
             </div>
+            {(agentActive || hasPendingDiff) && (
+                // The AI bar. While the run is active it's a single clickable strip: a spinner plus
+                // the latest log line, and clicking it reveals the full agent trace in the footer.
+                // Once the rewrite lands (pendingDiff) it turns into the Accept/Reject controls.
+                hasPendingDiff ? (
+                    <div className={styles.ai_bar}>
+                        <span className={styles.ai_bar_message}>Suggested rewrite</span>
+                        <div className={styles.ai_bar_actions}>
+                            <Button
+                                variant={ButtonVariant.Primary}
+                                size={ButtonSize.Small}
+                                onClick={acceptDiff}
+                            >
+                                Accept ⏎
+                            </Button>
+                            <Button
+                                variant={ButtonVariant.Default}
+                                size={ButtonSize.Small}
+                                onClick={rejectDiff}
+                            >
+                                Reject ⎋
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    <button
+                        type="button"
+                        className={styles.ai_bar_running}
+                        onClick={showAgentLog}
+                        aria-label="Show agent log"
+                    >
+                        <StatusIndicator
+                            className={styles.ai_bar_spinner}
+                            status={IndicatorStatus.Running}
+                            width="14px"
+                            height="14px"
+                            fill="currentColor"
+                        />
+                        <span className={styles.ai_bar_message}>{agentLatestMessage ?? 'Working…'}</span>
+                    </button>
+                )
+            )}
             <div className={styles.feed_body} onPointerDownCapture={handlePreviewPointerDown}>
                 {scriptData == null ? null : hasPendingDiff ? (
                     // Agent staged a rewrite: mount the full editable editor so the in-place diff
-                    // decorations and the Accept ⏎ / Reject ⎋ panel render on the card. Accepting or
-                    // rejecting clears pendingDiff, which flips this back to the read-only preview.
+                    // decorations render on the card. Accept/Reject lives in the AI bar above (and
+                    // via ⏎/⎋ while the editor is focused); either clears pendingDiff, which flips
+                    // this back to the read-only preview.
                     <ScriptEditor
                         sessionId={sessionId}
                         scriptKey={scriptData.scriptKey}
                         className={styles.diff_editor}
                         autoHeight
+                        setView={(view) => { diffViewRef.current = view; }}
                     />
                 ) : (
                     <ScriptPreview className={styles.script_preview_editor} scriptData={scriptData} onReady={setIsReady} />
@@ -258,6 +323,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                         queryState={queryState}
                         agentTraceId={agentTraceId}
                         vegaLiteSpec={scriptData?.annotations.visualizeQuery?.vegaLiteSpec ?? null}
+                        requestAgentLog={agentLogRequest}
                         onShowTable={() => onShowTable(scriptFileName)}
                         onShowVisualization={() => onShowVisualization(scriptFileName)}
                     />

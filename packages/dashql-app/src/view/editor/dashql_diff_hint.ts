@@ -1,9 +1,7 @@
 import { Prec } from '@codemirror/state';
-import { EditorView, keymap, KeyBinding, Panel, showPanel } from '@codemirror/view';
+import { EditorView, keymap, KeyBinding } from '@codemirror/view';
 
 import { DashQLDiffAcceptEffect, DashQLDiffRejectEffect, DashQLProcessorPlugin } from './dashql_processor.js';
-
-import './dashql_diff_hint.css';
 
 /// Accept the pending diff: keep the current (new) text and clear the overlay.
 export function acceptPendingDiff(view: EditorView): boolean {
@@ -32,54 +30,18 @@ export function rejectPendingDiff(view: EditorView): boolean {
     return true;
 }
 
-/// Build the floating Accept / Reject panel shown while a pending diff exists.
-function createDiffPanel(view: EditorView): Panel {
-    const dom = document.createElement('div');
-    dom.className = 'dashql-diff-hint';
-
-    const label = document.createElement('span');
-    label.className = 'dashql-diff-hint-label';
-    label.textContent = 'Suggested rewrite';
-    dom.appendChild(label);
-
-    const accept = document.createElement('button');
-    accept.className = 'dashql-diff-hint-accept';
-    accept.type = 'button';
-    accept.textContent = 'Accept ⏎';
-    accept.onmousedown = (e) => {
-        // Keep editor focus so the accept doesn't blur-then-fire another transaction.
-        e.preventDefault();
-    };
-    accept.onclick = () => acceptPendingDiff(view);
-    dom.appendChild(accept);
-
-    const reject = document.createElement('button');
-    reject.className = 'dashql-diff-hint-reject';
-    reject.type = 'button';
-    reject.textContent = 'Reject ⎋';
-    reject.onmousedown = (e) => {
-        e.preventDefault();
-    };
-    reject.onclick = () => rejectPendingDiff(view);
-    dom.appendChild(reject);
-
-    return { dom, top: false };
-}
-
-/// Show the Accept / Reject panel only while a pending diff exists.
-const DiffHintPanel = showPanel.from(DashQLProcessorPlugin, state =>
-    state.scriptPendingDiff != null ? createDiffPanel : null,
-);
-
 /// Enter accepts, Escape rejects. Both no-op (return false, letting the key fall through) when no
 /// diff is pending, and defer to an active completion via lower precedence than the completion
 /// keymap (which is registered at Prec.highest).
+///
+/// The Accept/Reject *buttons* live in the feed entry's AI bar (above the editor), not in a panel
+/// inside the editor — see `notebook_script_feed.tsx`. This keymap keeps the ⏎/⎋ shortcuts working
+/// while the diff editor holds focus (the AI bar buttons echo the same shortcut hints).
 const KEYBINDINGS: KeyBinding[] = [
     { key: 'Enter', run: acceptPendingDiff },
     { key: 'Escape', run: rejectPendingDiff },
 ];
 
 export const DashQLDiffHintPlugin = [
-    DiffHintPanel,
     Prec.high(keymap.of(KEYBINDINGS)),
 ];
