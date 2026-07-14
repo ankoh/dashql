@@ -11,9 +11,68 @@
 //! counts via each model's fixed neuron rate ([`Model`]).
 
 use serde::{Deserialize, Serialize};
+use worker::send::SendFuture;
+use worker::wasm_bindgen::prelude::*;
 use worker::*;
 
 use crate::keys::{self, Charge, KeyError, QuotaKind};
+
+/// Re-declaration of the JS `Ai.run` binding *with* the third `options` argument.
+///
+/// `worker` 0.8's [`Ai`] wrapper only exposes `run(model, input)` (see worker-sys
+/// `types/ai.rs`) — it never got the `options` parameter the JS runtime's
+/// `env.AI.run(model, input, options)` accepts, and that object is where `{ gateway }` lives
+/// (see the open upstream gap, cloudflare/workers-rs#789). So we bind the 3-arg form ourselves
+/// on our own extern type (wasm-bindgen won't let us hang a method off the foreign `JsValue`),
+/// then `unchecked_ref`-cast the real `Ai` binding — a plain JS object — onto it. `structural`
+/// dispatches `.run(...)` by name, so the cast never has to actually be an `AiWithGateway`.
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(extends = ::js_sys::Object)]
+    type AiWithGateway;
+
+    #[wasm_bindgen(structural, method, js_name = run)]
+    fn run(this: &AiWithGateway, model: &str, input: JsValue, options: JsValue) -> js_sys::Promise;
+}
+
+/// The `gateway` options object threaded into `Ai.run`'s third argument: `{ gateway: { id } }`.
+/// Serialized to a plain JS object by `serde_wasm_bindgen`. Extend with `skip_cache`/`cache_ttl`
+/// (renamed to `skipCache`/`cacheTtl`) here if we ever want per-request cache control.
+#[derive(Serialize)]
+struct RunOptions<'a> {
+    gateway: GatewayOptions<'a>,
+}
+
+#[derive(Serialize)]
+struct GatewayOptions<'a> {
+    id: &'a str,
+}
+
+/// Run a Workers AI model through an AI Gateway when `gateway_id` is set, else the plain binding.
+///
+/// This mirrors `worker::Ai::run` (serialize input, await the promise via a `SendFuture` so the
+/// router handler stays `Send`, deserialize the output) but calls our 3-arg [`run_with_options`]
+/// so requests flow through the named gateway — giving us its account-wide rate/spend limits,
+/// caching, and per-model cost analytics on top of the per-key neuron quota in [`crate::keys`].
+async fn run_ai<T, U>(ai: &Ai, model: &str, input: T, gateway_id: Option<&str>) -> Result<U>
+where
+    T: Serialize,
+    U: serde::de::DeserializeOwned,
+{
+    let Some(gateway_id) = gateway_id else {
+        // No gateway configured: fall back to the crate's stock 2-arg binding.
+        return ai.run(model, input).await;
+    };
+
+    let ai_js: &AiWithGateway = ai.as_ref().unchecked_ref();
+    let input = serde_wasm_bindgen::to_value(&input)?;
+    let options = serde_wasm_bindgen::to_value(&RunOptions {
+        gateway: GatewayOptions { id: gateway_id },
+    })?;
+    let promise = ai_js.run(model, input, options);
+    let output = SendFuture::new(js_sys::futures::JsFuture::from(promise)).await?;
+    Ok(serde_wasm_bindgen::from_value(output)?)
+}
 
 /// A Workers AI model we expose, with its neuron cost. `GET /v1/models` returns these;
 /// `/v1/chat/completions` rejects anything else with 400.
@@ -237,7 +296,11 @@ async fn chat_completions(mut req: Request, ctx: RouteContext<()>) -> Result<Res
 
     let ai = ctx.env.ai("AI")?;
     let input = WorkersAiInput { messages: body.messages };
-    let out: WorkersAiOutput = match ai.run(model.id, input).await {
+    // Route through the AI Gateway named by AI_GATEWAY_ID (if set), so its account-wide
+    // rate/spend limits and caching apply on top of the per-key quota. Unset => direct binding.
+    let gateway_id = ctx.env.var("AI_GATEWAY_ID").map(|v| v.to_string()).ok();
+    let gateway_id = gateway_id.as_deref().filter(|s| !s.is_empty());
+    let out: WorkersAiOutput = match run_ai(&ai, model.id, input, gateway_id).await {
         Ok(o) => o,
         Err(e) => {
             return Ok(error_response(

@@ -102,10 +102,13 @@ dependencies = [
  "getrandom",
  "hex",
  "hmac",
+ "js-sys",
  "rsa",
  "serde",
+ "serde-wasm-bindgen",
  "serde_json",
  "sha2",
+ "wasm-bindgen",
  "worker",
 ]
 

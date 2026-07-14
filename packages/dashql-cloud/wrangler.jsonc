@@ -61,7 +61,13 @@
     //                       (18000 = 5h, like Claude subscriptions).
     "REQUEST_LIMIT": "500",
     "NEURON_LIMIT": "10000",
-    "QUOTA_WINDOW_SECS": "18000"
+    "QUOTA_WINDOW_SECS": "18000",
+    // AI_GATEWAY_ID — name of the Cloudflare AI Gateway to route /v1/chat/completions inference
+    //   through (create with `npx wrangler ai-gateway create <id>`). When set, Workers AI calls go
+    //   via the gateway, so its account-wide rate limiting, spend limits, caching, and per-model
+    //   cost analytics apply as a safety net above the per-key neuron quota. Leave empty ("") to
+    //   call Workers AI directly (no gateway).
+    "AI_GATEWAY_ID": "dashql"
   }
   // Secret (set via `npx wrangler secret put SESSION_SECRET`): HMAC key for session cookies.
 }

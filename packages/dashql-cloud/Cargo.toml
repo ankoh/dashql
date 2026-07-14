@@ -32,6 +32,13 @@ base64 = "0.22"
 # WASM randomness for API-key generation. `getrandom`'s `js` feature routes to Web Crypto.
 getrandom = { version = "0.2", features = ["js"] }
 hex = "0.4"
+# AI Gateway routing: `worker` 0.8's `Ai::run` binding has no third `options` argument (where
+# `{ gateway }` lives), so `ai.rs` re-declares the JS `Ai.run` method via `#[wasm_bindgen]`. All
+# three crates are already in the tree transitively via `worker`; declaring them directly just lets
+# our FFI shim name them. Versions kept loose so Cargo unifies to whatever `worker` resolves.
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+serde-wasm-bindgen = "0.6"
 
 [profile.release]
 # Keep the WASM bundle small (Workers enforces a compressed-size limit).

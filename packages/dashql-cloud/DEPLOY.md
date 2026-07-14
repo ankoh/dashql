@@ -61,8 +61,54 @@ In `wrangler.jsonc` `vars`:
   read fresh per request, so redeploying with a new value re-buckets every key at once.
   Because usage counters are keyed by an absolute window-start timestamp, the new window's
   counters never collide with the old value's — the stale ones just TTL away.
+- `AI_GATEWAY_ID` — name of the AI Gateway to route inference through (default `dashql`, set
+  up in step 6). When non-empty, `/v1/chat/completions` calls Workers AI *via* this gateway;
+  set it to `""` to call Workers AI directly and disable the gateway. See step 6 for why.
 
-## 6. Deploy
+## 6. AI Gateway (global rate-limit circuit breaker)
+
+The per-key `REQUEST_LIMIT`/`NEURON_LIMIT` quota (step 5) is our precise, per-user spend
+control. The AI Gateway is the complementary **account-wide** backstop: one global ceiling that
+still fires if a key leaks, the KV usage counter fails open, or a bug lets traffic past the
+per-key logic. It's what Workers AI itself lacks — there's no native account-level hard spend
+cap on `@cf/` models (pay-as-you-go past the free neuron allocation), so this rate limit is the
+closest thing to a "stop everything" switch.
+
+Use a **request-count sliding-window rate limit**, not the gateway's dollar `spend_limits`:
+Workers AI (`@cf/…`) is billed in neurons through Workers AI pricing — *not* the Unified Billing
+dollars `spend_limits` counts — and the docs don't confirm cost limits fire for `@cf/` models.
+Request-count limiting is billing-agnostic, so it works regardless. Precise neuron spend is
+already handled per-key in `keys.rs`.
+
+There is **no `wrangler` command** for AI Gateway — create it in the dashboard (**AI → AI
+Gateway → Create Gateway**, name it `dashql`) or via the REST API (needs a token with *AI
+Gateway Read + Edit*):
+
+```sh
+curl -X POST \
+  "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/ai-gateway/gateways" \
+  -H "Authorization: Bearer $CF_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "dashql",
+    "cache_invalidate_on_update": false,
+    "cache_ttl": 0,
+    "collect_logs": true,
+    "rate_limiting_interval": 60,
+    "rate_limiting_limit": 100,
+    "rate_limiting_technique": "sliding"
+  }'
+```
+
+`interval`/`limit` define the window (here 100 requests / 60 s); `sliding` makes it a continuous
+trailing window rather than a bucket that resets on a clock boundary. Over the limit → the
+gateway returns **429** before the request reaches Workers AI. Size it *above* aggregate
+expected traffic — it's a global ceiling shared by every key, so setting it near normal peak
+would 429 legitimate users during bursts. The gateway id here must match `AI_GATEWAY_ID`
+(step 5); the Worker's `ai.rs` passes it as the `{ gateway: { id } }` option on each `AI.run`.
+Tune the limit (and optionally enable caching / logs) later from the gateway's dashboard.
+
+## 7. Deploy
 
 ```sh
 npx wrangler deploy
@@ -73,7 +119,7 @@ npx wrangler deploy
 domains. Ensure the two custom-domain routes resolve (they attach automatically because
 `dashql.app` is a zone on the account).
 
-## 7. Verify end-to-end
+## 8. Verify end-to-end
 
 First seed your own email into the allowlist (see "Managing the allowlist" below), otherwise
 every account is denied:
@@ -92,6 +138,10 @@ npx wrangler kv key put --remote --binding DASHQL_CLOUD_ACCOUNTS "me@icloud.com"
   `NEURON_LIMIT`, within one window → HTTP 429 (the message says which budget was hit); both
   counters reset at the next `QUOTA_WINDOW_SECS` boundary. The dashboard shows live
   requests/neurons used per key for the current window.
+- **Gateway:** after a request or two, the `dashql` gateway's dashboard (AI → AI Gateway) shows
+  the traffic — confirming inference is routed through it. The global rate limit trips at
+  `rate_limiting_limit` requests per window (a plain 429 from the gateway, distinct from the
+  quota 429's typed error body).
 
 ## Managing the allowlist
 
