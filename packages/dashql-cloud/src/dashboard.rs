@@ -138,7 +138,7 @@ async fn apple_callback(mut req: Request, ctx: RouteContext<()>) -> Result<Respo
     let cookie = session::issue(&secret, &identity.sub, &identity.email, Date::now().as_millis());
 
     // Redirect back to the dashboard with the session cookie set.
-    let mut headers = Headers::new();
+    let headers = Headers::new();
     headers.set("Location", "/")?;
     headers.set("Set-Cookie", &session::set_cookie(&cookie))?;
     Ok(Response::empty()?.with_status(303).with_headers(headers))
@@ -195,7 +195,7 @@ async fn revoke(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
     };
     keys::revoke_key(&ctx.env, &sess.apple_sub, &hash).await?;
 
-    let mut headers = Headers::new();
+    let headers = Headers::new();
     headers.set("Location", "/")?;
     Ok(Response::empty()?.with_status(303).with_headers(headers))
 }

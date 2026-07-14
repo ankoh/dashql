@@ -108,12 +108,29 @@ struct WorkersAiInput {
 /// Workers AI text-generation output: `{ "response": "...", "usage": { ... } }`. The `usage`
 /// object carries token counts (Cloudflare's documented schema); absent on older models, hence
 /// the default of all-zero (which charges 0 neurons rather than failing the request).
+///
+/// `response` is *usually* a string, but when the model emits valid JSON (e.g. a Vega-Lite spec
+/// for a visualize request) some Workers AI models return it already parsed as an object. So we
+/// deserialize it as a loose [`serde_json::Value`] and re-flatten to text in [`response_text`];
+/// typing it as `String` would fail deserialization with "invalid type: Object, expected a string".
 #[derive(Deserialize)]
 struct WorkersAiOutput {
     #[serde(default)]
-    response: String,
+    response: serde_json::Value,
     #[serde(default)]
     usage: Usage,
+}
+
+/// Flatten Workers AI's `response` field to the plain string our OpenAI-shaped `content` expects.
+/// A JSON string is returned verbatim (no re-quoting); a null/absent response becomes empty; any
+/// other JSON value (object/array/number/bool — e.g. a parsed Vega-Lite spec) is re-serialized to
+/// compact JSON text, which the client then parses back into the same object.
+fn response_text(value: serde_json::Value) -> String {
+    match value {
+        serde_json::Value::String(s) => s,
+        serde_json::Value::Null => String::new(),
+        other => other.to_string(),
+    }
 }
 
 /// Token accounting returned by Workers AI. Fields match CF's `usage` schema. Deserialized from
@@ -243,7 +260,7 @@ async fn chat_completions(mut req: Request, ctx: RouteContext<()>) -> Result<Res
         model: body.model,
         choices: vec![Choice {
             index: 0,
-            message: ChatMessage { role: "assistant".to_string(), content: out.response },
+            message: ChatMessage { role: "assistant".to_string(), content: response_text(out.response) },
             finish_reason: "stop",
         }],
         usage: out.usage,
@@ -280,6 +297,30 @@ mod tests {
             assert!(m.neurons_per_m_input > 0 && m.neurons_per_m_output > 0);
         }
         assert!(find_model("@cf/nonexistent").is_none());
+    }
+
+    #[test]
+    fn response_text_flattens_string_and_object() {
+        use serde_json::json;
+        // A plain string response passes through verbatim (no re-quoting).
+        assert_eq!(response_text(json!("SELECT 1")), "SELECT 1");
+        // A null / absent response becomes empty rather than the literal "null".
+        assert_eq!(response_text(serde_json::Value::Null), "");
+        // A parsed object (e.g. a Vega-Lite spec) is re-serialized to compact JSON the client
+        // can parse back — this is the case that previously failed with "expected a string".
+        let spec = json!({ "mark": { "type": "bar" }, "encoding": { "x": { "field": "x" } } });
+        let text = response_text(spec.clone());
+        assert_eq!(serde_json::from_str::<serde_json::Value>(&text).unwrap(), spec);
+    }
+
+    #[test]
+    fn workers_ai_output_accepts_object_response() {
+        // Regression: some Workers AI models return `response` as an already-parsed JSON object
+        // for visualize requests. Deserializing into WorkersAiOutput must not fail.
+        let raw = r#"{"response":{"mark":"bar"},"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}"#;
+        let out: WorkersAiOutput = serde_json::from_str(raw).unwrap();
+        assert_eq!(out.usage.prompt_tokens, 10);
+        assert_eq!(response_text(out.response), r#"{"mark":"bar"}"#);
     }
 
     #[test]

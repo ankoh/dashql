@@ -14,6 +14,11 @@ export interface GenerationPromptInput {
     previousCandidate?: string | null;
     /// Error messages from the previous attempt's verification (present only on repair).
     errors?: string[];
+    /// Visualize only: true when the context already contains a current chart, so the task is to
+    /// MODIFY that spec rather than synthesize one from scratch. Reframes the prompt from "generate"
+    /// to "edit" and swaps in an example that preserves the untouched encoding — a small model
+    /// otherwise regenerates the whole spec and silently drops channels the instruction didn't name.
+    editingChart?: boolean;
 }
 
 /// Build the classification prompt. The model must answer with exactly one word.
@@ -73,6 +78,46 @@ export function buildSqlPrompt(input: GenerationPromptInput): string {
     return lines.join('\n');
 }
 
+/// The task framing that opens the visualize prompt. When a current chart is present the run is an
+/// EDIT (change one thing, keep the rest), otherwise it's a fresh GENERATE. Small models follow this
+/// framing literally: told to "generate a chart" while shown an existing spec, they re-synthesize
+/// from scratch and drop channels the instruction never mentioned (the classic "make it a line" →
+/// mark-only, no encoding, failure). The edit framing tells them to start from the current spec.
+function visualizeTaskFraming(editingChart: boolean): string {
+    if (editingChart) {
+        return `You are an expert data-visualization assistant for the DashQL notebook.
+You are EDITING the existing chart shown in the context below. Apply the user's instruction to
+the "Current chart" spec and return the COMPLETE modified specification.
+- Start from the current spec. Change ONLY what the instruction asks for.
+- PRESERVE every other field verbatim — especially the entire "encoding" block. Do NOT drop
+  channels, fields, types, or aggregates the instruction does not mention. Changing the mark
+  (e.g. "make it a line") keeps the same encoding.
+The result is a restricted Vega-Lite specification that DashQL transcodes into a VISUALIZE statement.`;
+    }
+    return `You are an expert data-visualization assistant for the DashQL notebook.
+Your job is to turn a natural-language request into ONE effective chart, expressed as a
+restricted Vega-Lite specification that DashQL transcodes into a VISUALIZE statement.`;
+}
+
+/// A worked example, chosen by task. For a small model one concrete example anchors the behavior far
+/// better than the prose rules do — the edit example specifically demonstrates carrying the encoding
+/// across a mark change, which is the failure mode we most often see.
+function visualizeExample(editingChart: boolean): string {
+    if (editingChart) {
+        return `EXAMPLE — editing a chart (note the encoding is carried over unchanged):
+Current chart:
+{"mark":"point","encoding":{"x":{"field":"x","type":"quantitative"},"y":{"field":"y","type":"quantitative"}}}
+Instruction: use a line chart
+Correct reply:
+{"mark":"line","encoding":{"x":{"field":"x","type":"quantitative"},"y":{"field":"y","type":"quantitative"}}}`;
+    }
+    return `EXAMPLE — generating a chart from a request:
+Columns: category (Utf8), amount (Int32)
+Instruction: total amount per category
+Correct reply:
+{"mark":"bar","encoding":{"x":{"field":"category","type":"nominal"},"y":{"field":"amount","type":"quantitative","aggregate":"sum"},"sort":"-y"}}`;
+}
+
 /// Build the visualization generation / repair prompt. The model emits a constrained
 /// Vega-Lite spec which we transcode into a DashQL VISUALIZE statement.
 ///
@@ -81,10 +126,13 @@ export function buildSqlPrompt(input: GenerationPromptInput): string {
 /// guidance on how to pick a good chart, since the model otherwise defaults to bland bar charts
 /// with un-aggregated data. Keep the hard constraints (JSON-only, no `data` member, real columns
 /// only) verbatim: `extractJsonObject` and the WASM transcoder depend on them.
+///
+/// The opening framing and the worked example are swapped by `input.editingChart` (see
+/// `visualizeTaskFraming` / `visualizeExample`); the hard rules and the instruction are placed
+/// LAST, nearest the model's turn, because small models weight the end of a long prompt most.
 export function buildVisualizePrompt(input: GenerationPromptInput): string {
-    const prompt = `You are an expert data-visualization assistant for the DashQL notebook.
-Your job is to turn a natural-language request into ONE effective chart, expressed as a
-restricted Vega-Lite specification that DashQL transcodes into a VISUALIZE statement.
+    const editingChart = input.editingChart ?? false;
+    const prompt = `${visualizeTaskFraming(editingChart)}
 
 OUTPUT FORMAT (strict):
 - Return ONLY a single JSON object. No markdown code fences, no prose, no explanation,
@@ -132,14 +180,7 @@ FIELD DEFINITION — each channel maps to an object with any of:
     labelAngle, labelFontSize, labelOverlap, direction, offset, values, zindex, title, domain.
   - "legend": object with any of type, orient, format, formatType, direction, title, values,
     padding, offset, zindex.
-
-HARD RULES:
-- Do NOT invent, rename, or guess column names. Use ONLY columns that appear in the
-  context schema. If a requested column is absent, choose the closest matching real column.
-- Choose "type" from the column's data type: numeric measures are quantitative, dates/
-  timestamps are temporal, free-text categories are nominal, discrete ranks/buckets are ordinal.
-- Prefer the standard Vega-Lite property names above; unrecognized properties are dropped.
-
+${editingChart ? '' : `
 CHART-DESIGN GUIDANCE (pick the most informative chart, not just the first that fits):
 - Trend over time → line (or area) with the temporal column on x and a quantitative measure
   on y; add a "timeUnit" when the request implies a granularity (per month, per day, …).
@@ -154,10 +195,19 @@ CHART-DESIGN GUIDANCE (pick the most informative chart, not just the first that 
 - Add "tooltip" for the fields a reader would want to inspect, and give the chart a concise
   "title" that states what it shows.
 - Keep it to a single, readable chart — do not overload it with unnecessary channels.
+`}
+${visualizeExample(editingChart)}
 
 --- Context (source query + its output columns + current chart, when available) ---
 ${input.context}
 --- End context ---
+
+HARD RULES:
+- Do NOT invent, rename, or guess column names. Use ONLY columns that appear in the
+  context schema. If a requested column is absent, choose the closest matching real column.
+- Choose "type" from the column's data type: numeric measures are quantitative, dates/
+  timestamps are temporal, free-text categories are nominal, discrete ranks/buckets are ordinal.
+- Prefer the standard Vega-Lite property names above; unrecognized properties are dropped.${editingChart ? '\n- This is an EDIT: return the full spec with the "encoding" block preserved except where the instruction changes it.' : ''}
 
 Instruction: ${input.userPrompt}`;
 

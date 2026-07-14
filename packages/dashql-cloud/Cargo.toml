@@ -19,7 +19,7 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = "0.5"
+worker = "0.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Pure-Rust crypto (no `ring`, so it compiles to wasm32-unknown-unknown):
@@ -37,5 +37,8 @@ hex = "0.4"
 # Keep the WASM bundle small (Workers enforces a compressed-size limit).
 opt-level = "s"
 lto = true
-strip = true
+# NOTE: do NOT set `strip = true` here. Stripping removes the wasm `target_features` custom
+# section, which wasm-bindgen 0.2.126 reads to detect that reference-types/multivalue are
+# enabled; without it the build fails with "externref table required for catch wrappers"
+# (see wasm-bindgen PR #5205). worker-build's `wasm-opt` pass strips the binary anyway.
 codegen-units = 1

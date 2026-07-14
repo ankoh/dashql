@@ -125,7 +125,11 @@ export type AgentRunAction =
     | VariantKind<typeof AGENT_PHASE, AgentPhasePayload>
     | VariantKind<typeof AGENT_ATTEMPT_RESULT, AgentAttemptResultPayload>
     | VariantKind<typeof AGENT_SUCCEEDED, { message: string; timestamp: number }>
-    | VariantKind<typeof AGENT_FAILED, { error: string; timestamp: number }>
+    // `expected` marks a run that ended by exhausting its attempts — the model just couldn't
+    // produce a valid result. That's a normal outcome of a fuzzy loop, logged at WARN. Left
+    // false/undefined for an unexpected failure (a thrown exception, a missing notebook, …),
+    // which is a real error and logged at ERROR.
+    | VariantKind<typeof AGENT_FAILED, { error: string; expected?: boolean; timestamp: number }>
     | VariantKind<typeof AGENT_CANCELLED, { timestamp: number }>
     | VariantKind<typeof AGENT_RESET, null>;
 

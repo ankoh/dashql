@@ -356,4 +356,29 @@ describe('startAgentRun — context', () => {
         expect(prompt).toContain('Source query (feeds the chart):');
         expect(prompt).not.toContain('Output columns');
     });
+
+    it('editing an existing VISUALIZE reframes as an edit and strips data/$schema from the current chart', async () => {
+        // A focused VISUALIZE over the seeded `sales` table becomes the "current chart" in context.
+        const { state, focusedKey } = buildNotebook(
+            'VISUALIZE sales AS (mark => bar, encoding => (x => (field => category), y => (field => amount)));',
+        );
+        // The edited reply flips the mark to line while keeping the encoding.
+        const spec = JSON.stringify({
+            mark: 'line',
+            encoding: { x: { field: 'category', type: 'nominal' }, y: { field: 'amount', type: 'quantitative' } },
+        });
+        const ai = new MockAIClient('visualize', [spec]);
+        const { agent } = await drive(state, focusedKey, ai, { intentOverride: 'visualize' });
+
+        expect(agent!.phase).toBe(AgentRunPhase.SUCCEEDED);
+        const prompt = generationPrompt(ai);
+        // The prompt is reframed as an edit that preserves the encoding.
+        expect(prompt).toContain('You are EDITING the existing chart');
+        expect(prompt).toContain('Current chart (Vega-Lite spec):');
+        // The forbidden internal keys are stripped from the shown spec so the example does not
+        // contradict the "do not emit data / $schema" rules.
+        const chartBlock = prompt.slice(prompt.indexOf('Current chart (Vega-Lite spec):'));
+        expect(chartBlock).not.toContain('"$schema"');
+        expect(chartBlock).not.toContain('"data"');
+    });
 });

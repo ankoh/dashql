@@ -174,6 +174,29 @@ async function withHeartbeat<T>(
     }
 }
 
+/// Run one model call, logging the full exchange into the trace so the run is debuggable: the
+/// prompt we sent and the completion we got back. Each lands as a short summary line (just the
+/// length) with the full text in the record's `keyValues`, which the Log tab's JSON view and the
+/// downloaded log expose untruncated. Without this the only visible artifact of a run is "Attempt N
+/// failed" — you never see what was actually sent or returned. `kind` labels the call ("classify" /
+/// "generate" / "repair") so an exchange lines up with the phase it belongs to; `heartbeatLabel` is
+/// the noun withHeartbeat uses while the call is in flight.
+async function loggedGenerate(
+    log: LoggerLike | null,
+    aiClient: AgentAIClient,
+    kind: string,
+    prompt: string,
+    signal: AbortSignal,
+    heartbeatLabel: string,
+): Promise<string> {
+    log?.info(`Sent the ${kind} prompt to the model (${prompt.length} chars)`, { prompt }, LOG_CTX);
+    const completion = await withHeartbeat(heartbeatLabel, log, aiClient.generate(prompt, signal));
+    log?.info(
+        `Received the model's ${kind} response (${completion.length} chars)`,
+        { completion }, LOG_CTX);
+    return completion;
+}
+
 /// Run the agentic edit loop. Resolves when the run reaches a terminal phase; never rejects
 /// (all errors are funneled into AGENT_FAILED / AGENT_CANCELLED dispatches).
 export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps): Promise<void> {
@@ -206,23 +229,45 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
             case AGENT_PHASE:
                 tracedLog.info(action.value.message, { attempt: action.value.attempt.toString() }, LOG_CTX);
                 break;
-            case AGENT_ATTEMPT_RESULT:
+            case AGENT_ATTEMPT_RESULT: {
+                // Attach the exact candidate that was verified (and the raw Vega-Lite spec, if this
+                // was a visualize run) to every attempt record. On failure this is what turns a bare
+                // "unexpected ENCODING" into something actionable — the JSON view / downloaded log
+                // shows the precise SQL/DSL the error refers to, plus the full untruncated errors.
+                const candidateKV: Record<string, string | null | undefined> = {
+                    candidate: action.value.candidateText,
+                };
+                if (action.value.vegaLiteSpec != null) {
+                    candidateKV.vegaLiteSpec = action.value.vegaLiteSpec;
+                }
                 if (action.value.errors.length === 0) {
                     tracedLog.info(
                         `Attempt ${action.value.attempt} passed verification with no errors`,
-                        {}, LOG_CTX);
+                        candidateKV, LOG_CTX);
                 } else {
                     const count = action.value.errors.length;
-                    tracedLog.warn(
+                    // INFO, not WARN: a failed attempt is an expected step of the repair loop (the
+                    // run may still succeed on a later attempt). WARN surfaces as an overlay toast in
+                    // the app, which is too noisy for a normal mid-loop retry — the terminal outcome
+                    // (AGENT_FAILED) is what warrants attention, and it logs at error level.
+                    tracedLog.info(
                         `Attempt ${action.value.attempt} failed verification with ${count} ${count === 1 ? 'error' : 'errors'}: ${summarizeErrors(action.value.errors)}`,
-                        { errors: action.value.errors.join('; ') }, LOG_CTX);
+                        { ...candidateKV, errors: action.value.errors.join('; ') }, LOG_CTX);
                 }
                 break;
+            }
             case AGENT_SUCCEEDED:
                 tracedLog.info(action.value.message, {}, LOG_CTX);
                 break;
             case AGENT_FAILED:
-                tracedLog.error(action.value.error, {}, LOG_CTX);
+                // A run that simply exhausted its attempts is an expected outcome of a fuzzy loop —
+                // WARN, not ERROR (ERROR pops up as an overlay toast in the app, reserved for real
+                // failures like a thrown exception or a missing notebook).
+                if (action.value.expected) {
+                    tracedLog.warn(action.value.error, {}, LOG_CTX);
+                } else {
+                    tracedLog.error(action.value.error, {}, LOG_CTX);
+                }
                 break;
             case AGENT_CANCELLED:
                 tracedLog.warn('Run cancelled before completion', {}, LOG_CTX);
@@ -270,10 +315,13 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
             intent = params.intentOverride;
             dispatchAgent({ type: AGENT_SET_INTENT, value: { intent, override: true, timestamp: now() } });
         } else {
-            const classification = await withHeartbeat<string>(
-                'the model to classify the request',
+            const classification = await loggedGenerate(
                 tracedLog,
-                aiClient.generate(buildClassifyPrompt(params.prompt), signal),
+                aiClient,
+                'classify',
+                buildClassifyPrompt(params.prompt),
+                signal,
+                'the model to classify the request',
             );
             throwIfAborted(signal);
             intent = parseIntent(classification);
@@ -313,14 +361,25 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
                 },
             });
 
-            // Build + send the generation prompt.
+            // Build + send the generation prompt. A visualize run over a focused VISUALIZE script is
+            // an EDIT (the context carries the current chart), so the prompt reframes from generate
+            // to modify — see buildVisualizePrompt / visualizeTaskFraming.
             const prompt: string = intent === 'visualize'
-                ? buildVisualizePrompt({ context, userPrompt: params.prompt, previousCandidate, errors })
+                ? buildVisualizePrompt({
+                    context,
+                    userPrompt: params.prompt,
+                    previousCandidate,
+                    errors,
+                    editingChart: focusedIsVisualize(contextScriptData),
+                })
                 : buildSqlPrompt({ context, userPrompt: params.prompt, previousCandidate, errors });
-            const completion: string = await withHeartbeat(
-                `the model to ${repairing ? 'repair' : 'generate'} the ${noun}`,
+            const completion: string = await loggedGenerate(
                 tracedLog,
-                aiClient.generate(prompt, signal),
+                aiClient,
+                repairing ? 'repair' : 'generate',
+                prompt,
+                signal,
+                `the model to ${repairing ? 'repair' : 'generate'} the ${noun}`,
             );
             throwIfAborted(signal);
 
@@ -406,6 +465,9 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
             dispatchAgent({
                 type: AGENT_FAILED,
                 value: {
+                    // Expected: the loop ran to completion, the model just couldn't converge on a
+                    // valid result. Logged at WARN rather than ERROR (see the dispatch wrapper).
+                    expected: true,
                     error: errors.length > 0
                         ? `Gave up after ${maxAttempts} attempts — the generated ${noun} still had errors: ${summarizeErrors(errors)}`
                         : `Gave up after ${maxAttempts} attempts without producing a valid ${noun}`,

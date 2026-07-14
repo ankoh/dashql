@@ -77,6 +77,22 @@ export const referencedTablesSchemaContributor: AgentContextContributor = (input
     return lines.join('\n');
 };
 
+/// Top-level Vega-Lite keys we strip before showing a current chart to the model: the source
+/// (`data`, injected by the driver) and the schema URL (`$schema`, ignored by the transcoder).
+/// Both are things the prompt explicitly forbids the model from emitting, so they must not appear
+/// in the example spec we hand it.
+const INTERNAL_SPEC_KEYS = ['data', '$schema'] as const;
+
+/// Return a shallow copy of a Vega-Lite spec with the internal-only top-level keys removed.
+function stripInternalSpecKeys(spec: unknown): unknown {
+    if (spec == null || typeof spec !== 'object') return spec;
+    const clone: Record<string, unknown> = { ...(spec as Record<string, unknown>) };
+    for (const key of INTERNAL_SPEC_KEYS) {
+        delete clone[key];
+    }
+    return clone;
+}
+
 /// Visualize only: the source query that feeds the chart, plus (when editing an existing chart)
 /// the current Vega-Lite spec. A VISUALIZE statement charts the output of a source SELECT; the
 /// model reasons about that data, not the DashQL `VISUALIZE (…)` wrapper — so we send the source
@@ -94,7 +110,12 @@ export const visualizeSourceContributor: AgentContextContributor = (input) => {
         const sql = getExecutableQueryText(input.notebook, data).trim();
         if (sql.length > 0) parts.push(`Source query (feeds the chart):\n${sql}`);
         try {
-            parts.push(`Current chart (Vega-Lite spec):\n${JSON.stringify(vis.vegaLiteSpec, null, 2)}`);
+            // Show only the surface the model is allowed to emit. The resolved spec also carries a
+            // "$schema" and a "data" member (the transcoded source), but the prompt tells the model
+            // NOT to emit either — showing them as an example contradicts that instruction and a
+            // small model imitates the example. The driver re-injects the real `data` regardless
+            // (see visSourceToData), so dropping them here is purely cosmetic downstream.
+            parts.push(`Current chart (Vega-Lite spec):\n${JSON.stringify(stripInternalSpecKeys(vis.vegaLiteSpec), null, 2)}`);
         } catch {
             // A non-serializable spec is simply omitted — the source query + output schema still help.
         }
