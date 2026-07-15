@@ -8,9 +8,9 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 # Rules C++ (required for cc_* rules)
 http_archive(
     name = "rules_cc",
-    sha256 = "69e05df29f0010ba248ef8dafc1f084c8fd2f5c553da634422d8167f5c4b277b",
-    strip_prefix = "rules_cc-0.2.20",
-    urls = ["https://github.com/bazelbuild/rules_cc/releases/download/0.2.20/rules_cc-0.2.20.tar.gz"],
+    sha256 = "81c10a95a5c22d838276ee90d712635d6042419fdfca5ef88328226b6321e53b",
+    strip_prefix = "rules_cc-0.2.22",
+    urls = ["https://github.com/bazelbuild/rules_cc/releases/download/0.2.22/rules_cc-0.2.22.tar.gz"],
 )
 
 # FlatBuffers (C++ runtime; same commit as CMake: ee848a0)
