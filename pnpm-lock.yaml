@@ -172,8 +172,8 @@ importers:
         specifier: ^8.0.14
         version: 8.0.16(@types/node@24.12.4)(less@4.6.4)(sass@1.98.0)(stylus@0.62.0)
       vite-plugin-checker:
-        specifier: ^0.14.1
-        version: 0.14.1(eslint@10.4.1)(optionator@0.9.4)(typescript@6.0.3)(vite@8.0.16(@types/node@24.12.4)(less@4.6.4)(sass@1.98.0)(stylus@0.62.0))
+        specifier: ^0.14.4
+        version: 0.14.4(eslint@10.4.1)(optionator@0.9.4)(typescript@6.0.3)(vite@8.0.16(@types/node@24.12.4)(less@4.6.4)(sass@1.98.0)(stylus@0.62.0))
       vitest:
         specifier: ^4.1.7
         version: 4.1.7(@types/node@24.12.4)(jsdom@29.1.1)(vite@8.0.16(@types/node@24.12.4)(less@4.6.4)(sass@1.98.0)(stylus@0.62.0))
@@ -2276,8 +2276,8 @@ packages:
   vega@5.33.1:
     resolution: {integrity: sha512-1fArfVDUqVbb5z8n+/nVQb+VNBzx8svY6CrsyTK4Ujm4yrd9I1auoKxBAPXLCavY1LcrbHUskQbGUP8gXOzyQw==}
 
-  vite-plugin-checker@0.14.1:
-    resolution: {integrity: sha512-Mv8oQc9XYBYf+XkP/riqqQCt8lBP6Iad75PZPho1lHRrpxQI0BwX2gwE10enn4f6Hgc+PvR1F7N38KARcaJtzw==}
+  vite-plugin-checker@0.14.4:
+    resolution: {integrity: sha512-Tw0U9UgHIRiZ+Yoe4Gh0RrYoBiCVmO9j4tomVdYr0KUjUsqXMPhqW8ouoSWmOzGp5Iimipbl3bNXZcK7OeP7Qg==}
     engines: {node: '>=20.19.0'}
     peerDependencies:
       '@biomejs/biome': '>=2.4.12'
@@ -4660,7 +4660,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  vite-plugin-checker@0.14.1(eslint@10.4.1)(optionator@0.9.4)(typescript@6.0.3)(vite@8.0.16(@types/node@24.12.4)(less@4.6.4)(sass@1.98.0)(stylus@0.62.0)):
+  vite-plugin-checker@0.14.4(eslint@10.4.1)(optionator@0.9.4)(typescript@6.0.3)(vite@8.0.16(@types/node@24.12.4)(less@4.6.4)(sass@1.98.0)(stylus@0.62.0)):
     dependencies:
       '@babel/code-frame': 7.29.0
       chokidar: 5.0.0
