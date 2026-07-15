@@ -16,7 +16,7 @@ anyhow = "1.0.103"
 semver = "1.0.28"
 aws-sdk-s3 = { version = "1.134.0", default-features = false, features = ["sigv4a", "http-1x", "rustls", "rt-tokio"] }
 aws-credential-types = "1.2.14"
-log = "0.4.30"
+log = "0.4.33"
 env_logger = "0.11.10"
 git2 = "0.21.0"
 regex = "1.12.3"
