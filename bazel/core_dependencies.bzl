@@ -28,7 +28,7 @@ _RAPIDJSON_VERSION = "1.1.0"
 # renovate: datasource=github-releases depName=biojppm/c4core
 _C4CORE_VERSION = "0.3.0"
 # renovate: datasource=github-releases depName=biojppm/rapidyaml
-_RAPIDYAML_VERSION = "0.12.1"
+_RAPIDYAML_VERSION = "0.15.2"
 # renovate: datasource=github-releases depName=google/benchmark
 _BENCHMARK_VERSION = "1.9.5"
 # renovate: datasource=github-releases depName=duckdb/duckdb
@@ -84,7 +84,7 @@ def _dashql_core_deps_impl(mctx):
     )
     http_archive(
         name = "rapidyaml",
-        sha256 = "a0d8e81657f773cc6d906308f88c04dfe3f275ed038609edbb5bd624ee954e9f",
+        sha256 = "b4d508a46ff585ea12258f1f6c1a455f220a7740b968aff290e21abe5a0cec9c",
         strip_prefix = "rapidyaml-" + _RAPIDYAML_VERSION,
         urls = ["https://github.com/biojppm/rapidyaml/archive/refs/tags/v" + _RAPIDYAML_VERSION + ".zip"],
         build_file = "//bazel:external_rapidyaml.BUILD",
