@@ -47,7 +47,7 @@ tracing-subscriber = { version = "0.3.23", features = ["json", "env-filter"] }
 tracing-log = "0.2"
 
 [dependencies.log]
-version = "0.4.30"
+version = "0.4.33"
 features = ["kv"]
 
 [dependencies.hyper-util]
