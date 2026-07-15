@@ -31,7 +31,7 @@ hmac = "0.12"
 base64 = "0.22.1"
 # WASM randomness for API-key generation. `getrandom`'s `js` feature routes to Web Crypto.
 getrandom = { version = "0.2", features = ["js"] }
-hex = "0.4"
+hex = "0.4.3"
 # AI Gateway routing: `worker` 0.8's `Ai::run` binding has no third `options` argument (where
 # `{ gateway }` lives), so `ai.rs` re-declares the JS `Ai.run` method via `#[wasm_bindgen]`. All
 # three crates are already in the tree transitively via `worker`; declaring them directly just lets
