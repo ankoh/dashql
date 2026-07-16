@@ -17,9 +17,10 @@ import { ConnectionHealth, ConnectionState } from '../../connection/connection_s
 import { getExecutableQueryText, getSelectedEntry, getSelectedPage, getSelectedPageEntries, getSortedFileNames, getUncommittedScriptData, REGISTER_QUERY, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY, REORDER_NOTEBOOK_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../notebook/notebook_state.js';
 import { useAIClient } from '../../platform/ai_client_provider.js';
 import { useComposeInputMode } from '../../notebook/notebook_commands.js';
-import { useLatestAgentRunState, useAgentRunState, useStartAgentRun, useCancelAgentRun } from '../../notebook/agent/agent_run_provider.js';
-import { AgentRunPhase, agentRunIsActive } from '../../notebook/agent/agent_run_state.js';
-import { OutputColumn } from '../../notebook/agent/agent_context.js';
+import { useLatestAgentRunState, useAgentRunState, useStartAgentRun, useCancelAgentRun } from '../../agent/agent_run_provider.js';
+import { AgentRunPhase, agentRunIsActive } from '../../agent/agent_run_state.js';
+import { OutputColumn } from '../../notebook/notebook_agent_context.js';
+import { createNotebookAgentHost } from '../../notebook/notebook_agent_host.js';
 import { QueryType } from '../../connection/query_execution_state.js';
 import { useQueryExecutor, useQueryState } from '../../connection/query_executor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
@@ -581,17 +582,22 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         if (prompt.length === 0) return;
         const focusedEntry = getSelectedEntry(props.notebook);
         const contextScriptKey = focusedEntry?.scriptId ?? null;
+        // Build the notebook adapter the run acts on. It closes over the focused script + the
+        // notebook dispatch; for visualize runs it also exposes each script's last-execution output
+        // schema (from the connection state) so the agent context can describe the chart's columns.
+        const host = createNotebookAgentHost({
+            notebook: props.notebook,
+            contextScriptKey,
+            modifyNotebook: props.modifyNotebook,
+            resolveOutputColumns: (scriptKey) => outputColumnsForScript(props.notebook, props.conn, scriptKey),
+        });
         startAgentRun({
             sessionId: props.notebook.sessionId,
             prompt,
             contextScriptKey,
             // Intent is always classified by the model (no manual Query/Chart override).
             intentOverride: null,
-            notebook: props.notebook,
-            modifyNotebook: props.modifyNotebook,
-            // For visualize runs, expose each script's last-execution output schema (from the
-            // connection state) so the agent context can describe the columns the chart binds to.
-            resolveOutputColumns: (scriptKey) => outputColumnsForScript(props.notebook, props.conn, scriptKey),
+            host,
         });
         // Clear the prompt so the next instruction starts fresh (the editor's docChanged also
         // resets the persisted draft via onChange, but clear the ref explicitly to be safe).

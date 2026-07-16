@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import { useAIClient } from '../../platform/ai_client_provider.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useAIClient } from '../platform/ai_client_provider.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
 import {
     AGENT_START,
     AgentIntent,
@@ -11,29 +11,23 @@ import {
     reduceAgentRun,
 } from './agent_run_state.js';
 import { startAgentRun } from './agent_run_driver.js';
-import { OutputColumnResolver } from './agent_context.js';
-import { NotebookState, REGISTER_AGENT_RUN } from '../notebook_state.js';
-import { ModifyNotebook } from '../notebook_state_registry.js';
+import { AgentHost } from './agent_host.js';
 
 const LOG_CTX = 'agent_run';
 
 /// Arguments to start an agent run for a session.
 export interface StartAgentRunArgs {
-    /// The session whose notebook is being edited.
+    /// The session the run belongs to.
     sessionId: string;
     /// The user's natural-language prompt.
     prompt: string;
-    /// The focused script key (context + default in-place target).
+    /// The focused script key (context + default in-place target). Kept on the run state so a UI
+    /// can resolve which target the run acts on; the host closes over what it means.
     contextScriptKey: number | null;
     /// A manual intent override, or null to auto-classify.
     intentOverride: AgentIntent | null;
-    /// The current notebook state (read once at run start).
-    notebook: NotebookState;
-    /// The notebook dispatch used to apply the result.
-    modifyNotebook: ModifyNotebook;
-    /// Resolve a script's last-execution output columns (for the visualize context). Optional so
-    /// callers without connection state in scope can omit it.
-    resolveOutputColumns?: OutputColumnResolver;
+    /// The surface the run acts on (built by the caller from its own state — e.g. a notebook).
+    host: AgentHost;
 }
 
 export type StartAgentRun = (args: StartAgentRunArgs) => void;
@@ -168,11 +162,8 @@ export const AgentRunProvider: React.FC<Props> = (props: Props) => {
             },
             {
                 aiClient,
+                host: args.host,
                 dispatchAgent: (action: AgentRunAction) => dispatchRegistry({ sessionId: args.sessionId, runId, action }),
-                getNotebook: () => args.notebook,
-                modifyNotebook: args.modifyNotebook,
-                registerAgentRun: (scriptKey, id) => args.modifyNotebook({ type: REGISTER_AGENT_RUN, value: [scriptKey, id] }),
-                resolveOutputColumns: args.resolveOutputColumns,
                 logger,
                 now: () => Date.now(),
             },

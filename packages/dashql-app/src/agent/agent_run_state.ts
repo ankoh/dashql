@@ -1,4 +1,4 @@
-import { VariantKind } from '../../utils/variant.js';
+import { VariantKind } from '../utils/variant.js';
 import { AgentIntent } from './agent_prompts.js';
 
 export type { AgentIntent };

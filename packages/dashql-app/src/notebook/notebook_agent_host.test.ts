@@ -1,25 +1,27 @@
-import * as core from '../../core/index.js';
+import * as core from '../core/index.js';
 
-import { startAgentRun, AgentRunDeps, AgentAIClient, chooseApplyAction } from './agent_run_driver.js';
+import { startAgentRun, AgentAIClient } from '../agent/agent_run_driver.js';
 import {
     AgentRunAction,
     AgentRunPhase,
     AgentRunState,
     reduceAgentRun,
-} from './agent_run_state.js';
+} from '../agent/agent_run_state.js';
+import { createNotebookAgentHost, chooseApplyAction } from './notebook_agent_host.js';
 import {
     NotebookState,
     NotebookStateAction,
     SET_SCRIPT_TEXT,
     CREATE_NOTEBOOK_ENTRY_WITH_TEXT,
+    REGISTER_AGENT_RUN,
     createEmptyScriptData,
     reduceNotebookState,
     analyzeAllScriptsInNotebook,
-} from '../notebook_state.js';
-import { createDatalessConnectorInfo } from '../../connection/connector_info.js';
-import { StorageWriter, StorageWriteTaskVariant } from '../../platform/storage/storage_writer.js';
-import { Logger } from '../../platform/logger/logger.js';
-import { createEmptyMetadata, createPageScript, generateScriptFileName } from '../notebook_types.js';
+} from './notebook_state.js';
+import { createDatalessConnectorInfo } from '../connection/connector_info.js';
+import { StorageWriter, StorageWriteTaskVariant } from '../platform/storage/storage_writer.js';
+import { Logger } from '../platform/logger/logger.js';
+import { createEmptyMetadata, createPageScript, generateScriptFileName } from './notebook_types.js';
 
 class NullLogger extends Logger {
     public destroy(): void { }
@@ -132,8 +134,12 @@ function buildNotebook(focusedSql: string): { state: NotebookState; focusedKey: 
     return { state, focusedKey: committedKey };
 }
 
-/// Drive a run to completion, collecting the agent state transitions and applied notebook
-/// actions. Resolves with the final agent state + notebook.
+/// Drive a run to completion through the notebook agent host, collecting the agent state
+/// transitions and applied notebook actions. Resolves with the final agent state + notebook.
+///
+/// Run registration now flows through the host's `modifyNotebook` as a REGISTER_AGENT_RUN action
+/// (rather than a separate callback), so we route those into `registered` — keeping `applied` to
+/// the result-applying actions the assertions expect.
 async function drive(
     notebook: NotebookState,
     focusedKey: number | null,
@@ -149,23 +155,31 @@ async function drive(
     const registered: Array<[number, number]> = [];
     let clock = 0;
 
-    const deps: AgentRunDeps = {
-        aiClient,
-        dispatchAgent: (action: AgentRunAction) => { agent = reduceAgentRun(agent, action); },
-        getNotebook: () => current,
-        modifyNotebook: (action: NotebookStateAction) => {
+    const modifyNotebook = (action: NotebookStateAction) => {
+        if (action.type === REGISTER_AGENT_RUN) {
+            registered.push(action.value as [number, number]);
+        } else {
             applied.push(action);
-            current = reduceNotebookState(current, action, storage, logger, true);
-        },
-        registerAgentRun: (scriptKey: number, runId: number) => { registered.push([scriptKey, runId]); },
-        resolveOutputColumns: opts.resolveOutputColumns,
-        logger,
-        now: () => ++clock,
+        }
+        current = reduceNotebookState(current, action, storage, logger, true);
     };
+
+    const host = createNotebookAgentHost({
+        notebook,
+        contextScriptKey: focusedKey,
+        modifyNotebook,
+        resolveOutputColumns: opts.resolveOutputColumns,
+    });
 
     await startAgentRun(
         { runId: 1, prompt: 'do the thing', contextScriptKey: focusedKey, intentOverride: opts.intentOverride ?? null },
-        deps,
+        {
+            aiClient,
+            host,
+            dispatchAgent: (action: AgentRunAction) => { agent = reduceAgentRun(agent, action); },
+            logger,
+            now: () => ++clock,
+        },
     );
     return { agent, notebook: current, applied, registered };
 }

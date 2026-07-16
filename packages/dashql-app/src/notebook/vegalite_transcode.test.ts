@@ -1,7 +1,7 @@
-import * as core from '../../core/index.js';
+import * as core from '../core/index.js';
 
-import { VisSource, visSourceToData } from './agent_run_driver.js';
-import { verifyScript } from './agent_verify.js';
+import { VisSource, visSourceToData } from './notebook_agent_host.js';
+import { verifyScript } from '../agent/agent_verify.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

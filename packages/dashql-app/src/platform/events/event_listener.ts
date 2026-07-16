@@ -204,7 +204,7 @@ export abstract class PlatformEventListener {
             return event;
 
         } catch (error: any) {
-            this.logger.error(`Event does not encode valid link data`, { "source": fromWhat }, LOG_CTX);
+            this.logger.info(`Event does not encode valid link data`, { "source": fromWhat }, LOG_CTX);
 
             return null;
         }

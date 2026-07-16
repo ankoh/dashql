@@ -1,7 +1,7 @@
-import * as core from '../../core/index.js';
+import * as core from '../core/index.js';
 
-import { AgentIntent } from './agent_prompts.js';
-import { getExecutableQueryText, NotebookState, ScriptData } from '../notebook_state.js';
+import { AgentIntent } from '../agent/agent_prompts.js';
+import { getExecutableQueryText, NotebookState, ScriptData } from './notebook_state.js';
 
 /// A column of a query's output schema: its name and (best-effort) type.
 export interface OutputColumn {

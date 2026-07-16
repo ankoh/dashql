@@ -62,7 +62,7 @@ vi.mock('../../connection/query_executor.js', () => ({
     },
     useQueryExecutor: () => vi.fn(),
 }));
-vi.mock('../../notebook/agent/agent_run_provider.js', () => ({
+vi.mock('../../agent/agent_run_provider.js', () => ({
     // Resolve an agent run by its id from the backing map, mirroring useQueryState.
     useAgentRunState: (runId: number | null) => {
         if (runId == null) return null;
