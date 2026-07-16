@@ -11,9 +11,10 @@ import { ScriptStatisticsBar } from './script_statistics_bar.js';
 import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
+import { ButtonGroup } from '../foundations/button_group.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
-import { getExecutableQueryText, getSelectedEntry, getSelectedPage, getSelectedPageEntries, getSortedFileNames, getUncommittedScriptData, REGISTER_QUERY, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY, REORDER_NOTEBOOK_SCRIPTS } from '../../notebook/notebook_state.js';
+import { getExecutableQueryText, getSelectedEntry, getSelectedPage, getSelectedPageEntries, getSortedFileNames, getUncommittedScriptData, REGISTER_QUERY, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY, REORDER_NOTEBOOK_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../notebook/notebook_state.js';
 import { useAIClient } from '../../platform/ai_client_provider.js';
 import { useComposeInputMode } from '../../notebook/notebook_commands.js';
 import { useLatestAgentRunState, useAgentRunState, useStartAgentRun, useCancelAgentRun } from '../../notebook/agent/agent_run_provider.js';
@@ -23,7 +24,6 @@ import { QueryType } from '../../connection/query_execution_state.js';
 import { useQueryExecutor, useQueryState } from '../../connection/query_executor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { ScriptEditor } from './script_editor.js';
-import { acceptPendingDiff, rejectPendingDiff } from '../editor/dashql_diff_hint.js';
 import { PromptEditor } from './prompt_editor.js';
 import { ScriptPreview } from './notebook_script_preview.js';
 import { observeSize } from '../foundations/size_observer.js';
@@ -89,9 +89,11 @@ interface CollapsedScriptCardProps {
     onMoveDown: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
+    onAcceptDiff: (scriptKey: number) => void;
+    onRejectDiff: (scriptKey: number) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowTable, onShowVisualization }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowTable, onShowVisualization, onAcceptDiff, onRejectDiff }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
     const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
@@ -102,6 +104,9 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
     const EyeOpenIcon: Icon = SymbolIcon('eye_16');
     const EyeClosedIcon: Icon = SymbolIcon('eye_closed_16');
     const PencilIcon: Icon = SymbolIcon('pencil_16');
+    // Accept/Reject a staged rewrite — the same check/cross icon group as the Details editor.
+    const CheckIcon: Icon = SymbolIcon('check_16');
+    const CrossIcon: Icon = SymbolIcon('x_16');
     const queryState = useQueryState(sessionId, scriptData?.latestQueryId ?? null);
     // Resolve the agent run by its id (handle) just like the query above — the run carries its
     // own trace id, so the footer no longer needs a denormalized trace id on ScriptData.
@@ -114,23 +119,21 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
     const agentLatestMessage = agentRunState != null && agentRunState.log.length > 0
         ? agentRunState.log[agentRunState.log.length - 1].message
         : null;
-    // A staged agent rewrite waiting to be accepted/rejected. While set, the card mounts the full
-    // editable editor (below) instead of the read-only preview so the in-place diff overlay shows on
-    // the entry card; the Accept/Reject buttons live in the AI bar above it.
+    // A staged agent rewrite waiting to be accepted/rejected. While set, the read-only preview
+    // renders the rewrite as a compact in-place diff overlay and the AI bar above it turns into the
+    // Accept/Reject controls (which dispatch notebook actions — no editable editor is mounted here).
     const hasPendingDiff = scriptData?.pendingDiff != null;
     // A monotonic nonce handed to the footer: bumped when the user clicks the AI bar so the footer
     // reveals the Agent Log tab on demand (a run no longer auto-switches it).
     const [agentLogRequest, setAgentLogRequest] = React.useState(0);
     const showAgentLog = React.useCallback(() => setAgentLogRequest(n => n + 1), []);
-    // The pending-diff editor's CodeMirror view, captured so the AI bar's Accept/Reject buttons can
-    // drive the same accept/reject the ⏎/⎋ keys do while the editor is focused.
-    const diffViewRef = React.useRef<EditorView | null>(null);
+    const scriptKey = scriptData?.scriptKey ?? null;
     const acceptDiff = React.useCallback(() => {
-        if (diffViewRef.current) acceptPendingDiff(diffViewRef.current);
-    }, []);
+        if (scriptKey != null) onAcceptDiff(scriptKey);
+    }, [scriptKey, onAcceptDiff]);
     const rejectDiff = React.useCallback(() => {
-        if (diffViewRef.current) rejectPendingDiff(diffViewRef.current);
-    }, []);
+        if (scriptKey != null) onRejectDiff(scriptKey);
+    }, [scriptKey, onRejectDiff]);
     const [isReady, setIsReady] = React.useState(false);
     const [isEditing, setIsEditing] = React.useState(false);
     // The label and the rename input show the clean display name (no ordering prefix, no ".sql");
@@ -175,13 +178,11 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
         if (event.button !== 0 || event.defaultPrevented) {
             return;
         }
-        // While a pending diff is shown the body hosts the interactive diff editor (Accept/Reject,
-        // cursor placement); don't hijack those clicks to expand the card into Details.
-        if (hasPendingDiff) {
-            return;
-        }
+        // The body is a read-only preview (with a compact diff overlay while a rewrite is staged);
+        // clicking it always expands into Details, where the full normal-text diff and its own
+        // Accept/Reject controls live. Quick accept/reject stays on the feed via the AI bar / ⏎ ⎋.
         onExpand(scriptFileName);
-    }, [scriptFileName, onExpand, hasPendingDiff]);
+    }, [scriptFileName, onExpand]);
 
     return (
         <div
@@ -265,20 +266,26 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                     <div className={styles.ai_bar}>
                         <span className={styles.ai_bar_message}>Suggested rewrite</span>
                         <div className={styles.ai_bar_actions}>
-                            <Button
-                                variant={ButtonVariant.Primary}
-                                size={ButtonSize.Small}
-                                onClick={acceptDiff}
-                            >
-                                Accept ⏎
-                            </Button>
-                            <Button
-                                variant={ButtonVariant.Default}
-                                size={ButtonSize.Small}
-                                onClick={rejectDiff}
-                            >
-                                Reject ⎋
-                            </Button>
+                            {/* The same check/cross icon group as the Details editor's diff controls.
+                                ⏎/⎋ still accept/reject the focused entry (see the feed key handlers). */}
+                            <ButtonGroup>
+                                <IconButton
+                                    variant={ButtonVariant.Default}
+                                    size={ButtonSize.Small}
+                                    onClick={acceptDiff}
+                                    aria-label="Accept rewrite"
+                                >
+                                    <CheckIcon size={14} />
+                                </IconButton>
+                                <IconButton
+                                    variant={ButtonVariant.Default}
+                                    size={ButtonSize.Small}
+                                    onClick={rejectDiff}
+                                    aria-label="Reject rewrite"
+                                >
+                                    <CrossIcon size={14} />
+                                </IconButton>
+                            </ButtonGroup>
                         </div>
                     </div>
                 ) : (
@@ -300,20 +307,12 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                 )
             )}
             <div className={styles.feed_body} onPointerDownCapture={handlePreviewPointerDown}>
-                {scriptData == null ? null : hasPendingDiff ? (
-                    // Agent staged a rewrite: mount the full editable editor so the in-place diff
-                    // decorations render on the card. Accept/Reject lives in the AI bar above (and
-                    // via ⏎/⎋ while the editor is focused); either clears pendingDiff, which flips
-                    // this back to the read-only preview.
-                    <ScriptEditor
-                        sessionId={sessionId}
-                        scriptKey={scriptData.scriptKey}
-                        className={styles.diff_editor}
-                        autoHeight
-                        setView={(view) => { diffViewRef.current = view; }}
-                    />
-                ) : (
-                    <ScriptPreview className={styles.script_preview_editor} scriptData={scriptData} onReady={setIsReady} />
+                {scriptData == null ? null : (
+                    // The body is always the read-only compact preview. When the agent stages a
+                    // rewrite it overlays the rewrite as a compact in-place diff (so the feed no
+                    // longer jumps from compact to normal text); Accept/Reject lives in the AI bar
+                    // above (and via ⏎/⎋ on the focused entry).
+                    <ScriptPreview className={styles.script_preview_editor} sessionId={sessionId} scriptData={scriptData} onReady={setIsReady} />
                 )}
             </div>
             {(queryState != null || agentTraceId != null) && (
@@ -349,13 +348,15 @@ interface ScriptFeedRowProps {
     onMoveDown: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
+    onAcceptDiff: (scriptKey: number) => void;
+    onRejectDiff: (scriptKey: number) => void;
     onHeightMeasured: (index: number, height: number) => void;
     fillerRowHeight: number;
     heightsVersion: number;
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowTable, onShowVisualization, onHeightMeasured } = props;
+    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowTable, onShowVisualization, onAcceptDiff, onRejectDiff, onHeightMeasured } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -410,6 +411,8 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onMoveDown={onMoveDown}
                     onShowTable={onShowTable}
                     onShowVisualization={onShowVisualization}
+                    onAcceptDiff={onAcceptDiff}
+                    onRejectDiff={onRejectDiff}
                 />
             </div>
         </div>
@@ -631,6 +634,16 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const handleMoveUp = React.useCallback((fileName: string) => moveScript(fileName, -1), [moveScript]);
     const handleMoveDown = React.useCallback((fileName: string) => moveScript(fileName, 1), [moveScript]);
 
+    // Accept / reject a staged agent rewrite from the feed. These dispatch notebook actions (the
+    // feed shows the diff on the read-only preview, so there's no editor to drive the editor-effect
+    // path). Accept keeps the new text; reject restores the prior text and re-analyzes.
+    const handleAcceptDiff = React.useCallback((scriptKey: number) => {
+        props.modifyNotebook({ type: ACCEPT_PENDING_DIFF, value: scriptKey });
+    }, [props.modifyNotebook]);
+    const handleRejectDiff = React.useCallback((scriptKey: number) => {
+        props.modifyNotebook({ type: REJECT_PENDING_DIFF, value: scriptKey });
+    }, [props.modifyNotebook]);
+
     const keyHandlers = React.useMemo<KeyEventHandler[]>(() => [
         {
             key: 'Enter',
@@ -645,11 +658,11 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             },
         },
         {
-            // Plain Enter, while browsing the feed with nothing focused, opens the
-            // details of the currently focused entry. If the compose editor (SQL/AI),
-            // a rename input, or any other element holds focus, Enter belongs to it —
-            // bail out and let it handle the key. The feed is only mounted when details
-            // are hidden, so this handler is naturally scoped to the feed view.
+            // Plain Enter, while browsing the feed with nothing focused. If the focused entry has a
+            // staged agent rewrite, Enter accepts it (matching the AI bar's "Accept ⏎" hint);
+            // otherwise it opens the details of the focused entry. If the compose editor (SQL/AI), a
+            // rename input, or any other element holds focus, Enter belongs to it — bail out. The
+            // feed is only mounted when details are hidden, so this handler is naturally scoped here.
             key: 'Enter',
             ctrlKey: false,
             capture: true,
@@ -658,11 +671,38 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                 if (active && active !== document.body && active !== document.documentElement) {
                     return;
                 }
+                const focused = getSelectedEntry(props.notebook);
+                const focusedScript = focused != null ? props.notebook.scripts[focused.scriptId] : null;
+                if (focusedScript?.pendingDiff != null) {
+                    event.preventDefault();
+                    handleAcceptDiff(focusedScript.scriptKey);
+                    return;
+                }
                 if (entries.length === 0) {
                     return;
                 }
                 event.preventDefault();
                 props.showDetails();
+            },
+        },
+        {
+            // Escape, while browsing the feed with nothing focused, rejects a staged rewrite on the
+            // focused entry (matching the AI bar's "Reject ⎋" hint). Same focus guard as Enter so the
+            // compose editor, rename input, or an open completion dropdown keeps Escape when focused.
+            key: 'Escape',
+            ctrlKey: false,
+            capture: true,
+            callback: (event: KeyboardEvent) => {
+                const active = document.activeElement as HTMLElement | null;
+                if (active && active !== document.body && active !== document.documentElement) {
+                    return;
+                }
+                const focused = getSelectedEntry(props.notebook);
+                const focusedScript = focused != null ? props.notebook.scripts[focused.scriptId] : null;
+                if (focusedScript?.pendingDiff != null) {
+                    event.preventDefault();
+                    handleRejectDiff(focusedScript.scriptKey);
+                }
             },
         },
         {
@@ -680,7 +720,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                 event.stopPropagation();
             },
         },
-    ], [composeEditorView, handleComposeSend, entries.length, props.showDetails]);
+    ], [composeEditorView, handleComposeSend, entries.length, props.showDetails, props.notebook, handleAcceptDiff, handleRejectDiff]);
     useKeyEvents(keyHandlers);
 
     // Height cache for variable-height rows
@@ -785,10 +825,12 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onMoveDown: handleMoveDown,
         onShowTable: handleShowTable,
         onShowVisualization: handleShowVisualization,
+        onAcceptDiff: handleAcceptDiff,
+        onRejectDiff: handleRejectDiff,
         onHeightMeasured: handleHeightMeasured,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleShowTable, handleShowVisualization, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleShowTable, handleShowVisualization, handleAcceptDiff, handleRejectDiff, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container} data-tauri-drag-region="deep">

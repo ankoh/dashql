@@ -4,6 +4,8 @@ import {
     reduceNotebookState,
     NotebookState,
     createEmptyScriptData,
+    ACCEPT_PENDING_DIFF,
+    REJECT_PENDING_DIFF,
     ANALYZE_OUTDATED_SCRIPT,
     CATALOG_DID_UPDATE,
     CREATE_NOTEBOOK_ENTRY,
@@ -1443,6 +1445,94 @@ describe('SET_SCRIPT_TEXT', () => {
         const state = buildState();
         const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: 99999, text: 'SELECT 1' } });
         expect(next).toBe(state);
+    });
+
+    it('stages a pending diff when withDiff is set and the text changes', () => {
+        const state = buildState();
+        const scriptKey = getSelectedPage(state)!.scripts[state.notebookUserFocus.fileName].scriptId;
+        const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: 'SELECT 1 as x', withDiff: true } });
+        expect(next.scripts[scriptKey].pendingDiff).not.toBeNull();
+        expect(next.scripts[scriptKey].pendingDiff!.priorText).toBe('');
+        expect(next.scripts[scriptKey].script.toString()).toBe('SELECT 1 as x');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// ACCEPT_PENDING_DIFF / REJECT_PENDING_DIFF
+// ---------------------------------------------------------------------------
+
+describe('ACCEPT_PENDING_DIFF / REJECT_PENDING_DIFF', () => {
+    /// Stage a real pending diff on the focused script (mirrors an applied agent rewrite) and
+    /// return [state, scriptKey]. Uses SET_SCRIPT_TEXT with withDiff so the diff buffer is genuine.
+    function stagePendingDiff(priorText: string, newText: string): [NotebookState, number] {
+        let state = buildState();
+        const scriptKey = getSelectedPage(state)!.scripts[state.notebookUserFocus.fileName].scriptId;
+        // Seed the prior text first (no diff), then apply the rewrite with a staged diff.
+        if (priorText !== '') {
+            state = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: priorText } });
+        }
+        state = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: newText, withDiff: true } });
+        expect(state.scripts[scriptKey].pendingDiff).not.toBeNull();
+        return [state, scriptKey];
+    }
+
+    it('ACCEPT keeps the new text and clears the pending diff', () => {
+        const [staged, scriptKey] = stagePendingDiff('SELECT 1 as a', 'SELECT 2 as b');
+        const next = reduce(staged, { type: ACCEPT_PENDING_DIFF, value: scriptKey });
+        expect(next.scripts[scriptKey].pendingDiff).toBeNull();
+        // Accept keeps the applied (new) text — no rope change.
+        expect(next.scripts[scriptKey].script.toString()).toBe('SELECT 2 as b');
+    });
+
+    it('ACCEPT frees the staged diff buffer', () => {
+        const [staged, scriptKey] = stagePendingDiff('SELECT 1 as a', 'SELECT 2 as b');
+        const destroySpy = vi.spyOn(staged.scripts[scriptKey].pendingDiff!.diffBuffer, 'destroy');
+        reduce(staged, { type: ACCEPT_PENDING_DIFF, value: scriptKey });
+        expect(destroySpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('REJECT restores the prior text, re-analyzes, and clears the pending diff', () => {
+        const [staged, scriptKey] = stagePendingDiff('SELECT 1 as a', 'SELECT 2 as b');
+        const next = reduce(staged, { type: REJECT_PENDING_DIFF, value: scriptKey });
+        expect(next.scripts[scriptKey].pendingDiff).toBeNull();
+        // Reject restores the verbatim prior text and re-analyzes it.
+        expect(next.scripts[scriptKey].script.toString()).toBe('SELECT 1 as a');
+        expect(next.scripts[scriptKey].scriptAnalysis.outdated).toBe(false);
+        expect(next.scripts[scriptKey].scriptAnalysis.buffers.analyzed).not.toBeNull();
+    });
+
+    it('REJECT frees the staged diff buffer', () => {
+        const [staged, scriptKey] = stagePendingDiff('SELECT 1 as a', 'SELECT 2 as b');
+        const destroySpy = vi.spyOn(staged.scripts[scriptKey].pendingDiff!.diffBuffer, 'destroy');
+        reduce(staged, { type: REJECT_PENDING_DIFF, value: scriptKey });
+        expect(destroySpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('REJECT marks other scripts outdated (cross-script references re-resolve)', () => {
+        const [staged, scriptKey] = stagePendingDiff('SELECT 1 as a', 'SELECT 2 as b');
+        const otherKey = +Object.keys(staged.scripts).find(k => +k !== scriptKey)!;
+        const next = reduce(staged, { type: REJECT_PENDING_DIFF, value: scriptKey });
+        expect(next.scripts[otherKey].scriptAnalysis.outdated).toBe(true);
+    });
+
+    it('ACCEPT is a no-op when there is no pending diff (same state ref)', () => {
+        const state = buildState();
+        const scriptKey = getSelectedPage(state)!.scripts[state.notebookUserFocus.fileName].scriptId;
+        const next = reduce(state, { type: ACCEPT_PENDING_DIFF, value: scriptKey });
+        expect(next).toBe(state);
+    });
+
+    it('REJECT is a no-op when there is no pending diff (same state ref)', () => {
+        const state = buildState();
+        const scriptKey = getSelectedPage(state)!.scripts[state.notebookUserFocus.fileName].scriptId;
+        const next = reduce(state, { type: REJECT_PENDING_DIFF, value: scriptKey });
+        expect(next).toBe(state);
+    });
+
+    it('ACCEPT / REJECT are no-ops for an unknown scriptKey (same state ref)', () => {
+        const state = buildState();
+        expect(reduce(state, { type: ACCEPT_PENDING_DIFF, value: 99999 })).toBe(state);
+        expect(reduce(state, { type: REJECT_PENDING_DIFF, value: 99999 })).toBe(state);
     });
 });
 

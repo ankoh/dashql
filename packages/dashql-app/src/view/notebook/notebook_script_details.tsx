@@ -22,6 +22,7 @@ import { normalizePageName, scriptDisplayName } from '../../notebook/notebook_ty
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { useAppConfig } from '../../app_config.js';
 import { ScriptEditor } from './script_editor.js';
+import { acceptPendingDiff, rejectPendingDiff } from '../editor/dashql_diff_hint.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
 import { NotebookScriptName } from './notebook_script_name.js';
@@ -224,6 +225,18 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
             formatPreviewScriptRef.current?.ptr.destroy();
         };
     }, []);
+
+    // A staged agent rewrite is shown as an in-place diff on the editable editor here (the diff
+    // decorations + ⏎/⎋ keymap come from the editor's DashQL extensions). Surface visible controls
+    // too, mirroring the feed's AI bar. Both drive the editor-effect accept/reject path, which
+    // round-trips through UPDATE_FROM_PROCESSOR to clear the pending diff.
+    const hasPendingDiff = scriptData?.pendingDiff != null;
+    const handleAcceptDiff = React.useCallback(() => {
+        if (editorView != null) acceptPendingDiff(editorView);
+    }, [editorView]);
+    const handleRejectDiff = React.useCallback(() => {
+        if (editorView != null) rejectPendingDiff(editorView);
+    }, [editorView]);
 
     const activeQueryId = scriptData?.latestQueryId ?? null;
     const activeQueryState = useQueryState(props.notebook?.sessionId ?? null, activeQueryId);
@@ -549,7 +562,27 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                         setView={setEditorView}
                                     />
                                     <div className={styles.format_toggle}>
-                                        {!formatPending && (
+                                        {/* A staged agent rewrite takes priority over the format
+                                            affordance: show its Accept/Reject controls (the editor
+                                            renders the diff overlay + honors ⏎/⎋). */}
+                                        {hasPendingDiff ? (
+                                            <ButtonGroup>
+                                                <IconButton
+                                                    variant={ButtonVariant.Default}
+                                                    onClick={handleAcceptDiff}
+                                                    aria-label="Accept rewrite"
+                                                >
+                                                    <CheckIcon />
+                                                </IconButton>
+                                                <IconButton
+                                                    variant={ButtonVariant.Default}
+                                                    onClick={handleRejectDiff}
+                                                    aria-label="Reject rewrite"
+                                                >
+                                                    <FormatXIcon />
+                                                </IconButton>
+                                            </ButtonGroup>
+                                        ) : !formatPending ? (
                                             <IconButton
                                                 variant={ButtonVariant.Invisible}
                                                 onClick={handleFormat}
@@ -557,8 +590,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                             >
                                                 <PencilAIIcon />
                                             </IconButton>
-                                        )}
-                                        {formatPending && (
+                                        ) : (
                                             <ButtonGroup>
                                                 <IconButton
                                                     variant={ButtonVariant.Default}

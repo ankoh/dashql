@@ -93,8 +93,10 @@ vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
 
 import {
+    ACCEPT_PENDING_DIFF,
     DELETE_NOTEBOOK_ENTRY,
     PROMOTE_UNCOMMITTED_SCRIPT,
+    REJECT_PENDING_DIFF,
     SELECT_ENTRY,
     type NotebookState,
 } from '../../notebook/notebook_state.js';
@@ -267,7 +269,7 @@ describe('NotebookScriptFeed', () => {
         expect(showDetails).toHaveBeenCalledTimes(1);
     });
 
-    it('mounts the editable diff editor in place of the preview while an agent rewrite is pending', () => {
+    it('keeps the read-only preview (with a diff overlay) while an agent rewrite is pending', () => {
         renderFeed({
             notebook: withPendingDiff(createNotebookState(), 101, 'select 0'),
             modifyNotebook: vi.fn(),
@@ -275,31 +277,35 @@ describe('NotebookScriptFeed', () => {
             scrollTarget: null,
         });
 
-        // The entry with the staged diff swaps its read-only preview for the editable editor (which
-        // carries the diff overlay + Accept/Reject panel); the other entry keeps its preview.
-        expect(container.querySelectorAll('[data-testid="script-preview"]').length).toBe(1);
-        // Two editors now: the compose-card editor + the pending-diff entry editor.
-        expect(container.querySelectorAll('[data-testid="script-editor"]').length).toBe(2);
+        // The staged diff no longer swaps the compact preview for the editable editor: the entry
+        // keeps its preview and overlays the rewrite as a compact in-place diff. Both entries still
+        // render a preview; the only editor is the compose card.
+        expect(container.querySelectorAll('[data-testid="script-preview"]').length).toBe(2);
+        expect(container.querySelectorAll('[data-testid="script-editor"]').length).toBe(1);
     });
 
-    it('does not expand into details when the pending-diff editor body is clicked', () => {
+    it('expands into details when a pending-diff card body is clicked', () => {
+        const modifyNotebook = vi.fn();
         const showDetails = vi.fn();
         renderFeed({
             notebook: withPendingDiff(createNotebookState(), 101, 'select 0'),
-            modifyNotebook: vi.fn(),
+            modifyNotebook,
             showDetails,
             scrollTarget: null,
         });
 
-        // The pending-diff entry's body hosts the interactive editor; a pointerdown there must not
-        // hijack the click to expand the card (that would steal Accept/Reject interactions).
-        const editors = container.querySelectorAll('[data-testid="script-editor"]');
-        const cardEditor = editors[editors.length - 1];
+        // Clicking a pending-diff card body now expands to Details (where the full normal-text diff
+        // and its own Accept/Reject controls live) — the old expansion guard is gone.
+        const previews = container.querySelectorAll('[data-testid="script-preview"]');
         act(() => {
-            cardEditor.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }));
+            previews[0].dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }));
         });
 
-        expect(showDetails).not.toHaveBeenCalled();
+        expect(modifyNotebook).toHaveBeenCalledWith({
+            type: SELECT_ENTRY,
+            value: '01-script.sql',
+        });
+        expect(showDetails).toHaveBeenCalledTimes(1);
     });
 
     it('dispatches DELETE_NOTEBOOK_ENTRY when delete is clicked', () => {
@@ -586,11 +592,148 @@ describe('NotebookScriptFeed', () => {
             showDetails: vi.fn(),
             scrollTarget: null,
         });
-        const buttonLabels = Array.from(container.querySelectorAll('button')).map(b => b.textContent);
-        expect(buttonLabels.some(label => label?.includes('Accept'))).toBe(true);
-        expect(buttonLabels.some(label => label?.includes('Reject'))).toBe(true);
+        // The AI bar renders the Details-style check/cross icon group, so Accept/Reject are
+        // identified by their aria-label rather than button text.
+        expect(container.querySelector('[aria-label="Accept rewrite"]')).not.toBeNull();
+        expect(container.querySelector('[aria-label="Reject rewrite"]')).not.toBeNull();
         // No running spinner strip while a rewrite is staged.
         expect(container.querySelector('[aria-label="Show agent log"]')).toBeNull();
+    });
+
+    it('dispatches ACCEPT_PENDING_DIFF when the AI bar Accept button is clicked', () => {
+        const modifyNotebook = vi.fn();
+        renderFeed({
+            notebook: withPendingDiff(createNotebookState(), 101, 'select 0'),
+            modifyNotebook,
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+
+        const acceptButton = container.querySelector('[aria-label="Accept rewrite"]');
+        expect(acceptButton).not.toBeNull();
+        act(() => {
+            (acceptButton as HTMLButtonElement).click();
+        });
+
+        expect(modifyNotebook).toHaveBeenCalledWith({ type: ACCEPT_PENDING_DIFF, value: 101 });
+    });
+
+    it('dispatches REJECT_PENDING_DIFF when the AI bar Reject button is clicked', () => {
+        const modifyNotebook = vi.fn();
+        renderFeed({
+            notebook: withPendingDiff(createNotebookState(), 101, 'select 0'),
+            modifyNotebook,
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+
+        const rejectButton = container.querySelector('[aria-label="Reject rewrite"]');
+        expect(rejectButton).not.toBeNull();
+        act(() => {
+            (rejectButton as HTMLButtonElement).click();
+        });
+
+        expect(modifyNotebook).toHaveBeenCalledWith({ type: REJECT_PENDING_DIFF, value: 101 });
+    });
+
+    it('accepts a staged rewrite on the focused entry with plain Enter', () => {
+        // Focus is on '01-script.sql' (scriptKey 101) by default. Nothing else is focused, so the
+        // plain-Enter handler accepts the pending diff instead of opening Details.
+        const modifyNotebook = vi.fn();
+        const showDetails = vi.fn();
+        renderFeed({
+            notebook: withPendingDiff(createNotebookState(), 101, 'select 0'),
+            modifyNotebook,
+            showDetails,
+            scrollTarget: null,
+        });
+
+        const handler = mockState.keyHandlers.find(c => c.key === 'Enter' && c.ctrlKey === false && c.capture === true);
+        expect(handler).toBeDefined();
+
+        const preventDefault = vi.fn();
+        act(() => {
+            handler!.callback({ preventDefault } as unknown as KeyboardEvent);
+        });
+
+        expect(preventDefault).toHaveBeenCalledTimes(1);
+        expect(modifyNotebook).toHaveBeenCalledWith({ type: ACCEPT_PENDING_DIFF, value: 101 });
+        // Enter accepts the rewrite here; it must not also open Details.
+        expect(showDetails).not.toHaveBeenCalled();
+    });
+
+    it('rejects a staged rewrite on the focused entry with Escape', () => {
+        const modifyNotebook = vi.fn();
+        renderFeed({
+            notebook: withPendingDiff(createNotebookState(), 101, 'select 0'),
+            modifyNotebook,
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+
+        const handler = mockState.keyHandlers.find(c => c.key === 'Escape' && c.ctrlKey === false && c.capture === true);
+        expect(handler).toBeDefined();
+
+        const preventDefault = vi.fn();
+        act(() => {
+            handler!.callback({ preventDefault } as unknown as KeyboardEvent);
+        });
+
+        expect(preventDefault).toHaveBeenCalledTimes(1);
+        expect(modifyNotebook).toHaveBeenCalledWith({ type: REJECT_PENDING_DIFF, value: 101 });
+    });
+
+    it('opens details on plain Enter when the focused entry has no pending rewrite', () => {
+        const modifyNotebook = vi.fn();
+        const showDetails = vi.fn();
+        renderFeed({
+            notebook: createNotebookState(),
+            modifyNotebook,
+            showDetails,
+            scrollTarget: null,
+        });
+
+        const handler = mockState.keyHandlers.find(c => c.key === 'Enter' && c.ctrlKey === false && c.capture === true);
+        expect(handler).toBeDefined();
+
+        const preventDefault = vi.fn();
+        act(() => {
+            handler!.callback({ preventDefault } as unknown as KeyboardEvent);
+        });
+
+        expect(preventDefault).toHaveBeenCalledTimes(1);
+        expect(showDetails).toHaveBeenCalledTimes(1);
+        expect(modifyNotebook).not.toHaveBeenCalledWith(expect.objectContaining({ type: ACCEPT_PENDING_DIFF }));
+    });
+
+    it('leaves the focused entry alone when Enter/Escape fire with a focused element', () => {
+        // A rename input / compose editor holding focus owns ⏎/⎋; the feed's handlers must bail.
+        const modifyNotebook = vi.fn();
+        const showDetails = vi.fn();
+        renderFeed({
+            notebook: withPendingDiff(createNotebookState(), 101, 'select 0'),
+            modifyNotebook,
+            showDetails,
+            scrollTarget: null,
+        });
+
+        const input = document.createElement('input');
+        document.body.appendChild(input);
+        input.focus();
+        expect(document.activeElement).toBe(input);
+
+        const enter = mockState.keyHandlers.find(c => c.key === 'Enter' && c.ctrlKey === false && c.capture === true);
+        const escape = mockState.keyHandlers.find(c => c.key === 'Escape' && c.ctrlKey === false && c.capture === true);
+        const preventDefault = vi.fn();
+        act(() => {
+            enter!.callback({ preventDefault } as unknown as KeyboardEvent);
+            escape!.callback({ preventDefault } as unknown as KeyboardEvent);
+        });
+
+        expect(preventDefault).not.toHaveBeenCalled();
+        expect(modifyNotebook).not.toHaveBeenCalled();
+        expect(showDetails).not.toHaveBeenCalled();
+        input.remove();
     });
 
     it('scrolls to the bottom after send once the promoted entry appears', () => {

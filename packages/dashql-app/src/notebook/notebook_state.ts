@@ -123,6 +123,8 @@ export const REORDER_NOTEBOOK_SCRIPTS = Symbol('REORDER_NOTEBOOK_SCRIPTS');
 export const PROMOTE_UNCOMMITTED_SCRIPT = Symbol('PROMOTE_UNCOMMITTED_SCRIPT');
 export const SET_SCRIPT_TEXT = Symbol('SET_SCRIPT_TEXT');
 export const CREATE_NOTEBOOK_ENTRY_WITH_TEXT = Symbol('CREATE_NOTEBOOK_ENTRY_WITH_TEXT');
+export const ACCEPT_PENDING_DIFF = Symbol('ACCEPT_PENDING_DIFF');
+export const REJECT_PENDING_DIFF = Symbol('REJECT_PENDING_DIFF');
 
 export type NotebookStateAction =
     | VariantKind<typeof SELECT_PAGE, string>
@@ -147,6 +149,8 @@ export type NotebookStateAction =
     | VariantKind<typeof PROMOTE_UNCOMMITTED_SCRIPT, null>
     | VariantKind<typeof SET_SCRIPT_TEXT, { scriptKey: ScriptKey, text: string, withDiff?: boolean }>
     | VariantKind<typeof CREATE_NOTEBOOK_ENTRY_WITH_TEXT, { text: string }>
+    | VariantKind<typeof ACCEPT_PENDING_DIFF, ScriptKey>
+    | VariantKind<typeof REJECT_PENDING_DIFF, ScriptKey>
     ;
 
 const STATS_HISTORY_LIMIT = 20;
@@ -1314,6 +1318,79 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             }
 
             // Persist only the updated script (same tail as UPDATE_FROM_PROCESSOR)
+            const sql = nextScriptData.script.toString();
+            if (nextScriptData.folderName === '' || nextScriptData.fileName === '') {
+                storage?.write(
+                    groupDraftWrites(nextState.sessionId),
+                    { type: WRITE_NOTEBOOK_DRAFT, value: [nextState.sessionId, sql] },
+                    DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                );
+            } else {
+                storage?.write(
+                    groupScriptWrites(nextState.sessionId, nextScriptData.folderName, nextScriptData.fileName),
+                    { type: WRITE_NOTEBOOK_SCRIPT, value: [nextState.sessionId, nextScriptData.folderName, nextScriptData.fileName, sql] },
+                    DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                );
+            }
+            return nextState;
+        }
+
+        case ACCEPT_PENDING_DIFF: {
+            // Keep the current (new) text — SET_SCRIPT_TEXT already applied and persisted it — and
+            // just drop the staged diff. Mirrors the editor's DashQLDiffAcceptEffect path, which
+            // clears scriptPendingDiff without touching the rope.
+            const scriptKey = action.value;
+            const scriptData = state.scripts[scriptKey];
+            if (!scriptData || scriptData.pendingDiff == null) {
+                return state;
+            }
+            scriptData.pendingDiff.diffBuffer.destroy();
+            return {
+                ...state,
+                scripts: {
+                    ...state.scripts,
+                    [scriptKey]: { ...scriptData, pendingDiff: null },
+                },
+            };
+        }
+
+        case REJECT_PENDING_DIFF: {
+            // Restore the verbatim prior text and drop the staged diff. This reproduces the
+            // editor's DashQLDiffRejectEffect path (restore priorText + clear) via the same tail as
+            // SET_SCRIPT_TEXT, so a diff rejected from the feed and one rejected from the Details
+            // editor leave identical notebook state.
+            const scriptKey = action.value;
+            const scriptData = state.scripts[scriptKey];
+            if (!scriptData || scriptData.pendingDiff == null) {
+                return state;
+            }
+            const priorText = scriptData.pendingDiff.priorText;
+            scriptData.pendingDiff.diffBuffer.destroy();
+            // Rewrite the script text in-place and re-analyze through the path-aware helper.
+            scriptData.script.replaceText(priorText);
+            const scriptLookup = makeScriptLookup(state.notebookPages, state.scripts);
+            const nextScriptData = analyzeNotebookScript(scriptData, state.scriptRegistry, state.connectionCatalog, scriptLookup, logger);
+            nextScriptData.pendingDiff = null;
+
+            const nextState: NotebookState = {
+                ...clearSemanticUserFocus(state),
+                scripts: {
+                    ...state.scripts,
+                    [scriptKey]: nextScriptData,
+                },
+            };
+            // The text changed and was reloaded into the catalog; mark all other scripts
+            // outdated so cross-script references re-resolve (mirrors SET_SCRIPT_TEXT).
+            for (const key in nextState.scripts) {
+                if (+key === scriptKey) continue;
+                const other = nextState.scripts[key];
+                nextState.scripts[key] = {
+                    ...other,
+                    scriptAnalysis: { ...other.scriptAnalysis, outdated: true },
+                };
+            }
+
+            // Persist only the updated script (same tail as SET_SCRIPT_TEXT)
             const sql = nextScriptData.script.toString();
             if (nextScriptData.folderName === '' || nextScriptData.fileName === '') {
                 storage?.write(
