@@ -190,13 +190,13 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
             onPointerEnter={() => onFocus(scriptFileName)}
         >
             <div className={styles.feed_entry_action_bar} onPointerDown={handleHeaderPointerDown}>
-                <div className={styles.feed_entry_focus}>
+                <div className={isFocused ? styles.feed_entry_focus_focused : styles.feed_entry_focus_unfocused}>
                     <EyeOpenIcon
-                        className={isFocused ? styles.feed_entry_focus_icon_focused : styles.feed_entry_focus_icon_hidden}
+                        className={isFocused ? styles.feed_entry_focus_icon : styles.feed_entry_focus_icon_hidden}
                         size={16}
                     />
                     <EyeClosedIcon
-                        className={isFocused ? styles.feed_entry_focus_icon_hidden : styles.feed_entry_focus_icon_unfocused}
+                        className={isFocused ? styles.feed_entry_focus_icon_hidden : styles.feed_entry_focus_icon}
                         size={16}
                     />
                 </div>

@@ -152,7 +152,7 @@
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    padding: 0 4px;
+    padding: 0 4px 0px 8px;
     gap: 8px;
 }
 
@@ -167,7 +167,7 @@
 .feed_entry_actions {
     display: none;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
     flex-shrink: 0;
 }
 
@@ -183,26 +183,25 @@
     opacity: 1;
 }
 
-.feed_entry_focus {
+.feed_entry_focus_focused,
+.feed_entry_focus_unfocused {
     flex-shrink: 0;
-    padding: 0px 8px;
+    width: 32px;
+    height: 24px;
     display: grid;
     place-items: center;
 }
 
-/* Both eye icons share a single grid cell so the visible one toggles in place. */
-.feed_entry_focus_icon_focused,
-.feed_entry_focus_icon_unfocused,
+.feed_entry_focus_focused {
+    border-radius: 6px;
+}
+.feed_entry_focus_unfocused {
+    color: hsl(210, 10%, 75%);
+}
+
+.feed_entry_focus_icon,
 .feed_entry_focus_icon_hidden {
     grid-area: 1 / 1;
-}
-
-.feed_entry_focus_icon_focused {
-    color: hsl(210, 10%, 40%);
-}
-
-.feed_entry_focus_icon_unfocused {
-    color: hsl(210, 10%, 75%);
 }
 
 /* Kept mounted to avoid unmount/remount flicker; just hidden from view. */
