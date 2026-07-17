@@ -31,7 +31,7 @@ if (typeof g.Request === "undefined") g.Request = Request;
 if (typeof g.Response === "undefined") g.Response = Response;
 
 const wasmPath = path.resolve(process.cwd(), "dependencies/dashql-core-wasm/dashql_core.wasm");
-const webdbWasmPath = path.resolve(process.cwd(), "dependencies/dashql-duckdb/duckdb_web.wasm");
+const webdbWasmPath = path.resolve(process.cwd(), "dependencies/duckdb/duckdb_web.wasm");
 
 // Pre-load the WASM binary for faster instantiation
 // Using wasmBinary is simpler and more compatible with Emscripten than instantiateWasm

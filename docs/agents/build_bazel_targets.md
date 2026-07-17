@@ -48,7 +48,7 @@ bazel build //...
 | `//packages/dashql-app:reloc` | Web app bundle for native apps |
 | `//packages/dashql-native:mac_universal_dmg` | Universal macOS DMG |
 | `//packages/dashql-core:dashql_core` | Core C++ library |
-| `//packages/dashql-duckdb:duckdb_web` | DuckDB WebAssembly module |
+| `//packages/duckdb:duckdb_web` | DuckDB WebAssembly module |
 
 ### Build Configs
 
@@ -91,7 +91,7 @@ bazel test //packages/dashql-core:*_tests
 | `//packages/dashql-core:parser_tests` | Parser snapshot tests |
 | `//packages/dashql-core:analyzer_tests` | Analyzer snapshot tests |
 | `//packages/dashql-core:formatter_tests` | Formatter snapshot tests |
-| `//packages/dashql-duckdb:duckdb_web_test` | DuckDB WASM integration tests |
+| `//packages/duckdb:duckdb_web_test` | DuckDB WASM integration tests |
 | `//packages/dashql-native:tests` | Rust unit tests for native app |
 | `//packages/dashql-app:test` | TypeScript/Jest tests for web app |
 

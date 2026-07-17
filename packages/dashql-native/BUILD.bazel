@@ -323,7 +323,7 @@ TAURI_CONFIG_OVERRIDE_DEV = json.encode({
 # ---------------------------------------------------------------------------
 
 _SHARED_DEPS = [
-    "//packages/dashql-duckdb:duckdb_web",
+    "//packages/duckdb:duckdb_web",
     "@crates//:anyhow",
     "@crates//:byteorder",
     "@crates//:bytes",

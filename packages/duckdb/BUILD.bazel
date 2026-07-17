@@ -144,7 +144,7 @@ cc_library(
     ],
     copts = TEST_COPTS,
     deps = [
-        "//packages/dashql-duckdb:duckdb_web",
+        "//packages/duckdb:duckdb_web",
         "@duckdb_source//:duckdb_static",
     ],
 )

@@ -97,7 +97,7 @@ jobs:
               shell: bash
               run: |
                 bazel build --config=fastbuild \
-                    //packages/dashql-duckdb:duckdb_web_wasm
+                    //packages/duckdb:duckdb_web_wasm
 
     duckdb_web_wasm_release:
         name: DuckDB Wasm Release
@@ -126,7 +126,7 @@ jobs:
               shell: bash
               run: |
                 bazel build --config=release \
-                    //packages/dashql-duckdb:duckdb_web_wasm
+                    //packages/duckdb:duckdb_web_wasm
 
     linux_fastbuild:
         name: Linux Fastbuild
@@ -166,7 +166,7 @@ jobs:
                 bazel build --config=fastbuild \
                     --experimental_remote_require_cached \
                     //packages/dashql-core:core_wasm \
-                    //packages/dashql-duckdb:duckdb_web_wasm
+                    //packages/duckdb:duckdb_web_wasm
 
             - name: Build Everything
               shell: bash
@@ -220,7 +220,7 @@ jobs:
                 bazel build --config=release \
                     --experimental_remote_require_cached \
                     //packages/dashql-core:core_wasm \
-                    //packages/dashql-duckdb:duckdb_web_wasm
+                    //packages/duckdb:duckdb_web_wasm
 
             - name: Build Web App
               shell: bash
@@ -266,7 +266,7 @@ jobs:
                 bazel build --config=release \
                     --experimental_remote_require_cached \
                     //packages/dashql-core:core_wasm \
-                    //packages/dashql-duckdb:duckdb_web_wasm
+                    //packages/duckdb:duckdb_web_wasm
 
             - name: Build aarch64
               shell: bash
@@ -310,7 +310,7 @@ jobs:
                 bazel build --config=release \
                     --experimental_remote_require_cached \
                     //packages/dashql-core:core_wasm \
-                    //packages/dashql-duckdb:duckdb_web_wasm
+                    //packages/duckdb:duckdb_web_wasm
 
             - name: Build x86_64
               shell: bash

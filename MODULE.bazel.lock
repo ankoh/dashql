@@ -465,6 +465,42 @@
         }
       }
     },
+    "//bazel:external_tableauhyperapi.bzl%tableauhyperapi_ext": {
+      "general": {
+        "bzlTransitiveDigest": "o7XdoWY3LIPGWhuz9sjE/FEJ0u3b8taVulwolk3jc4Y=",
+        "usagesDigest": "/Cj4t34gwtluFYaKn+aza5CUpAo3VxHJDL1vTkM7hIs=",
+        "recordedInputs": [],
+        "generatedRepoSpecs": {
+          "tableauhyperapi_linux_x86_64": {
+            "repoRuleId": "@@//bazel:external_tableauhyperapi.bzl%tableauhyperapi_wheel_repository",
+            "attributes": {
+              "version": "0.0.25080",
+              "sha256": "38184aa8e723e264f864a0f7e2658ef3c1375c981e01c19a670cb4ab07ad4e3b",
+              "wheel_suffix": "manylinux2014_x86_64.whl",
+              "shared_lib": "libtableauhyperapi.so"
+            }
+          },
+          "tableauhyperapi_macos_arm64": {
+            "repoRuleId": "@@//bazel:external_tableauhyperapi.bzl%tableauhyperapi_wheel_repository",
+            "attributes": {
+              "version": "0.0.25080",
+              "sha256": "ab16896373ad14b79e4ec992ae7e8746cc1af804fd0e36215cd6fd3dbdc19917",
+              "wheel_suffix": "macosx_13_0_arm64.whl",
+              "shared_lib": "libtableauhyperapi.dylib"
+            }
+          },
+          "tableauhyperapi_macos_x86_64": {
+            "repoRuleId": "@@//bazel:external_tableauhyperapi.bzl%tableauhyperapi_wheel_repository",
+            "attributes": {
+              "version": "0.0.25080",
+              "sha256": "eb9ee455cf99662fe49199ffdcfa5126ad1394e418a65fb145d4b801cc07e409",
+              "wheel_suffix": "macosx_10_11_x86_64.whl",
+              "shared_lib": "libtableauhyperapi.dylib"
+            }
+          }
+        }
+      }
+    },
     "//packages/dashql-app:bazel/version.bzl%dashql_app_version_ext": {
       "general": {
         "bzlTransitiveDigest": "0Y2WXnkZSrBAGnC/jfDe/wjW2fWUWitBbpCD/KH1NCU=",

@@ -58,10 +58,10 @@ genrule(
 )
 genrule(
     name = "dep_duckdb_web_wasm",
-    srcs = ["//packages/dashql-duckdb:duckdb_web_wasm"],
+    srcs = ["//packages/duckdb:duckdb_web_wasm"],
     outs = [
-        "dependencies/dashql-duckdb/duckdb_web.wasm",
-        "dependencies/dashql-duckdb/duckdb_web.js",
+        "dependencies/duckdb/duckdb_web.wasm",
+        "dependencies/duckdb/duckdb_web.js",
     ],
     cmd = """
         # Copy both .wasm and .js files, patching stale cc_binary name references in the JS.
@@ -132,8 +132,8 @@ genrule(
             -e "s|__FLATBUF_PATH__|./dependencies/dashql-flatbuf|g" \\
             -e "s|__CORE_JS_PATH__|./dependencies/dashql-core-wasm/dashql_core.js|g" \\
             -e "s|__CORE_WASM_PATH__|./dependencies/dashql-core-wasm/dashql_core.wasm|g" \\
-            -e "s|__WEBDB_JS_PATH__|./dependencies/dashql-duckdb/duckdb_web.js|g" \\
-            -e "s|__WEBDB_WASM_PATH__|./dependencies/dashql-duckdb/duckdb_web.wasm|g" \\
+            -e "s|__WEBDB_JS_PATH__|./dependencies/duckdb/duckdb_web.js|g" \\
+            -e "s|__WEBDB_WASM_PATH__|./dependencies/duckdb/duckdb_web.wasm|g" \\
             -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
             -e "s|__DASHQL_VERSION__|$${VERSION}|g" \\
             -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \\
@@ -159,8 +159,8 @@ genrule(
             -e "s|__FLATBUF_PATH__|./dependencies/dashql-flatbuf|g" \\
             -e "s|__CORE_JS_PATH__|./dependencies/dashql-core-wasm/dashql_core.js|g" \\
             -e "s|__CORE_WASM_PATH__|./dependencies/dashql-core-wasm/dashql_core.wasm|g" \\
-            -e "s|__WEBDB_JS_PATH__|./dependencies/dashql-duckdb/duckdb_web.js|g" \\
-            -e "s|__WEBDB_WASM_PATH__|./dependencies/dashql-duckdb/duckdb_web.wasm|g" \\
+            -e "s|__WEBDB_JS_PATH__|./dependencies/duckdb/duckdb_web.js|g" \\
+            -e "s|__WEBDB_WASM_PATH__|./dependencies/duckdb/duckdb_web.wasm|g" \\
             -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
             -e "s|__DASHQL_VERSION__|$${VERSION}|g" \\
             -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \\
@@ -188,8 +188,8 @@ genrule(
             -e "s|__JSONSCHEMA_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-jsonschema|g" \
             -e "s|__CORE_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-core-wasm/dashql_core.js|g" \
             -e "s|__CORE_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-core-wasm/dashql_core.wasm|g" \
-            -e "s|__WEBDB_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-duckdb/duckdb_web.js|g" \
-            -e "s|__WEBDB_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-duckdb/duckdb_web.wasm|g" \
+            -e "s|__WEBDB_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/duckdb/duckdb_web.js|g" \
+            -e "s|__WEBDB_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/duckdb/duckdb_web.wasm|g" \
             -e "s|__SVG_SYMBOLS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg|g" \
             $(location vite.config.tpl.ts) > $@
     """,

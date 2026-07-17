@@ -235,7 +235,7 @@ export class DuckDBWorker {
                     // Tell Emscripten where to find the JS file for pthread workers.
                     // Only set mainScriptUrlOrBlob for proper absolute URLs (http/https/file/blob).
                     // In Vitest/Node.js, ?url imports return a Vite server-relative path like
-                    // "/dependencies/dashql-duckdb/duckdb_web.js". Node.js Worker() treats that
+                    // "/dependencies/duckdb/duckdb_web.js". Node.js Worker() treats that
                     // as an absolute filesystem path which does not exist, causing MODULE_NOT_FOUND.
                     // Leaving mainScriptUrlOrBlob unset lets Emscripten use import.meta.url from
                     // within duckdb_web.js itself, which Vite preserves as a file:// URL in Node.js.
@@ -263,7 +263,7 @@ export class DuckDBWorker {
                     const spawnedCount: number = pthreads?.unusedWorkers?.length ?? 0;
                     if (spawnedCount === 0) {
                         throw new Error('WebDB WASM module initialized with no pre-spawned pthread workers. ' +
-                            'Check PTHREAD_POOL_SIZE in packages/dashql-duckdb/BUILD.bazel.');
+                            'Check PTHREAD_POOL_SIZE in packages/duckdb/BUILD.bazel.');
                     }
                     this.threadPoolSize = spawnedCount;
                     this.sendOK(request);
