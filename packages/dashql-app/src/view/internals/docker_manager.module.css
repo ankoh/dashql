@@ -451,3 +451,10 @@
     color: #6e7781;
 }
 
+/* Render the additional-argument inputs in monospace so they line up
+   visually with the required-argument rows above them. */
+.mono_value_list input {
+    font-family: 'Roboto Mono';
+    font-size: 0.75rem;
+}
+

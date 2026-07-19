@@ -1,15 +1,26 @@
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
-load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_files")
+load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_files", "strip_prefix")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
-load("//bazel:external_tableauhyperapi.bzl", "TABLEAUHYPERAPI_VERSION")
 
 # ---------------------------------------------------------------------------
-# Layer: hyperd binary + shared lib + entrypoint script under /opt/hyper/bin
+# Layer: hyperd binary + entrypoint script under /opt/hyper/bin
 # ---------------------------------------------------------------------------
 
-# @tableauhyperapi_linux_x86_64//:hyper_bin_files already maps hyperd and
-# libtableauhyperapi.so to /opt/hyper/bin with mode 0755. The Docker image is
-# always linux/amd64 so we hardcode the linux wheel here.
+# The hyperd binary comes from @hyperd_image (see version.bzl): the pinned
+# tableauhyperapi wheel by default, or a one-off binary when HYPERD_BINARY is
+# set. hyperd is self-contained -- its only NEEDED libs are stock glibc
+# (libc/libpthread/libm/libdl/librt/ld-linux). It does NOT link
+# libtableauhyperapi.so -- that is the client library, irrelevant to the
+# server image -- so we ship only the binary.
+pkg_files(
+    name = "hyperd_bin_files",
+    srcs = ["@hyperd_image//:hyperd_bin"],
+    strip_prefix = strip_prefix.files_only(),
+    prefix = "/opt/hyper/bin",
+    attributes = pkg_attributes(mode = "0755"),
+    tags = ["manual"],
+)
+
 pkg_files(
     name = "run_script_files",
     srcs = ["run_hyperd.sh"],
@@ -21,7 +32,7 @@ pkg_files(
 pkg_tar(
     name = "hyper_layer_tar",
     srcs = [
-        "@tableauhyperapi_linux_x86_64//:hyper_bin_files",
+        ":hyperd_bin_files",
         ":run_script_files",
     ],
     tags = ["manual"],
@@ -59,7 +70,6 @@ oci_image(
         "HYPER_DATA_DIR": "/var/opt/hyper",
         "HYPER_LOG_DIR": "/var/log/hyper",
         "HYPER_SETTINGS_DIR": "/etc/opt/hyper/conf.d",
-        "LD_LIBRARY_PATH": "/opt/hyper/bin",
     },
     entrypoint = ["/opt/hyper/bin/run_hyperd.sh"],
     tags = ["manual"],
@@ -69,18 +79,11 @@ oci_image(
 # Loadable image
 # ---------------------------------------------------------------------------
 
-genrule(
-    name = "image_repo_tags",
-    outs = ["repo_tags.txt"],
-    cmd = "echo 'ankoh/hyperdb:" + TABLEAUHYPERAPI_VERSION + "' > $@",
-    tags = ["manual"],
-)
-
-# oci_load replaces oci_tarball in rules_oci 2.x.
-# Default output is an mtree spec (cheap); the tar is in the 'tarball' output group.
+# repo_tag comes from @hyperd_image: the clean release tag by default, or the
+# -dev.g<sha>[.dirty] one-off tag when HYPERD_BINARY is set.
 oci_load(
     name = "load_image",
     image = ":image",
-    repo_tags = ":image_repo_tags",
+    repo_tags = "@hyperd_image//:repo_tags.txt",
     tags = ["manual"],
 )

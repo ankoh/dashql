@@ -297,6 +297,11 @@ use_repo(
     "tableauhyperapi_macos_x86_64",
 )
 
+# hyperd Docker image: resolves the hyperd binary (wheel, or HYPERD_BINARY
+# override for a one-off) and the image repo_tag. See //packages/hyper-docker.
+hyperd_image = use_extension("//packages/hyper-docker:version.bzl", "hyperd_image_ext")
+use_repo(hyperd_image, "hyperd_image")
+
 # Hedron's Compile Commands Extractor for Bazel
 # https://github.com/hedronvision/bazel-compile-commands-extractor
 bazel_dep(name = "hedron_compile_commands", dev_dependency = True)

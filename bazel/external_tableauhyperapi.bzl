@@ -80,8 +80,6 @@ def _tableauhyperapi_wheel_repository_impl(repository_ctx):
     ])
 
     repository_ctx.file("BUILD.bazel", content = """\
-load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_files", "strip_prefix")
-
 package(default_visibility = ["//visibility:public"])
 
 filegroup(
@@ -94,27 +92,15 @@ filegroup(
     srcs = ["bin/{shared_lib}"],
 )
 
-# All runtime files hyperd needs: binary + its shared library.
+# All runtime files a hyperapi *client* needs: binary + its shared library.
+# The hyperd server image (//packages/hyper-docker) uses only :hyperd -- hyperd
+# is self-contained and does not link libtableauhyperapi.so.
 filegroup(
     name = "hyperd_runfiles",
     srcs = [
         "bin/hyperd",
         "bin/{shared_lib}",
     ],
-)
-
-# Pre-mapped pkg_files: places both binaries under /opt/hyper/bin with mode 0755.
-# Intended for use as a direct src in pkg_tar without any strip_prefix gymnastics
-# on the consumer side (used by //packages/hyper-docker).
-pkg_files(
-    name = "hyper_bin_files",
-    srcs = [
-        "bin/hyperd",
-        "bin/{shared_lib}",
-    ],
-    prefix = "/opt/hyper/bin",
-    strip_prefix = strip_prefix.from_root("bin"),
-    attributes = pkg_attributes(mode = "0755"),
 )
 """.format(shared_lib = shared_lib))
 

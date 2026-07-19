@@ -70,6 +70,11 @@ bazel run //scripts:repin_crates
 bazel build //packages/dashql-data:datasets
 # Upload missing test datasets to data.dashql.app (requires R2 key)
 bazel run //packages/dashql-data:sync
+
+# Build image with hyperd from HyperAPI
+bazel run //packages/hyper-docker:load_image
+# Build image with one-off hyperd binary
+HYPERD_BINARY=/abs/path/to/hyperd bazel run //packages/hyper-docker:load_image
 ```
 
 ---

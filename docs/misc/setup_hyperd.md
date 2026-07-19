@@ -28,6 +28,16 @@ docker push ankoh/hyperdb:0.0.25080
 docker push ankoh/hyperdb:latest
 ```
 
+### One-off image with a custom hyperd
+
+To bake in a locally built hyperd instead of the wheel binary, point `HYPERD_BINARY`
+at an absolute path. The image is tagged `ankoh/hyperdb:<hyperapi-version>-dev.g<sha>`
+(short git SHA) so it can never be mistaken for a release build.
+
+```
+HYPERD_BINARY=/abs/path/to/hyperd bazel run //packages/hyper-docker:load_image
+```
+
 ## Docker image
 
 Run as shell:

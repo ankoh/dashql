@@ -272,6 +272,7 @@ export const DockerCreatePanel: React.FC<Props> = (props: Props) => {
                             </div>
                             <div className={styles.create_field_group}>
                                 <ValueListBuilder
+                                    className={styles.mono_value_list}
                                     title="Additional arguments"
                                     caption="Appended to the required arguments above"
                                     addButtonLabel="Add argument"

@@ -489,7 +489,7 @@
     },
     "//bazel:external_tableauhyperapi.bzl%tableauhyperapi_ext": {
       "general": {
-        "bzlTransitiveDigest": "o7XdoWY3LIPGWhuz9sjE/FEJ0u3b8taVulwolk3jc4Y=",
+        "bzlTransitiveDigest": "KpLiLQlxgRrzoiMNROfWdfe+VYDpn+Sev0idukzgqPU=",
         "usagesDigest": "/Cj4t34gwtluFYaKn+aza5CUpAo3VxHJDL1vTkM7hIs=",
         "recordedInputs": [],
         "generatedRepoSpecs": {
@@ -558,6 +558,19 @@
               "sha256": "f686a53678b21f4231e2f6a5ba7ce5761d9d39204fccdea1caa29fb8c460e319",
               "downloaded_file_path": "cars.json"
             }
+          }
+        }
+      }
+    },
+    "//packages/hyper-docker:version.bzl%hyperd_image_ext": {
+      "general": {
+        "bzlTransitiveDigest": "lPp00tALPHgkqGYs6cjWCQSE2OioCIJgDiBT7xSB09k=",
+        "usagesDigest": "pou5Py9UbEANHk29zr21ArRXqOIOnep6SSBJOCgPiSk=",
+        "recordedInputs": [],
+        "generatedRepoSpecs": {
+          "hyperd_image": {
+            "repoRuleId": "@@//packages/hyper-docker:version.bzl%hyperd_image_repository",
+            "attributes": {}
           }
         }
       }
