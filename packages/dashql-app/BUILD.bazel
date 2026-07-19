@@ -201,6 +201,8 @@ copy_to_bin(
         "src/**/*.css",
         "src/**/*.ts",
         "src/**/*.tsx",
+        "src/**/*.js",
+        "src/**/*.wgsl",
         "utils/**/*.ts",
         "index.html",
         "oauth.html",
@@ -244,6 +246,7 @@ ts_project(
     srcs = glob([
         "src/**/*.ts",
         "src/**/*.tsx",
+        "src/**/*.js",
         "types/**/*.d.ts",
     ]),
     tsconfig = "tsconfig.bazel.json",

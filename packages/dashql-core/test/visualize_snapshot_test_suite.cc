@@ -35,6 +35,24 @@ TEST_P(VisualizeSnapshotTestSuite, Test) {
     ASSERT_FALSE(analyzed.visualization_specs.IsEmpty());
 
     auto& spec = analyzed.visualization_specs[0];
+    bool is_embeddingatlas = spec.renderer.has_value() && *spec.renderer == "embeddingatlas";
+
+    if (is_embeddingatlas) {
+        std::string ea_json = visualize::GenerateEmbeddingAtlasSpec(spec, analyzed);
+        ASSERT_FALSE(ea_json.empty());
+        if (test->tree && test->node_id != c4::yml::NONE) {
+            auto test_node = test->tree->ref(test->node_id);
+            if (test_node.has_child("embeddingatlas")) {
+                c4::csubstr expected_v = test_node["embeddingatlas"].val();
+                std::string expected_json =
+                    expected_v.str ? std::string(expected_v.str, expected_v.len) : std::string();
+                while (!expected_json.empty() && expected_json.back() == '\n') expected_json.pop_back();
+                EXPECT_EQ(ea_json, expected_json);
+            }
+        }
+        return;
+    }
+
     std::string vegalite_json = visualize::GenerateVegaLiteSpec(spec, analyzed);
     std::string roundtrip = visualize::ParseVegaLiteToVisualize(vegalite_json);
 

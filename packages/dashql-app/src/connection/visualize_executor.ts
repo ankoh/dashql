@@ -3,6 +3,7 @@ import type { TopLevelSpec } from 'vega-lite';
 import * as buffers from '../core/buffers.js';
 import { resolveSymbolSpan } from '../core/tokens.js';
 import { ResolvedVisualizeQuery } from '../notebook/notebook_types.js';
+import { parseEmbeddingAtlasSpec } from '../view/visualization/embeddingatlas/embeddingatlas_spec.js';
 import { DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
 
 /// Looks up a script's text by its (folder, file) coordinates.
@@ -36,14 +37,7 @@ export function resolveVisualizeQuery(
     const spec = analyzed.visualizationSpecs(0, tmpSpec);
     if (!spec) return null;
 
-    const vegaLiteSpecRaw = spec.vegaliteSpec();
-    if (!vegaLiteSpecRaw) return null;
-    let vegaLiteSpec: TopLevelSpec;
-    try {
-        vegaLiteSpec = JSON.parse(vegaLiteSpecRaw) as TopLevelSpec;
-    } catch {
-        return null;
-    }
+    const renderer = spec.renderer();
 
     let sql: string | null = null;
     switch (spec.sourceKind()) {
@@ -97,5 +91,28 @@ export function resolveVisualizeQuery(
     }
 
     if (!sql) return null;
-    return { sql, vegaLiteSpec };
+
+    // Branch on the renderer named after `USING`. Each renderer stores its own
+    // spec string on the analyzed VisualizationSpec.
+    switch (renderer) {
+        case 'embeddingatlas': {
+            const raw = spec.embeddingatlasSpec();
+            if (!raw) return null;
+            const embeddingAtlasSpec = parseEmbeddingAtlasSpec(raw);
+            if (!embeddingAtlasSpec) return null;
+            return { renderer: 'embeddingatlas', sql, embeddingAtlasSpec };
+        }
+        case 'vegalite':
+        default: {
+            const vegaLiteSpecRaw = spec.vegaliteSpec();
+            if (!vegaLiteSpecRaw) return null;
+            let vegaLiteSpec: TopLevelSpec;
+            try {
+                vegaLiteSpec = JSON.parse(vegaLiteSpecRaw) as TopLevelSpec;
+            } catch {
+                return null;
+            }
+            return { renderer: 'vegalite', sql, vegaLiteSpec };
+        }
+    }
 }

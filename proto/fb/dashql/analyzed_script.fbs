@@ -290,11 +290,16 @@ table VisualizationSpec {
     source_qualified_name: QualifiedTableName;
     /// The AST node id of the inline SELECT subquery for INLINE_SELECT
     source_inline_select_ast_node_id: uint32;
-    /// The visualization renderer named after `USING` (e.g. `vegalite`)
+    /// The visualization renderer named after `USING` (e.g. `vegalite`, `embeddingatlas`)
     renderer: string;
     /// The pretty-printed Vega-Lite JSON specification (without the `data` field).
     /// Only populated when `renderer` is `vegalite`.
     vegalite_spec: string;
+    /// The embedding-atlas projection spec as JSON:
+    /// `{vectorColumn, categoryColumn?, labelColumn?, projection:{method, neighbors, minDist, metric}}`.
+    /// Only populated when `renderer` is `embeddingatlas`. The 2D projection itself runs
+    /// client-side at render time; the analyzer records only column names + projection params.
+    embeddingatlas_spec: string;
 }
 
 /// The confidence of a schema-inference result

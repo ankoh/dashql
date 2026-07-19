@@ -27,7 +27,7 @@ import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
 import { NotebookScriptName } from './notebook_script_name.js';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
-import { VisualizationView } from '../visualization/visualization_view.js';
+import { VisualizationDispatch } from '../visualization/visualization_dispatch.js';
 import { createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../editor/dashql_processor.js';
 
@@ -243,7 +243,6 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
 
     const visualizeQuery = scriptData?.annotations.visualizeQuery ?? null;
     const hasVisualizeStmt = visualizeQuery != null;
-    const vegaLiteSpec = visualizeQuery?.vegaLiteSpec ?? null;
 
     const tabState = React.useRef<TabState>({
         enabledTabs: 1,
@@ -618,7 +617,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                 <QueryResultView query={activeQueryState} debugMode={tableDebugMode} />
                             ),
                             [TabKey.Visualization]: _props => (
-                                <VisualizationView query={activeQueryState} vegaLiteSpec={vegaLiteSpec} />
+                                <VisualizationDispatch query={activeQueryState} visualizeQuery={visualizeQuery} />
                             ),
                         }}
                     />

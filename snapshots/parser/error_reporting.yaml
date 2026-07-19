@@ -75,7 +75,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected identifier literal, expecting VEGALITE'
+        - message: 'syntax error, unexpected identifier literal, expecting VEGALITE or EMBEDDINGATLAS'
           text: "foo"
       line-breaks: []
       comments: []

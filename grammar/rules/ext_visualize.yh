@@ -1,7 +1,17 @@
 %type <buffers::parser::Node> vis_visualise_stmt;
 %type <std::string_view> vis_visualise_keyword;
 %type <buffers::parser::Node> vis_opt_source;
-%type <buffers::parser::Node> vis_renderer;
+
+%type <BackedUniquePtr<NodeList>> vis_ea_spec_list;
+%type <buffers::parser::Node> opt_vis_ea_spec_field;
+%type <buffers::parser::AttributeKey> vis_ea_spec_key;
+%type <buffers::parser::Node> vis_ea_column;
+%type <BackedUniquePtr<NodeList>> vis_ea_project_list;
+%type <buffers::parser::Node> opt_vis_ea_project_field;
+%type <buffers::parser::AttributeKey> vis_ea_project_key;
+%type <buffers::parser::Node> vis_ea_project_method;
+%type <buffers::parser::Node> vis_ea_project_metric;
+%type <buffers::parser::Node> vis_ea_number;
 
 %type <BackedUniquePtr<NodeList>> vis_spec_list;
 %type <buffers::parser::Node> opt_vis_spec_field;

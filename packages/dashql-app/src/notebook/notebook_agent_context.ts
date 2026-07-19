@@ -115,7 +115,10 @@ export const visualizeSourceContributor: AgentContextContributor = (input) => {
             // NOT to emit either — showing them as an example contradicts that instruction and a
             // small model imitates the example. The driver re-injects the real `data` regardless
             // (see visSourceToData), so dropping them here is purely cosmetic downstream.
-            parts.push(`Current chart (Vega-Lite spec):\n${JSON.stringify(stripInternalSpecKeys(vis.vegaLiteSpec), null, 2)}`);
+            // Only the Vega-Lite renderer exposes an editable spec surface to the agent.
+            if (vis.renderer === 'vegalite') {
+                parts.push(`Current chart (Vega-Lite spec):\n${JSON.stringify(stripInternalSpecKeys(vis.vegaLiteSpec), null, 2)}`);
+            }
         } catch {
             // A non-serializable spec is simply omitted — the source query + output schema still help.
         }

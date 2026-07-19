@@ -2,7 +2,6 @@ import * as React from 'react';
 import * as styles from './feed_entry_footer.module.css';
 
 import icons from '@ankoh/dashql-svg-symbols';
-import type { TopLevelSpec } from 'vega-lite';
 import { SparklesFillIcon } from '@primer/octicons-react';
 
 import { QueryExecutionState, QueryExecutionStatus } from '../../connection/query_execution_state.js';
@@ -15,7 +14,8 @@ import { useComputationRegistry } from '../../compute/computation_registry.js';
 import { SegmentedControl, SegmentedControlSize, SegmentedControlVariant } from '../foundations/segmented_control.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant, type VerticalTabProps } from '../foundations/vertical_tabs.js';
-import { VisualizationView } from '../visualization/visualization_view.js';
+import { VisualizationDispatch } from '../visualization/visualization_dispatch.js';
+import { ResolvedVisualizeQuery } from '../../notebook/notebook_types.js';
 
 const FEED_LIMIT_RESULT_ROWS = 8;
 /// The Log tab's viewport auto-expands to fit its rows and caps at this many (then scrolls).
@@ -39,7 +39,7 @@ interface FeedEntryFooterProps {
     queryState: QueryExecutionState | null;
     /// The latest agent-run trace id for this script (null if no agent run has happened).
     agentTraceId: number | null;
-    vegaLiteSpec: TopLevelSpec | null;
+    visualizeQuery: ResolvedVisualizeQuery | null;
     /// A monotonically increasing nonce: whenever it advances, jump to the Agent Log tab. Bumped by
     /// the card's AI bar when the user clicks it, so the footer reveals the agent log on demand
     /// instead of auto-hijacking the tab the moment a run starts.
@@ -114,7 +114,7 @@ const TabHeader: React.FC<TabHeaderProps> = ({ title, detail, onClick }) => (
 
 export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
     const { hasResult, totalRows } = useResultRowCount(props.queryState);
-    const hasVisualization = hasResult && props.vegaLiteSpec != null;
+    const hasVisualization = hasResult && props.visualizeQuery != null;
 
     // The two log sources: the query execution's trace and the latest agent run's trace.
     const queryTraceId = props.queryState?.traceId ?? null;
@@ -271,11 +271,11 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
             <>
                 <TabHeader title="Visualization" onClick={props.onShowVisualization} />
                 {props.queryState != null && (
-                    <VisualizationView query={props.queryState} vegaLiteSpec={props.vegaLiteSpec} />
+                    <VisualizationDispatch query={props.queryState} visualizeQuery={props.visualizeQuery} />
                 )}
             </>
         ),
-    }), [activeLogTraceId, resolvedLogSource, queryTraceId, agentTraceId, QueryLogIcon, props.queryState, props.vegaLiteSpec, rowCountDetail, logCountDetail, props.onShowTable, props.onShowVisualization]);
+    }), [activeLogTraceId, resolvedLogSource, queryTraceId, agentTraceId, QueryLogIcon, props.queryState, props.visualizeQuery, rowCountDetail, logCountDetail, props.onShowTable, props.onShowVisualization]);
 
     return (
         <VerticalTabs

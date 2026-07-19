@@ -19,7 +19,7 @@
             "@ankoh/dashql-jsonschema": ["./dependencies/dashql-jsonschema"],
             "@ankoh/dashql-jsonschema/*": ["./dependencies/dashql-jsonschema/*"]
         },
-        "types": ["node", "vitest/globals"],
+        "types": ["node", "vitest/globals", "@webgpu/types"],
         "lib": ["es6", "es2020", "dom"],
         "allowJs": true,
         "noEmit": true,

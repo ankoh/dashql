@@ -216,3 +216,57 @@ visualize-snapshots:
           width => 800,
           height => 400
         );
+
+  - name: vis_ea_minimal
+    catalog:
+      script:
+        input: |-
+          create table embeddings (id int, embedding float[], cluster_id int, name text);
+    script:
+      input: |
+        VISUALIZE embeddings USING embeddingatlas (
+          vector => embedding
+        );
+
+  - name: vis_ea_category_label
+    catalog:
+      script:
+        input: |-
+          create table embeddings (id int, embedding float[], cluster_id int, name text);
+    script:
+      input: |
+        VISUALIZE embeddings USING embeddingatlas (
+          vector => embedding,
+          category => cluster_id,
+          label => name
+        );
+
+  - name: vis_ea_projection
+    catalog:
+      script:
+        input: |-
+          create table embeddings (id int, embedding float[], cluster_id int, name text);
+    script:
+      input: |
+        VISUALIZE embeddings USING embeddingatlas (
+          vector => embedding,
+          category => cluster_id,
+          project => (
+            method => umap,
+            neighbors => 15,
+            min_dist => 0.1,
+            metric => cosine
+          )
+        );
+
+  - name: vis_ea_select_source
+    catalog:
+      script:
+        input: |-
+          create table embeddings (id int, embedding float[], cluster_id int, name text);
+    script:
+      input: |
+        VISUALIZE (SELECT embedding, cluster_id FROM embeddings) USING embeddingatlas (
+          vector => embedding,
+          category => cluster_id
+        );

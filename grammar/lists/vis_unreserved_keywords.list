@@ -1,5 +1,18 @@
 // Visualization renderers (named after `USING`)
 X(VIS_UNRESERVED, "vegalite",       VEGALITE)
+X(VIS_UNRESERVED, "embeddingatlas", EMBEDDINGATLAS)
+
+// Embedding-atlas renderer spec keys (see ext_visualize.y). `label` and `method`
+// reuse the existing SQL unreserved keywords LABEL / METHOD.
+X(VIS_UNRESERVED, "vector",         VECTOR)
+X(VIS_UNRESERVED, "category",       CATEGORY)
+X(VIS_UNRESERVED, "neighbors",      NEIGHBORS)
+X(VIS_UNRESERVED, "min_dist",       MIN_DIST)
+X(VIS_UNRESERVED, "metric",         METRIC)
+X(VIS_UNRESERVED, "umap",           UMAP)
+X(VIS_UNRESERVED, "project",        PROJECT)
+X(VIS_UNRESERVED, "cosine",         COSINE)
+X(VIS_UNRESERVED, "euclidean",      EUCLIDEAN)
 
 // Vega-Lite top-level spec keys
 X(VIS_UNRESERVED, "autosize",       AUTOSIZE)

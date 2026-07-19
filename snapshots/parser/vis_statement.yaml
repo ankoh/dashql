@@ -1730,3 +1730,413 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
+  - name: vis_statement_ea_minimal
+    input: |-
+      VISUALIZE embeddings USING embeddingatlas (vector => embedding);
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 9
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..embedding)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "embeddings"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "embeddings"
+                    children:
+                      - type: NAME
+                        text: "embeddings"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "embeddingatlas"
+              - key: VIS_VISUALISE_SPEC
+                type: OBJECT_VIS_EA_SPEC
+                text: "vector => embedding"
+                children:
+                  - key: VIS_EA_SPEC_VECTOR
+                    type: OBJECT_SQL_COLUMN_REF
+                    text: "embedding"
+                    children:
+                      - key: SQL_COLUMN_REF_PATH
+                        type: ARRAY
+                        text: "embedding"
+                        children:
+                          - type: NAME
+                            text: "embedding"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: vis_statement_ea_category_label
+    input: |-
+      VISUALIZE embeddings USING embeddingatlas (
+        vector => embedding,
+        category => cluster_id,
+        label => name
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 15
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE .. => name\n)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "embeddings"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "embeddings"
+                    children:
+                      - type: NAME
+                        text: "embeddings"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "embeddingatlas"
+              - key: VIS_VISUALISE_SPEC
+                type: OBJECT_VIS_EA_SPEC
+                text: "vector => ..el => name"
+                children:
+                  - key: VIS_EA_SPEC_VECTOR
+                    type: OBJECT_SQL_COLUMN_REF
+                    text: "embedding"
+                    children:
+                      - key: SQL_COLUMN_REF_PATH
+                        type: ARRAY
+                        text: "embedding"
+                        children:
+                          - type: NAME
+                            text: "embedding"
+                  - key: VIS_EA_SPEC_CATEGORY
+                    type: OBJECT_SQL_COLUMN_REF
+                    text: "cluster_id"
+                    children:
+                      - key: SQL_COLUMN_REF_PATH
+                        type: ARRAY
+                        text: "cluster_id"
+                        children:
+                          - type: NAME
+                            text: "cluster_id"
+                  - key: VIS_EA_SPEC_LABEL
+                    type: OBJECT_SQL_COLUMN_REF
+                    text: "name"
+                    children:
+                      - key: SQL_COLUMN_REF_PATH
+                        type: ARRAY
+                        text: "name"
+                        children:
+                          - type: NAME
+                            text: "name"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [43,44]
+        - text: [66,67]
+        - text: [92,93]
+        - text: [108,109]
+      comments: []
+
+  - name: vis_statement_ea_projection
+    input: |-
+      VISUALIZE embeddings USING embeddingatlas (
+        vector => embedding,
+        category => cluster_id,
+        project => (
+          method => umap,
+          neighbors => 15,
+          min_dist => 0.1,
+          metric => cosine
+        )
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 17
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..sine\n  )\n)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_TABLEREF
+                text: "embeddings"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "embeddings"
+                    children:
+                      - type: NAME
+                        text: "embeddings"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "embeddingatlas"
+              - key: VIS_VISUALISE_SPEC
+                type: OBJECT_VIS_EA_SPEC
+                text: "vector => ..cosine\n  )"
+                children:
+                  - key: VIS_EA_SPEC_VECTOR
+                    type: OBJECT_SQL_COLUMN_REF
+                    text: "embedding"
+                    children:
+                      - key: SQL_COLUMN_REF_PATH
+                        type: ARRAY
+                        text: "embedding"
+                        children:
+                          - type: NAME
+                            text: "embedding"
+                  - key: VIS_EA_SPEC_CATEGORY
+                    type: OBJECT_SQL_COLUMN_REF
+                    text: "cluster_id"
+                    children:
+                      - key: SQL_COLUMN_REF_PATH
+                        type: ARRAY
+                        text: "cluster_id"
+                        children:
+                          - type: NAME
+                            text: "cluster_id"
+                  - key: VIS_EA_SPEC_PROJECT
+                    type: OBJECT_VIS_EA_PROJECT
+                    text: "project =>..cosine\n  )"
+                    children:
+                      - key: VIS_EA_PROJECT_METHOD
+                        type: NAME
+                        text: "umap"
+                      - key: VIS_EA_PROJECT_NEIGHBORS
+                        type: LITERAL_INTEGER
+                        text: "15"
+                      - key: VIS_EA_PROJECT_MIN_DIST
+                        type: LITERAL_FLOAT
+                        text: "0.1"
+                      - key: VIS_EA_PROJECT_METRIC
+                        type: NAME
+                        text: "cosine"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [43,44]
+        - text: [66,67]
+        - text: [92,93]
+        - text: [107,108]
+        - text: [127,128]
+        - text: [148,149]
+        - text: [169,170]
+        - text: [190,191]
+        - text: [194,195]
+      comments: []
+
+  - name: vis_statement_ea_select_source
+    input: |-
+      VISUALIZE (SELECT embedding FROM embeddings) USING embeddingatlas (vector => embedding);
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 16
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "VISUALIZE ..embedding)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_SELECT
+                text: "(SELECT em..mbeddings)"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "embedding"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "embedding"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "embedding"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "embedding"
+                                children:
+                                  - type: NAME
+                                    text: "embedding"
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM embeddings"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
+                        text: "embeddings"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "embeddings"
+                            children:
+                              - type: NAME
+                                text: "embeddings"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "embeddingatlas"
+              - key: VIS_VISUALISE_SPEC
+                type: OBJECT_VIS_EA_SPEC
+                text: "vector => embedding"
+                children:
+                  - key: VIS_EA_SPEC_VECTOR
+                    type: OBJECT_SQL_COLUMN_REF
+                    text: "embedding"
+                    children:
+                      - key: SQL_COLUMN_REF_PATH
+                        type: ARRAY
+                        text: "embedding"
+                        children:
+                          - type: NAME
+                            text: "embedding"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: vis_statement_ea_keywords_as_columns
+    input: |-
+      SELECT vector, category, neighbors, min_dist, metric, umap, project, embeddingatlas FROM t;
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 38
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT vec..las FROM t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "vector, ca..ddingatlas"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "vector"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "vector"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "vector"
+                            children:
+                              - type: NAME
+                                text: "vector"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "category"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "category"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "category"
+                            children:
+                              - type: NAME
+                                text: "category"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "neighbors"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "neighbors"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "neighbors"
+                            children:
+                              - type: NAME
+                                text: "neighbors"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "min_dist"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "min_dist"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "min_dist"
+                            children:
+                              - type: NAME
+                                text: "min_dist"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "metric"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "metric"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "metric"
+                            children:
+                              - type: NAME
+                                text: "metric"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "umap"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "umap"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "umap"
+                            children:
+                              - type: NAME
+                                text: "umap"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "project"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "project"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "project"
+                            children:
+                              - type: NAME
+                                text: "project"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "embeddingatlas"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "embeddingatlas"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "embeddingatlas"
+                            children:
+                              - type: NAME
+                                text: "embeddingatlas"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []

@@ -208,6 +208,70 @@ VisMark ExtractVisMark(AnalysisState& state, const buffers::parser::Node& node) 
     return mark;
 }
 
+/// Resolve the expression id backing a column-ref attribute in the embeddingatlas spec.
+std::optional<uint32_t> ReadColumnExpressionId(AnalysisState& state, const buffers::parser::Node* node) {
+    if (!node) return std::nullopt;
+    auto* expr = state.GetDerivedForNode<AnalyzedScript::Expression>(*node);
+    if (!expr) return std::nullopt;
+    return expr->expression_id;
+}
+
+/// Extract the projection sub-spec from an OBJECT_VIS_EA_PROJECT node. Values are read
+/// directly off the AST subtree, mirroring ExtractVisMark.
+EmbeddingAtlasProjection ExtractEmbeddingAtlasProjection(AnalysisState& state, const buffers::parser::Node& node) {
+    EmbeddingAtlasProjection projection;
+    auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
+    for (auto& child : children) {
+        switch (child.attribute_key()) {
+            case AttributeKey::VIS_EA_PROJECT_METHOD:
+                projection.method = ReadTextValue(state, &child);
+                break;
+            case AttributeKey::VIS_EA_PROJECT_METRIC:
+                projection.metric = ReadTextValue(state, &child);
+                break;
+            case AttributeKey::VIS_EA_PROJECT_NEIGHBORS:
+                projection.neighbors = ReadNumericValue(state, &child);
+                break;
+            case AttributeKey::VIS_EA_PROJECT_MIN_DIST:
+                projection.min_dist = ReadNumericValue(state, &child);
+                break;
+            default:
+                break;
+        }
+    }
+    return projection;
+}
+
+/// Extract the embeddingatlas spec from an OBJECT_VIS_EA_SPEC node. Column references
+/// (`vector`, `category`, `label`) resolve to expression ids the same way encoding
+/// channel field defs do; `project` recurses into the projection sub-spec.
+EmbeddingAtlasSpec ExtractEmbeddingAtlasSpec(AnalysisState& state, const buffers::parser::Node& node) {
+    EmbeddingAtlasSpec spec;
+    spec.ast_node_id = NodeId(state, &node);
+    auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
+    for (auto& child : children) {
+        switch (child.attribute_key()) {
+            case AttributeKey::VIS_EA_SPEC_VECTOR:
+                spec.vector_expression_id = ReadColumnExpressionId(state, &child);
+                break;
+            case AttributeKey::VIS_EA_SPEC_CATEGORY:
+                spec.category_expression_id = ReadColumnExpressionId(state, &child);
+                break;
+            case AttributeKey::VIS_EA_SPEC_LABEL:
+                spec.label_expression_id = ReadColumnExpressionId(state, &child);
+                break;
+            case AttributeKey::VIS_EA_SPEC_PROJECT:
+                if (child.node_type() == NodeType::OBJECT_VIS_EA_PROJECT) {
+                    spec.projection = ExtractEmbeddingAtlasProjection(state, child);
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    return spec;
+}
+
 }  // namespace
 
 void AnalyzeVisualizationPass::Prepare() {}
@@ -462,6 +526,12 @@ void AnalyzeVisualizationPass::Visit(std::span<const buffers::parser::Node> mors
                 spec.width = node_state.width;
                 spec.height = node_state.height;
                 spec.encoding_channels = std::move(node_state.encoding_channels);
+
+                // The embeddingatlas renderer carries an OBJECT_VIS_EA_SPEC spec body instead
+                // of the vega-lite encoding channels. Extract its column refs + projection here.
+                if (spec_node && spec_node->node_type() == NodeType::OBJECT_VIS_EA_SPEC) {
+                    spec.embeddingatlas = ExtractEmbeddingAtlasSpec(state, *spec_node);
+                }
 
                 if (select_node) {
                     spec.source_node_id = select_node - state.ast.data();

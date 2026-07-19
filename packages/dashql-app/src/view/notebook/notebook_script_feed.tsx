@@ -322,7 +322,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                         sessionId={sessionId}
                         queryState={queryState}
                         agentTraceId={agentTraceId}
-                        vegaLiteSpec={scriptData?.annotations.visualizeQuery?.vegaLiteSpec ?? null}
+                        visualizeQuery={scriptData?.annotations.visualizeQuery ?? null}
                         requestAgentLog={agentLogRequest}
                         onShowTable={() => onShowTable(scriptFileName)}
                         onShowVisualization={() => onShowVisualization(scriptFileName)}

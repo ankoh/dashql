@@ -810,3 +810,168 @@ visualize-snapshots:
         width => 800,
         height => 400
       );
+
+  - name: vis_ea_minimal
+    catalog:
+      script:
+        input: |-
+          create table embeddings (id int, embedding float[], cluster_id int, name text);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: embeddings
+            text: "create tab..name text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: cluster_id
+                text: "cluster_id int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: embedding
+                text: "embedding float[]"
+              - catalog-id: "256.65536.4294967296.2"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967296.3"
+                name: name
+                text: "name text"
+        errors: []
+    script:
+      input: |
+        VISUALIZE embeddings USING embeddingatlas (
+          vector => embedding
+        );
+    embeddingatlas: |-
+      {
+        "vectorColumn": "embedding",
+        "projection": {
+          "method": "umap"
+        }
+      }
+
+  - name: vis_ea_category_label
+    catalog:
+      script:
+        input: |-
+          create table embeddings (id int, embedding float[], cluster_id int, name text);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: embeddings
+            text: "create tab..name text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: cluster_id
+                text: "cluster_id int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: embedding
+                text: "embedding float[]"
+              - catalog-id: "256.65536.4294967296.2"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967296.3"
+                name: name
+                text: "name text"
+        errors: []
+    script:
+      input: |
+        VISUALIZE embeddings USING embeddingatlas (
+          vector => embedding,
+          category => cluster_id,
+          label => name
+        );
+    embeddingatlas: |-
+      {
+        "vectorColumn": "embedding",
+        "categoryColumn": "cluster_id",
+        "labelColumn": "name",
+        "projection": {
+          "method": "umap"
+        }
+      }
+
+  - name: vis_ea_projection
+    catalog:
+      script:
+        input: |-
+          create table embeddings (id int, embedding float[], cluster_id int, name text);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: embeddings
+            text: "create tab..name text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: cluster_id
+                text: "cluster_id int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: embedding
+                text: "embedding float[]"
+              - catalog-id: "256.65536.4294967296.2"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967296.3"
+                name: name
+                text: "name text"
+        errors: []
+    script:
+      input: |
+        VISUALIZE embeddings USING embeddingatlas (
+          vector => embedding,
+          category => cluster_id,
+          project => (
+            method => umap,
+            neighbors => 15,
+            min_dist => 0.1,
+            metric => cosine
+          )
+        );
+    embeddingatlas: |-
+      {
+        "vectorColumn": "embedding",
+        "categoryColumn": "cluster_id",
+        "projection": {
+          "method": "umap",
+          "metric": "cosine",
+          "neighbors": 15,
+          "minDist": 0.1
+        }
+      }
+
+  - name: vis_ea_select_source
+    catalog:
+      script:
+        input: |-
+          create table embeddings (id int, embedding float[], cluster_id int, name text);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: embeddings
+            text: "create tab..name text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: cluster_id
+                text: "cluster_id int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: embedding
+                text: "embedding float[]"
+              - catalog-id: "256.65536.4294967296.2"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967296.3"
+                name: name
+                text: "name text"
+        errors: []
+    script:
+      input: |
+        VISUALIZE (SELECT embedding, cluster_id FROM embeddings) USING embeddingatlas (
+          vector => embedding,
+          category => cluster_id
+        );
+    embeddingatlas: |-
+      {
+        "vectorColumn": "embedding",
+        "categoryColumn": "cluster_id",
+        "projection": {
+          "method": "umap"
+        }
+      }

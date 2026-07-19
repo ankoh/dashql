@@ -621,4 +621,56 @@ std::string GenerateVegaLiteSpec(const VisualizationSpec& spec, const AnalyzedSc
     return sb.GetString();
 }
 
+std::string GenerateEmbeddingAtlasSpec(const VisualizationSpec& spec, const AnalyzedScript& script) {
+    if (!spec.embeddingatlas.has_value()) {
+        return {};
+    }
+    const auto& ea = *spec.embeddingatlas;
+
+    rapidjson::StringBuffer sb;
+    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
+    writer.SetIndent(' ', 2);
+
+    writer.StartObject();
+
+    if (ea.vector_expression_id.has_value()) {
+        std::string name = ResolveFieldName(script, *ea.vector_expression_id);
+        writer.Key("vectorColumn");
+        writer.String(name.c_str());
+    }
+    if (ea.category_expression_id.has_value()) {
+        std::string name = ResolveFieldName(script, *ea.category_expression_id);
+        writer.Key("categoryColumn");
+        writer.String(name.c_str());
+    }
+    if (ea.label_expression_id.has_value()) {
+        std::string name = ResolveFieldName(script, *ea.label_expression_id);
+        writer.Key("labelColumn");
+        writer.String(name.c_str());
+    }
+
+    writer.Key("projection");
+    writer.StartObject();
+    const auto& proj = ea.projection;
+    // Default the method to `umap` so the runtime always has an explicit projection.
+    writer.Key("method");
+    writer.String(proj.method.has_value() ? std::string(*proj.method).c_str() : "umap");
+    if (proj.metric.has_value()) {
+        writer.Key("metric");
+        writer.String(std::string(*proj.metric).c_str());
+    }
+    if (proj.neighbors.has_value()) {
+        writer.Key("neighbors");
+        writer.Int64(static_cast<int64_t>(*proj.neighbors));
+    }
+    if (proj.min_dist.has_value()) {
+        writer.Key("minDist");
+        writer.Double(*proj.min_dist);
+    }
+    writer.EndObject();
+
+    writer.EndObject();
+    return sb.GetString();
+}
+
 }  // namespace dashql::visualize
