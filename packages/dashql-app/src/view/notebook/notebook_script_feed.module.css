@@ -21,6 +21,50 @@
     overflow: hidden;
 }
 
+/*
+    Feed/overview toggle.
+    Switches only the feed body between the vertical list and the zoomed-out overview grid, so it
+    floats in the top-right corner of the feed background rather than in the global page header.
+    Styled as a bare icon (no background/border) that sits quietly on the feed background.
+
+    The overview grid needs room to breathe, so we discourage it on narrow windows: the toggle is
+    hidden below 1300px of window width (roughly 1000px of board width once the desktop sidebar is
+    accounted for). Below that, the feed is the only view.
+*/
+.view_toggle {
+    display: none;
+}
+
+@media only screen and (min-width: 1300px) {
+    .view_toggle {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 3;
+
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        padding: 0;
+        color: var(--fg_color_secondary, hsl(210, 12%, 55%));
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        transition: color ease-out 0.12s;
+    }
+    .view_toggle:hover {
+        color: var(--fg_color_primary, black);
+    }
+    .view_toggle:focus-visible {
+        outline: 2px solid var(--focus_color, hsl(212, 92%, 45%));
+        outline-offset: 1px;
+        border-radius: var(--border_radius, 6px);
+    }
+}
+
 .feed_list_item {
     display: flex;
     width: 100%;

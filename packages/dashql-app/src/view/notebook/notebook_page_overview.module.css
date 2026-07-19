@@ -1,0 +1,289 @@
+:root {
+    --overview_edges_bg: hsl(210deg, 12.68%, 84.16%);
+    --overview_edge_focus_color: hsl(208.5deg 24.69% 41.76%);
+
+    --overview_node_bg: white;
+    --overview_card_port_bg: hsl(210deg, 12.68%, 84.16%);
+    --overview_card_bg: rgb(255, 255, 255);
+    --overview_node_focus_border_color: hsl(208.5deg 24.69% 71.76%);
+    --overview_node_focus_port_color: hsl(208.5deg 24.69% 41.76%);
+
+    --overview_default_border_width: 1px;
+    --overview_focus_border_width: 2px;
+
+    --overview_port_size_inner: 8px;
+    --overview_port_size: calc(var(--overview_port_size_inner) + 2 * var(--overview_default_border_width));
+    --overview_port_size_focused: calc(var(--overview_port_size_inner) + 2 * var(--overview_focus_border_width));
+}
+
+/* ------------------------------------------------------------------------- */
+/* Scrollable canvas + stacked layers (revived from catalog_viewer.module.css) */
+
+.root {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.board_container {
+    width: 100%;
+    height: 100%;
+
+    /* Clear the compose card that floats over the bottom of the shared feed body. */
+    padding-bottom: 160px;
+    box-sizing: border-box;
+
+    overflow: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE 10+ */
+}
+.board_container::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+.board {
+    position: relative;
+}
+
+/* The node and edge layers share this container so their padded coordinate
+   spaces coincide. */
+.layer_container {
+    position: relative;
+}
+
+.layer_body {
+    position: relative;
+}
+
+.edge_layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    color: var(--overview_edges_bg);
+    pointer-events: none;
+}
+
+.edge_layer_body {
+    overflow: visible;
+}
+
+.node_layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.edge_path {
+    stroke: currentColor;
+    stroke-width: 1.5px;
+    fill: transparent;
+    pointer-events: stroke;
+}
+
+.edge_path_focused {
+    stroke: var(--overview_edge_focus_color);
+    stroke-width: 2px;
+    fill: transparent;
+    pointer-events: stroke;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Card (one per feed entry) */
+
+.card {
+    position: absolute;
+    box-sizing: border-box;
+    border-radius: 6px;
+    border: var(--overview_default_border_width) solid var(--border_color_primary);
+    background-color: var(--overview_node_bg);
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: max-content 1fr;
+    cursor: pointer;
+    transition: border-color ease-out 0.12s;
+}
+
+.card_focused {
+    border: var(--overview_focus_border_width) solid var(--overview_node_focus_border_color);
+}
+
+.card_header {
+    padding: 3px 8px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--overview_title_fg, inherit);
+    border-bottom: 1px solid var(--border_color_primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card_body {
+    overflow: hidden;
+    font-size: 0.6rem;
+    line-height: 1.1;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Ports (revived from catalog_renderer.module.css) */
+
+.node_ports {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+.node_port_border_default {
+    width: var(--overview_port_size);
+    height: var(--overview_port_size);
+    border-radius: calc(var(--overview_port_size) / 2);
+}
+.node_port_border_default::before {
+    position: absolute;
+    top: var(--overview_default_border_width);
+    left: var(--overview_default_border_width);
+    width: calc(var(--overview_port_size) - (var(--overview_default_border_width) * 2));
+    height: calc(var(--overview_port_size) - (var(--overview_default_border_width) * 2));
+    background-color: var(--overview_node_bg);
+    content: '';
+    border-radius: 50%;
+    transition: background-color ease-out 0.12s;
+}
+.node_port_border_default::after {
+    position: absolute;
+    top: calc(var(--overview_port_size) / 4);
+    left: calc(var(--overview_port_size) / 4);
+    width: calc(var(--overview_port_size) / 2);
+    height: calc(var(--overview_port_size) / 2);
+    content: '';
+    background-color: var(--overview_card_port_bg);
+    border-radius: 50%;
+    transition: background-color ease-out 0.12s;
+}
+.node_port_border_default.node_port_north {
+    position: absolute;
+    bottom: calc(-1 * var(--overview_port_size) / 2);
+    left: calc(50% - var(--overview_port_size) / 2);
+    background-image: linear-gradient(
+        180deg,
+        transparent 0%,
+        transparent 50%,
+        var(--border_color_primary) 50%,
+        var(--border_color_primary) 100%
+    );
+}
+.node_port_border_default.node_port_west {
+    position: absolute;
+    top: calc(50% - var(--overview_port_size) / 2);
+    left: calc(-1 * var(--overview_port_size) / 2);
+    background-image: linear-gradient(
+        270deg,
+        transparent 0%,
+        transparent 50%,
+        var(--border_color_primary) 50%,
+        var(--border_color_primary) 100%
+    );
+}
+.node_port_border_default.node_port_east {
+    position: absolute;
+    top: calc(50% - var(--overview_port_size) / 2);
+    right: calc(-1 * var(--overview_port_size) / 2);
+    background-image: linear-gradient(
+        90deg,
+        transparent 0%,
+        transparent 50%,
+        var(--border_color_primary) 50%,
+        var(--border_color_primary) 100%
+    );
+}
+.node_port_border_default.node_port_south {
+    position: absolute;
+    top: calc(-1 * var(--overview_port_size) / 2);
+    left: calc(50% - var(--overview_port_size) / 2);
+    background-image: linear-gradient(
+        0deg,
+        transparent 0%,
+        transparent 50%,
+        var(--border_color_primary) 50%,
+        var(--border_color_primary) 100%
+    );
+}
+
+.node_port_border_focused {
+    width: var(--overview_port_size_focused);
+    height: var(--overview_port_size_focused);
+    border-radius: calc(var(--overview_port_size_focused) / 2);
+}
+.node_port_border_focused::before {
+    position: absolute;
+    top: var(--overview_focus_border_width);
+    left: var(--overview_focus_border_width);
+    width: calc(var(--overview_port_size_focused) - (var(--overview_focus_border_width) * 2));
+    height: calc(var(--overview_port_size_focused) - (var(--overview_focus_border_width) * 2));
+    content: '';
+    background-color: var(--overview_card_bg);
+    border-radius: 50%;
+    transition: background-color ease-out 0.12s;
+}
+.node_port_border_focused::after {
+    position: absolute;
+    top: calc(var(--overview_port_size_focused) / 4);
+    left: calc(var(--overview_port_size_focused) / 4);
+    width: calc(var(--overview_port_size_focused) / 2);
+    height: calc(var(--overview_port_size_focused) / 2);
+    content: '';
+    border-radius: 50%;
+    background-color: var(--overview_node_focus_port_color);
+    transition: background-color ease-out 0.12s;
+}
+.node_port_border_focused.node_port_north {
+    position: absolute;
+    bottom: calc(-1 * var(--overview_port_size_focused) / 2);
+    left: calc(50% - var(--overview_port_size_focused) / 2);
+    background-image: linear-gradient(
+        180deg,
+        transparent 0%,
+        transparent 50%,
+        var(--overview_node_focus_border_color) 50%,
+        var(--overview_node_focus_border_color) 100%
+    );
+}
+.node_port_border_focused.node_port_west {
+    position: absolute;
+    top: calc(50% - var(--overview_port_size_focused) / 2);
+    left: calc(-1 * var(--overview_port_size_focused) / 2);
+    background-image: linear-gradient(
+        270deg,
+        transparent 0%,
+        transparent 50%,
+        var(--overview_node_focus_border_color) 50%,
+        var(--overview_node_focus_border_color) 100%
+    );
+}
+.node_port_border_focused.node_port_east {
+    position: absolute;
+    top: calc(50% - var(--overview_port_size_focused) / 2);
+    right: calc(-1 * var(--overview_port_size_focused) / 2);
+    background-image: linear-gradient(
+        90deg,
+        transparent 0%,
+        transparent 50%,
+        var(--overview_node_focus_border_color) 50%,
+        var(--overview_node_focus_border_color) 100%
+    );
+}
+.node_port_border_focused.node_port_south {
+    position: absolute;
+    top: calc(-1 * var(--overview_port_size_focused) / 2);
+    left: calc(50% - var(--overview_port_size_focused) / 2);
+    background-image: linear-gradient(
+        0deg,
+        transparent 0%,
+        transparent 50%,
+        var(--overview_node_focus_border_color) 50%,
+        var(--overview_node_focus_border_color) 100%
+    );
+}

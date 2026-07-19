@@ -14,6 +14,24 @@ function quoteIdent(name: string): string {
     return '"' + name.replace(/"/g, '""') + '"';
 }
 
+/// Reads the `"<folder>/<file>"` path a VISUALIZE script reference points at.
+///
+/// Script references are encoded as `dashql.notebook."<folder>/<file>"`; the
+/// combined "<folder>/<file>" lives in the `table_name` slot of the spec's
+/// qualified name. Returns `[folder, file]` when the slot holds a well-formed
+/// path, otherwise null.
+function readScriptReferencePath(spec: buffers.analyzer.VisualizationSpec): [string, string] | null {
+    const tmpName = new buffers.analyzer.QualifiedTableName();
+    const qname = spec.sourceQualifiedName(tmpName);
+    const path = qname?.tableName() ?? null;
+    if (!path) return null;
+    const slash = path.indexOf('/');
+    if (slash > 0 && slash < path.length - 1) {
+        return [path.substring(0, slash), path.substring(slash + 1)];
+    }
+    return null;
+}
+
 /// Resolves the executable SQL and the Vega-Lite spec for the first VISUALIZE
 /// statement in `scriptBuffers`. Returns null if the script does not contain a
 /// VIS_VISUALISE statement, or if the source could not be resolved.
@@ -42,16 +60,9 @@ export function resolveVisualizeQuery(
     let sql: string | null = null;
     switch (spec.sourceKind()) {
         case buffers.analyzer.VisSourceKind.SCRIPT_REFERENCE: {
-            // Script references are encoded as `dashql.notebook."<folder>/<file>"`.
-            // The combined "<folder>/<file>" lives in the `table_name` slot.
-            const tmpName = new buffers.analyzer.QualifiedTableName();
-            const qname = spec.sourceQualifiedName(tmpName);
-            const path = qname?.tableName() ?? null;
-            if (path) {
-                const slash = path.indexOf('/');
-                if (slash > 0 && slash < path.length - 1) {
-                    sql = lookupScriptText(path.substring(0, slash), path.substring(slash + 1));
-                }
+            const ref = readScriptReferencePath(spec);
+            if (ref) {
+                sql = lookupScriptText(ref[0], ref[1]);
             }
             break;
         }

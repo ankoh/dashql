@@ -3,7 +3,7 @@ import * as styles from './notebook_script_feed.module.css';
 
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '@primer/octicons-react';
-import { CodeIcon, PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon } from '@primer/octicons-react';
+import { AppsIcon, CodeIcon, ListUnorderedIcon, PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon } from '@primer/octicons-react';
 
 import { useAppConfig } from '../../app_config.js';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
@@ -36,6 +36,7 @@ import { NotebookScriptName } from './notebook_script_name.js';
 import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
 import { TabKey as DetailsTabKey } from './notebook_script_details.js';
+import { NotebookPageOverview } from './notebook_page_overview.js';
 
 interface FeedScrollTarget {
     fileName: string;
@@ -54,6 +55,9 @@ export interface NotebookScriptListProps {
 const ESTIMATED_ROW_HEIGHT = 120;
 const FEED_EDGE_PADDING = 8;
 const FEED_BOTTOM_FADE_HEIGHT = 24;
+/// Minimum board width (px) at which the zoomed-out overview grid is offered. Roughly matches the
+/// 1300px window-width CSS breakpoint that hides the toggle, once the desktop sidebar is subtracted.
+const OVERVIEW_MIN_BOARD_WIDTH = 1000;
 
 /// Resolve the output columns (result schema) a script produced on its most recent execution, for
 /// the agent's visualize context. Output columns only exist after execution, so this reads the
@@ -424,6 +428,11 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const config = useAppConfig();
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
     const entries = getSelectedPageEntries(props.notebook);
+    // The feed body can be viewed two ways: the classic vertical list, or a zoomed-out overview
+    // grid of the same entries. Both share the feed chrome (background + compose card below), so
+    // the mode only swaps the scrolling content area — the overview is "just" another view of the
+    // feed, not a separate page.
+    const [viewMode, setViewMode] = React.useState<'feed' | 'overview'>('feed');
     const pendingScrollToBottomRef = React.useRef(false);
     const [composeEditorView, setComposeEditorView] = React.useState<EditorView | null>(null);
     // The SQL/AI input mode is hoisted into the command context so the "Switch Mode" command
@@ -751,6 +760,17 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const listHeight = listContainerSize?.height ?? 0;
     const listRef = useListRef(null);
 
+    // The overview grid is only offered on wide boards (the toggle is hidden below ~1000px of board
+    // width, matching the ~1300px window CSS breakpoint). If the board shrinks below that while in
+    // overview mode, fall back to the feed so the user is never stranded without the (now hidden)
+    // toggle. Guard on a measured width > 0 so we don't flip during the initial unmeasured render.
+    const overviewAvailable = listWidth === 0 || listWidth >= OVERVIEW_MIN_BOARD_WIDTH;
+    React.useEffect(() => {
+        if (viewMode === 'overview' && !overviewAvailable) {
+            setViewMode('feed');
+        }
+    }, [viewMode, overviewAvailable]);
+
     // Track the height of the composer for the filler row
     const composeSectionRef = React.useRef<HTMLDivElement>(null);
     const composeSectionSize = observeSize(composeSectionRef);
@@ -840,24 +860,44 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
 
     return (
         <div className={styles.feed_body_container} data-tauri-drag-region="deep">
+            {overviewAvailable && (
+                <button
+                    type="button"
+                    className={styles.view_toggle}
+                    aria-label={viewMode === 'overview' ? 'Show feed' : 'Show overview'}
+                    aria-pressed={viewMode === 'overview'}
+                    title={viewMode === 'overview' ? 'Show feed' : 'Show overview'}
+                    onClick={() => setViewMode(m => m === 'overview' ? 'feed' : 'overview')}
+                >
+                    {viewMode === 'overview' ? <ListUnorderedIcon /> : <AppsIcon />}
+                </button>
+            )}
             <div className={styles.feed_list_container} ref={listContainerRef}>
-                <List
-                    key={props.notebook.notebookUserFocus.folderName}
-                    listRef={listRef}
-                    style={{ width: listWidth, height: listHeight }}
-                    rowCount={entries.length + 2}
-                    rowHeight={(rowIndex) => {
-                        if (rowIndex === 0) {
-                            return FEED_EDGE_PADDING;
-                        }
-                        if (rowIndex <= entries.length) {
-                            return getRowHeight(rowIndex - 1);
-                        }
-                        return fillerRowHeight + FEED_EDGE_PADDING;
-                    }}
-                    rowComponent={ScriptFeedRow}
-                    rowProps={rowProps}
-                />
+                {viewMode === 'overview' ? (
+                    <NotebookPageOverview
+                        notebook={props.notebook}
+                        modifyNotebook={props.modifyNotebook}
+                        showDetails={props.showDetails}
+                    />
+                ) : (
+                    <List
+                        key={props.notebook.notebookUserFocus.folderName}
+                        listRef={listRef}
+                        style={{ width: listWidth, height: listHeight }}
+                        rowCount={entries.length + 2}
+                        rowHeight={(rowIndex) => {
+                            if (rowIndex === 0) {
+                                return FEED_EDGE_PADDING;
+                            }
+                            if (rowIndex <= entries.length) {
+                                return getRowHeight(rowIndex - 1);
+                            }
+                            return fillerRowHeight + FEED_EDGE_PADDING;
+                        }}
+                        rowComponent={ScriptFeedRow}
+                        rowProps={rowProps}
+                    />
+                )}
             </div>
             <div className={styles.compose_section} ref={composeSectionRef} style={{ right: composeScrollbarInset }}>
                 <div className={styles.compose_card}>
