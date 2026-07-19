@@ -1379,6 +1379,13 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
         return completion;
     }
 
+    // Don't complete inside comments.
+    // Comments live outside the symbol stream, so the scanner location snaps to an adjacent token;
+    // completing there would suggest code inside a comment and skip the cursor to the token after it.
+    if (cursor.script.scanned_script->IsInsideComment(cursor.text_offset)) {
+        return completion;
+    }
+
     // Maintain target and previous symbols
     auto& target_symbol = completion->target_scanner_symbol;
     auto& symbols = cursor.script.scanned_script->GetSymbols();

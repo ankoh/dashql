@@ -387,4 +387,80 @@ TEST(CompletionTest, NotebookQualifiedName_Visualize) {
                        << " context=" << cursor_ptr->context.index();
 }
 
+TEST(CompletionTest, NoCompletionInsideLineComment) {
+    const std::string_view main_script_text = R"SQL(
+SELECT 1 -- sel
+    )SQL";
+
+    Catalog catalog;
+    Script main_script{catalog};
+    main_script.InsertTextAt(0, main_script_text);
+    ASSERT_NO_THROW({
+        main_script.Scan();
+        main_script.Parse();
+        main_script.Analyze();
+    });
+
+    // Cursor at the end of "sel" inside the line comment.
+    auto cursor_ofs = main_script_text.find("sel") + std::string_view{"sel"}.size();
+    main_script.MoveCursor(cursor_ofs);
+
+    auto completion = main_script.CompleteAtCursor();
+    ASSERT_TRUE(completion->GetResultCandidates().empty())
+        << "Expected no completion inside a line comment, got " << completion->GetResultCandidates().size();
+}
+
+TEST(CompletionTest, NoCompletionInsideBlockComment) {
+    const std::string_view main_script_text = R"SQL(
+SELECT 1 /* sel */ FROM x
+    )SQL";
+
+    Catalog catalog;
+    Script main_script{catalog};
+    main_script.InsertTextAt(0, main_script_text);
+    ASSERT_NO_THROW({
+        main_script.Scan();
+        main_script.Parse();
+        main_script.Analyze();
+    });
+
+    // Cursor at the end of "sel" inside the block comment.
+    auto cursor_ofs = main_script_text.find("sel") + std::string_view{"sel"}.size();
+    main_script.MoveCursor(cursor_ofs);
+
+    auto completion = main_script.CompleteAtCursor();
+    ASSERT_TRUE(completion->GetResultCandidates().empty())
+        << "Expected no completion inside a block comment, got " << completion->GetResultCandidates().size();
+}
+
+TEST(CompletionTest, CompletionRightBeforeComment) {
+    const std::string_view main_script_text = R"SQL(
+SELECT * FROM supplier gro-- comment
+    )SQL";
+
+    Catalog catalog;
+    Script main_script{catalog};
+    main_script.InsertTextAt(0, main_script_text);
+    ASSERT_NO_THROW({
+        main_script.Scan();
+        main_script.Parse();
+        main_script.Analyze();
+    });
+
+    // Cursor at the end of "gro", immediately before the `--` comment start.
+    auto cursor_ofs = main_script_text.find("gro") + std::string_view{"gro"}.size();
+    main_script.MoveCursor(cursor_ofs);
+
+    // The comment right after the cursor must not suppress completion: "group" is still offered.
+    auto completion = main_script.CompleteAtCursor();
+    bool found_group = false;
+    for (auto& candidate : completion->GetResultCandidates()) {
+        if (candidate.completion_text == "group") {
+            found_group = true;
+            break;
+        }
+    }
+    ASSERT_TRUE(found_group) << "Expected completion right before a comment";
+}
+
 }  // namespace

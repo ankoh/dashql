@@ -1,5 +1,5 @@
 -- Fetch vega cars
--- R2 Access Keys are read-only and public
+-- R2 key is read-only and public
 
 select *
 from external(

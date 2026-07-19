@@ -136,6 +136,12 @@ class ScannedScript {
     };
     /// Find token at text offset
     LocationInfo FindSymbol(size_t text_offset);
+    /// Is a text offset inside a comment?
+    /// Comments are not part of the symbol stream (they live in `comments`), so a cursor within a
+    /// comment would otherwise snap to an adjacent token. Returns true when the offset sits strictly
+    /// inside a comment span; the leading position is excluded so completion still fires right before
+    /// a comment, and the trailing `*/` of a block comment is excluded so it fires right after one.
+    bool IsInsideComment(size_t text_offset) const;
     /// Pack scanned program
     flatbuffers::Offset<buffers::parser::ScannedScript> Pack(flatbuffers::FlatBufferBuilder& builder);
 };

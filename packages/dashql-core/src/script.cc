@@ -167,6 +167,33 @@ ScannedScript::LocationInfo ScannedScript::FindSymbol(size_t text_offset) {
     return {std::move(current_symbol), std::move(prev_symbol)};
 }
 
+/// Is a text offset inside a comment?
+bool ScannedScript::IsInsideComment(size_t text_offset) const {
+    // Comments are stored sorted by offset (the scanner emits them left to right), so binary search
+    // for the last comment that starts at or before the cursor.
+    auto iter = std::upper_bound(comments.begin(), comments.end(), text_offset,
+                                 [](size_t ofs, const buffers::parser::TextSpan& c) { return ofs < c.offset(); });
+    if (iter == comments.begin()) {
+        return false;
+    }
+    --iter;
+    auto begin = iter->offset();
+    auto end = begin + iter->length();
+
+    // The leading position is never "inside": a cursor right before `--` or `/*` still belongs to
+    // the preceding code, so completion should fire there.
+    if (text_offset <= begin) {
+        return false;
+    }
+
+    // Line comments (`-- ...`) don't include the terminating newline in their span, so the cursor is
+    // still inside the comment when it sits at the span end (end of the commented line). Block
+    // comments (`/* ... */`) include the closing `*/`, so a cursor at the span end is past the
+    // comment and completion should fire again.
+    bool is_line_comment = iter->length() >= 2 && text_buffer[begin] == '-' && text_buffer[begin + 1] == '-';
+    return is_line_comment ? (text_offset <= end) : (text_offset < end);
+}
+
 flatbuffers::Offset<buffers::parser::ScannedScript> ScannedScript::Pack(flatbuffers::FlatBufferBuilder& builder) {
     buffers::parser::ScannedScriptT out;
     out.external_id = external_id;
