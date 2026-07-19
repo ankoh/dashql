@@ -35,8 +35,9 @@ Completion::Compute(cursor, k, registry)
 ├─ QualifyTopCandidates()         → derive qualified names
 │
 ├─ [if identifier context && !at_definition]
-│  ├─ FindIdentifierSnippetsForTopCandidates(registry)
-│  └─ DeriveKeywordSnippetsForTopCandidates()
+│  └─ FindIdentifierSnippetsForTopCandidates(registry)   (write front only)
+├─ DeriveKeywordSnippetsForTopCandidates(prefix snapshot)
+│   └─ ProbeSuffixSequenceFromSnapshot() — keep continuation if suffix still parses (mid-statement)
 │
 └─ Pack() → FlatBuffer result to frontend
 ```
@@ -114,6 +115,14 @@ The completion engine threads these into scoring via three `CandidateTag` flags:
 See [core_completion_ranking.md](core_completion_ranking.md) for the magnitudes.
 
 The probe is skipped when there is no real post-cursor token (cursor at EOF, or only the synthetic EOF token follows), and only applied to keyword candidates — identifier candidates from the name index are not probed.
+
+`Completion::has_post_cursor_token` (computed by `computeHasPostCursorToken`, using the same feed-point / replace-vs-insert logic) records whether a real token follows the cursor. It gates the batch probe above and — via the sequence probe below — the suffix-aware filtering of keyword continuations.
+
+#### Sequence probe (continuations)
+
+`ProbeSuffixBatchFromSnapshot` feeds a *single* symbol. Keyword continuations need to feed *two* symbols — the candidate keyword followed by its continuation (e.g. `group` + `by`) — before letting the real suffix flow, because the continuation is what actually gets inserted. `Parser::ProbeSuffixSequenceFromSnapshot(scanned, feed_id, prefix, feed_symbols, replace_target)` generalizes the probe to a feed *sequence*: in replace mode only the first fed symbol stands in for the typed token, and every symbol after it is an insertion (the scanner rewinds so no real token is consumed); the `SuffixProbe` signals then describe only the real suffix shifted *after* the whole fed sequence.
+
+This lets continuation derivation stay suffix-aware rather than blanket-gated. At the write front every continuation is kept; mid-statement, a continuation is kept only if feeding `[candidate, continuation]` leaves the actual post-cursor stream parseable (`k1_compatible || reached_eof`). So `select a from tbl gro| a` keeps `group by` (the bare `group` candidate may itself be `SUFFIX_INCOMPATIBLE`, but `group by a` parses cleanly), while `select bar as ba| from foo` drops the `into` continuation (`background into from` is broken) and `select a from tbl gro| where b = 1` drops `by` (`group by where` can't parse).
 
 ## Candidate sources
 
@@ -229,7 +238,7 @@ Both are indexed by `QualifiedCatalogObjectID` (database + schema + table + colu
 
 1. **Promotion** (`PromoteIdentifiersInScripts`): The registry tells the scoring system which candidates appear in other scripts, boosting their rank with `IN_SAME_SCRIPT` / `IN_OTHER_SCRIPT` tags.
 
-2. **Snippets** (`FindIdentifierSnippetsForTopCandidates`): After top-k selection, the engine queries the registry for filter and computation snippets associated with each winning catalog object. These become the templates offered in step 3 of multi-step completion.
+2. **Snippets** (`FindIdentifierSnippetsForTopCandidates`): After top-k selection, the engine queries the registry for filter and computation snippets associated with each winning catalog object. These become the templates offered in step 3 of multi-step completion. Snippets are attached only at the write front (`has_post_cursor_token` false): a template splices a multi-token snippet with a value placeholder (e.g. `a = <value>`), which can't be cleanly replayed through the parser like a keyword continuation, so mid-statement the snippet is suppressed rather than suffix-checked.
 
 #### Lazy cleanup
 
@@ -249,6 +258,8 @@ The `find_continuation` heuristic picks a continuation when:
 When many unreserved keywords are expected (because IDENT is valid and all unreserved keywords can serve as identifiers), the continuation score disambiguates: only a keyword with a uniquely highest score is selected. Keywords that follow their predecessor in nearly all contexts (BY after GROUP/ORDER, AS after VISUALISE ident) have score 10; context-specific continuations (ASC, DESC, NULLS, etc.) have score 6; everything else has 0.
 
 Identifier candidates also receive a continuation: the engine feeds `IDENT` once and finds the best keyword continuation for the generic identifier case (e.g. identifiers in CTE position get `as`).
+
+A chosen continuation is then validated against the post-cursor stream. At the write front it is always kept; mid-statement, `DeriveKeywordSnippetsForTopCandidates` runs the [sequence probe](#sequence-probe-continuations) on `[candidate, continuation]` and keeps the continuation only if the real suffix still parses. This drops continuations that would collide with trailing text (e.g. `into` before `from`, or a `by` that a reserved `where` follows) while keeping valid mid-statement ones — replacing an earlier blanket "write front only" gate that suppressed all mid-statement continuations. Note the probe uses the parser's k=1 test, so an unreserved keyword that follows (e.g. a column literally named `by`) leaves the continuation compatible.
 
 The frontend renders the continuation as additional ghost text after the candidate insertion (e.g. typing `gro` shows `group by` as the inline hint).
 

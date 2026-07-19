@@ -196,4 +196,5 @@ The full completion pipeline in `Completion::Compute`:
 6. `PromoteIdentifiersInScripts` — tag candidates referenced in other scripts.
 7. `SelectTopCandidates` — compute final scores, select top-k via a min-heap.
 8. `QualifyTopCandidates` — derive qualified names for the winners.
-9. `FindIdentifierSnippetsForTopCandidates` — attach code snippets from the script registry.
+9. `FindIdentifierSnippetsForTopCandidates` — attach code snippets from the script registry (write front only).
+10. `DeriveKeywordSnippetsForTopCandidates` — attach keyword continuations, suffix-checked mid-statement (see `core_completion.md`).
