@@ -154,6 +154,9 @@ class NativeHyperDatabaseChannel implements HyperDatabaseChannel {
         for (const db of this.connection.getAttachedDatabases()) {
             params.database.push(buf.create(pb.salesforce_hyperdb_grpc_v1.pb.AttachedDatabaseSchema, db));
         }
+        for (const [key, value] of Object.entries(this.connection.getQueryParameters())) {
+            params.params[key] = value;
+        }
         const stream = await this.grpcChannel.startServerStream({
             path: "/salesforce.hyperdb.grpc.v1.HyperService/ExecuteQuery",
             body: buf.toBinary(pb.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, params)

@@ -1,0 +1,1 @@
+select * from external('https://data.dashql.app/vega-cars/v1/cars.parquet', format => 'parquet')

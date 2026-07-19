@@ -12,6 +12,8 @@ export interface AttachedDatabase {
 export interface HyperDatabaseConnectionContext extends ChannelMetadataProvider {
     /// Get the attached databases for a call
     getAttachedDatabases(): AttachedDatabase[];
+    /// Get the query parameters that are added to every query
+    getQueryParameters(): Record<string, string>;
 }
 
 export interface HyperQueryExecutionProgress extends QueryExecutionProgress { }

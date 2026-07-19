@@ -26,6 +26,9 @@ describe('Native Hyper client', () => {
         },
         getRequestMetadata(): Promise<Record<string, string>> {
             return Promise.resolve({});
+        },
+        getQueryParameters(): Record<string, string> {
+            return {};
         }
     };
 
@@ -81,6 +84,39 @@ describe('Native Hyper client', () => {
         await channel.executeQuery(params);
         expect(server.executeQueryRequests).toHaveLength(1);
         expect(server.executeQueryRequests[0].query).toEqual("select 1");
+        await server.close();
+    });
+
+    it("forwards query parameters from the connection context", async () => {
+        const server = new TestHyperGrpcServer();
+        await server.start();
+        const testChannelArgs = ({
+            endpoint: server.endpoint!
+        }) as connection.HyperConnectionParams;
+        const logger = new TestLogger();
+        const client = new NativeHyperDatabaseClient({
+            proxyEndpoint: new URL("dashql-native://localhost")
+        }, logger);
+
+        const contextWithParams: HyperDatabaseConnectionContext = {
+            getAttachedDatabases: () => [],
+            getRequestMetadata: () => Promise.resolve({}),
+            getQueryParameters: () => ({ lc_time: "de_DE", time_zone: "UTC" }),
+        };
+
+        const channel = await client.connect(testChannelArgs, contextWithParams);
+        server.executeQueryHandler = async () => ({
+            messages: [
+                buf.create(pb.salesforce_hyperdb_grpc_v1.pb.QueryResultSchema$)
+            ],
+        });
+
+        const params = buf.create(pb.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, {
+            query: "select 1"
+        }) as pb.salesforce_hyperdb_grpc_v1.pb.QueryParam;
+        await channel.executeQuery(params);
+        expect(server.executeQueryRequests).toHaveLength(1);
+        expect(server.executeQueryRequests[0].params).toEqual({ lc_time: "de_DE", time_zone: "UTC" });
         await server.close();
     });
 

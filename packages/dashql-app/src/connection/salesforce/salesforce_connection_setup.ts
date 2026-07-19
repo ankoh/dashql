@@ -264,6 +264,9 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
                     audience: authInfo?.offcoreTenantId ?? "",
                     authorization: `Bearer ${authInfo?.offcoreRawJwt}`,
                 };
+            },
+            getQueryParameters(): Record<string, string> {
+                return {};
             }
         };
 

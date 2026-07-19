@@ -54,6 +54,9 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
             },
             async getRequestMetadata(): Promise<Record<string, string>> {
                 return (params.metadata as any)?.data ?? {};
+            },
+            getQueryParameters(): Record<string, string> {
+                return params.queryParameters ?? {};
             }
         };
 

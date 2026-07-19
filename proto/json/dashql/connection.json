@@ -176,6 +176,13 @@
             "type": "string"
           },
           "description": "The metadata"
+        },
+        "queryParameters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "The query parameters that are added to every query"
         }
       },
       "required": ["protocol", "endpoint", "tls"],

@@ -215,7 +215,9 @@ class WebHyperDatabaseChannel implements HyperDatabaseChannel {
 
     async executeQuery(params: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal): Promise<HyperQueryResultStream> {
         const sql = params.query;
-        const { status, response } = await this.httpClient.executeQuery({ sql }, undefined, abort);
+        const queryParameters = this.connection.getQueryParameters();
+        const settings = Object.keys(queryParameters).length > 0 ? queryParameters : undefined;
+        const { status, response } = await this.httpClient.executeQuery({ sql, settings }, undefined, abort);
         if (!status || !status.queryId) {
             throw new Error("v3 query response missing status header");
         }

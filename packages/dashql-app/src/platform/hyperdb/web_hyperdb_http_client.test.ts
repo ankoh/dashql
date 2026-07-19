@@ -18,6 +18,9 @@ const noopContext: HyperDatabaseConnectionContext = {
     async getRequestMetadata(): Promise<Record<string, string>> {
         return {};
     },
+    getQueryParameters(): Record<string, string> {
+        return {};
+    },
 };
 
 function makeHyperArgs(): connection.HyperConnectionParams {
@@ -65,6 +68,7 @@ describe('WebHyperDatabaseClient', () => {
             const ctx: HyperDatabaseConnectionContext = {
                 getAttachedDatabases: () => [],
                 getRequestMetadata: async () => ({ Authorization: 'Bearer test-token' }),
+                getQueryParameters: () => ({}),
             };
             mock.setHandler(() => ({
                 queryId: 'q-auth',
@@ -78,6 +82,45 @@ describe('WebHyperDatabaseClient', () => {
             const init = spy.mock.calls[0][1] as RequestInit;
             const headers = init.headers as Headers;
             expect(headers.get('Authorization')).toBe('Bearer test-token');
+        });
+
+        it('forwards query parameters as request settings', async () => {
+            let capturedSettings: Record<string, unknown> | undefined;
+            const ctx: HyperDatabaseConnectionContext = {
+                getAttachedDatabases: () => [],
+                getRequestMetadata: async () => ({}),
+                getQueryParameters: () => ({ lc_time: 'de_DE', time_zone: 'UTC' }),
+            };
+            mock.setHandler((_sql, request) => {
+                capturedSettings = request.settings;
+                return {
+                    queryId: 'q-settings',
+                    completionStatus: 'RESULTS_PRODUCED',
+                    arrowBytes: encodeIntTable('n', [1]),
+                };
+            });
+
+            const channel = await client.connect(makeHyperArgs(), ctx);
+            await channel.executeQuery({ query: 'select 1 as n' } as any);
+
+            expect(capturedSettings).toEqual({ lc_time: 'de_DE', time_zone: 'UTC' });
+        });
+
+        it('omits settings when there are no query parameters', async () => {
+            let sawSettingsKey = false;
+            mock.setHandler((_sql, request) => {
+                sawSettingsKey = 'settings' in request;
+                return {
+                    queryId: 'q-no-settings',
+                    completionStatus: 'RESULTS_PRODUCED',
+                    arrowBytes: encodeIntTable('n', [1]),
+                };
+            });
+
+            const channel = await client.connect(makeHyperArgs(), noopContext);
+            await channel.executeQuery({ query: 'select 1 as n' } as any);
+
+            expect(sawSettingsKey).toBe(false);
         });
     });
 

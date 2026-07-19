@@ -44,6 +44,7 @@ interface PageState {
     mTlsCaPath: string;
     attachedDatabases: KeyValueListElement[];
     gRPCMetadata: KeyValueListElement[];
+    queryParameters: KeyValueListElement[];
 };
 
 function buildPageStateFromParams(params: connection.HyperConnectionParams | undefined): PageState {
@@ -59,6 +60,7 @@ function buildPageStateFromParams(params: connection.HyperConnectionParams | und
             value: db?.alias ?? "",
         })),
         gRPCMetadata: Object.entries(metadataDetails ?? {}).map(([k, v]) => ({ key: k, value: v ?? "" })),
+        queryParameters: Object.entries(params?.queryParameters ?? {}).map(([k, v]) => ({ key: k, value: v ?? "" })),
     };
 }
 
@@ -113,6 +115,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const setMTLSCaPath = (v: string) => setPageState(s => ({ ...s, mTlsCaPath: v }));
     const modifyAttachedDbs: Dispatch<UpdateKeyValueList> = (action: UpdateKeyValueList) => setPageState(s => ({ ...s, attachedDatabases: action(s.attachedDatabases) }));
     const modifyGrpcMetadata: Dispatch<UpdateKeyValueList> = (action: UpdateKeyValueList) => setPageState(s => ({ ...s, gRPCMetadata: action(s.gRPCMetadata) }));
+    const modifyQueryParameters: Dispatch<UpdateKeyValueList> = (action: UpdateKeyValueList) => setPageState(s => ({ ...s, queryParameters: action(s.queryParameters) }));
     const isGrpc = protocol === "V3_GRPC";
 
     // Docker panel state — lifted so the +/− IconButtons can live in the connection header.
@@ -136,7 +139,8 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
             message: "",
             details: flattenKeyValueList(pageState.gRPCMetadata)
         } as any,
-    }), [pageState.protocol, pageState.endpoint, pageState.attachedDatabases, pageState.gRPCMetadata]);
+        queryParameters: flattenKeyValueList(pageState.queryParameters),
+    }), [pageState.protocol, pageState.endpoint, pageState.attachedDatabases, pageState.gRPCMetadata, pageState.queryParameters]);
     const setupAbortController = React.useRef<AbortController | null>(null);
     const setupConnection = async () => {
         // Is there a Hyper client?
@@ -312,6 +316,17 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                             addButtonLabel="Add Header"
                             elements={pageState.gRPCMetadata}
                             modifyElements={modifyGrpcMetadata}
+                            disabled={freezeInput}
+                            readOnly={freezeInput}
+                        />
+                        <KeyValueListBuilder
+                            title="Query Parameters"
+                            caption="Connection settings that are added to every query"
+                            keyIcon={() => <div>Name</div>}
+                            valueIcon={() => <div>Value</div>}
+                            addButtonLabel="Add Parameter"
+                            elements={pageState.queryParameters}
+                            modifyElements={modifyQueryParameters}
                             disabled={freezeInput}
                             readOnly={freezeInput}
                         />
