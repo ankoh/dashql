@@ -27,6 +27,12 @@ export enum SessionValidationError {
     MissingConnectionParams = 'missing_connection_params',
     /// The `connectionParams` do not match any known connector.
     UnknownConnector = 'unknown_connector',
+    /// The session is registered in the manifest but its files can't be read (e.g. a native session
+    /// whose folder was moved or deleted on disk, or a corrupt/absent OPFS session). Unlike the
+    /// errors above this is detected by an actual load failure rather than by inspecting metadata,
+    /// but it lands in the same bucket: the session can't be opened and should be surfaced as invalid
+    /// so the user can remove the stale entry.
+    SessionUnreadable = 'session_unreadable',
 }
 
 /// A short, human-readable explanation for each validation error, shown in the session selector.
@@ -40,6 +46,8 @@ export function describeSessionValidationError(error: SessionValidationError): s
             return 'Missing connection parameters';
         case SessionValidationError.UnknownConnector:
             return 'Unknown connector';
+        case SessionValidationError.SessionUnreadable:
+            return 'Session files missing';
     }
 }
 

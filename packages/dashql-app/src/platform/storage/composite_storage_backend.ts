@@ -167,17 +167,22 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
     }
 
     async deleteSession(sessionId: string): Promise<void> {
-        const backend = await this.backendFor(sessionId);
-        if (backend === this.opfs) {
+        const loc = this.locationOf(sessionId);
+        if (loc.type === StorageBackendType.Native) {
+            // Native: the files live in a user-owned folder on disk, so we never delete them —
+            // deleting just unregisters the session by dropping the registry entry kept in OPFS.
+            //
+            // We deliberately do NOT route through `backendFor` here. The native backend's
+            // `deleteSession` is a no-op, but resolving it would `initialize()` the directory, which
+            // re-creates it via `mkdir`. For a session whose folder was moved/deleted on disk (the
+            // exact case that makes it deletable-because-invalid) that would either resurrect an empty
+            // folder or throw before we ever dropped the stale manifest entry — leaving it to error
+            // again on the next launch. Dropping the entry is all that's needed and can't fail on a
+            // missing folder.
+            await this.opfs.removeSessionEntry(sessionId);
+        } else {
             // OPFS deletes files and removes the registry entry in one step.
             await this.opfs.deleteSession(sessionId);
-        } else {
-            // Native: the files live in a user-owned folder on disk, so we never delete them
-            // (deleteSession on the native backend is a no-op). Deleting just unregisters the
-            // session by dropping the registry entry kept in OPFS; the folder stays on disk and
-            // can be re-loaded later.
-            await backend.deleteSession(sessionId);
-            await this.opfs.removeSessionEntry(sessionId);
         }
         this.locations.delete(sessionId);
         this.nativeCache.delete(sessionId);

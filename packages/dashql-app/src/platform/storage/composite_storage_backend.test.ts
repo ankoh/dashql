@@ -307,6 +307,24 @@ describe('CompositeStorageBackend', () => {
             // ...but its user-owned folder on disk is left intact.
             expect([...fsStore.files.keys()].filter(p => p.startsWith(`${NATIVE_DIR}/`)).sort()).toEqual(filesBefore);
         });
+
+        it('deletes a native session whose folder is gone: drops the entry without resurrecting the folder', async () => {
+            await seedNativeSession(NATIVE_ID, NATIVE_DIR, 'Native');
+            await composite.initialize();
+
+            // Simulate the user deleting the session's folder on disk out from under dashql — the
+            // manifest still references it. Deleting must drop the stale entry and must NOT re-create
+            // the folder (routing through the native backend's initialize() would mkdir it back).
+            resetFsStore();
+
+            await composite.deleteSession(NATIVE_ID);
+
+            expect(opfs.manifest.find(s => s.path === NATIVE_ID)).toBeUndefined();
+            expect(composite.getSessionLocation(NATIVE_ID).type).toBe(StorageBackendType.OPFS); // default for unknown
+            // The folder was not resurrected as an empty directory.
+            expect(fsStore.dirs.has(NATIVE_DIR)).toBe(false);
+            expect([...fsStore.files.keys()].some(p => p.startsWith(`${NATIVE_DIR}/`))).toBe(false);
+        });
     });
 
     describe('relocateSessionToNative', () => {

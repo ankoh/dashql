@@ -79,6 +79,11 @@ describe('describeSessionValidationError', () => {
             expect(msg.length).toBeGreaterThan(0);
         }
     });
+
+    it('describes an unreadable session as missing files', () => {
+        expect(describeSessionValidationError(SessionValidationError.SessionUnreadable))
+            .toBe('Session files missing');
+    });
 });
 
 describe('describeInvalidSession', () => {

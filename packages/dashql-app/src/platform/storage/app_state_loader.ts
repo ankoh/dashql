@@ -230,7 +230,23 @@ async function restoreSession(
     });
 
     logger.info("Loading session data", { sessionPath }, LOG_CTX);
-    const sessionData: SessionData = await backend.loadSession(sessionPath);
+    // The manifest registers this session, but its files may be gone (a native session whose folder
+    // the user moved/deleted, or a corrupt/absent OPFS session). Treat a load failure the same as a
+    // metadata rejection: surface it as an invalid session so the selector shows it blocked and
+    // deletable, rather than letting it fall through to the loader's generic "failed to restore"
+    // path — which logs an error on every launch and leaves the stale entry with no way to remove it.
+    let sessionData: SessionData;
+    try {
+        sessionData = await backend.loadSession(sessionPath);
+    } catch (loadError) {
+        const invalid = describeInvalidSession(sessionEntry, SessionValidationError.SessionUnreadable, null);
+        logger.warn("Refusing to load session with unreadable files", {
+            sessionPath,
+            reason: invalid.error,
+            error: stringifyError(loadError),
+        }, LOG_CTX);
+        throw new InvalidSessionError(invalid);
+    }
 
     // Fail-fast metadata validation: refuse to load a session whose metadata is structurally
     // unusable (no id, no connection params, or params that map to no known connector). This runs

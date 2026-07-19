@@ -165,14 +165,20 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
         // from opening, and can only be deleted.
         const invalid: SessionItemData[] = [];
         for (const inv of (props.invalidSessions?.values() ?? [])) {
+            // Prefer the physical display path (fs://<dir> or opfs://sessions/<uuid>) over the bare
+            // UUID title: for a session that's invalid *because its files are gone* the location is
+            // exactly what lets the user recognise which folder went stale before unlinking it. It's
+            // still resolvable here — the composite backend keeps the manifest's uuid->location map.
+            const location = storageReader.getSessionLocation(inv.sessionId);
+            const displayPath = sessionDisplayPath(inv.sessionId, location);
             invalid.push({
                 sessionId: inv.sessionId,
                 connection: null,
                 displayName: inv.title,
-                displayPath: inv.title,
+                displayPath,
                 connectorType: inv.connectorType ?? ConnectorType.DATALESS,
                 lastAccessed: null,
-                isNative: storageReader.getSessionLocation(inv.sessionId).type === StorageBackendType.Native,
+                isNative: location.type === StorageBackendType.Native,
                 invalidReason: describeSessionValidationError(inv.error),
             });
         }

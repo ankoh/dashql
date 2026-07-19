@@ -260,12 +260,15 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        // Good DATALESS session should be restored, bad session should fail
+        // Good DATALESS session should be restored; a session whose files can't be read is surfaced
+        // as invalid (blocked + deletable in the selector), not left as a silent restore failure.
         expect(result.connectionStates.size).toBe(1);
         expect(result.connectionStates.has(GOOD_ID)).toBe(true);
+        expect(result.invalidSessions.get(BAD_ID)?.error).toBe('session_unreadable');
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
-        expect(finalProgress.restoreConnections.failed).toBe(1); // bad session
+        expect(finalProgress.restoreConnections.failed).toBe(0);
+        expect(finalProgress.restoreConnections.skipped).toBe(1); // unreadable session
         expect(finalProgress.restoreConnections.succeeded).toBe(1); // good DATALESS session restored
     });
 
@@ -420,7 +423,10 @@ describe('restoreAppState', () => {
         expect(result.invalidSessions.get(NO_ID_PATH)?.error).toBe('missing_session_id');
     });
 
-    it('still hard-fails (not skips) a session whose load throws', async () => {
+    it('surfaces a session whose load throws as invalid (unreadable), keyed by manifest path', async () => {
+        // A native session folder that was moved/deleted (or a corrupt OPFS session) makes loadSession
+        // throw. Rather than a silent restore failure that logs on every launch with no way to remove
+        // the stale entry, it must land in invalidSessions so the selector can show it deletable.
         const goodSession = { path: GOOD_ID };
         const throwingSession = { path: THROWING_ID };
 
@@ -448,13 +454,18 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        // The throwing session is a genuine failure, not a validation-skip.
+        // The throwing session is surfaced as invalid (skipped), not counted as a hard failure.
         expect(result.connectionStates.size).toBe(1);
-        expect(result.invalidSessions.size).toBe(0);
+        expect(result.invalidSessions.size).toBe(1);
+        const invalid = result.invalidSessions.get(THROWING_ID)!;
+        expect(invalid.error).toBe('session_unreadable');
+        // Keyed by the manifest entry path — that is the registry/delete key, and the session data
+        // was never readable to provide any other identity.
+        expect(invalid.sessionId).toBe(THROWING_ID);
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
-        expect(finalProgress.restoreConnections.failed).toBe(1);
-        expect(finalProgress.restoreConnections.skipped).toBe(0);
+        expect(finalProgress.restoreConnections.failed).toBe(0);
+        expect(finalProgress.restoreConnections.skipped).toBe(1);
         expect(finalProgress.restoreConnections.succeeded).toBe(1);
     });
 

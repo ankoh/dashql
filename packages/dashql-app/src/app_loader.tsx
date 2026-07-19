@@ -179,9 +179,12 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             traced.info("Loading application state and notebooks", {}, "app_loader");
             const loaded = await loadApp(config, traced, core, storageReader, setConnReg, allocateConnection, connDispatch, setNotebookReg, setupDemo, setLoadingProgress, abort.signal);
 
-            // Surface any sessions that were refused a load in the selector
+            // Surface any sessions that were refused a load in the selector. This is just an
+            // aggregate count for the log — each refused session already logs a WARN with its path
+            // and reason (which raises a UI popup), so a second WARN here would only double up. Keep
+            // it at INFO.
             if (loaded.invalidSessions.size > 0) {
-                traced.warn("Some sessions were refused a load", {
+                traced.info("Some sessions were refused a load", {
                     count: loaded.invalidSessions.size.toString()
                 }, "app_loader");
                 setInvalidSessions(loaded.invalidSessions);
