@@ -102,6 +102,13 @@ class Parser : public ParserBase {
     /// otherwise the candidate is inserted before it and the target is consumed afterward.
     SuffixProbe ProbeSuffixFromPrefix(const PrefixSnapshot& prefix, ChunkBufferEntryID target_symbol_id,
                                        symbol_kind_type feed_symbol, bool replace_target);
+    /// Like `ProbeSuffixFromPrefix`, but feeds a whole SEQUENCE of symbols (e.g. a candidate
+    /// keyword followed by its continuation keyword) before letting the real post-cursor stream
+    /// flow. `depth_consumed`/`k1_compatible`/`reached_eof` describe only the real suffix shifted
+    /// *after* the fed sequence, so this answers "does inserting these tokens keep the suffix
+    /// parseable?".
+    SuffixProbe ProbeSuffixSequenceFromPrefix(const PrefixSnapshot& prefix, ChunkBufferEntryID target_symbol_id,
+                                              std::span<const symbol_kind_type> feed_symbols, bool replace_target);
 
    public:
     /// Parse until a token; return both the expected grammar symbols at the cursor and the
@@ -117,6 +124,13 @@ class Parser : public ParserBase {
     static std::vector<SuffixProbe> ProbeSuffixBatchFromSnapshot(
         ScannedScript& in, ChunkBufferEntryID symbol_id, const PrefixSnapshot& prefix,
         std::span<const symbol_kind_type> feed_symbols, bool replace_target);
+    /// Probe a single feed SEQUENCE against the post-cursor token stream, given a pre-computed
+    /// prefix snapshot. Used to test whether a keyword continuation (candidate + continuation
+    /// keyword) stays compatible with the tokens that already follow the cursor.
+    static SuffixProbe ProbeSuffixSequenceFromSnapshot(ScannedScript& in, ChunkBufferEntryID symbol_id,
+                                                       const PrefixSnapshot& prefix,
+                                                       std::span<const symbol_kind_type> feed_symbols,
+                                                       bool replace_target);
     /// Parse a module (throws Exception on error)
     static std::shared_ptr<ParsedScript> Parse(std::shared_ptr<ScannedScript> in, bool debug = false);
 

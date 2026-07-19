@@ -100,6 +100,9 @@ struct Completion {
 
     /// Helper to find candidates in an index
     void findCandidatesInIndex(const CatalogEntry::NameSearchIndex& index, bool through_catalog);
+    /// Determine whether a real token follows the cursor's feed point (the write-front check).
+    /// Uses the same feed/insert-vs-replace logic as the keyword suffix probe.
+    bool computeHasPostCursorToken() const;
 
    protected:
     /// The script cursor
@@ -112,6 +115,11 @@ struct Completion {
     bool at_definition = false;
     /// Is the cursor between symbols (whitespace after a token)?
     bool between_symbols = false;
+    /// Is there a real token after the cursor's feed point?
+    /// False ⇒ the cursor is at the write front (nothing but EOF follows). Multi-step
+    /// suggestions (keyword continuations, template snippets) are only offered at the write
+    /// front, since a real post-cursor token could conflict with what they'd insert.
+    bool has_post_cursor_token = false;
     /// The symbol that we are completing.
     /// Note that we sometimes have a choice here between the current and the previous symbol.
     std::optional<ScannedScript::SymbolLocationInfo> target_scanner_symbol;
@@ -177,7 +185,10 @@ struct Completion {
     /// Find identifier snippets for results (after flushing)
     void FindIdentifierSnippetsForTopCandidates(ScriptRegistry& registry);
     /// Derive keyword snippets for results (e.g. group >by<, partition >by<, create >table<, inner >join<)
-    void DeriveKeywordSnippetsForTopCandidates();
+    /// `prefix` is the LALR state snapshot from `ParseUntilWithSnapshot`, reused to probe whether a
+    /// continuation stays compatible with the post-cursor token stream (so mid-statement
+    /// continuations that would conflict with trailing text are dropped, but valid ones kept).
+    void DeriveKeywordSnippetsForTopCandidates(const parser::Parser::PrefixSnapshot& prefix);
     /// Make sure top-candidates are qualified
     void QualifyTopCandidates();
 

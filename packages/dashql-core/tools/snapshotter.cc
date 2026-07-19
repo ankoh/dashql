@@ -357,10 +357,11 @@ static void generate_completion_snapshots(const std::filesystem::path& snapshot_
                 for (auto entry_item : registry_node.children()) {
                     if (!entry_item.has_child("script")) continue;
                     auto script_node = entry_item["script"];
-                    auto script_ref = tree.ref(script_node.id());
-                    script_ref |= c4::yml::MAP;  // was scalar (script text); EncodeScript needs a container
                     auto script = read_script_yml(script_node, *catalog);
                     if (script) {
+                        auto script_ref = tree.ref(script_node.id());
+                        script_ref.clear_val();
+                        script_ref |= c4::yml::MAP;  // was scalar (script text); EncodeScript needs a container
                         AnalyzerSnapshotTest::EncodeScript(script_ref, *script->analyzed_script, false);
                         registry.AddScript(*script);
                         registry_scripts.push_back(std::move(script));

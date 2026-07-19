@@ -138,6 +138,12 @@ completion-snapshots:
           location: "veg"
           location-qualified: "veg"
           objects: []
+        - score: 0
+          value: embeddingatlas
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
+          location: "veg"
+          location-qualified: "veg"
+          objects: []
       text: "veg"
 
   - name: vis_renderer_after_using
@@ -169,6 +175,12 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
+        - score: 0
+          value: embeddingatlas
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
         - score: 0
           value: vegalite
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
@@ -710,7 +722,6 @@ completion-snapshots:
           objects: []
         - score: 56
           value: using
-          keyword-continuation: vegalite
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "using"
           location-qualified: "using"

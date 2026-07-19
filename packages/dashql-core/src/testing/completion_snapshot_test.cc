@@ -187,8 +187,18 @@ void CompletionSnapshotTest::EncodeCompletion(c4::yml::NodeRef root, const Compl
                     auto templates_entry = yml_obj.append_child();
                     templates_entry << c4::yml::key("templates");
                     templates_entry |= c4::yml::MAP;
-                    RegistrySnapshotTest::EncodeScriptTemplates(templates_entry, snippets.filter_snippets);
-                    RegistrySnapshotTest::EncodeScriptTemplates(templates_entry, snippets.computation_snippets);
+                    // EncodeScriptTemplates marks its target as a SEQ, so give each group its own
+                    // keyed child instead of aliasing one node (which would be marked SEQ twice).
+                    if (!snippets.filter_snippets.empty()) {
+                        auto filters_node = templates_entry.append_child();
+                        filters_node << c4::yml::key("filters");
+                        RegistrySnapshotTest::EncodeScriptTemplates(filters_node, snippets.filter_snippets);
+                    }
+                    if (!snippets.computation_snippets.empty()) {
+                        auto computations_node = templates_entry.append_child();
+                        computations_node << c4::yml::key("computations");
+                        RegistrySnapshotTest::EncodeScriptTemplates(computations_node, snippets.computation_snippets);
+                    }
                 }
             }
         }

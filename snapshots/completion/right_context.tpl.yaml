@@ -139,3 +139,90 @@ completion-snapshots:
         index: 7
     completions:
       limit: 5
+
+  # Write-front continuation: cursor typing `gro` at the very end of the statement (only EOF
+  # follows). This IS the write front, so the `group` candidate keeps its ` by` keyword
+  # continuation — the gate must not suppress continuations here.
+  - name: write_front_group_continuation
+    catalog:
+      script:
+        input: create table tbl(a int);
+    editor:
+      input: 'select a from tbl gro'
+    cursor:
+      search:
+        text: gro
+        index: 2
+    completions:
+      limit: 5
+
+  # Mid-statement continuation KEPT: typing `gro`→`group` with a bare column `a` following. There
+  # IS a post-cursor token, but `group by a` parses cleanly, so the suffix probe passes and the
+  # `group` candidate keeps its ` by` continuation. This is the case the old blanket write-front
+  # gate wrongly suppressed — valid mid-statement continuations must survive.
+  - name: mid_group_continuation_kept
+    catalog:
+      script:
+        input: create table tbl(a int);
+    editor:
+      input: 'select a from tbl gro a'
+    cursor:
+      search:
+        text: gro
+        index: 2
+    completions:
+      limit: 5
+
+  # Mid-statement continuation suppressed: same `gro`→`group` shape, but a reserved `where` follows.
+  # `group by where ...` can't parse (a reserved `where` can't start a grouping expression), so the
+  # suffix probe fails k1 and the `by` continuation is dropped — even though `group` itself remains.
+  - name: mid_group_continuation_suppressed
+    catalog:
+      script:
+        input: create table tbl(a int, b int);
+    editor:
+      input: 'select a from tbl gro where b = 1'
+    cursor:
+      search:
+        text: gro
+        index: 2
+    completions:
+      limit: 12
+
+  # Write-front template: registry knows a filter on `tbl.a`. Cursor typing `a` at the write
+  # front (only EOF follows) in a WHERE clause — the column candidate SHOULD carry the filter
+  # template (`templates:` block present).
+  - name: write_front_filter_template
+    catalog:
+      script:
+        input: create table tbl(a int);
+    registry:
+      - script:
+          input: select * from tbl where a = 1
+    editor:
+      input: select * from tbl where a
+    cursor:
+      search:
+        text: 'where a'
+        index: 6
+    completions:
+      limit: 3
+
+  # Mid-statement template suppressed: identical registry filter, but now `= 5` already follows
+  # the cursor. A real post-cursor token exists, so the column candidate must NOT carry a filter
+  # template — splicing `a = <value>` before the existing `= 5` would be broken.
+  - name: mid_filter_template_suppressed
+    catalog:
+      script:
+        input: create table tbl(a int);
+    registry:
+      - script:
+          input: select * from tbl where a = 1
+    editor:
+      input: select * from tbl where a = 5
+    cursor:
+      search:
+        text: 'where a'
+        index: 6
+    completions:
+      limit: 3

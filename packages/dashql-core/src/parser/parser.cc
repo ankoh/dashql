@@ -23,6 +23,7 @@
 
 #include "dashql/parser/parser.h"
 
+#include <array>
 #include <cassert>
 
 #include "dashql/parser/parse_context.h"
@@ -390,6 +391,16 @@ std::vector<Parser::SuffixProbe> Parser::ProbeSuffixBatchFromSnapshot(ScannedScr
     return out;
 }
 
+Parser::SuffixProbe Parser::ProbeSuffixSequenceFromSnapshot(ScannedScript& scanned, ChunkBufferEntryID symbol_id,
+                                                            const PrefixSnapshot& prefix,
+                                                            std::span<const symbol_kind_type> feed_symbols,
+                                                            bool replace_target) {
+    if (feed_symbols.empty() || !prefix.reached_target) return SuffixProbe{};
+    ParseContext suffix_ctx{scanned};
+    dashql::parser::Parser suffix_parser(suffix_ctx);
+    return suffix_parser.ProbeSuffixSequenceFromPrefix(prefix, symbol_id, feed_symbols, replace_target);
+}
+
 // Run the LALR driver up to the cursor and snapshot just the state stack. Implemented as a
 // parallel copy of the bison driver (like CollectExpectedSymbolsAt/After) because merging the
 // control flows would require restructuring the goto-based skeleton.
@@ -454,58 +465,77 @@ void Parser::RestorePrefix(const PrefixSnapshot& prefix) {
 // for insert mode, so the real target is re-read afterward). Then count how many real post-cursor
 // tokens shift cleanly before the parser errors or accepts.
 struct SuffixProbePolicy {
-    Parser::symbol_kind_type feed_symbol;
+    std::span<const Parser::symbol_kind_type> feed_symbols;
     bool replace_target;
     Parser::SuffixProbe probe;
-    // 0 = before feed, 1 = feed in lookahead, 2 = feed shifted, real suffix flowing.
-    int phase = 0;
+    // Index of the next feed symbol to inject; == feed_symbols.size() once the whole sequence has
+    // been fed. While < size we are still injecting synthetic tokens; the real suffix flows after.
+    size_t fed_count = 0;
+    // Number of feed symbols that have actually shifted onto the stack. Once this reaches
+    // feed_symbols.size() the subsequent shifts are real post-cursor tokens.
+    size_t feed_shifted = 0;
 
     template <typename Iter>
     void OnLookaheadRead(Parser& p, Parser::symbol_type& next_symbol, const Iter& pre_iter, uint32_t pre_token_index,
                          bool& /*stop*/) {
-        if (phase == 0) {
+        if (fed_count < feed_symbols.size()) {
             auto fed = Parser::make_COMPLETE_HERE(next_symbol.location);
-            fed.kind_ = feed_symbol;
-            if (!replace_target) {
-                // Insert mode: rewind so the displaced real target token is re-read next.
+            fed.kind_ = feed_symbols[fed_count];
+            // Rewind so the real token that was just read is re-read next. For replace mode we
+            // still want the *first* fed symbol to stand in for the target (so we skip the target),
+            // but every fed symbol after the first is an insertion and must not consume a real
+            // token. In insert mode all fed symbols are insertions.
+            bool consumes_target = replace_target && fed_count == 0;
+            if (!consumes_target) {
                 p.GetCtx().RewindScanner(pre_iter, pre_token_index);
             }
             next_symbol.move(fed);
-            phase = 1;
+            ++fed_count;
         }
         // Otherwise this is a real post-cursor token; the driver uses it as-is.
     }
     void OnShifted(Parser&, Parser::symbol_kind_type shifted_kind) {
-        // Phase 1 → 2 happens here, once the feed symbol itself has shifted. Subsequent shifts in
-        // phase 2 are real post-cursor tokens aligning with the grammar's expectation.
-        if (phase == 2 && shifted_kind != Parser::symbol_kind_type::S_YYEOF) {
+        if (feed_shifted < feed_symbols.size()) {
+            // A fed symbol shifted. Once all of them have shifted, real suffix tokens follow.
+            ++feed_shifted;
+            return;
+        }
+        // Real post-cursor tokens aligning with the grammar's expectation after the fed sequence.
+        if (shifted_kind != Parser::symbol_kind_type::S_YYEOF) {
             if (probe.depth_consumed == 0) probe.k1_compatible = true;
             if (probe.depth_consumed < std::numeric_limits<uint16_t>::max()) ++probe.depth_consumed;
         }
-        if (phase == 1) phase = 2;
     }
     void OnAccept(Parser&) {
-        // Reaching the final state while replaying the suffix means the candidate + rest of the
+        // Reaching the final state while replaying the suffix means the fed sequence + rest of the
         // post-cursor stream is a complete parse — the strongest signal we can give.
         probe.reached_eof = true;
     }
     bool ShortCircuitOnError(Parser&) {
-        // Stop as soon as the parser errors past the feed. EOF as the failing lookahead means the
-        // parser expected more input, not that the suffix was fully consumed; `reached_eof` is
-        // set only on the accept path (handled in OnAccept above).
-        return phase >= 1;
+        // Stop as soon as the parser errors after at least one fed symbol has shifted. EOF as the
+        // failing lookahead means the parser expected more input, not that the suffix was fully
+        // consumed; `reached_eof` is set only on the accept path (handled in OnAccept above).
+        return feed_shifted >= 1;
     }
 };
 
 Parser::SuffixProbe Parser::ProbeSuffixFromPrefix(const PrefixSnapshot& prefix, ChunkBufferEntryID target_symbol_id,
                                                   symbol_kind_type feed_symbol, bool replace_target) {
-    if (!prefix.reached_target) return SuffixProbe{};
+    std::array<symbol_kind_type, 1> feed{feed_symbol};
+    return ProbeSuffixSequenceFromPrefix(prefix, target_symbol_id, feed, replace_target);
+}
+
+Parser::SuffixProbe Parser::ProbeSuffixSequenceFromPrefix(const PrefixSnapshot& prefix,
+                                                          ChunkBufferEntryID target_symbol_id,
+                                                          std::span<const symbol_kind_type> feed_symbols,
+                                                          bool replace_target) {
+    if (!prefix.reached_target || feed_symbols.empty()) return SuffixProbe{};
     RestorePrefix(prefix);
     // Advance the scanner to the target token. Discard everything before it.
     while (!ctx.symbol_iterator.IsAtEnd() && ctx.symbol_iterator != target_symbol_id) {
         ctx.NextSymbol();
     }
-    SuffixProbePolicy policy{feed_symbol, replace_target};
+    SuffixProbePolicy policy{feed_symbols, replace_target};
     DriveLALR(policy, /*init_stack=*/false);
     return policy.probe;
 }

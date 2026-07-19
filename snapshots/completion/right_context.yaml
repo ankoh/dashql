@@ -523,7 +523,6 @@ completion-snapshots:
           objects: []
         - score: 40
           value: fetch
-          keyword-continuation: first
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
           location: "f"
           location-qualified: "f"
@@ -548,7 +547,6 @@ completion-snapshots:
           objects: []
         - score: 0
           value: group
-          keyword-continuation: by
           candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,SUFFIX_INCOMPATIBLE]
           location: "f"
           location-qualified: "f"
@@ -767,3 +765,647 @@ completion-snapshots:
       relative: AFTER_SYMBOL
       entries: []
       text: "select"
+
+  - name: write_front_group_continuation
+    catalog:
+      script:
+        input: create table tbl(a int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: tbl
+            text: "create tab..tbl(a int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+        errors: []
+    editor:
+      input: 'select a from tbl gro'
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "tbl gro"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "a"
+    cursor:
+      search:
+        text: gro
+        index: 2
+    completions:
+      limit: 5
+      strategy: TABLE_REF_ALIAS
+      symbol: NAME
+      relative: MID_OF_SYMBOL
+      entries:
+        - score: 58
+          value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 55
+          value: granted
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 55
+          value: grid
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 55
+          value: grouping
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 50
+          value: aggregate
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+      text: "gro"
+
+  - name: mid_group_continuation_kept
+    catalog:
+      script:
+        input: create table tbl(a int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: tbl
+            text: "create tab..tbl(a int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+        errors: []
+    editor:
+      input: 'select a from tbl gro a'
+      catalog-id: 2
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          text: "a"
+    cursor:
+      search:
+        text: gro
+        index: 2
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      entries:
+        - score: 4294967295
+          value: gro
+          candidate-tags: [IDENTITY]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 43
+          value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 40
+          value: granted
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 40
+          value: grid
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 40
+          value: grouping
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+      text: "gro"
+
+  - name: mid_group_continuation_suppressed
+    catalog:
+      script:
+        input: create table tbl(a int, b int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: tbl
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+        errors: []
+    editor:
+      input: 'select a from tbl gro where b = 1'
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "tbl gro"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "b"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 3
+          type: comparison
+          op: EQUAL
+          arg-left: 1
+          arg-right: 2
+          restriction-target: 1
+          statement-id: 0
+          text: "b = 1"
+      constants:
+        - expression: 2
+          text: "1"
+      column-filters:
+        - expression: 3
+          snippet:
+            signature-template: 1794172684583472092
+            signature-raw: 12153017680983320551
+            text: b = 1
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
+              ast:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "b = 1"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "b = 1"
+                    children:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "b"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "b"
+                            children:
+                              - type: NAME
+                                text: "b"
+                      - type: LITERAL_INTEGER
+                        text: "1"
+    cursor:
+      search:
+        text: gro
+        index: 2
+    completions:
+      limit: 12
+      strategy: TABLE_REF_ALIAS
+      symbol: NAME
+      relative: MID_OF_SYMBOL
+      entries:
+        - score: 56
+          value: granted
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 56
+          value: grid
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 56
+          value: grouping
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 51
+          value: aggregate
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 51
+          value: background
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 51
+          value: program
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 50
+          value: gro
+          candidate-tags: [IDENTITY]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 43
+          value: group
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 3
+          value: by
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 3
+          value: set
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 1
+          value: abort
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 1
+          value: absolute
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+      text: "gro"
+
+  - name: write_front_filter_template
+    catalog:
+      script:
+        input: create table tbl(a int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: tbl
+            text: "create tab..tbl(a int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+        errors: []
+    registry:
+      - script:
+          input: select * from tbl where a = 1
+          catalog-id: 2
+          errors: []
+          table-refs:
+            - type: name/catalog
+              catalog-id: "256.65536.4294967296"
+              statement-id: 0
+              text: "tbl"
+          expressions:
+            - expression-idx: 0
+              type: colref/catalog
+              catalog: "256.65536.4294967296.0"
+              statement-id: 0
+              text: "a"
+            - expression-idx: 1
+              type: literal/integer
+              is-const: true
+              statement-id: 0
+              text: "1"
+            - expression-idx: 2
+              type: comparison
+              op: EQUAL
+              arg-left: 0
+              arg-right: 1
+              restriction-target: 0
+              statement-id: 0
+              text: "a = 1"
+          constants:
+            - expression: 1
+              text: "1"
+          column-filters:
+            - expression: 2
+              snippet:
+                signature-template: 1794172684583472092
+                signature-raw: 6895659058441714752
+                text: a = 1
+                ast:
+                  ast-nodes: 7
+                  ast-bytes: 168
+                  ast:
+                    type: OBJECT_SQL_NARY_EXPRESSION
+                    text: "a = 1"
+                    children:
+                      - key: SQL_EXPRESSION_OPERATOR
+                        type: ENUM_SQL_EXPRESSION_OPERATOR
+                        value: EQUAL
+                      - key: SQL_EXPRESSION_ARGS
+                        type: ARRAY
+                        text: "a = 1"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: NAME
+                                    text: "a"
+                          - type: LITERAL_INTEGER
+                            text: "1"
+    editor:
+      input: select * from tbl where a
+      catalog-id: 3
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "tbl"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "a"
+    cursor:
+      search:
+        text: 'where a'
+        index: 6
+    completions:
+      limit: 3
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: BEGIN_OF_SYMBOL
+      entries:
+        - score: 68
+          value: a
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,IN_OTHER_SCRIPT]
+          location: "a"
+          location-qualified: "a"
+          objects:
+            - score: 48
+              type: column
+              id: "256.65536.4294967296.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,IN_OTHER_SCRIPT]
+              qualified: tbl.a
+              qualified-idx: 1
+              prefer-qualified: 0
+              templates:
+                filters:
+                  - template:
+                      signature: 1794172684583472092
+                      snippets:
+                        - signature-template: 1794172684583472092
+                          signature-raw: 6895659058441714752
+                          text: a = 1
+                          ast:
+                            ast-nodes: 7
+                            ast-bytes: 168
+                            ast:
+                              type: OBJECT_SQL_NARY_EXPRESSION
+                              text: "a = 1"
+                              children:
+                                - key: SQL_EXPRESSION_OPERATOR
+                                  type: ENUM_SQL_EXPRESSION_OPERATOR
+                                  value: EQUAL
+                                - key: SQL_EXPRESSION_ARGS
+                                  type: ARRAY
+                                  text: "a = 1"
+                                  children:
+                                    - type: OBJECT_SQL_COLUMN_REF
+                                      text: "a"
+                                      children:
+                                        - key: SQL_COLUMN_REF_PATH
+                                          type: ARRAY
+                                          text: "a"
+                                          children:
+                                            - type: NAME
+                                              text: "a"
+                                    - type: LITERAL_INTEGER
+                                      text: "1"
+        - score: 59
+          value: a
+          candidate-tags: [IDENTITY]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+        - score: 3
+          value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+      text: "a"
+
+  - name: mid_filter_template_suppressed
+    catalog:
+      script:
+        input: create table tbl(a int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: tbl
+            text: "create tab..tbl(a int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+        errors: []
+    registry:
+      - script:
+          input: select * from tbl where a = 1
+          catalog-id: 2
+          errors: []
+          table-refs:
+            - type: name/catalog
+              catalog-id: "256.65536.4294967296"
+              statement-id: 0
+              text: "tbl"
+          expressions:
+            - expression-idx: 0
+              type: colref/catalog
+              catalog: "256.65536.4294967296.0"
+              statement-id: 0
+              text: "a"
+            - expression-idx: 1
+              type: literal/integer
+              is-const: true
+              statement-id: 0
+              text: "1"
+            - expression-idx: 2
+              type: comparison
+              op: EQUAL
+              arg-left: 0
+              arg-right: 1
+              restriction-target: 0
+              statement-id: 0
+              text: "a = 1"
+          constants:
+            - expression: 1
+              text: "1"
+          column-filters:
+            - expression: 2
+              snippet:
+                signature-template: 1794172684583472092
+                signature-raw: 6895659058441714752
+                text: a = 1
+                ast:
+                  ast-nodes: 7
+                  ast-bytes: 168
+                  ast:
+                    type: OBJECT_SQL_NARY_EXPRESSION
+                    text: "a = 1"
+                    children:
+                      - key: SQL_EXPRESSION_OPERATOR
+                        type: ENUM_SQL_EXPRESSION_OPERATOR
+                        value: EQUAL
+                      - key: SQL_EXPRESSION_ARGS
+                        type: ARRAY
+                        text: "a = 1"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: NAME
+                                    text: "a"
+                          - type: LITERAL_INTEGER
+                            text: "1"
+    editor:
+      input: select * from tbl where a = 5
+      catalog-id: 3
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "tbl"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "5"
+        - expression-idx: 2
+          type: comparison
+          op: EQUAL
+          arg-left: 0
+          arg-right: 1
+          restriction-target: 0
+          statement-id: 0
+          text: "a = 5"
+      constants:
+        - expression: 1
+          text: "5"
+      column-filters:
+        - expression: 2
+          snippet:
+            signature-template: 1794172684583472092
+            signature-raw: 11105488984129450793
+            text: a = 5
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
+              ast:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "a = 5"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "a = 5"
+                    children:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: NAME
+                                text: "a"
+                      - type: LITERAL_INTEGER
+                        text: "5"
+    cursor:
+      search:
+        text: 'where a'
+        index: 6
+    completions:
+      limit: 3
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: BEGIN_OF_SYMBOL
+      entries:
+        - score: 68
+          value: a
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,IN_OTHER_SCRIPT]
+          location: "a"
+          location-qualified: "a"
+          objects:
+            - score: 48
+              type: column
+              id: "256.65536.4294967296.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,IN_OTHER_SCRIPT]
+              qualified: tbl.a
+              qualified-idx: 1
+              prefer-qualified: 0
+        - score: 59
+          value: a
+          candidate-tags: [IDENTITY]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+        - score: 3
+          value: by
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+      text: "a"

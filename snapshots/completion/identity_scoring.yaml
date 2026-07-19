@@ -455,35 +455,30 @@ completion-snapshots:
       entries:
         - score: 4294967295
           value: ba
-          keyword-continuation: into
           candidate-tags: [IDENTITY]
           location: "ba"
           location-qualified: "ba"
           objects: []
         - score: 56
           value: background
-          keyword-continuation: into
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "ba"
           location-qualified: "ba"
           objects: []
         - score: 56
           value: backward
-          keyword-continuation: into
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "ba"
           location-qualified: "ba"
           objects: []
         - score: 56
           value: band
-          keyword-continuation: into
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "ba"
           location-qualified: "ba"
           objects: []
         - score: 56
           value: band_position
-          keyword-continuation: into
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "ba"
           location-qualified: "ba"
@@ -528,35 +523,30 @@ completion-snapshots:
       entries:
         - score: 4294967295
           value: fo
-          keyword-continuation: as
           candidate-tags: [IDENTITY]
           location: "fo"
           location-qualified: "fo"
           objects: []
         - score: 56
           value: following
-          keyword-continuation: as
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "fo"
           location-qualified: "fo"
           objects: []
         - score: 56
           value: force
-          keyword-continuation: as
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "fo"
           location-qualified: "fo"
           objects: []
         - score: 56
           value: format
-          keyword-continuation: as
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "fo"
           location-qualified: "fo"
           objects: []
         - score: 56
           value: format_type
-          keyword-continuation: as
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "fo"
           location-qualified: "fo"

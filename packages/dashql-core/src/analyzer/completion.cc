@@ -3,6 +3,7 @@
 #include <flatbuffers/buffer.h>
 #include <flatbuffers/flatbuffer_builder.h>
 
+#include <array>
 #include <variant>
 
 #include "dashql/buffers/index_generated.h"
@@ -637,6 +638,32 @@ void Completion::FindCandidatesForNamePath() {
     }
 }
 
+bool Completion::computeHasPostCursorToken() const {
+    if (!target_scanner_symbol.has_value()) return false;
+    auto& target_symbol = target_scanner_symbol;
+    auto& scanner_symbols = cursor.script.scanned_script->GetSymbols();
+
+    // Pick the symbol id at which the candidate is fed and decide whether feeding replaces the
+    // token at that id (typing on a token) or inserts before it (cursor in whitespace). The
+    // post-cursor token used to test compatibility is the next real entry after the consumed
+    // span (i.e. one entry past target when replacing, the target itself when inserting).
+    using RelativePos = ScannedScript::LocationInfo::RelativePosition;
+    auto post_id = target_symbol->symbol_id;
+    bool replace_target = target_symbol->relative_pos == RelativePos::BEGIN_OF_SYMBOL ||
+                          target_symbol->relative_pos == RelativePos::MID_OF_SYMBOL ||
+                          target_symbol->relative_pos == RelativePos::END_OF_SYMBOL;
+    if (target_symbol->relative_pos == RelativePos::AFTER_SYMBOL &&
+        !scanner_symbols.IsAtEOF(target_symbol->symbol_id)) {
+        post_id = scanner_symbols.GetNext(target_symbol->symbol_id);  // insert mode: displaced real token
+    } else if (replace_target && !scanner_symbols.IsAtEOF(target_symbol->symbol_id)) {
+        post_id = scanner_symbols.GetNext(target_symbol->symbol_id);
+    }
+    // There is post-cursor context only when there is at least one real token after the feed point.
+    // The scanner emits an EOF token; treat the entry at-or-past EOF as no post-cursor context.
+    if (scanner_symbols.IsAtEOF(post_id)) return false;
+    return scanner_symbols[post_id].kind() != parser::Parser::symbol_kind_type::S_YYEOF;
+}
+
 void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::ExpectedSymbol> symbols,
                                                  const parser::Parser::PrefixSnapshot& prefix) {
     auto& target_symbol = target_scanner_symbol;
@@ -644,31 +671,18 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
     auto& scanner_symbols = scanned.GetSymbols();
 
     // Pick the symbol id at which the candidate is fed and decide whether feeding replaces the
-    // token at that id (typing on a token) or inserts before it (cursor in whitespace). The
-    // post-cursor token used to test compatibility is the next real entry after the consumed
-    // span (i.e. one entry past target when replacing, the target itself when inserting).
+    // token at that id (typing on a token) or inserts before it (cursor in whitespace).
     using RelativePos = ScannedScript::LocationInfo::RelativePosition;
     auto feed_id = target_symbol->symbol_id;
-    auto post_id = target_symbol->symbol_id;
     bool replace_target = target_symbol->relative_pos == RelativePos::BEGIN_OF_SYMBOL ||
                           target_symbol->relative_pos == RelativePos::MID_OF_SYMBOL ||
                           target_symbol->relative_pos == RelativePos::END_OF_SYMBOL;
     if (target_symbol->relative_pos == RelativePos::AFTER_SYMBOL &&
         !scanner_symbols.IsAtEOF(target_symbol->symbol_id)) {
-        feed_id = scanner_symbols.GetNext(target_symbol->symbol_id);
-        post_id = feed_id;  // insert mode: post-cursor token is the displaced real token itself
-    } else if (replace_target && !scanner_symbols.IsAtEOF(target_symbol->symbol_id)) {
-        post_id = scanner_symbols.GetNext(target_symbol->symbol_id);
+        feed_id = scanner_symbols.GetNext(target_symbol->symbol_id);  // insert mode
     }
-    // The probe is meaningful only when there is at least one real token after the feed point.
-    // The scanner emits an EOF token; treat the entry at-or-past EOF as no post-cursor context.
-    bool have_post_cursor_token = !scanner_symbols.IsAtEOF(post_id);
-    if (have_post_cursor_token) {
-        auto& probe_token = scanner_symbols[post_id];
-        if (probe_token.kind() == parser::Parser::symbol_kind_type::S_YYEOF) {
-            have_post_cursor_token = false;
-        }
-    }
+    // The suffix probe is meaningful only when there is at least one real token after the feed point.
+    bool have_post_cursor_token = has_post_cursor_token;
 
     // Helper to determine the score of a cursor symbol
     auto get_score = [&](const ScannedScript::SymbolLocationInfo& loc, parser::Parser::ExpectedSymbol expected,
@@ -1112,7 +1126,7 @@ void Completion::FindIdentifierSnippetsForTopCandidates(ScriptRegistry& registry
     }
 }
 
-void Completion::DeriveKeywordSnippetsForTopCandidates() {
+void Completion::DeriveKeywordSnippetsForTopCandidates(const parser::Parser::PrefixSnapshot& prefix) {
     if (!target_scanner_symbol.has_value()) return;
     auto& scanned = *cursor.script.scanned_script;
     auto& symbols = cursor.script.scanned_script->GetSymbols();
@@ -1121,25 +1135,41 @@ void Completion::DeriveKeywordSnippetsForTopCandidates() {
                          ? symbols.GetNext(target_scanner_symbol->symbol_id)
                          : target_scanner_symbol->symbol_id;
 
+    // Feed point + replace/insert decision for the suffix probe. This must match the target used
+    // to capture `prefix` in ParseUntilWithSnapshot (the AFTER_SYMBOL→next logic), so the probe's
+    // replayed prefix lines up with the feed_id it is given.
+    using RelativePos = ScannedScript::LocationInfo::RelativePosition;
+    auto feed_id = target_scanner_symbol->symbol_id;
+    bool replace_target = target_scanner_symbol->relative_pos == RelativePos::BEGIN_OF_SYMBOL ||
+                          target_scanner_symbol->relative_pos == RelativePos::MID_OF_SYMBOL ||
+                          target_scanner_symbol->relative_pos == RelativePos::END_OF_SYMBOL;
+    if (target_scanner_symbol->relative_pos == RelativePos::AFTER_SYMBOL &&
+        !symbols.IsAtEOF(target_scanner_symbol->symbol_id)) {
+        feed_id = symbols.GetNext(target_scanner_symbol->symbol_id);  // insert mode
+    }
+
     // Helper: given expected symbols after a feed, find the best continuation.
     // If there's exactly one keyword/operator expected, use it.
     // Otherwise, find the uniquely highest-scored continuation keyword.
-    auto find_continuation = [](std::vector<parser::Parser::ExpectedSymbol>& expected_after) -> std::string_view {
-        std::string_view best_continuation;
+    // Returns the continuation's symbol kind (S_YYUNDEF if none) so the caller can both render the
+    // text and feed it to the suffix probe.
+    auto find_continuation =
+        [](std::vector<parser::Parser::ExpectedSymbol>& expected_after) -> parser::Parser::symbol_kind_type {
+        parser::Parser::symbol_kind_type best_continuation = parser::Parser::symbol_kind_type::S_YYUNDEF;
         uint8_t best_score = 0;
         size_t best_count = 0;
         size_t keyword_count = 0;
-        std::string_view unique_continuation;
+        parser::Parser::symbol_kind_type unique_continuation = parser::Parser::symbol_kind_type::S_YYUNDEF;
 
         for (auto& sym : expected_after) {
             auto text = parser::Keyword::GetSymbolText(sym);
             if (text.empty()) continue;
             ++keyword_count;
-            unique_continuation = text;
+            unique_continuation = sym.symbol;
             auto score = getKeywordContinuationScore(sym);
             if (score > best_score) {
                 best_score = score;
-                best_continuation = text;
+                best_continuation = sym.symbol;
                 best_count = 1;
             } else if (score == best_score && score > 0) {
                 ++best_count;
@@ -1147,11 +1177,25 @@ void Completion::DeriveKeywordSnippetsForTopCandidates() {
         }
         if (keyword_count == 1) return unique_continuation;
         if (best_count == 1) return best_continuation;
-        return {};
+        return parser::Parser::symbol_kind_type::S_YYUNDEF;
+    };
+
+    // Keep a continuation only if feeding [candidate keyword, continuation] leaves the actual
+    // post-cursor token stream parseable. At the write front (no post-cursor token) there is
+    // nothing to conflict with, so the continuation is always kept.
+    auto continuation_fits_suffix = [&](parser::Parser::symbol_kind_type candidate_symbol,
+                                        parser::Parser::symbol_kind_type continuation_symbol) -> bool {
+        if (!has_post_cursor_token) return true;
+        std::array<parser::Parser::symbol_kind_type, 2> feed{candidate_symbol, continuation_symbol};
+        auto probe = parser::Parser::ProbeSuffixSequenceFromSnapshot(scanned, feed_id, prefix, feed, replace_target);
+        // The next real token must still shift after the fed sequence (or the whole suffix is
+        // consumed cleanly); otherwise the continuation would collide with the trailing text.
+        return probe.k1_compatible || probe.reached_eof;
     };
 
     // Compute identifier continuation once (for non-keyword candidates)
-    std::string_view ident_continuation;
+    parser::Parser::symbol_kind_type ident_continuation = parser::Parser::symbol_kind_type::S_YYUNDEF;
+    std::string_view ident_continuation_text;
     bool ident_continuation_computed = false;
 
     for (auto& candidate : top_candidates) {
@@ -1159,8 +1203,10 @@ void Completion::DeriveKeywordSnippetsForTopCandidates() {
             // Keyword candidate: feed its specific symbol
             auto expected_after = parser::Parser::ParseUntilAfter(scanned, target_id, candidate.keyword_symbol.value());
             auto continuation = find_continuation(expected_after);
-            if (continuation.empty()) continue;
-            auto& stored = keyword_continuation_strings.PushBack(std::string{continuation});
+            if (continuation == parser::Parser::symbol_kind_type::S_YYUNDEF) continue;
+            if (!continuation_fits_suffix(candidate.keyword_symbol.value(), continuation)) continue;
+            auto& stored =
+                keyword_continuation_strings.PushBack(std::string{parser::Keyword::GetSymbolText(continuation)});
             candidate.keyword_continuation = stored;
         } else {
             // Identifier candidate: feed IDENT
@@ -1169,13 +1215,15 @@ void Completion::DeriveKeywordSnippetsForTopCandidates() {
                 auto expected_after =
                     parser::Parser::ParseUntilAfter(scanned, target_id, parser::Parser::symbol_kind_type::S_IDENT);
                 ident_continuation = find_continuation(expected_after);
-                if (!ident_continuation.empty()) {
-                    auto& stored = keyword_continuation_strings.PushBack(std::string{ident_continuation});
-                    ident_continuation = stored;
+                if (ident_continuation != parser::Parser::symbol_kind_type::S_YYUNDEF &&
+                    continuation_fits_suffix(parser::Parser::symbol_kind_type::S_IDENT, ident_continuation)) {
+                    auto& stored = keyword_continuation_strings.PushBack(
+                        std::string{parser::Keyword::GetSymbolText(ident_continuation)});
+                    ident_continuation_text = stored;
                 }
             }
-            if (!ident_continuation.empty()) {
-                candidate.keyword_continuation = ident_continuation;
+            if (!ident_continuation_text.empty()) {
+                candidate.keyword_continuation = ident_continuation_text;
             }
         }
     }
@@ -1487,6 +1535,10 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
         }
     }
 
+    // Is the cursor at the write front (nothing but EOF follows)?
+    // Multi-step suggestions are only offered there, and the keyword suffix probe reuses this.
+    completion->has_post_cursor_token = completion->computeHasPostCursorToken();
+
     // Dot completion?
     if (completion->dot_completion) {
         // Restricting candidates to the dot context
@@ -1597,13 +1649,18 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
                 if (skip_snippets) break;
             }
         }
-        // Find identifier snippets for the completion result
-        if (registry && !skip_snippets) {
+        // Find identifier snippets for the completion result.
+        // Only at the write front: a real post-cursor token could conflict with the template
+        // we'd splice in (e.g. `select col| = 5` must not offer a `col = <value>` filter).
+        if (registry && !skip_snippets && !completion->has_post_cursor_token) {
             completion->FindIdentifierSnippetsForTopCandidates(*registry);
         }
     }
-    // Derive keyword continuation snippets for all keyword candidates
-    completion->DeriveKeywordSnippetsForTopCandidates();
+    // Derive keyword continuation snippets for all keyword candidates. Suffix-aware: at the write
+    // front every continuation is kept, but mid-statement each is probed against the actual
+    // post-cursor tokens and dropped only if it would conflict (e.g. completing at `... group| by x`
+    // must not offer a `group by` continuation, but `select a from tbl gro|up a` keeps `by`).
+    completion->DeriveKeywordSnippetsForTopCandidates(expected_at_cursor.prefix);
 
     // Register as normal completion
     return completion;
