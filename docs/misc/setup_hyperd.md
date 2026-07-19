@@ -67,3 +67,10 @@ docker run -it --rm -p 7484:7484 \
       --log_config=cerr,json,all \
       --listen-connection tcp.grpc://0.0.0.0:7484
 ```
+
+## Other flags
+
+```
+# For R2 support, run with:
+--external_allow_custom_endpoints=1
+```
