@@ -7,6 +7,7 @@ exports_files([
     "external_benchmark.BUILD",
     "external_bison.bzl",
     "external_c4core.BUILD",
+    "external_duckdb_cli.BUILD",
     "external_duckdb_prebuilt.BUILD",
     "external_flatbuffers.BUILD",
     "external_flex.bzl",
@@ -21,6 +22,17 @@ alias(
     actual = select({
         "@platforms//os:macos": "@duckdb_prebuilt_osx//:duckdb",
         "@platforms//os:linux": "@duckdb_prebuilt_linux_amd64//:duckdb",
+    }),
+    visibility = ["//visibility:public"],
+)
+
+# DuckDB CLI executable, selected per exec platform. Used as a build tool
+# (exec config) by //packages/dashql-data for Parquet conversion genrules.
+alias(
+    name = "duckdb_cli",
+    actual = select({
+        "@platforms//os:macos": "@duckdb_cli_osx//:duckdb",
+        "@platforms//os:linux": "@duckdb_cli_linux_amd64//:duckdb",
     }),
     visibility = ["//visibility:public"],
 )

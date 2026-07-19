@@ -1392,6 +1392,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "dashql-data"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "aws-config",
+ "aws-credential-types",
+ "aws-sdk-s3",
+ "clap",
+ "env_logger",
+ "log",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tokio",
+ "walkdir",
+]
+
+[[package]]
 name = "dashql-native"
 version = "0.0.2-dev.17"
 dependencies = [

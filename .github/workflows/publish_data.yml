@@ -1,0 +1,41 @@
+name: Publish Data
+
+# Decoupled from the release pipeline: mirrors the hermetically-built test datasets
+# to the data.dashql.app R2 bucket. Not run on every main push.
+on:
+    workflow_dispatch:
+
+concurrency:
+    group: ${{ github.workflow }}
+    cancel-in-progress: true
+
+jobs:
+    publish_data:
+        name: Publish datasets
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Install apt dependencies
+              shell: bash
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y lld
+
+            - uses: actions/checkout@v6
+              with:
+                  submodules: 'recursive'
+                  fetch-depth: 0
+
+            - name: Setup Bazel
+              uses: ./.github/actions/setup-bazel
+              with:
+                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
+                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
+                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
+
+            - name: Build and mirror datasets
+              env:
+                DASHQL_DATA_R2_ENDPOINT: ${{ secrets.R2_DASHQL_DATA_ENDPOINT }}
+                DASHQL_DATA_R2_ACCESS_KEY_ID: ${{ secrets.R2_DASHQL_DATA_ACCESS_KEY_ID }}
+                DASHQL_DATA_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_DASHQL_DATA_SECRET_ACCESS_KEY }}
+              run: |
+                bazel run --config=release //packages/dashql-data:sync

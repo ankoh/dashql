@@ -126,6 +126,8 @@ use_repo(
     "c4core",
     "com_google_benchmark",
     "com_google_flatbuffers",
+    "duckdb_cli_linux_amd64",
+    "duckdb_cli_osx",
     "duckdb_prebuilt_linux_amd64",
     "duckdb_prebuilt_osx",
     "duckdb_source",
@@ -134,6 +136,15 @@ use_repo(
     "rapidjson",
     "rapidyaml",
     "wabt",
+)
+
+# data.dashql.app test datasets: one hash-pinned http_file per source, declared from
+# the DATASETS list in //packages/dashql-data:datasets.bzl (single source of truth).
+# When adding/removing a dataset source, update the use_repo list below to match.
+dashql_datasets = use_extension("//packages/dashql-data:deps.bzl", "dashql_datasets")
+use_repo(
+    dashql_datasets,
+    "dataset_vega_cars_cars",
 )
 
 # Emscripten binaries (downloaded per-platform; default version is the latest bundled with emsdk 5.0.4).

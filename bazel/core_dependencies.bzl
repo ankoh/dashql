@@ -110,6 +110,23 @@ def _dashql_core_deps_impl(mctx):
         urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/libduckdb-linux-amd64.zip"],
         build_file = "//bazel:external_duckdb_prebuilt.BUILD",
     )
+    # DuckDB CLI: exec-config build tool used by //packages/dashql-data to convert
+    # dataset sources to Parquet in a genrule. One archive per exec platform,
+    # selected via the //bazel:duckdb_cli alias. The zip preserves the exec bit.
+    # renovate: datasource=github-releases depName=duckdb/duckdb
+    http_archive(
+        name = "duckdb_cli_osx",
+        sha256 = "c5d8cb60d7d5ceb6bb94fce5ae4a17cc816db19c21b6bb5e0d2348b3b2240359",
+        urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/duckdb_cli-osx-universal.zip"],
+        build_file = "//bazel:external_duckdb_cli.BUILD",
+    )
+    # renovate: datasource=github-releases depName=duckdb/duckdb
+    http_archive(
+        name = "duckdb_cli_linux_amd64",
+        sha256 = "1f2fa724fb054b3dbe1a9cbd13de5b76997d850e7087ec762ba88db04e0180cf",
+        urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/duckdb_cli-linux-amd64.zip"],
+        build_file = "//bazel:external_duckdb_cli.BUILD",
+    )
     # DuckDB source (WASM and custom builds)
     http_archive(
         name = "duckdb_source",

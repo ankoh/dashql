@@ -1,0 +1,66 @@
+load("@rules_rust//rust:defs.bzl", "rust_binary")
+load(":datasets.bzl", "declare_datasets")
+
+exports_files(["Cargo.toml"])
+
+# The indexer + R2 mirror. `index` runs inside the hermetic build (below); `sync`
+# runs via the :sync target. Client/deps mirror dashql-pack but stay independent.
+rust_binary(
+    name = "dashql-data",
+    srcs = glob(["src/**/*.rs"]),
+    crate_root = "src/main.rs",
+    deps = [
+        "@crates//:anyhow",
+        "@crates//:aws-config",
+        "@crates//:aws-credential-types",
+        "@crates//:aws-sdk-s3",
+        "@crates//:clap",
+        "@crates//:env_logger",
+        "@crates//:log",
+        "@crates//:serde",
+        "@crates//:serde_json",
+        "@crates//:sha2",
+        "@crates//:tokio",
+        "@crates//:walkdir",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+# Expand DATASETS: convert genrules (DuckDB CLI -> Parquet), the assembled versioned
+# tree, index.json, and the final :datasets artifact (Parquet + index.json).
+declare_datasets(
+    name = "datasets",
+    index_tool = ":dashql-data",
+)
+
+# Ergonomic run target: build the hermetic tree, then mirror it to R2.
+#   bazel run //packages/dashql-data:sync            (upload)
+#   bazel run //packages/dashql-data:sync -- --dry-run
+# Marked manual so it stays out of wildcard builds (like dashql-pack:publish).
+rust_binary(
+    name = "sync",
+    srcs = glob(["src/**/*.rs"]),
+    crate_root = "src/main.rs",
+    args = [
+        "sync",
+        "--dir",
+        "$(rootpath :datasets)",
+    ],
+    data = [":datasets"],
+    tags = ["manual"],
+    deps = [
+        "@crates//:anyhow",
+        "@crates//:aws-config",
+        "@crates//:aws-credential-types",
+        "@crates//:aws-sdk-s3",
+        "@crates//:clap",
+        "@crates//:env_logger",
+        "@crates//:log",
+        "@crates//:serde",
+        "@crates//:serde_json",
+        "@crates//:sha2",
+        "@crates//:tokio",
+        "@crates//:walkdir",
+    ],
+    visibility = ["//visibility:public"],
+)

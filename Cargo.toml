@@ -1,4 +1,4 @@
-# Root workspace for native packages (dashql-native, dashql-pack).
+# Root workspace for native packages (dashql-native, dashql-pack, dashql-data).
 # Used by Bazel crate_universe as the primary "crates" universe.
 [workspace]
 resolver = "2"
@@ -6,6 +6,7 @@ members = [
     "packages/dashql-native",
     "packages/tauri-aclgen",
     "packages/dashql-pack",
+    "packages/dashql-data",
 ]
 
 [profile.release]

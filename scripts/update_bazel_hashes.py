@@ -28,6 +28,8 @@ DEPS = [
     ("com_google_benchmark",        "_BENCHMARK_VERSION",   "https://github.com/google/benchmark/archive/refs/tags/v{VERSION}.zip"),
     ("duckdb_prebuilt_osx",         "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/releases/download/v{VERSION}/libduckdb-osx-universal.zip"),
     ("duckdb_prebuilt_linux_amd64", "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/releases/download/v{VERSION}/libduckdb-linux-amd64.zip"),
+    ("duckdb_cli_osx",              "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/releases/download/v{VERSION}/duckdb_cli-osx-universal.zip"),
+    ("duckdb_cli_linux_amd64",      "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/releases/download/v{VERSION}/duckdb_cli-linux-amd64.zip"),
     ("duckdb_source",               "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/archive/refs/tags/v{VERSION}.tar.gz"),
     ("apache_arrow",                "_ARROW_VERSION",       "https://github.com/apache/arrow/archive/refs/tags/apache-arrow-{VERSION}.tar.gz"),
 ]
