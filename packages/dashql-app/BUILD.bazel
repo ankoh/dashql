@@ -92,6 +92,47 @@ genrule(
     """,
     visibility = ["//visibility:private"],
 )
+genrule(
+    name = "dep_umap_wasm",
+    srcs = [
+        "//packages/dashql-umap:wasm",
+        "//packages/dashql-umap:js",
+    ],
+    outs = [
+        "dependencies/umap-wasm/index.js",
+        "dependencies/umap-wasm/index.d.ts",
+        "dependencies/umap-wasm/pkg/umap_wasm.js",
+        "dependencies/umap-wasm/pkg/umap_wasm.d.ts",
+        "dependencies/umap-wasm/pkg/umap_wasm_bg.wasm",
+    ],
+    cmd = """
+        # Stage the vendored UMAP wasm module for the app. The hand-written
+        # umap-wasm/index.js imports "./pkg/umap_wasm.js" (the wasm-bindgen glue),
+        # which in turn does new URL("umap_wasm_bg.wasm", import.meta.url). So the
+        # runtime layout must be:
+        #   dependencies/umap-wasm/index.js
+        #   dependencies/umap-wasm/pkg/umap_wasm.js
+        #   dependencies/umap-wasm/pkg/umap_wasm_bg.wasm  <- the OPTIMIZED module
+        #
+        # :wasm (the optimize_wasm output) and :js (index.{js,d.ts} + the whole
+        # umap_bindgen bundle, which also carries its own UNoptimized
+        # umap_bindgen/umap_wasm_bg.wasm) both flow in via $(SRCS); we take the glue
+        # + types from umap_bindgen/ but the .wasm from the optimized :wasm output.
+        OUT_DIR="$(RULEDIR)/dependencies/umap-wasm"
+        mkdir -p "$$OUT_DIR/pkg"
+        for src in $(SRCS); do
+            case "$$src" in
+                */umap_bindgen/umap_wasm.js)   cp "$$src" "$$OUT_DIR/pkg/umap_wasm.js" ;;
+                */umap_bindgen/umap_wasm.d.ts) cp "$$src" "$$OUT_DIR/pkg/umap_wasm.d.ts" ;;
+                */umap_bindgen/*)              : ;;  # skip umap_bindgen's UNoptimized .wasm + .wasm.d.ts
+                */umap-wasm/index.js)          cp "$$src" "$$OUT_DIR/index.js" ;;
+                */umap-wasm/index.d.ts)        cp "$$src" "$$OUT_DIR/index.d.ts" ;;
+                *umap_wasm_bg.wasm)            cp "$$src" "$$OUT_DIR/pkg/umap_wasm_bg.wasm" ;;  # the optimized :wasm output
+            esac
+        done
+    """,
+    visibility = ["//visibility:private"],
+)
 filegroup(
     name = "svg_logo_files",
     srcs = glob(["static/svg/logo/*.svg"]),
@@ -118,6 +159,7 @@ genrule(
         ":dep_protobuf",
         ":dep_core_wasm",
         ":dep_duckdb_web_wasm",
+        ":dep_umap_wasm",
         ":dep_svg_symbols",
     ],
     outs = ["vite.config.generated.ts"],
@@ -134,6 +176,7 @@ genrule(
             -e "s|__CORE_WASM_PATH__|./dependencies/dashql-core-wasm/dashql_core.wasm|g" \\
             -e "s|__WEBDB_JS_PATH__|./dependencies/duckdb/duckdb_web.js|g" \\
             -e "s|__WEBDB_WASM_PATH__|./dependencies/duckdb/duckdb_web.wasm|g" \\
+            -e "s|__UMAP_JS_PATH__|./dependencies/umap-wasm/index.js|g" \\
             -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
             -e "s|__DASHQL_VERSION__|$${VERSION}|g" \\
             -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \\
@@ -161,6 +204,7 @@ genrule(
             -e "s|__CORE_WASM_PATH__|./dependencies/dashql-core-wasm/dashql_core.wasm|g" \\
             -e "s|__WEBDB_JS_PATH__|./dependencies/duckdb/duckdb_web.js|g" \\
             -e "s|__WEBDB_WASM_PATH__|./dependencies/duckdb/duckdb_web.wasm|g" \\
+            -e "s|__UMAP_JS_PATH__|./dependencies/umap-wasm/index.js|g" \\
             -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
             -e "s|__DASHQL_VERSION__|$${VERSION}|g" \\
             -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \\
@@ -190,6 +234,7 @@ genrule(
             -e "s|__CORE_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-core-wasm/dashql_core.wasm|g" \
             -e "s|__WEBDB_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/duckdb/duckdb_web.js|g" \
             -e "s|__WEBDB_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/duckdb/duckdb_web.wasm|g" \
+            -e "s|__UMAP_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/umap-wasm/index.js|g" \
             -e "s|__SVG_SYMBOLS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg|g" \
             $(location vite.config.tpl.ts) > $@
     """,
@@ -273,6 +318,7 @@ _vite_web_deps = [
     ":dep_jsonschema",
     ":dep_core_wasm",
     ":dep_duckdb_web_wasm",
+    ":dep_umap_wasm",
     ":dep_svg_symbols",
     "//:node_modules",
 ]
@@ -284,6 +330,7 @@ _vite_native_deps = [
     ":dep_protobuf",
     ":dep_jsonschema",
     ":dep_core_wasm",
+    ":dep_umap_wasm",
     ":dep_svg_symbols",
     "//:node_modules",
 ]
@@ -339,6 +386,7 @@ sh_binary(
         ":dep_jsonschema",
         ":dep_core_wasm",
         ":dep_duckdb_web_wasm",
+        ":dep_umap_wasm",
         ":dep_svg_symbols",
     ],
     visibility = ["//visibility:public"],
@@ -354,6 +402,7 @@ sh_binary(
         ":dep_protobuf",
         ":dep_jsonschema",
         ":dep_core_wasm",
+        ":dep_umap_wasm",
         ":dep_svg_symbols",
     ],
     visibility = ["//visibility:public"],

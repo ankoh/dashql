@@ -1,0 +1,150 @@
+# Vendored UMAP + NNDescent (Apple embedding-atlas, MIT) compiled to wasm32 and run
+# through wasm-bindgen for the `VISUALIZE ... USING embeddingatlas` renderer.
+#
+#   nndescent (rust_library)  ─┐
+#   umap      (rust_library)  ─┤→ umap_wasm (rust_shared_library, cdylib)
+#                              │      │
+#                              │      └→ umap_bindgen (rust_wasm_bindgen --target web)
+#                              │            → umap_wasm_bg.wasm + umap_wasm.js glue
+#                              └→ optimize_wasm (wasm-opt -O3 + strip in release)
+#
+# All crate deps resolve from the wasm32-only @umap_crates universe (MODULE.bazel),
+# kept isolated from the native @crates universe. See //NOTICE for attribution.
+
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_shared_library", "rust_test")
+load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen")
+load("//bazel:wasm_tools.bzl", "optimize_wasm", "wasm_bindgen_module")
+
+exports_files([
+    "Cargo.toml",
+    "Cargo.lock",
+])
+
+# Only the wasm-bindgen wrapper (umap_wasm) is genuinely wasm-specific. The two
+# numeric crates below are pure, portable Rust — they build and, crucially, TEST
+# natively (see rust_test targets), which is the correctness gate we lean on
+# instead of only ever exercising the algorithm through the wasm blob in a browser.
+_WASM32_ONLY = ["@platforms//cpu:wasm32"]
+
+# ---------------------------------------------------------------------------
+# Core algorithm crates (portable Rust; built for both native + wasm32)
+# ---------------------------------------------------------------------------
+
+rust_library(
+    name = "nndescent",
+    srcs = glob(["nndescent/src/**/*.rs"]),
+    crate_name = "nndescent",
+    edition = "2021",
+    visibility = ["//visibility:private"],
+    deps = [
+        "@umap_crates//:getrandom",
+        "@umap_crates//:ndarray",
+        "@umap_crates//:ordered-float",
+        "@umap_crates//:pollster",
+        "@umap_crates//:rayon",
+        "@umap_crates//:wide",
+    ],
+)
+
+rust_library(
+    name = "umap",
+    srcs = glob(["umap/src/**/*.rs"]),
+    crate_name = "umap",
+    edition = "2021",
+    visibility = ["//visibility:private"],
+    deps = [
+        ":nndescent",
+        "@umap_crates//:ndarray",
+        "@umap_crates//:pollster",
+        "@umap_crates//:rayon",
+    ],
+)
+
+# Native unit tests: run the upstream inline #[cfg(test)] suites (RP-trees, the
+# Jacobi/generalized eigensolver, distance kernels, TauRng, heaps, ...) on the
+# host. This is the fast, debuggable correctness check that a wasm32-only build
+# would have thrown away. `bazel test //packages/dashql-umap:nndescent_test :umap_test`.
+rust_test(
+    name = "nndescent_test",
+    crate = ":nndescent",
+    size = "small",
+)
+
+rust_test(
+    name = "umap_test",
+    crate = ":umap",
+    size = "small",
+)
+
+# ---------------------------------------------------------------------------
+# wasm-bindgen cdylib + JS glue
+# ---------------------------------------------------------------------------
+
+# cdylib: the .wasm module wasm-bindgen post-processes. crate-type is forced to
+# cdylib by rust_shared_library.
+rust_shared_library(
+    name = "umap_wasm",
+    srcs = glob(["umap-wasm/src/**/*.rs"]),
+    crate_name = "umap_wasm",
+    edition = "2021",
+    target_compatible_with = _WASM32_ONLY,
+    visibility = ["//visibility:private"],
+    deps = [
+        ":nndescent",
+        ":umap",
+        "@umap_crates//:getrandom",
+        "@umap_crates//:js-sys",
+        "@umap_crates//:ndarray",
+        "@umap_crates//:wasm-bindgen",
+        "@umap_crates//:wasm-bindgen-futures",
+    ],
+)
+
+# Run wasm-bindgen (--target web) over the cdylib. The wasm_file attr carries a
+# transition to @rules_rust//rust/platform:wasm32, so umap_wasm (and its whole dep
+# tree) is built for wasm32 regardless of the host --platforms. Emits:
+#   umap_bindgen/umap_wasm_bg.wasm  (bindgen-processed module)
+#   umap_bindgen/umap_wasm.js       (ES module glue, matches umap-wasm/index.js imports)
+#   umap_bindgen/umap_wasm.d.ts     (types)
+rust_wasm_bindgen(
+    name = "umap_bindgen",
+    out_name = "umap_wasm",
+    target = "web",
+    wasm_file = ":umap_wasm",
+)
+
+# Pull just the .wasm out of the bindgen bundle (which also carries .js/.d.ts).
+wasm_bindgen_module(
+    name = "umap_bindgen_wasm",
+    bindgen = ":umap_bindgen",
+)
+
+# Release: wasm-opt -O3 + strip; dev: copy through unchanged. Reuses the same macro
+# as dashql-core / duckdb so REAPI cache keys stay cross-platform stable.
+optimize_wasm(
+    name = "umap_wasm_opt",
+    src = ":umap_bindgen_wasm",
+    out = "umap_wasm_bg.wasm",
+)
+
+# ---------------------------------------------------------------------------
+# Public filegroups consumed by //packages/dashql-app (genrule -> dependencies/)
+# ---------------------------------------------------------------------------
+
+# The optimized .wasm module.
+filegroup(
+    name = "wasm",
+    srcs = [":umap_wasm_opt"],
+    visibility = ["//visibility:public"],
+)
+
+# The wasm-bindgen JS glue + the hand-written index.js wrapper + its .d.ts.
+filegroup(
+    name = "js",
+    srcs = [
+        "umap-wasm/index.d.ts",
+        "umap-wasm/index.js",
+        ":umap_bindgen",
+    ],
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,24 @@
+[package]
+name = "umap-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "WASM bindings for UMAP and NNDescent"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+# CPU-only vendored subset: the upstream `gpu` feature is dropped for the wasm32 build.
+[dependencies]
+nndescent = { path = "../nndescent" }
+umap = { path = "../umap" }
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = "0.4"
+js-sys = { workspace = true }
+ndarray = { workspace = true }
+getrandom = { workspace = true, features = ["wasm_js"] }
+
+[lints]
+workspace = true

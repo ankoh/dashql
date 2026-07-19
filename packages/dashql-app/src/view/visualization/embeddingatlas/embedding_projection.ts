@@ -1,4 +1,11 @@
+import type { UMAPOptions } from '@dashql/umap-wasm';
+
 import type { EmbeddingMatrix } from './embedding_extraction.js';
+import {
+    UMAPWorkerRequestType,
+    UMAPWorkerResponse,
+    UMAPWorkerResponseType,
+} from './umap_worker_request.js';
 
 /// The 2D result of projecting an embedding matrix, split into the `x`/`y`
 /// Float32Arrays the scatter renderer consumes.
@@ -7,20 +14,88 @@ export interface Projection2D {
     y: Float32Array;
 }
 
-/// Phase-1 stub projection: take the first two components of each vector as `(x, y)`.
+/// A running projection: a promise for the 2D result plus a `cancel()` that
+/// abandons the worker run (on card unmount / re-run) so a stale result never
+/// lands and the wasm UMAP instance is freed.
+export interface RunningProjection {
+    readonly promise: Promise<Projection2D>;
+    cancel(): void;
+}
+
+/// Progress callback: `stage` is the UMAP phase ("knn", "optimize", ...), `progress`
+/// is in [0, 1]. Wired to the notebook AI-bar/log surface.
+export type ProjectionProgress = (progress: number, stage: string) => void;
+
+let nextRunId = 1;
+
+/// Spawn (or reuse) the UMAP worker and project `matrix` to 2D. Each call gets a
+/// fresh messageId; the returned handle streams progress and can be cancelled.
 ///
-/// This exists purely to prove the SQL → extraction → renderer pixels path end to
-/// end before the real UMAP worker (workstream C/E) lands. It is deterministic and
-/// synchronous. The output is NOT a meaningful embedding layout — for a 2D+ vector
-/// it is a raw scatter of dims 0 and 1; for a 1D vector `y` is zeroed.
-export function stubProjectFirstTwoComponents(matrix: EmbeddingMatrix): Projection2D {
-    const { data, count, dimension } = matrix;
-    const x = new Float32Array(count);
-    const y = new Float32Array(count);
-    for (let i = 0; i < count; ++i) {
-        const base = i * dimension;
-        x[i] = data[base];
-        y[i] = dimension > 1 ? data[base + 1] : 0;
-    }
-    return { x, y };
+/// Split the N×2 row-major worker output into the separate `x`/`y` arrays the
+/// EmbeddingScatter consumes.
+export function projectWithUMAP(
+    matrix: EmbeddingMatrix,
+    options: UMAPOptions,
+    onProgress?: ProjectionProgress,
+): RunningProjection {
+    const runId = nextRunId++;
+    const worker = new Worker(new URL('./umap_worker.js', import.meta.url), { type: 'module' });
+
+    let settled = false;
+    const promise = new Promise<Projection2D>((resolve, reject) => {
+        worker.onmessage = (event: MessageEvent<UMAPWorkerResponse>) => {
+            const msg = event.data;
+            if (msg.requestId !== runId) return;
+            switch (msg.type) {
+                case UMAPWorkerResponseType.PROGRESS:
+                    onProgress?.(msg.progress, msg.stage);
+                    break;
+                case UMAPWorkerResponseType.RESULT: {
+                    settled = true;
+                    const { embedding, count } = msg;
+                    const x = new Float32Array(count);
+                    const y = new Float32Array(count);
+                    for (let i = 0; i < count; ++i) {
+                        x[i] = embedding[i * 2];
+                        y[i] = embedding[i * 2 + 1];
+                    }
+                    resolve({ x, y });
+                    worker.terminate();
+                    break;
+                }
+                case UMAPWorkerResponseType.ERROR:
+                    settled = true;
+                    reject(new Error(msg.error));
+                    worker.terminate();
+                    break;
+            }
+        };
+        worker.onerror = e => {
+            if (settled) return;
+            settled = true;
+            reject(new Error(e.message || 'UMAP worker error'));
+            worker.terminate();
+        };
+    });
+
+    // NB: do NOT transfer matrix.data.buffer. In the zero-copy extraction path it
+    // is a subarray VIEW over the live Arrow column's ArrayBuffer; transferring it
+    // would detach that buffer on the main thread and corrupt the result table.
+    // The structured-clone copy across the worker boundary is cheap next to the
+    // UMAP compute (which copies into the wasm heap regardless).
+    worker.postMessage({
+        messageId: runId,
+        type: UMAPWorkerRequestType.RUN,
+        params: { data: matrix.data, count: matrix.count, dimension: matrix.dimension, options },
+    });
+
+    return {
+        promise,
+        cancel() {
+            if (settled) return;
+            settled = true;
+            worker.postMessage({ messageId: nextRunId++, type: UMAPWorkerRequestType.CANCEL, runId });
+            worker.terminate();
+        },
+    };
 }

@@ -1,0 +1,43 @@
+# Vendored UMAP + NNDescent crates from Apple's embedding-atlas (MIT), compiled to
+# wasm32-unknown-unknown for the `VISUALIZE ... USING embeddingatlas` renderer.
+#
+# CPU-only: the upstream `gpu` (wgpu) feature and its sources/shaders are intentionally
+# dropped for v1 (single-threaded wasm has no GPU consumer here). See //NOTICE for
+# attribution. This is a SEPARATE workspace from the root //:Cargo.toml so its wasm-only
+# deps (wasm-bindgen, js-sys, getrandom/wasm_js) never enter the native `crates` universe.
+#
+# Repin after editing any member manifest: CARGO_BAZEL_REPIN=1 bazel build @umap_crates//:all
+[workspace]
+resolver = "2"
+members = ["nndescent", "umap", "umap-wasm"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/apple/embedding-atlas"
+authors = ["Apple Inc."]
+
+[workspace.dependencies]
+ndarray = "0.17"
+rayon = "1.11"
+pollster = "0.4"
+wasm-bindgen = "=0.2.105"
+js-sys = "0.3.69"
+getrandom = "0.4"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+# The `gpu` feature is dropped for the wasm32 build, but the upstream sources keep
+# their `#[cfg(feature = "gpu")]` guards (minimal diff for re-vendoring). Tell
+# check-cfg that `gpu` is a known-but-inactive feature name so it doesn't warn.
+[workspace.lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = ['cfg(feature, values("gpu"))'] }
+
+# NOTE: Bazel drives optimization via compilation_mode + wasm-opt, not this profile.
+# Kept only for out-of-tree `cargo build` parity and Cargo.lock generation.
+[profile.release]
+strip = true
+lto = true
+opt-level = "s"

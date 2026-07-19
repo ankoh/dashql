@@ -1,0 +1,21 @@
+[package]
+name = "nndescent"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Rust port of PyNNDescent - fast approximate nearest neighbor search"
+
+# CPU-only vendored subset: the upstream `gpu` feature (wgpu + bytemuck + gpu.rs +
+# nn_descent_gpu.rs + shaders) is dropped for the wasm32 build.
+[dependencies]
+ndarray = { workspace = true, features = ["rayon"] }
+rayon = { workspace = true }
+ordered-float = "5.2"
+getrandom = { workspace = true }
+wide = "1.2.0"
+pollster = { workspace = true }
+
+[lints]
+workspace = true

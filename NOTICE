@@ -42,7 +42,20 @@ and the supporting `colors.ts`, `dataflow.ts`, `matrix.ts`,
     THE SOFTWARE.
 
 --------------------------------------------------------------------------------
-2. fast-kde (Deriche Gaussian approximation)
+2. Embedding Atlas (UMAP / NNDescent Rust crates)
+--------------------------------------------------------------------------------
+
+The Rust crates under `packages/dashql-umap/` (`umap`, `nndescent`, `umap-wasm`)
+are vendored from Apple's Embedding Atlas project
+(https://github.com/apple/embedding-atlas), specifically `packages/umap/{umap,
+nndescent,umap-wasm}`. They are compiled to WebAssembly for the client-side UMAP
+projection behind `VISUALIZE ... USING embeddingatlas`. The GPU (`wgpu`) feature
+and its sources/shaders are omitted; the remaining files retain their original
+`// Copyright (c) 2025 Apple Inc. Licensed under MIT License.` headers. Licensed
+under the same MIT License as section 1 (Copyright (c) 2025 Apple Inc.).
+
+--------------------------------------------------------------------------------
+3. fast-kde (Deriche Gaussian approximation)
 --------------------------------------------------------------------------------
 
 The file

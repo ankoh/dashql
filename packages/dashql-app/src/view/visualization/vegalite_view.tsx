@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as arrow from 'apache-arrow';
 import type { TopLevelSpec } from 'vega-lite';
 
-import * as styles from './visualization_view.module.css';
+import * as styles from './visualization.module.css';
 import { QueryExecutionState, QueryExecutionStatus } from '../../connection/query_execution_state.js';
 
 interface Props {
@@ -30,7 +30,7 @@ function arrowTableToRows(table: arrow.Table): Record<string, unknown>[] {
     return rows;
 }
 
-export function VisualizationView(props: Props): React.ReactElement {
+export function VegaLiteView(props: Props): React.ReactElement {
     const containerRef = React.useRef<HTMLDivElement | null>(null);
     const [error, setError] = React.useState<string | null>(null);
 

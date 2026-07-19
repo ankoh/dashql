@@ -5,59 +5,59 @@ import type { Point, ViewportState } from "./utils.js";
 export type RenderMode = "points" | "density";
 
 export interface EmbeddingRendererProps {
-  mode: RenderMode;
-  colorScheme: "light" | "dark";
+    mode: RenderMode;
+    colorScheme: "light" | "dark";
 
-  x: Float32Array<ArrayBuffer>;
-  y: Float32Array<ArrayBuffer>;
-  category: Uint8Array<ArrayBuffer> | null;
+    x: Float32Array<ArrayBuffer>;
+    y: Float32Array<ArrayBuffer>;
+    category: Uint8Array<ArrayBuffer> | null;
 
-  categoryCount: number;
-  categoryColors: string[] | null;
+    categoryCount: number;
+    categoryColors: string[] | null;
 
-  viewportX: number;
-  viewportY: number;
-  viewportScale: number;
+    viewportX: number;
+    viewportY: number;
+    viewportScale: number;
 
-  pointSize: number;
-  pointAlpha: number;
-  pointsAlpha: number;
+    pointSize: number;
+    pointAlpha: number;
+    pointsAlpha: number;
 
-  densityScaler: number;
-  densityBandwidth: number;
-  densityQuantizationStep: number;
-  densityAlpha: number;
-  contoursAlpha: number;
+    densityScaler: number;
+    densityBandwidth: number;
+    densityQuantizationStep: number;
+    densityAlpha: number;
+    contoursAlpha: number;
 
-  gamma: number;
-  width: number;
-  height: number;
+    gamma: number;
+    width: number;
+    height: number;
 
-  /** Approximate maximum points to render. null/Infinity = no limit. Default: 4,000,000 */
-  downsampleMaxPoints: number | null;
-  /** Density weight for downsampling (0-10). Default: 5 */
-  downsampleDensityWeight: number;
+    /** Approximate maximum points to render. null/Infinity = no limit. Default: 4,000,000 */
+    downsampleMaxPoints: number | null;
+    /** Density weight for downsampling (0-10). Default: 5 */
+    downsampleDensityWeight: number;
 }
 
 export interface DensityMap {
-  data: Float32Array;
-  width: number;
-  height: number;
-  coordinateAtPixel: (x: number, y: number) => Point;
+    data: Float32Array;
+    width: number;
+    height: number;
+    coordinateAtPixel: (x: number, y: number) => Point;
 }
 
 export interface EmbeddingRenderer {
-  readonly props: EmbeddingRendererProps;
+    readonly props: EmbeddingRendererProps;
 
-  /** Set renderer props. Returns true if a render is needed. */
-  setProps(newProps: Partial<EmbeddingRendererProps>): boolean;
+    /** Set renderer props. Returns true if a render is needed. */
+    setProps(newProps: Partial<EmbeddingRendererProps>): boolean;
 
-  /** Render */
-  render(): void;
+    /** Render */
+    render(): void;
 
-  /** Destroy the renderer and free any resource */
-  destroy(): void;
+    /** Destroy the renderer and free any resource */
+    destroy(): void;
 
-  /** Produce a density map */
-  densityMap(width: number, height: number, radius: number, viewportState: ViewportState): Promise<DensityMap>;
+    /** Produce a density map */
+    densityMap(width: number, height: number, radius: number, viewportState: ViewportState): Promise<DensityMap>;
 }

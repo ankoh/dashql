@@ -1,0 +1,19 @@
+[package]
+name = "umap"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "UMAP - Uniform Manifold Approximation and Projection for Dimension Reduction"
+
+# CPU-only vendored subset: the upstream `gpu` feature (wgpu + bytemuck + gpu_optimize.rs
+# + shaders) is dropped for the wasm32 build.
+[dependencies]
+nndescent = { path = "../nndescent" }
+ndarray = { workspace = true, features = ["rayon"] }
+rayon = { workspace = true }
+pollster = { workspace = true }
+
+[lints]
+workspace = true

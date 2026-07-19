@@ -1,0 +1,8 @@
+# Out-of-tree `cargo build` parity only (Bazel drives target + flags via the
+# rust toolchain + rust_shared_library platform_transition). Keeps a bare
+# `cargo build` in this dir producing the same wasm32 + simd128 artifact.
+[build]
+target = "wasm32-unknown-unknown"
+
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "target-feature=+simd128"]

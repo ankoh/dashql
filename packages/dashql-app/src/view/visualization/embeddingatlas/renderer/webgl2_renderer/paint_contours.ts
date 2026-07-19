@@ -5,7 +5,7 @@ import type { IFramebuffer } from "./utils.js";
 import { webglBuffer, webglProgram } from "./utils.js";
 
 function shaderSource() {
-  let vertex = `#version 300 es
+    let vertex = `#version 300 es
     precision highp float;
     layout(location=0) in vec2 xy;
     out vec2 uv;
@@ -14,7 +14,7 @@ function shaderSource() {
       uv = (xy + 1.0) / 2.0;
     }
   `;
-  let fragment = `#version 300 es
+    let fragment = `#version 300 es
     precision highp float;
     uniform sampler2D source;
     uniform vec2 resolution;
@@ -53,49 +53,49 @@ function shaderSource() {
       outColor = color * alpha * globalAlpha;
     }
   `;
-  return { vertex, fragment };
+    return { vertex, fragment };
 }
 
 type PaintContoursCommand = (
-  input: IFramebuffer,
-  densityScaler: number,
-  quantizationStep: number,
-  globalAlpha: number,
-  channelMask: number[],
-  color: number[],
+    input: IFramebuffer,
+    densityScaler: number,
+    quantizationStep: number,
+    globalAlpha: number,
+    channelMask: number[],
+    color: number[],
 ) => void;
 
 export function paintContoursCommand(df: Dataflow, gl: Node<WebGL2RenderingContext>): Node<PaintContoursCommand> {
-  let { vertex, fragment } = shaderSource();
-  let program = df.statefulDerive([gl, vertex, fragment], webglProgram);
-  let attr = df.statefulDerive([gl, [-1, -1, -1, 1, 1, -1, 1, 1], "f32"], webglBuffer);
+    let { vertex, fragment } = shaderSource();
+    let program = df.statefulDerive([gl, vertex, fragment], webglProgram);
+    let attr = df.statefulDerive([gl, [-1, -1, -1, 1, 1, -1, 1, 1], "f32"], webglBuffer);
 
-  return df.derive(
-    [gl, program, attr],
-    (gl, program, attr) => (input, densityScaler, quantizationStep, globalAlpha, channelMask, color) => {
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      gl.enableVertexAttribArray(0);
-      gl.bindBuffer(gl.ARRAY_BUFFER, attr);
-      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-      gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    return df.derive(
+        [gl, program, attr],
+        (gl, program, attr) => (input, densityScaler, quantizationStep, globalAlpha, channelMask, color) => {
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            gl.enableVertexAttribArray(0);
+            gl.bindBuffer(gl.ARRAY_BUFFER, attr);
+            gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-      gl.bindTexture(gl.TEXTURE_2D, input.texture);
+            gl.bindTexture(gl.TEXTURE_2D, input.texture);
 
-      gl.useProgram(program.program);
-      gl.uniform1i(program.uniforms.source, 0);
-      gl.uniform2f(program.uniforms.resolution, input.width, input.height);
-      gl.uniform1f(program.uniforms.densityScaler, densityScaler);
-      gl.uniform1f(program.uniforms.quantizationStep, quantizationStep);
-      gl.uniform1f(program.uniforms.globalAlpha, globalAlpha);
-      gl.uniform4fv(program.uniforms.channelMask, channelMask);
-      gl.uniform4fv(program.uniforms.color, color);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      gl.useProgram(null);
+            gl.useProgram(program.program);
+            gl.uniform1i(program.uniforms.source, 0);
+            gl.uniform2f(program.uniforms.resolution, input.width, input.height);
+            gl.uniform1f(program.uniforms.densityScaler, densityScaler);
+            gl.uniform1f(program.uniforms.quantizationStep, quantizationStep);
+            gl.uniform1f(program.uniforms.globalAlpha, globalAlpha);
+            gl.uniform4fv(program.uniforms.channelMask, channelMask);
+            gl.uniform4fv(program.uniforms.color, color);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            gl.useProgram(null);
 
-      gl.bindTexture(gl.TEXTURE_2D, null);
+            gl.bindTexture(gl.TEXTURE_2D, null);
 
-      gl.disableVertexAttribArray(0);
-    },
-  );
+            gl.disableVertexAttribArray(0);
+        },
+    );
 }

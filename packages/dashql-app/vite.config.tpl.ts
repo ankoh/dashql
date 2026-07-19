@@ -20,6 +20,10 @@ export default vite.defineConfig(({ mode, command }) => {
     const CORE_WASM_PATH = path.resolve(rootDir, "__CORE_WASM_PATH__");
     const WEBDB_JS_PATH = path.resolve(rootDir, "__WEBDB_JS_PATH__");
     const WEBDB_WASM_PATH = path.resolve(rootDir, "__WEBDB_WASM_PATH__");
+    // Entry point of the vendored UMAP wasm module (dependencies/umap-wasm/index.js).
+    // Its glue (pkg/umap_wasm.js) loads pkg/umap_wasm_bg.wasm relatively via
+    // import.meta.url, so only the entry needs an alias — the .wasm has no placeholder.
+    const UMAP_JS_PATH = path.resolve(rootDir, "__UMAP_JS_PATH__");
     const SVG_SYMBOLS_PATH = path.resolve(rootDir, "__SVG_SYMBOLS_PATH__");
 
     return {
@@ -157,6 +161,10 @@ export default vite.defineConfig(({ mode, command }) => {
                     find: /^@dashql\/duckdb-wasm-js(\?.*)?$/,
                     replacement: WEBDB_JS_PATH + "$1",
                 }] : []),
+                {
+                    find: /^@dashql\/umap-wasm(\?.*)?$/,
+                    replacement: UMAP_JS_PATH + "$1",
+                },
                 { find: /@ankoh\/dashql-svg-symbols/, replacement: SVG_SYMBOLS_PATH },
                 // Test-only mocks for asset imports (replacing Jest moduleNameMapper)
                 ...(isTest ? [
@@ -201,6 +209,9 @@ export default vite.defineConfig(({ mode, command }) => {
                         path.dirname(CORE_JS_PATH),
                         path.dirname(CORE_WASM_PATH),
                         path.dirname(SVG_SYMBOLS_PATH),
+                        // umap-wasm/index.js + its pkg/ subdir (glue + .wasm).
+                        path.dirname(UMAP_JS_PATH),
+                        path.join(path.dirname(UMAP_JS_PATH), "pkg"),
                     ]
                         .concat(isNativeBuild ? [] : [
                             path.dirname(WEBDB_JS_PATH),

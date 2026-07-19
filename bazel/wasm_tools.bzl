@@ -8,6 +8,8 @@ Command.platform on macOS and Linux.  Combined with the sh_binary wrappers in
 the action cache key is the same on every host, enabling remote cache sharing.
 """
 
+load("@rules_rust_wasm_bindgen//:defs.bzl", "RustWasmBindgenInfo")
+
 # Exec group shared by rules that run wasm-opt / wasm-strip.
 # Import as: load("//bazel:wasm_tools.bzl", "WASM_TOOL_EXEC_GROUP", "optimize_wasm")
 
@@ -51,6 +53,25 @@ def _optimize_wasm_impl(ctx):
         )
 
     return [DefaultInfo(files = depset([wasm_out]))]
+
+def _wasm_bindgen_module_impl(ctx):
+    # rust_wasm_bindgen's DefaultInfo bundles the .wasm together with the .js/.d.ts
+    # glue, so it can't feed a single-file `src`. Pull just the .wasm out of the
+    # RustWasmBindgenInfo provider so it can be piped into optimize_wasm.
+    info = ctx.attr.bindgen[RustWasmBindgenInfo]
+    return [DefaultInfo(files = depset([info.wasm]))]
+
+wasm_bindgen_module = rule(
+    implementation = _wasm_bindgen_module_impl,
+    doc = "Extracts the single .wasm file produced by a rust_wasm_bindgen target (dropping the JS/TS glue) so it can be fed to optimize_wasm.",
+    attrs = {
+        "bindgen": attr.label(
+            mandatory = True,
+            providers = [RustWasmBindgenInfo],
+            doc = "A rust_wasm_bindgen target.",
+        ),
+    },
+)
 
 def optimize_wasm(name, src, out, **kwargs):
     """Runs wasm-opt -O3 + wasm-strip on a .wasm file in release builds; copies unchanged in dev builds."""
