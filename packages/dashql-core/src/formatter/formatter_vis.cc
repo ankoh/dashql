@@ -283,8 +283,9 @@ FmtReg Formatter::FormatVisPropertyList(const buffers::parser::Node& node) {
 
 FmtReg Formatter::FormatVisualize(size_t node_id) {
     const auto& node = ast[node_id];
-    auto [source, spec] =
-        GetAttributes<AttributeKey::VIS_VISUALISE_SELECT, AttributeKey::VIS_VISUALISE_SPEC>(node);
+    auto [source, spec, renderer] =
+        GetAttributes<AttributeKey::VIS_VISUALISE_SELECT, AttributeKey::VIS_VISUALISE_SPEC,
+                      AttributeKey::VIS_VISUALISE_USING>(node);
 
     if (!spec) return FormatUnimplemented(node);
 
@@ -292,7 +293,7 @@ FmtReg Formatter::FormatVisualize(size_t node_id) {
     if (spec_reg == 0) return FormatUnimplemented(node);
 
     std::vector<FmtReg> header_parts;
-    header_parts.reserve(4);
+    header_parts.reserve(5);
     header_parts.push_back(fmt.Text("visualize "));
 
     if (source && source->node_type() != NodeType::NONE) {
@@ -307,7 +308,11 @@ FmtReg Formatter::FormatVisualize(size_t node_id) {
         }
     }
 
-    header_parts.push_back(fmt.Text("as "));
+    header_parts.push_back(fmt.Text("using "));
+    if (renderer && renderer->node_type() != NodeType::NONE) {
+        header_parts.push_back(fmt.Text(scanned.ReadTextAtSymbolSpan(renderer->symbol_span())));
+        header_parts.push_back(fmt.Text(" "));
+    }
     auto header = fmt.Concat(std::move(header_parts));
     return fmt.Concat({header, spec_reg});
 }

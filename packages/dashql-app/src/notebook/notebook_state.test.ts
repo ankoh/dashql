@@ -1058,7 +1058,7 @@ describe('clean-name script references', () => {
         const sourceId = state.notebookPages[MAIN_FOLDER].scripts['1_a.sql'].scriptId;
         const s1 = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: sourceId, text: 'SELECT 1 as a' } });
 
-        const visualize = `visualize dashql.notebook."${MAIN_FOLDER}/a" as ( mark => bar, encoding => ( x => (field => a) ) )`;
+        const visualize = `visualize dashql.notebook."${MAIN_FOLDER}/a" using vegalite ( mark => bar, encoding => ( x => (field => a) ) )`;
         const s2 = reduce(s1, { type: CREATE_NOTEBOOK_ENTRY_WITH_TEXT, value: { text: visualize } });
         const focusFile = s2.notebookUserFocus.fileName;
         const visId = getSelectedPage(s2)!.scripts[focusFile].scriptId;
@@ -1072,7 +1072,7 @@ describe('clean-name script references', () => {
         const s1 = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: aId, text: 'SELECT 1 as a' } });
 
         // A third script visualises "Main/a" by its clean name.
-        const visualize = `visualize dashql.notebook."${MAIN_FOLDER}/a" as ( mark => bar, encoding => ( x => (field => a) ) )`;
+        const visualize = `visualize dashql.notebook."${MAIN_FOLDER}/a" using vegalite ( mark => bar, encoding => ( x => (field => a) ) )`;
         const s2 = reduce(s1, { type: CREATE_NOTEBOOK_ENTRY_WITH_TEXT, value: { text: visualize } });
         const visFile = s2.notebookUserFocus.fileName;
         const visId = getSelectedPage(s2)!.scripts[visFile].scriptId;
@@ -1180,7 +1180,7 @@ describe('ANALYZE_OUTDATED_SCRIPT', () => {
 
 describe('getExecutableQueryText', () => {
     const VISUALIZE_SCRIPT =
-        'visualize ( select v as a from generate_series(1, 10) t(v) ) as ( mark => bar, encoding => ( x => (field => a) ) )';
+        'visualize ( select v as a from generate_series(1, 10) t(v) ) using vegalite ( mark => bar, encoding => ( x => (field => a) ) )';
 
     it('extracts the inner SELECT from a VISUALIZE script even when analysis is still outdated', () => {
         // Reproduces the first-run race: the script was just inserted and not
@@ -1233,7 +1233,7 @@ describe('getExecutableQueryText', () => {
         const sourceId = state.notebookPages[MAIN_FOLDER].scripts['1_a.sql'].scriptId;
         const s1 = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: sourceId, text: 'select v as a from generate_series(1, 100) t(v)' } });
 
-        const visualize = `visualize dashql.notebook."${MAIN_FOLDER}/a" as ( mark => line, encoding => ( x => (field => a) ) )`;
+        const visualize = `visualize dashql.notebook."${MAIN_FOLDER}/a" using vegalite ( mark => line, encoding => ( x => (field => a) ) )`;
         const s2 = reduce(s1, { type: CREATE_NOTEBOOK_ENTRY_WITH_TEXT, value: { text: visualize } });
         const visId = getSelectedPage(s2)!.scripts[s2.notebookUserFocus.fileName].scriptId;
 
@@ -1334,7 +1334,7 @@ describe('analyzeAllScriptsInNotebook', () => {
 
         const s1 = reduce(state, {
             type: CREATE_NOTEBOOK_ENTRY_WITH_TEXT,
-            value: { text: `visualize dashql.notebook."${MAIN_FOLDER}/${sourceFile}" as ( mark => bar, encoding => ( x => (field => a) ) )` },
+            value: { text: `visualize dashql.notebook."${MAIN_FOLDER}/${sourceFile}" using vegalite ( mark => bar, encoding => ( x => (field => a) ) )` },
         });
 
         const next = analyzeAllScriptsInNotebook(s1, logger);
@@ -1418,7 +1418,7 @@ describe('SET_SCRIPT_TEXT', () => {
         const state = buildState();
         const scriptKey = getSelectedPage(state)!.scripts[state.notebookUserFocus.fileName].scriptId;
         const visualize =
-            'visualize ( select v as a from generate_series(1, 10) t(v) ) as ( mark => bar, encoding => ( x => (field => a) ) )';
+            'visualize ( select v as a from generate_series(1, 10) t(v) ) using vegalite ( mark => bar, encoding => ( x => (field => a) ) )';
         const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: visualize } });
         expect(next.scripts[scriptKey].annotations.visualizeQuery).not.toBeNull();
         expect(next.scripts[scriptKey].annotations.visualizeQuery!.sql.toLowerCase()).toContain('select v as a');
@@ -1573,7 +1573,7 @@ describe('CREATE_NOTEBOOK_ENTRY_WITH_TEXT', () => {
         // Give the focused entry a SELECT so it can be referenced by path
         const s1 = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: getSelectedPage(state)!.scripts[sourceFile].scriptId, text: 'SELECT 1 as a' } });
         // Script references are encoded as `dashql.notebook."<folder>/<file>"`.
-        const visualize = `visualize dashql.notebook."${MAIN_FOLDER}/${sourceFile}" as ( mark => bar, encoding => ( x => (field => a) ) )`;
+        const visualize = `visualize dashql.notebook."${MAIN_FOLDER}/${sourceFile}" using vegalite ( mark => bar, encoding => ( x => (field => a) ) )`;
         const s2 = reduce(s1, { type: CREATE_NOTEBOOK_ENTRY_WITH_TEXT, value: { text: visualize } });
         const focusFile = s2.notebookUserFocus.fileName;
         const newEntry = getSelectedPage(s2)!.scripts[focusFile];

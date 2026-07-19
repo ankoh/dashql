@@ -83,17 +83,17 @@ diff-snapshots:
   # Guards the node-type classifier wart (ENUM_VIS_* sits between OBJECT_KEYS_ and VIS_OBJECT_KEYS_).
   - name: update_vis_mark_type
     source: |
-      VISUALIZE sales AS (mark => line);
+      VISUALIZE sales USING vegalite (mark => line);
     target: |
-      VISUALIZE sales AS (mark => bar);
+      VISUALIZE sales USING vegalite (mark => bar);
 
   # A VISUALIZE spec whose attributes appear in a different order but are otherwise identical.
   # Guards the unsorted-object-attribute fix (scratch stable-sort by key before the merge-join).
   - name: reorder_object_attributes
     source: |
-      VISUALIZE sales AS (mark => bar, width => 800, height => 400);
+      VISUALIZE sales USING vegalite (mark => bar, width => 800, height => 400);
     target: |
-      VISUALIZE sales AS (height => 400, width => 800, mark => bar);
+      VISUALIZE sales USING vegalite (height => 400, width => 800, mark => bar);
 
   # Two candidate targets for an updated source; the closer one must win the UPDATE.
   # Pins the max-score UPDATE-candidate selection (a deliberate divergence from legacy).

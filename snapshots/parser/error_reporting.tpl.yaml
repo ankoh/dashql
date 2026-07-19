@@ -18,3 +18,9 @@ parser-snapshots:
   - name: error_reporting_sconst_explicit_alias_ok
     input: |
       select 1 as 'one'
+
+  # An unknown VISUALIZE renderer is a parse error: `vis_renderer` accepts only the `vegalite`
+  # keyword, so `USING foo` cannot reduce and the statement fails to parse.
+  - name: error_reporting_vis_unknown_renderer
+    input: |
+      visualize sales using foo (mark => bar)

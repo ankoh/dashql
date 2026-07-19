@@ -151,9 +151,9 @@ diff-snapshots:
 
   - name: update_vis_mark_type
     source: |-
-      VISUALIZE sales AS (mark => line);
+      VISUALIZE sales USING vegalite (mark => line);
     target: |-
-      VISUALIZE sales AS (mark => bar);
+      VISUALIZE sales USING vegalite (mark => bar);
     expected:
       ops:
         - code: UPDATE
@@ -164,9 +164,9 @@ diff-snapshots:
 
   - name: reorder_object_attributes
     source: |-
-      VISUALIZE sales AS (mark => bar, width => 800, height => 400);
+      VISUALIZE sales USING vegalite (mark => bar, width => 800, height => 400);
     target: |-
-      VISUALIZE sales AS (height => 400, width => 800, mark => bar);
+      VISUALIZE sales USING vegalite (height => 400, width => 800, mark => bar);
     expected:
       ops:
         - code: KEEP

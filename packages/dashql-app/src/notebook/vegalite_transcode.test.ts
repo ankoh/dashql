@@ -36,7 +36,7 @@ describe('parseVegaLiteToVisualize (WASM)', () => {
             },
             TABLE_SOURCE,
         );
-        expect(dsl).toContain('VISUALIZE sales AS');
+        expect(dsl).toContain('VISUALIZE sales USING vegalite');
         expect(dsl).toContain('mark => bar');
         expect(dsl).toContain('x => (field => category, type => nominal)');
         expect(dsl).toContain('y => (field => amount, type => quantitative)');
@@ -150,7 +150,7 @@ describe('parseVegaLiteToVisualize (WASM)', () => {
             { mark: 'bar', encoding: { x: { field: 'a', type: 'nominal' } } },
             { kind: 'script-reference', folderName: 'main', fileName: 'sales.sql' },
         );
-        expect(dsl).toContain('VISUALIZE dashql.notebook."main/sales.sql" AS');
+        expect(dsl).toContain('VISUALIZE dashql.notebook."main/sales.sql" USING vegalite');
     });
 
     it('emits an inline-select source', () => {
@@ -158,7 +158,7 @@ describe('parseVegaLiteToVisualize (WASM)', () => {
             { mark: 'bar', encoding: { x: { field: 'a', type: 'nominal' } } },
             { kind: 'inline-select', sql: 'SELECT a FROM t' },
         );
-        expect(dsl).toContain('VISUALIZE (SELECT a FROM t) AS');
+        expect(dsl).toContain('VISUALIZE (SELECT a FROM t) USING vegalite');
     });
 
     it('returns an empty string for malformed JSON', () => {

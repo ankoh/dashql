@@ -36,16 +36,19 @@ parser-snapshots:
 
   - name: vis_statement_minimal_mark
     input: |-
-      VISUALIZE AS (mark => line);
+      VISUALIZE USING vegalite (mark => line);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 3
+          ast-size: 4
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..k => line)"
             children:
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "mark => line"
@@ -61,12 +64,12 @@ parser-snapshots:
 
   - name: vis_statement_table_source
     input: |-
-      VISUALIZE sales AS (mark => bar);
+      VISUALIZE sales USING vegalite (mark => bar);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 6
+          ast-size: 7
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..rk => bar)"
@@ -81,6 +84,9 @@ parser-snapshots:
                     children:
                       - type: NAME
                         text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "mark => bar"
@@ -96,12 +102,12 @@ parser-snapshots:
 
   - name: vis_statement_qualified_table_source
     input: |-
-      VISUALIZE warehouse.public.sales AS (mark => point);
+      VISUALIZE warehouse.public.sales USING vegalite (mark => point);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 8
+          ast-size: 9
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE .. => point)"
@@ -120,6 +126,9 @@ parser-snapshots:
                         text: "public"
                       - type: NAME
                         text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "mark => point"
@@ -135,12 +144,12 @@ parser-snapshots:
 
   - name: vis_statement_select_source
     input: |-
-      VISUALIZE (SELECT * FROM sales) AS (mark => line);
+      VISUALIZE (SELECT * FROM sales) USING vegalite (mark => line);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 11
+          ast-size: 12
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..k => line)"
@@ -172,6 +181,9 @@ parser-snapshots:
                             children:
                               - type: NAME
                                 text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "mark => line"
@@ -187,12 +199,12 @@ parser-snapshots:
 
   - name: vis_statement_multi_spec_keys
     input: |-
-      VISUALIZE sales AS (mark => line, width => 800, height => 400);
+      VISUALIZE sales USING vegalite (mark => line, width => 800, height => 400);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 8
+          ast-size: 9
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..ht => 400)"
@@ -207,6 +219,9 @@ parser-snapshots:
                     children:
                       - type: NAME
                         text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "mark => li..ght => 400"
@@ -228,7 +243,7 @@ parser-snapshots:
 
   - name: vis_statement_encoding_single_channel
     input: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => bar,
         encoding => (
           x => (field => category, type => nominal)
@@ -238,7 +253,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 12
+          ast-size: 13
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..nal)\n  )\n)"
@@ -253,6 +268,9 @@ parser-snapshots:
                     children:
                       - type: NAME
                         text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "mark => ba..minal)\n  )"
@@ -286,16 +304,16 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [20,21]
-        - text: [35,36]
-        - text: [51,52]
-        - text: [97,98]
-        - text: [101,102]
+        - text: [32,33]
+        - text: [47,48]
+        - text: [63,64]
+        - text: [109,110]
+        - text: [113,114]
       comments: []
 
   - name: vis_statement_encoding_two_channels
     input: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => line,
         encoding => (
           x => (field => date, type => temporal),
@@ -306,7 +324,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 17
+          ast-size: 18
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..ive)\n  )\n)"
@@ -321,6 +339,9 @@ parser-snapshots:
                     children:
                       - type: NAME
                         text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "mark => li..ative)\n  )"
@@ -372,17 +393,17 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [20,21]
-        - text: [36,37]
-        - text: [52,53]
-        - text: [96,97]
-        - text: [146,147]
-        - text: [150,151]
+        - text: [32,33]
+        - text: [48,49]
+        - text: [64,65]
+        - text: [108,109]
+        - text: [158,159]
+        - text: [162,163]
       comments: []
 
   - name: vis_statement_encoding_with_scale
     input: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         encoding => (
           x => (field => time, type => temporal, scale => (domain => [0, 100]))
         )
@@ -391,7 +412,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 16
+          ast-size: 17
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..0]))\n  )\n)"
@@ -406,6 +427,9 @@ parser-snapshots:
                     children:
                       - type: NAME
                         text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "encoding =..100]))\n  )"
@@ -451,15 +475,15 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [20,21]
-        - text: [36,37]
-        - text: [110,111]
-        - text: [114,115]
+        - text: [32,33]
+        - text: [48,49]
+        - text: [122,123]
+        - text: [126,127]
       comments: []
 
   - name: vis_statement_encoding_with_axis
     input: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         encoding => (
           x => (field => date, type => temporal, axis => (format => '%Y', grid => false))
         )
@@ -468,7 +492,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 14
+          ast-size: 15
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..se))\n  )\n)"
@@ -483,6 +507,9 @@ parser-snapshots:
                     children:
                       - type: NAME
                         text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "encoding =..alse))\n  )"
@@ -522,15 +549,15 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [20,21]
-        - text: [36,37]
-        - text: [120,121]
-        - text: [124,125]
+        - text: [32,33]
+        - text: [48,49]
+        - text: [132,133]
+        - text: [136,137]
       comments: []
 
   - name: vis_statement_encoding_with_legend
     input: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         encoding => (
           color => (field => region, type => nominal, legend => (title => 'Region', orient => 'right'))
         )
@@ -539,7 +566,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 14
+          ast-size: 15
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..t'))\n  )\n)"
@@ -554,6 +581,9 @@ parser-snapshots:
                     children:
                       - type: NAME
                         text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "encoding =..ght'))\n  )"
@@ -593,15 +623,15 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [20,21]
-        - text: [36,37]
-        - text: [134,135]
-        - text: [138,139]
+        - text: [32,33]
+        - text: [48,49]
+        - text: [146,147]
+        - text: [150,151]
       comments: []
 
   - name: vis_statement_scale_full
     input: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         encoding => (
           x => (
             field => price,
@@ -620,7 +650,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 20
+          ast-size: 21
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..   )\n  )\n)"
@@ -635,6 +665,9 @@ parser-snapshots:
                     children:
                       - type: NAME
                         text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "encoding =..\n    )\n  )"
@@ -693,25 +726,25 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [20,21]
-        - text: [36,37]
-        - text: [47,48]
-        - text: [69,70]
-        - text: [97,98]
-        - text: [114,115]
-        - text: [135,136]
-        - text: [164,165]
-        - text: [186,187]
-        - text: [209,210]
-        - text: [231,232]
-        - text: [239,240]
-        - text: [245,246]
-        - text: [249,250]
+        - text: [32,33]
+        - text: [48,49]
+        - text: [59,60]
+        - text: [81,82]
+        - text: [109,110]
+        - text: [126,127]
+        - text: [147,148]
+        - text: [176,177]
+        - text: [198,199]
+        - text: [221,222]
+        - text: [243,244]
+        - text: [251,252]
+        - text: [257,258]
+        - text: [261,262]
       comments: []
 
   - name: vis_statement_encoding_shorthand_value
     input: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         encoding => (
           x => date,
           y => revenue
@@ -721,7 +754,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 12
+          ast-size: 13
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..enue\n  )\n)"
@@ -736,6 +769,9 @@ parser-snapshots:
                     children:
                       - type: NAME
                         text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "encoding =..evenue\n  )"
@@ -767,16 +803,16 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [20,21]
-        - text: [36,37]
-        - text: [51,52]
-        - text: [68,69]
-        - text: [72,73]
+        - text: [32,33]
+        - text: [48,49]
+        - text: [63,64]
+        - text: [80,81]
+        - text: [84,85]
       comments: []
 
   - name: vis_statement_encoding_color_channel
     input: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => point,
         encoding => (
           x => (field => date, type => temporal),
@@ -788,7 +824,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 22
+          ast-size: 23
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..nal)\n  )\n)"
@@ -803,6 +839,9 @@ parser-snapshots:
                     children:
                       - type: NAME
                         text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "mark => po..minal)\n  )"
@@ -872,25 +911,25 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [20,21]
-        - text: [37,38]
-        - text: [53,54]
-        - text: [97,98]
-        - text: [148,149]
-        - text: [196,197]
-        - text: [200,201]
+        - text: [32,33]
+        - text: [49,50]
+        - text: [65,66]
+        - text: [109,110]
+        - text: [160,161]
+        - text: [208,209]
+        - text: [212,213]
       comments: []
 
   - name: vis_statement_mark_def_simple
     input: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => (type => bar, filled => true, opacity => 0.8)
       );
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 9
+          ast-size: 10
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE .. => 0.8)\n)"
@@ -905,6 +944,9 @@ parser-snapshots:
                     children:
                       - type: NAME
                         text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "mark => (t..ty => 0.8)"
@@ -926,20 +968,20 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [20,21]
-        - text: [76,77]
+        - text: [32,33]
+        - text: [88,89]
       comments: []
 
   - name: vis_statement_mark_def_point_toggle
     input: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => (type => line, point => true)
       );
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 8
+          ast-size: 9
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..=> true)\n)"
@@ -954,6 +996,9 @@ parser-snapshots:
                     children:
                       - type: NAME
                         text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "mark => (t..t => true)"
@@ -972,20 +1017,20 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [20,21]
-        - text: [60,61]
+        - text: [32,33]
+        - text: [72,73]
       comments: []
 
   - name: vis_statement_mark_def_nested_overlay
     input: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => (type => line, point => (filled => false, fill => 'white'))
       );
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 10
+          ast-size: 11
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..white'))\n)"
@@ -1000,6 +1045,9 @@ parser-snapshots:
                     children:
                       - type: NAME
                         text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "mark => (t.. 'white'))"
@@ -1025,13 +1073,13 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [20,21]
-        - text: [90,91]
+        - text: [32,33]
+        - text: [102,103]
       comments: []
 
   - name: vis_statement_mark_def_broad
     input: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => (
           type => area,
           line => (stroke => 'red', stroke_width => 2),
@@ -1047,7 +1095,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 19
+          ast-size: 20
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..true\n  )\n)"
@@ -1062,6 +1110,9 @@ parser-snapshots:
                     children:
                       - type: NAME
                         text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "mark => (\n..> true\n  )"
@@ -1114,22 +1165,22 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [20,21]
         - text: [32,33]
-        - text: [50,51]
-        - text: [100,101]
-        - text: [120,121]
-        - text: [146,147]
-        - text: [173,174]
-        - text: [204,205]
-        - text: [224,225]
-        - text: [244,245]
-        - text: [248,249]
+        - text: [44,45]
+        - text: [62,63]
+        - text: [112,113]
+        - text: [132,133]
+        - text: [158,159]
+        - text: [185,186]
+        - text: [216,217]
+        - text: [236,237]
+        - text: [256,257]
+        - text: [260,261]
       comments: []
 
   - name: vis_statement_array_value
     input: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         encoding => (
           x => (scale => (domain => [0, 50, 100]))
         )
@@ -1138,7 +1189,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 13
+          ast-size: 14
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..0]))\n  )\n)"
@@ -1153,6 +1204,9 @@ parser-snapshots:
                     children:
                       - type: NAME
                         text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "encoding =..100]))\n  )"
@@ -1186,20 +1240,20 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [20,21]
-        - text: [36,37]
-        - text: [81,82]
-        - text: [85,86]
+        - text: [32,33]
+        - text: [48,49]
+        - text: [93,94]
+        - text: [97,98]
       comments: []
 
   - name: vis_statement_numeric_values
     input: |-
-      VISUALIZE sales AS (width => 800, height => 400, padding => 20);
+      VISUALIZE sales USING vegalite (width => 800, height => 400, padding => 20);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 8
+          ast-size: 9
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..ing => 20)"
@@ -1214,6 +1268,9 @@ parser-snapshots:
                     children:
                       - type: NAME
                         text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "width => 8..ding => 20"
@@ -1234,7 +1291,7 @@ parser-snapshots:
 
   - name: vis_statement_full_pipeline
     input: |-
-      VISUALIZE (SELECT * FROM sales) AS (
+      VISUALIZE (SELECT * FROM sales) USING vegalite (
         mark => line,
         encoding => (
           x => (field => date, type => temporal, axis => (format => '%b %Y')),
@@ -1249,7 +1306,7 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 36
+          ast-size: 37
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE .. Region'\n)"
@@ -1281,6 +1338,9 @@ parser-snapshots:
                             children:
                               - type: NAME
                                 text: "sales"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "mark => li..by Region'"
@@ -1380,30 +1440,33 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [36,37]
-        - text: [52,53]
-        - text: [68,69]
-        - text: [141,142]
-        - text: [217,218]
-        - text: [296,297]
-        - text: [301,302]
-        - text: [317,318]
-        - text: [334,335]
-        - text: [365,366]
+        - text: [48,49]
+        - text: [64,65]
+        - text: [80,81]
+        - text: [153,154]
+        - text: [229,230]
+        - text: [308,309]
+        - text: [313,314]
+        - text: [329,330]
+        - text: [346,347]
+        - text: [377,378]
       comments: []
 
   - name: vis_statement_trailing_comma_spec
     input: |-
-      VISUALIZE AS (mark => line, width => 800,);
+      VISUALIZE USING vegalite (mark => line, width => 800,);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 4
+          ast-size: 5
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..h => 800,)"
             children:
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "mark => li..th => 800,"
@@ -1422,7 +1485,7 @@ parser-snapshots:
 
   - name: vis_statement_trailing_comma_encoding
     input: |-
-      VISUALIZE AS (
+      VISUALIZE USING vegalite (
         mark => bar,
         encoding => (
           x => (field => date, type => temporal,),
@@ -1433,11 +1496,14 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 13
+          ast-size: 14
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..,),\n  ),\n)"
             children:
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
                 text: "mark => ba..ue,),\n  ),"
@@ -1485,12 +1551,12 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [14,15]
-        - text: [29,30]
-        - text: [45,46]
-        - text: [90,91]
-        - text: [120,121]
-        - text: [125,126]
+        - text: [26,27]
+        - text: [41,42]
+        - text: [57,58]
+        - text: [102,103]
+        - text: [132,133]
+        - text: [137,138]
       comments: []
 
   - name: vis_statement_keyword_collision_select

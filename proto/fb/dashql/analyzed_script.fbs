@@ -270,11 +270,11 @@ table AnalyzerWarning {}
 /// The kind of source resolved for a VISUALIZE statement
 enum VisSourceKind: uint8 {
     UNRESOLVED = 0,
-    /// `visualize <db>.<schema>.<table> as (...)` — bare table reference
+    /// `visualize <db>.<schema>.<table> using vegalite (...)` — bare table reference
     TABLE_REFERENCE = 1,
-    /// `visualize dashql.notebook."<folder>/<file>" as (...)` — qualified script path
+    /// `visualize dashql.notebook."<folder>/<file>" using vegalite (...)` — qualified script path
     SCRIPT_REFERENCE = 2,
-    /// `visualize (select ...) as (...)` — inline parenthesised SELECT subquery
+    /// `visualize (select ...) using vegalite (...)` — inline parenthesised SELECT subquery
     INLINE_SELECT = 3,
 }
 
@@ -290,7 +290,10 @@ table VisualizationSpec {
     source_qualified_name: QualifiedTableName;
     /// The AST node id of the inline SELECT subquery for INLINE_SELECT
     source_inline_select_ast_node_id: uint32;
-    /// The pretty-printed Vega-Lite JSON specification (without the `data` field)
+    /// The visualization renderer named after `USING` (e.g. `vegalite`)
+    renderer: string;
+    /// The pretty-printed Vega-Lite JSON specification (without the `data` field).
+    /// Only populated when `renderer` is `vegalite`.
     vegalite_spec: string;
 }
 

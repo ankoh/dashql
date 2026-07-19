@@ -827,13 +827,23 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
         std::vector<flatbuffers::Offset<buffers::analyzer::VisualizationSpec>> spec_offsets;
         spec_offsets.reserve(visualization_specs.GetSize());
         visualization_specs.ForEach([&](size_t, VisualizationSpec& spec) {
-            // Generate the Vega-Lite JSON once, lazily, and cache it on the spec.
-            if (spec.vegalite_json.empty()) {
-                spec.vegalite_json = visualize::GenerateVegaLiteSpec(spec, *this);
-            }
+            // Only the `vegalite` renderer produces a Vega-Lite JSON spec. Other renderers are
+            // rejected by the grammar, so anything else here generates nothing.
+            bool is_vegalite = spec.renderer.has_value() && *spec.renderer == "vegalite";
             flatbuffers::Offset<flatbuffers::String> vegalite_ofs;
-            if (!spec.vegalite_json.empty()) {
-                vegalite_ofs = builder.CreateString(spec.vegalite_json);
+            if (is_vegalite) {
+                // Generate the Vega-Lite JSON once, lazily, and cache it on the spec.
+                if (spec.vegalite_json.empty()) {
+                    spec.vegalite_json = visualize::GenerateVegaLiteSpec(spec, *this);
+                }
+                if (!spec.vegalite_json.empty()) {
+                    vegalite_ofs = builder.CreateString(spec.vegalite_json);
+                }
+            }
+
+            flatbuffers::Offset<flatbuffers::String> renderer_ofs;
+            if (spec.renderer.has_value()) {
+                renderer_ofs = builder.CreateString(std::string(*spec.renderer));
             }
 
             flatbuffers::Offset<buffers::analyzer::QualifiedTableName> qname_ofs;
@@ -848,6 +858,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
             sb.add_source_qualified_name(qname_ofs);
             sb.add_source_inline_select_ast_node_id(
                 spec.resolved_source.inline_select_ast_node_id.value_or(PROTO_NULL_U32));
+            sb.add_renderer(renderer_ofs);
             sb.add_vegalite_spec(vegalite_ofs);
             spec_offsets.push_back(sb.Finish());
         });

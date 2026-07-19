@@ -711,11 +711,11 @@ struct VisEncodingChannel {
 /// The kind of source resolved for a VISUALIZE statement
 enum class VisSourceKind : uint8_t {
     Unresolved = 0,
-    /// `visualize <db>.<schema>.<table> as (...)` — bare table reference
+    /// `visualize <db>.<schema>.<table> using vegalite (...)` — bare table reference
     TableReference = 1,
-    /// `visualize dashql.notebook."<folder>/<file>" as (...)` — qualified script path
+    /// `visualize dashql.notebook."<folder>/<file>" using vegalite (...)` — qualified script path
     ScriptReference = 2,
-    /// `visualize (select ...) as (...)` — inline parenthesised SELECT subquery
+    /// `visualize (select ...) using vegalite (...)` — inline parenthesised SELECT subquery
     InlineSelect = 3,
 };
 
@@ -736,6 +736,9 @@ struct VisualizationSpec {
     uint32_t ast_node_id = 0;
     /// The statement id containing this visualization
     std::optional<uint32_t> ast_statement_id;
+    /// The visualization renderer named after `USING` (e.g. `vegalite`).
+    /// Empty for a sourceless/spec-less `VISUALIZE;` statement.
+    std::optional<std::string_view> renderer;
     /// The mark type (bar, line, point, area, etc.)
     std::optional<buffers::parser::VisMarkType> mark_type;
     /// The structured mark definition (present when the mark carries properties

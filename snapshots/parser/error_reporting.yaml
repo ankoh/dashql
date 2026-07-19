@@ -67,3 +67,15 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
+  - name: error_reporting_vis_unknown_renderer
+    input: |-
+      visualize sales using foo (mark => bar)
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected identifier literal, expecting VEGALITE'
+          text: "foo"
+      line-breaks: []
+      comments: []

@@ -2,76 +2,76 @@ formatter-snapshots:
 
   - name: vis_minimal_mark
     input: |-
-      visualize as (mark => line)
+      visualize using vegalite (mark => line)
     dialects:
       duckdb:
         formatted:
           - mode: inline
             expected: |-
-              visualize as (mark => line);
+              visualize using vegalite (mark => line);
           - mode: compact
             expected: |-
-              visualize as (
+              visualize using vegalite (
                 mark => line
               );
           - mode: pretty
             expected: |-
-              visualize as (
+              visualize using vegalite (
                 mark => line
               );
 
   - name: vis_table_source
     input: |-
-      visualize sales as (mark => bar)
+      visualize sales using vegalite (mark => bar)
     dialects:
       duckdb:
         formatted:
           - mode: inline
             expected: |-
-              visualize sales as (mark => bar);
+              visualize sales using vegalite (mark => bar);
           - mode: compact
             expected: |-
-              visualize sales as (
+              visualize sales using vegalite (
                 mark => bar
               );
           - mode: pretty
             expected: |-
-              visualize sales as (
+              visualize sales using vegalite (
                 mark => bar
               );
 
   - name: vis_qualified_source
     input: |-
-      visualize warehouse.public.sales as (mark => point)
+      visualize warehouse.public.sales using vegalite (mark => point)
     dialects:
       duckdb:
         formatted:
           - mode: inline
             expected: |-
-              visualize warehouse.public.sales as (mark => point);
+              visualize warehouse.public.sales using vegalite (mark => point);
           - mode: compact
             expected: |-
-              visualize warehouse.public.sales as (
+              visualize warehouse.public.sales using vegalite (
                 mark => point
               );
           - mode: pretty
             expected: |-
-              visualize warehouse.public.sales as (
+              visualize warehouse.public.sales using vegalite (
                 mark => point
               );
 
   - name: vis_select_source
     input: |-
-      visualize (select * from sales) as (mark => line)
+      visualize (select * from sales) using vegalite (mark => line)
     dialects:
       duckdb:
         formatted:
           - mode: inline
             expected: |-
-              visualize (select * from sales) as (mark => line);
+              visualize (select * from sales) using vegalite (mark => line);
           - mode: compact
             expected: |-
-              visualize (select * from sales) as (
+              visualize (select * from sales) using vegalite (
                 mark => line
               );
           - mode: pretty
@@ -79,27 +79,27 @@ formatter-snapshots:
               visualize (
                 select *
                 from sales
-              ) as (
+              ) using vegalite (
                 mark => line
               );
 
   - name: vis_multi_spec_keys
     input: |-
-      visualize sales as (mark => line, width => 800, height => 400)
+      visualize sales using vegalite (mark => line, width => 800, height => 400)
     dialects:
       duckdb:
         formatted:
           - mode: inline
             expected: |-
-              visualize sales as (mark => line, width => 800, height => 400);
+              visualize sales using vegalite (mark => line, width => 800, height => 400);
           - mode: compact
             expected: |-
-              visualize sales as (
+              visualize sales using vegalite (
                 mark => line, width => 800, height => 400
               );
           - mode: pretty
             expected: |-
-              visualize sales as (
+              visualize sales using vegalite (
                 mark => line,
                 width => 800,
                 height => 400
@@ -107,21 +107,21 @@ formatter-snapshots:
 
   - name: vis_encoding_simple
     input: |-
-      visualize sales as (mark => bar, encoding => (x => (field => category, type => nominal), y => (field => revenue, type => quantitative)))
+      visualize sales using vegalite (mark => bar, encoding => (x => (field => category, type => nominal), y => (field => revenue, type => quantitative)))
     dialects:
       duckdb:
         formatted:
           - mode: inline
             expected: |-
-              visualize sales as (mark => bar, encoding => (x => (field => category, type => nominal), y => (field => revenue, type => quantitative)));
+              visualize sales using vegalite (mark => bar, encoding => (x => (field => category, type => nominal), y => (field => revenue, type => quantitative)));
           - mode: compact
             expected: |-
-              visualize sales as (
+              visualize sales using vegalite (
                 mark => bar, encoding => (x => (field => category, type => nominal), y => (field => revenue, type => quantitative))
               );
           - mode: pretty
             expected: |-
-              visualize sales as (
+              visualize sales using vegalite (
                 mark => bar,
                 encoding => (
                   x => (
@@ -137,14 +137,14 @@ formatter-snapshots:
 
   - name: vis_encoding_narrow
     input: |-
-      visualize sales as (mark => bar, encoding => (x => (field => category, type => nominal), y => (field => revenue, type => quantitative)))
+      visualize sales using vegalite (mark => bar, encoding => (x => (field => category, type => nominal), y => (field => revenue, type => quantitative)))
     dialects:
       duckdb:
         formatted:
           - mode: compact
             width: 60
             expected: |-
-              visualize sales as (
+              visualize sales using vegalite (
                 mark => bar,
                 encoding => (
                   x => (field => category, type => nominal),
@@ -154,21 +154,21 @@ formatter-snapshots:
 
   - name: vis_scale_with_array
     input: |-
-      visualize sales as (encoding => (x => (field => time, type => temporal, scale => (domain => [0, 100]))))
+      visualize sales using vegalite (encoding => (x => (field => time, type => temporal, scale => (domain => [0, 100]))))
     dialects:
       duckdb:
         formatted:
           - mode: inline
             expected: |-
-              visualize sales as (encoding => (x => (field => time, type => temporal, scale => (domain => [0, 100]))));
+              visualize sales using vegalite (encoding => (x => (field => time, type => temporal, scale => (domain => [0, 100]))));
           - mode: compact
             expected: |-
-              visualize sales as (
+              visualize sales using vegalite (
                 encoding => (x => (field => time, type => temporal, scale => (domain => [0, 100])))
               );
           - mode: pretty
             expected: |-
-              visualize sales as (
+              visualize sales using vegalite (
                 encoding => (
                   x => (
                     field => time,
@@ -182,21 +182,21 @@ formatter-snapshots:
 
   - name: vis_encoding_shorthand
     input: |-
-      visualize sales as (mark => bar, encoding => (x => date, y => revenue))
+      visualize sales using vegalite (mark => bar, encoding => (x => date, y => revenue))
     dialects:
       duckdb:
         formatted:
           - mode: inline
             expected: |-
-              visualize sales as (mark => bar, encoding => (x => date, y => revenue));
+              visualize sales using vegalite (mark => bar, encoding => (x => date, y => revenue));
           - mode: compact
             expected: |-
-              visualize sales as (
+              visualize sales using vegalite (
                 mark => bar, encoding => (x => date, y => revenue)
               );
           - mode: pretty
             expected: |-
-              visualize sales as (
+              visualize sales using vegalite (
                 mark => bar,
                 encoding => (
                   x => date,
@@ -206,32 +206,32 @@ formatter-snapshots:
 
   - name: vis_trailing_comma_spec
     input: |-
-      visualize sales as (mark => line, width => 800,)
+      visualize sales using vegalite (mark => line, width => 800,)
     dialects:
       duckdb:
         formatted:
           - mode: inline
             expected: |-
-              visualize sales as (mark => line, width => 800);
+              visualize sales using vegalite (mark => line, width => 800);
           - mode: pretty
             expected: |-
-              visualize sales as (
+              visualize sales using vegalite (
                 mark => line,
                 width => 800
               );
 
   - name: vis_trailing_comma_nested
     input: |-
-      visualize as (mark => bar, encoding => (x => (field => date, type => temporal,), y => (field => revenue,),),)
+      visualize using vegalite (mark => bar, encoding => (x => (field => date, type => temporal,), y => (field => revenue,),),)
     dialects:
       duckdb:
         formatted:
           - mode: inline
             expected: |-
-              visualize as (mark => bar, encoding => (x => (field => date, type => temporal), y => (field => revenue)));
+              visualize using vegalite (mark => bar, encoding => (x => (field => date, type => temporal), y => (field => revenue)));
           - mode: pretty
             expected: |-
-              visualize as (
+              visualize using vegalite (
                 mark => bar,
                 encoding => (
                   x => (
@@ -246,22 +246,22 @@ formatter-snapshots:
 
   - name: vis_full_example
     input: |-
-      visualize sales as (mark => line, encoding => (x => (field => time, type => temporal), y => (field => value, type => quantitative)), width => 800)
+      visualize sales using vegalite (mark => line, encoding => (x => (field => time, type => temporal), y => (field => value, type => quantitative)), width => 800)
     dialects:
       duckdb:
         formatted:
           - mode: inline
             expected: |-
-              visualize sales as (mark => line, encoding => (x => (field => time, type => temporal), y => (field => value, type => quantitative)), width => 800);
+              visualize sales using vegalite (mark => line, encoding => (x => (field => time, type => temporal), y => (field => value, type => quantitative)), width => 800);
           - mode: compact
             expected: |-
-              visualize sales as (
+              visualize sales using vegalite (
                 mark => line, encoding => (x => (field => time, type => temporal), y => (field => value, type => quantitative)),
                 width => 800
               );
           - mode: pretty
             expected: |-
-              visualize sales as (
+              visualize sales using vegalite (
                 mark => line,
                 encoding => (
                   x => (

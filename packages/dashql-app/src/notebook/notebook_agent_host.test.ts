@@ -195,11 +195,11 @@ describe('chooseApplyAction', () => {
         expect(action.type).toBe(CREATE_NOTEBOOK_ENTRY_WITH_TEXT);
     });
     it('visualize over a SQL script creates a new entry', () => {
-        const action = chooseApplyAction('visualize', { scriptKey: 7, annotations: { visualizeQuery: null } } as any, 'visualize x as ()');
+        const action = chooseApplyAction('visualize', { scriptKey: 7, annotations: { visualizeQuery: null } } as any, 'visualize x using vegalite ()');
         expect(action.type).toBe(CREATE_NOTEBOOK_ENTRY_WITH_TEXT);
     });
     it('visualize over a VISUALIZE script edits in place', () => {
-        const action = chooseApplyAction('visualize', { scriptKey: 7, annotations: { visualizeQuery: { sql: 's' } } } as any, 'visualize x as ()');
+        const action = chooseApplyAction('visualize', { scriptKey: 7, annotations: { visualizeQuery: { sql: 's' } } } as any, 'visualize x using vegalite ()');
         expect(action.type).toBe(SET_SCRIPT_TEXT);
         expect((action.value as any).scriptKey).toBe(7);
     });
@@ -374,7 +374,7 @@ describe('startAgentRun — context', () => {
     it('editing an existing VISUALIZE reframes as an edit and strips data/$schema from the current chart', async () => {
         // A focused VISUALIZE over the seeded `sales` table becomes the "current chart" in context.
         const { state, focusedKey } = buildNotebook(
-            'VISUALIZE sales AS (mark => bar, encoding => (x => (field => category), y => (field => amount)));',
+            'VISUALIZE sales USING vegalite (mark => bar, encoding => (x => (field => category), y => (field => amount)));',
         );
         // The edited reply flips the mark to line while keeping the encoding.
         const spec = JSON.stringify({

@@ -13,8 +13,8 @@ a `VisualizationSpec` struct. The Vega-Lite generator
 ### Data source
 
 ```sql
-VISUALIZE sales AS (mark => bar);
-VISUALIZE (SELECT category, revenue FROM sales) AS (mark => bar);
+VISUALIZE sales USING vegalite (mark => bar);
+VISUALIZE (SELECT category, revenue FROM sales) USING vegalite (mark => bar);
 ```
 
 For table references, the table name is emitted as `data.name`. For SELECT
@@ -178,9 +178,9 @@ produces a VISUALIZE statement string.
 
 | Vega-Lite `data` form | VISUALIZE output |
 |-----------------------|------------------|
-| `"data": { "name": "sales" }` | `VISUALIZE sales AS (...)` |
-| `"data": { "$sql": "SELECT ..." }` | `VISUALIZE (SELECT ...) AS (...)` |
-| No data field | `VISUALIZE AS (...)` |
+| `"data": { "name": "sales" }` | `VISUALIZE sales USING vegalite (...)` |
+| `"data": { "$sql": "SELECT ..." }` | `VISUALIZE (SELECT ...) USING vegalite (...)` |
+| No data field | `VISUALIZE USING vegalite (...)` |
 | `"data": { "url": "..." }` | Not handled (source omitted) |
 | `"data": { "values": [...] }` | Not handled (source omitted) |
 
@@ -193,7 +193,7 @@ The mark string is emitted directly as a keyword:
 ```
 
 ```sql
-VISUALIZE AS (mark => bar);
+VISUALIZE USING vegalite (mark => bar);
 ```
 
 Object-form marks (`{ "mark": { "type": "bar", "opacity": 0.7 } }`) are not

@@ -2,12 +2,13 @@
 
 `VISUALIZE` is a dashql statement grafted onto the SQL grammar. It describes a
 chart as a structured spec — a nested key-value tree that mirrors Vega-Lite's
-JSON shape — prefixed by an optional SQL data source.
+JSON shape — prefixed by an optional SQL data source and a visualization
+*renderer* named after `USING`.
 
 ## Shape
 
 ```
-VISUALIZE [(<select>) | <table-ref>] AS (
+VISUALIZE [(<select>) | <table-ref>] USING <renderer> (
     mark => <mark-type>,
     encoding => (
         <channel> => (<field-def-key> => <value>, ...),
@@ -31,21 +32,36 @@ autocompletion:
 | 3 | `OBJECT_VIS_FIELD_DEF` | Field definition properties: field, type, aggregate, bin, scale, axis, legend |
 | 4 | `OBJECT_VIS_SCALE` / `OBJECT_VIS_AXIS` / `OBJECT_VIS_LEGEND` | Scale/axis/legend configuration |
 
+## Renderer
+
+The `USING <renderer>` clause selects the visualization renderer. `renderer` is a
+closed keyword set (like the mark/field/scale-type enums), so the parser
+validates it and offers it for autocompletion after `USING`; an unknown renderer
+is a parse error. `vegalite` is the only renderer today:
+
+```sql
+VISUALIZE sales USING vegalite (mark => bar);
+```
+
+The renderer is captured on the AST as the `VIS_VISUALISE_USING` attribute and
+surfaced on the analyzed `VisualizationSpec` as `renderer`. Vega-Lite JSON is
+only generated when the renderer is `vegalite`.
+
 ## Data source
 
 The optional opening position accepts either a full subquery or a table
 reference:
 
 ```sql
-VISUALIZE sales AS (mark => bar);
-VISUALIZE schema.sales AS (mark => bar);
-VISUALIZE (SELECT category, revenue FROM sales WHERE fy = 2026) AS (mark => bar);
+VISUALIZE sales USING vegalite (mark => bar);
+VISUALIZE schema.sales USING vegalite (mark => bar);
+VISUALIZE (SELECT category, revenue FROM sales WHERE fy = 2026) USING vegalite (mark => bar);
 ```
 
 The source is optional — omit it when data is bound externally:
 
 ```sql
-VISUALIZE AS (mark => line, encoding => (x => (field => date, type => temporal)));
+VISUALIZE USING vegalite (mark => line, encoding => (x => (field => date, type => temporal)));
 ```
 
 ## Mark types
@@ -59,7 +75,7 @@ The `mark` key accepts one of the following keywords, resolved against the
 The mark value can also be a nested spec object for mark configuration:
 
 ```sql
-VISUALIZE sales AS (
+VISUALIZE sales USING vegalite (
     mark => (type => bar, opacity => 0.7)
 );
 ```
@@ -90,7 +106,7 @@ A channel can take a bare column reference instead of a full field-def object.
 This maps to `field => <column>`:
 
 ```sql
-VISUALIZE sales AS (
+VISUALIZE sales USING vegalite (
     mark => line,
     encoding => (x => date, y => revenue)
 );
@@ -189,6 +205,8 @@ encoding path.
 
 Top-level node: `OBJECT_VIS_VISUALISE` with attributes:
 - `VIS_VISUALISE_SELECT` — nullable; the data source node
+- `VIS_VISUALISE_USING` — the renderer `NAME` node (e.g. `vegalite`); absent for a
+  sourceless/spec-less `VISUALIZE;`
 - `VIS_VISUALISE_SPEC` — the `OBJECT_VIS_SPEC` node
 
 Per-level nodes:

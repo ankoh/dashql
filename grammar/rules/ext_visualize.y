@@ -3,7 +3,7 @@
 //
 // Shape:
 //
-//   VISUALIZE <table-ref> AS (
+//   VISUALIZE <table-ref> USING vegalite (
 //       mark => line,
 //       encoding => (
 //           x => (field => time, type => temporal, scale => (domain => [0, 100]))
@@ -26,24 +26,36 @@ vis_visualise_keyword:
     ;
 
 vis_visualise_stmt:
-    vis_visualise_keyword vis_opt_source vis_opt_spec {
+    vis_visualise_keyword vis_opt_source USING vis_renderer LRB vis_spec_list RRB {
+        if (!ctx.IsVisEnabled()) {
+            error(@1, "VISUALISE syntax is disabled in this ParseContext");
+            YYERROR;
+        }
+        ctx.MarkVisSpecSpan(@6);
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_VISUALISE, {
+            Attr(Key::VIS_VISUALISE_SELECT, $2),
+            Attr(Key::VIS_VISUALISE_USING, $4),
+            Attr(Key::VIS_VISUALISE_SPEC,
+                 ctx.Object(@6, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($6), false)),
+        }, false);
+    }
+  | vis_visualise_keyword vis_opt_source {
         if (!ctx.IsVisEnabled()) {
             error(@1, "VISUALISE syntax is disabled in this ParseContext");
             YYERROR;
         }
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_VISUALISE, {
             Attr(Key::VIS_VISUALISE_SELECT, $2),
-            Attr(Key::VIS_VISUALISE_SPEC, $3),
         }, false);
     }
     ;
 
-vis_opt_spec:
-    AS LRB vis_spec_list RRB {
-        ctx.MarkVisSpecSpan(@3);
-        $$ = ctx.Object(@3, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($3), false);
-    }
-  | %empty { $$ = Null(); }
+// The visualization renderer named after `USING`. It is a closed keyword set (like
+// vis_mark_type / vis_field_type), so the parser validates the renderer and offers it
+// for autocompletion. Adding a future renderer is a one-line addition here. Each
+// alternative yields a NAME node carrying the renderer text.
+vis_renderer:
+    VEGALITE { $$ = ctx.NameFromKeyword(@1, $1); }
     ;
 
 vis_opt_source:

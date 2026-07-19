@@ -447,11 +447,15 @@ void AnalyzeVisualizationPass::Visit(std::span<const buffers::parser::Node> mors
             case NodeType::OBJECT_VIS_VISUALISE: {
                 MergeChildStates(node_state, node);
 
-                auto [select_node, spec_node] =
-                    state.GetAttributes<AttributeKey::VIS_VISUALISE_SELECT, AttributeKey::VIS_VISUALISE_SPEC>(node);
+                auto [select_node, spec_node, using_node] =
+                    state.GetAttributes<AttributeKey::VIS_VISUALISE_SELECT, AttributeKey::VIS_VISUALISE_SPEC,
+                                        AttributeKey::VIS_VISUALISE_USING>(node);
 
                 VisualizationSpec spec;
                 spec.ast_node_id = node_id;
+                if (using_node) {
+                    spec.renderer = ReadTextValue(state, using_node);
+                }
                 spec.mark_type = node_state.mark_type;
                 spec.mark = std::move(node_state.mark);
                 spec.title = node_state.title;

@@ -414,25 +414,35 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
             if (spec.ast_statement_id.has_value()) {
                 yml_ref.append_child() << c4::yml::key("statement-id") << *spec.ast_statement_id;
             }
-            if (spec.mark_type.has_value()) {
-                auto* tt = buffers::parser::VisMarkTypeTypeTable();
-                yml_ref.append_child()
-                    << c4::yml::key("mark") << std::string(tt->names[static_cast<uint8_t>(*spec.mark_type)]);
-            }
             if (spec.source_node_id.has_value()) {
                 EncodeLocationText(yml_ref,
                                    script.parsed_script->scanned_script->ResolveTextSpan(
                                        script.parsed_script->nodes[*spec.source_node_id].symbol_span()),
                                    script.parsed_script->scanned_script->GetInput(), "source");
             }
+            if (spec.renderer.has_value()) {
+                yml_ref.append_child() << c4::yml::key("renderer") << std::string(*spec.renderer);
+            }
+            // The structured spec is renderer-specific and is emitted under a renderer-tagged
+            // sub-map. Only `vegalite` is understood today; a future renderer adds its own block
+            // rather than overloading these keys. Returns early for other/absent renderers.
+            if (!spec.renderer.has_value() || *spec.renderer != "vegalite") return;
+            auto vl_node = yml_ref.append_child();
+            vl_node << c4::yml::key("vegalite");
+            vl_node |= c4::yml::MAP;
+            if (spec.mark_type.has_value()) {
+                auto* tt = buffers::parser::VisMarkTypeTypeTable();
+                vl_node.append_child()
+                    << c4::yml::key("mark") << std::string(tt->names[static_cast<uint8_t>(*spec.mark_type)]);
+            }
             if (spec.title.has_value())
-                yml_ref.append_child() << c4::yml::key("title") << std::string(*spec.title);
+                vl_node.append_child() << c4::yml::key("title") << std::string(*spec.title);
             if (spec.width.has_value())
-                yml_ref.append_child() << c4::yml::key("width") << *spec.width;
+                vl_node.append_child() << c4::yml::key("width") << *spec.width;
             if (spec.height.has_value())
-                yml_ref.append_child() << c4::yml::key("height") << *spec.height;
+                vl_node.append_child() << c4::yml::key("height") << *spec.height;
             if (!spec.encoding_channels.empty()) {
-                auto channels_node = yml_ref.append_child();
+                auto channels_node = vl_node.append_child();
                 channels_node << c4::yml::key("encodings");
                 channels_node |= c4::yml::SEQ;
                 auto* key_tt = buffers::parser::AttributeKeyTypeTable();

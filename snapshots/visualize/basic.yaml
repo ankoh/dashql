@@ -23,7 +23,7 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (mark => bar);
+        VISUALIZE sales USING vegalite (mark => bar);
     vegalite: |-
       {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
@@ -33,7 +33,7 @@ visualize-snapshots:
         "mark": "bar"
       }
     roundtrip: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => bar
       );
 
@@ -60,7 +60,7 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => (type => bar, filled => true, opacity => 0.8)
         );
     vegalite: |-
@@ -76,7 +76,7 @@ visualize-snapshots:
         }
       }
     roundtrip: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => (type => bar, filled => true, opacity => 0.8)
       );
 
@@ -103,7 +103,7 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => (type => line, point => true)
         );
     vegalite: |-
@@ -118,7 +118,7 @@ visualize-snapshots:
         }
       }
     roundtrip: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => (type => line, point => true)
       );
 
@@ -145,7 +145,7 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => (type => line, point => (filled => false, fill => 'white'))
         );
     vegalite: |-
@@ -163,7 +163,7 @@ visualize-snapshots:
         }
       }
     roundtrip: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => (type => line, point => (filled => false, fill => 'white'))
       );
 
@@ -190,7 +190,7 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => (
             type => area,
             line => (stroke => 'red', stroke_width => 2),
@@ -226,7 +226,7 @@ visualize-snapshots:
         }
       }
     roundtrip: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => (type => area, color => 'steelblue', stroke_dash => [4, 2], interpolate => 'monotone', tension => 0.5, tooltip => true, point => false, line => (stroke => 'red', stroke_width => 2))
       );
 
@@ -253,7 +253,7 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal)
@@ -274,7 +274,7 @@ visualize-snapshots:
         }
       }
     roundtrip: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => bar,
         encoding => (
           x => (field => category, type => nominal)
@@ -304,7 +304,7 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => line,
           encoding => (
             x => (field => date, type => temporal),
@@ -330,7 +330,7 @@ visualize-snapshots:
         }
       }
     roundtrip: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => line,
         encoding => (
           x => (field => date, type => temporal),
@@ -361,7 +361,7 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => point,
           encoding => (
             x => (field => revenue, type => quantitative, scale => (type => log, zero => false))
@@ -386,7 +386,7 @@ visualize-snapshots:
         }
       }
     roundtrip: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => point,
         encoding => (
           x => (field => revenue, type => quantitative, scale => (type => log, zero => false))
@@ -416,7 +416,7 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal, axis => (label_angle => -45))
@@ -440,7 +440,7 @@ visualize-snapshots:
         }
       }
     roundtrip: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => bar,
         encoding => (
           x => (field => category, type => nominal, axis => (label_angle => -45))
@@ -470,7 +470,7 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal),
@@ -501,7 +501,7 @@ visualize-snapshots:
         }
       }
     roundtrip: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => bar,
         encoding => (
           x => (field => category, type => nominal),
@@ -533,7 +533,7 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => line,
           encoding => (
             x => date,
@@ -557,7 +557,7 @@ visualize-snapshots:
         }
       }
     roundtrip: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => line,
         encoding => (
           x => (field => date),
@@ -588,7 +588,7 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE (SELECT category, revenue FROM sales) AS (
+        VISUALIZE (SELECT category, revenue FROM sales) USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal),
@@ -614,7 +614,7 @@ visualize-snapshots:
         }
       }
     roundtrip: |-
-      VISUALIZE (SELECT category, revenue FROM sales) AS (
+      VISUALIZE (SELECT category, revenue FROM sales) USING vegalite (
         mark => bar,
         encoding => (
           x => (field => category, type => nominal),
@@ -625,7 +625,7 @@ visualize-snapshots:
   - name: vis_no_source
     script:
       input: |
-        VISUALIZE AS (
+        VISUALIZE USING vegalite (
           mark => line,
           encoding => (
             x => (field => date, type => temporal)
@@ -643,7 +643,7 @@ visualize-snapshots:
         }
       }
     roundtrip: |-
-      VISUALIZE AS (
+      VISUALIZE USING vegalite (
         mark => line,
         encoding => (
           x => (field => date, type => temporal)
@@ -673,7 +673,7 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal),
@@ -700,7 +700,7 @@ visualize-snapshots:
         }
       }
     roundtrip: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => bar,
         encoding => (
           x => (field => category, type => nominal),
@@ -731,7 +731,7 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => bar,
           encoding => (
             x => (field => revenue, type => quantitative, bin => true),
@@ -758,7 +758,7 @@ visualize-snapshots:
         }
       }
     roundtrip: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => bar,
         encoding => (
           x => (field => revenue, type => quantitative, bin => true),
@@ -789,7 +789,7 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => bar,
           width => 800,
           height => 400
@@ -805,7 +805,7 @@ visualize-snapshots:
         "height": 400
       }
     roundtrip: |-
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => bar,
         width => 800,
         height => 400

@@ -1,3 +1,6 @@
+// Visualization renderers (named after `USING`)
+X(VIS_UNRESERVED, "vegalite",       VEGALITE)
+
 // Vega-Lite top-level spec keys
 X(VIS_UNRESERVED, "autosize",       AUTOSIZE)
 X(VIS_UNRESERVED, "background",     BACKGROUND)

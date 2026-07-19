@@ -7,22 +7,22 @@ parser-snapshots:
       VISUALIZE;
   - name: vis_statement_minimal_mark
     input: |
-      VISUALIZE AS (mark => line);
+      VISUALIZE USING vegalite (mark => line);
   - name: vis_statement_table_source
     input: |
-      VISUALIZE sales AS (mark => bar);
+      VISUALIZE sales USING vegalite (mark => bar);
   - name: vis_statement_qualified_table_source
     input: |
-      VISUALIZE warehouse.public.sales AS (mark => point);
+      VISUALIZE warehouse.public.sales USING vegalite (mark => point);
   - name: vis_statement_select_source
     input: |
-      VISUALIZE (SELECT * FROM sales) AS (mark => line);
+      VISUALIZE (SELECT * FROM sales) USING vegalite (mark => line);
   - name: vis_statement_multi_spec_keys
     input: |
-      VISUALIZE sales AS (mark => line, width => 800, height => 400);
+      VISUALIZE sales USING vegalite (mark => line, width => 800, height => 400);
   - name: vis_statement_encoding_single_channel
     input: |
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => bar,
         encoding => (
           x => (field => category, type => nominal)
@@ -30,7 +30,7 @@ parser-snapshots:
       );
   - name: vis_statement_encoding_two_channels
     input: |
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => line,
         encoding => (
           x => (field => date, type => temporal),
@@ -39,28 +39,28 @@ parser-snapshots:
       );
   - name: vis_statement_encoding_with_scale
     input: |
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         encoding => (
           x => (field => time, type => temporal, scale => (domain => [0, 100]))
         )
       );
   - name: vis_statement_encoding_with_axis
     input: |
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         encoding => (
           x => (field => date, type => temporal, axis => (format => '%Y', grid => false))
         )
       );
   - name: vis_statement_encoding_with_legend
     input: |
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         encoding => (
           color => (field => region, type => nominal, legend => (title => 'Region', orient => 'right'))
         )
       );
   - name: vis_statement_scale_full
     input: |
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         encoding => (
           x => (
             field => price,
@@ -77,7 +77,7 @@ parser-snapshots:
       );
   - name: vis_statement_encoding_shorthand_value
     input: |
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         encoding => (
           x => date,
           y => revenue
@@ -85,7 +85,7 @@ parser-snapshots:
       );
   - name: vis_statement_encoding_color_channel
     input: |
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => point,
         encoding => (
           x => (field => date, type => temporal),
@@ -95,22 +95,22 @@ parser-snapshots:
       );
   - name: vis_statement_mark_def_simple
     input: |
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => (type => bar, filled => true, opacity => 0.8)
       );
   - name: vis_statement_mark_def_point_toggle
     input: |
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => (type => line, point => true)
       );
   - name: vis_statement_mark_def_nested_overlay
     input: |
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => (type => line, point => (filled => false, fill => 'white'))
       );
   - name: vis_statement_mark_def_broad
     input: |
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         mark => (
           type => area,
           line => (stroke => 'red', stroke_width => 2),
@@ -124,17 +124,17 @@ parser-snapshots:
       );
   - name: vis_statement_array_value
     input: |
-      VISUALIZE sales AS (
+      VISUALIZE sales USING vegalite (
         encoding => (
           x => (scale => (domain => [0, 50, 100]))
         )
       );
   - name: vis_statement_numeric_values
     input: |
-      VISUALIZE sales AS (width => 800, height => 400, padding => 20);
+      VISUALIZE sales USING vegalite (width => 800, height => 400, padding => 20);
   - name: vis_statement_full_pipeline
     input: |
-      VISUALIZE (SELECT * FROM sales) AS (
+      VISUALIZE (SELECT * FROM sales) USING vegalite (
         mark => line,
         encoding => (
           x => (field => date, type => temporal, axis => (format => '%b %Y')),
@@ -147,10 +147,10 @@ parser-snapshots:
       );
   - name: vis_statement_trailing_comma_spec
     input: |
-      VISUALIZE AS (mark => line, width => 800,);
+      VISUALIZE USING vegalite (mark => line, width => 800,);
   - name: vis_statement_trailing_comma_encoding
     input: |
-      VISUALIZE AS (
+      VISUALIZE USING vegalite (
         mark => bar,
         encoding => (
           x => (field => date, type => temporal,),

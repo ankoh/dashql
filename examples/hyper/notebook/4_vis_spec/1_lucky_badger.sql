@@ -1,4 +1,4 @@
-VISUALIZE dashql.notebook."vis_data/random" AS (
+VISUALIZE dashql.notebook."vis_data/random" USING vegalite (
   mark => point,
   encoding => (
     x => (field => x, type => quantitative),

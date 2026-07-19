@@ -23,7 +23,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (mark => bar);
+        VISUALIZE sales USING vegalite (mark => bar);
       catalog-id: 2
       errors: []
       table-refs:
@@ -33,8 +33,10 @@ analyzer-snapshots:
           text: "sales"
       visualizations:
         - statement-id: 0
-          mark: BAR
           source: "sales"
+          renderer: vegalite
+          vegalite:
+            mark: BAR
 
   - name: vis_mark_def_nested_overlay
     catalog:
@@ -59,7 +61,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => (type => line, point => (filled => false, fill => 'white'))
         );
       catalog-id: 2
@@ -80,8 +82,10 @@ analyzer-snapshots:
           text: "'white'"
       visualizations:
         - statement-id: 0
-          mark: LINE
           source: "sales"
+          renderer: vegalite
+          vegalite:
+            mark: LINE
 
   - name: vis_mark_def_broad
     catalog:
@@ -106,7 +110,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => (
             type => area,
             line => (stroke => 'red', stroke_width => 2),
@@ -178,8 +182,10 @@ analyzer-snapshots:
           text: "0.5"
       visualizations:
         - statement-id: 0
-          mark: AREA
           source: "sales"
+          renderer: vegalite
+          vegalite:
+            mark: AREA
 
   - name: vis_encoding_field_type
     catalog:
@@ -204,7 +210,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal)
@@ -225,12 +231,14 @@ analyzer-snapshots:
           text: "category"
       visualizations:
         - statement-id: 0
-          mark: BAR
           source: "sales"
-          encodings:
-            - channel: VIS_ENCODING_X
-              field-expr: 0
-              field-type: NOMINAL
+          renderer: vegalite
+          vegalite:
+            mark: BAR
+            encodings:
+              - channel: VIS_ENCODING_X
+                field-expr: 0
+                field-type: NOMINAL
 
   - name: vis_encoding_two_channels
     catalog:
@@ -255,7 +263,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => line,
           encoding => (
             x => (field => date, type => temporal),
@@ -282,15 +290,17 @@ analyzer-snapshots:
           text: "revenue"
       visualizations:
         - statement-id: 0
-          mark: LINE
           source: "sales"
-          encodings:
-            - channel: VIS_ENCODING_X
-              field-expr: 0
-              field-type: TEMPORAL
-            - channel: VIS_ENCODING_Y
-              field-expr: 1
-              field-type: QUANTITATIVE
+          renderer: vegalite
+          vegalite:
+            mark: LINE
+            encodings:
+              - channel: VIS_ENCODING_X
+                field-expr: 0
+                field-type: TEMPORAL
+              - channel: VIS_ENCODING_Y
+                field-expr: 1
+                field-type: QUANTITATIVE
 
   - name: vis_encoding_with_scale
     catalog:
@@ -315,7 +325,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => point,
           encoding => (
             x => (field => revenue, type => quantitative, scale => (type => log, zero => false))
@@ -336,15 +346,17 @@ analyzer-snapshots:
           text: "revenue"
       visualizations:
         - statement-id: 0
-          mark: POINT
           source: "sales"
-          encodings:
-            - channel: VIS_ENCODING_X
-              field-expr: 0
-              field-type: QUANTITATIVE
-              scale:
-                type: LOG
-                zero: false
+          renderer: vegalite
+          vegalite:
+            mark: POINT
+            encodings:
+              - channel: VIS_ENCODING_X
+                field-expr: 0
+                field-type: QUANTITATIVE
+                scale:
+                  type: LOG
+                  zero: false
 
   - name: vis_encoding_with_axis
     catalog:
@@ -369,7 +381,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal, axis => (label_angle => -45))
@@ -398,14 +410,16 @@ analyzer-snapshots:
           text: "45"
       visualizations:
         - statement-id: 0
-          mark: BAR
           source: "sales"
-          encodings:
-            - channel: VIS_ENCODING_X
-              field-expr: 0
-              field-type: NOMINAL
-              axis:
-                label-angle: -45
+          renderer: vegalite
+          vegalite:
+            mark: BAR
+            encodings:
+              - channel: VIS_ENCODING_X
+                field-expr: 0
+                field-type: NOMINAL
+                axis:
+                  label-angle: -45
 
   - name: vis_encoding_color
     catalog:
@@ -430,7 +444,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal),
@@ -463,18 +477,20 @@ analyzer-snapshots:
           text: "category"
       visualizations:
         - statement-id: 0
-          mark: BAR
           source: "sales"
-          encodings:
-            - channel: VIS_ENCODING_X
-              field-expr: 0
-              field-type: NOMINAL
-            - channel: VIS_ENCODING_Y
-              field-expr: 1
-              field-type: QUANTITATIVE
-            - channel: VIS_ENCODING_COLOR
-              field-expr: 2
-              field-type: NOMINAL
+          renderer: vegalite
+          vegalite:
+            mark: BAR
+            encodings:
+              - channel: VIS_ENCODING_X
+                field-expr: 0
+                field-type: NOMINAL
+              - channel: VIS_ENCODING_Y
+                field-expr: 1
+                field-type: QUANTITATIVE
+              - channel: VIS_ENCODING_COLOR
+                field-expr: 2
+                field-type: NOMINAL
 
   - name: vis_shorthand_encoding
     catalog:
@@ -499,7 +515,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => line,
           encoding => (
             x => date,
@@ -526,13 +542,15 @@ analyzer-snapshots:
           text: "revenue"
       visualizations:
         - statement-id: 0
-          mark: LINE
           source: "sales"
-          encodings:
-            - channel: VIS_ENCODING_X
-              field-expr: 0
-            - channel: VIS_ENCODING_Y
-              field-expr: 1
+          renderer: vegalite
+          vegalite:
+            mark: LINE
+            encodings:
+              - channel: VIS_ENCODING_X
+                field-expr: 0
+              - channel: VIS_ENCODING_Y
+                field-expr: 1
 
   - name: vis_select_source
     catalog:
@@ -557,7 +575,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE (SELECT category, revenue FROM sales) AS (
+        VISUALIZE (SELECT category, revenue FROM sales) USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal),
@@ -594,20 +612,22 @@ analyzer-snapshots:
           text: "revenue"
       visualizations:
         - statement-id: 0
-          mark: BAR
           source: "(SELECT ca..ROM sales)"
-          encodings:
-            - channel: VIS_ENCODING_X
-              field-expr: 2
-              field-type: NOMINAL
-            - channel: VIS_ENCODING_Y
-              field-expr: 3
-              field-type: QUANTITATIVE
+          renderer: vegalite
+          vegalite:
+            mark: BAR
+            encodings:
+              - channel: VIS_ENCODING_X
+                field-expr: 2
+                field-type: NOMINAL
+              - channel: VIS_ENCODING_Y
+                field-expr: 3
+                field-type: QUANTITATIVE
 
   - name: vis_no_source
     script:
       input: |
-        VISUALIZE AS (
+        VISUALIZE USING vegalite (
           mark => line,
           encoding => (
             x => (field => date, type => temporal)
@@ -622,11 +642,13 @@ analyzer-snapshots:
           text: "date"
       visualizations:
         - statement-id: 0
-          mark: LINE
-          encodings:
-            - channel: VIS_ENCODING_X
-              field-expr: 0
-              field-type: TEMPORAL
+          renderer: vegalite
+          vegalite:
+            mark: LINE
+            encodings:
+              - channel: VIS_ENCODING_X
+                field-expr: 0
+                field-type: TEMPORAL
 
   - name: vis_aggregate
     catalog:
@@ -651,7 +673,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal),
@@ -682,16 +704,18 @@ analyzer-snapshots:
           text: "sum"
       visualizations:
         - statement-id: 0
-          mark: BAR
           source: "sales"
-          encodings:
-            - channel: VIS_ENCODING_X
-              field-expr: 0
-              field-type: NOMINAL
-            - channel: VIS_ENCODING_Y
-              field-expr: 1
-              field-type: QUANTITATIVE
-              aggregate: sum
+          renderer: vegalite
+          vegalite:
+            mark: BAR
+            encodings:
+              - channel: VIS_ENCODING_X
+                field-expr: 0
+                field-type: NOMINAL
+              - channel: VIS_ENCODING_Y
+                field-expr: 1
+                field-type: QUANTITATIVE
+                aggregate: sum
 
   - name: vis_bin
     catalog:
@@ -716,7 +740,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => bar,
           encoding => (
             x => (field => revenue, type => quantitative, bin => true),
@@ -743,13 +767,15 @@ analyzer-snapshots:
           text: "category"
       visualizations:
         - statement-id: 0
-          mark: BAR
           source: "sales"
-          encodings:
-            - channel: VIS_ENCODING_X
-              field-expr: 0
-              field-type: QUANTITATIVE
-              bin: {}
-            - channel: VIS_ENCODING_Y
-              field-expr: 1
-              field-type: NOMINAL
+          renderer: vegalite
+          vegalite:
+            mark: BAR
+            encodings:
+              - channel: VIS_ENCODING_X
+                field-expr: 0
+                field-type: QUANTITATIVE
+                bin: {}
+              - channel: VIS_ENCODING_Y
+                field-expr: 1
+                field-type: NOMINAL

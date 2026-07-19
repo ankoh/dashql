@@ -246,7 +246,7 @@ describe('startAgentRun (fake host)', () => {
         let t = 0;
         host.transcodeImpl = (raw) => {
             if (++t === 1) throw new Error('bad spec');
-            return 'VISUALIZE x AS (mark => bar)';
+            return 'VISUALIZE x USING vegalite (mark => bar)';
         };
         const ai = new MockAIClient('visualize', ['{"mark":"bar"}', '{"mark":"line"}']);
         const { agent, actions } = await drive(host, ai, { intentOverride: 'visualize' });
@@ -260,7 +260,7 @@ describe('startAgentRun (fake host)', () => {
         // The repair prompt carries the transcode error.
         expect(lastGenerationPrompt(ai)).toContain('bad spec');
         // The committed candidate is the transcoded DSL, not the raw spec.
-        expect(host.committed).toEqual([{ intent: 'visualize', candidate: 'VISUALIZE x AS (mark => bar)' }]);
+        expect(host.committed).toEqual([{ intent: 'visualize', candidate: 'VISUALIZE x USING vegalite (mark => bar)' }]);
     });
 
     it('reframes the visualize prompt as an edit when the host is editing a chart', async () => {

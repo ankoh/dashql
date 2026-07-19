@@ -2,13 +2,13 @@
 
 ## Context
 
-We recently added qualified-name targets for visualize statements (e.g. `visualize dashql.notebook."main/01-script.sql" as (...)`). Today everything stops at *analysis*: the analyzer collects a `VisualizationSpec`, the C++ side can already lift it into a Vega-Lite JSON via `dashql::visualize::GenerateVegaLiteSpec`, but:
+We recently added qualified-name targets for visualize statements (e.g. `visualize dashql.notebook."main/01-script.sql" using vegalite (...)`). Today everything stops at *analysis*: the analyzer collects a `VisualizationSpec`, the C++ side can already lift it into a Vega-Lite JSON via `dashql::visualize::GenerateVegaLiteSpec`, but:
 
 1. The visualization specs are **not serialized** into `AnalyzedScript` (`analyzed_script.fbs`), so the app can't see them.
 2. There is no execution path: when a user "sends" a script whose only statement is `VISUALIZE`, its raw text is shipped to the backend, which doesn't speak the dialect.
 3. There is no Vega-Lite renderer on the frontend.
 
-We want a user to write `visualize dashql.notebook."main/01-script.sql" as (...)` (or `visualize <table> as (...)` or `visualize (select ...) as (...)`), click run, see the underlying query result in the existing data table, and toggle a new third tab to see the rendered chart.
+We want a user to write `visualize dashql.notebook."main/01-script.sql" using vegalite (...)` (or `visualize <table> using vegalite (...)` or `visualize (select ...) using vegalite (...)`), click run, see the underlying query result in the existing data table, and toggle a new third tab to see the rendered chart.
 
 Key decisions:
 
@@ -85,7 +85,7 @@ Key decisions:
 2. **Snapshot test** (new): write a fixture script that visualizes a qualified script ref and assert that the analyzed flatbuffer contains a `VisualizationSpec` with non-empty `vegalite_json` matching the existing snapshot generator's output.
 3. **Manual end-to-end** (DashQL app dev server):
    - Page `main/`, script `01-script.sql` with `select i, i*2 as v from generate_series(0, 10) as t(i);`. Run it; result table populates.
-   - Second script `02-vis.sql` with `visualize dashql.notebook."main/01-script.sql" as (mark => line, x => i, y => v);`. Run it.
+   - Second script `02-vis.sql` with `visualize dashql.notebook."main/01-script.sql" using vegalite (mark => line, x => i, y => v);`. Run it.
    - Verify: data tab shows the same 11-row result; the new Visualization tab is enabled and renders a line chart via vega-embed.
-   - Repeat with `visualize (select 1 as a, 2 as b) as (...)` (inline select) and `visualize my_table as (...)` (bare table ref) to cover all three source kinds.
+   - Repeat with `visualize (select 1 as a, 2 as b) using vegalite (...)` (inline select) and `visualize my_table using vegalite (...)` (bare table ref) to cover all three source kinds.
 4. **Regression check**: a script with no `VISUALIZE` statement keeps the same two-then-three tab progression (Editor / Status / Data) — the Visualization tab stays disabled and absent from cycling.

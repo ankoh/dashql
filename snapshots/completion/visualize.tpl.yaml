@@ -25,6 +25,34 @@ completion-snapshots:
     completions:
       limit: 3
 
+  # Renderer completion: `vegalite` is a grammar keyword, so it completes after USING.
+  - name: vis_renderer_prefix
+    catalog:
+      script:
+        input: create table sales(revenue int, region text);
+    editor:
+      input: visualize sales using veg
+    cursor:
+      search:
+        text: veg
+        index: 3
+    completions:
+      limit: 3
+
+  # Renderer completion: the sole `vegalite` keyword surfaces right after USING.
+  - name: vis_renderer_after_using
+    catalog:
+      script:
+        input: create table sales(revenue int, region text);
+    editor:
+      input: 'visualize sales using '
+    cursor:
+      search:
+        text: 'using '
+        index: 6
+    completions:
+      limit: 3
+
   # ---------------------------------------------------------------------------
   # Level 1: Top-level spec keys
 
@@ -32,7 +60,7 @@ completion-snapshots:
   - name: vis_spec_key_m
     catalog: {}
     editor:
-      input: visualize as (m
+      input: visualize using vegalite (m
     cursor:
       search:
         text: (m
@@ -44,7 +72,7 @@ completion-snapshots:
   - name: vis_spec_key_enc
     catalog: {}
     editor:
-      input: visualize as (enc
+      input: visualize using vegalite (enc
     cursor:
       search:
         text: enc
@@ -56,7 +84,7 @@ completion-snapshots:
   - name: vis_spec_key_w
     catalog: {}
     editor:
-      input: visualize as (mark => bar, w
+      input: visualize using vegalite (mark => bar, w
     cursor:
       search:
         text: ', w'
@@ -68,7 +96,7 @@ completion-snapshots:
   - name: vis_spec_key_h
     catalog: {}
     editor:
-      input: visualize as (mark => bar, h
+      input: visualize using vegalite (mark => bar, h
     cursor:
       search:
         text: ', h'
@@ -80,7 +108,7 @@ completion-snapshots:
   - name: vis_spec_key_t
     catalog: {}
     editor:
-      input: visualize as (mark => bar, t
+      input: visualize using vegalite (mark => bar, t
     cursor:
       search:
         text: ', t'
@@ -93,7 +121,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (mark => bar,
+        visualize using vegalite (mark => bar,
     cursor:
       search:
         text: 'bar,'
@@ -108,7 +136,7 @@ completion-snapshots:
   - name: vis_mark_type_li
     catalog: {}
     editor:
-      input: visualize as (mark => li
+      input: visualize using vegalite (mark => li
     cursor:
       search:
         text: '=> li'
@@ -120,7 +148,7 @@ completion-snapshots:
   - name: vis_mark_type_b
     catalog: {}
     editor:
-      input: visualize as (mark => b
+      input: visualize using vegalite (mark => b
     cursor:
       search:
         text: '=> b'
@@ -132,7 +160,7 @@ completion-snapshots:
   - name: vis_mark_type_p
     catalog: {}
     editor:
-      input: visualize as (mark => p
+      input: visualize using vegalite (mark => p
     cursor:
       search:
         text: '=> p'
@@ -144,7 +172,7 @@ completion-snapshots:
   - name: vis_mark_type_ar
     catalog: {}
     editor:
-      input: visualize as (mark => ar
+      input: visualize using vegalite (mark => ar
     cursor:
       search:
         text: '=> ar'
@@ -159,7 +187,7 @@ completion-snapshots:
   - name: vis_arrow_before
     catalog: {}
     editor:
-      input: visualize as (mark
+      input: visualize using vegalite (mark
     cursor:
       search:
         text: mark
@@ -171,7 +199,7 @@ completion-snapshots:
   - name: vis_arrow_at_equals
     catalog: {}
     editor:
-      input: visualize as (mark =
+      input: visualize using vegalite (mark =
     cursor:
       search:
         text: '='
@@ -183,7 +211,7 @@ completion-snapshots:
   - name: vis_arrow_after
     catalog: {}
     editor:
-      input: visualize as (mark => l
+      input: visualize using vegalite (mark => l
     cursor:
       search:
         text: '=> l'
@@ -199,7 +227,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           mark => bar,
           encoding => (x
     cursor:
@@ -214,7 +242,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           mark => bar,
           encoding => (co
     cursor:
@@ -229,7 +257,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           mark => bar,
           encoding => (
             x => date,
@@ -246,7 +274,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           mark => bar,
           encoding => (
             x => date,
@@ -263,7 +291,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           mark => point,
           encoding => (sh
     cursor:
@@ -281,7 +309,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             x => (f
     cursor:
@@ -296,7 +324,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             x => (field => date, ty
     cursor:
@@ -311,7 +339,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             x => (field => date, type => temporal, sc
     cursor:
@@ -326,7 +354,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             y => (field => revenue, ag
     cursor:
@@ -341,7 +369,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             x => (field => date, type => temporal, ax
     cursor:
@@ -356,7 +384,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             color => (field => region, type => nominal, le
     cursor:
@@ -374,7 +402,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             x => (field => date, type => te
     cursor:
@@ -389,7 +417,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             color => (field => region, type => no
     cursor:
@@ -404,7 +432,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             y => (field => amount, type => qu
     cursor:
@@ -422,7 +450,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             x => (scale => (do
     cursor:
@@ -437,7 +465,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             x => (scale => (ty
     cursor:
@@ -452,7 +480,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             x => (scale => (type => lo
     cursor:
@@ -467,7 +495,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             x => (scale => (type => log, ni
     cursor:
@@ -482,7 +510,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             y => (scale => (ze
     cursor:
@@ -501,7 +529,7 @@ completion-snapshots:
     editor:
       input: |-
         create table sales(revenue int, region text, sale_date date);
-        visualize sales as (
+        visualize sales using vegalite (
           encoding => (
             x => sal
     cursor:
@@ -517,7 +545,7 @@ completion-snapshots:
     editor:
       input: |-
         create table sales(revenue int, region text, sale_date date);
-        visualize sales as (
+        visualize sales using vegalite (
           encoding => (
             y => (field => rev
     cursor:
@@ -533,7 +561,7 @@ completion-snapshots:
     editor:
       input: |-
         create table metrics(cpu_usage float, mem_usage float, disk_io float, timestamp date);
-        visualize metrics as (
+        visualize metrics using vegalite (
           encoding => (
             x => (field => ti
     cursor:
@@ -549,7 +577,7 @@ completion-snapshots:
     editor:
       input: |-
         create table sales(revenue int, region text, sale_date date);
-        visualize sales as (
+        visualize sales using vegalite (
           encoding => (
             x => sale_date,
             y => rev
@@ -568,7 +596,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             x => (axis => (fo
     cursor:
@@ -583,7 +611,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             x => (axis => (gr
     cursor:
@@ -598,7 +626,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             x => (axis => (la
     cursor:
@@ -613,7 +641,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             color => (legend => (or
     cursor:
@@ -628,7 +656,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        visualize as (
+        visualize using vegalite (
           encoding => (
             color => (legend => (ti
     cursor:
@@ -648,7 +676,7 @@ completion-snapshots:
       input: |-
         create table sales(revenue int, region text);
         select * from sales;
-        visualize sales as (m
+        visualize sales using vegalite (m
     cursor:
       search:
         text: (m

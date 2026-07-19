@@ -406,7 +406,7 @@ std::string ParseVegaLiteToVisualize(const std::string& vegalite_json) {
             result += " ";
         }
     }
-    result += "AS (\n";
+    result += "USING vegalite (\n";
     for (size_t i = 0; i < lines.size(); ++i) {
         if (i > 0) result += ",\n";
         result += lines[i];

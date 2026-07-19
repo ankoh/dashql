@@ -23,7 +23,7 @@ import { normalizePageName, scriptDisplayName } from './notebook_types.js';
 ///
 /// The actual transcoding lives in the WASM core (`ParseVegaLiteToVisualize`); we encode the
 /// source into the Vega-Lite spec's `data` member (see `visSourceToData`) and let the core
-/// derive the `VISUALIZE <source> AS (…)` clause. This keeps a single transcoder.
+/// derive the `VISUALIZE <source> USING vegalite (…)` clause. This keeps a single transcoder.
 export type VisSource =
     /// Reference an existing notebook script by `(folder, file)`.
     /// Encoded as `dashql.notebook."<folder>/<file>"`.
@@ -34,7 +34,7 @@ export type VisSource =
     | { kind: 'inline-select'; sql: string }
     /// Reuse a source clause extracted verbatim from an existing VISUALIZE statement.
     | { kind: 'raw'; text: string }
-    /// No source clause (`VISUALIZE AS (…)`).
+    /// No source clause (`VISUALIZE USING vegalite (…)`).
     | { kind: 'none' };
 
 /// Encode a VisSource into the `data` member that the WASM transcoder understands.
@@ -104,7 +104,7 @@ export function createNotebookAgentHost(params: NotebookAgentHostParams): AgentH
             // driver treats as a verifiable error and repairs.
             const spec = JSON.parse(rawSpecJson) as Record<string, unknown>;
             // Inject the resolved source as the spec's `data` member; the WASM transcoder turns it
-            // into the `VISUALIZE <source> AS (…)` clause. The model is told not to emit `data`, but
+            // into the `VISUALIZE <source> USING vegalite (…)` clause. The model is told not to emit `data`, but
             // overwrite it defensively so our source always wins.
             const data = visSourceToData(determineVisSource(notebook, contextScriptData));
             if (data != null) {

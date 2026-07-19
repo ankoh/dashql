@@ -6,7 +6,7 @@ analyzer-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales AS (mark => bar);
+        VISUALIZE sales USING vegalite (mark => bar);
 
   - name: vis_mark_def_nested_overlay
     catalog:
@@ -15,7 +15,7 @@ analyzer-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => (type => line, point => (filled => false, fill => 'white'))
         );
 
@@ -26,7 +26,7 @@ analyzer-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => (
             type => area,
             line => (stroke => 'red', stroke_width => 2),
@@ -46,7 +46,7 @@ analyzer-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal)
@@ -60,7 +60,7 @@ analyzer-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => line,
           encoding => (
             x => (field => date, type => temporal),
@@ -75,7 +75,7 @@ analyzer-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => point,
           encoding => (
             x => (field => revenue, type => quantitative, scale => (type => log, zero => false))
@@ -89,7 +89,7 @@ analyzer-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal, axis => (label_angle => -45))
@@ -103,7 +103,7 @@ analyzer-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal),
@@ -119,7 +119,7 @@ analyzer-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => line,
           encoding => (
             x => date,
@@ -134,7 +134,7 @@ analyzer-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE (SELECT category, revenue FROM sales) AS (
+        VISUALIZE (SELECT category, revenue FROM sales) USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal),
@@ -145,7 +145,7 @@ analyzer-snapshots:
   - name: vis_no_source
     script:
       input: |
-        VISUALIZE AS (
+        VISUALIZE USING vegalite (
           mark => line,
           encoding => (
             x => (field => date, type => temporal)
@@ -159,7 +159,7 @@ analyzer-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal),
@@ -174,7 +174,7 @@ analyzer-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales AS (
+        VISUALIZE sales USING vegalite (
           mark => bar,
           encoding => (
             x => (field => revenue, type => quantitative, bin => true),
