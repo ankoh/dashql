@@ -39,7 +39,8 @@
         },
         "types": [
             "node",
-            "vitest/globals"
+            "vitest/globals",
+            "@webgpu/types"
         ],
         "lib": [
             "es6",
