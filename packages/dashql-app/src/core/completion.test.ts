@@ -139,7 +139,8 @@ describe('DashQL Completion', () => {
             for (let i = 0; i < reader.candidatesLength(); ++i) {
                 candidates.push(reader.candidates(i)!.completionText()!);
             }
-            expect(candidates).toContain('main/01-script.sql');
+            // The notebook path is not a valid bare identifier, so it is quoted for insertion.
+            expect(candidates).toContain('"main/01-script.sql"');
         });
 
         test('dot completion after dashql.notebook. in VISUALIZE', () => {
@@ -164,7 +165,8 @@ describe('DashQL Completion', () => {
             for (let i = 0; i < reader.candidatesLength(); ++i) {
                 candidates.push(reader.candidates(i)!.completionText()!);
             }
-            expect(candidates).toContain('main/01-script.sql');
+            // The notebook path is not a valid bare identifier, so it is quoted for insertion.
+            expect(candidates).toContain('"main/01-script.sql"');
         });
 
         test('rename updates completion candidates', () => {
@@ -196,8 +198,9 @@ describe('DashQL Completion', () => {
             for (let i = 0; i < reader.candidatesLength(); ++i) {
                 candidates.push(reader.candidates(i)!.completionText()!);
             }
-            expect(candidates).toContain('main/02-renamed.sql');
-            expect(candidates).not.toContain('main/01-old.sql');
+            // The notebook path is not a valid bare identifier, so it is quoted for insertion.
+            expect(candidates).toContain('"main/02-renamed.sql"');
+            expect(candidates).not.toContain('"main/01-old.sql"');
         });
     });
 
