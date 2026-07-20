@@ -16,7 +16,7 @@ import { DockerCreateContainerSpec } from '../../platform/docker/docker_types.js
 
 const DEFAULT_REPOSITORY = 'ankoh/hyperdb';
 const HYPER_GRPC_PORT = '7484';
-const FIXED_HYPER_CMD: readonly string[] = [
+const DEFAULT_HYPER_CMD: readonly string[] = [
     'run',
     '--no-password',
     '--skip-license=1',
@@ -24,6 +24,12 @@ const FIXED_HYPER_CMD: readonly string[] = [
     '--init-user=tableau_internal_user',
     '--log_config=cerr,json,all',
     `--listen-connection=tcp.grpc://0.0.0.0:${HYPER_GRPC_PORT}`,
+    '--external_allow_custom_endpoints=1',
+];
+/// Default volume mounts in Docker's "host-path:container-path" form.
+/// A leading "~" is expanded to the user's home directory by the native docker proxy.
+const DEFAULT_VOLUMES: readonly string[] = [
+    '~:/home/local/',
 ];
 
 interface Props {
@@ -64,7 +70,8 @@ export const DockerCreatePanel: React.FC<Props> = (props: Props) => {
     const [creating, setCreating] = React.useState(false);
     const [pullStatus, setPullStatus] = React.useState<string | null>(null);
     const [errorText, setErrorText] = React.useState<string | null>(null);
-    const [extraArgs, setExtraArgs] = React.useState<string[]>([]);
+    const [args, setArgs] = React.useState<string[]>([...DEFAULT_HYPER_CMD]);
+    const [volumes, setVolumes] = React.useState<string[]>([...DEFAULT_VOLUMES]);
     const tagAbort = React.useRef<AbortController | null>(null);
 
     const repositoryHyper = React.useMemo(() => isHyperRepo(repository), [repository]);
@@ -141,7 +148,7 @@ export const DockerCreatePanel: React.FC<Props> = (props: Props) => {
             setPullStatus('Creating container...');
             const spec: DockerCreateContainerSpec = {
                 Image: `${repository}:${selectedTag}`,
-                Cmd: [...FIXED_HYPER_CMD, ...extraArgs.filter(arg => arg.length > 0)],
+                Cmd: args.filter(arg => arg.length > 0),
                 Labels: { dashql: 'managed' },
                 ExposedPorts: { [`${HYPER_GRPC_PORT}/tcp`]: {} },
                 HostConfig: {
@@ -149,6 +156,7 @@ export const DockerCreatePanel: React.FC<Props> = (props: Props) => {
                         [`${HYPER_GRPC_PORT}/tcp`]: [{ HostPort: HYPER_GRPC_PORT }],
                     },
                     RestartPolicy: { Name: 'no' },
+                    Binds: volumes.filter(vol => vol.length > 0),
                 },
             };
             await client.createContainer(spec);
@@ -263,21 +271,25 @@ export const DockerCreatePanel: React.FC<Props> = (props: Props) => {
                                 </div>
                             </div>
                             <div className={styles.create_field_group}>
-                                <div className={styles.create_section_label}>Required arguments</div>
-                                <div className={styles.hyper_settings}>
-                                    {FIXED_HYPER_CMD.map((arg, i) => (
-                                        <div key={i} className={styles.hyper_setting_row}>{arg}</div>
-                                    ))}
-                                </div>
+                                <ValueListBuilder
+                                    className={styles.mono_value_list}
+                                    title="Arguments"
+                                    caption="Prepopulated with the recommended defaults; edit or remove as needed"
+                                    addButtonLabel="Add argument"
+                                    elements={args}
+                                    modifyElements={(updater: UpdateValueList) => setArgs(prev => updater(prev))}
+                                    disabled={creating}
+                                    readOnly={creating}
+                                />
                             </div>
                             <div className={styles.create_field_group}>
                                 <ValueListBuilder
                                     className={styles.mono_value_list}
-                                    title="Additional arguments"
-                                    caption="Appended to the required arguments above"
-                                    addButtonLabel="Add argument"
-                                    elements={extraArgs}
-                                    modifyElements={(updater: UpdateValueList) => setExtraArgs(prev => updater(prev))}
+                                    title="Volumes"
+                                    caption="Mounts in host-path:container-path form; a leading ~ expands to your home directory"
+                                    addButtonLabel="Add volume"
+                                    elements={volumes}
+                                    modifyElements={(updater: UpdateValueList) => setVolumes(prev => updater(prev))}
                                     disabled={creating}
                                     readOnly={creating}
                                 />

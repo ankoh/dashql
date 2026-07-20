@@ -36,6 +36,10 @@ export interface DockerCreateContainerSpec {
     HostConfig?: {
         PortBindings?: Record<string, { HostIp?: string; HostPort: string }[]>;
         RestartPolicy?: { Name: string; MaximumRetryCount?: number };
+        /// Volume mounts in Docker's "host-path:container-path[:opts]" form.
+        /// A leading "~" in the host path is expanded to the user's home directory
+        /// by the native docker proxy (the Docker daemon does not expand it).
+        Binds?: string[];
     };
 }
 

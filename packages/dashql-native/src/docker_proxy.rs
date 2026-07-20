@@ -176,6 +176,9 @@ impl DockerProxy {
         } else {
             "/containers/create".to_string()
         };
+        // The Docker daemon does not expand "~" in bind mounts, so we expand a
+        // leading tilde in each HostConfig.Binds host path to the user's home.
+        let body_json = expand_bind_tildes(body_json)?;
         let (status, body) = self
             .request_unix("POST", &path, body_json, Some("application/json"))
             .await?;
@@ -198,4 +201,109 @@ impl DockerProxy {
 /// Tiny percent-encoder for path segments / query values.
 fn urlencoding(s: &str) -> String {
     url::form_urlencoded::byte_serialize(s.as_bytes()).collect()
+}
+
+/// The current user's home directory, or None if it cannot be determined.
+fn home_dir() -> Option<String> {
+    std::env::var("HOME")
+        .ok()
+        .or_else(|| std::env::var("USERPROFILE").ok())
+        .filter(|h| !h.is_empty())
+}
+
+/// Expand a leading "~" (as "~", "~/", or "~\") in a bind mount's host path to
+/// `home`. The host path is the substring before the first ':' (the
+/// container-path / options separator). Everything else is left untouched.
+fn expand_bind_tilde(bind: &str, home: &str) -> String {
+    let (host, rest) = match bind.find(':') {
+        Some(idx) => (&bind[..idx], &bind[idx..]),
+        None => (bind, ""),
+    };
+    let expanded = if host == "~" {
+        home.to_string()
+    } else if let Some(tail) = host.strip_prefix("~/").or_else(|| host.strip_prefix("~\\")) {
+        format!("{}/{}", home.trim_end_matches('/'), tail)
+    } else {
+        return bind.to_string();
+    };
+    format!("{}{}", expanded, rest)
+}
+
+/// Expand leading tildes in every HostConfig.Binds host path of a Docker
+/// create-container spec. Returns the (possibly rewritten) JSON body. If the
+/// body has no Binds, or the home directory is unknown, the body is returned
+/// unchanged.
+fn expand_bind_tildes(body_json: Vec<u8>) -> Result<Vec<u8>, Status> {
+    // Only rewrite when there is actually a tilde to expand.
+    if !body_json.contains(&b'~') {
+        return Ok(body_json);
+    }
+    let home = match home_dir() {
+        Some(home) => home,
+        None => return Ok(body_json),
+    };
+    let mut spec: serde_json::Value = serde_json::from_slice(&body_json)
+        .map_err(|e| Status::DockerRequestFailed { error: format!("decode create spec: {}", e) })?;
+    if let Some(binds) = spec
+        .get_mut("HostConfig")
+        .and_then(|hc| hc.get_mut("Binds"))
+        .and_then(|b| b.as_array_mut())
+    {
+        for bind in binds.iter_mut() {
+            if let Some(s) = bind.as_str() {
+                *bind = serde_json::Value::String(expand_bind_tilde(s, &home));
+            }
+        }
+    }
+    serde_json::to_vec(&spec)
+        .map_err(|e| Status::DockerRequestFailed { error: format!("encode create spec: {}", e) })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn expand_tilde_only() {
+        assert_eq!(expand_bind_tilde("~:/home/local/", "/Users/me"), "/Users/me:/home/local/");
+    }
+
+    #[test]
+    fn expand_tilde_with_subpath() {
+        assert_eq!(expand_bind_tilde("~/data:/home/local/", "/Users/me"), "/Users/me/data:/home/local/");
+    }
+
+    #[test]
+    fn expand_trims_trailing_home_slash() {
+        assert_eq!(expand_bind_tilde("~/data:/mnt", "/Users/me/"), "/Users/me/data:/mnt");
+    }
+
+    #[test]
+    fn no_tilde_is_untouched() {
+        assert_eq!(expand_bind_tilde("/abs/path:/mnt", "/Users/me"), "/abs/path:/mnt");
+    }
+
+    #[test]
+    fn tilde_only_in_container_path_is_untouched() {
+        // Only the host path (before the first ':') is expanded.
+        assert_eq!(expand_bind_tilde("/abs:~/nope", "/Users/me"), "/abs:~/nope");
+    }
+
+    #[test]
+    fn expand_bind_tildes_rewrites_binds() {
+        std::env::set_var("HOME", "/Users/me");
+        let body = br#"{"Image":"x","HostConfig":{"Binds":["~:/home/local/","/abs:/mnt"]}}"#.to_vec();
+        let out = expand_bind_tildes(body).unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&out).unwrap();
+        let binds = v["HostConfig"]["Binds"].as_array().unwrap();
+        assert_eq!(binds[0], "/Users/me:/home/local/");
+        assert_eq!(binds[1], "/abs:/mnt");
+    }
+
+    #[test]
+    fn expand_bind_tildes_without_binds_is_noop() {
+        let body = br#"{"Image":"x"}"#.to_vec();
+        let out = expand_bind_tildes(body.clone()).unwrap();
+        assert_eq!(out, body);
+    }
 }
