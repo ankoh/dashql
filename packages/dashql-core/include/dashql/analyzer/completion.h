@@ -66,6 +66,12 @@ struct Completion {
     struct Candidate {
         /// The completion text
         std::string_view completion_text;
+        /// Is the completion text verbatim?
+        /// Identity candidates reproduce exactly what the user typed (including any quotes) and
+        /// must not be re-normalized through `quote_anyupper_fuzzy` at pack time. Otherwise a
+        /// quoted lower-case identifier like `"year"` would be re-emitted unquoted as `year`,
+        /// and a quoted upper-case one like `"Year"` would be quoted twice.
+        bool completion_text_is_verbatim = false;
         /// The combined coarse-granular analyzer tags.
         /// We may hit the same name multiple times in multiple catalog entries.
         /// Each of these entries may have different name tags, so we have to merge them here.

@@ -1589,6 +1589,7 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
                 }
                 Candidate identity{
                     .completion_text = symbol_text,
+                    .completion_text_is_verbatim = true,
                     .coarse_name_tags = {},
                     .candidate_tags = buffers::completion::CandidateTag::IDENTITY,
                     .target_location = sym.location,
@@ -1959,10 +1960,15 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
     // Pack candidates
     for (auto iter_entry = entries.begin(); iter_entry != entries.end(); ++iter_entry) {
         // Do we have to quote the completion text?
+        // Verbatim candidates (identity) reproduce exactly what the user typed, so we never
+        // re-quote them. Otherwise a quoted lower-case identifier `"year"` would be re-emitted
+        // unquoted, and a quoted upper-case one `"Year"` would be quoted twice (`"""Year"""`).
         auto display_text_offset = builder.CreateString(iter_entry->completion_text);
         std::string quoted;
         std::string_view completion_text = iter_entry->completion_text;
-        completion_text = quote_anyupper_fuzzy(completion_text, quoted);
+        if (!iter_entry->completion_text_is_verbatim) {
+            completion_text = quote_anyupper_fuzzy(completion_text, quoted);
+        }
 
         // Resolve the catalog objects
         size_t catalog_object_count = iter_entry->catalog_objects.GetSize();

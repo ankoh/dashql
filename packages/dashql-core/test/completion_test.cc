@@ -463,4 +463,43 @@ SELECT * FROM supplier gro-- comment
     ASSERT_TRUE(found_group) << "Expected completion right before a comment";
 }
 
+TEST(CompletionTest, IdentityCandidateReproducesQuotedInputVerbatim) {
+    // A delimited identifier in a projection whose schema is unknown (e.g. an external() table)
+    // has no matching catalog name, so the identity candidate is what the user accepts. It must
+    // reproduce the typed text verbatim, so completing it is a no-op instead of a visible
+    // delete-and-reinsert. Two failure modes we guard against:
+    //   - `"Year"` re-quoted a second time by Pack() -> `"""Year"""`
+    //   - `"year"` re-emitted unquoted -> `year` (dropping the quotes the user typed)
+    for (std::string_view typed : {std::string_view{"\"Year\""}, std::string_view{"\"year\""}}) {
+        std::string main_script_text = "SELECT ";
+        main_script_text += typed;
+
+        Catalog catalog;
+        Script main_script{catalog};
+        main_script.InsertTextAt(0, main_script_text);
+        ASSERT_NO_THROW({
+            main_script.Scan();
+            main_script.Parse();
+            main_script.Analyze();
+        });
+
+        // Cursor just before the closing quote of the delimited identifier.
+        main_script.MoveCursor(main_script_text.size() - 1);
+
+        auto completion = main_script.CompleteAtCursor();
+        auto& results = completion->GetResultCandidates();
+
+        bool found_identity = false;
+        for (auto& candidate : results) {
+            if (candidate.candidate_tags.contains(buffers::completion::CandidateTag::IDENTITY)) {
+                found_identity = true;
+                // The identity candidate must equal the typed text, quotes and all.
+                ASSERT_EQ(candidate.completion_text, typed)
+                    << "Identity candidate must reproduce the typed text verbatim";
+            }
+        }
+        ASSERT_TRUE(found_identity) << "Expected an identity candidate for " << typed;
+    }
+}
+
 }  // namespace
