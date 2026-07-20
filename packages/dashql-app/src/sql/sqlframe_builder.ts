@@ -326,22 +326,30 @@ export class SQLFrame {
                 : `(CAST(t.${quoteIdent(binnedKeyDef.fieldName)} AS DOUBLE) - s.__min) / s.__bin_width`;
         }
 
-        // Clamped bin: CASE WHEN ... END
+        // Clamped bin. The floating-point bin index must be clamped to
+        // [0, binCount-1] *before* casting to INTEGER: for non-finite values
+        // (NaN / +-Inf, common in REAL/Float32 columns) or near-constant columns
+        // where __bin_width is clamped to 1e-15, FLOOR(binExpr) can be NaN or far
+        // outside the INT32 range, and a bare CAST(... AS INTEGER) would raise a
+        // conversion / out-of-range error. We therefore clamp in the DOUBLE domain
+        // (NaN falls through every comparison, so it is mapped to bin 0) and only
+        // cast the already-bounded value.
+        const clampedFloat =
+            `CASE ` +
+            `WHEN FLOOR(${binExpr}) >= ${binCount} THEN ${binCount - 1} ` +
+            `WHEN FLOOR(${binExpr}) >= 0 THEN FLOOR(${binExpr}) ` +
+            `ELSE 0 ` +
+            `END`;
+        const flooredBin = `CAST(${clampedFloat} AS INTEGER)`;
         let binCaseExpr: string;
-        const flooredBin = `CAST(FLOOR(${binExpr}) AS INTEGER)`;
         if (includeNullBin) {
             binCaseExpr =
                 `CASE ` +
                 `WHEN t.${quoteIdent(binnedKeyDef.fieldName)} IS NULL THEN ${binCount} ` +
-                `WHEN ${flooredBin} >= ${binCount} THEN ${binCount - 1} ` +
                 `ELSE ${flooredBin} ` +
                 `END`;
         } else {
-            binCaseExpr =
-                `CASE ` +
-                `WHEN ${flooredBin} >= ${binCount} THEN ${binCount - 1} ` +
-                `ELSE ${flooredBin} ` +
-                `END`;
+            binCaseExpr = flooredBin;
         }
 
         // Build key exprs and agg exprs

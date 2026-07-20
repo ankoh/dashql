@@ -8,6 +8,7 @@ import { EmbeddingScatter, EmbeddingPoints } from './embedding_scatter.js';
 import { EmbeddingAtlasSpec } from './embeddingatlas_spec.js';
 import { extractCategories, extractEmbeddingMatrix } from './embedding_extraction.js';
 import { projectWithUMAP, Projection2D } from './embedding_projection.js';
+import { projectionCacheKey, useEmbeddingProjectionRegistry } from './embedding_projection_registry.js';
 
 interface Props {
     query: QueryExecutionState | null;
@@ -36,8 +37,18 @@ export function EmbeddingAtlasView(props: Props): React.ReactElement {
     const succeeded = props.query?.status === QueryExecutionStatus.SUCCEEDED;
     const resultTable = succeeded ? props.query?.resultTable ?? null : null;
     const spec = props.spec;
+    const queryId = props.query?.queryId ?? null;
 
-    const [projection, setProjection] = React.useState<Projection2D | null>(null);
+    // Projections are expensive to compute but this component is remounted often
+    // (footer tab switches, card collapse, reopening the notebook). Cache the
+    // result in a registry that outlives the component, keyed by query + spec, so
+    // we only run UMAP once per (query result, projection options).
+    const projectionCache = useEmbeddingProjectionRegistry();
+    const cacheKey = (queryId != null && spec != null) ? projectionCacheKey(queryId, spec) : null;
+
+    const [projection, setProjection] = React.useState<Projection2D | null>(() =>
+        cacheKey != null ? projectionCache.get(cacheKey) : null
+    );
     const [progress, setProgress] = React.useState<{ progress: number; stage: string } | null>(null);
     const [error, setError] = React.useState<string | null>(null);
     const [running, setRunning] = React.useState(false);
@@ -54,8 +65,17 @@ export function EmbeddingAtlasView(props: Props): React.ReactElement {
     React.useEffect(() => {
         setError(null);
         setProgress(null);
-        if (!spec || !resultTable) {
+        if (!spec || !resultTable || cacheKey == null || queryId == null) {
             setProjection(null);
+            return;
+        }
+
+        // Reuse a previously computed projection for this query + spec instead of
+        // re-running UMAP on every remount.
+        const cached = projectionCache.get(cacheKey);
+        if (cached) {
+            setProjection(cached);
+            setRunning(false);
             return;
         }
 
@@ -73,6 +93,7 @@ export function EmbeddingAtlasView(props: Props): React.ReactElement {
         });
         run.promise
             .then(result => {
+                projectionCache.set(cacheKey, queryId, result);
                 setProjection(result);
                 setRunning(false);
                 setProgress(null);
@@ -84,7 +105,7 @@ export function EmbeddingAtlasView(props: Props): React.ReactElement {
             });
 
         return () => run.cancel();
-    }, [spec, resultTable]);
+    }, [spec, resultTable, cacheKey, queryId, projectionCache]);
 
     const points = React.useMemo<EmbeddingPoints | null>(() => {
         if (!projection) return null;

@@ -272,6 +272,58 @@ describe('SQLFrame execution', () => {
         expect(rows[7].bin_ub).toBeCloseTo(28054, 1);
     });
 
+    it('binned group by with NaN / Inf / near-constant Float32', async () => {
+        // Float32 columns (e.g. embedding data) commonly contain NaN/Inf, and
+        // near-constant columns clamp bin_width to 1e-15, producing bin indices
+        // far outside INT32 range. The clamp must happen before the INTEGER cast.
+        await conn.query(`CREATE TABLE input (score REAL)`);
+        await conn.query(
+            `INSERT INTO input VALUES ` +
+            `(10.0), (10.0), ('NaN'::REAL), ('Infinity'::REAL), ('-Infinity'::REAL), (10.0000001)`
+        );
+        const statsSql = SQLFrame.from("input")
+            .groupBy({
+                keys: [],
+                aggregates: [
+                    { func: "min", fieldName: "score", outputAlias: "min_score" },
+                    { func: "max", fieldName: "score", outputAlias: "max_score" },
+                ],
+            })
+            .toSQL();
+        await conn.query(`CREATE TABLE stats AS ${statsSql}`);
+
+        const sql = SQLFrame.from("input")
+            .groupBy({
+                keys: [{
+                    fieldName: "score",
+                    outputAlias: "bin",
+                    binning: {
+                        binCount: 16,
+                        statsTable: "stats",
+                        statsMinField: "min_score",
+                        statsMaxField: "max_score",
+                        outputBinWidthAlias: "bin_width",
+                        outputBinLbAlias: "bin_lb",
+                        outputBinUbAlias: "bin_ub",
+                        includeNullBin: true,
+                    },
+                }],
+                aggregates: [{ func: "count_star", outputAlias: "count" }],
+            })
+            .orderBy([{ field: "bin", ascending: true }])
+            .toSQL();
+        // Must not throw a conversion / out-of-range error.
+        const result = await conn.query(sql);
+        const rows = toPlainObjects(result);
+        // 16 regular bins + 1 null bin
+        expect(rows.length).toBe(17);
+        // Every bin index stays within [0, 16].
+        for (const row of rows) {
+            expect(row.bin).toBeGreaterThanOrEqual(0);
+            expect(row.bin).toBeLessThanOrEqual(16);
+        }
+    });
+
     it('projection', async () => {
         const table = arrow.tableFromArrays({
             id: new Int32Array([1, 2, 3]),

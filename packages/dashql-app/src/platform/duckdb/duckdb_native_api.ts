@@ -23,7 +23,14 @@ import {
 } from './duckdb_api.js';
 
 const DEFAULT_PROXY_ENDPOINT = new URL('dashql-native://localhost');
-const DEFAULT_READ_TIMEOUT_MS = 1000;
+// Time budget for the *first* chunk of a stream batch. This is effectively the
+// query execution time before the first result arrives: analysis / summary
+// queries can run for several seconds, so this must be generous or the native
+// proxy aborts with "reading from duckdb stream timed out".
+const DEFAULT_READ_TIMEOUT_MS = 30_000;
+// Once chunks are flowing, how long to keep accumulating before flushing a batch
+// to the caller. Expiry just flushes what we have (not an error), so this stays
+// small to keep result streaming responsive.
 const DEFAULT_BATCH_TIMEOUT_MS = 1000;
 const DEFAULT_BATCH_BYTES = 4_000_000;
 
