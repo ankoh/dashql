@@ -160,9 +160,18 @@ use_repo(
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
     edition = "2021",
+    # Register both macOS target triples so the universal-binary slices
+    # (mac_app_aarch64 / mac_app_x86_64) can be cross-compiled regardless of the
+    # runner's host arch -- macos-15 runners are Apple Silicon (aarch64 host), so
+    # building the x86_64 slice is a cross-compile that needs x86_64-apple-darwin
+    # registered as a target toolchain.
     # wasm32-unknown-unknown is the target for the vendored UMAP crates
     # (//packages/dashql-umap), compiled to a cdylib and run through rust_wasm_bindgen.
-    extra_target_triples = ["wasm32-unknown-unknown"],
+    extra_target_triples = [
+        "aarch64-apple-darwin",
+        "x86_64-apple-darwin",
+        "wasm32-unknown-unknown",
+    ],
     versions = ["1.93.1"],
 )
 use_repo(rust, "rust_toolchains")
