@@ -11,7 +11,6 @@ import {
     fakeScrollbarModule,
     fakeScriptEditorModule,
     fakeScriptPreviewModule,
-    fakeSizeObserverModule,
     fakeStatusIndicatorModule,
     fakeSymbolIconModule,
     ResizeObserverMock,
@@ -28,6 +27,9 @@ const mockState = vi.hoisted(() => ({
     }>,
     queryStates: new Map<number, { traceId: number; status: number }>(),
     agentRuns: new Map<number, { traceId: number; phase?: number; log?: Array<{ message: string }> }>(),
+    // Drives the mocked size observer. Wide enough by default that the overview toggle is offered
+    // (the feed only shows it at >= 1000px of board width); a test can narrow it to hide the toggle.
+    observedWidth: 1200,
 }));
 vi.mock('react-window', async () => fakeReactWindowModule(await import('react'), mockState.scrollToRowMock));
 vi.mock('./script_editor.js', async () => fakeScriptEditorModule(await import('react'), mockState));
@@ -35,7 +37,9 @@ vi.mock('./notebook_script_preview.js', async () => fakeScriptPreviewModule(awai
 vi.mock('../foundations/button.js', async () => fakeButtonModule(await import('react')));
 vi.mock('../foundations/status_indicator.js', async () => fakeStatusIndicatorModule(await import('react')));
 vi.mock('../foundations/symbol_icon.js', async () => fakeSymbolIconModule(await import('react')));
-vi.mock('../foundations/size_observer.js', () => fakeSizeObserverModule());
+vi.mock('../foundations/size_observer.js', () => ({
+    observeSize: () => ({ width: mockState.observedWidth, height: 480 }),
+}));
 vi.mock('../../utils/scrollbar.js', () => fakeScrollbarModule());
 vi.mock('../../utils/key_events.js', () => ({
     useKeyEvents: (handlers: typeof mockState.keyHandlers) => {
@@ -77,6 +81,12 @@ vi.mock('../internals/trace_log_viewer.js', async () => {
     return {
         TraceLogViewer: (props: { traceId?: number; height?: number; maxRows?: number }) =>
             React.createElement('div', { 'data-testid': 'trace-log-viewer', 'data-trace-id': props.traceId }),
+    };
+});
+vi.mock('./notebook_page_overview.js', async () => {
+    const React = await import('react');
+    return {
+        NotebookPageOverview: () => React.createElement('div', { 'data-testid': 'page-overview' }),
     };
 });
 vi.mock('./feed_entry_footer.js', async () => {
@@ -220,6 +230,7 @@ describe('NotebookScriptFeed', () => {
         mockState.keyHandlers = [];
         mockState.queryStates.clear();
         mockState.agentRuns.clear();
+        mockState.observedWidth = 1200;
     });
 
     afterEach(() => {
@@ -681,6 +692,40 @@ describe('NotebookScriptFeed', () => {
 
         expect(preventDefault).toHaveBeenCalledTimes(1);
         expect(modifyNotebook).toHaveBeenCalledWith({ type: REJECT_PENDING_DIFF, value: 101 });
+    });
+
+    it('Escape steps from the overview grid back to the feed before escaping the notebook', () => {
+        const modifyNotebook = vi.fn();
+        renderFeed({
+            notebook: createNotebookState(),
+            modifyNotebook,
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+
+        // The overview toggle is offered on wide boards; switch into the grid.
+        const toggle = container.querySelector('[aria-label="Show overview"]') as HTMLButtonElement | null;
+        expect(toggle).not.toBeNull();
+        act(() => {
+            toggle!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        });
+        expect(container.querySelector('[data-testid="page-overview"]')).not.toBeNull();
+
+        // First Escape drops back to the feed and swallows the event so the page-level handler
+        // (which would leave the notebook) never sees it.
+        const handler = mockState.keyHandlers.find(c => c.key === 'Escape' && c.ctrlKey === false && c.capture === true);
+        expect(handler).toBeDefined();
+        const preventDefault = vi.fn();
+        const stopPropagation = vi.fn();
+        act(() => {
+            handler!.callback({ preventDefault, stopPropagation } as unknown as KeyboardEvent);
+        });
+
+        expect(preventDefault).toHaveBeenCalledTimes(1);
+        expect(stopPropagation).toHaveBeenCalledTimes(1);
+        expect(container.querySelector('[data-testid="page-overview"]')).toBeNull();
+        // Leaving the grid must not reject a diff or otherwise mutate the notebook.
+        expect(modifyNotebook).not.toHaveBeenCalled();
     });
 
     it('opens details on plain Enter when the focused entry has no pending rewrite', () => {

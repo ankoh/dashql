@@ -712,6 +712,16 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                 if (active && active !== document.body && active !== document.documentElement) {
                     return;
                 }
+                // In the overview grid, Escape first steps back to the vertical feed instead of
+                // leaving the notebook. Stop propagation so the page-level Escape handler (which
+                // navigates back to the session selector) doesn't also fire on this keystroke — a
+                // second Escape, now in feed mode, escapes out fully.
+                if (viewMode === 'overview') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setViewMode('feed');
+                    return;
+                }
                 const focused = getSelectedEntry(props.notebook);
                 const focusedScript = focused != null ? props.notebook.scripts[focused.scriptId] : null;
                 if (focusedScript?.pendingDiff != null) {
@@ -735,7 +745,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                 event.stopPropagation();
             },
         },
-    ], [composeEditorView, handleComposeSend, entries.length, props.showDetails, props.notebook, handleAcceptDiff, handleRejectDiff]);
+    ], [composeEditorView, handleComposeSend, entries.length, props.showDetails, props.notebook, handleAcceptDiff, handleRejectDiff, viewMode]);
     useKeyEvents(keyHandlers);
 
     // Height cache for variable-height rows
