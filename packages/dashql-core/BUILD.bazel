@@ -331,6 +331,7 @@ cc_test(
         "test/rope_test.cc",
         "test/scanner_test.cc",
         "test/script_test.cc",
+        "test/string_conversion_test.cc",
         "test/topk_test.cc",
         "test/unification_test.cc",
         "test/catalog_test.cc",
