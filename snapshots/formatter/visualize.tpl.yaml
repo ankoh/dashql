@@ -1,0 +1,88 @@
+formatter-snapshots:
+
+  - name: vis_minimal_mark
+    input: |-
+      visualize using vegalite (mark => line)
+    dialects:
+      duckdb:
+
+  - name: vis_table_source
+    input: |-
+      visualize sales using vegalite (mark => bar)
+    dialects:
+      duckdb:
+
+  - name: vis_qualified_source
+    input: |-
+      visualize warehouse.public.sales using vegalite (mark => point)
+    dialects:
+      duckdb:
+
+  - name: vis_select_source
+    input: |-
+      visualize (select * from sales) using vegalite (mark => line)
+    dialects:
+      duckdb:
+
+  - name: vis_multi_spec_keys
+    input: |-
+      visualize sales using vegalite (mark => line, width => 800, height => 400)
+    dialects:
+      duckdb:
+
+  - name: vis_encoding_simple
+    input: |-
+      visualize sales using vegalite (mark => bar, encoding => (x => (field => category, type => nominal), y => (field => revenue, type => quantitative)))
+    dialects:
+      duckdb:
+
+  - name: vis_encoding_narrow
+    input: |-
+      visualize sales using vegalite (mark => bar, encoding => (x => (field => category, type => nominal), y => (field => revenue, type => quantitative)))
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            width: 60
+
+  - name: vis_scale_with_array
+    input: |-
+      visualize sales using vegalite (encoding => (x => (field => time, type => temporal, scale => (domain => [0, 100]))))
+    dialects:
+      duckdb:
+
+  - name: vis_encoding_shorthand
+    input: |-
+      visualize sales using vegalite (mark => bar, encoding => (x => date, y => revenue))
+    dialects:
+      duckdb:
+
+  - name: vis_trailing_comma_spec
+    input: |-
+      visualize sales using vegalite (mark => line, width => 800,)
+    dialects:
+      duckdb:
+
+  - name: vis_trailing_comma_nested
+    input: |-
+      visualize using vegalite (mark => bar, encoding => (x => (field => date, type => temporal,), y => (field => revenue,),),)
+    dialects:
+      duckdb:
+
+  - name: vis_umap_minimal
+    input: |-
+      visualize embeddings using umap (vector => embedding)
+    dialects:
+      duckdb:
+
+  - name: vis_umap_full
+    input: |-
+      visualize embeddings using umap (vector => embedding, category => cluster_id, label => name, neighbors => 15, min_dist => 0.1, metric => cosine)
+    dialects:
+      duckdb:
+
+  - name: vis_full_example
+    input: |-
+      visualize sales using vegalite (mark => line, encoding => (x => (field => time, type => temporal), y => (field => value, type => quantitative)), width => 800)
+    dialects:
+      duckdb:

@@ -141,6 +141,9 @@ formatter-snapshots:
     dialects:
       duckdb:
         formatted:
+          - mode: inline
+            expected: |-
+              visualize sales using vegalite (mark => bar, encoding => (x => (field => category, type => nominal), y => (field => revenue, type => quantitative)));
           - mode: compact
             width: 60
             expected: |-
@@ -149,6 +152,21 @@ formatter-snapshots:
                 encoding => (
                   x => (field => category, type => nominal),
                   y => (field => revenue, type => quantitative)
+                )
+              );
+          - mode: pretty
+            expected: |-
+              visualize sales using vegalite (
+                mark => bar,
+                encoding => (
+                  x => (
+                    field => category,
+                    type => nominal
+                  ),
+                  y => (
+                    field => revenue,
+                    type => quantitative
+                  )
                 )
               );
 
@@ -213,6 +231,11 @@ formatter-snapshots:
           - mode: inline
             expected: |-
               visualize sales using vegalite (mark => line, width => 800);
+          - mode: compact
+            expected: |-
+              visualize sales using vegalite (
+                mark => line, width => 800
+              );
           - mode: pretty
             expected: |-
               visualize sales using vegalite (
@@ -229,6 +252,11 @@ formatter-snapshots:
           - mode: inline
             expected: |-
               visualize using vegalite (mark => bar, encoding => (x => (field => date, type => temporal), y => (field => revenue)));
+          - mode: compact
+            expected: |-
+              visualize using vegalite (
+                mark => bar, encoding => (x => (field => date, type => temporal), y => (field => revenue))
+              );
           - mode: pretty
             expected: |-
               visualize using vegalite (
@@ -242,6 +270,51 @@ formatter-snapshots:
                     field => revenue
                   )
                 )
+              );
+
+  - name: vis_umap_minimal
+    input: |-
+      visualize embeddings using umap (vector => embedding)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              visualize embeddings using umap (vector => embedding);
+          - mode: compact
+            expected: |-
+              visualize embeddings using umap (
+                vector => embedding
+              );
+          - mode: pretty
+            expected: |-
+              visualize embeddings using umap (
+                vector => embedding
+              );
+
+  - name: vis_umap_full
+    input: |-
+      visualize embeddings using umap (vector => embedding, category => cluster_id, label => name, neighbors => 15, min_dist => 0.1, metric => cosine)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              visualize embeddings using umap (vector => embedding, category => cluster_id, label => name, neighbors => 15, min_dist => 0.1, metric => cosine);
+          - mode: compact
+            expected: |-
+              visualize embeddings using umap (
+                vector => embedding, category => cluster_id, label => name, neighbors => 15, min_dist => 0.1, metric => cosine
+              );
+          - mode: pretty
+            expected: |-
+              visualize embeddings using umap (
+                vector => embedding,
+                category => cluster_id,
+                label => name,
+                neighbors => 15,
+                min_dist => 0.1,
+                metric => cosine
               );
 
   - name: vis_full_example
