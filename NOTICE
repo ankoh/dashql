@@ -49,8 +49,9 @@ The Rust crates under `packages/dashql-umap/` (`umap`, `nndescent`, `umap-wasm`)
 are vendored from Apple's Embedding Atlas project
 (https://github.com/apple/embedding-atlas), specifically `packages/umap/{umap,
 nndescent,umap-wasm}`. They are compiled to WebAssembly for the client-side UMAP
-projection behind `VISUALIZE ... USING embeddingatlas`. The GPU (`wgpu`) feature
-and its sources/shaders are omitted; the remaining files retain their original
+projection behind `VISUALIZE ... USING embeddingatlas`, including the GPU (`wgpu`
+→ WebGPU) feature and its sources/shaders (`gpu.rs`, `nn_descent_gpu.rs`,
+`gpu_optimize.rs`, `**/shaders/*.wgsl`). All files retain their original
 `// Copyright (c) 2025 Apple Inc. Licensed under MIT License.` headers. Licensed
 under the same MIT License as section 1 (Copyright (c) 2025 Apple Inc.).
 

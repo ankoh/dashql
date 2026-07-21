@@ -1,12 +1,21 @@
 # Vendored UMAP + NNDescent (Apple embedding-atlas, MIT) compiled to wasm32 and run
 # through wasm-bindgen for the `VISUALIZE ... USING embeddingatlas` renderer.
 #
-#   nndescent (rust_library)  ─┐
-#   umap      (rust_library)  ─┤→ umap_wasm (rust_shared_library, cdylib)
-#                              │      │
-#                              │      └→ umap_bindgen (rust_wasm_bindgen --target web)
-#                              │            → umap_wasm_bg.wasm + umap_wasm.js glue
-#                              └→ optimize_wasm (wasm-opt -O3 + strip in release)
+#   nndescent      (rust_library, CPU)   ── native tests only
+#   umap           (rust_library, CPU)   ── native tests only
+#
+#   nndescent_gpu  (rust_library +gpu) ─┐
+#   umap_gpu       (rust_library +gpu) ─┤→ umap_wasm (rust_shared_library, cdylib, +gpu)
+#                                       │      │
+#                                       │      └→ umap_bindgen (rust_wasm_bindgen --target web)
+#                                       │            → umap_wasm_bg.wasm + umap_wasm.js glue
+#                                       └→ optimize_wasm (wasm-opt -O3 + strip in release)
+#
+# The `gpu` feature (wgpu → WebGPU) accelerates the kNN and layout phases; it degrades
+# to the CPU path at runtime when the host exposes no WebGPU adapter (GpuContext::new
+# returns None). rules_rust crate_features are per-target and DON'T unify across deps the
+# way Cargo does, so the wasm path uses dedicated +gpu library variants; the native test
+# crates (:nndescent, :umap) stay CPU-only so the correctness gate keeps a lean dep tree.
 #
 # All crate deps resolve from the wasm32-only @umap_crates universe (MODULE.bazel),
 # kept isolated from the native @crates universe. See //NOTICE for attribution.
@@ -60,6 +69,52 @@ rust_library(
     ],
 )
 
+# ---------------------------------------------------------------------------
+# GPU (wgpu → WebGPU) library variants — the wasm path
+# ---------------------------------------------------------------------------
+
+# Same sources as :nndescent / :umap, but with crate_features = ["gpu"] so the
+# #[cfg(feature = "gpu")] modules (gpu.rs, nn_descent_gpu.rs, gpu_optimize.rs)
+# compile. compile_data carries the WGSL shaders that those modules include_str!
+# at compile time (glob("**/*.rs") in srcs does not pick up .wgsl).
+rust_library(
+    name = "nndescent_gpu",
+    srcs = glob(["nndescent/src/**/*.rs"]),
+    compile_data = glob(["nndescent/src/shaders/*.wgsl"]),
+    crate_features = ["gpu"],
+    crate_name = "nndescent",
+    edition = "2021",
+    visibility = ["//visibility:private"],
+    deps = [
+        "@umap_crates//:bytemuck",
+        "@umap_crates//:getrandom",
+        "@umap_crates//:ndarray",
+        "@umap_crates//:ordered-float",
+        "@umap_crates//:pollster",
+        "@umap_crates//:rayon",
+        "@umap_crates//:wgpu",
+        "@umap_crates//:wide",
+    ],
+)
+
+rust_library(
+    name = "umap_gpu",
+    srcs = glob(["umap/src/**/*.rs"]),
+    compile_data = glob(["umap/src/shaders/*.wgsl"]),
+    crate_features = ["gpu"],
+    crate_name = "umap",
+    edition = "2021",
+    visibility = ["//visibility:private"],
+    deps = [
+        ":nndescent_gpu",
+        "@umap_crates//:bytemuck",
+        "@umap_crates//:ndarray",
+        "@umap_crates//:pollster",
+        "@umap_crates//:rayon",
+        "@umap_crates//:wgpu",
+    ],
+)
+
 # Native unit tests: run the upstream inline #[cfg(test)] suites (RP-trees, the
 # Jacobi/generalized eigensolver, distance kernels, TauRng, heaps, ...) on the
 # host. This is the fast, debuggable correctness check that a wasm32-only build
@@ -85,13 +140,14 @@ rust_test(
 rust_shared_library(
     name = "umap_wasm",
     srcs = glob(["umap-wasm/src/**/*.rs"]),
+    crate_features = ["gpu"],
     crate_name = "umap_wasm",
     edition = "2021",
     target_compatible_with = _WASM32_ONLY,
     visibility = ["//visibility:private"],
     deps = [
-        ":nndescent",
-        ":umap",
+        ":nndescent_gpu",
+        ":umap_gpu",
         "@umap_crates//:getrandom",
         "@umap_crates//:js-sys",
         "@umap_crates//:ndarray",

@@ -2,7 +2,13 @@
 /// thread. See umap_worker_request.ts for the message protocol and umap_projector.ts
 /// for the main-thread driver.
 ///
-/// The wasm CPU path is single-threaded (rayon degrades to sequential on wasm32),
+/// The wasm module carries the wgpu → WebGPU `gpu` path (kNN + layout compute
+/// shaders). When the worker's `navigator.gpu` exposes an adapter we opt in with
+/// `gpu: true`; the Rust side (GpuContext::new / OptimizeGpuContext::new both return
+/// Option) still falls back to CPU internally if the adapter request fails, so the
+/// capability check is an optimization, not a correctness guard.
+///
+/// The wasm CPU fallback is single-threaded (rayon degrades to sequential on wasm32),
 /// so a projection of a large embedding table is seconds-scale and MUST NOT block
 /// the UI. Progress is streamed back so the notebook AI-bar/log can show it.
 
@@ -15,6 +21,25 @@ import {
     UMAPWorkerResponse,
     UMAPWorkerResponseType,
 } from './umap_worker_request.js';
+
+/// Probe WebGPU once per worker: is an adapter actually obtainable? `navigator.gpu`
+/// can exist while `requestAdapter()` returns null (blocklisted GPU, headless, etc.),
+/// so we request an adapter rather than just feature-detecting the object. Cached as a
+/// promise so concurrent RUNs share the single probe.
+let gpuAvailable: Promise<boolean> | null = null;
+function webgpuAvailable(): Promise<boolean> {
+    if (gpuAvailable == null) {
+        // eslint-disable-next-line no-restricted-globals
+        const gpu = (navigator as Navigator & { gpu?: GPU }).gpu;
+        gpuAvailable = gpu
+            ? gpu
+                  .requestAdapter({ powerPreference: 'high-performance' })
+                  .then((adapter) => adapter != null)
+                  .catch(() => false)
+            : Promise.resolve(false);
+    }
+    return gpuAvailable;
+}
 
 /// The currently running projection, if any. Only one runs at a time; a CANCEL
 /// flips `cancelled` so the driver stops caring about a late RESULT, and the UMAP
@@ -31,10 +56,15 @@ async function run(requestId: number, params: UMAPWorkerRequest & { type: UMAPWo
     active = state;
 
     const { data, count, dimension, options } = params.params;
+    // Prefer the GPU path when the caller hasn't forced a choice and this worker's
+    // WebGPU adapter is reachable. An explicit options.gpu (true/false) wins.
+    const gpu = options.gpu ?? (await webgpuAvailable());
+    if (state.cancelled) return;
     let umap: Awaited<ReturnType<typeof createUMAP>> | null = null;
     try {
         umap = await createUMAP(count, dimension, 2, data, {
             ...options,
+            gpu,
             progress: (progress: number, stage: string) => {
                 if (state.cancelled) return;
                 post({ requestId, type: UMAPWorkerResponseType.PROGRESS, progress, stage });

@@ -10,7 +10,13 @@ description = "WASM bindings for UMAP and NNDescent"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-# CPU-only vendored subset: the upstream `gpu` feature is dropped for the wasm32 build.
+# The `gpu` feature forwards to umap/nndescent's wgpu → WebGPU path. Default so
+# crate_universe resolves the wgpu/bytemuck aliases (see nndescent/Cargo.toml). The Bazel
+# cdylib sets crate_features = ["gpu"] explicitly and depends on the +gpu library variants.
+[features]
+default = ["gpu"]
+gpu = ["nndescent/gpu", "umap/gpu"]
+
 [dependencies]
 nndescent = { path = "../nndescent" }
 umap = { path = "../umap" }
