@@ -1,11 +1,15 @@
 import * as React from 'react';
 
+import { ZoomInIcon, ZoomOutIcon, ScreenFullIcon } from '@primer/octicons-react';
+
 import { EmbeddingRendererWebGPU } from './renderer/webgpu_renderer/renderer.js';
 import { EmbeddingRendererWebGL2 } from './renderer/webgl2_renderer/renderer.js';
 import { isWebGPUAvailable, requestWebGPUDevice } from './renderer/webgpu_renderer/utils.js';
 import type { EmbeddingRenderer } from './renderer/renderer_interface.js';
 import type { Point, ViewportState } from './renderer/utils.js';
 import { Viewport } from './renderer/viewport_utils.js';
+import { ButtonGroup } from '../../foundations/button_group.js';
+import { IconButton, ButtonVariant, ButtonSize } from '../../foundations/button.js';
 
 import * as styles from './embedding_scatter.module.css';
 
@@ -24,6 +28,14 @@ interface Props {
     points: EmbeddingPoints;
     colorScheme?: 'light' | 'dark';
     pointSize?: number;
+    /// Leave the background transparent so the canvas composites over whatever is behind it
+    /// (used in the feed footer, where the chart should blend into the footer background).
+    transparent?: boolean;
+    /// Enable pan/drag with the mouse. Defaults to true.
+    interactive?: boolean;
+    /// Enable zooming with the scroll wheel. Disabled in the feed footer so the wheel scrolls the
+    /// feed instead of being captured by the chart (dragging still works). Defaults to true.
+    wheelZoom?: boolean;
 }
 
 /// Median of a Float32Array without mutating the input.
@@ -76,6 +88,9 @@ export function EmbeddingScatter(props: Props): React.ReactElement {
     const points = props.points;
     const colorScheme = props.colorScheme ?? 'light';
     const pointSize = props.pointSize ?? 2;
+    const transparent = props.transparent ?? false;
+    const interactive = props.interactive ?? true;
+    const wheelZoom = props.wheelZoom ?? true;
 
     // Schedule a render on the next animation frame (coalesces bursts of prop /
     // interaction changes into a single draw).
@@ -104,13 +119,14 @@ export function EmbeddingScatter(props: Props): React.ReactElement {
             categoryCount: Math.max(1, points.categoryCount),
             categoryColors: points.categoryColors ?? null,
             colorScheme,
+            transparent,
             pointSize,
             viewportX: vp.x,
             viewportY: vp.y,
             viewportScale: vp.scale,
         });
         if (needsRender) scheduleRender();
-    }, [points, colorScheme, pointSize, scheduleRender]);
+    }, [points, colorScheme, transparent, pointSize, scheduleRender]);
 
     // Device + renderer lifecycle. Re-runs only on mount/unmount; data changes
     // are pushed through syncRenderer without rebuilding the GPU pipeline.
@@ -203,10 +219,10 @@ export function EmbeddingScatter(props: Props): React.ReactElement {
         syncRenderer();
     }, [points, syncRenderer]);
 
-    // Re-sync when purely visual props change (color scheme, point size).
+    // Re-sync when purely visual props change (color scheme, point size, transparency).
     React.useEffect(() => {
         syncRenderer();
-    }, [colorScheme, pointSize, syncRenderer]);
+    }, [colorScheme, pointSize, transparent, syncRenderer]);
 
     // Container resize → resize the framebuffer.
     React.useEffect(() => {
@@ -294,15 +310,68 @@ export function EmbeddingScatter(props: Props): React.ReactElement {
         [syncRenderer],
     );
 
+    // Zoom about the viewport center by a multiplicative factor (used by the on-canvas
+    // zoom buttons). Center-relative zoom keeps x/y fixed and only changes scale, clamped to
+    // the same bounds as the wheel handler.
+    const zoomBy = React.useCallback((factor: number) => {
+        const { x, y, scale } = viewportRef.current;
+        const baseScale = defaultViewportRef.current.scale || 1;
+        const newScale = Math.min(baseScale * 1e2, Math.max(baseScale * 1e-2, scale * factor));
+        viewportRef.current = { x, y, scale: newScale };
+        syncRenderer();
+    }, [syncRenderer]);
+
+    // Restore the viewport that frames the whole cloud.
+    const resetViewport = React.useCallback(() => {
+        viewportRef.current = defaultViewportRef.current;
+        syncRenderer();
+    }, [syncRenderer]);
+
     return (
-        <div ref={containerRef} className={styles.root}>
+        // Opt out of the enclosing feed's `data-tauri-drag-region="deep"`: without this, a
+        // mouse-down anywhere on the canvas walks up the composed path to that region and starts
+        // dragging the OS window instead of panning the scatter. "false" halts that walk for this
+        // subtree; our own pointer-based pan (a separate pointerdown handler) still fires.
+        <div ref={containerRef} className={styles.root} data-tauri-drag-region="false">
             {error && <div className={styles.error}>{error}</div>}
             <canvas
                 ref={canvasRef}
-                className={styles.canvas}
-                onWheel={onWheel}
-                onPointerDown={onPointerDown}
+                className={interactive ? styles.canvas : styles.canvas_static}
+                onWheel={wheelZoom ? onWheel : undefined}
+                onPointerDown={interactive ? onPointerDown : undefined}
             />
+            {/* The zoom/reset controls drive the viewport via onClick, so they work even when
+                gesture interactivity is off (feed footer). They're a separate element from the
+                pointer-events: none canvas, so they don't interfere with feed scrolling. */}
+            <ButtonGroup className={styles.controls}>
+                <IconButton
+                    variant={ButtonVariant.Default}
+                    size={ButtonSize.Small}
+                    aria-label="Zoom in"
+                    description="Zoom in"
+                    onClick={() => zoomBy(1.4)}
+                >
+                    <ZoomInIcon size={12} />
+                </IconButton>
+                <IconButton
+                    variant={ButtonVariant.Default}
+                    size={ButtonSize.Small}
+                    aria-label="Zoom out"
+                    description="Zoom out"
+                    onClick={() => zoomBy(1 / 1.4)}
+                >
+                    <ZoomOutIcon size={12} />
+                </IconButton>
+                <IconButton
+                    variant={ButtonVariant.Default}
+                    size={ButtonSize.Small}
+                    aria-label="Reset view"
+                    description="Reset view"
+                    onClick={resetViewport}
+                >
+                    <ScreenFullIcon size={12} />
+                </IconButton>
+            </ButtonGroup>
         </div>
     );
 }

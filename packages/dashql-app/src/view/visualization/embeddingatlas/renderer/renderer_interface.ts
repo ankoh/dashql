@@ -8,6 +8,10 @@ export interface EmbeddingRendererProps {
     mode: RenderMode;
     colorScheme: "light" | "dark";
 
+    /** When true, the background is left transparent instead of being filled with the
+     *  color-scheme's opaque white/black, so the canvas composites over whatever is behind it. */
+    transparent: boolean;
+
     x: Float32Array<ArrayBuffer>;
     y: Float32Array<ArrayBuffer>;
     category: Uint8Array<ArrayBuffer> | null;

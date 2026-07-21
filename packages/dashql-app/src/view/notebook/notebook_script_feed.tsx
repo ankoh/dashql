@@ -102,6 +102,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
     const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
+
     // Both eye states are rendered at once and toggled via CSS visibility. SymbolIcon caches a
     // distinct component type per symbol, so swapping the bound icon on focus change would
     // unmount/remount the <svg><use> and force the external symbol reference to re-resolve —
@@ -109,25 +110,30 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
     const EyeOpenIcon: Icon = SymbolIcon('eye_16');
     const EyeClosedIcon: Icon = SymbolIcon('eye_closed_16');
     const PencilIcon: Icon = SymbolIcon('pencil_16');
+
     // Accept/Reject a staged rewrite — the same check/cross icon group as the Details editor.
     const CheckIcon: Icon = SymbolIcon('check_16');
     const CrossIcon: Icon = SymbolIcon('x_16');
     const queryState = useQueryState(sessionId, scriptData?.latestQueryId ?? null);
+
     // Resolve the agent run by its id (handle) just like the query above — the run carries its
     // own trace id, so the footer no longer needs a denormalized trace id on ScriptData.
     const agentRunState = useAgentRunState(scriptData?.latestAgentRunId ?? null);
     const agentTraceId = agentRunState?.traceId ?? null;
-    // While a run is in flight the card shows a compact "AI bar" above the body (spinner + latest
+
+    // While an agent run is in flight the card shows a compact "AI bar" above the body (spinner + latest
     // log line) instead of yanking the user to the raw agent trace. The body keeps rendering the
     // current output; the user opts into the full trace by clicking the bar.
     const agentActive = agentRunState != null && agentRunIsActive(agentRunState.phase);
     const agentLatestMessage = agentRunState != null && agentRunState.log.length > 0
         ? agentRunState.log[agentRunState.log.length - 1].message
         : null;
+
     // A staged agent rewrite waiting to be accepted/rejected. While set, the read-only preview
     // renders the rewrite as a compact in-place diff overlay and the AI bar above it turns into the
     // Accept/Reject controls (which dispatch notebook actions — no editable editor is mounted here).
     const hasPendingDiff = scriptData?.pendingDiff != null;
+
     // A monotonic nonce handed to the footer: bumped when the user clicks the AI bar so the footer
     // reveals the Agent Log tab on demand (a run no longer auto-switches it).
     const [agentLogRequest, setAgentLogRequest] = React.useState(0);
@@ -139,8 +145,10 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
     const rejectDiff = React.useCallback(() => {
         if (scriptKey != null) onRejectDiff(scriptKey);
     }, [scriptKey, onRejectDiff]);
+
     const [isReady, setIsReady] = React.useState(false);
     const [isEditing, setIsEditing] = React.useState(false);
+
     // The label and the rename input show the clean display name (no ordering prefix, no ".sql");
     // the raw scriptFileName remains the identity passed to handlers and to UPDATE_NOTEBOOK_ENTRY.
     const displayName = scriptDisplayName(scriptFileName);
@@ -428,6 +436,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const config = useAppConfig();
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
     const entries = getSelectedPageEntries(props.notebook);
+
     // The feed body can be viewed two ways: the classic vertical list, or a zoomed-out overview
     // grid of the same entries. Both share the feed chrome (background + compose card below), so
     // the mode only swaps the scrolling content area — the overview is "just" another view of the
@@ -435,12 +444,15 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const [viewMode, setViewMode] = React.useState<'feed' | 'overview'>('feed');
     const pendingScrollToBottomRef = React.useRef(false);
     const [composeEditorView, setComposeEditorView] = React.useState<EditorView | null>(null);
+
     // The SQL/AI input mode is hoisted into the command context so the "Switch Mode" command
     // and the Ctrl+M shortcut can drive it from outside the feed.
     const { mode: inputMode, setMode: setInputMode } = useComposeInputMode();
+
     // SQL and AI use two distinct editor instances. When a toggle swaps them, the freshly
     // mounted editor should inherit focus so the keyboard flow continues uninterrupted.
     const refocusComposeRef = React.useRef(false);
+
     // The AI prompt editor is unmounted whenever we toggle back to SQL, so its draft text lives
     // here (the SQL draft already persists via the notebook's uncommitted script). This seeds the
     // editor on remount and is kept current via PromptEditor's onChange.
@@ -559,6 +571,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         const notebook = props.notebook;
         const scriptKey = notebook.uncommittedScriptId;
         const scriptData = notebook.scripts[scriptKey];
+
         // The compose editor keeps the draft analyzed as it is typed, so the
         // resolved VISUALIZE query / derived annotations are already present (and
         // carried across promotion, which preserves the script key).
@@ -591,6 +604,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         if (prompt.length === 0) return;
         const focusedEntry = getSelectedEntry(props.notebook);
         const contextScriptKey = focusedEntry?.scriptId ?? null;
+
         // Build the notebook adapter the run acts on. It closes over the focused script + the
         // notebook dispatch; for visualize runs it also exposes each script's last-execution output
         // schema (from the connection state) so the agent context can describe the chart's columns.
@@ -608,6 +622,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             intentOverride: null,
             host,
         });
+
         // Clear the prompt so the next instruction starts fresh (the editor's docChanged also
         // resets the persisted draft via onChange, but clear the ref explicitly to be safe).
         aiPromptTextRef.current = '';
@@ -804,21 +819,78 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     // the feed back to the last keyboard-set target while the user mouse-scrolls.
     const entriesRef = React.useRef(entries);
     entriesRef.current = entries;
+
+    // Apply a requested scroll-to-entry. The feed is fully unmounted while the Details view is open
+    // (see the body ternary in notebook_page), so on return it remounts fresh: scroll position 0, an
+    // as-yet-unmeasured container (listWidth/listHeight only turn non-zero once observeSize's
+    // ResizeObserver fires a paint later), and an empty row-height cache (every row reports the 120px
+    // estimate until its ResizeObserver measures it). Both make an immediate scrollToRow land in the
+    // wrong place — a no-op against a zero-height viewport, or an offset computed from estimated row
+    // heights that shifts once the real heights arrive. That's why returning from Details used to
+    // drop the user near the top of the feed.
+    //
+    // So we stash the target and re-apply it as those inputs settle (this effect also depends on
+    // heightsVersion, which bumps on every row measurement). We only consider the scroll "done" once
+    // the container is measured AND every row up to the target has a real measured height, so the
+    // offset is finally correct. Until then each re-apply is best-effort and leaves the version
+    // unmarked so the next measurement retries; once marked, a later height change (e.g. an agent
+    // updating a card the user has since scrolled to) won't yank the feed back.
+    const pendingScrollTargetRef = React.useRef<FeedScrollTarget | null>(null);
+    const appliedScrollVersionRef = React.useRef<number | null>(null);
     React.useEffect(() => {
-        if (props.scrollTarget == null || !listRef.current) {
+        if (props.scrollTarget != null) {
+            pendingScrollTargetRef.current = props.scrollTarget;
+        }
+        const target = pendingScrollTargetRef.current;
+        if (target == null || !listRef.current) {
+            return;
+        }
+        // The list has no scrollable area until it's been measured; retry once a size lands.
+        if (listWidth === 0 || listHeight === 0) {
+            return;
+        }
+        if (appliedScrollVersionRef.current === target.version) {
             return;
         }
         const currentEntries = entriesRef.current;
         if (currentEntries.length === 0) {
             return;
         }
-        const targetIdx = currentEntries.findIndex(e => e.fileName === props.scrollTarget!.fileName);
-        const clampedEntryIndex = Math.max(0, Math.min(targetIdx === -1 ? 0 : targetIdx, currentEntries.length - 1));
+        const targetIdx = currentEntries.findIndex(e => e.fileName === target.fileName);
+        if (targetIdx === -1) {
+            return;
+        }
         listRef.current.scrollToRow({
-            index: clampedEntryIndex + 1,
+            index: targetIdx + 1,
             align: 'start',
         });
-    }, [listRef, props.scrollTarget]);
+        // Decide whether this scroll actually landed on the target, or whether react-window clamped
+        // it short. react-window clamps scrollTop to the (estimated) total content height, so while
+        // rows below the target still report the 120px estimate the total is underestimated and the
+        // scroll stops one or more cards early. Compare the requested offset (the summed heights of
+        // the rows above the target — row 0 is the top padding, rows 1..N are the entries) against
+        // the element's resulting scrollTop: if they match we've truly landed and can lock the
+        // version; if it clamped short, leave it unlocked so the next measurement (heightsVersion
+        // bumps as the now-visible rows below measure) re-applies against the corrected total.
+        const heights = heightsRef.current;
+        let expectedOffset = FEED_EDGE_PADDING;
+        let offsetExact = true;
+        for (let i = 0; i < targetIdx; ++i) {
+            if (heights[i] == null) {
+                offsetExact = false;
+                expectedOffset += ESTIMATED_ROW_HEIGHT;
+            } else {
+                expectedOffset += heights[i];
+            }
+        }
+        const scroller = listRef.current.element;
+        const actualTop = scroller?.scrollTop ?? 0;
+
+        // Locked only when the offset is computed from real heights AND the list didn't clamp us short.
+        if (offsetExact && Math.abs(actualTop - expectedOffset) <= 1) {
+            appliedScrollVersionRef.current = target.version;
+        }
+    }, [listRef, props.scrollTarget, listWidth, listHeight, heightsVersion]);
 
     const [composeScrollbarInset, setComposeScrollbarInset] = React.useState(0);
     React.useEffect(() => {

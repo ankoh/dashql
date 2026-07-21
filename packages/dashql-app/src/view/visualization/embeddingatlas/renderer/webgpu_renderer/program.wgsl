@@ -287,7 +287,11 @@ fn gamma_correction_fs(in: GammaCorrectionVertexOutput) -> @location(0) vec4<f32
     color = uniforms.background_color;
   }
   let rgb = pow(color.rgb, vec3(1.0 / uniforms.gamma));
-  return vec4(rgb, 1.0);
+  // color.rgb is premultiplied (the blend above scales it by coverage) and the canvas is
+  // configured with alphaMode 'premultiplied', so emit color.a rather than a hard-coded 1.0.
+  // With an opaque background_color the blend drives color.a to 1.0, preserving the old output;
+  // with a transparent background_color the point coverage becomes the canvas alpha.
+  return vec4(rgb, color.a);
 }
 
 // =====================================================

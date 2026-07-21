@@ -8,6 +8,13 @@ import { EmbeddingAtlasView } from './embeddingatlas/embeddingatlas_view.js';
 interface Props {
     query: QueryExecutionState | null;
     visualizeQuery: ResolvedVisualizeQuery | null;
+    /// Render embedding-atlas with a transparent background (feed footer preview).
+    transparent?: boolean;
+    /// Enable pan/drag on renderers that support it. Defaults to true.
+    interactive?: boolean;
+    /// Enable scroll-wheel zoom. Disabled in the feed footer so the wheel scrolls the feed
+    /// instead of being captured by the chart. Defaults to true.
+    wheelZoom?: boolean;
 }
 
 /// Renders the visualization for a resolved VISUALIZE query, dispatching on the
@@ -20,7 +27,15 @@ export function VisualizationDispatch(props: Props): React.ReactElement | null {
     }
     switch (vq.renderer) {
         case 'embeddingatlas':
-            return <EmbeddingAtlasView query={props.query} spec={vq.embeddingAtlasSpec} />;
+            return (
+                <EmbeddingAtlasView
+                    query={props.query}
+                    spec={vq.embeddingAtlasSpec}
+                    transparent={props.transparent}
+                    interactive={props.interactive}
+                    wheelZoom={props.wheelZoom}
+                />
+            );
         case 'vegalite':
         default:
             return <VegaLiteView query={props.query} vegaLiteSpec={vq.vegaLiteSpec} />;

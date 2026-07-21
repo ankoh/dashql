@@ -37,6 +37,7 @@ export class EmbeddingRendererWebGL2 implements EmbeddingRenderer {
         this.props = {
             mode: "points",
             colorScheme: "light",
+            transparent: false,
             x: new Float32Array(),
             y: new Float32Array(),
             category: null,
@@ -245,7 +246,9 @@ function pointsRenderCommand(
 
                 gl.bindFramebuffer(gl.FRAMEBUFFER, linearFB.framebuffer);
                 gl.viewport(0, 0, linearFB.width, linearFB.height);
-                if (colorScheme == "light") {
+                if (props.transparent) {
+                    gl.clearColor(0, 0, 0, 0);
+                } else if (colorScheme == "light") {
                     gl.clearColor(1, 1, 1, 1);
                 } else {
                     gl.clearColor(0, 0, 0, 1);
@@ -350,7 +353,9 @@ function densityRenderCommand(
                 // Clear
                 gl.bindFramebuffer(gl.FRAMEBUFFER, linearFB.framebuffer);
                 gl.viewport(0, 0, linearFB.width, linearFB.height);
-                if (colorScheme == "light") {
+                if (props.transparent) {
+                    gl.clearColor(0, 0, 0, 0);
+                } else if (colorScheme == "light") {
                     gl.clearColor(1, 1, 1, 1);
                 } else {
                     gl.clearColor(0, 0, 0, 1);

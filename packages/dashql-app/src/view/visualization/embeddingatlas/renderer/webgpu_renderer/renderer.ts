@@ -46,6 +46,7 @@ export class EmbeddingRendererWebGPU implements EmbeddingRenderer {
         this.props = {
             mode: "points",
             colorScheme: "light",
+            transparent: false,
             x: new Float32Array(),
             y: new Float32Array(),
             category: null,
@@ -396,7 +397,9 @@ function makeRenderCommand(
             kde_coeffs,
         ) =>
             (props, textureView) => {
-                let backgroundColor: Vector4 = props.colorScheme == "light" ? [1, 1, 1, 1] : [0, 0, 0, 1];
+                let backgroundColor: Vector4 = props.transparent
+                    ? [0, 0, 0, 0]
+                    : props.colorScheme == "light" ? [1, 1, 1, 1] : [0, 0, 0, 1];
                 let scalerX = props.width / fbWidth;
                 let scalerY = props.height / fbHeight;
                 let safeMarginAdjustmentMatrix: Matrix3 = [scalerX, 0, 0, 0, scalerY, 0, 0, 0, 1];

@@ -45,3 +45,18 @@
     flex-shrink: 0;
     margin-left: auto;
 }
+
+/* The visualization tab stacks a fixed-height header over a chart that must fill the rest of the
+   tab body. Without this column layout the chart's height: 100% is measured against the full body
+   (not the body minus the header), so it overflows past the bottom by exactly the header height. */
+.visualization_tab {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.visualization_body {
+    flex: 1;
+    min-height: 0;
+}

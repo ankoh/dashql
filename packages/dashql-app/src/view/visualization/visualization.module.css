@@ -6,6 +6,15 @@
     box-sizing: border-box;
 }
 
+/* Padding-free variant for the embedding-atlas scatter, whose canvas should extend all the way
+   to the container border (both in the feed footer preview and on the details screen). */
+.root_flush {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
 .empty {
     display: flex;
     width: 100%;

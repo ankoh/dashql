@@ -268,12 +268,19 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
             </>
         ),
         [FooterTab.Visualization]: () => (
-            <>
+            <div className={styles.visualization_tab}>
                 <TabHeader title="Visualization" onClick={props.onShowVisualization} />
                 {props.queryState != null && (
-                    <VisualizationDispatch query={props.queryState} visualizeQuery={props.visualizeQuery} />
+                    <div className={styles.visualization_body}>
+                        <VisualizationDispatch
+                            query={props.queryState}
+                            visualizeQuery={props.visualizeQuery}
+                            transparent
+                            wheelZoom={false}
+                        />
+                    </div>
                 )}
-            </>
+            </div>
         ),
     }), [activeLogTraceId, resolvedLogSource, queryTraceId, agentTraceId, QueryLogIcon, props.queryState, props.visualizeQuery, rowCountDetail, logCountDetail, props.onShowTable, props.onShowVisualization]);
 

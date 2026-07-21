@@ -6,7 +6,17 @@
     overflow: hidden;
 }
 
+/* Absolutely positioned so the canvas fills its (position: relative) container
+   without contributing to layout height. In normal flow a `height: 100%` canvas
+   under an indefinite-height ancestor falls back to its framebuffer (attribute)
+   height as its intrinsic size; the ResizeObserver then grows the framebuffer to
+   match the layout, which grows the layout, which grows the framebuffer — an
+   infinite height-doubling loop (the footer expands forever and nothing paints).
+   Taking the canvas out of flow breaks that feedback and lets `.root`'s
+   min-height define the size. */
 .canvas {
+    position: absolute;
+    inset: 0;
     display: block;
     width: 100%;
     height: 100%;
@@ -16,6 +26,18 @@
 
 .canvas:active {
     cursor: grabbing;
+}
+
+/* Non-interactive variant (feed footer): fills the container like .canvas but ignores pointer
+   events so wheel/drag gestures pass straight through to the feed scroller, and drops the grab
+   cursor / touch-action override since there is nothing to pan or zoom. */
+.canvas_static {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
 }
 
 .error {
@@ -28,4 +50,12 @@
     font-family: var(--font-mono, monospace);
     font-size: 12px;
     white-space: pre-wrap;
+}
+
+/* Pan/zoom controls overlaid in the bottom-right corner of the interactive scatter. */
+.controls {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    z-index: 2;
 }

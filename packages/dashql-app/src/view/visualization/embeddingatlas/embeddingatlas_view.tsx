@@ -13,6 +13,13 @@ import { projectionCacheKey, useEmbeddingProjectionRegistry } from './embedding_
 interface Props {
     query: QueryExecutionState | null;
     spec: EmbeddingAtlasSpec | null;
+    /// Render the scatter with a transparent background so it blends into its container.
+    transparent?: boolean;
+    /// Enable pan/drag on the scatter. Defaults to true.
+    interactive?: boolean;
+    /// Enable scroll-wheel zoom. Disabled in the feed footer so the wheel scrolls the feed.
+    /// Defaults to true.
+    wheelZoom?: boolean;
 }
 
 /// Map the analyzer's projection sub-spec to UMAP options, applying embedding-atlas's
@@ -139,8 +146,13 @@ export function EmbeddingAtlasView(props: Props): React.ReactElement {
     }
 
     return (
-        <div className={styles.root}>
-            <EmbeddingScatter points={points} />
+        <div className={styles.root_flush}>
+            <EmbeddingScatter
+                points={points}
+                transparent={props.transparent}
+                interactive={props.interactive}
+                wheelZoom={props.wheelZoom}
+            />
         </div>
     );
 }
