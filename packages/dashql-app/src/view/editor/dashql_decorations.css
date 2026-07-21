@@ -6,9 +6,7 @@
 }
 
 .dashql-tableref-resolved { }
-.dashql-tableref-unresolved > span {
-    color: rgb(140, 140, 140) !important;
-}
+.dashql-tableref-unresolved { }
 
 .dashql-colref-cursor { 
     background-color: rgb(220, 220, 220);
@@ -18,9 +16,7 @@
 }
 
 .dashql-colref-resolved { }
-.dashql-colref-unresolved > span {
-    color: rgb(140, 140, 140) !important;
-}
+.dashql-colref-unresolved { }
 
 .dashql-error {
     position: relative;
