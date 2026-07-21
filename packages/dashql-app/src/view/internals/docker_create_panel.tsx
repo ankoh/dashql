@@ -29,7 +29,7 @@ const DEFAULT_HYPER_CMD: readonly string[] = [
 /// Default volume mounts in Docker's "host-path:container-path" form.
 /// A leading "~" is expanded to the user's home directory by the native docker proxy.
 const DEFAULT_VOLUMES: readonly string[] = [
-    '~:/home/local/',
+    '~:/mnt/home/',
 ];
 
 interface Props {

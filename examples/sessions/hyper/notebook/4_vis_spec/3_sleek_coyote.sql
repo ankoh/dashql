@@ -1,6 +1,6 @@
 VISUALIZE (
     SELECT embedding, "Title", "Conference", "PaperType", "Year"
-    FROM external('/home/local/Desktop/selection-1784529321483.embeddings.fixed.parquet', format => 'parquet')
+    FROM external('/mnt/home/Desktop/selection-1784529321483.embeddings.fixed.parquet', format => 'parquet')
   ) USING embeddingatlas (
     vector   => embedding,
     category => "Conference",

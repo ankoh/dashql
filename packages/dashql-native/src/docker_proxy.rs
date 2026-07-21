@@ -265,12 +265,12 @@ mod tests {
 
     #[test]
     fn expand_tilde_only() {
-        assert_eq!(expand_bind_tilde("~:/home/local/", "/Users/me"), "/Users/me:/home/local/");
+        assert_eq!(expand_bind_tilde("~:/mnt/home/", "/Users/me"), "/Users/me:/mnt/home/");
     }
 
     #[test]
     fn expand_tilde_with_subpath() {
-        assert_eq!(expand_bind_tilde("~/data:/home/local/", "/Users/me"), "/Users/me/data:/home/local/");
+        assert_eq!(expand_bind_tilde("~/data:/mnt/home/", "/Users/me"), "/Users/me/data:/mnt/home/");
     }
 
     #[test]
@@ -292,11 +292,11 @@ mod tests {
     #[test]
     fn expand_bind_tildes_rewrites_binds() {
         std::env::set_var("HOME", "/Users/me");
-        let body = br#"{"Image":"x","HostConfig":{"Binds":["~:/home/local/","/abs:/mnt"]}}"#.to_vec();
+        let body = br#"{"Image":"x","HostConfig":{"Binds":["~:/mnt/home/","/abs:/mnt"]}}"#.to_vec();
         let out = expand_bind_tildes(body).unwrap();
         let v: serde_json::Value = serde_json::from_slice(&out).unwrap();
         let binds = v["HostConfig"]["Binds"].as_array().unwrap();
-        assert_eq!(binds[0], "/Users/me:/home/local/");
+        assert_eq!(binds[0], "/Users/me:/mnt/home/");
         assert_eq!(binds[1], "/abs:/mnt");
     }
 
