@@ -7,16 +7,15 @@ import { Grid, useGridCallbackRef } from 'react-window';
 
 import { ArrowTableFormatter } from './arrow_formatter.js';
 import { ComputationAction, TableComputationState } from '../../compute/computation_state.js';
-import { CrossFilters } from '../../compute/cross_filters.js';
 import { Dispatch } from '../../utils/variant.js';
-import { BrushingStateCallback, HistogramFilterCallback } from './histogram_cell.js';
-import { MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
+import { BrushingStateCallback } from './histogram_cell.js';
 import { OrderByConstraint } from '../../sql/sqlframe_builder.js';
-import { ColumnAggregationTask, ORDINAL_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableFilteringTask, TableOrderingTask, TableAggregation, TaskStatus, WithFilter } from '../../compute/computation_types.js';
+import { TableOrderingTask, TaskStatus } from '../../compute/computation_types.js';
 import { buildSkeletonStyle, DataCell, DataCellData, HeaderNameCell, HeaderPlotsCell, SkeletonOverlay, TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
-import { computeFilteredColumnAggregatesDispatched, filterTableDispatched, sortTableDispatched } from '../../compute/computation_logic.js';
+import { sortTableDispatched } from '../../compute/computation_logic.js';
+import { useCrossFilters } from './use_cross_filters.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { CellDetailOverlay } from './cell_detail_overlay.js';
 import { useAppConfig } from '../../app_config.js';
@@ -150,8 +149,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     // Grid re-renders automatically when cellProps (gridData) changes
     // which includes gridLayout as a dependency
 
-    // Maintain active cross-filters
-    const [crossFilters, setCrossFilters] = React.useState<CrossFilters>(new CrossFilters());
     // Track whether the user is actively brushing (for skeleton placeholders)
     const [isBrushing, setIsBrushing] = React.useState(false);
     const onBrushingChange: BrushingStateCallback = React.useCallback((brushing: boolean) => {
@@ -161,36 +158,12 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     const [visibleRows, setVisibleRows] = React.useState<{ start: number; stop: number }>({ start: 0, stop: 0 });
     const [horizontalViewport, setHorizontalViewport] = React.useState<HorizontalViewport>({ left: 0, width: 0 });
 
-    // Create a callback for changes to the histogram filter.
-    // We use refs to layout and column groups to keep the callback stable.
-    const gridLayoutRef = React.useRef(gridLayout);
-    const columnGroupsRef = React.useRef(computationState.columnGroups);
-    gridLayoutRef.current = gridLayout;
-    columnGroupsRef.current = computationState.columnGroups;
-    const histogramFilter: HistogramFilterCallback = React.useCallback((_table: TableAggregation, columnIndex: number, _column: OrdinalColumnAggregation, brush: [number, number] | null) => {
-        const columnGroupId = gridLayoutRef.current.columnGroupByColumnIndex[columnIndex];
-        const columnGroup = columnGroupsRef.current[columnGroupId];
-        if (columnGroup.type != ORDINAL_COLUMN) {
-            return;
-        }
-        setCrossFilters(filters => {
-            if (filters.containsHistogramFilter(columnGroupId, brush)) {
-                return filters;
-            } else {
-                const cloned = filters.clone();
-                cloned.addHistogramFilter(columnGroupId, columnGroup.value, brush);
-                return cloned;
-            }
-        });
-    }, []);
-
-    const mostFrequentValueFilter: MostFrequentValueFilterCallback = React.useCallback((_table: TableAggregation, _columnIndex: number, _column: StringColumnAggregation, _frequentValueId: number | null) => {
-        // XXX Implement most-frequent-value filtering with ScalarFilter
-    }, []);
-
-    const crossFilterTransforms = React.useMemo(
-        () => crossFilters.createFilterTransforms(),
-        [crossFilters],
+    // Shared cross-filter controller: selection lives on the computation state and drives
+    // a single filterTable. Also owns the guarded filtering effect.
+    const { histogramFilter, mostFrequentValueFilter, requestFilteredColumnAggregation } = useCrossFilters(
+        computationState,
+        dispatchComputation,
+        gridLayout,
     );
 
     const activeOrderingConstraints = React.useMemo<OrderByConstraint[]>(() => {
@@ -200,34 +173,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         }
         return computationState.dataTableOrdering;
     }, [computationState.dataTableOrdering, computationState.tasks.orderingTask?.orderingConstraints]);
-
-    // Effect to filter the immutable base table whenever cross-filters change.
-    React.useEffect(() => {
-        if (!computationState.dataFrame || !computationState.rowNumberColumnName) {
-            return;
-        }
-        const filteringTask: TableFilteringTask = {
-            tableId: computationState.tableId,
-            tableVersion: computationState.version,
-            inputDataTable: computationState.dataTable,
-            inputDataTableFieldIndex: computationState.dataTableFieldsByName,
-            inputDataFrame: computationState.dataFrame,
-            filters: crossFilterTransforms,
-            rowNumberColumnName: computationState.rowNumberColumnName,
-        };
-        filterTableDispatched(filteringTask, dispatchComputation);
-
-        // XXX Update all column summaries
-
-    }, [
-        computationState.dataFrame,
-        computationState.dataTable,
-        computationState.dataTableFieldsByName,
-        computationState.rowNumberColumnName,
-        computationState.tableId,
-        crossFilterTransforms,
-        dispatchComputation,
-    ]);
 
     // Recompute ordering whenever the active sort changes or the filtered subset changes.
     React.useEffect(() => {
@@ -315,35 +260,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     }, [gridApi]);
 
     // Order by a column
-    const requestFilteredColumnAggregation = React.useCallback((columnId: number) => {
-        const tableAggregation = computationState.tableAggregation;
-        const filterTable = computationState.filterTable;
-        const inputDataFrame = computationState.dataFrame;
-        const columnEntry = computationState.columnGroups[columnId];
-        const unfilteredAggregate = computationState.columnAggregates[columnId];
-        if (tableAggregation == null || filterTable == null || inputDataFrame == null || columnEntry == null || unfilteredAggregate == null) {
-            return;
-        }
-
-        const currentTask = computationState.tasks.filteredColumnAggregationTasks[columnId];
-        const hasUpToDateRunningTask = currentTask?.progress.status === TaskStatus.TASK_RUNNING
-            && currentTask.filterTable.version.filterMatches(filterTable.version);
-        if (hasUpToDateRunningTask) {
-            return;
-        }
-
-        const task: WithFilter<ColumnAggregationTask> = {
-            tableId: computationState.tableId,
-            tableVersion: computationState.version,
-            columnId,
-            tableAggregate: tableAggregation,
-            columnEntry,
-            inputDataFrame,
-            filterTable,
-            unfilteredAggregate,
-        };
-        void computeFilteredColumnAggregatesDispatched(task, dispatchComputation);
-    }, [computationState, dispatchComputation]);
     const orderByColumn = React.useCallback((fieldId: number) => {
         const fieldName = dataTable.schema.fields[fieldId].name;
         const orderingConstraints: OrderByConstraint[] = [{

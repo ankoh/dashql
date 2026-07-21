@@ -17,6 +17,10 @@ struct Uniforms {
   quantization_step: f32,
   density_alpha: f32,
   contours_alpha: f32,
+  // Selection: when selection_active != 0, points whose selection bit is unset are
+  // multiplied by selection_dim_factor (dimmed); selected points keep full opacity.
+  selection_active: u32,
+  selection_dim_factor: f32,
   matrix: mat3x3<f32>,
   view_xy_scaler: vec2<f32>,
   kde_causal: vec4<f32>,
@@ -48,6 +52,7 @@ struct FragmentOutput {
 @group(1) @binding(0) var<storage, read> x_buffer: array<f32>;
 @group(1) @binding(1) var<storage, read> y_buffer: array<f32>;
 @group(1) @binding(2) var<storage, read> category_buffer: array<u32>;
+@group(1) @binding(3) var<storage, read> selection_buffer: array<u32>;
 
 @group(2) @binding(0) var<storage, read_write> count_buffer: array<atomic<u32>>;
 @group(2) @binding(1) var<storage, read_write> blur_buffer: array<f16>;
@@ -78,6 +83,22 @@ fn get_point(index: u32) -> PointData {
     result.category = 0;
   }
   return result;
+}
+
+// Is point `index` selected? When no selection is active, every point counts as
+// selected (full opacity). Otherwise read bit `index` from the packed bitmask.
+fn is_selected(index: u32) -> bool {
+  if (uniforms.selection_active == 0u) {
+    return true;
+  }
+  let word = selection_buffer[index >> 5u];
+  return ((word >> (index & 31u)) & 1u) != 0u;
+}
+
+// Opacity multiplier for a point: 1.0 when selected (or no selection active),
+// otherwise the dim factor.
+fn selection_alpha(index: u32) -> f32 {
+  return select(uniforms.selection_dim_factor, 1.0, is_selected(index));
 }
 
 const ACCUMULATE_UNIT: u32 = 4096;
@@ -133,7 +154,7 @@ fn points_vs(
   @builtin(vertex_index) part: u32,
 ) -> PointsVertexOutput {
   let framebuffer_size = vec2(f32(uniforms.framebuffer_width), f32(uniforms.framebuffer_height));
-  let alpha = uniforms.point_alpha * uniforms.points_alpha;
+  let alpha = uniforms.point_alpha * uniforms.points_alpha * selection_alpha(index);
   let dp = vec2<f32>(f32(part % 2), f32(part / 2)) * 2.0 - 1.0;
   let point = get_point(index);
   let pos = uniforms.matrix * point.position;
@@ -523,6 +544,12 @@ fn downsample_density_sample(@builtin(global_invocation_id) id: vec3<u32>) {
     return;
   }
 
+  // Never drop a selected point: keeping the highlighted subset always on screen
+  // matters more than the downsample budget.
+  if (is_selected(index)) {
+    return; // Keep positive value = accepted
+  }
+
   let visible_count = atomicLoad(&downsample_counters[0]);
   let render_limit = downsample_uniforms.render_limit;
 
@@ -577,7 +604,7 @@ fn points_downsampled_vs(
   }
 
   let framebuffer_size = vec2(f32(uniforms.framebuffer_width), f32(uniforms.framebuffer_height));
-  let alpha = uniforms.point_alpha * uniforms.points_alpha;
+  let alpha = uniforms.point_alpha * uniforms.points_alpha * selection_alpha(instance);
   let dp = vec2<f32>(f32(part % 2), f32(part / 2)) * 2.0 - 1.0;
   let point = get_point(instance);
   let pos = uniforms.matrix * point.position;

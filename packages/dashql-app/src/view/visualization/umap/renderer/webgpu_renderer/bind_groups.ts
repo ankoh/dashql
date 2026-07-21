@@ -41,6 +41,7 @@ export function makeBindGroupLayouts(device: GPUDevice): {
                 { binding: 0, visibility: COMPUTE | VERTEX, buffer: { type: "read-only-storage" } },
                 { binding: 1, visibility: COMPUTE | VERTEX, buffer: { type: "read-only-storage" } },
                 { binding: 2, visibility: COMPUTE | VERTEX, buffer: { type: "read-only-storage" } },
+                { binding: 3, visibility: COMPUTE | VERTEX, buffer: { type: "read-only-storage" } },
             ],
         }),
         // Group 2
@@ -90,14 +91,15 @@ export function makeBindGroups(
         }),
     );
     let group1 = df.derive(
-        [device, layouts, dataBuffers.x, dataBuffers.y, dataBuffers.category],
-        (device, layouts, x, y, category) =>
+        [device, layouts, dataBuffers.x, dataBuffers.y, dataBuffers.category, dataBuffers.selection],
+        (device, layouts, x, y, category, selection) =>
             device.createBindGroup({
                 layout: layouts.group1,
                 entries: [
                     { binding: 0, resource: { buffer: x } },
                     { binding: 1, resource: { buffer: y } },
                     { binding: 2, resource: { buffer: category ?? x } },
+                    { binding: 3, resource: { buffer: selection ?? x } },
                 ],
             }),
     );

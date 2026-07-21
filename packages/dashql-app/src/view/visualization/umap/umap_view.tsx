@@ -8,6 +8,7 @@ import { extractCategories } from './umap_categories.js';
 import { useComputationRegistry } from '../../../compute/computation_registry.js';
 import { LIST_COLUMN } from '../../../compute/computation_types.js';
 import { extractFloat32Column } from '../../../compute/umap/umap_extraction.js';
+import { resolveVisibleRowIndices } from '../../query_result/visible_rows.js';
 
 interface Props {
     query: QueryExecutionState | null;
@@ -41,6 +42,13 @@ export function UmapView(props: Props): React.ReactElement {
     // Locate the embedding column's group in the analyzed table's column groups and read
     // the projected coordinate columns by the generated field names recorded on it (an
     // internal detail of the compute module, not a hard-coded string).
+    //
+    // We render the FULL point cloud at all times and express the active cross-filter as a
+    // per-point selection bitmask: selected (filter-matching) points stay at full opacity,
+    // the rest are dimmed by the renderer. Ordering is intentionally NOT reflected here — it
+    // only changes display order, which has no meaning in a scatter, so ordering alone dims
+    // nothing. Only a `filterTable` produces a selection.
+    const filterTable = tableComputation?.filterTable ?? null;
     const points = React.useMemo<EmbeddingPoints | null>(() => {
         if (!tableComputation) return null;
         const umapGroup = tableComputation.columnGroups.find(
@@ -53,13 +61,31 @@ export function UmapView(props: Props): React.ReactElement {
         if (!x || !y) return null;
 
         const categories = spec?.categoryColumn ? extractCategories(dataTable, spec.categoryColumn) : null;
+        const category = categories?.category ?? null;
+
+        // Build a selection bitmask from the filtered row set (1-based row numbers → 0-based
+        // positional indices, already resolved by `resolveVisibleRowIndices`). A null result
+        // means no filter is active, so the whole cloud renders at full opacity.
+        const selectedRows = filterTable != null ? resolveVisibleRowIndices(tableComputation) : null;
+        let selection: Uint32Array | null = null;
+        if (selectedRows != null) {
+            selection = new Uint32Array(Math.ceil(x.length / 32));
+            for (let i = 0; i < selectedRows.length; ++i) {
+                const row = selectedRows[i];
+                if (row >= 0 && row < x.length) {
+                    selection[row >>> 5] |= 1 << (row & 31);
+                }
+            }
+        }
+
         return {
             x,
             y,
-            category: categories?.category ?? null,
+            category,
             categoryCount: categories?.categoryCount ?? 1,
+            selection,
         };
-    }, [tableComputation, spec]);
+    }, [tableComputation, spec, filterTable]);
 
     if (!spec) {
         return <div className={styles.empty}>No visualization available</div>;

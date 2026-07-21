@@ -50,6 +50,8 @@ export class EmbeddingRendererWebGPU implements EmbeddingRenderer {
             x: new Float32Array(),
             y: new Float32Array(),
             category: null,
+            selection: null,
+            selectionDimFactor: 0.2,
 
             categoryCount: 1,
             categoryColors: null,
@@ -86,6 +88,7 @@ export class EmbeddingRendererWebGPU implements EmbeddingRenderer {
             xData: df.value(this.props.x),
             yData: df.value(this.props.y),
             categoryData: df.value(this.props.category),
+            selectionData: df.value(this.props.selection),
             categoryCount: df.value(this.props.categoryCount),
             categoryColors: df.value(this.props.categoryColors),
             matrix: df.value(matrix3_identity()),
@@ -131,6 +134,7 @@ export class EmbeddingRendererWebGPU implements EmbeddingRenderer {
         this.renderInputs.xData.value = this.props.x;
         this.renderInputs.yData.value = this.props.y;
         this.renderInputs.categoryData.value = this.props.category;
+        this.renderInputs.selectionData.value = this.props.selection;
         this.renderInputs.categoryColors.value = this.props.categoryColors;
         if (this.props.category != null) {
             this.renderInputs.categoryCount.value = this.props.categoryCount;
@@ -193,6 +197,7 @@ export interface RenderInputs {
     xData: ValueNode<Float32Array<ArrayBuffer>>;
     yData: ValueNode<Float32Array<ArrayBuffer>>;
     categoryData: ValueNode<Uint8Array<ArrayBuffer> | null>;
+    selectionData: ValueNode<Uint32Array<ArrayBuffer> | null>;
     categoryCount: ValueNode<number>;
     categoryColors: ValueNode<string[] | null>;
     pointSize: ValueNode<number>;
@@ -208,6 +213,7 @@ export interface DataBuffers {
     x: Node<GPUBuffer>;
     y: Node<GPUBuffer>;
     category: Node<GPUBuffer | null>;
+    selection: Node<GPUBuffer | null>;
     count: Node<number>;
 }
 
@@ -237,7 +243,13 @@ function makeDataBuffers(df: Dataflow, device: Node<GPUDevice>, inputs: RenderIn
         [device, df.statefulDerive([device, categoryDataSize, usage], gpuBuffer), inputs.categoryData],
         gpuBufferData,
     );
-    return { x: xBuffer, y: yBuffer, category: categoryBuffer, count: count };
+    // Selection bitmask: one bit per point, packed into u32 words (4 bytes each).
+    const selectionDataSize = df.derive([count], (c) => Math.ceil(c / 32) * 4);
+    const selectionBuffer = df.statefulDerive(
+        [device, df.statefulDerive([device, selectionDataSize, usage], gpuBuffer), inputs.selectionData],
+        gpuBufferData,
+    );
+    return { x: xBuffer, y: yBuffer, category: categoryBuffer, selection: selectionBuffer, count: count };
 }
 
 export function makeAuxiliaryResources(
@@ -419,6 +431,8 @@ function makeRenderCommand(
                     quantization_step: props.densityQuantizationStep,
                     density_alpha: props.densityAlpha,
                     contours_alpha: props.contoursAlpha,
+                    selection_active: props.selection != null ? 1 : 0,
+                    selection_dim_factor: props.selectionDimFactor,
                     matrix: matrix,
                     view_xy_scaler: [1 / scalerX, 1 / scalerY],
                     kde_causal: kde_coeffs.kde_causal,
@@ -531,6 +545,8 @@ function makeDensityMapCommand(
                 quantization_step: 0,
                 density_alpha: 0,
                 contours_alpha: 0,
+                selection_active: 0,
+                selection_dim_factor: 1,
                 matrix: matrix,
                 view_xy_scaler: [1, 1],
                 kde_causal: kde_coeffs.kde_causal,

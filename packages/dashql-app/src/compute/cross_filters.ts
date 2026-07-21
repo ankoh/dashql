@@ -65,6 +65,7 @@ export class CrossFilters {
                             return false;
                         }
                     }
+                    break;
                 }
                 case MOST_FREQUENT_FILTER: {
                     // XXX Implement

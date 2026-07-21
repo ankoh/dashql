@@ -19,6 +19,8 @@ export interface Uniforms {
     quantization_step: number;
     density_alpha: number;
     contours_alpha: number;
+    selection_active: number;
+    selection_dim_factor: number;
     matrix: Matrix3;
     view_xy_scaler: Vector2;
     kde_causal: Vector4;
@@ -129,6 +131,10 @@ export function makeModuleUniforms(df: Dataflow, device: Node<GPUDevice>): Modul
             writer.f32(uniforms.quantization_step);
             writer.f32(uniforms.density_alpha);
             writer.f32(uniforms.contours_alpha);
+            // These two scalars fill the 8-byte pad that precedes the 16-byte-aligned
+            // mat3x3, so the overall struct size and all following offsets are unchanged.
+            writer.u32(uniforms.selection_active);
+            writer.f32(uniforms.selection_dim_factor);
             writer.mat3x3f(uniforms.matrix);
             writer.vec2f(...uniforms.view_xy_scaler);
             writer.vec4f(...uniforms.kde_causal);

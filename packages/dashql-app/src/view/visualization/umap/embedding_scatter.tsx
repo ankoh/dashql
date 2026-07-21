@@ -22,6 +22,9 @@ export interface EmbeddingPoints {
     category: Uint8Array | null;
     categoryCount: number;
     categoryColors?: string[] | null;
+    /// Per-point selection bitmask (bit `i` set ⇒ point `i` is selected), length
+    /// `ceil(x.length / 32)`. When null, no selection is active (all points full opacity).
+    selection?: Uint32Array | null;
 }
 
 interface Props {
@@ -116,6 +119,7 @@ export function EmbeddingScatter(props: Props): React.ReactElement {
             x: points.x as Float32Array<ArrayBuffer>,
             y: points.y as Float32Array<ArrayBuffer>,
             category: points.category as Uint8Array<ArrayBuffer> | null,
+            selection: (points.selection ?? null) as Uint32Array<ArrayBuffer> | null,
             categoryCount: Math.max(1, points.categoryCount),
             categoryColors: points.categoryColors ?? null,
             colorScheme,

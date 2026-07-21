@@ -3,6 +3,7 @@ import * as arrow from 'apache-arrow';
 import { OrderByConstraint } from '../sql/sqlframe_builder.js';
 import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderingTable, TableFilteringTask, WithProgress, TaskStatus, WithFilter, WithFilterEpoch, ComputationStateVersion } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
+import { CrossFilters } from './cross_filters.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { Logger } from '../platform/logger/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
@@ -31,6 +32,12 @@ export interface TableComputationState {
     /// The ordering constraints
     dataTableOrdering: OrderByConstraint[];
 
+    /// The active cross-filter selection.
+    /// This is the source of truth for cross-filtering and lives here (rather than
+    /// as component-local state) so that every view of the same table - the result
+    /// table header plots and the visualization tab's aggregation bar - shares one
+    /// selection and drives a single `filterTable`.
+    crossFilters: CrossFilters;
     /// The active filter table (if any)
     filterTable: FilterTable | null;
     /// The active ordering table (if any)
@@ -115,6 +122,7 @@ export function createTableComputationState(computationId: number, table: arrow.
         rowNumberColumnName: null,
         dataTableLifetime: tableLifetime,
         dataTableOrdering: [],
+        crossFilters: new CrossFilters(),
         dataFrame: null,
         filterTable: null,
         orderingTable: null,
@@ -137,6 +145,7 @@ export const SYSTEM_COLUMN_COMPUTATION_SUCCEEDED = Symbol('SYSTEM_COLUMN_COMPUTA
 export const UMAP_COMPUTATION_SUCCEEDED = Symbol('UMAP_COMPUTATION_SUCCEEDED');
 export const COLUMN_AGGREGATION_SUCCEEDED = Symbol('COLUMN_AGGREGATION_SUCCEEDED');
 export const FILTERED_COLUMN_AGGREGATION_SUCCEEDED = Symbol('FILTERED_COLUMN_AGGREGATION_SUCCEEDED');
+export const SET_CROSS_FILTERS = Symbol('SET_CROSS_FILTERS');
 
 export type ComputationAction =
     | VariantKind<typeof SCHEDULE_TASK, TaskVariant>
@@ -154,6 +163,7 @@ export type ComputationAction =
     | VariantKind<typeof UMAP_COMPUTATION_SUCCEEDED, [number, arrow.Table, DataFrame, ColumnGroup[]]>
     | VariantKind<typeof COLUMN_AGGREGATION_SUCCEEDED, [number, number, ColumnAggregationVariant]>
     | VariantKind<typeof FILTERED_COLUMN_AGGREGATION_SUCCEEDED, [number, number, WithFilterEpoch<ColumnAggregationVariant> | null]>
+    | VariantKind<typeof SET_CROSS_FILTERS, [number, CrossFilters]>
     ;
 
 export function reduceComputationState(state: ComputationState, action: ComputationAction, memory: DataFrameRegistry, _logger: Logger): ComputationState {
@@ -517,6 +527,27 @@ export function reduceComputationState(state: ComputationState, action: Computat
                         }
                     }
                 },
+            };
+        }
+        case SET_CROSS_FILTERS: {
+            const [tableId, crossFilters] = action.value;
+            const tableState = state.tableComputations[tableId];
+            if (tableState === undefined) {
+                return state;
+            }
+            // No change? Keep the same state to avoid a spurious re-render / filtering pass.
+            if (tableState.crossFilters.equals(crossFilters)) {
+                return state;
+            }
+            return {
+                ...state,
+                tableComputations: {
+                    ...state.tableComputations,
+                    [tableId]: {
+                        ...tableState,
+                        crossFilters,
+                    }
+                }
             };
         }
     }

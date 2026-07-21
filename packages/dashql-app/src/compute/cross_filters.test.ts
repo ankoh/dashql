@@ -64,14 +64,13 @@ describe('CrossFilters', () => {
             expect(a.equals(b)).toBe(false);
         });
 
-        it('returns false for matching histogram selections (switch fallthrough to MOST_FREQUENT_FILTER)', () => {
+        it('returns true for matching histogram selections', () => {
             const a = new CrossFilters();
             const b = new CrossFilters();
             const ordinalGroup = { inputFieldName: 'x', inputFieldType: {} as any, inputFieldNullable: false, statsFields: null, binFieldName: '_bin', binCount: 10 };
             a.addHistogramFilter(1, ordinalGroup, [2, 5]);
             b.addHistogramFilter(1, ordinalGroup, [2, 5]);
-            // Switch case HISTOGRAM_FILTER falls through to MOST_FREQUENT_FILTER which returns false
-            expect(a.equals(b)).toBe(false);
+            expect(a.equals(b)).toBe(true);
         });
     });
 

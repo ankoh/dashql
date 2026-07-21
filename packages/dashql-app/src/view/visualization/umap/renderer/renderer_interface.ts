@@ -16,6 +16,13 @@ export interface EmbeddingRendererProps {
     y: Float32Array<ArrayBuffer>;
     category: Uint8Array<ArrayBuffer> | null;
 
+    /** Per-point selection bitmask (bit `i` set ⇒ point `i` is selected), length
+     *  `ceil(count / 32)`. When null, no selection is active and every point renders
+     *  at full opacity. When present, unselected points are dimmed by `selectionDimFactor`. */
+    selection: Uint32Array<ArrayBuffer> | null;
+    /** Opacity multiplier applied to unselected points when a selection is active (0..1). */
+    selectionDimFactor: number;
+
     categoryCount: number;
     categoryColors: string[] | null;
 

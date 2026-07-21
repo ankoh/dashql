@@ -28,6 +28,7 @@ import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.j
 import { NotebookScriptName } from './notebook_script_name.js';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
 import { VisualizationDispatch } from '../visualization/visualization_dispatch.js';
+import { ColumnAggregationBar } from '../visualization/column_aggregation_bar.js';
 import { createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../editor/dashql_processor.js';
 
@@ -617,7 +618,12 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                 <QueryResultView query={activeQueryState} debugMode={tableDebugMode} />
                             ),
                             [TabKey.Visualization]: _props => (
-                                <VisualizationDispatch query={activeQueryState} visualizeQuery={visualizeQuery} />
+                                <div className={styles.visualization_container}>
+                                    <ColumnAggregationBar query={activeQueryState} debugMode={tableDebugMode} />
+                                    <div className={styles.visualization_body}>
+                                        <VisualizationDispatch query={activeQueryState} visualizeQuery={visualizeQuery} />
+                                    </div>
+                                </div>
                             ),
                         }}
                     />

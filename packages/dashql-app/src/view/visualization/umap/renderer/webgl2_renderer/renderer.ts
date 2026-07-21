@@ -41,6 +41,10 @@ export class EmbeddingRendererWebGL2 implements EmbeddingRenderer {
             x: new Float32Array(),
             y: new Float32Array(),
             category: null,
+            // Selection dimming is only implemented in the WebGPU renderer; the WebGL2
+            // fallback accepts the props for interface parity but ignores them.
+            selection: null,
+            selectionDimFactor: 0.2,
 
             categoryCount: 1,
             categoryColors: null,
