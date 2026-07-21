@@ -1,3 +1,7 @@
+import type { UMAPOptions } from '@dashql/umap-wasm';
+
+import type { UmapRequest } from '../../../compute/umap/umap_projection.js';
+
 /// The UMAP projection spec, mirroring the JSON emitted by the analyzer's
 /// `GenerateUmapSpec` (see packages/dashql-core/src/visualize/vegalite_generator.cc).
 export interface UmapProjectionSpec {
@@ -50,4 +54,23 @@ export function parseUmapSpec(raw: string): UmapSpec | null {
         labelColumn: typeof obj.labelColumn === 'string' ? obj.labelColumn : undefined,
         projection,
     };
+}
+
+/// Map the analyzer's projection sub-spec to UMAP options, applying UMAP's defaults
+/// for anything the user left unspecified (metric cosine, nNeighbors 15, minDist 0.1).
+function umapOptionsFromSpec(spec: UmapSpec): UMAPOptions {
+    const p = spec.projection;
+    const options: UMAPOptions = {
+        metric: p.metric === 'euclidean' ? 'euclidean' : 'cosine',
+    };
+    if (typeof p.neighbors === 'number') options.nNeighbors = p.neighbors;
+    if (typeof p.minDist === 'number') options.minDist = p.minDist;
+    return options;
+}
+
+/// Build the compute-layer projection request from a resolved UMAP spec. The
+/// view/notebook layer calls this at execute sites to attach `projection` to the
+/// query so `analyzeTable` computes the coordinates as a post-processing step.
+export function umapRequestFromSpec(spec: UmapSpec): UmapRequest {
+    return { vectorColumn: spec.vectorColumn, options: umapOptionsFromSpec(spec) };
 }

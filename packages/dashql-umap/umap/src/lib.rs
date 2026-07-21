@@ -489,9 +489,8 @@ impl<'a> UmapBuilder<'a> {
                     // Create NNDescent callback that maps sub-progress to overall UMAP progress
                     let nn_cb_ref = user_cb.clone();
                     Some(Box::new(move |progress: f32, stage: &str| {
-                        let label = format!("NNDescent: {}", stage);
                         let overall = (stage_start + stage_frac * progress).min(1.0);
-                        (*nn_cb_ref.borrow_mut())(overall, &label);
+                        (*nn_cb_ref.borrow_mut())(overall, stage);
                     }))
                 } else {
                     None

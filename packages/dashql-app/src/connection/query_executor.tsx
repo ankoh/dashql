@@ -252,7 +252,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     value: [queryId],
                 });
 
-                await analyzeTable(queryId, table!, computeDispatch, computeDb, traced);
+                await analyzeTable(queryId, table!, computeDispatch, computeDb, traced, args.projection);
 
                 connDispatch(sessionId, {
                     type: QUERY_PROCESSED_RESULTS,

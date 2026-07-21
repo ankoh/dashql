@@ -186,47 +186,39 @@ function extractVariableList(
     return { ok: true, matrix: { data, count, dimension } };
 }
 
-/// The category assignment for the scatter plot: a per-point `Uint8Array` color
-/// index plus the number of distinct categories and (optionally) their source
-/// values for legend/tooltip use.
-export interface CategoryAssignment {
-    category: Uint8Array;
-    categoryCount: number;
-    /// The distinct source values in category-index order (at most 256 entries).
-    values: unknown[];
-}
-
-/// Map an arbitrary Arrow column to a dense `Uint8Array` of category indices. The
-/// first 256 distinct values (in first-seen order) get indices 0..255; any further
-/// distinct values collapse into the last bucket. Null maps to category 0.
-export function extractCategories(table: arrow.Table, columnName: string): CategoryAssignment | null {
+/// Read a single-precision float Arrow column into a contiguous `Float32Array`,
+/// one entry per row. Used by the scatter renderer to pull the computed UMAP `x`/`y`
+/// coordinate columns back out of the post-processed data table.
+///
+/// Single-chunk, no-null columns return a zero-copy subarray view over the live
+/// child buffer (already chunk-narrowed — see the buffer-indexing note above; do
+/// NOT add `chunk.offset`). Multi-chunk or nullable columns are copied once via
+/// buffer-level `.set()`; null rows are left as 0.
+export function extractFloat32Column(table: arrow.Table, columnName: string): Float32Array | null {
     const column = table.getChild(columnName) as arrow.Vector | null;
     if (!column) return null;
+    if (!isFloat32(column.type as arrow.DataType)) return null;
 
     const count = column.length;
-    const category = new Uint8Array(count);
-    const indexByValue = new Map<unknown, number>();
-    const values: unknown[] = [];
+    const chunks = column.data;
 
-    for (let i = 0; i < count; ++i) {
-        let v = column.get(i) as unknown;
-        if (typeof v === 'bigint') v = Number(v);
-        if (v == null) {
-            category[i] = 0;
-            continue;
-        }
-        let idx = indexByValue.get(v);
-        if (idx === undefined) {
-            if (values.length < 256) {
-                idx = values.length;
-                indexByValue.set(v, idx);
-                values.push(v);
-            } else {
-                idx = 255;
-            }
-        }
-        category[i] = idx;
+    if (chunks.length === 1 && column.nullCount === 0) {
+        const values = chunks[0].values as Float32Array;
+        return values.subarray(0, count);
     }
 
-    return { category, categoryCount: Math.max(1, values.length), values };
+    const out = new Float32Array(count);
+    let row = 0;
+    for (const chunk of chunks) {
+        const values = chunk.values as Float32Array;
+        if (chunk.nullCount === 0) {
+            out.set(values.subarray(0, chunk.length), row);
+        } else {
+            for (let i = 0; i < chunk.length; ++i) {
+                if (chunk.getValid(i)) out[row + i] = values[i];
+            }
+        }
+        row += chunk.length;
+    }
+    return out;
 }

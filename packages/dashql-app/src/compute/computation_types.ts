@@ -239,6 +239,18 @@ export interface ListGridColumnGroup {
     statsFields: ColumnStatsFields | null;
     /// The identifier field
     valueIdFieldName: string | null;
+    /// The UMAP projection coordinate fields, if this (vector) column was projected.
+    /// These are generated meta columns of the group, just like `valueIdFieldName`:
+    /// they render inline after the value/id columns in debug mode and are read by the
+    /// scatter renderer. Both are set together or both null.
+    umapProjection: UmapProjectionFields | null;
+}
+
+export interface UmapProjectionFields {
+    /// The generated field holding the projected x coordinate (Float32)
+    xFieldName: string;
+    /// The generated field holding the projected y coordinate (Float32)
+    yFieldName: string;
 }
 
 export interface SkippedGridColumnGroup {

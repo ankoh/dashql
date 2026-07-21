@@ -29,7 +29,7 @@ import { PromptEditor } from './prompt_editor.js';
 import { ScriptPreview } from './notebook_script_preview.js';
 import { observeSize } from '../foundations/size_observer.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
-import { normalizePageName, scriptDisplayName } from '../../notebook/notebook_types.js';
+import { normalizePageName, projectionForVisualizeQuery, scriptDisplayName } from '../../notebook/notebook_types.js';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { SegmentedControl, SegmentedControlSize } from '../foundations/segmented_control.js';
 import { NotebookScriptName } from './notebook_script_name.js';
@@ -559,6 +559,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         const [queryId] = executeQuery(props.notebook.sessionId, {
             query: queryText,
             analyzeResults: true,
+            projection: projectionForVisualizeQuery(scriptData.annotations.visualizeQuery),
             metadata: {
                 queryType: QueryType.USER_PROVIDED,
                 title: 'Notebook Query',
@@ -585,6 +586,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             const [queryId] = executeQuery(notebook.sessionId, {
                 query: queryText,
                 analyzeResults: true,
+                projection: projectionForVisualizeQuery(scriptData?.annotations.visualizeQuery),
                 metadata: {
                     queryType: QueryType.USER_PROVIDED,
                     title: "Notebook Query",

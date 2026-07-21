@@ -1,11 +1,21 @@
 import type { UMAPOptions } from '@dashql/umap-wasm';
 
-import type { EmbeddingMatrix } from './embedding_extraction.js';
+import type { EmbeddingMatrix } from './umap_extraction.js';
 import {
     UMAPWorkerRequestType,
     UMAPWorkerResponse,
     UMAPWorkerResponseType,
 } from './umap_worker_request.js';
+
+/// A projection request built from a resolved `'umap'` visualize spec: the vector
+/// column to project plus the UMAP options. The view/notebook layer derives this
+/// from a `UmapSpec`; the compute module only consumes the plain request.
+export interface UmapRequest {
+    /// The column holding the embedding vectors (FixedSizeList/List of Float32).
+    vectorColumn: string;
+    /// Options forwarded to createUMAP (nNeighbors, minDist, metric, ...).
+    options: UMAPOptions;
+}
 
 /// The 2D result of projecting an embedding matrix, split into the `x`/`y`
 /// Float32Arrays the scatter renderer consumes.

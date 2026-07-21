@@ -1,7 +1,8 @@
 import type * as app_session from '@ankoh/dashql-jsonschema/app_session.js';
 import type { TopLevelSpec } from 'vega-lite';
 
-import type { UmapSpec } from '../view/visualization/umap/umap_spec.js';
+import type { UmapRequest } from '../compute/umap/umap_projection.js';
+import { UmapSpec, umapRequestFromSpec } from '../view/visualization/umap/umap_spec.js';
 import { randomScriptName } from './script_name.js';
 
 /// Notebook type definitions (migrated from protobuf)
@@ -32,6 +33,13 @@ export type ResolvedVisualizeQuery =
           // The UMAP projection spec parsed from the analyzer output
           umapSpec: UmapSpec;
       };
+
+/// Derive the compute-layer UMAP projection request from a resolved visualize query.
+/// Returns undefined for non-`umap` renderers (or none), so it can be spread directly
+/// into `QueryExecutionArgs.projection` at the execute sites.
+export function projectionForVisualizeQuery(query: ResolvedVisualizeQuery | null | undefined): UmapRequest | undefined {
+    return query?.renderer === 'umap' ? umapRequestFromSpec(query.umapSpec) : undefined;
+}
 
 /// Script annotations derived from analysis
 export interface NotebookScriptAnnotations {

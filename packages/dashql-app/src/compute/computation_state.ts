@@ -134,6 +134,7 @@ export const TABLE_ORDERING_SUCCEDED = Symbol('TABLE_ORDERING_SUCCEDED');
 export const TABLE_FILTERING_SUCCEEDED = Symbol('TABLE_FILTERING_SUCCEEDED');
 export const TABLE_AGGREGATION_SUCCEEDED = Symbol('TABLE_AGGREGATION_SUCCEEDED');
 export const SYSTEM_COLUMN_COMPUTATION_SUCCEEDED = Symbol('SYSTEM_COLUMN_COMPUTATION_SUCCEEDED');
+export const UMAP_COMPUTATION_SUCCEEDED = Symbol('UMAP_COMPUTATION_SUCCEEDED');
 export const COLUMN_AGGREGATION_SUCCEEDED = Symbol('COLUMN_AGGREGATION_SUCCEEDED');
 export const FILTERED_COLUMN_AGGREGATION_SUCCEEDED = Symbol('FILTERED_COLUMN_AGGREGATION_SUCCEEDED');
 
@@ -150,6 +151,7 @@ export type ComputationAction =
     | VariantKind<typeof TABLE_FILTERING_SUCCEEDED, [number, FilterTable | null]>
     | VariantKind<typeof TABLE_AGGREGATION_SUCCEEDED, [number, TableAggregation]>
     | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, [number, arrow.Table, DataFrame, ColumnGroup[]]>
+    | VariantKind<typeof UMAP_COMPUTATION_SUCCEEDED, [number, arrow.Table, DataFrame, ColumnGroup[]]>
     | VariantKind<typeof COLUMN_AGGREGATION_SUCCEEDED, [number, number, ColumnAggregationVariant]>
     | VariantKind<typeof FILTERED_COLUMN_AGGREGATION_SUCCEEDED, [number, number, WithFilterEpoch<ColumnAggregationVariant> | null]>
     ;
@@ -363,6 +365,40 @@ export function reduceComputationState(state: ComputationState, action: Computat
                             ...tableState.tasks,
                             systemColumnTask: task,
                         }
+                    }
+                }
+            };
+        }
+        case UMAP_COMPUTATION_SUCCEEDED: {
+            // The projection appends `x`/`y` coordinate columns to BOTH representations:
+            // the main-thread arrow table (for the scatter renderer) and the DuckDB-backed
+            // data frame (so the coordinates are queryable, e.g. future cross-filter /
+            // ordering); the coordinate field names are recorded on the embedding
+            // column's group (`umapProjection`).
+            //
+            // The new data frame replaces the old one, mirroring SYSTEM_COLUMN_COMPUTATION_SUCCEEDED:
+            // acquire the new frame, release the previous. The version is deliberately NOT
+            // incremented — the coordinates are additive columns on the same rows, so the
+            // just-computed grid aggregates, filters and orderings stay valid.
+            const [tableId, dataTable, dataFrame, columnGroups] = action.value;
+            memory.acquire(dataFrame);
+
+            const tableState = state.tableComputations[tableId];
+            if (tableState === undefined) {
+                memory.release(dataFrame);
+                return state;
+            }
+            memory.release(tableState.dataFrame);
+            return {
+                ...state,
+                tableComputations: {
+                    ...state.tableComputations,
+                    [tableId]: {
+                        ...tableState,
+                        dataTable,
+                        dataTableFieldsByName: createArrowFieldIndex(dataTable),
+                        dataFrame,
+                        columnGroups,
                     }
                 }
             };

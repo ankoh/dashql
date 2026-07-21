@@ -31,10 +31,20 @@ function computeColumnCount(columnGroups: ColumnGroup[], showMetaColumns: boolea
             case SKIPPED_COLUMN:
                 break;
             case STRING_COLUMN:
+                ++columnCount;
+                if (showMetaColumns && columnGroup.value.valueIdFieldName != null) {
+                    ++columnCount;
+                }
+                break;
             case LIST_COLUMN:
                 ++columnCount;
                 if (showMetaColumns && columnGroup.value.valueIdFieldName != null) {
                     ++columnCount;
+                }
+                // The UMAP projection x/y coordinates are computed meta columns of the
+                // embedding column's group, shown only in debug mode.
+                if (showMetaColumns && columnGroup.value.umapProjection != null) {
+                    columnCount += 2;
                 }
                 break;
             case ORDINAL_COLUMN:
@@ -148,6 +158,26 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
                     columnGroupByColumnIndex[idOutputIndex] = groupIndex;
                     isSystemColumn[idOutputIndex] = 1;
                     nextDisplayOffset += idColumnWidth;
+                }
+                // The UMAP projection x/y coordinates are meta columns of the embedding
+                // (list) column's group, shown right after the id column in debug mode.
+                if (showSystemColumns && columnGroup.type === LIST_COLUMN && columnGroup.value.umapProjection != null) {
+                    for (const coordFieldName of [columnGroup.value.umapProjection.xFieldName, columnGroup.value.umapProjection.yFieldName]) {
+                        const coordOutputIndex = nextDisplayColumn++;
+                        const coordFieldIndex = fieldIndexByName.get(coordFieldName)!;
+                        const coordColumn = formatter.columns[coordFieldIndex];
+                        const coordColumnWidth = Math.max(
+                            COLUMN_HEADER_ACTION_WIDTH + Math.max(
+                                coordColumn.getLayoutInfo().valueAvgWidth,
+                                coordColumn.getColumnName().length) * FORMATTER_PIXEL_SCALING,
+                            MIN_COLUMN_WIDTH
+                        );
+                        columnFields[coordOutputIndex] = coordFieldIndex;
+                        columnOffsets[coordOutputIndex] = nextDisplayOffset;
+                        columnGroupByColumnIndex[coordOutputIndex] = groupIndex;
+                        isSystemColumn[coordOutputIndex] = 1;
+                        nextDisplayOffset += coordColumnWidth;
+                    }
                 }
                 break;
             }

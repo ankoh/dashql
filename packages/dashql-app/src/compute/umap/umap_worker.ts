@@ -1,5 +1,5 @@
 /// UMAP web worker: runs the vendored Rust→wasm UMAP projection off the main
-/// thread. See umap_worker_request.ts for the message protocol and umap_projector.ts
+/// thread. See umap_worker_request.ts for the message protocol and umap_projection.ts
 /// for the main-thread driver.
 ///
 /// The wasm module carries the wgpu → WebGPU `gpu` path (kNN + layout compute

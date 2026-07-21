@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as arrow from 'apache-arrow';
 
-import { extractEmbeddingMatrix } from './embedding_extraction.js';
+import { extractEmbeddingMatrix, extractFloat32Column } from './umap_extraction.js';
 
 /// Build a single-column Arrow table around a prepared vector.
 function tableOf(name: string, vec: arrow.Vector): arrow.Table {
@@ -119,5 +119,36 @@ describe('extractEmbeddingMatrix', () => {
         expect(res.ok).toBe(false);
         if (res.ok) return;
         expect(res.error).toMatch(/not found/);
+    });
+});
+
+/// Build a single-column Float32 Arrow table.
+function float32TableOf(name: string, data: number[]): arrow.Table {
+    const vec = arrow.makeVector(arrow.makeData({ type: new arrow.Float32(), data: Float32Array.from(data) }));
+    return new arrow.Table({ [name]: vec });
+}
+
+describe('extractFloat32Column', () => {
+    it('reads a single-chunk Float32 column zero-copy', () => {
+        const out = extractFloat32Column(float32TableOf('x', [1, 2, 3]), 'x');
+        expect(out).not.toBeNull();
+        expect(Array.from(out!)).toEqual([1, 2, 3]);
+    });
+
+    it('reads a multi-chunk (concat) Float32 column', () => {
+        const concat = float32TableOf('x', [1, 2]).concat(float32TableOf('x', [3, 4]));
+        expect(concat.getChild('x')!.data.length).toBe(2);
+        const out = extractFloat32Column(concat, 'x');
+        expect(out).not.toBeNull();
+        expect(Array.from(out!)).toEqual([1, 2, 3, 4]);
+    });
+
+    it('returns null for a missing column', () => {
+        expect(extractFloat32Column(float32TableOf('x', [1]), 'nope')).toBeNull();
+    });
+
+    it('returns null for a non-Float32 column', () => {
+        const vec = arrow.makeVector(arrow.makeData({ type: new arrow.Float64(), data: Float64Array.from([1, 2]) }));
+        expect(extractFloat32Column(new arrow.Table({ y: vec }), 'y')).toBeNull();
     });
 });

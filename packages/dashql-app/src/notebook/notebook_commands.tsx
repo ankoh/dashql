@@ -7,6 +7,7 @@ import { ConnectorInfo } from '../connection/connector_info.js';
 import { KeyEventHandler, useKeyEvents } from '../utils/key_events.js';
 import { QueryType } from '../connection/query_execution_state.js';
 import { getExecutableQueryText, getSelectedEntry, REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE } from './notebook_state.js';
+import { projectionForVisualizeQuery } from './notebook_types.js';
 import { useCatalogLoaderQueue } from '../connection/catalog_loader.js';
 import { useConnectionState } from '../connection/connection_registry.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
@@ -113,6 +114,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         const [queryId, _run] = executeQuery(notebook.sessionId, {
                             query: queryText,
                             analyzeResults: true,
+                            projection: projectionForVisualizeQuery(scriptData.annotations.visualizeQuery),
                             metadata: {
                                 queryType: QueryType.USER_PROVIDED,
                                 title: "Notebook Query",

@@ -4,13 +4,15 @@ import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { DataFrame, generateTableName } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
-import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SCHEDULE_TASK } from './computation_state.js';
+import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SCHEDULE_TASK, UMAP_COMPUTATION_SUCCEEDED } from './computation_state.js';
 import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderingTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, WithFilter, WithFilterEpoch, ComputationStateVersion } from './computation_types.js';
-import { Dispatch } from '../utils/variant.js';
+import { Dispatch, VariantKind } from '../utils/variant.js';
 import { LoggableException, LoggerLike, stringifyError } from '../platform/logger/logger.js';
 import { assert } from '../utils/assert.js';
 import { SQLFrame } from '../sql/sqlframe_builder.js';
 import { DuckDB } from '../platform/duckdb/duckdb_api.js';
+import { UmapRequest, projectWithUMAP } from './umap/umap_projection.js';
+import { extractEmbeddingMatrix } from './umap/umap_extraction.js';
 
 const LOG_CTX = "compute";
 
@@ -73,7 +75,7 @@ function isTemporalType(typeId: arrow.Type): boolean {
 ///     Whenever a user updates a cross-filter (by brushing or selecting a distinct value), we just recompute the column summaries
 ///     with the new set of cross-filters and update the UI.
 ///
-export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, duckdb: DuckDB, logger: LoggerLike): Promise<void> {
+export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, duckdb: DuckDB, logger: LoggerLike, projection?: UmapRequest): Promise<void> {
     let gridColumnGroups = buildGridColumnGroups(table!);
     const computeAbortCtrl = new AbortController();
     dispatch({
@@ -107,12 +109,13 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
         inputDataFrame: dataFrame,
         tableAggregate
     };
-    const [_newTable, newDataFrame, updatedColumnGroups] = await computeSystemColumnsDispatched(precomputationTask, dispatch);
+    let [newTable, newDataFrame, updatedColumnGroups] = await computeSystemColumnsDispatched(precomputationTask, dispatch);
     gridColumnGroups = updatedColumnGroups;
 
     // Compute the column aggregates
     let colAggregateCount = 0;
     let colAggregatesBegin = performance.now();
+    logger.info("Computing column aggregates", {}, LOG_CTX);
     for (let columnId = 0; columnId < gridColumnGroups.length; ++columnId) {
         if (gridColumnGroups[columnId].type == SKIPPED_COLUMN || gridColumnGroups[columnId].type == ROWNUMBER_COLUMN) {
             continue;
@@ -136,6 +139,150 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
             "duration": Math.floor(colAggregatesEnd - colAggregatesBegin).toString()
         }, LOG_CTX);
     }
+
+    // Compute the UMAP projection (only for a resolved `'umap'` visualize spec).
+    // Runs last: it appends `x`/`y` coordinate columns to both the arrow table and the
+    // DuckDB data frame, and records their field names on the embedding column's group.
+    // Blocking — the query stays in QUERY_PROCESSING_RESULTS until the projection finishes.
+    if (projection != null) {
+        [newTable, newDataFrame, gridColumnGroups] = await computeUmapProjection(
+            tableId, newTable, newDataFrame, gridColumnGroups, projection, computeAbortCtrl, dispatch, logger
+        );
+    }
+}
+
+/// Compute the UMAP projection as a post-processing step and fold the resulting
+/// `x`/`y` coordinates into BOTH representations of the analyzed table:
+///   - the main-thread arrow `dataTable` (row-aligned, for the scatter renderer), and
+///   - the DuckDB-backed `dataFrame` (so the coordinates are queryable — a plain
+///     `{rownum, x, y}` arrow table is inserted and joined on the row-number key).
+/// The generated coordinate field names are recorded on the embedding column's own
+/// LIST_COLUMN group (as `umapProjection`), like the value-identifier meta field. On
+/// extraction failure we log and return the inputs unchanged (the query still succeeds;
+/// the scatter shows its empty/error placeholder).
+async function computeUmapProjection(
+    tableId: number,
+    inputTable: arrow.Table,
+    inputDataFrame: DataFrame,
+    columnGroups: ColumnGroup[],
+    projection: UmapRequest,
+    abortCtrl: AbortController,
+    dispatch: Dispatch<ComputationAction>,
+    logger: LoggerLike,
+): Promise<[arrow.Table, DataFrame, ColumnGroup[]]> {
+    // The row-number column identifies rows across the arrow table and the DuckDB
+    // data frame; it was appended by the system-columns step.
+    let rowNumberFieldName: string | null = null;
+    for (const group of columnGroups) {
+        if (group.type == ROWNUMBER_COLUMN) {
+            rowNumberFieldName = group.value.rowNumberFieldName;
+            break;
+        }
+    }
+    if (rowNumberFieldName == null) {
+        logger.warn("Skipping UMAP projection: no row-number column", {}, LOG_CTX);
+        return [inputTable, inputDataFrame, columnGroups];
+    }
+
+    const extraction = extractEmbeddingMatrix(inputTable, projection.vectorColumn);
+    if (!extraction.ok) {
+        logger.warn("Skipping UMAP projection", { "error": extraction.error }, LOG_CTX);
+        return [inputTable, inputDataFrame, columnGroups];
+    }
+
+    // Run the projection in the worker, cancelled if the table's compute lifetime aborts.
+    logger.info("Computing UMAP projection", {
+        "points": extraction.matrix.count.toString(),
+        "dimension": extraction.matrix.dimension.toString(),
+    }, LOG_CTX);
+    const projectionStart = performance.now();
+    // Throttle the progress logging so we emit at most one info line every 500ms.
+    let lastProgressLog = 0;
+    const run = projectWithUMAP(extraction.matrix, projection.options, (progress, stage) => {
+        const now = performance.now();
+        if (now - lastProgressLog >= 500) {
+            lastProgressLog = now;
+            logger.info(`Computing UMAP projection: ${stage}`, { "progress": progress.toFixed(2) }, LOG_CTX);
+        }
+    });
+    const onAbort = () => run.cancel();
+    abortCtrl.signal.addEventListener("abort", onAbort);
+    let coords;
+    try {
+        coords = await run.promise;
+    } catch (error: any) {
+        abortCtrl.signal.removeEventListener("abort", onAbort);
+        logger.warn("UMAP projection failed", { "error": stringifyError(error) }, LOG_CTX);
+        return [inputTable, inputDataFrame, columnGroups];
+    }
+    abortCtrl.signal.removeEventListener("abort", onAbort);
+
+    // Allocate coordinate field names that don't collide with existing columns.
+    const fieldNames = new Set<string>(inputTable.schema.fields.map(f => f.name));
+    const xFieldName = createUniqueColumnName(`_umap_x`, fieldNames);
+    const yFieldName = createUniqueColumnName(`_umap_y`, fieldNames);
+
+    const xVector = arrow.makeVector(arrow.makeData({ type: new arrow.Float32(), data: coords.x }));
+    const yVector = arrow.makeVector(arrow.makeData({ type: new arrow.Float32(), data: coords.y }));
+
+    // Arrow side: the coordinates are row-aligned with `inputTable` (the matrix was
+    // extracted from it in row order), so a direct column assign is correct.
+    const outputTable = inputTable.assign(new arrow.Table({ [xFieldName]: xVector, [yFieldName]: yVector }));
+
+    // DuckDB side: stream the coordinates back by inserting a small keyed
+    // `{rownum, x, y}` table and joining it onto the data frame on the row number.
+    const duckdb = inputDataFrame.duckdb;
+    const coordTable = new arrow.Table({
+        [rowNumberFieldName]: inputTable.getChild(rowNumberFieldName)!,
+        [xFieldName]: xVector,
+        [yFieldName]: yVector,
+    });
+    const coordFrame = await DataFrame.fromArrowTable(duckdb, coordTable, generateTableName("__umap_coords"));
+    let outputDataFrame: DataFrame;
+    try {
+        const joinSQL =
+            `SELECT base.*, coords."${xFieldName}", coords."${yFieldName}" ` +
+            `FROM "${inputDataFrame.tableName}" base ` +
+            `JOIN "${coordFrame.tableName}" coords USING ("${rowNumberFieldName}")`;
+        outputDataFrame = await DataFrame.fromSQL(duckdb, joinSQL, generateTableName("__umap"));
+    } finally {
+        await coordFrame.destroy();
+    }
+
+    // Attach the coordinate fields to the embedding column's own LIST_COLUMN group as
+    // generated meta fields, exactly like `valueIdFieldName`. This keeps the coordinates
+    // glued to their source column: the data-table grid renders them inline right after
+    // the value/id columns (debug mode) and the scatter renderer reads them off the group.
+    const inputGroupIndex = columnGroups.findIndex(group =>
+        group.type == LIST_COLUMN && group.value.inputFieldName == projection.vectorColumn);
+    if (inputGroupIndex < 0) {
+        logger.warn("Skipping UMAP projection: no list column group for the vector column", {
+            "column": projection.vectorColumn,
+        }, LOG_CTX);
+        return [inputTable, inputDataFrame, columnGroups];
+    }
+    const inputGroup = columnGroups[inputGroupIndex] as VariantKind<typeof LIST_COLUMN, ListGridColumnGroup>;
+    const updatedColumnGroups: ColumnGroup[] = [...columnGroups];
+    updatedColumnGroups[inputGroupIndex] = {
+        type: LIST_COLUMN,
+        value: {
+            ...inputGroup.value,
+            umapProjection: { xFieldName, yFieldName },
+        }
+    };
+
+    dispatch({
+        type: UMAP_COMPUTATION_SUCCEEDED,
+        value: [tableId, outputTable, outputDataFrame, updatedColumnGroups]
+    });
+
+    logger.info("Computed UMAP projection", {
+        "points": extraction.matrix.count.toString(),
+        "dimension": extraction.matrix.dimension.toString(),
+        "duration": Math.floor(performance.now() - projectionStart).toString(),
+    }, LOG_CTX);
+
+    return [outputTable, outputDataFrame, updatedColumnGroups];
 }
 
 export async function computeSystemColumnsDispatched(task: SystemColumnComputationTask, dispatch: Dispatch<ComputationAction>): Promise<[arrow.Table, DataFrame, ColumnGroup[]]> {
@@ -156,6 +303,9 @@ export async function computeSystemColumns(task: SystemColumnComputationTask, lo
     try {
         const [sqlFrame, columnGroups] = buildSystemColumnSQLFrame(task.inputTable.schema, task.columnEntries, task.inputDataFrame.tableName, task.tableAggregate);
 
+        logger.info("Computing system columns", {
+            "version": task.tableVersion.toString(),
+        }, LOG_CTX);
         const transformStart = performance.now();
         const tableName = generateTableName("__syscols");
         const sql = sqlFrame.toSQL();
@@ -354,6 +504,7 @@ function buildGridColumnGroups(table: arrow.Table): ColumnGroup[] {
                         inputFieldNullable: field.nullable,
                         statsFields: null,
                         valueIdFieldName: null,
+                        umapProjection: null,
                     }
                 });
                 break;
@@ -466,6 +617,9 @@ export async function filterTable(task: TableFilteringTask, logger: LoggerLike):
         frame = frame.project([task.rowNumberColumnName]);
         const sql = frame.toSQL();
 
+        logger.info("Filtering table", {
+            "version": task.tableVersion.toString(),
+        }, LOG_CTX);
         const filterStart = performance.now();
         const tableName = generateTableName("__filter");
         const transformed = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
@@ -516,6 +670,10 @@ export async function computeTableAggregates(task: TableAggregationTask, logger:
     const [sql, columnEntries, countStarColumn] = buildTableAggregationSQL(task);
 
     try {
+        logger.info("Aggregating table", {
+            "version": task.tableVersion.toString(),
+            "table": task.tableId.toString(),
+        }, LOG_CTX);
         const summaryStart = performance.now();
         const tableName = generateTableName("__tbl_agg");
         const transformedDataFrame = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
@@ -976,6 +1134,13 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
     const sql = buildColumnAggregationSQL(task, [task.filterTable, task.unfilteredAggregate]);
 
     try {
+        logger.info("Aggregating filtered table column", {
+            "version": task.tableVersion.toString(),
+            "table": task.tableId.toString(),
+            "columnIndex": task.columnId.toString(),
+            "columnName": task.columnEntry.value.inputFieldName,
+            "groupType": getGridColumnTypeName(task.columnEntry),
+        }, LOG_CTX);
         const transformStart = performance.now();
         const tableName = generateTableName("__filt_col_agg");
         const aggregateDataFrame = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
