@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as styles from './data_table.module.css';
+import symbols from '@ankoh/dashql-svg-symbols';
 
 import { classNames } from '../../utils/classnames.js';
 import { ColumnAggregationTask, ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilter, WithFilterEpoch, WithProgress, ComputationStateVersion } from '../../compute/computation_types.js';
@@ -73,9 +74,31 @@ export function HeaderPlotsCell(props: HeaderPlotsCellProps): React.ReactElement
 
     const isRightmost = props.columnIndex === props.rightmostVisibleColumn;
 
+    // Some columns carry no summary by design — most notably LIST columns (e.g. float32
+    // embedding arrays), for which aggregating value identifiers / frequent values is
+    // very expensive and not rendered. Show a "no summary" indicator on the primary
+    // value column of such groups (meta/system columns stay blank).
+    const columnGroupId = props.gridLayout.columnGroupByColumnIndex[props.columnIndex];
+    const columnGroup = props.columnGroups[columnGroupId] as ColumnGroup | undefined;
+    const isValueColumn = props.gridLayout.isSystemColumn[props.columnIndex] == 0;
+    const hasNoSummaryByDesign = isValueColumn && columnGroup?.type == LIST_COLUMN;
+
     // Special case, corner cell, top-left
     if (props.columnIndex == 0) {
         return <div className={styles.plots_corner_cell} style={props.style} />;
+    } else if (hasNoSummaryByDesign) {
+        // Cell without a summary by design: show a muted "no summary" indicator.
+        return (
+            <div
+                className={classNames(styles.plots_cell, styles.plots_no_summary_cell, {
+                    [styles.plots_cell_rightmost]: isRightmost
+                })}
+                style={props.style}
+                title="No column summary"
+            >
+                <span className={styles.plots_no_summary_label}>No summary</span>
+            </div>
+        );
     } else if (columnAggregate == null) {
         // Special case, cell without summary
         return <div className={classNames(styles.plots_cell, styles.plots_empty_cell, {
