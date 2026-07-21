@@ -5,7 +5,7 @@ import { DataFrame, generateTableName } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
 import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SCHEDULE_TASK, UMAP_COMPUTATION_SUCCEEDED } from './computation_state.js';
-import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderingTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, WithFilter, WithFilterEpoch, ComputationStateVersion } from './computation_types.js';
+import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderingTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, WithFilter, WithFilterEpoch, ComputationStateVersion } from './computation_types.js';
 import { Dispatch, VariantKind } from '../utils/variant.js';
 import { LoggableException, LoggerLike, stringifyError } from '../platform/logger/logger.js';
 import { assert } from '../utils/assert.js';
@@ -117,7 +117,13 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
     let colAggregatesBegin = performance.now();
     logger.info("Computing column aggregates", {}, LOG_CTX);
     for (let columnId = 0; columnId < gridColumnGroups.length; ++columnId) {
-        if (gridColumnGroups[columnId].type == SKIPPED_COLUMN || gridColumnGroups[columnId].type == ROWNUMBER_COLUMN) {
+        // LIST columns (e.g. float32 embedding arrays) are not aggregated: their value
+        // identifier / frequent-value / distinct-count computations are very expensive
+        // (full-vector sort/hash) and buy nothing — no summary histogram is rendered for
+        // them. We keep the LIST_COLUMN group (UMAP still attaches its projection to it),
+        // but skip all of its DuckDB aggregation work.
+        const columnType = gridColumnGroups[columnId].type;
+        if (columnType == SKIPPED_COLUMN || columnType == ROWNUMBER_COLUMN || columnType == LIST_COLUMN) {
             continue;
         }
         const columnAggregationTask: ColumnAggregationTask = {
@@ -412,18 +418,12 @@ function buildSystemColumnSQLFrame(schema: arrow.Schema, columns: ColumnGroup[],
                 };
                 break;
             }
-            case LIST_COLUMN: {
-                const valueFieldName = createUniqueColumnName(`_${i}_id`, fieldNames);
-                frame = frame.valueIdentifier(column.value.inputFieldName, valueFieldName);
-                gridColumns[i] = {
-                    type: LIST_COLUMN,
-                    value: {
-                        ...column.value,
-                        valueIdFieldName: valueFieldName
-                    }
-                };
+            case LIST_COLUMN:
+                // No value identifier for LIST columns: a dense_rank() over float32
+                // embedding arrays sorts the whole table by full-vector comparison at
+                // high cost, and nothing consumes the id (no summary is rendered).
+                // Leaving valueIdFieldName null; the layout guards on `!= null`.
                 break;
-            }
         }
     }
 
@@ -763,25 +763,13 @@ function buildTableAggregationSQL(task: TableAggregationTask): [string, ColumnGr
                 });
                 break;
             }
-            case LIST_COLUMN: {
-                const countAggregateColumn = `_${i}_count`;
-                const countDistinctAggregateColumn = `_${i}_countd`;
-                aggregates.push({ fieldName: entry.value.inputFieldName, outputAlias: countAggregateColumn, func: "count" });
-                aggregates.push({ fieldName: entry.value.inputFieldName, outputAlias: countDistinctAggregateColumn, func: "count", distinct: true });
-                updatedEntries.push({
-                    type: LIST_COLUMN,
-                    value: {
-                        ...entry.value,
-                        statsFields: {
-                            countFieldName: countAggregateColumn,
-                            distinctCountFieldName: countDistinctAggregateColumn,
-                            minAggregateFieldName: null,
-                            maxAggregateFieldName: null,
-                        }
-                    }
-                });
+            case LIST_COLUMN:
+                // No table-level aggregates for LIST columns. In particular
+                // count(DISTINCT array) over float32 embeddings hashes every full
+                // vector at high cost, and no summary consumes it. Leaving
+                // statsFields null and passing the entry through unchanged.
+                updatedEntries.push(entry);
                 break;
-            }
         }
     }
 
@@ -891,42 +879,6 @@ function analyzeStringColumn(tableSummary: TableAggregation, columnEntry: String
     };
 }
 
-function analyzeListColumn(tableSummary: TableAggregation, columnEntry: ListGridColumnGroup, frequentValueTable: FrequentValuesTable): ListColumnAnalysis {
-    const totalCountVector = tableSummary.table.getChild(tableSummary.countStarFieldName!) as arrow.Vector<arrow.Int64>;
-    const notNullCountVector = tableSummary.table.getChild(columnEntry.statsFields!.countFieldName) as arrow.Vector<arrow.Int64>;
-    const distinctCountVector = tableSummary.table.getChild(columnEntry.statsFields!.distinctCountFieldName!) as arrow.Vector<arrow.Int64>;
-
-    const totalCount = Number(totalCountVector.get(0) ?? BigInt(0));
-    const notNullCount = Number(notNullCountVector.get(0) ?? BigInt(0));
-    const distinctCount = Number(distinctCountVector.get(0) ?? BigInt(0));
-
-    assert(frequentValueTable.schema.fields[0].name == "key");
-    assert(frequentValueTable.schema.fields[1].name == "count");
-
-    const frequentValueIsNull = new Uint8Array(frequentValueTable.numRows);
-    const frequentValueKeys = frequentValueTable.getChild("key")!;
-    const frequentValueCounts = frequentValueTable.getChild("count")!.toArray();
-    const frequentValuePercentages = new Float64Array(frequentValueTable.numRows);
-    for (let i = 0; i < frequentValueTable.numRows; ++i) {
-        frequentValuePercentages[i] = totalCount == 0 ? 0 : (Number(frequentValueCounts[i]) / totalCount);
-        if (frequentValueKeys.nullable) {
-            for (let i = 0; i < frequentValueTable.numRows; ++i) {
-                frequentValueIsNull[i] = frequentValueKeys.isValid(i) ? 0 : 1;
-            }
-        }
-    }
-
-    return {
-        countNotNull: Number(notNullCount),
-        countNull: Number(totalCount - notNullCount),
-        countDistinct: Number(distinctCount),
-        isUnique: notNullCount == distinctCount,
-        frequentValueIsNull: frequentValueIsNull,
-        frequentValueCounts: frequentValueCounts,
-        frequentValuePercentages: frequentValuePercentages,
-    };
-}
-
 export async function computeColumnAggregatesDispatched(task: ColumnAggregationTask, dispatch: Dispatch<ComputationAction>): Promise<ColumnAggregationVariant> {
     const result = new AsyncValue<ColumnAggregationVariant, LoggableException>();
     const variant: TaskVariant = {
@@ -956,7 +908,7 @@ export async function computeFilteredColumnAggregatesDispatched(task: WithFilter
 }
 
 export async function computeColumnAggregates(task: ColumnAggregationTask, logger: LoggerLike): Promise<ColumnAggregationVariant> {
-    if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN) {
+    if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN || task.columnEntry.type == LIST_COLUMN) {
         throw new LoggableException(`Column of type cannot be aggregated`, {
             type: getGridColumnTypeName(task.columnEntry),
         }, LOG_CTX);
@@ -1002,20 +954,6 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
                 const analysis = analyzeStringColumn(task.tableAggregate, task.columnEntry.value, aggregateTable, aggregateTableFormatter);
                 columnAggregate = {
                     type: STRING_COLUMN,
-                    value: {
-                        columnEntry: task.columnEntry.value,
-                        frequentValuesDataFrame: aggregateDataFrame,
-                        frequentValuesTable: aggregateTable,
-                        frequentValuesFormatter: aggregateTableFormatter,
-                        analysis,
-                    }
-                };
-                break;
-            }
-            case LIST_COLUMN: {
-                const analysis = analyzeListColumn(task.tableAggregate, task.columnEntry.value, aggregateTable);
-                columnAggregate = {
-                    type: LIST_COLUMN,
                     value: {
                         columnEntry: task.columnEntry.value,
                         frequentValuesDataFrame: aggregateDataFrame,
@@ -1107,25 +1045,13 @@ function buildColumnAggregationSQL(task: ColumnAggregationTask, filtered: [Filte
             }).orderBy([{ field: "count", ascending: false }], 32);
             break;
         }
-        case LIST_COLUMN: {
-            frame = frame.groupBy({
-                keys: [
-                    { fieldName: targetFieldName, outputAlias: "key" },
-                ],
-                aggregates: [{
-                    func: "count_star",
-                    outputAlias: "count",
-                }]
-            }).orderBy([{ field: "count", ascending: false }], 32);
-            break;
-        }
     }
 
     return frame.toSQL();
 }
 
 export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAggregationTask>, logger: LoggerLike): Promise<WithFilterEpoch<ColumnAggregationVariant> | null> {
-    if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN) {
+    if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN || task.columnEntry.type == LIST_COLUMN) {
         throw new LoggableException(`Column of type cannot be aggregated`, {
             type: getGridColumnTypeName(task.columnEntry),
         }, LOG_CTX);
@@ -1179,21 +1105,6 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
                 const analysis = analyzeStringColumn(task.tableAggregate, task.columnEntry.value, aggregateTable, aggregateTableFormatter);
                 columnAggregate = {
                     type: STRING_COLUMN,
-                    value: {
-                        columnEntry: task.columnEntry.value,
-                        frequentValuesDataFrame: aggregateDataFrame,
-                        frequentValuesTable: aggregateTable,
-                        frequentValuesFormatter: aggregateTableFormatter,
-                        analysis,
-                    },
-                    filterVersion: task.filterTable.version.clone(),
-                };
-                break;
-            }
-            case LIST_COLUMN: {
-                const analysis = analyzeListColumn(task.tableAggregate, task.columnEntry.value, aggregateTable);
-                columnAggregate = {
-                    type: LIST_COLUMN,
                     value: {
                         columnEntry: task.columnEntry.value,
                         frequentValuesDataFrame: aggregateDataFrame,
