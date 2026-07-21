@@ -170,7 +170,11 @@ export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogVie
             <div className={styles.log_grid_container} ref={containerRef} style={{ height: containerHeight, position: 'relative' }}>
                 <List
                     listRef={listRef}
-                    style={{ width: containerWidth, height: containerHeight, overflowY: props.maxRows != null ? 'hidden' : undefined }}
+                    // In scrollless preview mode (`maxRows`) the viewport is pinned to the last rows
+                    // and the feed's own scroller is the only one, so suppress the inner scrollbar.
+                    // Otherwise scroll normally — pass 'auto' explicitly rather than `undefined`, which
+                    // would override react-window's default `overflowY: 'auto'` and disable scrolling.
+                    style={{ width: containerWidth, height: containerHeight, overflowY: props.maxRows != null ? 'hidden' : 'auto' }}
                     rowCount={rowCount}
                     rowHeight={computeLogRowHeight}
                     rowComponent={LogRow}
