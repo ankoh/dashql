@@ -42,7 +42,7 @@ import { AgentRunProvider } from './agent/agent_run_provider.js';
 import { getGlobalLogger, LoggerProvider } from './platform/logger/logger_provider.js';
 import { stringifyError } from './platform/logger/logger.js';
 import { DuckDBProvider } from './platform/duckdb/duckdb_provider.js';
-import { EmbeddingProjectionRegistry } from './view/visualization/embeddingatlas/embedding_projection_registry.js';
+import { EmbeddingProjectionRegistry } from './view/visualization/umap/embedding_projection_registry.js';
 import { isDebugBuild } from './globals.js';
 
 import './../static/fonts/fonts.css';

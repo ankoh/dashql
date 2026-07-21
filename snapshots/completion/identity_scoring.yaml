@@ -206,6 +206,12 @@ completion-snapshots:
           type: colref/unresolved
           statement-id: 0
           text: "s_co"
+      inferred-tables:
+        - name: supplier
+          confidence: confident
+          columns:
+            - name: s_co
+              confidence: confident
     cursor:
       search:
         text: s_co

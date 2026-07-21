@@ -39,7 +39,7 @@ completion-snapshots:
     completions:
       limit: 3
 
-  # Renderer completion: the sole `vegalite` keyword surfaces right after USING.
+  # Renderer completion: the `vegalite` and `umap` keywords surface right after USING.
   - name: vis_renderer_after_using
     catalog:
       script:

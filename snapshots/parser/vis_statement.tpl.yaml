@@ -163,31 +163,28 @@ parser-snapshots:
   - name: vis_statement_keyword_collision_vis_keywords_as_columns
     input: |
       SELECT mark, encoding, field, axis, legend FROM t;
-  - name: vis_statement_ea_minimal
+  - name: vis_statement_umap_minimal
     input: |
-      VISUALIZE embeddings USING embeddingatlas (vector => embedding);
-  - name: vis_statement_ea_category_label
+      VISUALIZE embeddings USING umap (vector => embedding);
+  - name: vis_statement_umap_category_label
     input: |
-      VISUALIZE embeddings USING embeddingatlas (
+      VISUALIZE embeddings USING umap (
         vector => embedding,
         category => cluster_id,
         label => name
       );
-  - name: vis_statement_ea_projection
+  - name: vis_statement_umap_projection
     input: |
-      VISUALIZE embeddings USING embeddingatlas (
+      VISUALIZE embeddings USING umap (
         vector => embedding,
         category => cluster_id,
-        project => (
-          method => umap,
-          neighbors => 15,
-          min_dist => 0.1,
-          metric => cosine
-        )
+        neighbors => 15,
+        min_dist => 0.1,
+        metric => cosine
       );
-  - name: vis_statement_ea_select_source
+  - name: vis_statement_umap_select_source
     input: |
-      VISUALIZE (SELECT embedding FROM embeddings) USING embeddingatlas (vector => embedding);
-  - name: vis_statement_ea_keywords_as_columns
+      VISUALIZE (SELECT embedding FROM embeddings) USING umap (vector => embedding);
+  - name: vis_statement_umap_keywords_as_columns
     input: |
-      SELECT vector, category, neighbors, min_dist, metric, umap, project, embeddingatlas FROM t;
+      SELECT vector, category, neighbors, min_dist, metric, umap FROM t;

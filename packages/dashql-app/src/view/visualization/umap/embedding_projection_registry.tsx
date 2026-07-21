@@ -1,13 +1,13 @@
 import * as React from 'react';
 
-import { EmbeddingAtlasSpec } from './embeddingatlas_spec.js';
+import { UmapSpec } from './umap_spec.js';
 import { Projection2D } from './embedding_projection.js';
 
 /// Cache key for a projection. A UMAP projection is fully determined by the source
 /// result table (identified by its query id), the vector column, and the UMAP
 /// options (metric / neighbors / minDist). The category column only affects point
 /// colouring, not the 2D coordinates, so it is intentionally excluded.
-export function projectionCacheKey(queryId: number, spec: EmbeddingAtlasSpec): string {
+export function projectionCacheKey(queryId: number, spec: UmapSpec): string {
     const p = spec.projection;
     const metric = p.metric === 'euclidean' ? 'euclidean' : 'cosine';
     const neighbors = typeof p.neighbors === 'number' ? p.neighbors : 'default';
@@ -23,7 +23,7 @@ interface ProjectionRegistryValue {
 
 const EMBEDDING_PROJECTION_CTX = React.createContext<ProjectionRegistryValue | null>(null);
 
-/// Cache of computed UMAP projections that outlives the EmbeddingAtlasView.
+/// Cache of computed UMAP projections that outlives the UmapView.
 ///
 /// The scatter view is remounted whenever the user switches footer tabs, collapses
 /// a card, or reopens the notebook, which used to discard the (expensive) UMAP

@@ -37,6 +37,12 @@ completion-snapshots:
           type: colref/unresolved
           statement-id: 2
           text: "juice0"
+      inferred-tables:
+        - name: s
+          confidence: confident
+          columns:
+            - name: juice0
+              confidence: confident
     cursor:
       search:
         text: from s

@@ -857,7 +857,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
             // Each renderer emits its own serialized spec string. The grammar rejects
             // unknown renderers, so only the branches below can produce output here.
             bool is_vegalite = spec.renderer.has_value() && *spec.renderer == "vegalite";
-            bool is_embeddingatlas = spec.renderer.has_value() && *spec.renderer == "embeddingatlas";
+            bool is_umap = spec.renderer.has_value() && *spec.renderer == "umap";
             flatbuffers::Offset<flatbuffers::String> vegalite_ofs;
             if (is_vegalite) {
                 // Generate the Vega-Lite JSON once, lazily, and cache it on the spec.
@@ -869,14 +869,14 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
                 }
             }
 
-            flatbuffers::Offset<flatbuffers::String> embeddingatlas_ofs;
-            if (is_embeddingatlas) {
-                // Generate the embeddingatlas projection JSON once, lazily.
-                if (spec.embeddingatlas_json.empty()) {
-                    spec.embeddingatlas_json = visualize::GenerateEmbeddingAtlasSpec(spec, *this);
+            flatbuffers::Offset<flatbuffers::String> umap_ofs;
+            if (is_umap) {
+                // Generate the umap projection JSON once, lazily.
+                if (spec.umap_json.empty()) {
+                    spec.umap_json = visualize::GenerateUmapSpec(spec, *this);
                 }
-                if (!spec.embeddingatlas_json.empty()) {
-                    embeddingatlas_ofs = builder.CreateString(spec.embeddingatlas_json);
+                if (!spec.umap_json.empty()) {
+                    umap_ofs = builder.CreateString(spec.umap_json);
                 }
             }
 
@@ -899,7 +899,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
                 spec.resolved_source.inline_select_ast_node_id.value_or(PROTO_NULL_U32));
             sb.add_renderer(renderer_ofs);
             sb.add_vegalite_spec(vegalite_ofs);
-            sb.add_embeddingatlas_spec(embeddingatlas_ofs);
+            sb.add_umap_spec(umap_ofs);
             spec_offsets.push_back(sb.Finish());
         });
         visualization_specs_ofs = builder.CreateVector(spec_offsets);

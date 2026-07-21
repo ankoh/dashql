@@ -142,8 +142,7 @@ enum NodeType: uint16 {
     OBJECT_VIS_SCALE,
     OBJECT_VIS_AXIS,
     OBJECT_VIS_LEGEND,
-    OBJECT_VIS_EA_SPEC,
-    OBJECT_VIS_EA_PROJECT,
+    OBJECT_VIS_UMAP_SPEC,
 }
 
 enum AttributeKey: uint16 {
@@ -537,15 +536,13 @@ enum AttributeKey: uint16 {
     VIS_MARK_THICKNESS,
     VIS_MARK_TOOLTIP,
 
-    // embeddingatlas renderer spec keys
-    VIS_EA_SPEC_VECTOR,
-    VIS_EA_SPEC_CATEGORY,
-    VIS_EA_SPEC_LABEL,
-    VIS_EA_SPEC_PROJECT,
-    VIS_EA_PROJECT_METHOD,
-    VIS_EA_PROJECT_METRIC,
-    VIS_EA_PROJECT_NEIGHBORS,
-    VIS_EA_PROJECT_MIN_DIST,
+    // umap renderer spec keys
+    VIS_UMAP_SPEC_VECTOR,
+    VIS_UMAP_SPEC_CATEGORY,
+    VIS_UMAP_SPEC_LABEL,
+    VIS_UMAP_SPEC_METRIC,
+    VIS_UMAP_SPEC_NEIGHBORS,
+    VIS_UMAP_SPEC_MIN_DIST,
 }
 
 enum StatementType: uint8 {

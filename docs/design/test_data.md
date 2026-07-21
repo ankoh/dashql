@@ -6,7 +6,7 @@ queries are static SQL, and demo mode *synthesizes* random Arrow batches at runt
 
 `data.dashql.app` hosts real test datasets (à la
 [vega-datasets](https://github.com/vega/vega-datasets)) that notebooks can query over HTTP.
-The immediate consumer is the embedding-atlas renderer (`VISUALIZE … USING embeddingatlas`),
+The immediate consumer is the umap renderer (`VISUALIZE … USING umap`),
 which needs a query result with a `FLOAT[]` vector column — data that is impractical to
 synthesize convincingly.
 

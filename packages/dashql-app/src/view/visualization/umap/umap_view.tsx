@@ -5,14 +5,14 @@ import type { UMAPOptions } from '@dashql/umap-wasm';
 import * as styles from '../visualization.module.css';
 import { QueryExecutionState, QueryExecutionStatus } from '../../../connection/query_execution_state.js';
 import { EmbeddingScatter, EmbeddingPoints } from './embedding_scatter.js';
-import { EmbeddingAtlasSpec } from './embeddingatlas_spec.js';
+import { UmapSpec } from './umap_spec.js';
 import { extractCategories, extractEmbeddingMatrix } from './embedding_extraction.js';
 import { projectWithUMAP, Projection2D } from './embedding_projection.js';
 import { projectionCacheKey, useEmbeddingProjectionRegistry } from './embedding_projection_registry.js';
 
 interface Props {
     query: QueryExecutionState | null;
-    spec: EmbeddingAtlasSpec | null;
+    spec: UmapSpec | null;
     /// Render the scatter with a transparent background so it blends into its container.
     transparent?: boolean;
     /// Enable pan/drag on the scatter. Defaults to true.
@@ -24,8 +24,8 @@ interface Props {
 
 /// Map the analyzer's projection sub-spec to UMAP options, applying embedding-atlas's
 /// defaults for anything the user left unspecified (metric cosine, nNeighbors 15,
-/// minDist 0.1). `method` other than umap is not yet supported.
-function umapOptionsFromSpec(spec: EmbeddingAtlasSpec): UMAPOptions {
+/// minDist 0.1).
+function umapOptionsFromSpec(spec: UmapSpec): UMAPOptions {
     const p = spec.projection;
     const options: UMAPOptions = {
         metric: p.metric === 'euclidean' ? 'euclidean' : 'cosine',
@@ -40,7 +40,7 @@ function umapOptionsFromSpec(spec: EmbeddingAtlasSpec): UMAPOptions {
 /// Reads the query result, extracts the vector column into a row-major matrix,
 /// projects it to 2D with UMAP in a web worker (progress streamed, cancelled on
 /// unmount / re-run), and drives the WebGPU/WebGL2 EmbeddingScatter.
-export function EmbeddingAtlasView(props: Props): React.ReactElement {
+export function UmapView(props: Props): React.ReactElement {
     const succeeded = props.query?.status === QueryExecutionStatus.SUCCEEDED;
     const resultTable = succeeded ? props.query?.resultTable ?? null : null;
     const spec = props.spec;

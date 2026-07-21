@@ -10775,7 +10775,7 @@
           "REPO_MAPPING:rules_rust+,rules_cc rules_cc+",
           "REPO_MAPPING:rules_rust+,rules_rust rules_rust+",
           "FILE:@@//packages/dashql-umap/Cargo.lock 7249edca6ea1056be2b870e018766026cc92ed4495e0cd210e8c8fa6775c3ddb",
-          "FILE:@@//packages/dashql-umap/Cargo.toml 5571b42808fdca35a911aff73665b2ee0ede71f1d5894e7a30b4d425f3d56101",
+          "FILE:@@//packages/dashql-umap/Cargo.toml 687217427e2acc7bbb34d3300f9829ad61974606dcbf99b309d55463d10f4713",
           "FILE:@@//packages/dashql-umap/nndescent/Cargo.toml bbe3dbfab404a3c5d6316ddde91d05a3222a71ae6310963d8b448fa7c62cc850",
           "FILE:@@//packages/dashql-umap/umap/Cargo.toml 0da12bb1eb2abfc0a17940c22d3a2235aefd980c86b22160af6e1c33f7158463",
           "FILE:@@//packages/dashql-umap/umap-wasm/Cargo.toml 044146648a72f38ef8b248af512a0bc8158f45d754a6cc5469f64ea4fd1cbb8c"

@@ -1,7 +1,7 @@
 import type * as app_session from '@ankoh/dashql-jsonschema/app_session.js';
 import type { TopLevelSpec } from 'vega-lite';
 
-import type { EmbeddingAtlasSpec } from '../view/visualization/embeddingatlas/embeddingatlas_spec.js';
+import type { UmapSpec } from '../view/visualization/umap/umap_spec.js';
 import { randomScriptName } from './script_name.js';
 
 /// Notebook type definitions (migrated from protobuf)
@@ -15,7 +15,7 @@ export type NotebookOriginType = NonNullable<app_session.NotebookMetadata['origi
 
 /// A visualize statement resolved against the notebook. Discriminated on the
 /// renderer named after `USING`: `vegalite` carries a parsed Vega-Lite spec,
-/// `embeddingatlas` carries the projection spec for the WebGPU scatter renderer.
+/// `umap` carries the projection spec for the WebGPU scatter renderer.
 /// Both carry the SQL to execute against the backend.
 export type ResolvedVisualizeQuery =
     | {
@@ -26,11 +26,11 @@ export type ResolvedVisualizeQuery =
           vegaLiteSpec: TopLevelSpec;
       }
     | {
-          renderer: 'embeddingatlas';
+          renderer: 'umap';
           // The SQL to execute against the backend
           sql: string;
-          // The embedding-atlas projection spec parsed from the analyzer output
-          embeddingAtlasSpec: EmbeddingAtlasSpec;
+          // The UMAP projection spec parsed from the analyzer output
+          umapSpec: UmapSpec;
       };
 
 /// Script annotations derived from analysis

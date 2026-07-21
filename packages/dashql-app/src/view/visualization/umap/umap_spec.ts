@@ -1,6 +1,6 @@
-/// The embedding-atlas projection spec, mirroring the JSON emitted by the analyzer's
-/// `GenerateEmbeddingAtlasSpec` (see packages/dashql-core/src/visualize/vegalite_generator.cc).
-export interface EmbeddingAtlasProjectionSpec {
+/// The UMAP projection spec, mirroring the JSON emitted by the analyzer's
+/// `GenerateUmapSpec` (see packages/dashql-core/src/visualize/vegalite_generator.cc).
+export interface UmapProjectionSpec {
     /// Projection method. Currently only "umap".
     method: string;
     /// Distance metric ("cosine" | "euclidean"), if specified.
@@ -11,8 +11,8 @@ export interface EmbeddingAtlasProjectionSpec {
     minDist?: number;
 }
 
-/// The parsed embedding-atlas spec attached to a resolved VISUALIZE query.
-export interface EmbeddingAtlasSpec {
+/// The parsed UMAP spec attached to a resolved VISUALIZE query.
+export interface UmapSpec {
     /// The column holding the embedding vectors (FLOAT[] / list-of-float).
     vectorColumn: string;
     /// Optional column mapped to a per-point color category.
@@ -20,12 +20,12 @@ export interface EmbeddingAtlasSpec {
     /// Optional column shown in tooltips.
     labelColumn?: string;
     /// The projection sub-spec.
-    projection: EmbeddingAtlasProjectionSpec;
+    projection: UmapProjectionSpec;
 }
 
-/// Parse the analyzer's `embeddingatlas_spec` JSON string into a typed spec.
+/// Parse the analyzer's `umap_spec` JSON string into a typed spec.
 /// Returns null if the JSON is malformed or is missing the required vector column.
-export function parseEmbeddingAtlasSpec(raw: string): EmbeddingAtlasSpec | null {
+export function parseUmapSpec(raw: string): UmapSpec | null {
     let parsed: unknown;
     try {
         parsed = JSON.parse(raw);
@@ -37,7 +37,7 @@ export function parseEmbeddingAtlasSpec(raw: string): EmbeddingAtlasSpec | null 
     if (typeof obj.vectorColumn !== 'string' || obj.vectorColumn.length === 0) return null;
 
     const projectionRaw = (obj.projection ?? {}) as Record<string, unknown>;
-    const projection: EmbeddingAtlasProjectionSpec = {
+    const projection: UmapProjectionSpec = {
         method: typeof projectionRaw.method === 'string' ? projectionRaw.method : 'umap',
     };
     if (typeof projectionRaw.metric === 'string') projection.metric = projectionRaw.metric;

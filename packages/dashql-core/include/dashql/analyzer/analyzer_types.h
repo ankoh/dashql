@@ -708,12 +708,10 @@ struct VisEncodingChannel {
     std::optional<VisLegend> legend;
 };
 
-/// The projection sub-spec for the embeddingatlas renderer (`project => (...)`).
-/// The 2D projection itself runs client-side at render time; these are only the
-/// parameters the analyzer forwards to the runtime.
-struct EmbeddingAtlasProjection {
-    /// The projection method (e.g. `umap`)
-    std::optional<std::string_view> method;
+/// The projection parameters for the umap renderer. The 2D projection itself runs
+/// client-side at render time; these are only the parameters the analyzer forwards
+/// to the runtime.
+struct UmapProjection {
     /// The distance metric (e.g. `cosine`, `euclidean`)
     std::optional<std::string_view> metric;
     /// The number of neighbors (UMAP nNeighbors)
@@ -722,10 +720,10 @@ struct EmbeddingAtlasProjection {
     std::optional<double> min_dist;
 };
 
-/// A visualization spec for the embeddingatlas renderer. Records only column
-/// references + projection parameters; the projection runs client-side.
-struct EmbeddingAtlasSpec {
-    /// The AST node id of the OBJECT_VIS_EA_SPEC
+/// A visualization spec for the umap renderer. Records only column references +
+/// projection parameters; the projection runs client-side.
+struct UmapSpec {
+    /// The AST node id of the OBJECT_VIS_UMAP_SPEC
     uint32_t ast_node_id = 0;
     /// The resolved expression id of the required `vector` column
     std::optional<uint32_t> vector_expression_id;
@@ -733,8 +731,8 @@ struct EmbeddingAtlasSpec {
     std::optional<uint32_t> category_expression_id;
     /// The resolved expression id of the optional `label` column
     std::optional<uint32_t> label_expression_id;
-    /// The projection sub-spec
-    EmbeddingAtlasProjection projection;
+    /// The projection parameters
+    UmapProjection projection;
 };
 
 /// The kind of source resolved for a VISUALIZE statement
@@ -788,10 +786,10 @@ struct VisualizationSpec {
     /// The pretty-printed Vega-Lite JSON specification (without the `data` field).
     /// Generated lazily during AnalyzedScript::Pack.
     std::string vegalite_json;
-    /// The embeddingatlas spec, present when `renderer` is `embeddingatlas`.
-    std::optional<EmbeddingAtlasSpec> embeddingatlas;
-    /// The embeddingatlas projection spec as JSON. Generated lazily during AnalyzedScript::Pack.
-    std::string embeddingatlas_json;
+    /// The umap spec, present when `renderer` is `umap`.
+    std::optional<UmapSpec> umap;
+    /// The umap projection spec as JSON. Generated lazily during AnalyzedScript::Pack.
+    std::string umap_json;
 };
 
 }  // namespace dashql

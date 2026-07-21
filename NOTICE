@@ -10,7 +10,7 @@ their own licenses.
 --------------------------------------------------------------------------------
 
 The interactive scatter-plot renderer under
-`packages/dashql-app/src/view/visualization/embeddingatlas/renderer/`
+`packages/dashql-app/src/view/visualization/umap/renderer/`
 is vendored from Apple's Embedding Atlas project
 (https://github.com/apple/embedding-atlas), specifically the WebGPU/WebGL2
 point renderer (`packages/component/src/lib/{webgpu_renderer,webgl2_renderer}`
@@ -49,7 +49,7 @@ The Rust crates under `packages/dashql-umap/` (`umap`, `nndescent`, `umap-wasm`)
 are vendored from Apple's Embedding Atlas project
 (https://github.com/apple/embedding-atlas), specifically `packages/umap/{umap,
 nndescent,umap-wasm}`. They are compiled to WebAssembly for the client-side UMAP
-projection behind `VISUALIZE ... USING embeddingatlas`, including the GPU (`wgpu`
+projection behind `VISUALIZE ... USING umap`, including the GPU (`wgpu`
 → WebGPU) feature and its sources/shaders (`gpu.rs`, `nn_descent_gpu.rs`,
 `gpu_optimize.rs`, `**/shaders/*.wgsl`). All files retain their original
 `// Copyright (c) 2025 Apple Inc. Licensed under MIT License.` headers. Licensed
@@ -60,7 +60,7 @@ under the same MIT License as section 1 (Copyright (c) 2025 Apple Inc.).
 --------------------------------------------------------------------------------
 
 The file
-`packages/dashql-app/src/view/visualization/embeddingatlas/renderer/webgpu_renderer/deriche.js`
+`packages/dashql-app/src/view/visualization/umap/renderer/webgpu_renderer/deriche.js`
 is vendored from fast-kde 0.2.2 (https://github.com/uwdata/fast-kde), used by
 the Embedding Atlas density-map kernel configuration.
 

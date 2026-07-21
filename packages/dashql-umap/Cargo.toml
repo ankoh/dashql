@@ -1,5 +1,5 @@
 # Vendored UMAP + NNDescent crates from Apple's embedding-atlas (MIT), compiled to
-# wasm32-unknown-unknown for the `VISUALIZE ... USING embeddingatlas` renderer.
+# wasm32-unknown-unknown for the `VISUALIZE ... USING umap` renderer.
 #
 # The upstream `gpu` (wgpu → WebGPU) feature is vendored in: gpu.rs / nn_descent_gpu.rs /
 # gpu_optimize.rs plus the WGSL shaders accelerate the kNN and layout phases when the host

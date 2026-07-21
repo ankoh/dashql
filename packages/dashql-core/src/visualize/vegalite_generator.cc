@@ -621,11 +621,11 @@ std::string GenerateVegaLiteSpec(const VisualizationSpec& spec, const AnalyzedSc
     return sb.GetString();
 }
 
-std::string GenerateEmbeddingAtlasSpec(const VisualizationSpec& spec, const AnalyzedScript& script) {
-    if (!spec.embeddingatlas.has_value()) {
+std::string GenerateUmapSpec(const VisualizationSpec& spec, const AnalyzedScript& script) {
+    if (!spec.umap.has_value()) {
         return {};
     }
-    const auto& ea = *spec.embeddingatlas;
+    const auto& um = *spec.umap;
 
     rapidjson::StringBuffer sb;
     rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
@@ -633,28 +633,29 @@ std::string GenerateEmbeddingAtlasSpec(const VisualizationSpec& spec, const Anal
 
     writer.StartObject();
 
-    if (ea.vector_expression_id.has_value()) {
-        std::string name = ResolveFieldName(script, *ea.vector_expression_id);
+    if (um.vector_expression_id.has_value()) {
+        std::string name = ResolveFieldName(script, *um.vector_expression_id);
         writer.Key("vectorColumn");
         writer.String(name.c_str());
     }
-    if (ea.category_expression_id.has_value()) {
-        std::string name = ResolveFieldName(script, *ea.category_expression_id);
+    if (um.category_expression_id.has_value()) {
+        std::string name = ResolveFieldName(script, *um.category_expression_id);
         writer.Key("categoryColumn");
         writer.String(name.c_str());
     }
-    if (ea.label_expression_id.has_value()) {
-        std::string name = ResolveFieldName(script, *ea.label_expression_id);
+    if (um.label_expression_id.has_value()) {
+        std::string name = ResolveFieldName(script, *um.label_expression_id);
         writer.Key("labelColumn");
         writer.String(name.c_str());
     }
 
     writer.Key("projection");
     writer.StartObject();
-    const auto& proj = ea.projection;
-    // Default the method to `umap` so the runtime always has an explicit projection.
+    const auto& proj = um.projection;
+    // The umap renderer always projects with UMAP; record it explicitly so the runtime
+    // has a self-describing projection spec.
     writer.Key("method");
-    writer.String(proj.method.has_value() ? std::string(*proj.method).c_str() : "umap");
+    writer.String("umap");
     if (proj.metric.has_value()) {
         writer.Key("metric");
         writer.String(std::string(*proj.metric).c_str());

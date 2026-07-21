@@ -1,5 +1,5 @@
 # Vendored UMAP + NNDescent (Apple embedding-atlas, MIT) compiled to wasm32 and run
-# through wasm-bindgen for the `VISUALIZE ... USING embeddingatlas` renderer.
+# through wasm-bindgen for the `VISUALIZE ... USING umap` renderer.
 #
 #   nndescent      (rust_library, CPU)   ── native tests only
 #   umap           (rust_library, CPU)   ── native tests only

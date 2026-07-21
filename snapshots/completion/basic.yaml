@@ -277,6 +277,12 @@ completion-snapshots:
           type: colref/unresolved
           statement-id: 0
           text: "attr2"
+      inferred-tables:
+        - name: tab
+          confidence: confident
+          columns:
+            - name: attr2
+              confidence: confident
     cursor:
       search:
         text: tab

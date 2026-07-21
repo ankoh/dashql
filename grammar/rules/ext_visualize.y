@@ -28,7 +28,7 @@ vis_visualise_keyword:
 // The visualization renderer named after `USING` is a closed keyword set. Rather than
 // reduce it to a shared `vis_renderer` nonterminal (which would erase the lookahead the
 // parser needs to pick the renderer-specific spec body), each renderer keyword is inlined
-// as a terminal so `USING vegalite (...)` and `USING embeddingatlas (...)` branch to their
+// as a terminal so `USING vegalite (...)` and `USING umap (...)` branch to their
 // own spec grammar. Adding a future renderer is a new alternative here plus its spec rules.
 vis_visualise_stmt:
     vis_visualise_keyword vis_opt_source USING VEGALITE LRB vis_spec_list RRB {
@@ -44,7 +44,7 @@ vis_visualise_stmt:
                  ctx.Object(@6, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($6), false)),
         }, false);
     }
-  | vis_visualise_keyword vis_opt_source USING EMBEDDINGATLAS LRB vis_ea_spec_list RRB {
+  | vis_visualise_keyword vis_opt_source USING UMAP LRB vis_umap_spec_list RRB {
         if (!ctx.IsVisEnabled()) {
             error(@1, "VISUALISE syntax is disabled in this ParseContext");
             YYERROR;
@@ -54,7 +54,7 @@ vis_visualise_stmt:
             Attr(Key::VIS_VISUALISE_SELECT, $2),
             Attr(Key::VIS_VISUALISE_USING, ctx.NameFromKeyword(@4, $4)),
             Attr(Key::VIS_VISUALISE_SPEC,
-                 ctx.Object(@6, buffers::parser::NodeType::OBJECT_VIS_EA_SPEC, std::move($6), false)),
+                 ctx.Object(@6, buffers::parser::NodeType::OBJECT_VIS_UMAP_SPEC, std::move($6), false)),
         }, false);
     }
   | vis_visualise_keyword vis_opt_source {
@@ -79,91 +79,68 @@ vis_opt_source:
     ;
 
 // ---------------------------------------------------------------------------
-// embeddingatlas renderer spec
+// umap renderer spec
 //
 // Shape:
-//   VISUALIZE t USING embeddingatlas (
-//       vector   => embedding,          -- required: column holding the high-dim vectors
-//       category => cluster_id,          -- optional: column → category color index
-//       label    => customer_name,       -- optional: column shown in the tooltip
-//       project  => (                     -- optional: projection sub-spec (UMAP defaults)
-//           method    => umap,
-//           neighbors => 15,
-//           min_dist  => 0.1,
-//           metric    => cosine
-//       )
+//   VISUALIZE t USING umap (
+//       vector    => embedding,          -- required: column holding the high-dim vectors
+//       category  => cluster_id,          -- optional: column → category color index
+//       label     => customer_name,       -- optional: column shown in the tooltip
+//       neighbors => 15,                   -- optional: UMAP nNeighbors
+//       min_dist  => 0.1,                  -- optional: UMAP minDist
+//       metric    => cosine                -- optional: distance metric
 //   )
 //
-// The analyzer records only column names + projection params; the 2D projection
-// itself runs client-side at render time (see the embeddingatlas vis renderer).
+// The analyzer records only column names + projection params; the 2D UMAP projection
+// itself runs client-side at render time (see the umap vis renderer).
 
-vis_ea_spec_list:
-    vis_ea_spec_list COMMA opt_vis_ea_spec_field  { $1->push_back($3); $$ = std::move($1); }
-  | opt_vis_ea_spec_field                         { $$ = ctx.List({$1}); }
+vis_umap_spec_list:
+    vis_umap_spec_list COMMA opt_vis_umap_spec_field  { $1->push_back($3); $$ = std::move($1); }
+  | opt_vis_umap_spec_field                           { $$ = ctx.List({$1}); }
     ;
 
-opt_vis_ea_spec_field:
-    PROJECT EQUALS_GREATER LRB vis_ea_project_list RRB {
-        $$ = Attr(Key::VIS_EA_SPEC_PROJECT,
-             ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_EA_PROJECT, std::move($4), false));
+opt_vis_umap_spec_field:
+    METRIC EQUALS_GREATER vis_umap_metric {
+        $$ = Attr(Key::VIS_UMAP_SPEC_METRIC, $3);
     }
-  | vis_ea_spec_key EQUALS_GREATER vis_ea_column {
+  | vis_umap_spec_num_key EQUALS_GREATER vis_umap_number {
+        $$ = Attr($1, $3);
+    }
+  | vis_umap_spec_col_key EQUALS_GREATER vis_umap_column {
         $$ = Attr($1, $3);
     }
   | %empty { $$ = Null(); }
     ;
 
-vis_ea_spec_key:
-    VECTOR    { $$ = Key::VIS_EA_SPEC_VECTOR; }
-  | CATEGORY  { $$ = Key::VIS_EA_SPEC_CATEGORY; }
-  | LABEL     { $$ = Key::VIS_EA_SPEC_LABEL; }
+vis_umap_spec_col_key:
+    VECTOR    { $$ = Key::VIS_UMAP_SPEC_VECTOR; }
+  | CATEGORY  { $$ = Key::VIS_UMAP_SPEC_CATEGORY; }
+  | LABEL     { $$ = Key::VIS_UMAP_SPEC_LABEL; }
     ;
 
-// A column reference in the embeddingatlas spec (`embedding`, `t.embedding`) or a
+vis_umap_spec_num_key:
+    NEIGHBORS  { $$ = Key::VIS_UMAP_SPEC_NEIGHBORS; }
+  | MIN_DIST   { $$ = Key::VIS_UMAP_SPEC_MIN_DIST; }
+    ;
+
+// A column reference in the umap spec (`embedding`, `t.embedding`) or a
 // function expression over one (e.g. a cast), mirroring vega-lite field defs.
-vis_ea_column:
+vis_umap_column:
     sql_columnref  { $$ = $1; }
   | sql_func_expr  { $$ = $1; }
     ;
 
-vis_ea_project_list:
-    vis_ea_project_list COMMA opt_vis_ea_project_field  { $1->push_back($3); $$ = std::move($1); }
-  | opt_vis_ea_project_field                            { $$ = ctx.List({$1}); }
-    ;
-
-opt_vis_ea_project_field:
-    METHOD EQUALS_GREATER vis_ea_project_method {
-        $$ = Attr(Key::VIS_EA_PROJECT_METHOD, $3);
-    }
-  | METRIC EQUALS_GREATER vis_ea_project_metric {
-        $$ = Attr(Key::VIS_EA_PROJECT_METRIC, $3);
-    }
-  | vis_ea_project_key EQUALS_GREATER vis_ea_number {
-        $$ = Attr($1, $3);
-    }
-  | %empty { $$ = Null(); }
-    ;
-
-vis_ea_project_key:
-    NEIGHBORS  { $$ = Key::VIS_EA_PROJECT_NEIGHBORS; }
-  | MIN_DIST   { $$ = Key::VIS_EA_PROJECT_MIN_DIST; }
-    ;
-
-// Closed keyword value-sets: the parser validates the projection method / metric and
-// offers them for autocompletion. Each yields a NAME node carrying the keyword text,
-// which the analyzer reads back (no dedicated enum type needed).
-vis_ea_project_method:
-    UMAP  { $$ = ctx.NameFromKeyword(@1, $1); }
-    ;
-
-vis_ea_project_metric:
+// Closed keyword value-set: the parser validates the distance metric and offers it
+// for autocompletion. Yields a NAME node carrying the keyword text, which the
+// analyzer reads back (no dedicated enum type needed).
+vis_umap_metric:
     COSINE     { $$ = ctx.NameFromKeyword(@1, $1); }
   | EUCLIDEAN  { $$ = ctx.NameFromKeyword(@1, $1); }
     ;
 
 // Numeric projection parameters. Deliberately omits the nested-object production of
-// `vis_value` so the embeddingatlas grammar stays decoupled from the vega-lite body.
-vis_ea_number:
+// `vis_value` so the umap grammar stays decoupled from the vega-lite body.
+vis_umap_number:
     sql_a_expr_const                       { $$ = ctx.Expression(std::move($1)); }
   | PLUS sql_a_expr_const %prec UMINUS     { $$ = ctx.Expression(std::move($2)); }
   | MINUS sql_a_expr_const %prec UMINUS    { $$ = Negate(ctx, @$, @1, ctx.Expression(std::move($2))); }

@@ -811,7 +811,7 @@ visualize-snapshots:
         height => 400
       );
 
-  - name: vis_ea_minimal
+  - name: vis_umap_minimal
     catalog:
       script:
         input: |-
@@ -837,10 +837,10 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE embeddings USING embeddingatlas (
+        VISUALIZE embeddings USING umap (
           vector => embedding
         );
-    embeddingatlas: |-
+    umap: |-
       {
         "vectorColumn": "embedding",
         "projection": {
@@ -848,7 +848,7 @@ visualize-snapshots:
         }
       }
 
-  - name: vis_ea_category_label
+  - name: vis_umap_category_label
     catalog:
       script:
         input: |-
@@ -874,12 +874,12 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE embeddings USING embeddingatlas (
+        VISUALIZE embeddings USING umap (
           vector => embedding,
           category => cluster_id,
           label => name
         );
-    embeddingatlas: |-
+    umap: |-
       {
         "vectorColumn": "embedding",
         "categoryColumn": "cluster_id",
@@ -889,7 +889,7 @@ visualize-snapshots:
         }
       }
 
-  - name: vis_ea_projection
+  - name: vis_umap_projection
     catalog:
       script:
         input: |-
@@ -915,17 +915,14 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE embeddings USING embeddingatlas (
+        VISUALIZE embeddings USING umap (
           vector => embedding,
           category => cluster_id,
-          project => (
-            method => umap,
-            neighbors => 15,
-            min_dist => 0.1,
-            metric => cosine
-          )
+          neighbors => 15,
+          min_dist => 0.1,
+          metric => cosine
         );
-    embeddingatlas: |-
+    umap: |-
       {
         "vectorColumn": "embedding",
         "categoryColumn": "cluster_id",
@@ -937,7 +934,7 @@ visualize-snapshots:
         }
       }
 
-  - name: vis_ea_select_source
+  - name: vis_umap_select_source
     catalog:
       script:
         input: |-
@@ -963,11 +960,11 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        VISUALIZE (SELECT embedding, cluster_id FROM embeddings) USING embeddingatlas (
+        VISUALIZE (SELECT embedding, cluster_id FROM embeddings) USING umap (
           vector => embedding,
           category => cluster_id
         );
-    embeddingatlas: |-
+    umap: |-
       {
         "vectorColumn": "embedding",
         "categoryColumn": "cluster_id",

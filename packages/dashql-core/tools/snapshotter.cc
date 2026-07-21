@@ -797,20 +797,20 @@ static void generate_visualize_snapshots(const std::filesystem::path& snapshot_d
             if (analyzed.visualization_specs.IsEmpty()) continue;
 
             auto& spec = analyzed.visualization_specs[0];
-            bool is_embeddingatlas = spec.renderer.has_value() && *spec.renderer == "embeddingatlas";
+            bool is_umap = spec.renderer.has_value() && *spec.renderer == "umap";
 
             auto test_ref = tree.ref(test_node.id());
             // Stale keys from either renderer are cleared so switching a test's renderer
             // does not leave orphaned output behind.
             if (test_ref.has_child("vegalite")) test_ref.remove_child("vegalite");
             if (test_ref.has_child("roundtrip")) test_ref.remove_child("roundtrip");
-            if (test_ref.has_child("embeddingatlas")) test_ref.remove_child("embeddingatlas");
+            if (test_ref.has_child("umap")) test_ref.remove_child("umap");
 
-            if (is_embeddingatlas) {
-                std::string ea_json = visualize::GenerateEmbeddingAtlasSpec(spec, analyzed);
-                auto ea_node = test_ref.append_child();
-                ea_node << c4::yml::key("embeddingatlas") << ea_json;
-                ea_node.set_val_style(c4::yml::VAL_LITERAL);
+            if (is_umap) {
+                std::string umap_json = visualize::GenerateUmapSpec(spec, analyzed);
+                auto umap_node = test_ref.append_child();
+                umap_node << c4::yml::key("umap") << umap_json;
+                umap_node.set_val_style(c4::yml::VAL_LITERAL);
             } else {
                 std::string vegalite_json = visualize::GenerateVegaLiteSpec(spec, analyzed);
                 std::string roundtrip = visualize::ParseVegaLiteToVisualize(vegalite_json);

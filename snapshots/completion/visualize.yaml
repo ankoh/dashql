@@ -139,7 +139,7 @@ completion-snapshots:
           location-qualified: "veg"
           objects: []
         - score: 0
-          value: embeddingatlas
+          value: umap
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
           location: "veg"
           location-qualified: "veg"
@@ -176,7 +176,7 @@ completion-snapshots:
       strategy: DEFAULT
       entries:
         - score: 0
-          value: embeddingatlas
+          value: umap
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
           location: ""
           location-qualified: ""

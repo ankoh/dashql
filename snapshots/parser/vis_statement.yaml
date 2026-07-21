@@ -1731,9 +1731,9 @@ parser-snapshots:
       line-breaks: []
       comments: []
 
-  - name: vis_statement_ea_minimal
+  - name: vis_statement_umap_minimal
     input: |-
-      VISUALIZE embeddings USING embeddingatlas (vector => embedding);
+      VISUALIZE embeddings USING umap (vector => embedding);
     expected:
       statements:
         - type: VIS_VISUALISE
@@ -1755,12 +1755,12 @@ parser-snapshots:
                         text: "embeddings"
               - key: VIS_VISUALISE_USING
                 type: NAME
-                text: "embeddingatlas"
+                text: "umap"
               - key: VIS_VISUALISE_SPEC
-                type: OBJECT_VIS_EA_SPEC
+                type: OBJECT_VIS_UMAP_SPEC
                 text: "vector => embedding"
                 children:
-                  - key: VIS_EA_SPEC_VECTOR
+                  - key: VIS_UMAP_SPEC_VECTOR
                     type: OBJECT_SQL_COLUMN_REF
                     text: "embedding"
                     children:
@@ -1775,9 +1775,9 @@ parser-snapshots:
       line-breaks: []
       comments: []
 
-  - name: vis_statement_ea_category_label
+  - name: vis_statement_umap_category_label
     input: |-
-      VISUALIZE embeddings USING embeddingatlas (
+      VISUALIZE embeddings USING umap (
         vector => embedding,
         category => cluster_id,
         label => name
@@ -1803,12 +1803,12 @@ parser-snapshots:
                         text: "embeddings"
               - key: VIS_VISUALISE_USING
                 type: NAME
-                text: "embeddingatlas"
+                text: "umap"
               - key: VIS_VISUALISE_SPEC
-                type: OBJECT_VIS_EA_SPEC
+                type: OBJECT_VIS_UMAP_SPEC
                 text: "vector => ..el => name"
                 children:
-                  - key: VIS_EA_SPEC_VECTOR
+                  - key: VIS_UMAP_SPEC_VECTOR
                     type: OBJECT_SQL_COLUMN_REF
                     text: "embedding"
                     children:
@@ -1818,7 +1818,7 @@ parser-snapshots:
                         children:
                           - type: NAME
                             text: "embedding"
-                  - key: VIS_EA_SPEC_CATEGORY
+                  - key: VIS_UMAP_SPEC_CATEGORY
                     type: OBJECT_SQL_COLUMN_REF
                     text: "cluster_id"
                     children:
@@ -1828,7 +1828,7 @@ parser-snapshots:
                         children:
                           - type: NAME
                             text: "cluster_id"
-                  - key: VIS_EA_SPEC_LABEL
+                  - key: VIS_UMAP_SPEC_LABEL
                     type: OBJECT_SQL_COLUMN_REF
                     text: "name"
                     children:
@@ -1841,32 +1841,29 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [43,44]
-        - text: [66,67]
-        - text: [92,93]
-        - text: [108,109]
+        - text: [33,34]
+        - text: [56,57]
+        - text: [82,83]
+        - text: [98,99]
       comments: []
 
-  - name: vis_statement_ea_projection
+  - name: vis_statement_umap_projection
     input: |-
-      VISUALIZE embeddings USING embeddingatlas (
+      VISUALIZE embeddings USING umap (
         vector => embedding,
         category => cluster_id,
-        project => (
-          method => umap,
-          neighbors => 15,
-          min_dist => 0.1,
-          metric => cosine
-        )
+        neighbors => 15,
+        min_dist => 0.1,
+        metric => cosine
       );
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 17
+          ast-size: 15
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..sine\n  )\n)"
+            text: "VISUALIZE ..> cosine\n)"
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_TABLEREF
@@ -1880,12 +1877,12 @@ parser-snapshots:
                         text: "embeddings"
               - key: VIS_VISUALISE_USING
                 type: NAME
-                text: "embeddingatlas"
+                text: "umap"
               - key: VIS_VISUALISE_SPEC
-                type: OBJECT_VIS_EA_SPEC
-                text: "vector => ..cosine\n  )"
+                type: OBJECT_VIS_UMAP_SPEC
+                text: "vector => .. => cosine"
                 children:
-                  - key: VIS_EA_SPEC_VECTOR
+                  - key: VIS_UMAP_SPEC_VECTOR
                     type: OBJECT_SQL_COLUMN_REF
                     text: "embedding"
                     children:
@@ -1895,7 +1892,7 @@ parser-snapshots:
                         children:
                           - type: NAME
                             text: "embedding"
-                  - key: VIS_EA_SPEC_CATEGORY
+                  - key: VIS_UMAP_SPEC_CATEGORY
                     type: OBJECT_SQL_COLUMN_REF
                     text: "cluster_id"
                     children:
@@ -1905,39 +1902,29 @@ parser-snapshots:
                         children:
                           - type: NAME
                             text: "cluster_id"
-                  - key: VIS_EA_SPEC_PROJECT
-                    type: OBJECT_VIS_EA_PROJECT
-                    text: "project =>..cosine\n  )"
-                    children:
-                      - key: VIS_EA_PROJECT_METHOD
-                        type: NAME
-                        text: "umap"
-                      - key: VIS_EA_PROJECT_NEIGHBORS
-                        type: LITERAL_INTEGER
-                        text: "15"
-                      - key: VIS_EA_PROJECT_MIN_DIST
-                        type: LITERAL_FLOAT
-                        text: "0.1"
-                      - key: VIS_EA_PROJECT_METRIC
-                        type: NAME
-                        text: "cosine"
+                  - key: VIS_UMAP_SPEC_NEIGHBORS
+                    type: LITERAL_INTEGER
+                    text: "15"
+                  - key: VIS_UMAP_SPEC_MIN_DIST
+                    type: LITERAL_FLOAT
+                    text: "0.1"
+                  - key: VIS_UMAP_SPEC_METRIC
+                    type: NAME
+                    text: "cosine"
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [43,44]
-        - text: [66,67]
-        - text: [92,93]
-        - text: [107,108]
-        - text: [127,128]
-        - text: [148,149]
-        - text: [169,170]
-        - text: [190,191]
-        - text: [194,195]
+        - text: [33,34]
+        - text: [56,57]
+        - text: [82,83]
+        - text: [101,102]
+        - text: [120,121]
+        - text: [139,140]
       comments: []
 
-  - name: vis_statement_ea_select_source
+  - name: vis_statement_umap_select_source
     input: |-
-      VISUALIZE (SELECT embedding FROM embeddings) USING embeddingatlas (vector => embedding);
+      VISUALIZE (SELECT embedding FROM embeddings) USING umap (vector => embedding);
     expected:
       statements:
         - type: VIS_VISUALISE
@@ -1983,12 +1970,12 @@ parser-snapshots:
                                 text: "embeddings"
               - key: VIS_VISUALISE_USING
                 type: NAME
-                text: "embeddingatlas"
+                text: "umap"
               - key: VIS_VISUALISE_SPEC
-                type: OBJECT_VIS_EA_SPEC
+                type: OBJECT_VIS_UMAP_SPEC
                 text: "vector => embedding"
                 children:
-                  - key: VIS_EA_SPEC_VECTOR
+                  - key: VIS_UMAP_SPEC_VECTOR
                     type: OBJECT_SQL_COLUMN_REF
                     text: "embedding"
                     children:
@@ -2003,21 +1990,21 @@ parser-snapshots:
       line-breaks: []
       comments: []
 
-  - name: vis_statement_ea_keywords_as_columns
+  - name: vis_statement_umap_keywords_as_columns
     input: |-
-      SELECT vector, category, neighbors, min_dist, metric, umap, project, embeddingatlas FROM t;
+      SELECT vector, category, neighbors, min_dist, metric, umap FROM t;
     expected:
       statements:
         - type: SELECT
           ast-begin: 0
-          ast-size: 38
+          ast-size: 30
           ast:
             type: OBJECT_SQL_SELECT
-            text: "SELECT vec..las FROM t"
+            text: "SELECT vec..map FROM t"
             children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
-                text: "vector, ca..ddingatlas"
+                text: "vector, ca..tric, umap"
                 children:
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "vector"
@@ -2097,32 +2084,6 @@ parser-snapshots:
                             children:
                               - type: NAME
                                 text: "umap"
-                  - type: OBJECT_SQL_RESULT_TARGET
-                    text: "project"
-                    children:
-                      - key: SQL_RESULT_TARGET_VALUE
-                        type: OBJECT_SQL_COLUMN_REF
-                        text: "project"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "project"
-                            children:
-                              - type: NAME
-                                text: "project"
-                  - type: OBJECT_SQL_RESULT_TARGET
-                    text: "embeddingatlas"
-                    children:
-                      - key: SQL_RESULT_TARGET_VALUE
-                        type: OBJECT_SQL_COLUMN_REF
-                        text: "embeddingatlas"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "embeddingatlas"
-                            children:
-                              - type: NAME
-                                text: "embeddingatlas"
               - key: SQL_SELECT_FROM
                 type: ARRAY
                 text: "FROM t"

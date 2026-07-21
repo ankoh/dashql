@@ -221,6 +221,12 @@ completion-snapshots:
                                 text: "x"
                       - type: LITERAL_INTEGER
                         text: "1"
+      inferred-tables:
+        - name: foo
+          confidence: confident
+          columns:
+            - name: x
+              confidence: confident
     cursor:
       search:
         text: "and "
@@ -295,6 +301,12 @@ completion-snapshots:
                                 text: "x"
                       - type: LITERAL_INTEGER
                         text: "1"
+      inferred-tables:
+        - name: foo
+          confidence: confident
+          columns:
+            - name: x
+              confidence: confident
     cursor:
       search:
         text: "or "

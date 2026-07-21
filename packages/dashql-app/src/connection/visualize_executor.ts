@@ -3,7 +3,7 @@ import type { TopLevelSpec } from 'vega-lite';
 import * as buffers from '../core/buffers.js';
 import { resolveSymbolSpan } from '../core/tokens.js';
 import { ResolvedVisualizeQuery } from '../notebook/notebook_types.js';
-import { parseEmbeddingAtlasSpec } from '../view/visualization/embeddingatlas/embeddingatlas_spec.js';
+import { parseUmapSpec } from '../view/visualization/umap/umap_spec.js';
 import { DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
 
 /// Looks up a script's text by its (folder, file) coordinates.
@@ -106,12 +106,12 @@ export function resolveVisualizeQuery(
     // Branch on the renderer named after `USING`. Each renderer stores its own
     // spec string on the analyzed VisualizationSpec.
     switch (renderer) {
-        case 'embeddingatlas': {
-            const raw = spec.embeddingatlasSpec();
+        case 'umap': {
+            const raw = spec.umapSpec();
             if (!raw) return null;
-            const embeddingAtlasSpec = parseEmbeddingAtlasSpec(raw);
-            if (!embeddingAtlasSpec) return null;
-            return { renderer: 'embeddingatlas', sql, embeddingAtlasSpec };
+            const umapSpec = parseUmapSpec(raw);
+            if (!umapSpec) return null;
+            return { renderer: 'umap', sql, umapSpec };
         }
         case 'vegalite':
         default: {
