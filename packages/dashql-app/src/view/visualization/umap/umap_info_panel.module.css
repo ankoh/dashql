@@ -1,0 +1,66 @@
+:root {
+    --umap_panel_border: hsl(210deg 17.5% 84.31%);
+    --umap_panel_fg: hsl(208.5deg 24.69% 31.76%);
+    --umap_panel_muted: hsl(210, 10%, 55%);
+    --umap_card_bg: hsla(0, 0%, 100%, 0.92);
+}
+
+/* Full-bleed overlay layer above the canvas. Pointer-transparent so pan/zoom/pick still reach the
+   canvas; only the attribute card (which opts back in) captures events. */
+.overlays {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    font-size: 0.75rem;
+    color: var(--umap_panel_fg);
+}
+
+/* Selected point attributes, anchored bottom-left as a floating card. Scrolls internally when it
+   has many columns; capped so it never covers the whole canvas. The bottom-right is left clear for
+   the zoom controls. */
+.attribute_card {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    max-width: min(60%, 320px);
+    max-height: 80%;
+    overflow: auto;
+    padding: 8px 10px;
+    border: 1px solid var(--umap_panel_border);
+    border-radius: 8px;
+    background-color: var(--umap_card_bg);
+    backdrop-filter: blur(2px);
+    pointer-events: auto;
+}
+
+.attributes_grid {
+    display: grid;
+    grid-template-columns: max-content auto;
+    column-gap: 16px;
+    row-gap: 2px;
+    align-items: baseline;
+}
+
+.attribute_key {
+    font-weight: 500;
+    color: var(--umap_panel_muted);
+    white-space: nowrap;
+}
+
+.attribute_value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.attribute_null {
+    color: var(--umap_panel_muted);
+    font-style: italic;
+}
+
+.attribute_placeholder {
+    color: var(--umap_panel_muted);
+    font-style: italic;
+}

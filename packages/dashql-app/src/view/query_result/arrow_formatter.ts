@@ -257,6 +257,199 @@ export interface ArrowColumnFormatter {
     getValue(batch: number, row: number): (string | null);
 }
 
+/// A per-value formatter for a single Arrow field: maps a (non-null) cell value to its display
+/// string, plus the CSS class the data-table uses for that value's alignment/appearance.
+export interface ArrowValueFormatter {
+    /// Format a single cell value. Callers pass the raw Arrow value; `null`/`undefined` map to null.
+    format: (value: unknown) => string | null;
+    /// The value CSS class (number vs. text alignment) matching the field's type.
+    valueClassName: string;
+}
+
+/// Build a value formatter for an Arrow field. This is the single source of truth for how each
+/// Arrow type renders as text — `ArrowTextColumnFormatter` uses it per column, and callers that
+/// need to format an individual cell (e.g. the UMAP selected-point attributes) reuse it directly
+/// instead of hand-rolling per-type stringification.
+export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike): ArrowValueFormatter {
+    // The default: an unknown/unsupported type renders as empty text.
+    let valueClassName = styles.data_value_text;
+    let formatter: (o: any) => (null | string) = _ => "";
+
+    switch (field.type.typeId) {
+        case arrow.Type.Int:
+        case arrow.Type.Int16:
+        case arrow.Type.Int32:
+        case arrow.Type.Int64:
+        case arrow.Type.Float:
+        case arrow.Type.Float16:
+        case arrow.Type.Float32:
+        case arrow.Type.Float64: {
+            valueClassName = styles.data_value_number;
+            const fmt = Intl.NumberFormat('en-US');
+            formatter = (v: number) => (v == null ? null : fmt.format(v));
+            break;
+        }
+        case arrow.Type.Decimal: {
+            valueClassName = styles.data_value_number;
+            const decimalType = field.type as arrow.Decimal;
+            formatter = (v: any) => {
+                const i = Int128.decodeLE(v);
+                return Decimal128.format(i, decimalType.scale);
+            }
+            break;
+        }
+        case arrow.Type.Utf8:
+        case arrow.Type.LargeUtf8:
+            valueClassName = styles.data_value_text;
+            formatter = (v: string) => v || null;
+            break;
+        case arrow.Type.Bool: {
+            valueClassName = styles.data_value_text;
+            formatter = (v: boolean) => (v == null ? null : v ? 'true' : 'false');
+            break;
+        }
+        case arrow.Type.Null: {
+            formatter = () => null;
+            break;
+        }
+        case arrow.Type.Binary:
+        case arrow.Type.LargeBinary:
+        case arrow.Type.FixedSizeBinary: {
+            valueClassName = styles.data_value_text;
+            formatter = (v: Uint8Array) => (v == null ? null : formatBinary(v));
+            break;
+        }
+        case arrow.Type.Time:
+        case arrow.Type.TimeSecond:
+        case arrow.Type.TimeMillisecond:
+        case arrow.Type.TimeMicrosecond:
+        case arrow.Type.TimeNanosecond: {
+            valueClassName = styles.data_value_text;
+            const timeType = field.type as arrow.Time;
+            formatter = (v: number | bigint) => (v == null ? null : formatTime(v, timeType.unit));
+            break;
+        }
+        case arrow.Type.Timestamp:
+        case arrow.Type.TimestampSecond:
+        case arrow.Type.TimestampMillisecond:
+        case arrow.Type.TimestampMicrosecond:
+        case arrow.Type.TimestampNanosecond: {
+            valueClassName = styles.data_value_text;
+            const type = field.type as arrow.Timestamp;
+            const fmt = Intl.DateTimeFormat('en-US', { dateStyle: 'short', timeStyle: 'medium' });
+            switch (type.unit) {
+                case arrow.TimeUnit.SECOND:
+                    formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(v) * 1000)));
+                    break;
+                case arrow.TimeUnit.MILLISECOND:
+                    formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(v))));
+                    break;
+                case arrow.TimeUnit.MICROSECOND:
+                    formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(typeof v === 'bigint' ? v / 1000n : v / 1000))));
+                    break;
+                case arrow.TimeUnit.NANOSECOND:
+                    formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(typeof v === 'bigint' ? v / 1000000n : v / 1000 / 1000))));
+                    break;
+            }
+            break;
+        }
+        case arrow.Type.DateMillisecond:
+        case arrow.Type.DateDay:
+        case arrow.Type.Date: {
+            valueClassName = styles.data_value_text;
+            const fmt = Intl.DateTimeFormat('en-US', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+            });
+            formatter = (v: number) => (v == null ? null : fmt.format(v));
+            break;
+        }
+        case arrow.Type.Duration:
+        case arrow.Type.DurationSecond:
+        case arrow.Type.DurationMillisecond:
+        case arrow.Type.DurationMicrosecond:
+        case arrow.Type.DurationNanosecond: {
+            valueClassName = styles.data_value_text;
+            const durationType = field.type as arrow.Duration;
+            formatter = (v: bigint) => {
+                if (v == null) return null;
+                return formatDuration(v, durationType.unit);
+            };
+            break;
+        }
+        case arrow.Type.List:
+        case arrow.Type.FixedSizeList: {
+            valueClassName = styles.data_value_text;
+            formatter = (v: arrow.Vector) => {
+                if (v == null) return null;
+                return formatList(v);
+            };
+            break;
+        }
+        case arrow.Type.Struct: {
+            valueClassName = styles.data_value_text;
+            formatter = (v: any) => {
+                if (v == null) return null;
+                return formatStruct(v);
+            };
+            break;
+        }
+        case arrow.Type.Map: {
+            valueClassName = styles.data_value_text;
+            formatter = (v: any) => {
+                if (v == null) return null;
+                return formatStruct(v);
+            };
+            break;
+        }
+        case arrow.Type.Interval:
+        case arrow.Type.IntervalDayTime:
+        case arrow.Type.IntervalYearMonth:
+        case arrow.Type.IntervalMonthDayNano: {
+            valueClassName = styles.data_value_text;
+            const intervalType = field.type;
+            formatter = (v: any) => {
+                if (v == null) return null;
+                return formatInterval(v, intervalType.typeId);
+            };
+            break;
+        }
+        case arrow.Type.Union:
+        case arrow.Type.DenseUnion:
+        case arrow.Type.SparseUnion: {
+            valueClassName = styles.data_value_text;
+            formatter = (v: any) => {
+                if (v == null) return null;
+                if (typeof v === 'string') return v;
+                if (typeof v === 'number' || typeof v === 'bigint') return String(v);
+                return JSON.stringify(v);
+            };
+            break;
+        }
+        case arrow.Type.Dictionary: {
+            // Dictionary values are decoded to their actual values by Arrow
+            valueClassName = styles.data_value_text;
+            formatter = (v: any) => {
+                if (v == null) return null;
+                if (typeof v === 'string') return v;
+                if (typeof v === 'number' || typeof v === 'bigint') return String(v);
+                return String(v);
+            };
+            break;
+        }
+        default:
+            logger?.warn("unsupport column type in Arrow text formatter", {
+                typeId: field.type.toString(),
+                field: field.name.toString(),
+            }, LOG_CTX);
+            break;
+    }
+
+    return { format: (v: unknown) => (v == null ? null : formatter(v)), valueClassName };
+}
+
 export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
     readonly logger: LoggerLike;
     readonly columnId: number;
@@ -278,187 +471,16 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
         this.logger = logger;
         this.columnId = columnId;
         this.columnName = schema.fields[columnId].name;
-        this.valueClassName = styles.data_value_text;
         this.batches = batches;
         this.batchValues = Array.from({ length: batches.length }, () => null);
         this.formattedRowCount = 0;
         this.formattedLengthMax = 0;
         this.formattedLengthSum = 0;
-        this.formatter = _ => "";
 
-        // Setup the formatter
-        switch (schema.fields[columnId].type.typeId) {
-            case arrow.Type.Int:
-            case arrow.Type.Int16:
-            case arrow.Type.Int32:
-            case arrow.Type.Int64:
-            case arrow.Type.Float:
-            case arrow.Type.Float16:
-            case arrow.Type.Float32:
-            case arrow.Type.Float64: {
-                this.valueClassName = styles.data_value_number;
-                const fmt = Intl.NumberFormat('en-US');
-                this.formatter = (v: number) => (v == null ? null : fmt.format(v));
-                break;
-            }
-            case arrow.Type.Decimal: {
-                this.valueClassName = styles.data_value_number;
-                const decimalType = schema.fields[columnId].type as arrow.Decimal;
-                this.formatter = (v: any) => {
-                    const i = Int128.decodeLE(v);
-                    return Decimal128.format(i, decimalType.scale);
-                }
-                break;
-            }
-            case arrow.Type.Utf8:
-            case arrow.Type.LargeUtf8:
-                this.valueClassName = styles.data_value_text;
-                this.formatter = (v: string) => v || null;
-                break;
-            case arrow.Type.Bool: {
-                this.valueClassName = styles.data_value_text;
-                this.formatter = (v: boolean) => (v == null ? null : v ? 'true' : 'false');
-                break;
-            }
-            case arrow.Type.Null: {
-                this.formatter = () => null;
-                break;
-            }
-            case arrow.Type.Binary:
-            case arrow.Type.LargeBinary:
-            case arrow.Type.FixedSizeBinary: {
-                this.valueClassName = styles.data_value_text;
-                this.formatter = (v: Uint8Array) => (v == null ? null : formatBinary(v));
-                break;
-            }
-            case arrow.Type.Time:
-            case arrow.Type.TimeSecond:
-            case arrow.Type.TimeMillisecond:
-            case arrow.Type.TimeMicrosecond:
-            case arrow.Type.TimeNanosecond: {
-                this.valueClassName = styles.data_value_text;
-                const timeType = schema.fields[columnId].type as arrow.Time;
-                this.formatter = (v: number | bigint) => (v == null ? null : formatTime(v, timeType.unit));
-                break;
-            }
-            case arrow.Type.Timestamp:
-            case arrow.Type.TimestampSecond:
-            case arrow.Type.TimestampMillisecond:
-            case arrow.Type.TimestampMicrosecond:
-            case arrow.Type.TimestampNanosecond: {
-                this.valueClassName = styles.data_value_text;
-                const type = schema.fields[columnId].type as arrow.Timestamp;
-                const fmt = Intl.DateTimeFormat('en-US', { dateStyle: 'short', timeStyle: 'medium' });
-                switch (type.unit) {
-                    case arrow.TimeUnit.SECOND:
-                        this.formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(v) * 1000)));
-                        break;
-                    case arrow.TimeUnit.MILLISECOND:
-                        this.formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(v))));
-                        break;
-                    case arrow.TimeUnit.MICROSECOND:
-                        this.formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(typeof v === 'bigint' ? v / 1000n : v / 1000))));
-                        break;
-                    case arrow.TimeUnit.NANOSECOND:
-                        this.formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(typeof v === 'bigint' ? v / 1000000n : v / 1000 / 1000))));
-                        break;
-                }
-                break;
-            }
-            case arrow.Type.DateMillisecond:
-            case arrow.Type.DateDay:
-            case arrow.Type.Date: {
-                this.valueClassName = styles.data_value_text;
-                const fmt = Intl.DateTimeFormat('en-US', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                });
-                this.formatter = (v: number) => (v == null ? null : fmt.format(v));
-                break;
-            }
-            case arrow.Type.Duration:
-            case arrow.Type.DurationSecond:
-            case arrow.Type.DurationMillisecond:
-            case arrow.Type.DurationMicrosecond:
-            case arrow.Type.DurationNanosecond: {
-                this.valueClassName = styles.data_value_text;
-                const durationType = schema.fields[columnId].type as arrow.Duration;
-                this.formatter = (v: bigint) => {
-                    if (v == null) return null;
-                    return formatDuration(v, durationType.unit);
-                };
-                break;
-            }
-            case arrow.Type.List:
-            case arrow.Type.FixedSizeList: {
-                this.valueClassName = styles.data_value_text;
-                this.formatter = (v: arrow.Vector) => {
-                    if (v == null) return null;
-                    return formatList(v);
-                };
-                break;
-            }
-            case arrow.Type.Struct: {
-                this.valueClassName = styles.data_value_text;
-                this.formatter = (v: any) => {
-                    if (v == null) return null;
-                    return formatStruct(v);
-                };
-                break;
-            }
-            case arrow.Type.Map: {
-                this.valueClassName = styles.data_value_text;
-                this.formatter = (v: any) => {
-                    if (v == null) return null;
-                    return formatStruct(v);
-                };
-                break;
-            }
-            case arrow.Type.Interval:
-            case arrow.Type.IntervalDayTime:
-            case arrow.Type.IntervalYearMonth:
-            case arrow.Type.IntervalMonthDayNano: {
-                this.valueClassName = styles.data_value_text;
-                const intervalType = schema.fields[columnId].type;
-                this.formatter = (v: any) => {
-                    if (v == null) return null;
-                    return formatInterval(v, intervalType.typeId);
-                };
-                break;
-            }
-            case arrow.Type.Union:
-            case arrow.Type.DenseUnion:
-            case arrow.Type.SparseUnion: {
-                this.valueClassName = styles.data_value_text;
-                this.formatter = (v: any) => {
-                    if (v == null) return null;
-                    if (typeof v === 'string') return v;
-                    if (typeof v === 'number' || typeof v === 'bigint') return String(v);
-                    return JSON.stringify(v);
-                };
-                break;
-            }
-            case arrow.Type.Dictionary: {
-                // Dictionary values are decoded to their actual values by Arrow
-                this.valueClassName = styles.data_value_text;
-                this.formatter = (v: any) => {
-                    if (v == null) return null;
-                    if (typeof v === 'string') return v;
-                    if (typeof v === 'number' || typeof v === 'bigint') return String(v);
-                    return String(v);
-                };
-                break;
-            }
-            default:
-                logger.warn("unsupport column type in Arrow text formatter", {
-                    columnId: columnId.toString(),
-                    typeId: schema.fields[columnId].type.toString(),
-                    field: schema.fields[columnId].name.toString(),
-                }, LOG_CTX);
-                break;
-        }
+        // Setup the formatter (shared with single-value callers via makeArrowValueFormatter).
+        const valueFormatter = makeArrowValueFormatter(schema.fields[columnId], logger);
+        this.valueClassName = valueFormatter.valueClassName;
+        this.formatter = valueFormatter.format;
     }
 
     /// We do not eagerly format all columns.

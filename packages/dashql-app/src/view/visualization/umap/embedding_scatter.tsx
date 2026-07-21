@@ -39,7 +39,23 @@ interface Props {
     /// Enable zooming with the scroll wheel. Disabled in the feed footer so the wheel scrolls the
     /// feed instead of being captured by the chart (dragging still works). Defaults to true.
     wheelZoom?: boolean;
+    /// Called with the positional index of the nearest point to a click (within a small pick
+    /// radius), or null when the click misses every point. Enabling this makes the canvas accept
+    /// pointer events even when `interactive`/`wheelZoom` are off (feed footer), so clicks/hovers
+    /// pick points while the wheel still scrolls the feed.
+    onSelectPoint?: (index: number | null) => void;
+    /// Called with the positional index of the point under the cursor on hover, or null when the
+    /// cursor leaves the canvas or hovers empty space.
+    onHoverPoint?: (index: number | null) => void;
+    /// The point to draw a highlight ring around (effective selection = hovered ?? clicked). Null
+    /// draws no ring.
+    highlightedIndex?: number | null;
 }
+
+/// Movement (CSS px) below which a pointerup counts as a click rather than a pan/drag.
+const CLICK_MOVE_THRESHOLD = 4;
+/// Pick radius (CSS px): a click/hover only selects a point within this distance on screen.
+const PICK_RADIUS = 12;
 
 /// Median of a Float32Array without mutating the input.
 function median(values: Float32Array): number {
@@ -94,6 +110,19 @@ export function EmbeddingScatter(props: Props): React.ReactElement {
     const transparent = props.transparent ?? false;
     const interactive = props.interactive ?? true;
     const wheelZoom = props.wheelZoom ?? true;
+    const { onSelectPoint, onHoverPoint } = props;
+    const highlightedIndex = props.highlightedIndex ?? null;
+    const pickable = onSelectPoint != null || onHoverPoint != null;
+
+    // CSS-pixel position of the highlight ring, recomputed whenever the viewport or the
+    // highlighted point changes. Null hides the ring.
+    const [highlightPos, setHighlightPos] = React.useState<Point | null>(null);
+
+    // The highlight ring position is recomputed from the current viewport inside syncRenderer, but
+    // syncRenderer must NOT depend on the highlighted index (that would rebuild the callback and
+    // retrigger the viewport-reset effect on every selection change). Bridge via a ref that always
+    // points at the latest refresher.
+    const refreshHighlightRef = React.useRef<() => void>(() => { });
 
     // Schedule a render on the next animation frame (coalesces bursts of prop /
     // interaction changes into a single draw).
@@ -130,7 +159,60 @@ export function EmbeddingScatter(props: Props): React.ReactElement {
             viewportScale: vp.scale,
         });
         if (needsRender) scheduleRender();
+        // Keep the highlight ring glued to its point across pan/zoom/data changes.
+        refreshHighlightRef.current();
     }, [points, colorScheme, transparent, pointSize, scheduleRender]);
+
+    // Build a Viewport for the current viewport state in CSS-pixel space (the framebuffer is
+    // DPR-scaled, but all pointer interaction here is defined in CSS pixels — see the pan handler).
+    const currentViewport = React.useCallback((): Viewport | null => {
+        const canvas = canvasRef.current;
+        if (!canvas) return null;
+        const rect = canvas.getBoundingClientRect();
+        return new Viewport(viewportRef.current, rect.width, rect.height);
+    }, []);
+
+    // Find the nearest point to a CSS-local pixel position, or null if none is within PICK_RADIUS.
+    const findNearest = React.useCallback((localX: number, localY: number): number | null => {
+        const vp = currentViewport();
+        if (!vp) return null;
+        const { x, y } = points;
+        const project = vp.pixelLocationFunction();
+        let best = -1;
+        let bestDist = PICK_RADIUS * PICK_RADIUS;
+        for (let i = 0; i < x.length; ++i) {
+            const p = project(x[i], y[i]);
+            const dx = p.x - localX;
+            const dy = p.y - localY;
+            const d = dx * dx + dy * dy;
+            if (d <= bestDist) {
+                bestDist = d;
+                best = i;
+            }
+        }
+        return best >= 0 ? best : null;
+    }, [points, currentViewport]);
+
+    // Recompute the highlight ring's screen position from the current viewport.
+    const refreshHighlight = React.useCallback(() => {
+        if (highlightedIndex == null || highlightedIndex < 0 || highlightedIndex >= points.x.length) {
+            setHighlightPos(null);
+            return;
+        }
+        const vp = currentViewport();
+        if (!vp) {
+            setHighlightPos(null);
+            return;
+        }
+        setHighlightPos(vp.pixelLocation(points.x[highlightedIndex], points.y[highlightedIndex]));
+    }, [highlightedIndex, points, currentViewport]);
+
+    // Publish the latest refresher to the ref syncRenderer reads, and refresh once now so the ring
+    // tracks a selection change even without a viewport update.
+    React.useEffect(() => {
+        refreshHighlightRef.current = refreshHighlight;
+        refreshHighlight();
+    }, [refreshHighlight]);
 
     // Device + renderer lifecycle. Re-runs only on mount/unmount; data changes
     // are pushed through syncRenderer without rebuilding the GPU pipeline.
@@ -331,6 +413,57 @@ export function EmbeddingScatter(props: Props): React.ReactElement {
         syncRenderer();
     }, [syncRenderer]);
 
+    // Hover picking: report the nearest point under the cursor, throttled to one lookup per frame
+    // so a fast mousemove doesn't run the O(N) search many times per frame.
+    const hoverFrameRef = React.useRef<number | null>(null);
+    const onPointerMoveHover = React.useCallback((e: React.PointerEvent) => {
+        if (onHoverPoint == null) return;
+        if (hoverFrameRef.current != null) return;
+        const clientX = e.clientX;
+        const clientY = e.clientY;
+        hoverFrameRef.current = requestAnimationFrame(() => {
+            hoverFrameRef.current = null;
+            const pos = localPoint(clientX, clientY);
+            onHoverPoint(findNearest(pos.x, pos.y));
+        });
+    }, [onHoverPoint, localPoint, findNearest]);
+
+    const onPointerLeaveHover = React.useCallback(() => {
+        if (onHoverPoint == null) return;
+        if (hoverFrameRef.current != null) {
+            cancelAnimationFrame(hoverFrameRef.current);
+            hoverFrameRef.current = null;
+        }
+        onHoverPoint(null);
+    }, [onHoverPoint]);
+
+    React.useEffect(() => () => {
+        if (hoverFrameRef.current != null) cancelAnimationFrame(hoverFrameRef.current);
+    }, []);
+
+    // Click picking, disambiguated from a pan by a small movement threshold. Wired independently of
+    // the pan handler so it also fires when `interactive` is off (feed footer). A click that lands
+    // on empty space clears the selection (null).
+    const onPointerDownPick = React.useCallback((e: React.PointerEvent) => {
+        if (onSelectPoint == null) return;
+        const startClientX = e.clientX;
+        const startClientY = e.clientY;
+        const onUp = (ev: PointerEvent) => {
+            window.removeEventListener('pointerup', onUp);
+            const moved = Math.hypot(ev.clientX - startClientX, ev.clientY - startClientY);
+            if (moved > CLICK_MOVE_THRESHOLD) return; // a drag/pan, not a click
+            const pos = localPoint(ev.clientX, ev.clientY);
+            onSelectPoint(findNearest(pos.x, pos.y));
+        };
+        window.addEventListener('pointerup', onUp);
+    }, [onSelectPoint, localPoint, findNearest]);
+
+    // Combined pointer-down: start a pan (when interactive) and/or arm click picking (when pickable).
+    const onPointerDownCombined = React.useCallback((e: React.PointerEvent) => {
+        if (interactive) onPointerDown(e);
+        if (pickable) onPointerDownPick(e);
+    }, [interactive, pickable, onPointerDown, onPointerDownPick]);
+
     return (
         // Opt out of the enclosing feed's `data-tauri-drag-region="deep"`: without this, a
         // mouse-down anywhere on the canvas walks up the composed path to that region and starts
@@ -340,10 +473,21 @@ export function EmbeddingScatter(props: Props): React.ReactElement {
             {error && <div className={styles.error}>{error}</div>}
             <canvas
                 ref={canvasRef}
-                className={interactive ? styles.canvas : styles.canvas_static}
+                className={interactive ? styles.canvas : pickable ? styles.canvas_pickable : styles.canvas_static}
                 onWheel={wheelZoom ? onWheel : undefined}
-                onPointerDown={interactive ? onPointerDown : undefined}
+                onPointerDown={(interactive || pickable) ? onPointerDownCombined : undefined}
+                onPointerMove={onHoverPoint != null ? onPointerMoveHover : undefined}
+                onPointerLeave={onHoverPoint != null ? onPointerLeaveHover : undefined}
             />
+            {/* Highlight ring for the selected/hovered point. A pure DOM overlay positioned in CSS
+                pixels (the canvas fills .root via inset:0), so it stays consistent with picking and
+                needs no renderer change. */}
+            {highlightPos && (
+                <div
+                    className={styles.highlight_ring}
+                    style={{ left: `${highlightPos.x}px`, top: `${highlightPos.y}px` }}
+                />
+            )}
             {/* The zoom/reset controls drive the viewport via onClick, so they work even when
                 gesture interactivity is off (feed footer). They're a separate element from the
                 pointer-events: none canvas, so they don't interfere with feed scrolling. */}

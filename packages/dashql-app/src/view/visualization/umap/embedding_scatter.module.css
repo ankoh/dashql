@@ -40,6 +40,33 @@
     pointer-events: none;
 }
 
+/* Pickable variant (feed footer with point selection): accepts pointer events so click/hover pick
+   points, but does not pan (no grab cursor). The wheel handler is left unattached by the component
+   when wheelZoom is off, so the wheel still scrolls the feed. */
+.canvas_pickable {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: default;
+}
+
+/* Highlight ring for the selected/hovered point. Positioned at the point's CSS-pixel location via
+   inline left/top; centered on that location with the translate. Below the zoom controls (z-index
+   2) and non-interactive so it never eats pointer events. */
+.highlight_ring {
+    position: absolute;
+    z-index: 1;
+    width: 14px;
+    height: 14px;
+    border: 2px solid hsl(212, 92%, 45%);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    box-shadow: 0 0 0 1px hsla(0, 0%, 100%, 0.9);
+}
+
 .error {
     position: absolute;
     top: 8px;
@@ -58,4 +85,10 @@
     right: 8px;
     bottom: 8px;
     z-index: 2;
+}
+
+/* Default-variant buttons ship a greyish (#f6f8fa) fill; force white so the controls read as
+   crisp overlay buttons on top of the scatter. */
+.controls button {
+    background-color: white;
 }

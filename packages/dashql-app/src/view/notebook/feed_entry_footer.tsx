@@ -209,6 +209,12 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
             : `${totalRows} ${totalRows === 1 ? 'row' : 'rows'}`)
         : null;
 
+    // The visualization renders the full cloud (no feed row cap), so the header just shows the
+    // total row count.
+    const pointCountDetail = totalRows != null
+        ? `${totalRows} ${totalRows === 1 ? 'row' : 'rows'}`
+        : null;
+
     // "N of M rows" indicator for the Log tab, mirroring the Data tab. Only the last
     // FEED_LIMIT_LOG_ROWS rows are visible in the scrollless preview, so we surface the total.
     const totalLogRows = useTraceLogCount(activeLogTraceId);
@@ -269,7 +275,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
         ),
         [FooterTab.Visualization]: () => (
             <div className={styles.visualization_tab}>
-                <TabHeader title="Visualization" onClick={props.onShowVisualization} />
+                <TabHeader title="Visualization" detail={pointCountDetail} onClick={props.onShowVisualization} />
                 {props.queryState != null && (
                     <div className={styles.visualization_body}>
                         <VisualizationDispatch
@@ -282,7 +288,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 )}
             </div>
         ),
-    }), [activeLogTraceId, resolvedLogSource, queryTraceId, agentTraceId, QueryLogIcon, props.queryState, props.visualizeQuery, rowCountDetail, logCountDetail, props.onShowTable, props.onShowVisualization]);
+    }), [activeLogTraceId, resolvedLogSource, queryTraceId, agentTraceId, QueryLogIcon, props.queryState, props.visualizeQuery, rowCountDetail, pointCountDetail, logCountDetail, props.onShowTable, props.onShowVisualization]);
 
     return (
         <VerticalTabs

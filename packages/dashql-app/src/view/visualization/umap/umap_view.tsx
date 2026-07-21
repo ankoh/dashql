@@ -5,9 +5,11 @@ import { QueryExecutionState, QueryExecutionStatus } from '../../../connection/q
 import { EmbeddingScatter, EmbeddingPoints } from './embedding_scatter.js';
 import { UmapSpec } from './umap_spec.js';
 import { extractCategories } from './umap_categories.js';
+import { UmapInfoPanel, UmapAttribute } from './umap_info_panel.js';
 import { useComputationRegistry } from '../../../compute/computation_registry.js';
-import { LIST_COLUMN } from '../../../compute/computation_types.js';
+import { ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '../../../compute/computation_types.js';
 import { extractFloat32Column } from '../../../compute/umap/umap_extraction.js';
+import { makeArrowValueFormatter } from '../../query_result/arrow_formatter.js';
 import { resolveVisibleRowIndices } from '../../query_result/visible_rows.js';
 
 interface Props {
@@ -20,6 +22,45 @@ interface Props {
     /// Enable scroll-wheel zoom. Disabled in the feed footer so the wheel scrolls the feed.
     /// Defaults to true.
     wheelZoom?: boolean;
+}
+
+/// Collect the names of generated "system" columns from the analyzed column groups: the row-number
+/// column, per-column stats/bin/value-id meta fields, and the UMAP x/y coordinate columns. These
+/// are compute-internal — the attribute panel shows only the user's own columns (each group's
+/// `inputFieldName`), so we exclude everything gathered here.
+function collectSystemFieldNames(columnGroups: ColumnGroup[]): Set<string> {
+    const names = new Set<string>();
+    const addStats = (stats: { countFieldName: string; distinctCountFieldName: string | null; minAggregateFieldName: string | null; maxAggregateFieldName: string | null } | null) => {
+        if (stats == null) return;
+        names.add(stats.countFieldName);
+        if (stats.distinctCountFieldName != null) names.add(stats.distinctCountFieldName);
+        if (stats.minAggregateFieldName != null) names.add(stats.minAggregateFieldName);
+        if (stats.maxAggregateFieldName != null) names.add(stats.maxAggregateFieldName);
+    };
+    for (const group of columnGroups) {
+        switch (group.type) {
+            case ROWNUMBER_COLUMN:
+                names.add(group.value.rowNumberFieldName);
+                break;
+            case ORDINAL_COLUMN:
+                addStats(group.value.statsFields);
+                if (group.value.binFieldName != null) names.add(group.value.binFieldName);
+                break;
+            case STRING_COLUMN:
+                addStats(group.value.statsFields);
+                if (group.value.valueIdFieldName != null) names.add(group.value.valueIdFieldName);
+                break;
+            case LIST_COLUMN:
+                addStats(group.value.statsFields);
+                if (group.value.valueIdFieldName != null) names.add(group.value.valueIdFieldName);
+                if (group.value.umapProjection != null) {
+                    names.add(group.value.umapProjection.xFieldName);
+                    names.add(group.value.umapProjection.yFieldName);
+                }
+                break;
+        }
+    }
+    return names;
 }
 
 /// Renders an embedding table as an interactive 2D scatter plot.
@@ -49,7 +90,7 @@ export function UmapView(props: Props): React.ReactElement {
     // only changes display order, which has no meaning in a scatter, so ordering alone dims
     // nothing. Only a `filterTable` produces a selection.
     const filterTable = tableComputation?.filterTable ?? null;
-    const points = React.useMemo<EmbeddingPoints | null>(() => {
+    const resolved = React.useMemo<{ points: EmbeddingPoints } | null>(() => {
         if (!tableComputation) return null;
         const umapGroup = tableComputation.columnGroups.find(
             g => g.type === LIST_COLUMN && g.value.umapProjection != null);
@@ -62,6 +103,7 @@ export function UmapView(props: Props): React.ReactElement {
 
         const categories = spec?.categoryColumn ? extractCategories(dataTable, spec.categoryColumn) : null;
         const category = categories?.category ?? null;
+        const categoryCount = spec?.categoryColumn ? (categories?.categoryCount ?? 0) : null;
 
         // Build a selection bitmask from the filtered row set (1-based row numbers → 0-based
         // positional indices, already resolved by `resolveVisibleRowIndices`). A null result
@@ -78,14 +120,45 @@ export function UmapView(props: Props): React.ReactElement {
             }
         }
 
-        return {
+        const points: EmbeddingPoints = {
             x,
             y,
             category,
-            categoryCount: categories?.categoryCount ?? 1,
+            categoryCount: categoryCount ?? 1,
             selection,
         };
+        return { points };
     }, [tableComputation, spec, filterTable]);
+    const points = resolved?.points ?? null;
+
+    // Single-point selection: hovering overrules the last click, which is "sticky" (falls back to
+    // it when the cursor leaves the cloud). Both are positional indices into the point cloud, which
+    // equals the positional row index into the analyzed data table (the memo builds points straight
+    // from dataTable, no reordering). Reset on point-cloud identity change to avoid a stale row.
+    const [clickedIndex, setClickedIndex] = React.useState<number | null>(null);
+    const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
+    const selectedIndex = hoveredIndex ?? clickedIndex;
+    React.useEffect(() => {
+        setClickedIndex(null);
+        setHoveredIndex(null);
+    }, [tableComputation]);
+
+    // The selected point's column values, formatted with the app's Arrow formatter. Generated
+    // system columns (row number, stats, bins, value-ids, UMAP coords) are hidden — only the user's
+    // own query columns are shown.
+    const attributes = React.useMemo<UmapAttribute[] | null>(() => {
+        if (tableComputation == null || selectedIndex == null) return null;
+        const dataTable = tableComputation.dataTable;
+        if (selectedIndex < 0 || selectedIndex >= dataTable.numRows) return null;
+        const systemFields = collectSystemFieldNames(tableComputation.columnGroups);
+        return dataTable.schema.fields
+            .filter(field => !systemFields.has(field.name))
+            .map(field => {
+                const value = dataTable.getChild(field.name)?.get(selectedIndex) ?? null;
+                const formatter = makeArrowValueFormatter(field);
+                return { name: field.name, value: formatter.format(value) };
+            });
+    }, [tableComputation, selectedIndex]);
 
     if (!spec) {
         return <div className={styles.empty}>No visualization available</div>;
@@ -110,7 +183,11 @@ export function UmapView(props: Props): React.ReactElement {
                 transparent={props.transparent}
                 interactive={props.interactive}
                 wheelZoom={props.wheelZoom}
+                onSelectPoint={setClickedIndex}
+                onHoverPoint={setHoveredIndex}
+                highlightedIndex={selectedIndex}
             />
+            {resolved && <UmapInfoPanel attributes={attributes} />}
         </div>
     );
 }
