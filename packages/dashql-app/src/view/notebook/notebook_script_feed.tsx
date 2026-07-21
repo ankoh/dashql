@@ -50,6 +50,10 @@ export interface NotebookScriptListProps {
     scrollTarget?: FeedScrollTarget | null;
     conn: ConnectionState | null;
     openConnectionOverlay: () => void;
+    /// Whether the feed is the visible, interactive layer. The feed stays mounted (just hidden) while
+    /// the catalog/details overlay is open so it keeps its scroll position and measured row heights;
+    /// while inactive its global key handlers must stand down so Escape/Enter belong to the overlay.
+    active: boolean;
 }
 
 const ESTIMATED_ROW_HEIGHT = 120;
@@ -674,13 +678,16 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         props.modifyNotebook({ type: REJECT_PENDING_DIFF, value: scriptKey });
     }, [props.modifyNotebook]);
 
+    // The feed stays mounted (just hidden) while the catalog/details overlay is open, so its global
+    // key handlers would otherwise keep firing behind the overlay. Gate them all on the active flag.
+    const feedActive = props.active;
     const keyHandlers = React.useMemo<KeyEventHandler[]>(() => [
         {
             key: 'Enter',
             ctrlKey: true,
             capture: true,
             callback: (event: KeyboardEvent) => {
-                if (!composeEditorView?.hasFocus) {
+                if (!feedActive || !composeEditorView?.hasFocus) {
                     return;
                 }
                 event.preventDefault();
@@ -691,12 +698,14 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             // Plain Enter, while browsing the feed with nothing focused. If the focused entry has a
             // staged agent rewrite, Enter accepts it (matching the AI bar's "Accept ⏎" hint);
             // otherwise it opens the details of the focused entry. If the compose editor (SQL/AI), a
-            // rename input, or any other element holds focus, Enter belongs to it — bail out. The
-            // feed is only mounted when details are hidden, so this handler is naturally scoped here.
+            // rename input, or any other element holds focus, Enter belongs to it — bail out.
             key: 'Enter',
             ctrlKey: false,
             capture: true,
             callback: (event: KeyboardEvent) => {
+                if (!feedActive) {
+                    return;
+                }
                 const active = document.activeElement as HTMLElement | null;
                 if (active && active !== document.body && active !== document.documentElement) {
                     return;
@@ -723,6 +732,9 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             ctrlKey: false,
             capture: true,
             callback: (event: KeyboardEvent) => {
+                if (!feedActive) {
+                    return;
+                }
                 const active = document.activeElement as HTMLElement | null;
                 if (active && active !== document.body && active !== document.documentElement) {
                     return;
@@ -754,13 +766,13 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             ctrlKey: true,
             capture: true,
             callback: (event: KeyboardEvent) => {
-                if (!composeEditorView?.hasFocus) {
+                if (!feedActive || !composeEditorView?.hasFocus) {
                     return;
                 }
                 event.stopPropagation();
             },
         },
-    ], [composeEditorView, handleComposeSend, entries.length, props.showDetails, props.notebook, handleAcceptDiff, handleRejectDiff, viewMode]);
+    ], [feedActive, composeEditorView, handleComposeSend, entries.length, props.showDetails, props.notebook, handleAcceptDiff, handleRejectDiff, viewMode]);
     useKeyEvents(keyHandlers);
 
     // Height cache for variable-height rows
@@ -820,43 +832,20 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const entriesRef = React.useRef(entries);
     entriesRef.current = entries;
 
-    // Apply a requested scroll-to-entry. The feed is fully unmounted while the Details view is open
-    // (see the body ternary in notebook_page), so on return it remounts fresh: scroll position 0, an
-    // as-yet-unmeasured container (listWidth/listHeight only turn non-zero once observeSize's
-    // ResizeObserver fires a paint later), and an empty row-height cache (every row reports the 120px
-    // estimate until its ResizeObserver measures it). Both make an immediate scrollToRow land in the
-    // wrong place — a no-op against a zero-height viewport, or an offset computed from estimated row
-    // heights that shifts once the real heights arrive. That's why returning from Details used to
-    // drop the user near the top of the feed.
-    //
-    // So we stash the target and re-apply it as those inputs settle (this effect also depends on
-    // heightsVersion, which bumps on every row measurement). We only consider the scroll "done" once
-    // the container is measured AND every row up to the target has a real measured height, so the
-    // offset is finally correct. Until then each re-apply is best-effort and leaves the version
-    // unmarked so the next measurement retries; once marked, a later height change (e.g. an agent
-    // updating a card the user has since scrolled to) won't yank the feed back.
-    const pendingScrollTargetRef = React.useRef<FeedScrollTarget | null>(null);
-    const appliedScrollVersionRef = React.useRef<number | null>(null);
+    // Scroll a requested entry to the top of the feed. This fires for the keyboard step commands
+    // (Ctrl+J/K bump the target) and when the notebook focus is re-asserted on return from Details.
+    // The feed stays mounted (just hidden) across a Details visit, so the list is always warm here —
+    // its rows are already measured and its container already sized — and scrollToRow lands exactly
+    // on the target with no remount cold-start to work around.
     React.useEffect(() => {
-        if (props.scrollTarget != null) {
-            pendingScrollTargetRef.current = props.scrollTarget;
-        }
-        const target = pendingScrollTargetRef.current;
-        if (target == null || !listRef.current) {
-            return;
-        }
-        // The list has no scrollable area until it's been measured; retry once a size lands.
-        if (listWidth === 0 || listHeight === 0) {
-            return;
-        }
-        if (appliedScrollVersionRef.current === target.version) {
+        if (props.scrollTarget == null || !listRef.current) {
             return;
         }
         const currentEntries = entriesRef.current;
         if (currentEntries.length === 0) {
             return;
         }
-        const targetIdx = currentEntries.findIndex(e => e.fileName === target.fileName);
+        const targetIdx = currentEntries.findIndex(e => e.fileName === props.scrollTarget!.fileName);
         if (targetIdx === -1) {
             return;
         }
@@ -864,33 +853,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             index: targetIdx + 1,
             align: 'start',
         });
-        // Decide whether this scroll actually landed on the target, or whether react-window clamped
-        // it short. react-window clamps scrollTop to the (estimated) total content height, so while
-        // rows below the target still report the 120px estimate the total is underestimated and the
-        // scroll stops one or more cards early. Compare the requested offset (the summed heights of
-        // the rows above the target — row 0 is the top padding, rows 1..N are the entries) against
-        // the element's resulting scrollTop: if they match we've truly landed and can lock the
-        // version; if it clamped short, leave it unlocked so the next measurement (heightsVersion
-        // bumps as the now-visible rows below measure) re-applies against the corrected total.
-        const heights = heightsRef.current;
-        let expectedOffset = FEED_EDGE_PADDING;
-        let offsetExact = true;
-        for (let i = 0; i < targetIdx; ++i) {
-            if (heights[i] == null) {
-                offsetExact = false;
-                expectedOffset += ESTIMATED_ROW_HEIGHT;
-            } else {
-                expectedOffset += heights[i];
-            }
-        }
-        const scroller = listRef.current.element;
-        const actualTop = scroller?.scrollTop ?? 0;
-
-        // Locked only when the offset is computed from real heights AND the list didn't clamp us short.
-        if (offsetExact && Math.abs(actualTop - expectedOffset) <= 1) {
-            appliedScrollVersionRef.current = target.version;
-        }
-    }, [listRef, props.scrollTarget, listWidth, listHeight, heightsVersion]);
+    }, [listRef, props.scrollTarget]);
 
     const [composeScrollbarInset, setComposeScrollbarInset] = React.useState(0);
     React.useEffect(() => {

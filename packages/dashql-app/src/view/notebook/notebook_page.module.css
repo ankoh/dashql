@@ -164,6 +164,23 @@
     }
 }
 
+/*
+    The feed layer is kept mounted underneath the catalog/details overlay so it stays warm (scroll
+    position + react-window's measured row heights persist across a Details visit). It fills the body
+    and, when hidden, uses visibility:hidden rather than display:none so the browser keeps it laid out
+    — its ResizeObservers keep firing, so row heights stay measured and returning is pixel-accurate.
+*/
+.feed_layer,
+.feed_layer_hidden {
+    position: absolute;
+    inset: 0;
+}
+.feed_layer_hidden {
+    visibility: hidden;
+    /* Don't let the hidden layer swallow pointer events meant for the overlay above it. */
+    pointer-events: none;
+}
+
 .page_title {
     font-size: 1rem;
     padding-left: 12px;

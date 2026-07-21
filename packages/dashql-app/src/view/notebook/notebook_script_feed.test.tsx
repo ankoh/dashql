@@ -249,6 +249,7 @@ describe('NotebookScriptFeed', () => {
             scrollTarget: null,
             conn: createOnlineConnection(),
             openConnectionOverlay: () => { },
+            active: true,
             ...props,
         };
         act(() => {

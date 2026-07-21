@@ -376,6 +376,10 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
         return <div />;
     }
     const isDisconnected = conn?.connectionHealth !== ConnectionHealth.ONLINE;
+    // The feed sits below the catalog/details overlay and is the visible, interactive layer only
+    // when neither a catalog tab nor the details view is open. While hidden it must not react to the
+    // global feed key handlers (Enter/Escape/…), so this flag is threaded down to gate them.
+    const feedActive = catalogTab == null && !showDetails;
     return (
         <div className={styles.page}>
             <div className={styles.header_container} data-tauri-drag-region="deep">
@@ -498,6 +502,18 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 </div>
             </div>
             <div className={styles.body_container} id="notebook-body" role="tabpanel" aria-labelledby={notebook.notebookUserFocus.folderName ? `notebook-page-tab-${notebook.notebookUserFocus.folderName}` : undefined}>
+                {/*
+                    The feed stays permanently mounted underneath the catalog/details overlay rather
+                    than being swapped out by the ternary below. Opening Details used to unmount it and
+                    returning remounted it cold — scroll position, react-window's measured row heights
+                    and the container size all reset to zero — so the restore-scroll had to fight a
+                    cold start and often landed short. Keeping it mounted (just hidden via CSS, which
+                    still lays it out so its ResizeObserver keeps measuring) means it stays warm and the
+                    user returns exactly where they left, matching Ctrl+H/J/K/L precision.
+                */}
+                <div className={feedActive ? styles.feed_layer : styles.feed_layer_hidden}>
+                    <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} active={feedActive} showDetails={(initialTab?: DetailsTabKey) => { setDetailsInitialTab(initialTab); setShowDetails(true); }} scrollTarget={feedScrollTarget} conn={conn ?? null} openConnectionOverlay={() => setConnectionOverlayOpen(true)} />
+                </div>
                 {
                     catalogTab === 'relations' && conn
                         ? <CatalogSchemaView connection={conn} />
@@ -505,7 +521,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                             ? <CatalogFunctionsView connection={conn} />
                             : showDetails
                                 ? <NotebookScriptDetails notebook={notebook} modifyNotebook={modifyNotebook} connection={conn} hideDetails={() => { setShowDetails(false); setDetailsInitialTab(undefined); }} initialTab={detailsInitialTab} />
-                                : <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} showDetails={(initialTab?: DetailsTabKey) => { setDetailsInitialTab(initialTab); setShowDetails(true); }} scrollTarget={feedScrollTarget} conn={conn ?? null} openConnectionOverlay={() => setConnectionOverlayOpen(true)} />
+                                : null
                 }
             </div>
             <div className={styles.action_sidebar} data-tauri-drag-region="deep">
