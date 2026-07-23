@@ -201,6 +201,8 @@ impl Release {
                     .key(&path)
                     .body(bytes)
                     .content_type("application/json")
+                    // Versioned release files are immutable, cache them aggressively.
+                    .cache_control("public, max-age=31536000, immutable")
                     .send()
                     .await
                     .map_err(|e| (path.clone(), e))
@@ -252,6 +254,10 @@ impl Release {
                     .key(&path)
                     .body(bytes)
                     .content_type("application/json")
+                    // Channel pointers (stable.json/canary.json + update manifests) are mutable.
+                    // Force revalidation on every load so clients never serve a stale channel
+                    // manifest from heuristic browser caching (revalidates cheaply via ETag).
+                    .cache_control("no-cache")
                     .send()
                     .await
                     .map_err(|e| (path.clone(), e))
