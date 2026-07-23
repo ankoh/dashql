@@ -28,7 +28,7 @@ version = "1.52.3"
 features = ["full"]
 
 [dependencies.clap]
-version = "4.6.1"
+version = "4.6.3"
 features = ["derive"]
 
 [dependencies.serde]
