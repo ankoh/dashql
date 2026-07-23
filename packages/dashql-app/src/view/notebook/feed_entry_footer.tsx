@@ -40,10 +40,11 @@ interface FeedEntryFooterProps {
     /// The latest agent-run trace id for this script (null if no agent run has happened).
     agentTraceId: number | null;
     visualizeQuery: ResolvedVisualizeQuery | null;
-    /// A monotonically increasing nonce: whenever it advances, jump to the Agent Log tab. Bumped by
-    /// the card's AI bar when the user clicks it, so the footer reveals the agent log on demand
-    /// instead of auto-hijacking the tab the moment a run starts.
-    requestAgentLog?: number;
+    /// A log-reveal request from the card's status bar: whenever `nonce` advances, jump to the Log
+    /// tab and select the source matching `traceId` (query vs agent). Bumped when the user clicks the
+    /// status bar, so the footer reveals the trace on demand instead of auto-hijacking the tab the
+    /// moment work starts.
+    logRequest?: { nonce: number; traceId: number | null };
     onShowTable?: () => void;
     onShowVisualization?: () => void;
 }
@@ -162,19 +163,27 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
         }
     }, [queryLastTs, agentLastTs]);
 
-    // The card's AI bar drives the footer to the Agent Log tab on demand: a run no longer yanks the
+    // The card's status bar drives the footer to the Log tab on demand: work no longer yanks the
     // footer to the log the moment it starts (the user is rarely interested in the raw trace — the
-    // AI bar's spinner + latest line is enough). Clicking the AI bar bumps `requestAgentLog`, and
-    // only then do we reveal the agent log here. The nonce is ignored on mount (initial value).
-    const requestAgentLog = props.requestAgentLog;
-    const prevRequestAgentLog = React.useRef(requestAgentLog);
+    // status bar's spinner + latest line is enough). Clicking the bar bumps `logRequest.nonce` and
+    // rides along the clicked source's trace id, and only then do we reveal that trace here. The
+    // nonce is ignored on mount (initial value).
+    const requestNonce = props.logRequest?.nonce;
+    const requestTraceId = props.logRequest?.traceId ?? null;
+    const prevRequestNonce = React.useRef(requestNonce);
     React.useEffect(() => {
-        if (requestAgentLog != null && requestAgentLog !== prevRequestAgentLog.current && agentTraceId != null) {
-            setSelectedTab(FooterTab.Log);
-            setLogSource(LogSource.Agent);
+        if (requestNonce != null && requestNonce !== prevRequestNonce.current) {
+            // Match the requested trace to a source; fall back to whichever source has a trace.
+            const source = (requestTraceId != null && requestTraceId === agentTraceId) ? LogSource.Agent
+                : (requestTraceId != null && requestTraceId === queryTraceId) ? LogSource.Query
+                    : (agentTraceId != null ? LogSource.Agent : LogSource.Query);
+            if ((source === LogSource.Agent && agentTraceId != null) || (source === LogSource.Query && queryTraceId != null)) {
+                setSelectedTab(FooterTab.Log);
+                setLogSource(source);
+            }
         }
-        prevRequestAgentLog.current = requestAgentLog;
-    }, [requestAgentLog, agentTraceId]);
+        prevRequestNonce.current = requestNonce;
+    }, [requestNonce, requestTraceId, agentTraceId, queryTraceId]);
 
     const tabProps = React.useMemo<Record<FooterTab, VerticalTabProps>>(() => ({
         [FooterTab.Log]: {

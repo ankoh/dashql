@@ -229,7 +229,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
 
     // A staged agent rewrite is shown as an in-place diff on the editable editor here (the diff
     // decorations + ⏎/⎋ keymap come from the editor's DashQL extensions). Surface visible controls
-    // too, mirroring the feed's AI bar. Both drive the editor-effect accept/reject path, which
+    // too, mirroring the feed's status bar. Both drive the editor-effect accept/reject path, which
     // round-trips through UPDATE_FROM_PROCESSOR to clear the pending diff.
     const hasPendingDiff = scriptData?.pendingDiff != null;
     const handleAcceptDiff = React.useCallback(() => {

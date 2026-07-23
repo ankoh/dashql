@@ -34,6 +34,8 @@ import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { SegmentedControl, SegmentedControlSize } from '../foundations/segmented_control.js';
 import { NotebookScriptName } from './notebook_script_name.js';
 import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
+import { EntryStatusBar } from './entry_status_bar.js';
+import { deriveEntryStatus, EntryStatusKind } from './entry_status_model.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
 import { TabKey as DetailsTabKey } from './notebook_script_details.js';
 import { NotebookPageOverview } from './notebook_page_overview.js';
@@ -125,23 +127,23 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
     const agentRunState = useAgentRunState(scriptData?.latestAgentRunId ?? null);
     const agentTraceId = agentRunState?.traceId ?? null;
 
-    // While an agent run is in flight the card shows a compact "AI bar" above the body (spinner + latest
-    // log line) instead of yanking the user to the raw agent trace. The body keeps rendering the
-    // current output; the user opts into the full trace by clicking the bar.
-    const agentActive = agentRunState != null && agentRunIsActive(agentRunState.phase);
-    const agentLatestMessage = agentRunState != null && agentRunState.log.length > 0
-        ? agentRunState.log[agentRunState.log.length - 1].message
-        : null;
-
     // A staged agent rewrite waiting to be accepted/rejected. While set, the read-only preview
-    // renders the rewrite as a compact in-place diff overlay and the AI bar above it turns into the
-    // Accept/Reject controls (which dispatch notebook actions — no editable editor is mounted here).
+    // renders the rewrite as a compact in-place diff overlay and the status bar above it turns into
+    // the Accept/Reject controls (which dispatch notebook actions — no editable editor is mounted).
     const hasPendingDiff = scriptData?.pendingDiff != null;
 
-    // A monotonic nonce handed to the footer: bumped when the user clicks the AI bar so the footer
-    // reveals the Agent Log tab on demand (a run no longer auto-switches it).
-    const [agentLogRequest, setAgentLogRequest] = React.useState(0);
-    const showAgentLog = React.useCallback(() => setAgentLogRequest(n => n + 1), []);
+    // The status bar above the body generalizes the former "AI bar": while any work is in flight —
+    // an agent run *or* a query execution — it's a compact strip (spinner + latest log line / query
+    // status) instead of yanking the user to the raw trace. The body keeps rendering the current
+    // output; the user opts into the full trace by clicking the bar. Once a rewrite is staged it
+    // becomes the Accept/Reject prompt, and it auto-hides on idle and on query success.
+    const entryStatus = deriveEntryStatus(agentRunState, queryState, hasPendingDiff);
+
+    // A monotonic nonce handed to the footer: bumped when the user clicks the status bar so the
+    // footer reveals the matching trace's Log tab on demand (work no longer auto-switches it). The
+    // clicked source (query vs agent) rides along so the footer reveals the right trace.
+    const [logRequest, setLogRequest] = React.useState<{ nonce: number; traceId: number | null }>({ nonce: 0, traceId: null });
+    const showLog = React.useCallback((traceId: number | null) => setLogRequest(prev => ({ nonce: prev.nonce + 1, traceId })), []);
     const scriptKey = scriptData?.scriptKey ?? null;
     const acceptDiff = React.useCallback(() => {
         if (scriptKey != null) onAcceptDiff(scriptKey);
@@ -197,7 +199,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
         }
         // The body is a read-only preview (with a compact diff overlay while a rewrite is staged);
         // clicking it always expands into Details, where the full normal-text diff and its own
-        // Accept/Reject controls live. Quick accept/reject stays on the feed via the AI bar / ⏎ ⎋.
+        // Accept/Reject controls live. Quick accept/reject stays on the feed via the status bar / ⏎ ⎋.
         onExpand(scriptFileName);
     }, [scriptFileName, onExpand]);
 
@@ -275,59 +277,42 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                     <TrashIcon size={16} />
                 </IconButton>
             </div>
-            {(agentActive || hasPendingDiff) && (
-                // The AI bar. While the run is active it's a single clickable strip: a spinner plus
-                // the latest log line, and clicking it reveals the full agent trace in the footer.
-                // Once the rewrite lands (pendingDiff) it turns into the Accept/Reject controls.
-                hasPendingDiff ? (
-                    <div className={styles.ai_bar}>
-                        <span className={styles.ai_bar_message}>Suggested rewrite</span>
-                        <div className={styles.ai_bar_actions}>
-                            {/* The same check/cross icon group as the Details editor's diff controls.
-                                ⏎/⎋ still accept/reject the focused entry (see the feed key handlers). */}
-                            <ButtonGroup>
-                                <IconButton
-                                    variant={ButtonVariant.Default}
-                                    size={ButtonSize.Small}
-                                    onClick={acceptDiff}
-                                    aria-label="Accept rewrite"
-                                >
-                                    <CheckIcon size={14} />
-                                </IconButton>
-                                <IconButton
-                                    variant={ButtonVariant.Default}
-                                    size={ButtonSize.Small}
-                                    onClick={rejectDiff}
-                                    aria-label="Reject rewrite"
-                                >
-                                    <CrossIcon size={14} />
-                                </IconButton>
-                            </ButtonGroup>
-                        </div>
-                    </div>
-                ) : (
-                    <button
-                        type="button"
-                        className={styles.ai_bar_running}
-                        onClick={showAgentLog}
-                        aria-label="Show agent log"
-                    >
-                        <StatusIndicator
-                            className={styles.ai_bar_spinner}
-                            status={IndicatorStatus.Running}
-                            width="14px"
-                            height="14px"
-                            fill="currentColor"
-                        />
-                        <span className={styles.ai_bar_message}>{agentLatestMessage ?? 'Working…'}</span>
-                    </button>
-                )
+            {entryStatus != null && (
+                // The status bar. While work is in flight it's a single clickable strip: a spinner
+                // plus the latest log line / query status, and clicking it reveals the matching trace
+                // in the footer. Once a rewrite lands (pendingDiff) it turns into the Accept/Reject
+                // controls (the same check/cross group as the Details editor; ⏎/⎋ still accept/reject
+                // the focused entry — see the feed key handlers).
+                <EntryStatusBar
+                    status={entryStatus}
+                    onClick={entryStatus.kind === EntryStatusKind.PendingDiff ? undefined : () => showLog(entryStatus.traceId)}
+                    actions={entryStatus.kind === EntryStatusKind.PendingDiff ? (
+                        <ButtonGroup>
+                            <IconButton
+                                variant={ButtonVariant.Default}
+                                size={ButtonSize.Small}
+                                onClick={acceptDiff}
+                                aria-label="Accept rewrite"
+                            >
+                                <CheckIcon size={14} />
+                            </IconButton>
+                            <IconButton
+                                variant={ButtonVariant.Default}
+                                size={ButtonSize.Small}
+                                onClick={rejectDiff}
+                                aria-label="Reject rewrite"
+                            >
+                                <CrossIcon size={14} />
+                            </IconButton>
+                        </ButtonGroup>
+                    ) : undefined}
+                />
             )}
             <div className={styles.feed_body} onPointerDownCapture={handlePreviewPointerDown}>
                 {scriptData == null ? null : (
                     // The body is always the read-only compact preview. When the agent stages a
                     // rewrite it overlays the rewrite as a compact in-place diff (so the feed no
-                    // longer jumps from compact to normal text); Accept/Reject lives in the AI bar
+                    // longer jumps from compact to normal text); Accept/Reject lives in the status bar
                     // above (and via ⏎/⎋ on the focused entry).
                     <ScriptPreview className={styles.script_preview_editor} sessionId={sessionId} scriptData={scriptData} onReady={setIsReady} />
                 )}
@@ -339,7 +324,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                         queryState={queryState}
                         agentTraceId={agentTraceId}
                         visualizeQuery={scriptData?.annotations.visualizeQuery ?? null}
-                        requestAgentLog={agentLogRequest}
+                        logRequest={logRequest}
                         onShowTable={() => onShowTable(scriptFileName)}
                         onShowVisualization={() => onShowVisualization(scriptFileName)}
                     />
@@ -698,7 +683,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         },
         {
             // Plain Enter, while browsing the feed with nothing focused. If the focused entry has a
-            // staged agent rewrite, Enter accepts it (matching the AI bar's "Accept ⏎" hint);
+            // staged agent rewrite, Enter accepts it (matching the status bar's "Accept ⏎" hint);
             // otherwise it opens the details of the focused entry. If the compose editor (SQL/AI), a
             // rename input, or any other element holds focus, Enter belongs to it — bail out.
             key: 'Enter',
@@ -728,7 +713,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         },
         {
             // Escape, while browsing the feed with nothing focused, rejects a staged rewrite on the
-            // focused entry (matching the AI bar's "Reject ⎋" hint). Same focus guard as Enter so the
+            // focused entry (matching the status bar's "Reject ⎋" hint). Same focus guard as Enter so the
             // compose editor, rename input, or an open completion dropdown keeps Escape when focused.
             key: 'Escape',
             ctrlKey: false,

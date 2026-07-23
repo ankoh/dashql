@@ -570,8 +570,8 @@ describe('NotebookScriptFeed', () => {
         expect(viewers[0].getAttribute('data-trace-id')).toBe('200');
     });
 
-    it('shows the AI bar with the latest log line while an agent run is active', () => {
-        // An active run (non-terminal phase) renders the clickable AI bar showing the latest
+    it('shows the status bar with the latest log line while an agent run is active', () => {
+        // An active run (non-terminal phase) renders the clickable status bar showing the latest
         // log message; the body still shows the current output rather than the raw trace.
         mockState.agentRuns.set(7, {
             traceId: 200,
@@ -586,15 +586,47 @@ describe('NotebookScriptFeed', () => {
             showDetails: vi.fn(),
             scrollTarget: null,
         });
-        const aiBar = container.querySelector('[aria-label="Show agent log"]');
-        expect(aiBar).not.toBeNull();
-        expect(aiBar!.textContent).toContain('Generating a SQL query from your request');
+        const statusBar = container.querySelector('[aria-label="Show log"]');
+        expect(statusBar).not.toBeNull();
+        expect(statusBar!.textContent).toContain('Generating a SQL query from your request');
         // The staged-rewrite editor is not mounted for an active run — only the compose editor is.
         expect(container.querySelectorAll('[data-testid="script-editor"]').length).toBe(1);
     });
 
-    it('shows Accept/Reject in the AI bar once a rewrite is staged', () => {
-        // A finished run that left a pending diff: the AI bar turns into the Accept/Reject controls.
+    it('shows the status bar with the query status text while a query is running', () => {
+        // With no active agent run, the same status bar surfaces query execution progress: a spinner
+        // plus the human-readable status text (status 4 = RUNNING → "Executing query").
+        mockState.queryStates.set(42, { traceId: 100, status: 4 /* RUNNING */ });
+        const notebook = createNotebookState();
+        notebook.scripts[101] = { ...notebook.scripts[101], latestQueryId: 42 };
+        renderFeed({
+            notebook,
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+        const statusBar = container.querySelector('[aria-label="Show log"]');
+        expect(statusBar).not.toBeNull();
+        expect(statusBar!.textContent).toContain('Executing query');
+    });
+
+    it('hides the status bar once a query succeeds', () => {
+        // Per the auto-hide behavior, a succeeded query shows no status bar (the Data tab conveys
+        // success); the footer still renders.
+        mockState.queryStates.set(42, { traceId: 100, status: 9 /* SUCCEEDED */ });
+        const notebook = createNotebookState();
+        notebook.scripts[101] = { ...notebook.scripts[101], latestQueryId: 42 };
+        renderFeed({
+            notebook,
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+        expect(container.querySelector('[aria-label="Show log"]')).toBeNull();
+    });
+
+    it('shows Accept/Reject in the status bar once a rewrite is staged', () => {
+        // A finished run that left a pending diff: the status bar turns into the Accept/Reject controls.
         mockState.agentRuns.set(8, { traceId: 200, phase: 6 /* SUCCEEDED */, log: [{ message: 'Done' }] });
         let notebook = withPendingDiff(createNotebookState(), 101, 'select 0');
         notebook.scripts[101] = { ...notebook.scripts[101], latestAgentRunId: 8 };
@@ -604,15 +636,15 @@ describe('NotebookScriptFeed', () => {
             showDetails: vi.fn(),
             scrollTarget: null,
         });
-        // The AI bar renders the Details-style check/cross icon group, so Accept/Reject are
+        // The status bar renders the Details-style check/cross icon group, so Accept/Reject are
         // identified by their aria-label rather than button text.
         expect(container.querySelector('[aria-label="Accept rewrite"]')).not.toBeNull();
         expect(container.querySelector('[aria-label="Reject rewrite"]')).not.toBeNull();
         // No running spinner strip while a rewrite is staged.
-        expect(container.querySelector('[aria-label="Show agent log"]')).toBeNull();
+        expect(container.querySelector('[aria-label="Show log"]')).toBeNull();
     });
 
-    it('dispatches ACCEPT_PENDING_DIFF when the AI bar Accept button is clicked', () => {
+    it('dispatches ACCEPT_PENDING_DIFF when the status bar Accept button is clicked', () => {
         const modifyNotebook = vi.fn();
         renderFeed({
             notebook: withPendingDiff(createNotebookState(), 101, 'select 0'),
@@ -630,7 +662,7 @@ describe('NotebookScriptFeed', () => {
         expect(modifyNotebook).toHaveBeenCalledWith({ type: ACCEPT_PENDING_DIFF, value: 101 });
     });
 
-    it('dispatches REJECT_PENDING_DIFF when the AI bar Reject button is clicked', () => {
+    it('dispatches REJECT_PENDING_DIFF when the status bar Reject button is clicked', () => {
         const modifyNotebook = vi.fn();
         renderFeed({
             notebook: withPendingDiff(createNotebookState(), 101, 'select 0'),

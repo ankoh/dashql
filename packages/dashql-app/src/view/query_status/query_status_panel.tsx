@@ -3,6 +3,7 @@ import * as styles from './query_status_panel.module.css';
 
 import { RectangleWaveSpinner } from '../foundations/spinners.js';
 import { QueryExecutionState, QueryExecutionStatus } from '../../connection/query_execution_state.js';
+import { getQueryStatusText } from '../notebook/entry_status_model.js';
 import { TraceLogViewer } from '../internals/trace_log_viewer.js';
 
 interface Props {
@@ -10,35 +11,8 @@ interface Props {
 }
 
 export const QueryStatusPanel: React.FC<Props> = (props: Props) => {
-    const getStatusText = (status: QueryExecutionStatus | null) => {
-        if (status == null) {
-            return '';
-        }
-        switch (status) {
-            case QueryExecutionStatus.REQUESTED:
-                return 'Requested query';
-            case QueryExecutionStatus.PREPARING:
-                return 'Preparing query';
-            case QueryExecutionStatus.SENDING:
-                return 'Sending query';
-            case QueryExecutionStatus.QUEUED:
-                return 'Queued query';
-            case QueryExecutionStatus.RUNNING:
-                return 'Executing query';
-            case QueryExecutionStatus.RECEIVED_FIRST_BATCH:
-                return 'Executing query, fetching results';
-            case QueryExecutionStatus.RECEIVED_ALL_BATCHES:
-                return 'Executing query, received all results';
-            case QueryExecutionStatus.PROCESSING_RESULTS:
-                return 'Processing results';
-            case QueryExecutionStatus.FAILED:
-                return 'Query execution failed';
-            case QueryExecutionStatus.CANCELLED:
-                return 'Query was cancelled';
-            case QueryExecutionStatus.SUCCEEDED:
-                return 'Query executed successfully';
-        }
-    };
+    const getStatusText = (status: QueryExecutionStatus | null) =>
+        status == null ? '' : getQueryStatusText(status);
     if (props.query == null) {
         return <div className={styles.root}></div>;
     }
