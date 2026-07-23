@@ -66,6 +66,9 @@ vi.mock('../../connection/query_executor.js', () => ({
     },
     useQueryExecutor: () => vi.fn(),
 }));
+vi.mock('../../platform/storage/storage_provider.js', () => ({
+    useStorageReader: () => ({ backend: { deleteQueryResultCache: vi.fn() } }),
+}));
 vi.mock('../../agent/agent_run_provider.js', () => ({
     // Resolve an agent run by its id from the backing map, mirroring useQueryState.
     useAgentRunState: (runId: number | null) => {

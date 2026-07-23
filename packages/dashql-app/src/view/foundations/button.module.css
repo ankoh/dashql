@@ -111,6 +111,13 @@
     width: 20px;
     padding: unset;
 }
+/* Octicons default to 16px, which is too tall for the 20px tiny button. Constrain leading/trailing
+   visuals so they sit inline with the 11px text. */
+.button_size_tiny .leading_visual svg,
+.button_size_tiny .trailing_visual svg {
+    width: 12px;
+    height: 12px;
+}
 
 /* --------------------------------------------------------------------- */
 

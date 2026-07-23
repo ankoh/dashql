@@ -168,8 +168,8 @@ export function ConnectionHeader(props: Props): React.ReactElement {
             }
 
             const [urlWeb, urlNative] = await Promise.all([
-                encodeNotebookAsZipUrl(props.notebook, connParams, NotebookLinkTarget.WEB),
-                encodeNotebookAsZipUrl(props.notebook, connParams, NotebookLinkTarget.NATIVE)
+                encodeNotebookAsZipUrl(props.notebook, connParams, NotebookLinkTarget.WEB, props.connection.name),
+                encodeNotebookAsZipUrl(props.notebook, connParams, NotebookLinkTarget.NATIVE, props.connection.name)
             ]);
 
             if (!cancelled) {

@@ -1,74 +1,77 @@
 import * as React from 'react';
 import * as styles from './query_result_cache_controls.module.css';
 
-import { TrashIcon } from '@primer/octicons-react';
+import { SyncIcon } from '@primer/octicons-react';
 
-import { QueryExecutionState } from '../../connection/query_execution_state.js';
-import { QUERY_CACHE_DELETED } from '../../connection/connection_state.js';
-import { useDynamicConnectionDispatch } from '../../connection/connection_registry.js';
-import { useStorageReader } from '../../platform/storage/storage_provider.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
-import { stringifyError } from '../../platform/logger/logger.js';
-
-const LOG_CTX = 'query_result_cache';
+import { QueryExecutionState, QueryExecutionStatus } from '../../connection/query_execution_state.js';
+import { useRelativeTime } from '../../utils/time_format.js';
+import { Button, ButtonSize, ButtonVariant } from '../foundations/button.js';
 
 interface QueryResultCacheControlsProps {
-    sessionId: string;
     query: QueryExecutionState | null;
 }
 
-/// The cache indicator + "delete cached" button shown in the Query Results header. Renders nothing
-/// unless the result has an associated cache entry. The button label reflects whether this run
-/// served the result from cache ("Was Cached") or just wrote it ("Now Cached"). The entry's write
-/// time isn't surfaced here — it's logged on the cache hit (see query_executor).
-export const QueryResultCacheControls: React.FC<QueryResultCacheControlsProps> = ({ sessionId, query }) => {
-    const [, connDispatch] = useDynamicConnectionDispatch();
-    const storageReader = useStorageReader();
-    const logger = useLogger();
+/// Whether the query has a result to describe (succeeded, not since cache-deleted).
+function hasResult(query: QueryExecutionState | null): boolean {
+    return query?.status === QueryExecutionStatus.SUCCEEDED && query?.cacheDeleted !== true;
+}
 
-    const cacheKey = query?.cacheKey ?? null;
-    const cacheDeleted = query?.cacheDeleted ?? false;
-
-    const onDelete = React.useCallback(() => {
-        if (query == null || cacheKey == null) {
-            return;
-        }
-        const queryId = query.queryId;
-        // Delete on disk, then flag the state so the button disables. A failure just logs — the
-        // cache is best-effort and a stale entry is harmless (it will be overwritten or evicted).
-        void storageReader.backend.deleteQueryResultCache(sessionId, cacheKey).then(() => {
-            connDispatch(sessionId, {
-                type: QUERY_CACHE_DELETED,
-                value: [queryId],
-            });
-        }).catch((e: any) => {
-            logger.warn('Failed to delete cached query result', { session: sessionId, error: stringifyError(e) }, LOG_CTX);
-        });
-    }, [query, cacheKey, sessionId, storageReader, connDispatch, logger]);
-
-    // No cache entry for this result: nothing to show.
-    if (cacheKey == null) {
+/// The timestamp to show as "Executed <relative>": for a cache hit this is the cached entry's write
+/// time (the original execution); otherwise it's when this run succeeded (which is "now" right after
+/// a cache miss). Falls back to null when neither is available yet.
+function executedAtMs(query: QueryExecutionState | null): number | null {
+    if (query == null) {
         return null;
     }
+    if (query.servedFromCache && query.cachedAt != null) {
+        return query.cachedAt.getTime();
+    }
+    return query.metrics.querySucceededAt?.getTime() ?? null;
+}
 
-    // A cache hit reads "Was Cached"; a fresh miss we just wrote reads "Now Cached". Deleted entries
-    // drop to the icon-only disabled state below.
-    const servedFromCache = !cacheDeleted && query?.servedFromCache === true;
-    const buttonLabel = servedFromCache ? 'Was Cached' : 'Now Cached';
-
+/// The execution age label shown in the Query Results header: "Executed <relative time>" (e.g.
+/// "Executed 8 minutes ago", "Executed just now"). Shown for any succeeded result regardless of
+/// cache hit/miss; a cache hit reports the original execution time, a fresh run reports "now". The
+/// relative time refreshes on an interval.
+export const QueryResultCacheLabel: React.FC<QueryResultCacheControlsProps> = ({ query }) => {
+    const relativeTime = useRelativeTime(executedAtMs(query));
+    if (!hasResult(query) || relativeTime == null) {
+        return null;
+    }
+    // Lowercase the first letter so "Just now"/"Yesterday" read naturally after "Executed".
+    const relative = relativeTime.charAt(0).toLowerCase() + relativeTime.slice(1);
     return (
-        <>
-            <button
-                type="button"
-                className={styles.delete_button}
-                onClick={onDelete}
-                disabled={cacheDeleted}
-                aria-label="Delete cached query result"
-                title={cacheDeleted ? 'Cached result deleted' : 'Delete cached result'}
-            >
-                <TrashIcon size={12} />
-                {!cacheDeleted && <span>{buttonLabel}</span>}
-            </button>
-        </>
+        <span className={styles.cache_label}>
+            Executed {relative}
+        </span>
+    );
+};
+
+interface QueryResultRerunButtonProps {
+    query: QueryExecutionState | null;
+    /// Re-execute the query for this result. Receives the current result's cache key (if any) so the
+    /// caller can drop the stale entry before re-running.
+    onRerun?: (cacheKey: string | null) => void;
+}
+
+/// The "Refresh" button shown in the Query Results header. Shown for any succeeded result; clicking
+/// it drops the cached entry (if any) and re-executes the query against the backend.
+export const QueryResultRerunButton: React.FC<QueryResultRerunButtonProps> = ({ query, onRerun }) => {
+    if (!hasResult(query)) {
+        return null;
+    }
+    const cacheKey = query?.cacheKey ?? null;
+    return (
+        <Button
+            className={styles.rerun_button}
+            variant={ButtonVariant.Default}
+            size={ButtonSize.Tiny}
+            leadingVisual={SyncIcon}
+            onClick={onRerun != null ? () => onRerun(cacheKey) : undefined}
+            disabled={onRerun == null}
+            aria-label="Refresh"
+        >
+            Refresh
+        </Button>
     );
 };

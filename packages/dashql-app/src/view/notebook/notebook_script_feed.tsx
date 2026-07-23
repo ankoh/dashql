@@ -39,6 +39,8 @@ import { deriveEntryStatus } from './entry_status_model.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
 import { TabKey as DetailsTabKey } from './notebook_script_details.js';
 import { NotebookPageOverview } from './notebook_page_overview.js';
+import { rerunEntry } from './rerun_query.js';
+import { useStorageReader } from '../../platform/storage/storage_provider.js';
 
 interface FeedScrollTarget {
     fileName: string;
@@ -101,11 +103,12 @@ interface CollapsedScriptCardProps {
     onShowStatus: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
+    onRerun: (fileName: string, cacheKey: string | null) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowTable, onShowVisualization, onAcceptDiff, onRejectDiff }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
     const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
@@ -339,6 +342,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                         onShowStatus={() => onShowStatus(scriptFileName)}
                         onShowTable={() => onShowTable(scriptFileName)}
                         onShowVisualization={() => onShowVisualization(scriptFileName)}
+                        onRerun={(cacheKey) => onRerun(scriptFileName, cacheKey)}
                     />
                 </div>
             )}
@@ -363,6 +367,7 @@ interface ScriptFeedRowProps {
     onShowStatus: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
+    onRerun: (fileName: string, cacheKey: string | null) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
     onHeightMeasured: (index: number, height: number) => void;
@@ -371,7 +376,7 @@ interface ScriptFeedRowProps {
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowTable, onShowVisualization, onAcceptDiff, onRejectDiff, onHeightMeasured } = props;
+    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onHeightMeasured } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -427,6 +432,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onShowStatus={onShowStatus}
                     onShowTable={onShowTable}
                     onShowVisualization={onShowVisualization}
+                    onRerun={onRerun}
                     onAcceptDiff={onAcceptDiff}
                     onRejectDiff={onRejectDiff}
                 />
@@ -514,6 +520,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
 
     const isDisconnected = props.conn?.connectionHealth !== ConnectionHealth.ONLINE;
     const openConnectionOverlay = props.openConnectionOverlay;
+    const storageReader = useStorageReader();
     const executeQuery = useQueryExecutor();
 
     const [executeOnSend, setExecuteOnSend] = React.useState(false);
@@ -607,6 +614,26 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             });
         }
     }, [props.notebook, props.modifyNotebook, executeOnSend, isDisconnected, executeQuery]);
+
+    // Refresh: drop the stale cache entry for a script's result, then re-execute — a plain cacheable
+    // run then misses the cache and re-populates it. Resolves the script by feed file name.
+    const handleRerunEntry = React.useCallback(async (fileName: string, cacheKey: string | null) => {
+        if (isDisconnected) {
+            return;
+        }
+        const notebook = props.notebook;
+        const entry = notebook.notebookPages[notebook.notebookUserFocus.folderName]?.scripts[fileName];
+        const scriptData = entry != null ? notebook.scripts[entry.scriptId] : undefined;
+        if (scriptData == null) {
+            return;
+        }
+        // Best-effort delete of the stale cache entry: a failed delete just means the run may hit the
+        // old entry, which is harmless (the executor's write path overwrites it either way).
+        if (cacheKey != null) {
+            await storageReader.backend.deleteQueryResultCache(notebook.sessionId, cacheKey).catch(() => {});
+        }
+        rerunEntry(notebook, scriptData, executeQuery, props.modifyNotebook);
+    }, [props.notebook, props.modifyNotebook, isDisconnected, executeQuery, storageReader]);
 
     // Send the compose editor's text to the agent run as a natural-language prompt.
     // The focused feed entry is the context + default in-place target.
@@ -905,12 +932,13 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onShowStatus: handleShowStatus,
         onShowTable: handleShowTable,
         onShowVisualization: handleShowVisualization,
+        onRerun: handleRerunEntry,
         onAcceptDiff: handleAcceptDiff,
         onRejectDiff: handleRejectDiff,
         onHeightMeasured: handleHeightMeasured,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleShowStatus, handleShowTable, handleShowVisualization, handleAcceptDiff, handleRejectDiff, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleShowStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container} data-tauri-drag-region="deep">

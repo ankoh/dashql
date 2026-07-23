@@ -63,7 +63,7 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
             if (notebook != null && connection != null) {
                 const conn = getConnectionParamsFromStateDetails(connection.details);
                 if (conn) {
-                    setupUrl = await encodeNotebookAsZipUrl(notebook, conn, NotebookLinkTarget.WEB);
+                    setupUrl = await encodeNotebookAsZipUrl(notebook, conn, NotebookLinkTarget.WEB, connection.name);
                 }
             }
 

@@ -217,7 +217,7 @@ export const NavBar = (): React.ReactElement => {
                 return;
             }
 
-            const url = await encodeNotebookAsZipUrl(notebook, connParams, setupLinkTarget);
+            const url = await encodeNotebookAsZipUrl(notebook, connParams, setupLinkTarget, connection.name);
             if (!cancelled) {
                 setSetupUrl(url);
             }

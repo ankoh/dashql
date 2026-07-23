@@ -11,7 +11,7 @@ import { VisualizationDispatch } from '../visualization/visualization_dispatch.j
 import { ResolvedVisualizeQuery } from '../../notebook/notebook_types.js';
 import { TraceLogPanel } from './trace_log_panel.js';
 import { TabHeader, useResultRowCount, formatRowCountDetail } from './tab_header.js';
-import { QueryResultCacheControls } from './query_result_cache_controls.js';
+import { QueryResultCacheLabel, QueryResultRerunButton } from './query_result_cache_controls.js';
 
 const FEED_LIMIT_RESULT_ROWS = 8;
 /// The Log tab's viewport auto-expands to fit its rows and caps at this many (then scrolls).
@@ -38,6 +38,9 @@ interface FeedEntryFooterProps {
     onShowStatus?: () => void;
     onShowTable?: () => void;
     onShowVisualization?: () => void;
+    /// Re-execute this entry's query (surfaced on cached results); receives the result's cache key so
+    /// the stale entry can be dropped before re-running.
+    onRerun?: (cacheKey: string | null) => void;
 }
 
 export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
@@ -135,10 +138,10 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                     detail={rowCountDetail}
                     onClick={props.onShowTable}
                     actions={
-                        <QueryResultCacheControls
-                            sessionId={props.sessionId}
-                            query={props.queryState}
-                        />
+                        <>
+                            <QueryResultCacheLabel query={props.queryState} />
+                            <QueryResultRerunButton query={props.queryState} onRerun={props.onRerun} />
+                        </>
                     }
                 />
                 {props.queryState != null && (
@@ -160,10 +163,10 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                     detail={pointCountDetail}
                     onClick={props.onShowVisualization}
                     actions={
-                        <QueryResultCacheControls
-                            sessionId={props.sessionId}
-                            query={props.queryState}
-                        />
+                        <>
+                            <QueryResultCacheLabel query={props.queryState} />
+                            <QueryResultRerunButton query={props.queryState} onRerun={props.onRerun} />
+                        </>
                     }
                 />
                 {props.queryState != null && (
@@ -178,7 +181,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 )}
             </div>
         ),
-    }), [props.sessionId, queryTraceId, agentTraceId, props.logRequest, revealLogTab, props.queryState, props.visualizeQuery, rowCountDetail, pointCountDetail, props.onShowStatus, props.onShowTable, props.onShowVisualization]);
+    }), [props.sessionId, queryTraceId, agentTraceId, props.logRequest, revealLogTab, props.queryState, props.visualizeQuery, rowCountDetail, pointCountDetail, props.onShowStatus, props.onShowTable, props.onShowVisualization, props.onRerun]);
 
     return (
         <VerticalTabs

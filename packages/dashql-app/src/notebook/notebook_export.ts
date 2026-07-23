@@ -14,7 +14,8 @@ export enum NotebookLinkTarget {
 
 export async function encodeNotebookAsZip(
     notebookState: NotebookState,
-    connectionParams: any
+    connectionParams: any,
+    sessionName: string | null = null
 ): Promise<Blob> {
     // Create session data
     const notebookMetadata: NotebookMetadata = {
@@ -27,6 +28,10 @@ export async function encodeNotebookAsZip(
         sessionPath: notebookState.sessionId,
         connectionParams,
         notebook: notebookMetadata,
+        // Carry the user-supplied session name so a shared link/file restores under the same label.
+        // Omit it entirely when unnamed rather than writing an empty string, matching how a session
+        // that was never named is persisted.
+        ...(sessionName?.trim() ? { name: sessionName.trim() } : {}),
     };
 
     // Convert notebook pages to storage format. Iterate folders/files in sorted order.
@@ -67,9 +72,10 @@ export async function encodeNotebookAsZip(
 export async function encodeNotebookAsZipUrl(
     notebookState: NotebookState,
     connectionParams: any,
-    target: NotebookLinkTarget
+    target: NotebookLinkTarget,
+    sessionName: string | null = null
 ): Promise<URL> {
-    const zipBlob = await encodeNotebookAsZip(notebookState, connectionParams);
+    const zipBlob = await encodeNotebookAsZip(notebookState, connectionParams, sessionName);
     const zipBytes = new Uint8Array(await zipBlob.arrayBuffer());
 
     // Wrap the zip in AppEventData - convert to base64 string as required by JSON schema

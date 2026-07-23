@@ -15,14 +15,16 @@ import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { ConnectionState } from '../../connection/connection_state.js';
-import { useQueryState } from '../../connection/query_executor.js';
+import { useQueryState, useQueryExecutor } from '../../connection/query_executor.js';
 import { useAgentRunState } from '../../agent/agent_run_provider.js';
 import { EntryStatusBar } from './entry_status_bar.js';
 import { deriveEntryStatus } from './entry_status_model.js';
 import { TraceLogPanel } from './trace_log_panel.js';
 import { TabHeader, useResultRowCount, formatRowCountDetail } from './tab_header.js';
-import { QueryResultCacheControls } from './query_result_cache_controls.js';
+import { QueryResultCacheLabel, QueryResultRerunButton } from './query_result_cache_controls.js';
 import { getSelectedEntry, getSelectedPage, NotebookState, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
+import { rerunEntry } from './rerun_query.js';
+import { useStorageReader } from '../../platform/storage/storage_provider.js';
 import { normalizePageName, scriptDisplayName } from '../../notebook/notebook_types.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { useAppConfig } from '../../app_config.js';
@@ -246,6 +248,23 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
 
     const activeQueryId = scriptData?.latestQueryId ?? null;
     const activeQueryState = useQueryState(props.notebook?.sessionId ?? null, activeQueryId);
+
+    // Refresh: drop the stale cache entry for this result, then re-execute — a plain cacheable run
+    // then misses the cache and re-populates it. Surfaced on the Data/Chart tab headers when the
+    // current result was served from cache.
+    const executeQuery = useQueryExecutor();
+    const storageReader = useStorageReader();
+    const handleRerun = React.useCallback(async (cacheKey: string | null) => {
+        if (scriptData == null) {
+            return;
+        }
+        // Best-effort delete of the stale cache entry first; the re-execution then misses and
+        // re-populates the cache (the executor's write path overwrites it either way).
+        if (cacheKey != null) {
+            await storageReader.backend.deleteQueryResultCache(props.notebook.sessionId, cacheKey).catch(() => {});
+        }
+        rerunEntry(props.notebook, scriptData, executeQuery, props.modifyNotebook);
+    }, [props.notebook, props.modifyNotebook, scriptData, executeQuery, storageReader]);
 
     // The status bar above the tabs mirrors the feed's: while an agent run or query is in flight it's
     // a clickable strip (spinner + latest line) that reveals the trace on the Status tab. A staged
@@ -673,10 +692,10 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                         title="Query Results"
                                         detail={rowCountDetail}
                                         actions={
-                                            <QueryResultCacheControls
-                                                sessionId={props.notebook.sessionId}
-                                                query={activeQueryState}
-                                            />
+                                            <>
+                                                <QueryResultCacheLabel query={activeQueryState} />
+                                                <QueryResultRerunButton query={activeQueryState} onRerun={handleRerun} />
+                                            </>
                                         }
                                     />
                                     <div className={styles.result_tab_body}>
@@ -690,10 +709,10 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                         title="Visualization"
                                         detail={rowCountDetail}
                                         actions={
-                                            <QueryResultCacheControls
-                                                sessionId={props.notebook.sessionId}
-                                                query={activeQueryState}
-                                            />
+                                            <>
+                                                <QueryResultCacheLabel query={activeQueryState} />
+                                                <QueryResultRerunButton query={activeQueryState} onRerun={handleRerun} />
+                                            </>
                                         }
                                     />
                                     <ColumnAggregationBar query={activeQueryState} debugMode={tableDebugMode} />

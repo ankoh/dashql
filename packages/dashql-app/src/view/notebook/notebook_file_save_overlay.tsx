@@ -15,13 +15,11 @@ import { useFileDownloader } from '../../platform/file/file_downloader_provider.
 import { IconButton } from '../../view/foundations/button.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 
-const SLNX_COMPRESSION_LEVEL = 5;
-
 async function packAndCompressFile(conn: ConnectionState, notebook: NotebookState, withCatalog: boolean): Promise<Uint8Array> {
     const connectionParams = await import('../../connection/connection_params.js').then(m =>
         m.getConnectionParamsFromStateDetails(conn.details)
     );
-    const zipBlob = await encodeNotebookAsZip(notebook, connectionParams);
+    const zipBlob = await encodeNotebookAsZip(notebook, connectionParams, conn.name);
     const arrayBuffer = await zipBlob.arrayBuffer();
     return new Uint8Array(arrayBuffer);
 }

@@ -1,26 +1,17 @@
-/* The "delete cached" button in the Query Results header: a small text+icon button that reads as a
-   subtle secondary action, disabled once the entry is gone. */
-.delete_button {
+/* The "Executed <relative time>" label in the Query Results header: a subtle secondary text, shown
+   for any succeeded result. */
+.cache_label {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
     height: 22px;
-    padding: 0 8px;
     font-size: 0.75rem;
-    font-family: inherit;
     color: hsl(210, 12%, 40%);
-    background: none;
-    border: 1px solid rgb(210, 210, 210);
-    border-radius: 6px;
-    cursor: pointer;
+    white-space: nowrap;
 }
 
-.delete_button:hover:not(:disabled) {
-    background-color: hsl(210, 20%, 96%);
-    border-color: rgb(190, 190, 190);
-}
-
-.delete_button:disabled {
-    color: hsl(210, 10%, 70%);
-    cursor: default;
+/* The tiny Button defaults to a 20px height (border-box), which reads as cramped for a text+icon
+   action. Nudge the height up a couple px just for this button — the other tiny buttons are icon-only
+   pencils that should stay at the shared size. */
+.rerun_button {
+    height: 24px;
 }
