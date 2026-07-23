@@ -35,7 +35,7 @@ import { SegmentedControl, SegmentedControlSize } from '../foundations/segmented
 import { NotebookScriptName } from './notebook_script_name.js';
 import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
 import { EntryStatusBar } from './entry_status_bar.js';
-import { deriveEntryStatus, EntryStatusKind } from './entry_status_model.js';
+import { deriveEntryStatus } from './entry_status_model.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
 import { TabKey as DetailsTabKey } from './notebook_script_details.js';
 import { NotebookPageOverview } from './notebook_page_overview.js';
@@ -129,16 +129,17 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
     const agentTraceId = agentRunState?.traceId ?? null;
 
     // A staged agent rewrite waiting to be accepted/rejected. While set, the read-only preview
-    // renders the rewrite as a compact in-place diff overlay and the status bar above it turns into
-    // the Accept/Reject controls (which dispatch notebook actions — no editable editor is mounted).
+    // renders the rewrite as a compact in-place diff overlay and the body carries an Accept/Reject
+    // overlay (which dispatch notebook actions — no editable editor is mounted).
     const hasPendingDiff = scriptData?.pendingDiff != null;
 
     // The status bar above the body generalizes the former "AI bar": while any work is in flight —
     // an agent run *or* a query execution — it's a compact strip (spinner + latest log line / query
     // status) instead of yanking the user to the raw trace. The body keeps rendering the current
-    // output; the user opts into the full trace by clicking the bar. Once a rewrite is staged it
-    // becomes the Accept/Reject prompt, and it auto-hides on idle and on query success.
-    const entryStatus = deriveEntryStatus(agentRunState, queryState, hasPendingDiff);
+    // output; the user opts into the full trace by clicking the bar. It auto-hides on idle and on
+    // query success. A staged rewrite doesn't feed the bar — its Accept/Reject controls live on the
+    // body overlay — so the bar stays free to show the rewritten statement's re-execution status.
+    const entryStatus = deriveEntryStatus(agentRunState, queryState);
 
     // A monotonic nonce handed to the footer: bumped when the user clicks the status bar so the
     // footer reveals the matching trace's Log tab on demand (work no longer auto-switches it). The
@@ -198,9 +199,15 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
         if (event.button !== 0 || event.defaultPrevented) {
             return;
         }
+        // The Accept/Reject overlay sits inside the body. This handler runs in the capture phase
+        // (ancestor before target), so a click on those buttons would otherwise expand to Details
+        // before their own onClick fires — bail when the pointer lands within the overlay.
+        if ((event.target as HTMLElement).closest('[data-diff-actions]') != null) {
+            return;
+        }
         // The body is a read-only preview (with a compact diff overlay while a rewrite is staged);
         // clicking it always expands into Details, where the full normal-text diff and its own
-        // Accept/Reject controls live. Quick accept/reject stays on the feed via the status bar / ⏎ ⎋.
+        // Accept/Reject controls live. Quick accept/reject stays on the feed via the body overlay / ⏎ ⎋.
         onExpand(scriptFileName);
     }, [scriptFileName, onExpand]);
 
@@ -281,13 +288,25 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
             {entryStatus != null && (
                 // The status bar. While work is in flight it's a single clickable strip: a spinner
                 // plus the latest log line / query status, and clicking it reveals the matching trace
-                // in the footer. Once a rewrite lands (pendingDiff) it turns into the Accept/Reject
-                // controls (the same check/cross group as the Details editor; ⏎/⎋ still accept/reject
-                // the focused entry — see the feed key handlers).
+                // in the footer. It only ever shows execution progress now — a staged rewrite's
+                // Accept/Reject lives on the body overlay below (mirroring the Details editor), so a
+                // re-execution triggered by the agent's edit takes the bar and shows its progress.
                 <EntryStatusBar
                     status={entryStatus}
-                    onClick={entryStatus.kind === EntryStatusKind.PendingDiff ? undefined : () => showLog(entryStatus.traceId)}
-                    actions={entryStatus.kind === EntryStatusKind.PendingDiff ? (
+                    onClick={() => showLog(entryStatus.traceId)}
+                />
+            )}
+            <div className={styles.feed_body} onPointerDownCapture={handlePreviewPointerDown}>
+                {scriptData == null ? null : (
+                    // The body is always the read-only compact preview. When the agent stages a
+                    // rewrite it overlays the rewrite as a compact in-place diff (so the feed no
+                    // longer jumps from compact to normal text); the Accept/Reject controls overlay
+                    // the body's top-right (spatially tied to the diff, matching the Details editor),
+                    // and ⏎/⎋ still accept/reject on the focused entry.
+                    <ScriptPreview className={styles.script_preview_editor} sessionId={sessionId} scriptData={scriptData} onReady={setIsReady} />
+                )}
+                {hasPendingDiff && (
+                    <div className={styles.feed_body_diff_actions} data-diff-actions>
                         <ButtonGroup>
                             <IconButton
                                 variant={ButtonVariant.Default}
@@ -306,16 +325,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                                 <CrossIcon size={14} />
                             </IconButton>
                         </ButtonGroup>
-                    ) : undefined}
-                />
-            )}
-            <div className={styles.feed_body} onPointerDownCapture={handlePreviewPointerDown}>
-                {scriptData == null ? null : (
-                    // The body is always the read-only compact preview. When the agent stages a
-                    // rewrite it overlays the rewrite as a compact in-place diff (so the feed no
-                    // longer jumps from compact to normal text); Accept/Reject lives in the status bar
-                    // above (and via ⏎/⎋ on the focused entry).
-                    <ScriptPreview className={styles.script_preview_editor} sessionId={sessionId} scriptData={scriptData} onReady={setIsReady} />
+                    </div>
                 )}
             </div>
             {(queryState != null || agentTraceId != null) && (

@@ -265,9 +265,20 @@
    (entry_status_bar.tsx / .module.css) so the Details view can reuse it too. */
 
 .feed_body {
+    position: relative;
     width: 100%;
     cursor: text;
     background-color:var(--notebook_feed_preview_background);
+}
+
+/* Accept/Reject controls for a staged agent rewrite, overlaid on the body's top-right (spatially
+   tied to the diff decorations, mirroring the Details editor's format_toggle). Sits above the
+   read-only preview so it stays reachable while the status bar shows any re-execution progress. */
+.feed_body_diff_actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
 }
 .script_preview_editor {
     padding: 8px 8px;

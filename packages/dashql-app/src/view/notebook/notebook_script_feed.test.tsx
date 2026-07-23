@@ -625,8 +625,10 @@ describe('NotebookScriptFeed', () => {
         expect(container.querySelector('[aria-label="Show log"]')).toBeNull();
     });
 
-    it('shows Accept/Reject in the status bar once a rewrite is staged', () => {
-        // A finished run that left a pending diff: the status bar turns into the Accept/Reject controls.
+    it('shows Accept/Reject on the body once a rewrite is staged', () => {
+        // A finished run that left a pending diff: the body gets the Accept/Reject overlay. The
+        // rewrite no longer feeds the status bar at all — with the run done and nothing executing,
+        // the bar auto-hides (leaving the body overlay as the only rewrite affordance).
         mockState.agentRuns.set(8, { traceId: 200, phase: 6 /* SUCCEEDED */, log: [{ message: 'Done' }] });
         let notebook = withPendingDiff(createNotebookState(), 101, 'select 0');
         notebook.scripts[101] = { ...notebook.scripts[101], latestAgentRunId: 8 };
@@ -636,12 +638,33 @@ describe('NotebookScriptFeed', () => {
             showDetails: vi.fn(),
             scrollTarget: null,
         });
-        // The status bar renders the Details-style check/cross icon group, so Accept/Reject are
+        // The body overlay renders the Details-style check/cross icon group, so Accept/Reject are
         // identified by their aria-label rather than button text.
         expect(container.querySelector('[aria-label="Accept rewrite"]')).not.toBeNull();
         expect(container.querySelector('[aria-label="Reject rewrite"]')).not.toBeNull();
-        // No running spinner strip while a rewrite is staged.
+        // The staged rewrite doesn't feed the bar, so nothing surfaces it here.
         expect(container.querySelector('[aria-label="Show log"]')).toBeNull();
+    });
+
+    it('shows the query status bar when a re-execution runs over a staged diff', () => {
+        // The agent's edit re-executes the script: while that query is in flight it takes the status
+        // bar and surfaces its progress, even though a rewrite is still pending Accept/Reject.
+        mockState.queryStates.set(42, { traceId: 100, status: 4 /* RUNNING */ });
+        let notebook = withPendingDiff(createNotebookState(), 101, 'select 0');
+        notebook.scripts[101] = { ...notebook.scripts[101], latestQueryId: 42 };
+        renderFeed({
+            notebook,
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+        // The bar is the clickable execution strip showing the running query...
+        const statusBar = container.querySelector('[aria-label="Show log"]');
+        expect(statusBar).not.toBeNull();
+        expect(statusBar!.textContent).toContain('Executing query');
+        // ...and Accept/Reject stay reachable on the body overlay throughout.
+        expect(container.querySelector('[aria-label="Accept rewrite"]')).not.toBeNull();
+        expect(container.querySelector('[aria-label="Reject rewrite"]')).not.toBeNull();
     });
 
     it('dispatches ACCEPT_PENDING_DIFF when the status bar Accept button is clicked', () => {

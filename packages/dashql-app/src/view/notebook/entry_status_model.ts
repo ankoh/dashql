@@ -7,9 +7,6 @@ import { IndicatorStatus } from '../foundations/status_indicator.js';
 export const enum EntryStatusKind {
     Agent = 0,
     Query = 1,
-    /// A staged agent rewrite awaiting Accept/Reject. Has no spinner and no trace — it's a decision
-    /// prompt, not progress.
-    PendingDiff = 2,
 }
 
 /// The presentation-ready status for one notebook entry, derived from whichever of its agent run /
@@ -21,7 +18,7 @@ export interface EntryStatus {
     indicator: IndicatorStatus;
     /// The single-line message (latest agent log line, or the query status text).
     message: string;
-    /// The trace to reveal in the footer log when the bar is clicked (null for PendingDiff).
+    /// The trace to reveal in the footer log when the bar is clicked.
     traceId: number | null;
     /// Structured error detail for a failed/cancelled query, surfaced on hover over the bar's
     /// message (the one-line bar can't carry the key-values inline). Null when there's no error.
@@ -62,26 +59,17 @@ export function getQueryStatusText(status: QueryExecutionStatus): string {
 /// Derive the status bar contents for a notebook entry from its agent run and query execution.
 ///
 /// A single bar with a fixed priority (agent state wins while a run is active, otherwise the query):
-///   1. A staged rewrite (pendingDiff) → the Accept/Reject prompt.
-///   2. An active agent run → spinner + latest agent log line.
-///   3. A query that hasn't finished → spinner + query status text.
-///   4. A failed/cancelled query → cross + the failure text.
+///   1. An active agent run → spinner + latest agent log line.
+///   2. A query that hasn't finished → spinner + query status text.
+///   3. A failed/cancelled query → cross + the failure text.
 /// Everything else — idle, and (per the auto-hide choice) a succeeded query — returns null so the
-/// bar disappears once work lands (the result/data tab already conveys success).
+/// bar disappears once work lands (the result/data tab already conveys success). A staged agent
+/// rewrite doesn't feed the bar: its Accept/Reject controls live on the body overlay, leaving the
+/// bar free to show the normal execution status of the rewritten statement.
 export function deriveEntryStatus(
     agentRun: AgentRunState | null,
     query: QueryExecutionState | null,
-    hasPendingDiff: boolean,
 ): EntryStatus | null {
-    if (hasPendingDiff) {
-        return {
-            kind: EntryStatusKind.PendingDiff,
-            indicator: IndicatorStatus.None,
-            message: 'Suggested rewrite',
-            traceId: null,
-            errorDetail: null,
-        };
-    }
     if (agentRun != null && agentRunIsActive(agentRun.phase)) {
         const latest = agentRun.log.length > 0 ? agentRun.log[agentRun.log.length - 1].message : null;
         return {

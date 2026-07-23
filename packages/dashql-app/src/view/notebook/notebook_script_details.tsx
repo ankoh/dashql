@@ -18,7 +18,7 @@ import { ConnectionState } from '../../connection/connection_state.js';
 import { useQueryState } from '../../connection/query_executor.js';
 import { useAgentRunState } from '../../agent/agent_run_provider.js';
 import { EntryStatusBar } from './entry_status_bar.js';
-import { deriveEntryStatus, EntryStatusKind } from './entry_status_model.js';
+import { deriveEntryStatus } from './entry_status_model.js';
 import { TraceLogPanel } from './trace_log_panel.js';
 import { TabHeader, useResultRowCount, formatRowCountDetail } from './tab_header.js';
 import { getSelectedEntry, getSelectedPage, NotebookState, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
@@ -247,13 +247,14 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     const activeQueryState = useQueryState(props.notebook?.sessionId ?? null, activeQueryId);
 
     // The status bar above the tabs mirrors the feed's: while an agent run or query is in flight it's
-    // a clickable strip (spinner + latest line) that reveals the trace on the Status tab; a staged
-    // rewrite is shown as a status-only bar here (Accept/Reject stays on the editor overlay, tied to
-    // the diff decorations). It auto-hides on idle and on query success.
+    // a clickable strip (spinner + latest line) that reveals the trace on the Status tab. A staged
+    // rewrite doesn't feed the bar — Accept/Reject stays on the editor overlay, tied to the diff
+    // decorations — so the bar stays free to show the rewritten statement's re-execution status. It
+    // auto-hides on idle and on query success.
     const agentRunState = useAgentRunState(scriptData?.latestAgentRunId ?? null);
     const agentTraceId = agentRunState?.traceId ?? null;
     const queryTraceId = activeQueryState?.traceId ?? null;
-    const entryStatus = deriveEntryStatus(agentRunState, activeQueryState, hasPendingDiff);
+    const entryStatus = deriveEntryStatus(agentRunState, activeQueryState);
 
     // Clicking the status bar reveals the matching trace on the Status tab (bump a nonce the
     // TraceLogPanel keys off, riding along the clicked source's trace id — same contract as the feed
@@ -536,12 +537,12 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                         </IconButton>
                     </div>
                     {entryStatus != null && (
-                        // Same status bar as the feed. Accept/Reject for a staged rewrite lives on the
-                        // editor overlay (spatially tied to the diff decorations), so the bar here is
-                        // status-only — no actions, and the PendingDiff prompt isn't clickable.
+                        // Same status bar as the feed. It only shows execution progress; Accept/Reject
+                        // for a staged rewrite lives on the editor overlay (spatially tied to the diff
+                        // decorations), so the bar is always the clickable trace strip here.
                         <EntryStatusBar
                             status={entryStatus}
-                            onClick={entryStatus.kind === EntryStatusKind.PendingDiff ? undefined : () => showLog(entryStatus.traceId)}
+                            onClick={() => showLog(entryStatus.traceId)}
                         />
                     )}
                     <VerticalTabs
