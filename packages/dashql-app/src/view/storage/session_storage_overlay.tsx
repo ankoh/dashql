@@ -82,19 +82,16 @@ function NameRow(props: { name: string | null; onCommit: (name: string) => void 
     }, [props.name]);
 
     return (
-        <div className={styles.param_row}>
-            <div className={styles.param_label}>Name</div>
-            <input
-                className={styles.name_input}
-                type="text"
-                value={draft}
-                placeholder="Name this session"
-                spellCheck={false}
-                onChange={(e) => setDraft(e.target.value)}
-                onBlur={commit}
-                onKeyDown={onKeyDown}
-            />
-        </div>
+        <input
+            className={styles.name_input}
+            type="text"
+            value={draft}
+            placeholder="Name this session"
+            spellCheck={false}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={onKeyDown}
+        />
     );
 }
 

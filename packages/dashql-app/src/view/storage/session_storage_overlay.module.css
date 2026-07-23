@@ -86,8 +86,8 @@
     width: 100%;
     box-sizing: border-box;
     font-family: 'Roboto';
-    font-size: 0.8rem;
-    padding: 4px 8px;
+    font-size: 0.9rem;
+    padding: 6px 10px;
     border: 1px solid var(--border_color_primary);
     border-radius: var(--border_radius);
     background-color: var(--input_bg, #ffffff);

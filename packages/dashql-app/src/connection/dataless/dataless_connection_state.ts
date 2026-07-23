@@ -40,7 +40,11 @@ export function createDatalessConnectionState(dql: dashql.DashQL, connSigs: Conn
         type: DATALESS_CONNECTOR,
         value: details,
     });
-    if (!demoConnector) {
+    if (demoConnector) {
+        // Give the demo session a friendly default label so it reads as "Demo" in the session bar
+        // and selector rather than falling back to its opaque storage path.
+        state.name = "Demo";
+    } else {
         // Non-demo dataless connections are immediately online
         state.connectionStatus = ConnectionStatus.CHANNEL_READY;
         state.connectionHealth = ConnectionHealth.ONLINE;
