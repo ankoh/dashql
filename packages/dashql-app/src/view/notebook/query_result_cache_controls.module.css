@@ -1,0 +1,26 @@
+/* The "delete cached" button in the Query Results header: a small text+icon button that reads as a
+   subtle secondary action, disabled once the entry is gone. */
+.delete_button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 8px;
+    font-size: 0.75rem;
+    font-family: inherit;
+    color: hsl(210, 12%, 40%);
+    background: none;
+    border: 1px solid rgb(210, 210, 210);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.delete_button:hover:not(:disabled) {
+    background-color: hsl(210, 20%, 96%);
+    border-color: rgb(190, 190, 190);
+}
+
+.delete_button:disabled {
+    color: hsl(210, 10%, 70%);
+    cursor: default;
+}

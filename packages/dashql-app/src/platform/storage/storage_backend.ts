@@ -6,6 +6,17 @@ export const STORAGE_MANIFEST_FILE = 'dashql-manifest.json';
 export const STORAGE_SESSIONS_FOLDER = 'sessions';
 export const STORAGE_SESSION_FILE = 'dashql-session.json';
 export const STORAGE_NOTEBOOK_FOLDER = 'notebook';
+export const STORAGE_CACHE_FOLDER = 'cache';
+export const STORAGE_CACHE_EXTENSION = '.arrow';
+
+/// A cached query result loaded from disk: the Arrow IPC bytes plus the entry's write time.
+export interface CachedQueryResult {
+    /// The Arrow IPC (stream) bytes of the cached result.
+    bytes: Uint8Array;
+    /// When the cache entry was written (the `.arrow` file's mtime, in epoch milliseconds). This is
+    /// a write time, not a last-access time: a cache hit does not re-touch the file.
+    cachedAtMs: number;
+}
 export const STORAGE_SCRIPT_SCHEMA = 'dashql-relations.sql';
 export const STORAGE_SCRIPT_FUNCTIONS = 'dashql-functions.sql';
 export const STORAGE_SCRIPT_DRAFT = 'dashql-draft.sql';
@@ -96,6 +107,20 @@ export interface StorageBackend {
     loadNotebookScriptDraft(sessionId: string): Promise<string | null>;
     /// Save a notebook script draft
     saveNotebookScriptDraft(sessionId: string, sql: string): Promise<void>;
+
+    /// Load a cached query result by content hash, or null on a cache miss.
+    ///
+    /// The cache lives in a `cache/` folder inside the session's storage; entries are named
+    /// `<hash>.arrow`. This is a best-effort cache: callers must treat any failure as a miss and fall
+    /// back to normal execution (the executor never lets a cache error surface into the query path).
+    /// On a hit the returned entry carries both the Arrow IPC bytes and the file's write time
+    /// (`cachedAt`), so the UI can show how old the cached result is.
+    loadQueryResultCache(sessionId: string, hash: string): Promise<CachedQueryResult | null>;
+    /// Store a query result (Arrow IPC bytes) under `<hash>.arrow` in the session's `cache/` folder,
+    /// evicting least-recently-used entries first to stay under the size and count thresholds.
+    saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void>;
+    /// Delete a single cached query result by content hash. A no-op when the entry is already gone.
+    deleteQueryResultCache(sessionId: string, hash: string): Promise<void>;
 
     /// Clear all storage (delete all sessions and reset manifest)
     clearAllStorage?(): Promise<void>;

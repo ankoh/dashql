@@ -11,6 +11,7 @@ import { VisualizationDispatch } from '../visualization/visualization_dispatch.j
 import { ResolvedVisualizeQuery } from '../../notebook/notebook_types.js';
 import { TraceLogPanel } from './trace_log_panel.js';
 import { TabHeader, useResultRowCount, formatRowCountDetail } from './tab_header.js';
+import { QueryResultCacheControls } from './query_result_cache_controls.js';
 
 const FEED_LIMIT_RESULT_ROWS = 8;
 /// The Log tab's viewport auto-expands to fit its rows and caps at this many (then scrolls).
@@ -129,7 +130,17 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
         ),
         [FooterTab.Table]: () => (
             <>
-                <TabHeader title="Query Results" detail={rowCountDetail} onClick={props.onShowTable} />
+                <TabHeader
+                    title="Query Results"
+                    detail={rowCountDetail}
+                    onClick={props.onShowTable}
+                    actions={
+                        <QueryResultCacheControls
+                            sessionId={props.sessionId}
+                            query={props.queryState}
+                        />
+                    }
+                />
                 {props.queryState != null && (
                     <QueryResultView
                         query={props.queryState}
@@ -157,7 +168,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 )}
             </div>
         ),
-    }), [queryTraceId, agentTraceId, props.logRequest, revealLogTab, props.queryState, props.visualizeQuery, rowCountDetail, pointCountDetail, props.onShowStatus, props.onShowTable, props.onShowVisualization]);
+    }), [props.sessionId, queryTraceId, agentTraceId, props.logRequest, revealLogTab, props.queryState, props.visualizeQuery, rowCountDetail, pointCountDetail, props.onShowStatus, props.onShowTable, props.onShowVisualization]);
 
     return (
         <VerticalTabs

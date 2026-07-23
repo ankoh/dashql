@@ -247,6 +247,43 @@ describe('NativeStorageBackend (one-dir-one-session)', () => {
         });
     });
 
+    describe('Query result cache', () => {
+        const bytesOf = (s: string) => new TextEncoder().encode(s);
+
+        it('round-trips cached bytes and reports a write time', async () => {
+            await backend.saveQueryResultCache(SID, 'hash1', bytesOf('arrow-payload'));
+
+            const loaded = await backend.loadQueryResultCache(SID, 'hash1');
+            expect(loaded).not.toBeNull();
+            expect(new TextDecoder().decode(loaded!.bytes)).toBe('arrow-payload');
+            expect(typeof loaded!.cachedAtMs).toBe('number');
+            // The entry lives under cache/<hash>.arrow directly in the session directory.
+            expect(fsStore.binFiles.has(`${DIR}/cache/hash1.arrow`)).toBe(true);
+        });
+
+        it('returns null for a missing hash', async () => {
+            expect(await backend.loadQueryResultCache(SID, 'nope')).toBeNull();
+        });
+
+        it('writes a .gitignore excluding cache/ exactly once, never clobbering an existing one', async () => {
+            await backend.saveQueryResultCache(SID, 'h1', bytesOf('a'));
+            expect(fsStore.files.get(`${DIR}/.gitignore`)).toBe('cache/\n');
+
+            // A user-authored .gitignore must survive a later cache write.
+            fsStore.files.set(`${DIR}/.gitignore`, 'my-own-rules\n');
+            await backend.saveQueryResultCache(SID, 'h2', bytesOf('b'));
+            expect(fsStore.files.get(`${DIR}/.gitignore`)).toBe('my-own-rules\n');
+        });
+
+        it('deletes a single cached entry and tolerates a missing one', async () => {
+            await backend.saveQueryResultCache(SID, 'h1', bytesOf('a'));
+            await backend.deleteQueryResultCache(SID, 'h1');
+            expect(await backend.loadQueryResultCache(SID, 'h1')).toBeNull();
+            // Deleting an already-gone entry is a no-op.
+            await expect(backend.deleteQueryResultCache(SID, 'h1')).resolves.toBeUndefined();
+        });
+    });
+
     describe('deleteSession / clearAllStorage', () => {
         async function seed(): Promise<void> {
             await backend.saveSessionManifest(SID, {

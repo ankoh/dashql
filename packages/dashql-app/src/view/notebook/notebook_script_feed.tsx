@@ -563,6 +563,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         const [queryId] = executeQuery(props.notebook.sessionId, {
             query: queryText,
             analyzeResults: true,
+            cacheable: true,
             projection: projectionForVisualizeQuery(scriptData.annotations.visualizeQuery),
             metadata: {
                 queryType: QueryType.USER_PROVIDED,
@@ -590,6 +591,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             const [queryId] = executeQuery(notebook.sessionId, {
                 query: queryText,
                 analyzeResults: true,
+                cacheable: true,
                 projection: projectionForVisualizeQuery(scriptData?.annotations.visualizeQuery),
                 metadata: {
                     queryType: QueryType.USER_PROVIDED,

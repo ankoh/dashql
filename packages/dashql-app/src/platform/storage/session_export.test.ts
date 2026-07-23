@@ -28,6 +28,9 @@ describe('exportSessionAsZip', () => {
             renameNotebookScript: vi.fn(),
             loadNotebookScriptDraft: vi.fn(),
             saveNotebookScriptDraft: vi.fn(),
+            loadQueryResultCache: vi.fn().mockResolvedValue(null),
+            saveQueryResultCache: vi.fn(),
+            deleteQueryResultCache: vi.fn(),
             loadAppSettings: vi.fn(),
             saveAppSettings: vi.fn(),
         };

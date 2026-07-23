@@ -10,24 +10,32 @@ interface TabHeaderProps {
     /// When set, the header becomes a clickable navigation target (the feed footer uses this to open
     /// Details). Omitted in Details, where the header is a plain, non-clickable label + count.
     onClick?: () => void;
+    /// Optional right-aligned content (e.g. a "delete cached" button). Rendered on both variants; on
+    /// the clickable variant the title/count sit in an inner button while the actions sit beside it,
+    /// since nesting interactive controls inside a button is invalid.
+    actions?: React.ReactNode;
 }
 
 /// The header bar shown atop a notebook tab body: a title with an optional greyish "N of M rows"
 /// count. Shared by the feed footer (clickable — opens Details) and the Details tabs (inert), so the
 /// two surfaces read identically.
-export const TabHeader: React.FC<TabHeaderProps> = ({ title, detail, onClick }) => {
+export const TabHeader: React.FC<TabHeaderProps> = ({ title, detail, onClick, actions }) => {
     if (onClick != null) {
         return (
-            <button type="button" className={styles.tab_header_clickable} onClick={onClick}>
-                <span className={styles.tab_header_title}>{title}</span>
-                {detail && <span className={styles.tab_header_detail}>{detail}</span>}
-            </button>
+            <div className={styles.tab_header}>
+                <button type="button" className={styles.tab_header_clickable_inner} onClick={onClick}>
+                    <span className={styles.tab_header_title}>{title}</span>
+                    {detail && <span className={styles.tab_header_detail}>{detail}</span>}
+                </button>
+                {actions && <div className={styles.tab_header_actions}>{actions}</div>}
+            </div>
         );
     }
     return (
         <div className={styles.tab_header}>
             <span className={styles.tab_header_title}>{title}</span>
             {detail && <span className={styles.tab_header_detail}>{detail}</span>}
+            {actions && <div className={styles.tab_header_actions}>{actions}</div>}
         </div>
     );
 };

@@ -213,6 +213,8 @@ export const QUERY_PROCESSED_RESULTS = Symbol('QUERY_PROCESSED_RESULTS');
 export const QUERY_SUCCEEDED = Symbol('QUERY_SUCCEEDED');
 export const QUERY_FAILED = Symbol('QUERY_FAILED');
 export const QUERY_CANCELLED = Symbol('QUERY_CANCELLED');
+export const QUERY_CACHE_RECORDED = Symbol('QUERY_CACHE_RECORDED');
+export const QUERY_CACHE_DELETED = Symbol('QUERY_CACHE_DELETED');
 
 export const HEALTH_CHECK_STARTED = Symbol('HEALTH_CHECK_STARTED');
 export const HEALTH_CHECK_CANCELLED = Symbol('HEALTH_CHECK_CANCELLED');
@@ -242,6 +244,8 @@ export type QueryExecutionAction =
     | VariantKind<typeof QUERY_SUCCEEDED, [number]>
     | VariantKind<typeof QUERY_FAILED, [number, LoggableException, QueryExecutionMetrics | null]>
     | VariantKind<typeof QUERY_CANCELLED, [number, LoggableException, QueryExecutionMetrics | null]>
+    | VariantKind<typeof QUERY_CACHE_RECORDED, [number, string, boolean, number | null]>
+    | VariantKind<typeof QUERY_CACHE_DELETED, [number]>
     ;
 
 export type ConnectionStateAction =
@@ -286,6 +290,8 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
         case QUERY_SUCCEEDED:
         case QUERY_CANCELLED:
         case QUERY_FAILED:
+        case QUERY_CACHE_RECORDED:
+        case QUERY_CACHE_DELETED:
             return reduceQueryAction(state, action, storage);
 
         // RESET_CONNECTION is a bit special since we want to clean up our details as well

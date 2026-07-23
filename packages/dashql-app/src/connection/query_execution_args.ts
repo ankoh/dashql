@@ -9,6 +9,11 @@ export interface QueryExecutionArgs {
     query: string;
     analyzeResults?: boolean;
     metadata: QueryMetadata;
+    /// When true, the executor consults the file-based query result cache: it serves a matching
+    /// cached `.arrow` result instead of hitting the backend, and stores the result after a miss.
+    /// Only user-provided queries should set this; catalog/health-check queries leave it unset so
+    /// they never touch the cache. Cache failures are always non-fatal (fall back to execution).
+    cacheable?: boolean;
     /// Optional UMAP projection request. When present (a resolved `'umap'` visualize
     /// spec), the result post-processing step computes per-row 2D coordinates, appends
     /// them to the analyzed table, and records their field names on the embedding

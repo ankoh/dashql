@@ -12,25 +12,32 @@
     flex-shrink: 0;
 }
 
-/* Clickable variant (feed footer → Details). A full-width button reset to read as the header bar. */
-.tab_header_clickable {
-    composes: tab_header;
-    width: 100%;
-    border-top: none;
-    border-left: none;
-    border-right: none;
+/* Clickable variant (feed footer → Details). The inner button holds the title/count and reads as the
+   header bar; it sits inside the shared `.tab_header` row so an optional right-aligned action slot
+   (e.g. the cache controls) can live beside it without nesting a button inside a button. */
+.tab_header_clickable_inner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    align-self: stretch;
+    padding: 0;
+    border: none;
     background: none;
     /* Reset only the button's font family/weight — NOT font-size or color. Both `font` (shorthand)
        and `color: inherit` would pull in the larger/darker inherited button values and clobber the
-       composed 0.8rem + hsl(210,12%,36%), making the clickable footer header render larger and
+       inherited 0.8rem + hsl(210,12%,36%), making the clickable footer header render larger and
        darker than the inert Details header. */
     font-family: inherit;
     font-weight: inherit;
+    font-size: inherit;
+    color: inherit;
     text-align: left;
     cursor: pointer;
 }
 
-.tab_header_clickable:hover {
+.tab_header_clickable_inner:hover {
     background-color: hsl(210, 20%, 96%);
 }
 
@@ -44,4 +51,14 @@
 .tab_header_detail {
     flex-shrink: 0;
     color: hsl(210, 10%, 60%);
+}
+
+/* Right-aligned action slot (e.g. a "delete cached" button). The margin-left:auto pushes it to the
+   far end of the header row. */
+.tab_header_actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
 }

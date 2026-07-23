@@ -126,7 +126,7 @@ function getAvailableModes(formats: DetectedFormats): FormatMode[] {
 /// Read-only CodeMirror sub-view (no syntax highlighting)
 function ReadonlyTextView(props: { text: string }) {
     const [view, setView] = React.useState<EditorView | null>(null);
-    const readonlyExtensions = React.useMemo(() => createReadonlyCodeMirrorExtensions(), []);
+    const readonlyExtensions = React.useMemo(() => [...createReadonlyCodeMirrorExtensions(), EditorView.lineWrapping], []);
 
     React.useEffect(() => {
         if (view == null) return;

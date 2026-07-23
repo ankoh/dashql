@@ -43,7 +43,7 @@ function makeErrorResult(status: number, body: QueryErrorResponse): HttpFetchRes
 }
 
 function statusHeader(qs: QueryStatus): Record<string, string> {
-    return { status: JSON.stringify(qs) };
+    return { 'x-hyperdb-status': JSON.stringify(qs) };
 }
 
 // ---------------------------------------------------------------------------

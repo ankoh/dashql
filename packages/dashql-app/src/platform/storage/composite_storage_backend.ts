@@ -6,6 +6,7 @@ import {
     type ScriptData,
     type SessionEntry,
     type AppSettings,
+    type CachedQueryResult,
     StorageBackendType,
     STORAGE_MANIFEST_FILE,
     STORAGE_SESSION_FILE,
@@ -257,6 +258,15 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
     }
     async saveNotebookScriptDraft(sessionId: string, sql: string): Promise<void> {
         return (await this.backendFor(sessionId)).saveNotebookScriptDraft(sessionId, sql);
+    }
+    async loadQueryResultCache(sessionId: string, hash: string): Promise<CachedQueryResult | null> {
+        return (await this.backendFor(sessionId)).loadQueryResultCache(sessionId, hash);
+    }
+    async saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void> {
+        return (await this.backendFor(sessionId)).saveQueryResultCache(sessionId, hash, bytes);
+    }
+    async deleteQueryResultCache(sessionId: string, hash: string): Promise<void> {
+        return (await this.backendFor(sessionId)).deleteQueryResultCache(sessionId, hash);
     }
 
     async clearAllStorage(): Promise<void> {

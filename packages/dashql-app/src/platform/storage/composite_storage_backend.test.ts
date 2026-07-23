@@ -6,6 +6,7 @@ import {
     type ScriptData,
     type SessionEntry,
     type AppSettings,
+    type CachedQueryResult,
     StorageBackendType,
 } from './storage_backend.js';
 import { TestLogger } from '../logger/test_logger.js';
@@ -41,6 +42,7 @@ class MemoryRegistry implements SessionRegistryBackend {
     functions = new Map<string, string>();
     drafts = new Map<string, string>();
     pages = new Map<string, Map<string, Map<string, string>>>();
+    cache = new Map<string, Map<string, Uint8Array>>();
 
     getBackendType(): StorageBackendType { return StorageBackendType.OPFS; }
     async initialize(): Promise<void> { this.initialized = true; }
@@ -147,6 +149,19 @@ class MemoryRegistry implements SessionRegistryBackend {
     async loadNotebookScriptDraft(sessionId: string): Promise<string | null> { return this.drafts.get(sessionId) ?? null; }
     async saveNotebookScriptDraft(sessionId: string, sql: string): Promise<void> { this.drafts.set(sessionId, sql); }
 
+    async loadQueryResultCache(sessionId: string, hash: string): Promise<CachedQueryResult | null> {
+        const bytes = this.cache.get(sessionId)?.get(hash);
+        return bytes ? { bytes, cachedAtMs: 0 } : null;
+    }
+    async saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void> {
+        const c = this.cache.get(sessionId) ?? new Map<string, Uint8Array>();
+        c.set(hash, bytes);
+        this.cache.set(sessionId, c);
+    }
+    async deleteQueryResultCache(sessionId: string, hash: string): Promise<void> {
+        this.cache.get(sessionId)?.delete(hash);
+    }
+
     async clearAllStorage(): Promise<void> {
         this.manifest = [];
         this.appSettings = null;
@@ -155,6 +170,7 @@ class MemoryRegistry implements SessionRegistryBackend {
         this.functions.clear();
         this.drafts.clear();
         this.pages.clear();
+        this.cache.clear();
     }
 }
 

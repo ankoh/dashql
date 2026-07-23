@@ -1,7 +1,11 @@
-import { type StorageBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type AppSettings, StorageBackendType, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS } from './storage_backend.js';
+import { type StorageBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION } from './storage_backend.js';
+import { type CacheFileStat, type QueryResultCacheStore, evictToFit } from './query_result_cache_eviction.js';
 
-import { exists, mkdir, readDir, readTextFile, remove, rename, writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists, mkdir, readDir, readFile, readTextFile, remove, rename, stat, writeFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { join } from '@tauri-apps/api/path';
+
+/// The name of the session-level .gitignore that excludes the cache folder from version control.
+const GITIGNORE_FILE = '.gitignore';
 
 /// Native filesystem storage backend for a single session (Tauri only).
 ///
@@ -249,6 +253,67 @@ export class NativeStorageBackend implements StorageBackend {
         await this.ensureDir(STORAGE_NOTEBOOK_FOLDER);
         const draftFile = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${STORAGE_SCRIPT_DRAFT}`);
         await writeTextFile(draftFile, sql);
+    }
+
+    async loadQueryResultCache(_sessionId: string, hash: string): Promise<CachedQueryResult | null> {
+        const file = await this.abs(`${STORAGE_CACHE_FOLDER}/${hash}${STORAGE_CACHE_EXTENSION}`);
+        if (!(await exists(file))) {
+            return null;
+        }
+        const bytes = await readFile(file);
+        // Read the file's write time so the UI can show how old the cached result is.
+        const meta = await stat(file);
+        return {
+            bytes,
+            cachedAtMs: meta.mtime ? meta.mtime.getTime() : 0,
+        };
+    }
+
+    async saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void> {
+        await this.ensureDir(STORAGE_CACHE_FOLDER);
+        // Keep the cache out of version control. Write the ignore file lazily and only when absent so
+        // we never clobber a user-authored .gitignore in their session folder.
+        const gitignore = await this.abs(GITIGNORE_FILE);
+        if (!(await exists(gitignore))) {
+            await writeTextFile(gitignore, `${STORAGE_CACHE_FOLDER}/\n`);
+        }
+
+        // The native readDir entry carries no size/mtime, so eviction has to stat each cache file.
+        const cacheDir = await this.abs(STORAGE_CACHE_FOLDER);
+        const store: QueryResultCacheStore = {
+            listCacheFiles: async (): Promise<CacheFileStat[]> => {
+                const entries = await readDir(cacheDir);
+                const stats: CacheFileStat[] = [];
+                for (const entry of entries) {
+                    if (entry.isFile && entry.name.endsWith(STORAGE_CACHE_EXTENSION)) {
+                        const meta = await stat(await join(cacheDir, entry.name));
+                        stats.push({
+                            name: entry.name,
+                            size: meta.size,
+                            mtimeMs: meta.mtime ? meta.mtime.getTime() : 0,
+                        });
+                    }
+                }
+                return stats;
+            },
+            deleteCacheFile: async (_sessionId: string, name: string): Promise<void> => {
+                const path = await join(cacheDir, name);
+                if (await exists(path)) {
+                    await remove(path);
+                }
+            },
+        };
+        await evictToFit(store, sessionId, bytes.byteLength);
+
+        const file = await this.abs(`${STORAGE_CACHE_FOLDER}/${hash}${STORAGE_CACHE_EXTENSION}`);
+        await writeFile(file, bytes);
+    }
+
+    async deleteQueryResultCache(_sessionId: string, hash: string): Promise<void> {
+        const file = await this.abs(`${STORAGE_CACHE_FOLDER}/${hash}${STORAGE_CACHE_EXTENSION}`);
+        if (await exists(file)) {
+            await remove(file);
+        }
     }
 
     async clearAllStorage(): Promise<void> {

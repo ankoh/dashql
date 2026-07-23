@@ -17,6 +17,8 @@ import {
     QUERY_PREPARING,
     QUERY_SENDING,
     QUERY_PROCESSING_RESULTS,
+    QUERY_CACHE_RECORDED,
+    QUERY_CACHE_DELETED,
 } from './connection_state.js';
 import { AsyncConsumer } from '../utils/async_consumer.js';
 import { removePrimitiveFromArray } from '../utils/array.js';
@@ -180,6 +182,18 @@ export interface QueryExecutionState {
     resultMetadata: Map<string, string> | null;
     /// The result query_result iff the query succeeded
     resultTable: arrow.Table | null;
+    /// The file-based query result cache key for this execution, or null when the query is not
+    /// cacheable (or no key could be derived). Recorded so the UI can offer a "delete cached" action.
+    cacheKey: string | null;
+    /// Whether this result was served from the query result cache instead of the backend.
+    servedFromCache: boolean;
+    /// Whether the cached `.arrow` entry for this query has been deleted (via the UI). Used to
+    /// disable the "delete cached" button once there is nothing left to delete.
+    cacheDeleted: boolean;
+    /// When the cache entry backing this result was written (`.arrow` file mtime), or null when the
+    /// result did not come from the cache. Lets the UI show how old a cached result is. Note that a
+    /// cache hit does not re-touch the file, so this is the write time, not a last-access time.
+    cachedAt: Date | null;
 }
 
 export function reduceQueryAction(state: ConnectionState, action: QueryExecutionAction, _storage: StorageWriter): ConnectionState {
@@ -191,6 +205,32 @@ export function reduceQueryAction(state: ConnectionState, action: QueryExecution
         state.queriesActive.set(queryId, action.value[1]);
         state.queriesActiveOrdered.push(queryId);
         state.snapshotQueriesActiveFinished += 1;
+        return { ...state };
+    }
+
+    // Cache bookkeeping actions can arrive after the query has already moved to `queriesFinished`
+    // (the write path fires-and-forgets, and the UI delete happens on a finished result), so resolve
+    // the query from whichever map holds it and write the update back to the same map.
+    if (action.type == QUERY_CACHE_RECORDED || action.type == QUERY_CACHE_DELETED) {
+        const isActive = state.queriesActive.has(queryId);
+        const target = isActive ? state.queriesActive : state.queriesFinished;
+        const q = target.get(queryId);
+        if (!q) {
+            return state;
+        }
+        let next: QueryExecutionState;
+        if (action.type == QUERY_CACHE_RECORDED) {
+            const [, cacheKey, servedFromCache, cachedAtMs] = action.value;
+            next = {
+                ...q,
+                cacheKey,
+                servedFromCache,
+                cachedAt: cachedAtMs != null ? new Date(cachedAtMs) : q.cachedAt,
+            };
+        } else {
+            next = { ...q, cacheDeleted: true };
+        }
+        target.set(queryId, next);
         return { ...state };
     }
 

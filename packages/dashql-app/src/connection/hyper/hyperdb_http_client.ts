@@ -153,7 +153,7 @@ export class HyperDatabaseHttpClient {
     }
 
     private parseStatusHeader(response: HttpFetchResult): QueryStatus | null {
-        const raw = response.headers.get("status");
+        const raw = response.headers.get("x-hyperdb-status");
         if (!raw) return null;
         return JSON.parse(raw) as QueryStatus;
     }

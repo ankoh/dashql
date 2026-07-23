@@ -23,10 +23,15 @@ import {
     QUERY_SUCCEEDED,
     QUERY_PROCESSING_RESULTS,
     QUERY_SENDING,
+    QUERY_CACHE_RECORDED,
 } from './connection_state.js';
 import { useComputationRegistry } from '../compute/computation_registry.js';
 import { analyzeTable } from '../compute/computation_logic.js';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';
+import { useStorageReader } from '../platform/storage/storage_provider.js';
+import { type CachedQueryResult } from '../platform/storage/storage_backend.js';
+import { getConnectionParamsFromStateDetails, createConnectionParamsSignature } from './connection_params.js';
+import { computeQueryResultCacheKey } from './query_result_cache_key.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { createTrace } from '../platform/logger/trace_context.js';
 import { QueryExecutionArgs } from './query_execution_args.js';
@@ -65,6 +70,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
 
     const [_, computeDispatch] = useComputationRegistry();
     const computeDb = useComputeDatabase();
+    const storageReader = useStorageReader();
 
     // Execute a query with pre-allocated query id
     const executeImpl = React.useCallback(async (sessionId: string, args: QueryExecutionArgs, queryId: number): Promise<arrow.Table | null> => {
@@ -121,6 +127,10 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             resultSchema: null,
             resultBatches: [],
             resultTable: null,
+            cacheKey: null,
+            servedFromCache: false,
+            cacheDeleted: false,
+            cachedAt: null,
         };
         connDispatch(sessionId, {
             type: EXECUTE_QUERY,
@@ -129,91 +139,150 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
 
         // XXX Add explicit query preparation here later
 
+        // Compute the cache key up front for cacheable queries. This is best-effort: if the
+        // connection has no recoverable params/signature (e.g. before setup completes) we simply skip
+        // caching and execute normally. Never let a cache concern surface into the query path.
+        let cacheHash: string | null = null;
+        if (args.cacheable) {
+            try {
+                const params = getConnectionParamsFromStateDetails(conn.details);
+                const sig = params ? createConnectionParamsSignature(params) : null;
+                if (sig != null) {
+                    cacheHash = await computeQueryResultCacheKey(sig, args.query);
+                }
+            } catch (e: any) {
+                traced.warn("Failed to compute query cache key", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
+                cacheHash = null;
+            }
+        }
+
         // Execute the query and consume the results
         let resultStream: QueryExecutionResponseStream | null = null;
         let table: arrow.Table | null = null;
+        let servedFromCache = false;
         try {
-            connDispatch(sessionId, {
-                type: QUERY_SENDING,
-                value: [queryId],
-            });
-
-            // Start the query
-            switch (conn.details.type) {
-                case SALESFORCE_DATA_CLOUD_CONNECTOR:
-                    resultStream = await executeSalesforceQuery(conn.details.value, args);
-                    break;
-                case HYPER_CONNECTOR:
-                    resultStream = await executeHyperQuery(conn.details.value, args);
-                    break;
-                case TRINO_CONNECTOR:
-                    resultStream = await executeTrinoQuery(conn.details.value, args);
-                    break;
-                case DATALESS_CONNECTOR:
-                    resultStream = await executeDemoQuery(conn.details.value, args);
-                    break;
+            // Cache read path: on a hit, load the Arrow IPC bytes and drive the state machine as if
+            // the result had just streamed in, skipping the backend entirely.
+            if (cacheHash != null) {
+                let cached: CachedQueryResult | null = null;
+                try {
+                    cached = await storageReader.backend.loadQueryResultCache(sessionId, cacheHash);
+                } catch (e: any) {
+                    traced.warn("Failed to read query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
+                    cached = null;
+                }
+                // A user cancel during the async cache read should behave like any other cancel:
+                // let the catch below route it to QUERY_CANCELLED.
+                if (initialState.cancellation.signal.aborted) {
+                    throw new Error('AbortError');
+                }
+                if (cached != null) {
+                    table = arrow.tableFromIPC(cached.bytes);
+                    servedFromCache = true;
+                    traced.info("Served query from cache", {
+                        "session": sessionId,
+                        "query": queryId.toString(),
+                        "numRows": table.numRows.toString(),
+                        "numCols": table.numCols.toString(),
+                        "cachedAt": new Date(cached.cachedAtMs).toISOString(),
+                    }, LOG_CTX);
+                    // No live stream, so synthesize empty metadata and zeroed stream metrics.
+                    connDispatch(sessionId, {
+                        type: QUERY_RECEIVED_ALL_BATCHES,
+                        value: [queryId, table, new Map<string, string>(), createQueryResponseStreamMetrics()],
+                    });
+                    // Record the cache key and the entry's write time so the UI can show how old the
+                    // cached result is and offer to delete it.
+                    connDispatch(sessionId, {
+                        type: QUERY_CACHE_RECORDED,
+                        value: [queryId, cacheHash, true, cached.cachedAtMs],
+                    });
+                }
             }
-            traced.debug("Received query results", {
-                "session": sessionId,
-                "query": queryId.toString()
-            }, LOG_CTX);
 
-            if (resultStream != null) {
+            if (!servedFromCache) {
                 connDispatch(sessionId, {
-                    type: QUERY_RUNNING,
-                    value: [queryId, resultStream],
+                    type: QUERY_SENDING,
+                    value: [queryId],
                 });
 
-                // Helper to forward progress updates
-                const consumeProgress = new AsyncConsumerLambdas<QueryExecutionResponseStream, QueryExecutionProgress>(
-                    (_: QueryExecutionResponseStream, progress: QueryExecutionProgress) => {
-                        connDispatch(sessionId, {
-                            type: QUERY_PROGRESS_UPDATED,
-                            value: [queryId, progress],
-                        });
-                    },
-                );
-
-                // Helper to consume result batches
-                const batches: arrow.RecordBatch[] = [];
-                const consumeBatches = new AsyncConsumerLambdas<QueryExecutionResponseStream, arrow.RecordBatch>(
-                    (ctx: QueryExecutionResponseStream, batch: arrow.RecordBatch) => {
-                        batches.push(batch);
-
-                        traced.debug("Received result batch", {
-                            "session": sessionId,
-                            "query": queryId.toString(),
-                            "batchColumns": batch.numCols.toString(),
-                            "batchRows": batch.numRows.toString(),
-                        }, LOG_CTX);
-                        connDispatch(sessionId, {
-                            type: QUERY_RECEIVED_BATCH,
-                            value: [queryId, batch, ctx.getMetrics()],
-                        });
-                    },
-                );
-
-                // Subscribe to query_status and result messages
-                await resultStream.produce(consumeBatches, consumeProgress);
-                table = new arrow.Table(batches.length > 0 ? batches[0].schema : new arrow.Schema(), batches);
-
-                traced.info("Executed query", {
+                // Start the query
+                switch (conn.details.type) {
+                    case SALESFORCE_DATA_CLOUD_CONNECTOR:
+                        resultStream = await executeSalesforceQuery(conn.details.value, args);
+                        break;
+                    case HYPER_CONNECTOR:
+                        resultStream = await executeHyperQuery(conn.details.value, args);
+                        break;
+                    case TRINO_CONNECTOR:
+                        resultStream = await executeTrinoQuery(conn.details.value, args);
+                        break;
+                    case DATALESS_CONNECTOR:
+                        resultStream = await executeDemoQuery(conn.details.value, args);
+                        break;
+                }
+                traced.debug("Received query results", {
                     "session": sessionId,
-                    "query": queryId.toString(),
-                    "numRows": table.numRows.toString(),
-                    "numCols": table.numCols.toString(),
-                    "batchesReceived": resultStream.getMetrics().totalBatchesReceived.toString(),
-                    "dataBytesReceived": resultStream.getMetrics().totalDataBytesReceived.toString(),
+                    "query": queryId.toString()
                 }, LOG_CTX);
 
-                // Is there any metadata?
-                const metadata = resultStream.getMetadata();
-                connDispatch(sessionId, {
-                    type: QUERY_RECEIVED_ALL_BATCHES,
-                    value: [queryId, table!, metadata, resultStream!.getMetrics()],
-                });
-            } else {
-                traced.error("Query returned no results", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
+                if (resultStream != null) {
+                    connDispatch(sessionId, {
+                        type: QUERY_RUNNING,
+                        value: [queryId, resultStream],
+                    });
+
+                    // Helper to forward progress updates
+                    const consumeProgress = new AsyncConsumerLambdas<QueryExecutionResponseStream, QueryExecutionProgress>(
+                        (_: QueryExecutionResponseStream, progress: QueryExecutionProgress) => {
+                            connDispatch(sessionId, {
+                                type: QUERY_PROGRESS_UPDATED,
+                                value: [queryId, progress],
+                            });
+                        },
+                    );
+
+                    // Helper to consume result batches
+                    const batches: arrow.RecordBatch[] = [];
+                    const consumeBatches = new AsyncConsumerLambdas<QueryExecutionResponseStream, arrow.RecordBatch>(
+                        (ctx: QueryExecutionResponseStream, batch: arrow.RecordBatch) => {
+                            batches.push(batch);
+
+                            traced.debug("Received result batch", {
+                                "session": sessionId,
+                                "query": queryId.toString(),
+                                "batchColumns": batch.numCols.toString(),
+                                "batchRows": batch.numRows.toString(),
+                            }, LOG_CTX);
+                            connDispatch(sessionId, {
+                                type: QUERY_RECEIVED_BATCH,
+                                value: [queryId, batch, ctx.getMetrics()],
+                            });
+                        },
+                    );
+
+                    // Subscribe to query_status and result messages
+                    await resultStream.produce(consumeBatches, consumeProgress);
+                    table = new arrow.Table(batches.length > 0 ? batches[0].schema : new arrow.Schema(), batches);
+
+                    traced.info("Executed query", {
+                        "session": sessionId,
+                        "query": queryId.toString(),
+                        "numRows": table.numRows.toString(),
+                        "numCols": table.numCols.toString(),
+                        "batchesReceived": resultStream.getMetrics().totalBatchesReceived.toString(),
+                        "dataBytesReceived": resultStream.getMetrics().totalDataBytesReceived.toString(),
+                    }, LOG_CTX);
+
+                    // Is there any metadata?
+                    const metadata = resultStream.getMetadata();
+                    connDispatch(sessionId, {
+                        type: QUERY_RECEIVED_ALL_BATCHES,
+                        value: [queryId, table!, metadata, resultStream!.getMetrics()],
+                    });
+                } else {
+                    traced.error("Query returned no results", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
+                }
             }
         } catch (e: any) {
             if ((e.message === 'AbortError')) {
@@ -273,9 +342,28 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             type: QUERY_SUCCEEDED,
             value: [queryId],
         });
+
+        // Cache write path: after a successful miss, store the result for next time. Fire-and-forget
+        // (not awaited) so a large eviction scan never stalls the caller's promise, and never fatal —
+        // a quota/permission failure just logs.
+        if (!servedFromCache && cacheHash != null && table != null) {
+            const bytes = arrow.tableToIPC(table, 'stream');
+            void storageReader.backend.saveQueryResultCache(sessionId, cacheHash, bytes).then(() => {
+                // The write landed: record the key (but not servedFromCache — this run hit the
+                // backend) so the UI can offer to delete the freshly-cached entry. The "cached at"
+                // time is the write we just made; a later hit reads the precise mtime from disk.
+                connDispatch(sessionId, {
+                    type: QUERY_CACHE_RECORDED,
+                    value: [queryId, cacheHash, false, null],
+                });
+            }).catch((e: any) => {
+                traced.warn("Failed to write query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
+            });
+        }
+
         return table;
 
-    }, [computeDb, connMap, computeDispatch, logger, sfApi]);
+    }, [computeDb, connMap, computeDispatch, logger, sfApi, storageReader]);
 
     // Allocate the next query id and start the execution
     const execute = React.useCallback<QueryExecutor>((sessionId: string, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] => {

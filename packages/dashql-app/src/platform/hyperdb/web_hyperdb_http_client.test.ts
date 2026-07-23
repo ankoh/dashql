@@ -151,7 +151,7 @@ describe('WebHyperDatabaseClient', () => {
                 const method = (init?.method ?? 'GET').toUpperCase();
                 const url = typeof input === 'string' ? new URL(input) : input instanceof URL ? input : new URL(input.url);
                 if (method === 'POST' && url.pathname === '/api/v3/query') {
-                    result.headers.delete('status');
+                    result.headers.delete('x-hyperdb-status');
                 }
                 return result;
             };
@@ -186,7 +186,7 @@ describe('WebHyperDatabaseClient', () => {
 
             private makeStatusHeader(): Record<string, string> {
                 return {
-                    status: JSON.stringify({
+                    'x-hyperdb-status': JSON.stringify({
                         queryId: this.queryId,
                         completionStatus: 'RESULTS_PRODUCED',
                         chunkCount: this.chunkCount,

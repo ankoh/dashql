@@ -1,4 +1,5 @@
-import { type SessionRegistryBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type StorageManifest, type AppSettings, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_SESSIONS_FOLDER, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS } from './storage_backend.js';
+import { type SessionRegistryBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type StorageManifest, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_SESSIONS_FOLDER, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION } from './storage_backend.js';
+import { type CacheFileStat, type QueryResultCacheStore, evictToFit } from './query_result_cache_eviction.js';
 
 /// Origin Private File System storage backend.
 ///
@@ -354,6 +355,75 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         const writable = await draftFile.createWritable();
         await writable.write(sql);
         await writable.close();
+    }
+
+    /// The relative folder that holds a session's cached query results, e.g. "sessions/<uuid>/cache"
+    private cacheRelPath(sessionId: string): string {
+        return `${this.sessionRelPath(sessionId)}/${STORAGE_CACHE_FOLDER}`;
+    }
+
+    async loadQueryResultCache(sessionId: string, hash: string): Promise<CachedQueryResult | null> {
+        try {
+            const cacheDir = await this.getSessionDir(this.cacheRelPath(sessionId), false);
+            const fileHandle = await cacheDir.getFileHandle(`${hash}${STORAGE_CACHE_EXTENSION}`, { create: false });
+            const file = await fileHandle.getFile();
+            return {
+                bytes: new Uint8Array(await file.arrayBuffer()),
+                cachedAtMs: file.lastModified,
+            };
+        } catch {
+            // Missing cache folder or entry — a plain miss.
+            return null;
+        }
+    }
+
+    async saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void> {
+        const cacheDir = await this.getSessionDir(this.cacheRelPath(sessionId), true);
+
+        // Evict least-recently-used entries first so the new file fits under the thresholds.
+        const store: QueryResultCacheStore = {
+            listCacheFiles: async (): Promise<CacheFileStat[]> => {
+                const stats: CacheFileStat[] = [];
+                for await (const [name, handle] of cacheDir.entries()) {
+                    if (handle.kind === 'file' && name.endsWith(STORAGE_CACHE_EXTENSION)) {
+                        const file = await (handle as FileSystemFileHandle).getFile();
+                        stats.push({ name, size: file.size, mtimeMs: file.lastModified });
+                    }
+                }
+                return stats;
+            },
+            deleteCacheFile: async (_sessionId: string, name: string): Promise<void> => {
+                try {
+                    await cacheDir.removeEntry(name);
+                } catch (error) {
+                    if ((error as any).name !== 'NotFoundError') {
+                        throw error;
+                    }
+                }
+            },
+        };
+        await evictToFit(store, sessionId, bytes.byteLength);
+
+        const fileHandle = await cacheDir.getFileHandle(`${hash}${STORAGE_CACHE_EXTENSION}`, { create: true });
+        const writable = await fileHandle.createWritable();
+        // Copy into a plain ArrayBuffer to write binary bytes (a Uint8Array's backing buffer may be
+        // typed as SharedArrayBuffer, which the write chunk type rejects).
+        const buffer = new ArrayBuffer(bytes.byteLength);
+        new Uint8Array(buffer).set(bytes);
+        await writable.write(buffer);
+        await writable.close();
+    }
+
+    async deleteQueryResultCache(sessionId: string, hash: string): Promise<void> {
+        try {
+            const cacheDir = await this.getSessionDir(this.cacheRelPath(sessionId), false);
+            await cacheDir.removeEntry(`${hash}${STORAGE_CACHE_EXTENSION}`);
+        } catch (error) {
+            // Missing cache folder or entry — nothing to delete.
+            if ((error as any).name !== 'NotFoundError' && !((error as any).message ?? '').startsWith('Directory not found')) {
+                throw error;
+            }
+        }
     }
 
     async clearAllStorage(): Promise<void> {

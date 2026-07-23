@@ -21,6 +21,7 @@ import { EntryStatusBar } from './entry_status_bar.js';
 import { deriveEntryStatus } from './entry_status_model.js';
 import { TraceLogPanel } from './trace_log_panel.js';
 import { TabHeader, useResultRowCount, formatRowCountDetail } from './tab_header.js';
+import { QueryResultCacheControls } from './query_result_cache_controls.js';
 import { getSelectedEntry, getSelectedPage, NotebookState, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
 import { normalizePageName, scriptDisplayName } from '../../notebook/notebook_types.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
@@ -665,8 +666,19 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                             [TabKey.QueryResultView]: _props => (
                                 <div className={styles.result_tab}>
                                     {/* Non-clickable count header, matching the feed footer's Data tab
-                                        (there it opens Details; here it's a plain label + count). */}
-                                    <TabHeader title="Query Results" detail={rowCountDetail} />
+                                        (there it opens Details; here it's a plain label + count). The
+                                        cache controls (age + delete) only render when the result has
+                                        a cache entry. */}
+                                    <TabHeader
+                                        title="Query Results"
+                                        detail={rowCountDetail}
+                                        actions={
+                                            <QueryResultCacheControls
+                                                sessionId={props.notebook.sessionId}
+                                                query={activeQueryState}
+                                            />
+                                        }
+                                    />
                                     <div className={styles.result_tab_body}>
                                         <QueryResultView query={activeQueryState} debugMode={tableDebugMode} />
                                     </div>

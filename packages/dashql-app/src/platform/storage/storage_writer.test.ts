@@ -2,7 +2,7 @@ import * as core from '../../core/index.js';
 
 import { beforeAll, afterEach, describe, expect, it } from 'vitest';
 
-import { type StorageBackend, type SessionData, type PageData, type ScriptData, StorageBackendType } from './storage_backend.js';
+import { type StorageBackend, type SessionData, type PageData, type ScriptData, type CachedQueryResult, StorageBackendType } from './storage_backend.js';
 import {
     StorageWriter,
     WRITE_SESSION_MANIFEST,
@@ -62,6 +62,9 @@ class CountingBackend implements StorageBackend {
     async renameNotebookScript(): Promise<void> { }
     async loadNotebookScriptDraft(): Promise<string | null> { return null; }
     async saveNotebookScriptDraft(): Promise<void> { }
+    async loadQueryResultCache(): Promise<CachedQueryResult | null> { return null; }
+    async saveQueryResultCache(): Promise<void> { }
+    async deleteQueryResultCache(): Promise<void> { }
 }
 
 /// Records every notebook mutation call in order, so tests can assert that a rename reaches the
@@ -96,6 +99,9 @@ class CallLogBackend implements StorageBackend {
     }
     async loadNotebookScriptDraft(): Promise<string | null> { return null; }
     async saveNotebookScriptDraft(): Promise<void> { }
+    async loadQueryResultCache(): Promise<CachedQueryResult | null> { return null; }
+    async saveQueryResultCache(): Promise<void> { }
+    async deleteQueryResultCache(): Promise<void> { }
 }
 
 let dql: core.DashQL | null = null;

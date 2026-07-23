@@ -7,6 +7,7 @@ import {
     type ScriptData,
     type SessionEntry,
     type AppSettings,
+    type CachedQueryResult,
     StorageBackendType,
 } from './storage_backend.js';
 import { TestLogger } from '../logger/test_logger.js';
@@ -21,6 +22,7 @@ class MemoryBackend implements StorageBackend {
     private functions = new Map<string, string>();
     private drafts = new Map<string, string>();
     private pages = new Map<string, Map<string, Map<string, string>>>();
+    private cache = new Map<string, Map<string, Uint8Array>>();
 
     constructor(type: StorageBackendType) {
         this.type = type;
@@ -99,6 +101,18 @@ class MemoryBackend implements StorageBackend {
     }
     async loadNotebookScriptDraft(sessionId: string): Promise<string | null> { return this.drafts.get(sessionId) ?? null; }
     async saveNotebookScriptDraft(sessionId: string, sql: string): Promise<void> { this.drafts.set(sessionId, sql); }
+    async loadQueryResultCache(sessionId: string, hash: string): Promise<CachedQueryResult | null> {
+        const bytes = this.cache.get(sessionId)?.get(hash);
+        return bytes ? { bytes, cachedAtMs: 0 } : null;
+    }
+    async saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void> {
+        const c = this.cache.get(sessionId) ?? new Map<string, Uint8Array>();
+        c.set(hash, bytes);
+        this.cache.set(sessionId, c);
+    }
+    async deleteQueryResultCache(sessionId: string, hash: string): Promise<void> {
+        this.cache.get(sessionId)?.delete(hash);
+    }
 }
 
 function seedSession(backend: MemoryBackend, id: string): Promise<void> {
