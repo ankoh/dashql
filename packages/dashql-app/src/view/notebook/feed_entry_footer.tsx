@@ -211,6 +211,16 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
         },
     }), [hasResult, hasVisualization]);
 
+    // Only surface tabs that are actually usable in the sidebar. Rendering the disabled tabs
+    // (e.g. Data/Chart before a result exists) padded the vertical tab bar out to its full height,
+    // which looked odd next to a footer body that only holds a one-row table or a short log.
+    const tabKeys = React.useMemo(() => {
+        const keys: FooterTab[] = [FooterTab.Log];
+        if (hasResult) keys.push(FooterTab.Table);
+        if (hasVisualization) keys.push(FooterTab.Visualization);
+        return keys;
+    }, [hasResult, hasVisualization]);
+
     const dataRowCount = totalRows != null ? Math.min(totalRows, FEED_LIMIT_RESULT_ROWS) : null;
     const rowCountDetail = totalRows != null
         ? (totalRows > FEED_LIMIT_RESULT_ROWS
@@ -303,7 +313,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
         <VerticalTabs
             className={styles.footer_container}
             variant={VerticalTabVariant.Stacked}
-            tabKeys={[FooterTab.Log, FooterTab.Table, FooterTab.Visualization]}
+            tabKeys={tabKeys}
             tabProps={tabProps}
             tabRenderers={tabRenderers}
             selectedTab={selectedTab}
