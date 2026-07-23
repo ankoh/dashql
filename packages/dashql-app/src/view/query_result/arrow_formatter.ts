@@ -335,22 +335,13 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         case arrow.Type.TimestampMicrosecond:
         case arrow.Type.TimestampNanosecond: {
             valueClassName = styles.data_value_text;
-            const type = field.type as arrow.Timestamp;
+            // Arrow's GetVisitor already normalizes every timestamp unit to milliseconds when a
+            // value is read (seconds ×1000, micro ÷1000, nano ÷1e6). The value handed to us is
+            // therefore always an epoch-millisecond count regardless of `type.unit`; applying a
+            // second per-unit conversion here would double-scale it (e.g. microsecond `now()`
+            // rendered as 1970). Just interpret the value as milliseconds.
             const fmt = Intl.DateTimeFormat('en-US', { dateStyle: 'short', timeStyle: 'medium' });
-            switch (type.unit) {
-                case arrow.TimeUnit.SECOND:
-                    formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(v) * 1000)));
-                    break;
-                case arrow.TimeUnit.MILLISECOND:
-                    formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(v))));
-                    break;
-                case arrow.TimeUnit.MICROSECOND:
-                    formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(typeof v === 'bigint' ? v / 1000n : v / 1000))));
-                    break;
-                case arrow.TimeUnit.NANOSECOND:
-                    formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(typeof v === 'bigint' ? v / 1000000n : v / 1000 / 1000))));
-                    break;
-            }
+            formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(v))));
             break;
         }
         case arrow.Type.DateMillisecond:

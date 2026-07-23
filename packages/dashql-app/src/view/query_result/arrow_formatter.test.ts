@@ -52,6 +52,28 @@ describe('makeArrowValueFormatter', () => {
         expect(typeof out).toBe('string');
         expect(out).toContain('2021');
     });
+
+    // Arrow's GetVisitor normalizes every timestamp unit to epoch-milliseconds before the value
+    // reaches the formatter, so all four units must render to the same instant. Regression test
+    // for microsecond `now()`/`current_timestamp` rendering as 1970 due to a double conversion.
+    describe('timestamps are rendered from epoch-milliseconds regardless of unit', () => {
+        // 2021-01-01T00:00:00Z as read back through Arrow (already in milliseconds).
+        const epochMs = Date.UTC(2021, 0, 1);
+        const cases: [string, arrow.Timestamp][] = [
+            ['second', new arrow.TimestampSecond()],
+            ['millisecond', new arrow.TimestampMillisecond()],
+            ['microsecond', new arrow.TimestampMicrosecond()],
+            ['nanosecond', new arrow.TimestampNanosecond()],
+        ];
+        // `dateStyle: 'short'` renders a 2-digit year, so 2021 shows as "21" (not "2021"), and the
+        // double-conversion bug produced a 1970 date rendered as "70".
+        it.each(cases)('formats %s timestamps to the same instant', (_name, type) => {
+            const f = makeArrowValueFormatter(field('ts', type));
+            const out = f.format(epochMs);
+            expect(out).toContain('/21,');
+            expect(out).not.toContain('/70,');
+        });
+    });
 });
 
 
