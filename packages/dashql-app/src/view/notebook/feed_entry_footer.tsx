@@ -155,7 +155,17 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
         ),
         [FooterTab.Visualization]: () => (
             <div className={styles.visualization_tab}>
-                <TabHeader title="Visualization" detail={pointCountDetail} onClick={props.onShowVisualization} />
+                <TabHeader
+                    title="Visualization"
+                    detail={pointCountDetail}
+                    onClick={props.onShowVisualization}
+                    actions={
+                        <QueryResultCacheControls
+                            sessionId={props.sessionId}
+                            query={props.queryState}
+                        />
+                    }
+                />
                 {props.queryState != null && (
                     <div className={styles.visualization_body}>
                         <VisualizationDispatch

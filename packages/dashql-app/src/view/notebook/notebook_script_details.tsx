@@ -686,7 +686,16 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                             ),
                             [TabKey.Visualization]: _props => (
                                 <div className={styles.visualization_container}>
-                                    <TabHeader title="Visualization" detail={rowCountDetail} />
+                                    <TabHeader
+                                        title="Visualization"
+                                        detail={rowCountDetail}
+                                        actions={
+                                            <QueryResultCacheControls
+                                                sessionId={props.notebook.sessionId}
+                                                query={activeQueryState}
+                                            />
+                                        }
+                                    />
                                     <ColumnAggregationBar query={activeQueryState} debugMode={tableDebugMode} />
                                     <div className={styles.visualization_body}>
                                         <VisualizationDispatch query={activeQueryState} visualizeQuery={visualizeQuery} />
