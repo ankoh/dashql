@@ -26,6 +26,7 @@ export const CHANGE_SESSION = Symbol("CHANGE_SESSION");
 export const BEGIN_SESSION_SETUP = Symbol("BEGIN_SESSION_SETUP");
 export const CANCEL_SESSION_SETUP = Symbol("CANCEL_SESSION_SETUP");
 export const SKIP_SESSION_SETUP = Symbol("SKIP_SESSION_SETUP");
+export const OPEN_LINK_SESSION = Symbol("OPEN_LINK_SESSION");
 
 export type RouteTarget =
     VariantKind<typeof NOTEBOOK_PATH, string | null>
@@ -38,6 +39,7 @@ export type RouteTarget =
     | VariantKind<typeof BEGIN_SESSION_SETUP, string>
     | VariantKind<typeof CANCEL_SESSION_SETUP, null>
     | VariantKind<typeof SKIP_SESSION_SETUP, null>
+    | VariantKind<typeof OPEN_LINK_SESSION, string>
     ;
 
 export function useRouteContext() {
@@ -138,6 +140,22 @@ export function useRouterNavigate() {
                     state: {
                         ...context,
                         sessionSetupStatus: SessionSetupStatus.NONE,
+                    }
+                });
+                break;
+            case OPEN_LINK_SESSION:
+                // A session arrived via a shared link (URL / deep-link) and has been restored into
+                // the registries. Land directly on that session's connection setup screen: finish
+                // app setup AND select the session with CONFIGURING in a single atomic state, so it
+                // doesn't depend on the (possibly stale) prior route context the way chained
+                // FINISH_SETUP + BEGIN_SESSION_SETUP navigations would. The session selector renders
+                // the connection config card whenever sessionSetupStatus is CONFIGURING.
+                navigate(location.pathname, {
+                    state: {
+                        appLoadingStatus: AppLoadingStatus.SETUP_DONE,
+                        confirmedFinishedSetup: false,
+                        sessionId: route.value,
+                        sessionSetupStatus: SessionSetupStatus.CONFIGURING,
                     }
                 });
                 break;

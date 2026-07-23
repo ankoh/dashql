@@ -9,6 +9,7 @@ import type { AnalyzeAllScriptsProgress } from '../../notebook/notebook_state.js
 import { decodeConnectionFromProto, restoreConnectionState } from '../../connection/connection_import.js';
 import { ConnectorType, type ConnectorInfo } from '../../connection/connector_info.js';
 import type { StorageBackend, SessionEntry, SessionData, PageData } from './storage_backend.js';
+import { StorageBackendType } from './storage_backend.js';
 import { validateSessionData, describeInvalidSession, isValidUuid, SessionValidationError, type InvalidSession } from './session_validation.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../../connection/catalog_update_state.js';
 import { createEmptyAnnotations } from '../../notebook/notebook_types.js';
@@ -500,6 +501,73 @@ async function restoreSession(
         restoreNotebooks: restoreNotebooks.clone(),
         analyzeNotebooks: analyzeNotebooks.clone(),
     });
+}
+
+/// The connection + notebook a single session restored into.
+export interface RestoredSession {
+    sessionId: string;
+    connectorType: ConnectorType;
+    connection: ConnectionState;
+    notebook: NotebookState | null;
+}
+
+/// Restore a single, already-persisted session (connection + catalog + notebook) into fresh scratch
+/// maps and return just that session's pieces.
+///
+/// This is the incremental counterpart to `restoreAppState`, used after a session is written to
+/// storage at runtime (e.g. imported from a shared URL) so it can be merged into the already-live
+/// registries without a full app reload. It reuses the exact same `restoreSession` path the boot
+/// loader runs, so a URL-imported session is decoded, cataloged and analyzed identically to one
+/// loaded at startup.
+export async function restoreSingleSession(
+    core: DashQL,
+    backend: StorageBackend,
+    logger: Logger,
+    sessionId: string,
+): Promise<RestoredSession> {
+    // A freshly imported session is implicitly OPFS-backed and keyed by its UUID; that's all the
+    // manifest entry `restoreSession` needs to route the load.
+    const sessionEntry: SessionEntry = { path: sessionId, storageType: StorageBackendType.OPFS };
+
+    const connectionStates = new Map<string, ConnectionState>();
+    const connectionSignatures = new Map<string, string | null>();
+    const notebooks = new Map<string, NotebookState>();
+    const notebooksByConnection = new Map<string, string>();
+    const connectionStatesByType: string[][] = [[], [], [], []];
+    const notebooksByConnectionType: string[][] = [[], [], [], []];
+
+    const noopConsumer = () => { };
+    await restoreSession(
+        core,
+        backend,
+        logger,
+        sessionEntry,
+        connectionStates,
+        connectionSignatures,
+        connectionStatesByType,
+        notebooks,
+        notebooksByConnection,
+        notebooksByConnectionType,
+        new ProgressCounter(),
+        new ProgressCounter(),
+        new ProgressCounter(),
+        new ProgressCounter(),
+        noopConsumer,
+    );
+
+    const connection = connectionStates.get(sessionId);
+    if (!connection) {
+        // restoreSession only fails to register a connection by throwing (invalid/unreadable), which
+        // would have propagated above. Reaching here means the persisted id didn't match — treat it
+        // as a hard restore failure rather than silently returning a half-loaded session.
+        throw new Error(`imported session ${sessionId} did not restore a connection`);
+    }
+    return {
+        sessionId,
+        connectorType: connection.connectorInfo.connectorType,
+        connection,
+        notebook: notebooks.get(sessionId) ?? null,
+    };
 }
 
 /**

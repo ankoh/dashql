@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { AppLoadingStatus } from './app_loading_status.js';
 import { SessionSetupStatus } from './session_setup_status.js';
-import { FINISH_SETUP, SELECT_SESSION, useRouteContext, useRouterNavigate } from './router.js';
+import { FINISH_SETUP, OPEN_LINK_SESSION, useRouteContext, useRouterNavigate } from './router.js';
 import { isDebugBuild } from './globals.js';
 import { useConnectionRegistry, useConnectionStateAllocator, useDynamicConnectionDispatch } from './connection/connection_registry.js';
 import { useDashQLCoreSetup } from './core_provider.js';
@@ -92,9 +92,10 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
         const core = await setupCore("app_setup");
         // Wait for the default connections to be created
         await setupDone;
-        // Configure the app with the setup event
-        const interactiveSetupDone = () => { setInteractiveSetupArgs(null); };
-        const setupResult = await configureAppWithSetupEvent(data, traced, core, allocateConnection, setupNotebook, connReg, storageWriter.backend, interactiveSetupDone);
+        // Configure the app with the setup event. This imports the shared session into storage and
+        // restores it (connection + catalog + notebook) into fresh scratch maps. It reuses the same
+        // restore path as the boot loader, which takes the unwrapped (concrete) logger.
+        const setupResult = await configureAppWithSetupEvent(data, logger, core, storageWriter.backend);
         if (setupResult == null) {
             return;
         }
@@ -104,26 +105,38 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 traced.debug("Requires interactive setup", {}, "app_loader");
                 setInteractiveSetupArgs(setupResult.value);
                 break;
-            case FINISHED_LINK_SETUP:
-                traced.debug("Finished link setup", {}, "app_loader");
-                const linkSessionId = setupResult?.value?.sessionId;
-                // Mark setup as done first
-                navigate({
-                    type: FINISH_SETUP,
-                    value: null
+            case FINISHED_LINK_SETUP: {
+                const { session } = setupResult.value;
+                traced.debug("Finished link setup", { sessionId: session.sessionId }, "app_loader");
+
+                // The initial app load already populated the registries, so merge the restored
+                // session's connection + notebook into them here. Without this the session exists
+                // only in storage and the connection setup screen would have nothing to render.
+                setConnReg(reg => {
+                    reg.connectionMap.set(session.sessionId, session.connection);
+                    reg.connectionsByType[session.connectorType].push(session.sessionId);
+                    reg.connectionsBySignature.set(session.connection.connectionSignature.signatureString, session.sessionId);
+                    return { ...reg };
                 });
-                // Then select the session from the link
-                if (linkSessionId) {
-                    setTimeout(() => {
-                        navigate({
-                            type: SELECT_SESSION,
-                            value: linkSessionId
-                        });
-                    }, 0);
+                if (session.notebook) {
+                    const notebook = session.notebook;
+                    setNotebookReg(reg => {
+                        reg.notebookMap.set(session.sessionId, notebook);
+                        reg.notebooksByConnection.set(session.sessionId, session.sessionId);
+                        reg.notebooksByConnectionType[session.connectorType].push(session.sessionId);
+                        return { ...reg };
+                    });
                 }
+
+                // Land directly on this session's connection setup screen. OPEN_LINK_SESSION sets the
+                // full route state atomically (setup done + session selected + CONFIGURING), so the
+                // user drops straight into connecting to the shared session instead of the loading
+                // ("Setup") screen or the session selector.
+                navigate({ type: OPEN_LINK_SESSION, value: session.sessionId });
                 break;
+            }
         }
-    }, []);
+    }, [logger, setupCore, setupDone, storageWriter, navigate, setConnReg, setNotebookReg]);
 
     // Register an event handler for setup events
     React.useEffect(() => {
