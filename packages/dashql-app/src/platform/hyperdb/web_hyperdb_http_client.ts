@@ -11,8 +11,10 @@ import {
 import {
     HyperDatabaseHttpClient,
     HyperHttpAuthProvider,
+    HyperHttpError,
     QueryStatus,
 } from '../../connection/hyper/hyperdb_http_client.js';
+import { fromHttpErrorResponse, HyperQueryError } from '../../connection/hyper/hyper_error_info.js';
 import {
     createQueryResponseStreamMetrics,
     QueryExecutionMetrics,
@@ -26,6 +28,15 @@ import { HttpClient } from '../http/http_client.js';
 import { Logger } from '../logger/logger.js';
 
 const LOG_CTX = "web_hyperdb_http_client";
+
+/// Convert a HyperHttpError (v3 JSON error body) into a structured HyperQueryError.
+/// Other errors are rethrown unchanged.
+function rethrowAsHyperQueryError(e: unknown): never {
+    if (e instanceof HyperHttpError && e.errorResponse) {
+        throw new HyperQueryError(fromHttpErrorResponse(e.errorResponse), LOG_CTX);
+    }
+    throw e;
+}
 
 const CHUNK_POLL_DELAY_MS = 250;
 export const DEFAULT_PARALLEL_CHUNKS = 4;
@@ -102,7 +113,7 @@ class WebHyperResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<U
             queryId: this.queryId,
             chunkId,
             omitSchema,
-        });
+        }).catch(rethrowAsHyperQueryError);
         if (status) {
             this.status = status;
             this.emitProgress();
@@ -142,7 +153,7 @@ class WebHyperResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<U
             this.status = await this.httpClient.getQueryStatus({
                 queryId: this.queryId,
                 waitTimeMs: CHUNK_POLL_DELAY_MS,
-            });
+            }).catch(rethrowAsHyperQueryError);
             this.emitProgress();
         }
     }
@@ -217,7 +228,9 @@ class WebHyperDatabaseChannel implements HyperDatabaseChannel {
         const sql = params.query;
         const queryParameters = this.connection.getQueryParameters();
         const settings = Object.keys(queryParameters).length > 0 ? queryParameters : undefined;
-        const { status, response } = await this.httpClient.executeQuery({ sql, settings }, undefined, abort);
+        const { status, response } = await this.httpClient
+            .executeQuery({ sql, settings }, undefined, abort)
+            .catch(rethrowAsHyperQueryError);
         if (!status || !status.queryId) {
             throw new Error("v3 query response missing status header");
         }

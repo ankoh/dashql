@@ -1,0 +1,58 @@
+/* The log header carries a "Logs" title with a greyish "N of M rows" count next to it on the left,
+   and the Execution/Agent log-source segmented control pushed to the right. Mirrors the footer's
+   tab header height so the feed footer and the Details Status tab read identically. */
+.log_header {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 4px 0px 8px;
+    font-size: 0.8rem;
+    border-bottom: 1px solid rgb(210, 210, 210);
+    color: hsl(210, 12%, 36%);
+    flex-shrink: 0;
+}
+
+/* Clickable title/count region (feed footer → Details Status tab). Resets button chrome so it reads
+   as part of the header bar, and stretches full height so the whole left region is a hover target. */
+.log_header_target {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 100%;
+    margin: 0 -8px 0 -8px;
+    padding: 0 8px;
+    border: none;
+    background: none;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+.log_header_target:hover {
+    background-color: hsl(210, 20%, 96%);
+}
+
+.log_header_title {
+    flex-shrink: 0;
+    font-weight: 500;
+}
+
+.log_header_detail {
+    flex-shrink: 0;
+    color: hsl(210, 10%, 60%);
+}
+
+/* margin-left: auto pushes the segmented control to the far right, past the title/count on the left. */
+.log_source_control {
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+/* Fill mode (Details Status tab): the viewer takes the tab body minus the header. min-height:0 so
+   it can shrink within the flex column and scroll internally instead of overflowing the card. */
+.log_viewer_fill {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+}

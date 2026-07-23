@@ -13,22 +13,47 @@ interface ErrorDetailsViewerProps {
     error: DetailedError
 }
 
+/// Build the ordered key/value detail rows for the error.
+/// Prefers the structured Hyper rich error model when present, otherwise falls
+/// back to the free-form `data` map.
+function buildDetailRows(error: DetailedError): [string, string][] {
+    const info = error.hyperErrorInfo;
+    if (info) {
+        const rows: [string, string][] = [];
+        if (info.sqlstate) rows.push(["SQLSTATE", info.sqlstate]);
+        if (info.errorSource !== "Unknown") rows.push(["Source", info.errorSource]);
+        if (info.customerHint) rows.push(["Hint", info.customerHint]);
+        if (info.customerDetail) rows.push(["Detail", info.customerDetail]);
+        if (info.systemDetail) rows.push(["System detail", info.systemDetail]);
+        if (info.position) {
+            rows.push(["Position", `${info.position.beginCharacterOffset}..${info.position.endCharacterOffset}`]);
+        }
+        if (info.grpcStatusCode != null) rows.push(["gRPC status", info.grpcStatusCode.toString()]);
+        return rows;
+    }
+    return Object.entries(error.data ?? {});
+}
+
 export const ErrorDetailsViewer: React.FC<ErrorDetailsViewerProps> = (props: ErrorDetailsViewerProps) => {
 
+    const detailRows = buildDetailRows(props.error);
     const detailEntries = [];
-    for (const k in props.error.data) {
-        const v = props.error.data[k];
+    for (let i = 0; i < detailRows.length; ++i) {
+        const [k, v] = detailRows[i];
         detailEntries.push(
-            <span className={styles.error_details_entry_key}>
+            <span key={i * 2 + 0} className={styles.error_details_entry_key}>
                 {k}
             </span>
         );
         detailEntries.push(
-            <span className={styles.error_details_entry_value}>
+            <span key={i * 2 + 1} className={styles.error_details_entry_value}>
                 {v}
             </span>
         );
     }
+
+    // Prefer the Hyper primary message when present.
+    const message = props.error.hyperErrorInfo?.primaryMessage ?? props.error.message;
 
     return (
         <div className={styles.overlay}>
@@ -51,7 +76,7 @@ export const ErrorDetailsViewer: React.FC<ErrorDetailsViewerProps> = (props: Err
                     Message
                 </span>
                 <span className={styles.error_message_text}>
-                    {props.error.message}
+                    {message}
                 </span>
                 {detailEntries.length > 0 && (
                     <>

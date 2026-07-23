@@ -64,13 +64,30 @@
     width: 100%;
     height: 100%;
 
-    display: grid;
-    grid-template-rows: 40px 1fr;
-    grid-template-columns: 100%;
+    /* Flex column (not grid): action bar (fixed 40px), optional status bar (its own height, or
+       absent entirely), then the tabs filling the rest. Flex handles the missing status-bar child
+       cleanly — a grid with a fixed row track would leave the tabs stuck at content height when the
+       bar isn't rendered. */
+    display: flex;
+    flex-direction: column;
     background-color: white;
+    min-height: 0;
+}
+
+/* The Status tab hosts the full-card trace log: a fixed-height header over a viewer that fills the
+   rest. Column layout + min-height:0 so the viewer scrolls internally instead of overflowing. */
+.status_tab {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
 }
 
 .entry_card_action_bar {
+    /* Fixed height (the flex column no longer supplies a 40px track). */
+    height: 40px;
+    flex-shrink: 0;
     background-color: var(--notebook_details_actionbar_background);
     border-bottom: 1px solid var(--log_border_color);
     border-radius: var(--border_radius) var(--border_radius) 0 0;
@@ -120,6 +137,22 @@
     height: 100%;
 }
 
+/* The Data tab stacks a fixed-height count header over the result table, which fills the rest and
+   scrolls internally. min-height:0 lets the body shrink within the flex column. */
+.result_tab {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+}
+
+.result_tab_body {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+}
+
 .visualization_container {
     display: flex;
     flex-direction: column;
@@ -149,7 +182,10 @@
 .entry_card_tabs {
     position: relative;
     width: 100%;
-    height: 100%;
+    /* Fill the rest of the flex column below the action/status bars. min-height:0 lets the tab body
+       shrink and scroll internally rather than growing the card past its bounds. */
+    flex: 1;
+    min-height: 0;
 }
 
 .entry_card_tabs_body {

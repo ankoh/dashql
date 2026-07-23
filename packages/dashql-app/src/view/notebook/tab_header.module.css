@@ -1,0 +1,47 @@
+/* The header bar atop a notebook tab body: a fixed-height row carrying a title and an optional
+   greyish "N of M rows" count. Shared by the feed footer and the Details tabs. */
+.tab_header {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 4px 0px 8px;
+    font-size: 0.8rem;
+    border-bottom: 1px solid rgb(210, 210, 210);
+    color: hsl(210, 12%, 36%);
+    flex-shrink: 0;
+}
+
+/* Clickable variant (feed footer → Details). A full-width button reset to read as the header bar. */
+.tab_header_clickable {
+    composes: tab_header;
+    width: 100%;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    background: none;
+    /* Reset only the button's font family/weight — NOT font-size or color. Both `font` (shorthand)
+       and `color: inherit` would pull in the larger/darker inherited button values and clobber the
+       composed 0.8rem + hsl(210,12%,36%), making the clickable footer header render larger and
+       darker than the inert Details header. */
+    font-family: inherit;
+    font-weight: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.tab_header_clickable:hover {
+    background-color: hsl(210, 20%, 96%);
+}
+
+.tab_header_title {
+    flex-shrink: 0;
+    font-weight: 500;
+}
+
+/* Greyish "N of M rows" count that sits right next to its header title (the header's gap spaces
+   them). Shared so all tab count indicators are styled identically. */
+.tab_header_detail {
+    flex-shrink: 0;
+    color: hsl(210, 10%, 60%);
+}

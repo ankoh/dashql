@@ -325,6 +325,7 @@ TAURI_CONFIG_OVERRIDE_DEV = json.encode({
 _SHARED_DEPS = [
     "//packages/duckdb:duckdb_web",
     "@crates//:anyhow",
+    "@crates//:base64",
     "@crates//:byteorder",
     "@crates//:bytes",
     "@crates//:env_logger",

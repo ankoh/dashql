@@ -14,9 +14,13 @@ import { ButtonGroup } from '../foundations/button_group.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
-import { QueryStatusPanel } from '../query_status/query_status_panel.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { useQueryState } from '../../connection/query_executor.js';
+import { useAgentRunState } from '../../agent/agent_run_provider.js';
+import { EntryStatusBar } from './entry_status_bar.js';
+import { deriveEntryStatus, EntryStatusKind } from './entry_status_model.js';
+import { TraceLogPanel } from './trace_log_panel.js';
+import { TabHeader, useResultRowCount, formatRowCountDetail } from './tab_header.js';
 import { getSelectedEntry, getSelectedPage, NotebookState, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
 import { normalizePageName, scriptDisplayName } from '../../notebook/notebook_types.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
@@ -242,8 +246,36 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     const activeQueryId = scriptData?.latestQueryId ?? null;
     const activeQueryState = useQueryState(props.notebook?.sessionId ?? null, activeQueryId);
 
+    // The status bar above the tabs mirrors the feed's: while an agent run or query is in flight it's
+    // a clickable strip (spinner + latest line) that reveals the trace on the Status tab; a staged
+    // rewrite is shown as a status-only bar here (Accept/Reject stays on the editor overlay, tied to
+    // the diff decorations). It auto-hides on idle and on query success.
+    const agentRunState = useAgentRunState(scriptData?.latestAgentRunId ?? null);
+    const agentTraceId = agentRunState?.traceId ?? null;
+    const queryTraceId = activeQueryState?.traceId ?? null;
+    const entryStatus = deriveEntryStatus(agentRunState, activeQueryState, hasPendingDiff);
+
+    // Clicking the status bar reveals the matching trace on the Status tab (bump a nonce the
+    // TraceLogPanel keys off, riding along the clicked source's trace id — same contract as the feed
+    // footer). In split mode the log opens in the right pane (matching the query-status auto-switch);
+    // otherwise it takes the single pane. The panel selects the right source off the nonce.
+    const [logRequest, setLogRequest] = React.useState<{ nonce: number; traceId: number | null }>({ nonce: 0, traceId: null });
+    const showLog = React.useCallback((traceId: number | null) => {
+        setLogRequest(prev => ({ nonce: prev.nonce + 1, traceId }));
+        if (splitModeEnabled) {
+            setSplitTab(TabKey.QueryStatusPanel);
+        } else {
+            selectTab(TabKey.QueryStatusPanel);
+        }
+    }, [splitModeEnabled]);
+
     const visualizeQuery = scriptData?.annotations.visualizeQuery ?? null;
     const hasVisualizeStmt = visualizeQuery != null;
+
+    // Row count for the Data/Chart tab headers (shared with the feed footer so the count reads
+    // identically). Details shows the full result — no feed row cap — so both headers use the total.
+    const { totalRows } = useResultRowCount(activeQueryState);
+    const rowCountDetail = formatRowCountDetail(totalRows);
 
     const tabState = React.useRef<TabState>({
         enabledTabs: 1,
@@ -503,6 +535,15 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                             <ScreenNormalIcon size={16} />
                         </IconButton>
                     </div>
+                    {entryStatus != null && (
+                        // Same status bar as the feed. Accept/Reject for a staged rewrite lives on the
+                        // editor overlay (spatially tied to the diff decorations), so the bar here is
+                        // status-only — no actions, and the PendingDiff prompt isn't clickable.
+                        <EntryStatusBar
+                            status={entryStatus}
+                            onClick={entryStatus.kind === EntryStatusKind.PendingDiff ? undefined : () => showLog(entryStatus.traceId)}
+                        />
+                    )}
                     <VerticalTabs
                         className={styles.entry_card_tabs}
                         variant={VerticalTabVariant.Stacked}
@@ -612,13 +653,27 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                 </div>
                             ),
                             [TabKey.QueryStatusPanel]: _props => (
-                                <QueryStatusPanel query={activeQueryState} />
+                                <div className={styles.status_tab}>
+                                    <TraceLogPanel
+                                        queryTraceId={queryTraceId}
+                                        agentTraceId={agentTraceId}
+                                        logRequest={logRequest}
+                                    />
+                                </div>
                             ),
                             [TabKey.QueryResultView]: _props => (
-                                <QueryResultView query={activeQueryState} debugMode={tableDebugMode} />
+                                <div className={styles.result_tab}>
+                                    {/* Non-clickable count header, matching the feed footer's Data tab
+                                        (there it opens Details; here it's a plain label + count). */}
+                                    <TabHeader title="Query Results" detail={rowCountDetail} />
+                                    <div className={styles.result_tab_body}>
+                                        <QueryResultView query={activeQueryState} debugMode={tableDebugMode} />
+                                    </div>
+                                </div>
                             ),
                             [TabKey.Visualization]: _props => (
                                 <div className={styles.visualization_container}>
+                                    <TabHeader title="Visualization" detail={rowCountDetail} />
                                     <ColumnAggregationBar query={activeQueryState} debugMode={tableDebugMode} />
                                     <div className={styles.visualization_body}>
                                         <VisualizationDispatch query={activeQueryState} visualizeQuery={visualizeQuery} />

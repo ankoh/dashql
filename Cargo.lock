@@ -1414,6 +1414,7 @@ name = "dashql-native"
 version = "0.0.2-dev.17"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "byteorder",
  "bytes",
  "env_logger",

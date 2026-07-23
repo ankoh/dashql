@@ -23,6 +23,9 @@ export interface EntryStatus {
     message: string;
     /// The trace to reveal in the footer log when the bar is clicked (null for PendingDiff).
     traceId: number | null;
+    /// Structured error detail for a failed/cancelled query, surfaced on hover over the bar's
+    /// message (the one-line bar can't carry the key-values inline). Null when there's no error.
+    errorDetail: Record<string, string | null | undefined> | null;
 }
 
 /// Human-readable label for a query execution status. Shared by the feed status bar and the Details
@@ -76,6 +79,7 @@ export function deriveEntryStatus(
             indicator: IndicatorStatus.None,
             message: 'Suggested rewrite',
             traceId: null,
+            errorDetail: null,
         };
     }
     if (agentRun != null && agentRunIsActive(agentRun.phase)) {
@@ -85,6 +89,7 @@ export function deriveEntryStatus(
             indicator: IndicatorStatus.Running,
             message: latest ?? 'Working…',
             traceId: agentRun.traceId,
+            errorDetail: null,
         };
     }
     if (query != null && !queryIsDone(query.status)) {
@@ -93,14 +98,21 @@ export function deriveEntryStatus(
             indicator: IndicatorStatus.Running,
             message: getQueryStatusText(query.status),
             traceId: query.traceId,
+            errorDetail: null,
         };
     }
     if (query != null && (query.status === QueryExecutionStatus.FAILED || query.status === QueryExecutionStatus.CANCELLED)) {
+        // Carry the error's key-values so the bar can reveal them on hover (a failed query's detail
+        // no longer lives in a dedicated status panel — the message is the one-liner, the rest is
+        // in the overlay). Empty object → null so the bar skips the hover affordance.
+        const keyValues = query.error?.keyValues ?? {};
+        const errorDetail = Object.keys(keyValues).length > 0 ? keyValues : null;
         return {
             kind: EntryStatusKind.Query,
             indicator: IndicatorStatus.Failed,
             message: query.error?.message ?? getQueryStatusText(query.status),
             traceId: query.traceId,
+            errorDetail,
         };
     }
     return null;

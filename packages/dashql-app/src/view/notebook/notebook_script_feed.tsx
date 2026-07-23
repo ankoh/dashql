@@ -98,13 +98,14 @@ interface CollapsedScriptCardProps {
     onRename: (oldFileName: string, newFileName: string) => void;
     onMoveUp: (fileName: string) => void;
     onMoveDown: (fileName: string) => void;
+    onShowStatus: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowTable, onShowVisualization, onAcceptDiff, onRejectDiff }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowTable, onShowVisualization, onAcceptDiff, onRejectDiff }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
     const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
@@ -325,6 +326,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                         agentTraceId={agentTraceId}
                         visualizeQuery={scriptData?.annotations.visualizeQuery ?? null}
                         logRequest={logRequest}
+                        onShowStatus={() => onShowStatus(scriptFileName)}
                         onShowTable={() => onShowTable(scriptFileName)}
                         onShowVisualization={() => onShowVisualization(scriptFileName)}
                     />
@@ -348,6 +350,7 @@ interface ScriptFeedRowProps {
     onRename: (oldFileName: string, newFileName: string) => void;
     onMoveUp: (fileName: string) => void;
     onMoveDown: (fileName: string) => void;
+    onShowStatus: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
     onAcceptDiff: (scriptKey: number) => void;
@@ -358,7 +361,7 @@ interface ScriptFeedRowProps {
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowTable, onShowVisualization, onAcceptDiff, onRejectDiff, onHeightMeasured } = props;
+    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowTable, onShowVisualization, onAcceptDiff, onRejectDiff, onHeightMeasured } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -411,6 +414,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onRename={onRename}
                     onMoveUp={onMoveUp}
                     onMoveDown={onMoveDown}
+                    onShowStatus={onShowStatus}
                     onShowTable={onShowTable}
                     onShowVisualization={onShowVisualization}
                     onAcceptDiff={onAcceptDiff}
@@ -481,6 +485,11 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const handleExpand = React.useCallback((fileName: string) => {
         props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
         props.showDetails();
+    }, [props.modifyNotebook, props.showDetails]);
+
+    const handleShowStatus = React.useCallback((fileName: string) => {
+        props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
+        props.showDetails(DetailsTabKey.QueryStatusPanel);
     }, [props.modifyNotebook, props.showDetails]);
 
     const handleShowTable = React.useCallback((fileName: string) => {
@@ -881,6 +890,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onRename: handleRename,
         onMoveUp: handleMoveUp,
         onMoveDown: handleMoveDown,
+        onShowStatus: handleShowStatus,
         onShowTable: handleShowTable,
         onShowVisualization: handleShowVisualization,
         onAcceptDiff: handleAcceptDiff,
@@ -888,7 +898,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onHeightMeasured: handleHeightMeasured,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleShowTable, handleShowVisualization, handleAcceptDiff, handleRejectDiff, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleShowStatus, handleShowTable, handleShowVisualization, handleAcceptDiff, handleRejectDiff, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container} data-tauri-drag-region="deep">

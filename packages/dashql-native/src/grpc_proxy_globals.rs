@@ -1,6 +1,7 @@
 use std::io::Write;
 use std::str::FromStr;
 
+use base64::Engine;
 use byteorder::LittleEndian;
 use byteorder::WriteBytesExt;
 use tauri::http::HeaderMap;
@@ -137,12 +138,25 @@ pub async fn read_grpc_server_stream(channel_id: usize, stream_id: usize, mut re
                 log::debug!("{:?}", trailers);
                 let headers = &mut response.headers_mut().unwrap();
                 for entry in trailers.iter() {
-                    if let KeyAndValueRef::Ascii(ref key, ref value) = entry {
-                        let key = key.to_string();
-                        let key = HeaderName::from_str(&key);
-                        let value = HeaderValue::from_str(value.to_str().unwrap_or_default());
-                        if let (Ok(key), Ok(value)) = (key, value) {
-                            headers.insert(key, value);
+                    match entry {
+                        KeyAndValueRef::Ascii(ref key, ref value) => {
+                            let key = HeaderName::from_str(&key.to_string());
+                            let value = HeaderValue::from_str(value.to_str().unwrap_or_default());
+                            if let (Ok(key), Ok(value)) = (key, value) {
+                                headers.insert(key, value);
+                            }
+                        }
+                        // Binary trailers (e.g. `grpc-status-details-bin`) cannot be
+                        // put into an HTTP header verbatim. Forward them base64-encoded
+                        // under the same `-bin` key so the frontend can decode them.
+                        KeyAndValueRef::Binary(ref key, ref value) => {
+                            let encoded = base64::engine::general_purpose::STANDARD
+                                .encode(value.to_bytes().unwrap_or_default());
+                            let key = HeaderName::from_str(&key.to_string());
+                            let value = HeaderValue::from_str(&encoded);
+                            if let (Ok(key), Ok(value)) = (key, value) {
+                                headers.insert(key, value);
+                            }
                         }
                     }
                 }

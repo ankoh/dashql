@@ -22,7 +22,8 @@ import {
     QueryExecutionResponseStream, QueryExecutionMetrics,
     QueryExecutionStatus,
 } from '../../connection/query_execution_state.js';
-import { ChannelArgs } from '../channel_common.js';
+import { ChannelArgs, ChannelError } from '../channel_common.js';
+import { decodeGrpcErrorHeaders, HyperQueryError } from '../../connection/hyper/hyper_error_info.js';
 import { Logger } from '../logger/logger.js';
 import { AsyncConsumer } from '../../utils/async_consumer.js';
 import { AsyncValue } from '../../utils/async_value.js';
@@ -112,23 +113,36 @@ export class NativeHyperQueryResultStream implements QueryExecutionResponseStrea
     }
     /// Produce the result batches
     async produce(batches: AsyncConsumer<QueryExecutionResponseStream, arrow.RecordBatch>, _progress: AsyncConsumer<QueryExecutionResponseStream, QueryExecutionProgress>, abort?: AbortSignal): Promise<void> {
-        const arrowReader = await arrow.AsyncRecordBatchStreamReader.from(this.resultReader);
-        abort?.throwIfAborted();
-
-        await arrowReader.open();
-        abort?.throwIfAborted();
-        this.resultSchema.resolve(arrowReader.schema);
-
-        while (true) {
-            const iter = await arrowReader!.next();
+        try {
+            const arrowReader = await arrow.AsyncRecordBatchStreamReader.from(this.resultReader);
             abort?.throwIfAborted();
-            if (iter.done) {
-                if (iter.value !== undefined) {
-                    batches.resolve(this, iter.value);
+
+            await arrowReader.open();
+            abort?.throwIfAborted();
+            this.resultSchema.resolve(arrowReader.schema);
+
+            while (true) {
+                const iter = await arrowReader!.next();
+                abort?.throwIfAborted();
+                if (iter.done) {
+                    if (iter.value !== undefined) {
+                        batches.resolve(this, iter.value);
+                    }
+                    return;
                 }
-                return;
+                batches.resolve(this, iter.value);
             }
-            batches.resolve(this, iter.value);
+        } catch (e: unknown) {
+            // A failed gRPC stream surfaces as a ChannelError whose headers carry
+            // the forwarded gRPC richer error model. Decode it into a structured
+            // HyperQueryError so the rest of the app sees Hyper's ErrorInfo.
+            if (e instanceof ChannelError) {
+                const info = decodeGrpcErrorHeaders(e.headers);
+                if (info) {
+                    throw new HyperQueryError(info, LOG_CTX);
+                }
+            }
+            throw e;
         }
     }
 }

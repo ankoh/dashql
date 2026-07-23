@@ -7,12 +7,18 @@ load("//bazel/protobuf:protoc_typescript.bzl", "protoc_typescript_compile")
 
 exports_files([
     "dashql/test/test_service.proto",
+    "google/protobuf/any.proto",
     "google/protobuf/timestamp.proto",
     "google/protobuf/empty.proto",
+    "google/rpc/status.proto",
     "salesforce/hyperdb/grpc/v1/hyper_service.proto",
+    "salesforce/hyperdb/grpc/v1/error_details.proto",
 ])
 
 # Proto sources for dashql-native (tonic_build in build.rs).
+# Note: the native proxy only forwards the opaque `grpc-status-details-bin`
+# bytes, it never parses google.rpc.Status / ErrorInfo, so those protos are
+# intentionally NOT compiled into Rust.
 filegroup(
     name = "native_proto_srcs",
     srcs = [

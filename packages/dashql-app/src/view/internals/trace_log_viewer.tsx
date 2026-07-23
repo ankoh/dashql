@@ -18,12 +18,16 @@ import {
 
 interface TraceLogViewerProps {
     traceId?: number;
-    /// Fixed pixel height of the log viewport. Ignored when `maxRows` is set.
+    /// Fixed pixel height of the log viewport. Ignored when `maxRows` or `fill` is set.
     height?: number;
     /// Scrollless preview mode: the viewport auto-expands to fit the current row count and caps at
     /// this many rows. Beyond the cap the inner scrollbar is suppressed and only the last `maxRows`
     /// rows are shown (no nested scroller). Takes precedence over `height`.
     maxRows?: number;
+    /// Fill mode: the viewport fills its parent's height (which must be constrained) and scrolls
+    /// normally. Used by the Details Status tab, where the log should occupy the full card. Takes
+    /// precedence over `height` (but not `maxRows`).
+    fill?: boolean;
 }
 
 export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogViewerProps) => {
@@ -75,9 +79,13 @@ export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogVie
     const containerRef = React.useRef<HTMLDivElement>(null);
     const containerSize = observeSize(containerRef);
     const containerWidth = containerSize?.width ?? 200;
+    // In fill mode the container stretches to its parent (height: 100%) and the inner list is sized
+    // to the measured height so react-window has an explicit pixel viewport to scroll within.
     const containerHeight = props.maxRows != null
         ? Math.min(rowCount, props.maxRows) * ROW_HEIGHT
-        : (props.height ?? 200);
+        : props.fill
+            ? (containerSize?.height ?? 0)
+            : (props.height ?? 200);
 
     // Redraw whenever the log version changes or filtered logs change
     const seenLogRows = React.useRef<number>(0);
@@ -167,7 +175,7 @@ export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogVie
 
     return (
         <>
-            <div className={styles.log_grid_container} ref={containerRef} style={{ height: containerHeight, position: 'relative' }}>
+            <div className={styles.log_grid_container} ref={containerRef} style={{ height: props.fill ? '100%' : containerHeight, position: 'relative' }}>
                 <List
                     listRef={listRef}
                     // In scrollless preview mode (`maxRows`) the viewport is pinned to the last rows

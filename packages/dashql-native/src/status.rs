@@ -1,8 +1,12 @@
 use std::{collections::HashMap, fmt::Error};
+use base64::Engine;
 use serde::Serialize;
 use tauri::http::{header::CONTENT_TYPE, Response, StatusCode};
 
-use crate::proxy_headers::{HEADER_NAME_ERROR, HEADER_NAME_GRPC_STATUS};
+use crate::proxy_headers::{
+    HEADER_NAME_ERROR, HEADER_NAME_GRPC_MESSAGE, HEADER_NAME_GRPC_STATUS,
+    HEADER_NAME_GRPC_STATUS_DETAILS,
+};
 
 #[derive(Debug)]
 pub enum GrpcStreamElement {
@@ -364,6 +368,31 @@ impl From<&Status> for StatusCode {
     }
 }
 
+/// Build an error response for a failed gRPC call/stream, forwarding the
+/// gRPC "richer error model" data to the frontend:
+/// - `dashql-grpc-status`: the numeric gRPC status code
+/// - `dashql-grpc-message`: the terse gRPC status message
+/// - `dashql-grpc-status-details-bin`: base64 of the `google.rpc.Status`
+///   details envelope (carrying Hyper's `ErrorInfo`), if present.
+fn grpc_error_response(s: &Status, status: &tonic::Status, body: Vec<u8>) -> Response<Vec<u8>> {
+    let grpc_code = (status.code() as usize).to_string();
+    let mut builder = Response::builder()
+        .status(StatusCode::from(s).as_u16())
+        .header(HEADER_NAME_ERROR, "true")
+        .header(HEADER_NAME_GRPC_STATUS, &grpc_code)
+        .header(HEADER_NAME_GRPC_MESSAGE, status.message())
+        .header(CONTENT_TYPE, mime::APPLICATION_JSON.essence_str());
+    // Forward the raw status-details-bin (google.rpc.Status) as base64, if any.
+    // The frontend decodes it to surface Hyper's ErrorInfo (sqlstate, hint,
+    // customer/system detail, SQL text position, ...).
+    let details = status.details();
+    if !details.is_empty() {
+        let encoded = base64::engine::general_purpose::STANDARD.encode(details);
+        builder = builder.header(HEADER_NAME_GRPC_STATUS_DETAILS, encoded);
+    }
+    builder.body(body).unwrap()
+}
+
 impl From<&Status> for Response<Vec<u8>> {
     fn from(s: &Status) -> Response<Vec<u8>> {
         let mut body: Vec<u8> = Vec::new();
@@ -371,25 +400,9 @@ impl From<&Status> for Response<Vec<u8>> {
             body = serde_json::to_vec(&status_msg).unwrap_or_default();
         }
         match &s {
-            Status::GrpcCallFailed { ref status } => {
-                let grpc_code = (status.code() as usize).to_string();
-                Response::builder()
-                    .status(StatusCode::from(s).as_u16())
-                    .header(HEADER_NAME_ERROR, "true")
-                    .header(HEADER_NAME_GRPC_STATUS, &grpc_code)
-                    .header(CONTENT_TYPE, mime::APPLICATION_JSON.essence_str())
-                    .body(body)
-                    .unwrap()
-            },
-            Status::GrpcStreamReadFailed { channel_id: _, stream_id: _, element: _, ref status } => {
-                let grpc_code = (status.code() as usize).to_string();
-                Response::builder()
-                    .status(StatusCode::from(s).as_u16())
-                    .header(HEADER_NAME_ERROR, "true")
-                    .header(HEADER_NAME_GRPC_STATUS, &grpc_code)
-                    .header(CONTENT_TYPE, mime::APPLICATION_JSON.essence_str())
-                    .body(body)
-                    .unwrap()
+            Status::GrpcCallFailed { ref status }
+            | Status::GrpcStreamReadFailed { channel_id: _, stream_id: _, element: _, ref status } => {
+                grpc_error_response(s, status, body)
             },
             _ => {
                 Response::builder()

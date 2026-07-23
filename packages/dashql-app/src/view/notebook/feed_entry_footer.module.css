@@ -1,51 +1,6 @@
 .footer_container {
 }
 
-.tab_header {
-    height: 32px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0 4px 0px 8px;
-    font-size: 0.8rem;
-    border-bottom: 1px solid rgb(210, 210, 210);
-    color: hsl(210, 12%, 36%);
-}
-
-.tab_header_clickable {
-    composes: tab_header;
-    cursor: pointer;
-}
-
-.tab_header_clickable:hover {
-    background-color: hsl(210, 20%, 96%);
-}
-
-.tab_header_title {
-    flex-shrink: 0;
-    font-weight: 500;
-}
-
-/* Greyish "N of M rows" count that sits right next to its header title (the header's gap spaces
-   them). Shared by the Data/Log tabs so both indicators are styled identically. */
-.tab_header_detail {
-    flex-shrink: 0;
-    color: hsl(210, 10%, 60%);
-}
-
-/* The log tab header carries a "Logs" title with a greyish "N of M rows" count next to it on the
-   left, and the Execution/Agent log-source segmented control pushed to the right. Not clickable. */
-.log_tab_header {
-    composes: tab_header;
-    height: 32px;
-}
-
-/* margin-left: auto pushes the segmented control to the far right, past the title/count on the left. */
-.log_source_control {
-    flex-shrink: 0;
-    margin-left: auto;
-}
-
 /* The visualization tab stacks a fixed-height header over a chart that must fill the rest of the
    tab body. Without this column layout the chart's height: 100% is measured against the full body
    (not the body minus the header), so it overflows past the bottom by exactly the header height. */

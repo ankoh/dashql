@@ -1,0 +1,83 @@
+/*
+  This definition is kept in sync at
+  * https://github.com/hyper-db-emu/hyper-db/blob/main/protos/salesforce/hyperdb/grpc/v1/error_details.proto
+  * https://git.soma.salesforce.com/a360/cdp-protos/blob/master/proto/hyperdb-proto/salesforce/hyperdb/grpc/v1/error_details.proto
+
+  The version in https://github.com/hyper-db-emu/hyper-db is the source of
+  truth. Always update that verison first and then copy over the changes into
+  the other version.
+
+  Furthermore, this is also mirrored into
+  https://github.com/forcedotcom/datacloud-jdbc/blob/main/jdbc-proto/src/main/proto/error_details.proto
+
+  The public version is updated on demand, as we pull in new versions of hyperd
+  via HyperAPI. (The JDBC driver relies on the hyperd packaged in Hyper API for
+  testing).
+*/
+
+/*
+  This file contains the richer error model message types for HyperService
+  (defined in hyper_service.proto). For more details on richer error model see:
+  https://grpc.io/docs/guides/error/#richer-error-model
+*/
+syntax = "proto3";
+
+package salesforce.hyperdb.grpc.v1;
+
+// Ensure that we have a sensible java package name and that
+// messages are individual classes for better dev experience.
+option java_multiple_files = true;
+option java_package = "salesforce.cdp.hyperdb.v1";
+
+// Positional information on the error, references the user-provided SQL text
+message TextPosition {
+  // Start offset, measured in unicode code points
+  uint64 error_begin_character_offset = 2;
+  // End offset, measured in unicode code points
+  uint64 error_end_character_offset = 3;
+}
+
+// Error details for HyperService rpcs (defined in hyper_service.proto)
+//
+// This message is used in two ways:
+// 1. by Hyper to report error information to its clients
+// 2. by upstream services to report errors to Hyper
+//
+// We distuish between customer-visible information and internal ("system")
+// information. Hyper makes sure to not expose the system-internal
+// information via any of its public endpoints.
+//
+// Note for Upstream services:
+// - Use `ErrorInfo` to enable Hyper to provide detailed error messages to
+//   customer and improved debuggability
+// - When providing detailed information, you MUST provide both customer_detail
+//   and system_detail
+// - If Hyper is unable to validate correctness of `ErrorInfo`, it will fallback
+//   to standard GRPC Error Model and map the error message to system_detail
+message ErrorInfo {
+  // The primary (terse) error message
+  // MUST NOT contain sensitive data as it will be logged and returned to user
+  // MANDATORY FIELD
+  string primary_message = 1;
+  // The SQL state error code
+  // Treated as InternalError, if empty
+  string sqlstate = 2;
+  // A suggestion on what what to do about the problem
+  // Differs from customer_detail by offering advise rather than hard facts
+  // Can be returned to the customer but MUST NOT be logged
+  string customer_hint = 3;
+  // Error detail with customer data classification
+  // Can be returned to the customer but MUST NOT be logged
+  string customer_detail = 4;
+  // Error detail with system data classification
+  // Can be logged but MUST NOT be forwarded to untrusted clients or customers
+  string system_detail = 5;
+  // Position information pertaining to the error
+  // This will be IGNORED for Error Info coming from upstream services of Hyper
+  TextPosition position = 6;
+  // The cause of the error
+  // ALLOWED values are "User" and "System" (case sensitive)
+  // Use "User" if and only if the error can only be caused by the end-user or
+  // customer
+  string error_source = 7;
+}
