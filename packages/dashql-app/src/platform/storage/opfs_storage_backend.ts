@@ -428,6 +428,10 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
     }
 
     /// Insert or replace a session's registry entry (matched by UUID), without touching files.
+    ///
+    /// The array order is the user-facing session order (surfaced in the selector, reorderable by
+    /// drag-and-drop via `reorderSessions`), so we deliberately preserve it: a new session appends to
+    /// the end and an existing one is updated in place. We never re-sort.
     async upsertSessionEntry(entry: SessionEntry): Promise<void> {
         const root = this.ensureInitialized();
         const manifest = await this.readManifest(root);
@@ -438,7 +442,6 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         } else {
             manifest.sessions[existingIndex] = entry;
         }
-        manifest.sessions.sort((a, b) => a.path.localeCompare(b.path));
 
         await this.writeManifest(root, manifest);
     }
@@ -448,6 +451,35 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         const root = this.ensureInitialized();
         const manifest = await this.readManifest(root);
         manifest.sessions = manifest.sessions.filter(s => s.path !== sessionId);
+        await this.writeManifest(root, manifest);
+    }
+
+    /// Reorder the registry entries to match `orderedIds` (a permutation of the existing session
+    /// UUIDs), without touching files. Entries are re-emitted in the given order; any UUID not present
+    /// in the manifest is ignored, and any manifest entry missing from `orderedIds` is appended at the
+    /// end in its current relative order (so a stale/racing id list can never drop a session).
+    async reorderSessions(orderedIds: string[]): Promise<void> {
+        const root = this.ensureInitialized();
+        const manifest = await this.readManifest(root);
+
+        const byId = new Map(manifest.sessions.map(s => [s.path, s]));
+        const reordered: SessionEntry[] = [];
+        const taken = new Set<string>();
+        for (const id of orderedIds) {
+            const entry = byId.get(id);
+            if (entry && !taken.has(id)) {
+                reordered.push(entry);
+                taken.add(id);
+            }
+        }
+        // Preserve any entries the caller didn't mention, keeping their existing relative order.
+        for (const entry of manifest.sessions) {
+            if (!taken.has(entry.path)) {
+                reordered.push(entry);
+            }
+        }
+
+        manifest.sessions = reordered;
         await this.writeManifest(root, manifest);
     }
 

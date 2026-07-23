@@ -80,6 +80,19 @@ class MemoryRegistry implements SessionRegistryBackend {
     async removeSessionEntry(sessionId: string): Promise<void> {
         this.manifest = this.manifest.filter(s => s.path !== sessionId);
     }
+    async reorderSessions(orderedIds: string[]): Promise<void> {
+        const byId = new Map(this.manifest.map(s => [s.path, s]));
+        const reordered: SessionEntry[] = [];
+        const taken = new Set<string>();
+        for (const id of orderedIds) {
+            const entry = byId.get(id);
+            if (entry && !taken.has(id)) { reordered.push(entry); taken.add(id); }
+        }
+        for (const entry of this.manifest) {
+            if (!taken.has(entry.path)) reordered.push(entry);
+        }
+        this.manifest = reordered;
+    }
 
     async loadSessionSchema(sessionId: string): Promise<string | null> { return this.schema.get(sessionId) ?? null; }
     async saveSessionSchema(sessionId: string, sql: string): Promise<void> { this.schema.set(sessionId, sql); }

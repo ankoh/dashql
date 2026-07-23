@@ -12,7 +12,8 @@
 .session_list_container {
     padding: 4px;
     margin: 0;
-    width: max-content;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .session_item_wrapper {
@@ -21,7 +22,15 @@
     align-items: center;
     margin-left: 4px;
     margin-right: 4px;
-    height: 100%;
+    min-height: 32px;
+    /* Hint the grab cursor: the whole row is draggable to reorder. */
+    cursor: grab;
+    /* dnd-kit applies a translate transform while dragging; keep the touch action out of its way. */
+    touch-action: none;
+}
+
+.session_item_wrapper:active {
+    cursor: grabbing;
 }
 
 .session_item {

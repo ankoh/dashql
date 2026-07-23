@@ -134,6 +134,34 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
         this.locations.delete(sessionId);
         return this.opfs.removeSessionEntry(sessionId);
     }
+    reorderSessions(orderedIds: string[]): Promise<void> {
+        // Keep the in-memory location map's iteration order (the source of `getSessionOrder`) in
+        // lockstep with what we persist, applying the exact same "listed ids first, unlisted kept at
+        // the end in current order" rule the OPFS backend uses.
+        const previous = this.locations;
+        const reordered = new Map<string, SessionLocation>();
+        for (const id of orderedIds) {
+            const loc = previous.get(id);
+            if (loc && !reordered.has(id)) {
+                reordered.set(id, loc);
+            }
+        }
+        for (const [id, loc] of previous) {
+            if (!reordered.has(id)) {
+                reordered.set(id, loc);
+            }
+        }
+        this.locations.clear();
+        for (const [id, loc] of reordered) {
+            this.locations.set(id, loc);
+        }
+        return this.opfs.reorderSessions(orderedIds);
+    }
+
+    /// The user-facing session order (the manifest array order), as session UUIDs.
+    getSessionOrder(): string[] {
+        return [...this.locations.keys()];
+    }
     deleteSessionFiles(sessionId: string): Promise<void> {
         return this.backendFor(sessionId).then(b => {
             if (b === this.opfs) {

@@ -18,6 +18,9 @@ export interface StorageReader {
     waitForInitialRestore(): Promise<void>;
     /// The physical location of a session's files (used by the UI for a display path).
     getSessionLocation(sessionId: string): SessionLocation;
+    /// The user-facing session order (manifest array order), as session UUIDs. Empty for a bare
+    /// backend without per-session routing.
+    getSessionOrder(): string[];
 }
 const StorageReaderContext = React.createContext<StorageReader | null>(null);
 
@@ -87,6 +90,13 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
                 }
                 // A bare backend (e.g. an injected test backend) has no per-session routing.
                 return { type: backend.getBackendType() === StorageBackendType.Native ? StorageBackendType.Native : StorageBackendType.OPFS };
+            },
+            getSessionOrder(): string[] {
+                if (backend instanceof CompositeStorageBackend) {
+                    return backend.getSessionOrder();
+                }
+                // A bare backend has no manifest-order registry; the caller falls back to its own order.
+                return [];
             },
         };
     }, [backend, logger]);

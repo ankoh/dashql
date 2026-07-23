@@ -4,8 +4,23 @@ import symbols from '@ankoh/dashql-svg-symbols';
 import * as baseStyles from './banner_page.module.css';
 import * as styles from './session_selector_page.module.css';
 
-import { List, useListRef } from 'react-window';
-import type { RowComponentProps } from 'react-window';
+import {
+    DndContext,
+    DragEndEvent,
+    KeyboardSensor,
+    PointerSensor,
+    closestCenter,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    arrayMove,
+    verticalListSortingStrategy,
+    sortableKeyboardCoordinates,
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { ButtonVariant, IconButton } from './foundations/button.js';
 import { DASHQL_VERSION } from '../globals.js';
 import { SELECT_SESSION, BEGIN_SESSION_SETUP, CANCEL_SESSION_SETUP, SKIP_SESSION_SETUP, useRouteContext, useRouterNavigate } from '../router.js';
@@ -67,15 +82,7 @@ interface SessionItemData {
     invalidReason: string | null;
 }
 
-interface SessionListData {
-    sessions: SessionItemData[];
-    onSessionClick: (sessionId: string) => void;
-    onDelete: (item: SessionItemData) => void;
-    isEditMode: boolean;
-}
-
-const SESSION_ITEM_HEIGHT = 36; // Height of each session item (32px item + 8px padding)
-const LIST_MAX_HEIGHT = 400; // Max height of the scrollable list
+const LIST_MAX_HEIGHT = 400; // Max height of the scrollable list before it scrolls
 const LIST_WIDTH = 400; // Width of the list to accommodate long paths
 
 export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
@@ -90,7 +97,9 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
     const storageReader = useStorageReader();
     const logger = useLogger();
     const platform = usePlatformType();
-    const listRef = useListRef(null);
+    // The manifest session order lives in mutable backend state (see storageReader.getSessionOrder).
+    // Bumping this after a drag-persist forces the list to re-read and re-render in the new order.
+    const [orderVersion, setOrderVersion] = React.useState(0);
 
     // Opening a folder-backed session needs the native filesystem and a per-session-routing
     // composite backend (web OPFS has neither a folder picker nor on-disk sessions to load).
@@ -149,19 +158,15 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
             });
         }
 
-        // Sort: DATALESS first, then by lastAccessed (most recent first), then by display path
+        // Order by the manifest (the user-facing, drag-reorderable order). Sessions present in the
+        // manifest lead, in manifest order; any not yet registered there (e.g. a just-created session
+        // whose first write hasn't landed) are appended in their registry iteration order.
+        const manifestOrder = storageReader.getSessionOrder();
+        const rank = new Map(manifestOrder.map((id, i) => [id, i]));
         result.sort((a, b) => {
-            if (a.connectorType === ConnectorType.DATALESS) return -1;
-            if (b.connectorType === ConnectorType.DATALESS) return 1;
-
-            // Sort by lastAccessed if both have it
-            if (a.lastAccessed && b.lastAccessed) {
-                return b.lastAccessed.getTime() - a.lastAccessed.getTime();
-            }
-            if (a.lastAccessed) return -1;
-            if (b.lastAccessed) return 1;
-
-            return a.displayPath.localeCompare(b.displayPath);
+            const ra = rank.get(a.sessionId) ?? Number.MAX_SAFE_INTEGER;
+            const rb = rank.get(b.sessionId) ?? Number.MAX_SAFE_INTEGER;
+            return ra - rb;
         });
 
         // Append invalid sessions at the end, sorted by their display label. These were refused a
@@ -190,7 +195,42 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
         invalid.sort((a, b) => a.displayPath.localeCompare(b.displayPath));
 
         return [...result, ...invalid];
-    }, [props.connectionRegistry, props.notebookRegistry, props.invalidSessions, storageReader]);
+        // orderVersion is a dep because getSessionOrder() reads mutable backend state that a drag
+        // reorder mutates in place; bumping it re-runs this memo against the new manifest order.
+    }, [props.connectionRegistry, props.notebookRegistry, props.invalidSessions, storageReader, orderVersion]);
+
+    // The ids that participate in drag reordering: the valid (registered) sessions, in display
+    // order. Invalid sessions are always pinned at the end and never reorderable.
+    const sortableIds = React.useMemo(
+        () => sessions.filter(s => s.invalidReason == null).map(s => s.sessionId),
+        [sessions],
+    );
+
+    // Session-row drag-and-drop, mirroring the notebook page tabs: the PointerSensor only arms a
+    // drag after a few pixels of movement, so a plain click still opens the session.
+    const dndSensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    );
+    const handleSessionDragEnd = React.useCallback((event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over == null || active.id === over.id) return;
+        const fromIndex = sortableIds.indexOf(String(active.id));
+        const toIndex = sortableIds.indexOf(String(over.id));
+        if (fromIndex < 0 || toIndex < 0) return;
+        const reordered = arrayMove(sortableIds, fromIndex, toIndex);
+
+        // Persist the new order to the manifest. The composite backend applies it to its in-memory
+        // order synchronously, so bumping orderVersion right after re-renders the list in the new
+        // order without waiting on the write. A bare (test) backend has no reorder support — skip.
+        const backend = storageReader.backend;
+        if (backend instanceof CompositeStorageBackend) {
+            backend.reorderSessions(reordered).catch(e =>
+                logger.error('failed to persist session order', { error: String(e) }, 'session_selector')
+            );
+            setOrderVersion(v => v + 1);
+        }
+    }, [sortableIds, storageReader.backend, logger]);
 
     const onSessionClick = React.useCallback((sessionId: string) => {
         const conn = props.connectionRegistry.connectionMap.get(sessionId);
@@ -377,23 +417,27 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
                             </div>
                             <div className={baseStyles.card_section}>
                                 {sessions.length > 0 ? (
-                                    <div className={styles.session_list_container}>
-                                        <List
-                                            listRef={listRef}
-                                            style={{
-                                                width: LIST_WIDTH,
-                                                height: Math.min(LIST_MAX_HEIGHT, sessions.length * SESSION_ITEM_HEIGHT)
-                                            }}
-                                            rowCount={sessions.length}
-                                            rowHeight={SESSION_ITEM_HEIGHT}
-                                            rowComponent={SessionItemRow}
-                                            rowProps={{
-                                                sessions,
-                                                onSessionClick,
-                                                onDelete: handleDeleteSession,
-                                                isEditMode,
-                                            }}
-                                        />
+                                    <div
+                                        className={styles.session_list_container}
+                                        style={{ width: LIST_WIDTH, maxHeight: LIST_MAX_HEIGHT }}
+                                    >
+                                        <DndContext
+                                            sensors={dndSensors}
+                                            collisionDetection={closestCenter}
+                                            onDragEnd={handleSessionDragEnd}
+                                        >
+                                            <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+                                                {sessions.map((session) => (
+                                                    <SessionItem
+                                                        key={session.sessionId}
+                                                        session={session}
+                                                        onClick={onSessionClick}
+                                                        onDelete={handleDeleteSession}
+                                                        isEditMode={isEditMode}
+                                                    />
+                                                ))}
+                                            </SortableContext>
+                                        </DndContext>
                                     </div>
                                 ) : (
                                     <div className={styles.empty_state}>
@@ -440,27 +484,6 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
     );
 };
 
-const SessionItemRow = (props: RowComponentProps<SessionListData>) => {
-    const { sessions, onSessionClick, onDelete, isEditMode } = props;
-    const rowIndex = props.index;
-    const session = sessions[rowIndex];
-
-    if (!session) {
-        return <div style={props.style} />;
-    }
-
-    return (
-        <div style={props.style}>
-            <SessionItem
-                session={session}
-                onClick={onSessionClick}
-                onDelete={onDelete}
-                isEditMode={isEditMode}
-            />
-        </div>
-    );
-};
-
 interface SessionItemProps {
     session: SessionItemData;
     onClick: (sessionId: string) => void;
@@ -471,6 +494,20 @@ interface SessionItemProps {
 const SessionItem: React.FC<SessionItemProps> = ({ session, onClick, onDelete, isEditMode }) => {
     const connectorInfo = CONNECTOR_INFOS.find(c => c.connectorType === session.connectorType);
     const isInvalid = session.invalidReason != null;
+
+    // Invalid sessions are pinned at the end and never reorderable, so their sortable is disabled.
+    // The PointerSensor's activation distance (see the parent) lets a plain click through to open
+    // the session while still allowing a drag once the pointer moves.
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: session.sessionId,
+        disabled: isInvalid,
+    });
+    const style: React.CSSProperties = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 1 : undefined,
+        opacity: isDragging ? 0.8 : undefined,
+    };
 
     const handleClick = React.useCallback(() => {
         if (!isEditMode && !isInvalid) {
@@ -484,7 +521,7 @@ const SessionItem: React.FC<SessionItemProps> = ({ session, onClick, onDelete, i
     }, [session, onDelete]);
 
     return (
-        <div className={styles.session_item_wrapper}>
+        <div ref={setNodeRef} style={style} className={styles.session_item_wrapper} {...attributes} {...listeners}>
             <button
                 className={isInvalid ? `${styles.session_item} ${styles.session_item_invalid}` : styles.session_item}
                 onClick={handleClick}
@@ -524,6 +561,8 @@ const SessionItem: React.FC<SessionItemProps> = ({ session, onClick, onDelete, i
                     // unlinks it from dashql, so show an unlink icon. OPFS sessions are truly deleted.
                     aria-label={session.isNative ? "Unlink session" : "Delete session"}
                     onClick={handleDelete}
+                    // Don't let grabbing the delete affordance start a row drag.
+                    onPointerDown={(e) => e.stopPropagation()}
                 >
                     {session.isNative
                         ? <UnlinkIcon size={16} />

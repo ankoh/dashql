@@ -112,6 +112,10 @@ export interface SessionRegistryBackend extends StorageBackend {
     upsertSessionEntry(entry: SessionEntry): Promise<void>;
     /// Remove a session's registry entry (matched by UUID), without touching files.
     removeSessionEntry(sessionId: string): Promise<void>;
+    /// Reorder the registry entries to match the given UUID order (the user-facing session order),
+    /// without touching files. Ids not in the manifest are ignored; manifest entries not listed are
+    /// kept at the end in their current relative order.
+    reorderSessions(orderedIds: string[]): Promise<void>;
     /// Delete a session's files only, leaving the registry entry intact.
     deleteSessionFiles(sessionId: string): Promise<void>;
 }
