@@ -53,6 +53,10 @@ export interface CatalogUpdates {
 export interface ConnectionState {
     /// The session identifier - fully qualified path (e.g., "opfs://sessions/<uuid>")
     sessionId: string;
+    /// The user-supplied session name, or null if the user never named this session. Persisted as
+    /// `name` in the session manifest; surfaced as the primary label in the session bar and selector
+    /// (the display path is the fallback). Distinct from the connector-derived `title` in the manifest.
+    name: string | null;
 
     /// The connection state contains many references into the Wasm heap.
     /// It therefore makes sense that connection state users resolve the "right" module through here.
@@ -187,6 +191,7 @@ export const DELETE_CONNECTION = Symbol('DELETE_CONNECTION');
 export const RESET_CONNECTION = Symbol('RESET_CONNECTION');
 export const SWITCH_CONNECTOR_TYPE = Symbol('SWITCH_CONNECTOR_TYPE');
 export const SET_CONNECTION_ACTIVE = Symbol('SET_CONNECTION_ACTIVE');
+export const RENAME_SESSION = Symbol('RENAME_SESSION');
 export const SET_CATALOG_SCRIPT = Symbol('SET_CATALOG_SCRIPT');
 export const UPDATE_CATALOG = Symbol('UPDATE_CATALOG');
 export const CATALOG_UPDATE_STARTED = Symbol('CATALOG_UPDATE_STARTED');
@@ -244,6 +249,7 @@ export type ConnectionStateAction =
     | VariantKind<typeof RESET_CONNECTION, null>
     | VariantKind<typeof SWITCH_CONNECTOR_TYPE, ConnectorType>
     | VariantKind<typeof SET_CONNECTION_ACTIVE, null>
+    | VariantKind<typeof RENAME_SESSION, string | null>
     | CatalogAction
     | QueryExecutionAction
     | HyperConnectorAction
@@ -361,6 +367,23 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             }
             const newState = { ...state, active: true };
             storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION_MANIFEST, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
+            return newState;
+        }
+
+        // RENAME_SESSION sets (or clears) the user-supplied session name. A blank/whitespace-only
+        // value normalises to null so clearing the name falls back to the display path everywhere.
+        case RENAME_SESSION: {
+            const trimmed = action.value?.trim() ?? '';
+            const newName = trimmed.length > 0 ? trimmed : null;
+            if (newName === state.name) {
+                return state;
+            }
+            const newState = { ...state, name: newName };
+            // Persist through the shared manifest write. Suppressed until the connection is active,
+            // matching the other manifest writes (a not-yet-configured session isn't persisted).
+            if (newState.active) {
+                storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION_MANIFEST, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
+            }
             return newState;
         }
 
@@ -499,6 +522,7 @@ export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, c
     const connSig = computeNewConnectionSignatureFromDetails(details);
     return {
         instance: dql,
+        name: null,
         active: false,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
@@ -537,6 +561,7 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
     catalogFunctionScript.replaceText(generateFunctionScriptHeader(CatalogSource.Unknown));
     return {
         instance: dql,
+        name: null,
         active: false,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,

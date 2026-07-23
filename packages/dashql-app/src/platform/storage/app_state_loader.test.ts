@@ -116,7 +116,7 @@ describe('restoreAppState', () => {
         const sessionData: SessionData = {
             sessionId: HYPER_ID,
             sessionPath: HYPER_ID,
-            title: 'Test Session',
+            name: 'Test Session',
             connectionParams: {
                 hyper: {
                     setupTimings: {},
@@ -186,7 +186,7 @@ describe('restoreAppState', () => {
         const demoData: SessionData = {
             sessionId: DEMO_ID,
             sessionPath: DEMO_ID,
-            title: 'Demo',
+            name: 'Demo',
             connectionParams: { dataless: { demoConnector: true } },
             notebook: { originalFileName: 'demo.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
@@ -194,7 +194,7 @@ describe('restoreAppState', () => {
         const datalessData: SessionData = {
             sessionId: DATALESS_ID,
             sessionPath: DATALESS_ID,
-            title: 'Dataless',
+            name: 'Dataless',
             connectionParams: { dataless: {} },
             notebook: { originalFileName: 'dataless.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
@@ -239,7 +239,7 @@ describe('restoreAppState', () => {
         const goodData: SessionData = {
             sessionId: GOOD_ID,
             sessionPath: GOOD_ID,
-            title: 'Good',
+            name: 'Good',
             connectionParams: { dataless: {} },
             notebook: { originalFileName: 'good.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
@@ -277,7 +277,7 @@ describe('restoreAppState', () => {
         const sessionData: SessionData = {
             sessionId: UNCONFIGURED_ID,
             sessionPath: UNCONFIGURED_ID,
-            title: 'Unconfigured',
+            name: 'Unconfigured',
             connectionParams: {
                 hyper: {
                     setupTimings: {},
@@ -339,7 +339,7 @@ describe('restoreAppState', () => {
         const sessionData: SessionData = {
             sessionId: UNKNOWN_CONNECTOR_ID,
             sessionPath: UNKNOWN_CONNECTOR_ID,
-            title: 'Invalid',
+            name: 'Invalid',
             // Completely invalid format — matches no known connector
             connectionParams: { garbage: 'data' } as any,
             notebook: { originalFileName: 'invalid.sql', createdAt: '2024-01-01T00:00:00Z' }
@@ -373,7 +373,7 @@ describe('restoreAppState', () => {
         const sessionData = {
             sessionId: NO_PARAMS_ID,
             sessionPath: NO_PARAMS_ID,
-            title: 'No Params',
+            name: 'No Params',
             // connectionParams deliberately omitted
             notebook: { originalFileName: 'x.sql', createdAt: '2024-01-01T00:00:00Z' }
         } as any as SessionData;
@@ -403,7 +403,7 @@ describe('restoreAppState', () => {
         const sessionData = {
             sessionId: '',
             sessionPath: NO_ID_PATH,
-            title: 'No Id',
+            name: 'No Id',
             connectionParams: { dataless: {} },
             notebook: { originalFileName: 'x.sql', createdAt: '2024-01-01T00:00:00Z' }
         } as any as SessionData;
@@ -433,7 +433,7 @@ describe('restoreAppState', () => {
         const goodData: SessionData = {
             sessionId: GOOD_ID,
             sessionPath: GOOD_ID,
-            title: 'Good',
+            name: 'Good',
             connectionParams: { dataless: {} },
             notebook: { originalFileName: 'good.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
@@ -474,7 +474,7 @@ describe('restoreAppState', () => {
         const sessionData: SessionData = {
             sessionId: NO_SCHEMA_ID,
             sessionPath: NO_SCHEMA_ID,
-            title: 'No Schema',
+            name: 'No Schema',
             connectionParams: {
                 hyper: {
                     setupTimings: {},
@@ -512,7 +512,7 @@ describe('restoreAppState', () => {
         const sessionData: SessionData = {
             sessionId: SCHEMA_ID,
             sessionPath: SCHEMA_ID,
-            title: 'Schema Test',
+            name: 'Schema Test',
             connectionParams: {
                 hyper: {
                     setupTimings: {},
@@ -554,7 +554,7 @@ describe('restoreAppState', () => {
         const sessionData: SessionData = {
             sessionId: CATALOG_FAIL_ID,
             sessionPath: CATALOG_FAIL_ID,
-            title: 'Catalog Fail',
+            name: 'Catalog Fail',
             connectionParams: {
                 hyper: {
                     setupTimings: {},
@@ -595,7 +595,7 @@ describe('restoreAppState', () => {
         const sessionData: SessionData = {
             sessionId: MULTI_PAGE_ID,
             sessionPath: MULTI_PAGE_ID,
-            title: 'Multi Page',
+            name: 'Multi Page',
             connectionParams: {
                 hyper: {
                     setupTimings: {},
@@ -656,7 +656,7 @@ describe('restoreAppState', () => {
         const sessionData: SessionData = {
             sessionId: EMPTY_NOTEBOOK_ID,
             sessionPath: EMPTY_NOTEBOOK_ID,
-            title: 'Empty Notebook',
+            name: 'Empty Notebook',
             connectionParams: {
                 hyper: {
                     setupTimings: {},
@@ -693,7 +693,7 @@ describe('restoreAppState', () => {
         const sessionData: SessionData = {
             sessionId: NOTEBOOK_FAIL_ID,
             sessionPath: NOTEBOOK_FAIL_ID,
-            title: 'Notebook Fail',
+            name: 'Notebook Fail',
             connectionParams: {
                 hyper: {
                     setupTimings: {},
@@ -735,7 +735,7 @@ describe('restoreAppState', () => {
         const hyperData: SessionData = {
             sessionId: HYPER_ID,
             sessionPath: HYPER_ID,
-            title: 'Hyper',
+            name: 'Hyper',
             connectionParams: {
                 hyper: {
                     setupTimings: {},
@@ -751,7 +751,7 @@ describe('restoreAppState', () => {
         const salesforceData: SessionData = {
             sessionId: SF_ID,
             sessionPath: SF_ID,
-            title: 'Salesforce',
+            name: 'Salesforce',
             connectionParams: {
                 salesforce: {
                     setupTimings: {},
@@ -769,7 +769,7 @@ describe('restoreAppState', () => {
         const trinoData: SessionData = {
             sessionId: TRINO_ID,
             sessionPath: TRINO_ID,
-            title: 'Trino',
+            name: 'Trino',
             connectionParams: {
                 trino: {
                     setupTimings: {},

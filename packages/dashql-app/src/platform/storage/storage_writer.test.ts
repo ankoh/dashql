@@ -144,18 +144,40 @@ describe('StorageWriter session manifest writes', () => {
         const createdAt = backend.sessions.get(conn.sessionId)!.notebook.createdAt;
         expect(createdAt).toBeTruthy();
 
-        // A change to a persisted field (title) must trigger a write that keeps the original createdAt.
-        const renamed: ConnectionState = {
-            ...conn,
-            connectorInfo: { ...conn.connectorInfo, names: { ...conn.connectorInfo.names, fileShort: 'Renamed' } },
-        };
+        // A change to a persisted field (name) must trigger a write that keeps the original createdAt.
+        const renamed: ConnectionState = { ...conn, name: 'Renamed' };
         await writer.write(key, { type: WRITE_SESSION_MANIFEST, value: [renamed.sessionId, renamed] });
         await writer.flush();
         expect(backend.saveCount).toBe(2);
 
         const persisted = backend.sessions.get(conn.sessionId)!;
-        expect(persisted.title).toBe('Renamed');
+        expect(persisted.name).toBe('Renamed');
         expect(persisted.notebook.createdAt).toBe(createdAt);
+    });
+
+    it('persists a user-supplied name and omits it when unset', async () => {
+        const backend = new CountingBackend();
+        const writer = new StorageWriter(logger, backend);
+        const conn = makeConnection('a0000000-0000-4000-8000-000000000003');
+        const key = groupSessionWrites(conn.sessionId);
+
+        // No name set: the manifest carries no `name` key at all.
+        await writer.write(key, { type: WRITE_SESSION_MANIFEST, value: [conn.sessionId, conn] });
+        await writer.flush();
+        expect(backend.saveCount).toBe(1);
+        expect(backend.sessions.get(conn.sessionId)!.name).toBeUndefined();
+
+        // Setting a name is a change to a persisted field, so it must trigger a rewrite.
+        const named: ConnectionState = { ...conn, name: 'Q3 Revenue' };
+        await writer.write(key, { type: WRITE_SESSION_MANIFEST, value: [named.sessionId, named] });
+        await writer.flush();
+        expect(backend.saveCount).toBe(2);
+        expect(backend.sessions.get(conn.sessionId)!.name).toBe('Q3 Revenue');
+
+        // Re-writing the same name is a no-op.
+        await writer.write(key, { type: WRITE_SESSION_MANIFEST, value: [named.sessionId, named] });
+        await writer.flush();
+        expect(backend.saveCount).toBe(2);
     });
 });
 

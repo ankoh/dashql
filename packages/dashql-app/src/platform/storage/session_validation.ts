@@ -114,7 +114,7 @@ export function describeInvalidSession(
         : null;
     return {
         sessionId,
-        title: data?.title || data?.sessionPath || sessionId,
+        title: data?.name || data?.sessionPath || sessionId,
         connectorType: connectorInfo?.connectorType ?? null,
         error,
     };

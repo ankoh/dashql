@@ -285,7 +285,9 @@ async function restoreSession(
         sessionId,
         connectorInfo,
         details,
-        connectionSignatures
+        connectionSignatures,
+        // The optional user-supplied `name` becomes the primary label; blank means unnamed.
+        sessionData.name?.trim() || null
     );
 
     connectionStates.set(sessionId, connectionState);

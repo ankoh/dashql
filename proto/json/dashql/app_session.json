@@ -22,9 +22,9 @@
       "type": "string",
       "description": "Absolute directory holding this session's files when storageType is \"native\"."
     },
-    "title": {
+    "name": {
       "type": "string",
-      "description": "The session title/name"
+      "description": "User-supplied session name shown as the primary label in the session bar and selector. Absent (or empty) means the user never named the session, and the UI falls back to the display path."
     },
     "connectionParams": {
       "$ref": "connection.json#/definitions/ConnectionParams",
@@ -45,7 +45,7 @@
       "description": "When was last accessed"
     }
   },
-  "required": ["sessionId", "title", "connectionParams", "notebook"],
+  "required": ["sessionId", "connectionParams", "notebook"],
   "additionalProperties": false,
   "definitions": {
     "NotebookOriginType": {

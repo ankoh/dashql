@@ -78,3 +78,27 @@
     overflow-wrap: anywhere;
     word-break: break-word;
 }
+
+.name_input {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Roboto';
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    border: 1px solid var(--border_color_primary);
+    border-radius: var(--border_radius);
+    background-color: var(--input_bg, #ffffff);
+    color: inherit;
+}
+
+.name_input:focus {
+    outline: none;
+    border-color: var(--focus_border_color, #0969da);
+}
+
+.name_input::placeholder {
+    color: var(--text_color_secondary, #6e7781);
+}

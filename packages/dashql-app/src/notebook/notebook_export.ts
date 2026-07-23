@@ -25,7 +25,6 @@ export async function encodeNotebookAsZip(
     const sessionData: SessionData = {
         sessionId: notebookState.sessionId,
         sessionPath: notebookState.sessionId,
-        title: notebookState.notebookMetadata.originalFileName || 'Untitled',
         connectionParams,
         notebook: notebookMetadata,
     };

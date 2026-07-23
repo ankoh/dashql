@@ -105,7 +105,7 @@ function seedSession(backend: MemoryBackend, id: string): Promise<void> {
     return (async () => {
         await backend.saveSessionManifest(id, {
             sessionId: id,
-            title: `Session ${id}`,
+            name: `Session ${id}`,
             connectionParams: { dataless: {} },
             notebook: {},
         });
@@ -147,7 +147,7 @@ describe('storage_migration', () => {
         await copySession(UUID, source, target, logger);
         const migrated = await target.loadSession(UUID);
         expect(migrated.sessionId).toBe(UUID);
-        expect(migrated.title).toBe('Session aaa');
+        expect(migrated.name).toBe('Session aaa');
     });
 
     it('copies schema, functions, scripts and draft contents verbatim', async () => {

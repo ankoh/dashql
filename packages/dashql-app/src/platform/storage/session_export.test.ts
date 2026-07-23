@@ -37,7 +37,7 @@ describe('exportSessionAsZip', () => {
         const sessionData: SessionData = {
             sessionId: 'test-uuid-1',
             sessionPath: 'test-session',
-            title: 'Test Session',
+            name: 'Test Session',
             connectionParams: { dataless: {} },
             notebook: {
                 originalFileName: 'test.sql',
@@ -104,7 +104,7 @@ describe('exportSessionAsZip', () => {
         const sessionData: SessionData = {
             sessionId: 'test-uuid-1',
             sessionPath: 'test-session',
-            title: 'Test Session',
+            name: 'Test Session',
             connectionParams: { dataless: {} },
             notebook: {},
         };
@@ -128,7 +128,7 @@ describe('exportSessionAsZip', () => {
         const sessionData: SessionData = {
             sessionId: 'empty-uuid',
             sessionPath: 'empty-session',
-            title: 'Empty Session',
+            name: 'Empty Session',
             connectionParams: { dataless: {} },
             notebook: {},
         };
@@ -156,7 +156,7 @@ describe('exportSessionAsZip', () => {
         const sessionData: SessionData = {
             sessionId: 'test-uuid-1',
             sessionPath: 'test-session',
-            title: 'Test Session',
+            name: 'Test Session',
             connectionParams: { dataless: {} },
             notebook: {},
         };
@@ -180,7 +180,7 @@ describe('exportSessionAsZip', () => {
         const sessionData: SessionData = {
             sessionId: 'test-uuid-1',
             sessionPath: 'test-session',
-            title: 'Test Session',
+            name: 'Test Session',
             connectionParams: { dataless: {} },
             notebook: {},
         };

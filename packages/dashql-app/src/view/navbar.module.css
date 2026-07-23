@@ -116,6 +116,40 @@
     color: inherit;
 }
 
+/* The user-supplied session name: crisp sans, leads the bar, never shrinks below its content so
+   the path (which follows, dimmed) is what yields when space is tight. Capped so a very long name
+   can't crowd the path out entirely. */
+.session_bar_name {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 55%;
+    margin-right: 8px;
+    font-family: 'Roboto';
+    font-size: 0.8rem;
+    font-weight: 400;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: inherit;
+}
+
+/* The path when a name is present: same mono treatment as .session_bar_path but dimmed, so it reads
+   as the secondary/technical address behind the name. */
+.session_bar_path_secondary {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: 'Roboto Mono';
+    font-size: 0.8rem;
+    font-weight: 300;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: inherit;
+    opacity: 0.6;
+}
+
 .navbar_mac {
     color: rgb(255, 255, 255);
     line-height: 24px;

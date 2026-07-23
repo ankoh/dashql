@@ -13,7 +13,6 @@ const UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 function session(extra: Partial<SessionData> = {}): SessionData {
     return {
         sessionId: UUID,
-        title: 'Session',
         connectionParams: { dataless: {} },
         notebook: {},
         ...extra,
@@ -90,7 +89,7 @@ describe('describeInvalidSession', () => {
     const entry: SessionEntry = { path: UUID };
 
     it('keys on the manifest entry path and uses session data for title and connector', () => {
-        const data = session({ title: 'My Session', connectionParams: { hyper: {} } as any });
+        const data = session({ name: 'My Session', connectionParams: { hyper: {} } as any });
         const inv = describeInvalidSession(entry, SessionValidationError.UnknownConnector, data);
         expect(inv.sessionId).toBe(UUID);
         expect(inv.title).toBe('My Session');

@@ -149,8 +149,8 @@ const OPFS_ID = '11111111-1111-1111-1111-111111111111';
 const NATIVE_ID = '22222222-2222-2222-2222-222222222222';
 const NATIVE_DIR = '/Users/test/native-session';
 
-function sessionData(id: string, title: string, extra: Partial<SessionData> = {}): SessionData {
-    return { sessionId: id, title, connectionParams: { dataless: {} }, notebook: {}, ...extra };
+function sessionData(id: string, name: string, extra: Partial<SessionData> = {}): SessionData {
+    return { sessionId: id, name, connectionParams: { dataless: {} }, notebook: {}, ...extra };
 }
 
 describe('CompositeStorageBackend', () => {
@@ -231,7 +231,7 @@ describe('CompositeStorageBackend', () => {
 
             const loaded = await composite.loadSession(NATIVE_ID);
             expect(loaded.sessionId).toBe(NATIVE_ID);
-            expect(loaded.title).toBe('Native');
+            expect(loaded.name).toBe('Native');
             // The file physically lives directly in the directory.
             expect(fsStore.files.has(`${NATIVE_DIR}/dashql-session.json`)).toBe(true);
             expect(composite.getSessionLocation(NATIVE_ID)).toEqual({
@@ -417,7 +417,7 @@ describe('CompositeStorageBackend', () => {
                 type: StorageBackendType.Native,
                 nativePath: NATIVE_DIR,
             });
-            expect((await composite.loadSession(NATIVE_ID)).title).toBe('Loaded');
+            expect((await composite.loadSession(NATIVE_ID)).name).toBe('Loaded');
             expect(await composite.loadSessionSchema(NATIVE_ID)).toBe('-- loaded schema');
         });
 
@@ -430,7 +430,7 @@ describe('CompositeStorageBackend', () => {
             const reloaded = new CompositeStorageBackend(opfs, logger);
             await reloaded.initialize();
             expect(reloaded.getSessionLocation(NATIVE_ID).type).toBe(StorageBackendType.Native);
-            expect((await reloaded.loadSession(NATIVE_ID)).title).toBe('Loaded');
+            expect((await reloaded.loadSession(NATIVE_ID)).name).toBe('Loaded');
         });
 
         it('throws when the folder holds no session', async () => {

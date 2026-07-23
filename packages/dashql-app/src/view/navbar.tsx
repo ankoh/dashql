@@ -78,26 +78,36 @@ const InternalsButton = (_props: {}) => {
 /// The clickable session path bar. Forwards a ref + anchor props so it can anchor the overlay
 /// while keeping the bar's flex layout (ellipsized path).
 const SessionBarButton = React.forwardRef<HTMLButtonElement, {
+    sessionName: string | null;
     sessionPath: string;
     onClick?: (event: React.MouseEvent) => void;
 } & object>((props, ref) => {
-    const { sessionPath, ...anchorProps } = props;
+    const { sessionName, sessionPath, ...anchorProps } = props;
+    // When the user has named the session, the name leads (crisp, primary) and the path follows
+    // dimmed — the name is what a human recognises, the path stays visible as the address. With no
+    // name, the path is the sole, primary label (unchanged from before).
+    const hasName = sessionName != null && sessionName.length > 0;
     return (
         <button
             ref={ref}
             type="button"
             className={styles.session_bar_button}
-            title={sessionPath}
+            title={hasName ? `${sessionName} · ${sessionPath}` : sessionPath}
             {...anchorProps}
         >
-            <div className={styles.session_bar_path}>
+            {hasName && (
+                <div className={styles.session_bar_name}>
+                    {sessionName}
+                </div>
+            )}
+            <div className={hasName ? styles.session_bar_path_secondary : styles.session_bar_path}>
                 {sessionPath}
             </div>
         </button>
     );
 });
 
-const SessionBar = (props: { sessionId: string | null; sessionPath: string; onClose: () => void }) => {
+const SessionBar = (props: { sessionId: string | null; sessionName: string | null; sessionPath: string; onClose: () => void }) => {
     const [showStorageOverlay, setShowStorageOverlay] = React.useState<boolean>(false);
 
     return (
@@ -110,6 +120,7 @@ const SessionBar = (props: { sessionId: string | null; sessionPath: string; onCl
                     renderAnchor={(p: object) => (
                         <SessionBarButton
                             {...p}
+                            sessionName={props.sessionName}
                             sessionPath={props.sessionPath}
                             onClick={() => setShowStorageOverlay(true)}
                         />
@@ -238,7 +249,7 @@ export const NavBar = (): React.ReactElement => {
         >
             {isBrowser && <BrandLogo onClose={handleCloseNotebook} />}
             <div className={styles.tabs}>
-                <SessionBar sessionId={sessionId} sessionPath={sessionPath} onClose={handleCloseNotebook} />
+                <SessionBar sessionId={sessionId} sessionName={connection?.name ?? null} sessionPath={sessionPath} onClose={handleCloseNotebook} />
             </div>
             <div className={styles.version_container}>
                 <InternalsButton />

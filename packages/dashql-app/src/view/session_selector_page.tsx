@@ -54,6 +54,9 @@ interface SessionItemData {
     /// The connection backing a valid session, or null for an invalid (refused) session.
     connection: ConnectionState | null;
     displayName: string;
+    /// The user-supplied session name, or null if the user never named it. When set it leads the
+    /// row (primary) with the path dimmed beside it; when null the path is the sole label.
+    sessionName: string | null;
     displayPath: string;
     connectorType: ConnectorType;
     lastAccessed: Date | null;
@@ -137,6 +140,7 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
                 sessionId,
                 connection,
                 displayName,
+                sessionName: connection.name ?? null,
                 displayPath,
                 connectorType: connection.connectorInfo.connectorType,
                 lastAccessed,
@@ -175,6 +179,7 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
                 sessionId: inv.sessionId,
                 connection: null,
                 displayName: inv.title,
+                sessionName: null,
                 displayPath,
                 connectorType: inv.connectorType ?? ConnectorType.DATALESS,
                 lastAccessed: null,
@@ -495,9 +500,16 @@ const SessionItem: React.FC<SessionItemProps> = ({ session, onClick, onDelete, i
                         </svg>
                     )}
                 </div>
-                <div className={styles.session_item_path}>
-                    {session.displayPath}
-                </div>
+                {session.sessionName ? (
+                    <div className={styles.session_item_labels}>
+                        <span className={styles.session_item_name}>{session.sessionName}</span>
+                        <span className={styles.session_item_path_secondary}>{session.displayPath}</span>
+                    </div>
+                ) : (
+                    <div className={styles.session_item_path}>
+                        {session.displayPath}
+                    </div>
+                )}
                 {isInvalid && (
                     <div className={styles.session_item_invalid_reason}>
                         {session.invalidReason}

@@ -228,7 +228,7 @@ describe('OPFSStorageBackend', () => {
             const sessionData: SessionData = {
                 sessionId: crypto.randomUUID(),
                 sessionPath: 'test-session',
-                title: 'Test Session',
+                name: 'Test Session',
                 connectionParams: { dataless: {} },
                 notebook: {
                     originalFileName: 'test.sql',
@@ -246,7 +246,7 @@ describe('OPFSStorageBackend', () => {
             const sessionData: SessionData = {
                 sessionId: crypto.randomUUID(),
                 sessionPath: 'test-session',
-                title: 'Test Session',
+                name: 'Test Session',
                 connectionParams: { dataless: {} },
                 notebook: {},
             };
@@ -261,7 +261,7 @@ describe('OPFSStorageBackend', () => {
             const sessionData: SessionData = {
                 sessionId: crypto.randomUUID(),
                 sessionPath: 'test-session',
-                title: 'Test Session',
+                name: 'Test Session',
                 connectionParams: { dataless: {} },
                 notebook: {},
             };
@@ -279,7 +279,7 @@ describe('OPFSStorageBackend', () => {
             const sessionData: SessionData = {
                 sessionId: crypto.randomUUID(),
                 sessionPath: 'test-session',
-                title: 'Test Session',
+                name: 'Test Session',
                 connectionParams: { dataless: {} },
                 notebook: {},
             };
@@ -298,7 +298,7 @@ describe('OPFSStorageBackend', () => {
             const sessionData: SessionData = {
                 sessionId: crypto.randomUUID(),
                 sessionPath: 'test-session',
-                title: 'Test Session',
+                name: 'Test Session',
                 connectionParams: { dataless: {} },
                 notebook: {},
             };
@@ -361,7 +361,7 @@ describe('OPFSStorageBackend', () => {
             const sessionData: SessionData = {
                 sessionId: crypto.randomUUID(),
                 sessionPath: 'test-session',
-                title: 'Test Session',
+                name: 'Test Session',
                 connectionParams: { dataless: {} },
                 notebook: {},
             };
@@ -472,7 +472,7 @@ describe('OPFSStorageBackend', () => {
             const sessionData: SessionData = {
                 sessionId: crypto.randomUUID(),
                 sessionPath: 'test-session',
-                title: 'Test Session',
+                name: 'Test Session',
                 connectionParams: { dataless: {} },
                 notebook: {},
             };
@@ -506,7 +506,7 @@ describe('OPFSStorageBackend', () => {
             const sessionData: SessionData = {
                 sessionId: crypto.randomUUID(),
                 sessionPath: 'test-session',
-                title: 'Test Session',
+                name: 'Test Session',
                 connectionParams: { dataless: {} },
                 notebook: {},
             };

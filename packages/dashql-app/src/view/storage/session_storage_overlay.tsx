@@ -14,6 +14,8 @@ import { displayPath } from '../../platform/storage/session_locator.js';
 import { useStorageReader, useStorageWriter } from '../../platform/storage/storage_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { relocateSessionToNative } from '../../platform/storage/storage_migration_flow.js';
+import { useConnectionState } from '../../connection/connection_registry.js';
+import { RENAME_SESSION } from '../../connection/connection_state.js';
 
 /// The shared header for the storage view: title on the left, actions + close button on the right.
 function StorageViewHeader(props: {
@@ -60,6 +62,42 @@ function ParamRow(props: { label: string; value: string }) {
     );
 }
 
+/// An editable session-name row. Local draft state edits freely; the commit (blur or Enter)
+/// dispatches RENAME_SESSION, which normalises blank input to "no name" (falls back to the path).
+function NameRow(props: { name: string | null; onCommit: (name: string) => void }) {
+    const [draft, setDraft] = React.useState<string>(props.name ?? '');
+    // Re-sync the draft when the persisted name changes (e.g. a rename from elsewhere, or switching
+    // sessions while the overlay stays mounted).
+    React.useEffect(() => { setDraft(props.name ?? ''); }, [props.name]);
+
+    const commit = React.useCallback(() => props.onCommit(draft), [props.onCommit, draft]);
+    const onKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.currentTarget.blur();
+        } else if (e.key === 'Escape') {
+            // Abandon the edit: restore the persisted value and drop focus.
+            setDraft(props.name ?? '');
+            e.currentTarget.blur();
+        }
+    }, [props.name]);
+
+    return (
+        <div className={styles.param_row}>
+            <div className={styles.param_label}>Name</div>
+            <input
+                className={styles.name_input}
+                type="text"
+                value={draft}
+                placeholder="Name this session"
+                spellCheck={false}
+                onChange={(e) => setDraft(e.target.value)}
+                onBlur={commit}
+                onKeyDown={onKeyDown}
+            />
+        </div>
+    );
+}
+
 interface SessionStorageViewerProps {
     sessionId: string | null;
     onClose: () => void;
@@ -70,6 +108,11 @@ export const SessionStorageViewer: React.FC<SessionStorageViewerProps> = (props)
     const writer = useStorageWriter();
     const logger = useLogger();
     const platform = usePlatformType();
+
+    const [connection, connectionDispatch] = useConnectionState(props.sessionId);
+    const onRename = React.useCallback((name: string) => {
+        connectionDispatch({ type: RENAME_SESSION, value: name });
+    }, [connectionDispatch]);
 
     const [migrating, setMigrating] = React.useState(false);
 
@@ -108,6 +151,7 @@ export const SessionStorageViewer: React.FC<SessionStorageViewerProps> = (props)
                 onRelocate={onRelocate}
             />
             <div className={styles.body_content}>
+                {connection && <NameRow name={connection.name} onCommit={onRename} />}
                 <ParamRow label="Backend" value={backendValue} />
                 <ParamRow label="Location" value={schemaValue} />
                 {isNative && location?.nativePath && (
@@ -139,7 +183,7 @@ export function SessionStorageOverlay(props: SessionStorageOverlayProps) {
             anchorOffset={props.anchorOffset}
             overlayProps={{
                 width: OverlaySize.L,
-                height: OverlaySize.XS,
+                height: OverlaySize.S,
             }}
         >
             <SessionStorageViewer sessionId={props.sessionId} onClose={props.onClose} />

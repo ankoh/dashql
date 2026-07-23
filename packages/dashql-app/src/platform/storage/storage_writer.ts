@@ -34,7 +34,7 @@ function jsonDeepEqual(a: any, b: any): boolean {
     return aKeys.every(k => Object.prototype.hasOwnProperty.call(b, k) && jsonDeepEqual(a[k], b[k]));
 }
 
-/// Compare the manifest fields the writer owns (sessionId, title, connectionParams, notebook).
+/// Compare the manifest fields the writer owns (sessionId, name, connectionParams, notebook).
 /// Other fields (storageType/nativePath/sessionPath) are display- or registry-only and are not
 /// written into the session file, so they're deliberately ignored.
 ///
@@ -44,7 +44,7 @@ function jsonDeepEqual(a: any, b: any): boolean {
 function sessionManifestEquals(a: SessionData, b: SessionData): boolean {
     const project = (s: SessionData) => JSON.parse(JSON.stringify({
         sessionId: s.sessionId,
-        title: s.title,
+        name: s.name,
         connectionParams: s.connectionParams,
         notebook: s.notebook,
     }));
@@ -353,7 +353,9 @@ export class StorageWriter {
                 // composite backend, which knows the session's physical location.
                 const connData: SessionData = {
                     sessionId: conn.sessionId,
-                    title: conn.connectorInfo.names.fileShort || "Untitled",
+                    // `name` is the user-supplied label, omitted entirely when unset so a session
+                    // the user never named carries no `name` key at all.
+                    ...(conn.name ? { name: conn.name } : {}),
                     connectionParams,
                     notebook: notebookMetadata,
                 };
@@ -450,10 +452,15 @@ export class StorageWriter {
                 // Preserve the original createdAt across rewrites; only stamp it on the first write.
                 let connectionParams: any;
                 let createdAt: string;
+                // Preserve the user-supplied name across a notebook rewrite: this path rebuilds the
+                // whole manifest from notebook state, which carries no name, so we must carry over
+                // whatever the user already set on disk.
+                let existingName: string | undefined;
                 try {
                     const existingSession = await this.backend.loadSession(sessionPath);
                     connectionParams = existingSession.connectionParams;
                     createdAt = existingSession.notebook?.createdAt ?? new Date().toISOString();
+                    existingName = existingSession.name;
                 } catch {
                     connectionParams = createDefaultConnectionParamsForConnector(notebook.connectorInfo);
                     createdAt = new Date().toISOString();
@@ -466,7 +473,7 @@ export class StorageWriter {
 
                 const connData: SessionData = {
                     sessionId: notebook.sessionId,
-                    title: notebook.notebookMetadata.originalFileName || "Untitled",
+                    ...(existingName ? { name: existingName } : {}),
                     connectionParams,
                     notebook: notebookMetadata,
                 };

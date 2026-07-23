@@ -51,7 +51,7 @@ describe('NativeStorageBackend (one-dir-one-session)', () => {
         it('saves and loads a session, writing the manifest directly in the directory', async () => {
             const sessionData: SessionData = {
                 sessionId: SID,
-                title: 'Test Session',
+                name: 'Test Session',
                 connectionParams: { dataless: {} },
                 notebook: {
                     originalFileName: 'test.sql',
@@ -69,9 +69,9 @@ describe('NativeStorageBackend (one-dir-one-session)', () => {
         });
 
         it('overwrites the manifest in place on re-save', async () => {
-            const make = (title: string): SessionData => ({
+            const make = (name: string): SessionData => ({
                 sessionId: SID,
-                title,
+                name,
                 connectionParams: { dataless: {} },
                 notebook: {},
             });
@@ -79,7 +79,7 @@ describe('NativeStorageBackend (one-dir-one-session)', () => {
             await backend.saveSessionManifest(SID, make('Second'));
 
             const loaded = await backend.loadSession(SID);
-            expect(loaded.title).toBe('Second');
+            expect(loaded.name).toBe('Second');
             // Only one manifest file ever exists.
             expect([...fsStore.files.keys()].filter(p => p.endsWith('dashql-session.json'))).toHaveLength(1);
         });
@@ -251,7 +251,7 @@ describe('NativeStorageBackend (one-dir-one-session)', () => {
         async function seed(): Promise<void> {
             await backend.saveSessionManifest(SID, {
                 sessionId: SID,
-                title: 'Test Session',
+                name: 'Test Session',
                 connectionParams: { dataless: {} },
                 notebook: {},
             });

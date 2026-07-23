@@ -101,15 +101,54 @@
     background-color: var(--border_color_primary);
 }
 
+/* An unnamed session shows only its path — greyed out (matching the secondary path beside a name)
+   so it reads as an address, not a title. */
 .session_item_path {
     flex: 1;
     font-size: 13px;
-    color: hsl(210, 12%, 16%);
+    color: hsl(210, 12%, 45%);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-family: 'Roboto Mono';
     padding-left: 8px;
+}
+
+/* Named session: name leads (primary sans), path follows dimmed on the same line. Baseline-aligned
+   so the two runs read as one label. */
+.session_item_labels {
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    column-gap: 8px;
+    padding-left: 8px;
+    overflow: hidden;
+}
+
+/* Hold the name at its full content width (never shrink) up to a generous cap, so a reasonably
+   long title shows unbroken and the path yields first. Only past the cap does the name ellipsize. */
+.session_item_name {
+    flex: 0 0 auto;
+    min-width: 0;
+    max-width: 260px;
+    font-size: 13px;
+    font-family: 'Roboto';
+    color: hsl(210, 12%, 16%);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.session_item_path_secondary {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 12px;
+    font-family: 'Roboto Mono';
+    color: hsl(210, 12%, 45%);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .empty_state {

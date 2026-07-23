@@ -79,6 +79,7 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: Conn
     catalogFunctionScript.replaceText(generateFunctionScriptHeader(CatalogSource.Unknown));
     return {
         instance: dql,
+        name: null,
         active: false,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,

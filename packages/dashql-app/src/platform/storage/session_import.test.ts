@@ -51,7 +51,7 @@ describe('importSessionFromZip', () => {
         const sessionData: SessionData = {
             sessionId: 'original-uuid',
             sessionPath: 'original-session',
-            title: 'Original Session',
+            name: 'Original Session',
             connectionParams: { dataless: {} },
             notebook: {
                 originalFileName: 'test.sql',
@@ -81,7 +81,7 @@ describe('importSessionFromZip', () => {
         const savedCall = vi.mocked(mockBackend.saveSessionManifest).mock.calls[0];
         expect(savedCall[0]).toBe(NEW_ID);  // First arg is the session UUID (routing key)
         expect(savedCall[1].sessionId).toBe(NEW_ID);
-        expect(savedCall[1].title).toBe('Original Session');
+        expect(savedCall[1].name).toBe('Original Session');
         // The display-only sessionPath is dropped on import; it is reconstructed from the UUID for the UI.
         expect(savedCall[1].sessionPath).toBeUndefined();
 
@@ -101,7 +101,7 @@ describe('importSessionFromZip', () => {
         const sessionData: SessionData = {
             sessionId: 'test-uuid',
             sessionPath: 'test-session',
-            title: 'Test Session',
+            name: 'Test Session',
             connectionParams: { dataless: {} },
             notebook: {},
         };
@@ -122,7 +122,7 @@ describe('importSessionFromZip', () => {
         const sessionData: SessionData = {
             sessionId: 'empty-uuid',
             sessionPath: 'empty-session',
-            title: 'Empty Session',
+            name: 'Empty Session',
             connectionParams: { dataless: {} },
             notebook: {},
         };
@@ -158,7 +158,7 @@ describe('importSessionFromZip', () => {
         const sessionData: SessionData = {
             sessionId: 'test-uuid',
             sessionPath: 'test-session',
-            title: 'Test Session',
+            name: 'Test Session',
             connectionParams: { dataless: {} },
             notebook: {},
         };
@@ -184,7 +184,7 @@ describe('importSessionFromZip', () => {
         const sessionData: SessionData = {
             sessionId: 'test-uuid',
             sessionPath: 'test-session',
-            title: 'Test Session',
+            name: 'Test Session',
             connectionParams: { dataless: {} },
             notebook: {},
         };
@@ -210,7 +210,7 @@ describe('importSessionFromZip', () => {
         const sessionData: SessionData = {
             sessionId: 'test-uuid',
             sessionPath: 'test-session',
-            title: 'Test Session',
+            name: 'Test Session',
             connectionParams: { dataless: {} },
             notebook: {},
         };
@@ -233,7 +233,7 @@ describe('importSessionFromZip', () => {
         const sessionData: SessionData = {
             sessionId: 'test-uuid',
             sessionPath: 'test-session',
-            title: 'Test Session',
+            name: 'Test Session',
             connectionParams: { dataless: {} },
             notebook: {},
         };
