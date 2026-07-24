@@ -663,7 +663,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         // Best-effort delete of the stale cache entry: a failed delete just means the run may hit the
         // old entry, which is harmless (the executor's write path overwrites it either way).
         if (cacheKey != null) {
-            await storageReader.backend.deleteQueryResultCache(notebook.sessionId, cacheKey).catch(() => {});
+            await storageReader.backend.deleteQueryResultCache(notebook.sessionId, cacheKey).catch(() => { });
         }
         rerunEntry(notebook, scriptData, executeQuery, props.modifyNotebook);
     }, [props.notebook, props.modifyNotebook, isDisconnected, executeQuery, storageReader]);
@@ -735,7 +735,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             if (table != null) {
                 props.modifyNotebook({ type: REGISTER_QUERY, value: [scriptKey, queryId] });
             }
-        }).catch(() => {});
+        }).catch(() => { });
     }, [props.notebook, props.modifyNotebook, isDisconnected, executeQuery]);
 
     // Send the compose editor's text to the agent run as a natural-language prompt.
