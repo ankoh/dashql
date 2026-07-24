@@ -1077,7 +1077,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                     <List
                         key={props.notebook.notebookUserFocus.folderName}
                         listRef={listRef}
-                        style={{ width: listWidth, height: listHeight }}
+                        style={{ width: listWidth, height: listHeight, scrollbarGutter: 'stable' }}
                         rowCount={entries.length + 2}
                         rowHeight={(rowIndex) => {
                             if (rowIndex === 0) {
