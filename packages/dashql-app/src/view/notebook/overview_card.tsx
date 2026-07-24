@@ -72,7 +72,12 @@ export function OverviewCard(props: OverviewCardProps): React.ReactElement {
             onDoubleClick={handleDoubleClick}
             data-file={rect.fileName}
         >
-            <div className={styles.card_header}>{displayName}</div>
+            <div className={styles.card_header}>
+                <div className={styles.card_label}>{displayName}</div>
+                <div className={styles.node_type_icon_container}>
+                    <span className={styles.node_type_icon}>SQL</span>
+                </div>
+            </div>
             <div className={styles.card_body}>
                 WIP
                 {/*scriptData && (

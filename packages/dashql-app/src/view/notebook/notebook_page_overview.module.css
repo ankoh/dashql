@@ -5,6 +5,8 @@
     --overview_node_bg: white;
     --overview_card_port_bg: hsl(210deg, 12.68%, 84.16%);
     --overview_card_bg: rgb(255, 255, 255);
+    --overview_card_count_bg: rgba(0, 0, 0, 0.05);
+    --overview_node_type_icon_bg: hsl(210deg, 12%, 16%);
     --overview_node_focus_border_color: hsl(208.5deg 24.69% 71.76%);
     --overview_node_focus_port_color: hsl(208.5deg 24.69% 41.76%);
 
@@ -94,7 +96,6 @@
 .page_ref_edge_path {
     stroke: var(--overview_edges_bg);
     stroke-width: 1.5px;
-    stroke-dasharray: 4 4;
     fill: transparent;
     pointer-events: stroke;
 }
@@ -102,7 +103,6 @@
 .page_ref_edge_path_focused {
     stroke: var(--overview_edge_focus_color);
     stroke-width: 2px;
-    stroke-dasharray: 4 4;
     fill: transparent;
     pointer-events: stroke;
 }
@@ -128,11 +128,18 @@
 }
 
 .card_header {
-    padding: 3px 8px;
+    display: grid;
+    grid-template-columns: 1fr max-content;
+    align-items: center;
+    column-gap: 8px;
+    padding: 4px 6px 4px 8px;
     font-size: 0.7rem;
     font-weight: 500;
     color: var(--overview_title_fg, inherit);
     border-bottom: 1px solid var(--border_color_primary);
+}
+
+.card_label {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -144,23 +151,45 @@
     line-height: 1.1;
 }
 
-/* ------------------------------------------------------------------------- */
-/* Page-reference placeholder card (top bar) */
-
-.page_ref_card {
-    /* Override the grid card's two-row template: a centered label + badge instead. */
+/* Catalog-style type chip: a small dark rounded badge with a monospace glyph,
+   sitting at the trailing edge of a card header (revived from the catalog node). */
+.node_type_icon_container {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    background-color: var(--overview_edges_bg);
-    border-style: dashed;
-    border-color: var(--border_color_primary);
-    color: var(--text_color_secondary, inherit);
+}
+
+.node_type_icon {
+    border-radius: 3px;
+    background-color: var(--overview_node_type_icon_bg);
+    min-width: 20px;
+    height: 12px;
+    padding: 0 3px;
+    box-sizing: border-box;
+    color: white;
+    text-align: center;
+    font-family: 'Roboto Mono';
+    font-size: 0.5rem;
+    font-weight: 500;
+    line-height: 12px;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Page-reference placeholder card (top bar) */
+
+/* Thin single-row card standing in for a referenced other page. Same white
+   catalog-entry look as the grid cards (border, radius, ports) but a compact
+   one-line layout: a type chip, the page name, then a reference-count badge. */
+.page_ref_card {
+    display: grid;
+    grid-template-columns: max-content 1fr max-content;
+    align-items: center;
+    column-gap: 8px;
+    padding: 0 6px 0 8px;
+    font-size: 0.7rem;
 }
 
 .page_ref_name {
-    font-size: 0.72rem;
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
@@ -174,7 +203,7 @@
     padding: 0 4px;
     box-sizing: border-box;
     border-radius: 8px;
-    background-color: var(--overview_node_bg);
+    background-color: var(--overview_card_count_bg);
     color: var(--text_color_secondary, inherit);
     font-size: 0.62rem;
     font-weight: 600;

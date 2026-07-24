@@ -53,6 +53,9 @@ export function PageRefCard(props: PageRefCardProps): React.ReactElement {
             onPointerDown={handlePointerDown}
             data-page={rect.pageName}
         >
+            <div className={styles.node_type_icon_container}>
+                <span className={styles.node_type_icon}>PG</span>
+            </div>
             <div className={styles.page_ref_name}>{rect.pageName}</div>
             <div className={styles.page_ref_badge}>{rect.refCount}</div>
             <div className={styles.node_ports}>

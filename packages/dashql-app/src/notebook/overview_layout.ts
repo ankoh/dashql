@@ -14,41 +14,41 @@ import { PageDependencies, PageDependency } from './overview_dependencies.js';
 /// measure→relayout pass) so edge geometry is exact.
 export interface OverviewLayoutConfig {
     /// Card width in pixels.
-    cardWidth: number;
+    scriptCardWidth: number;
     /// Card height in pixels.
-    cardHeight: number;
+    scriptCardHeight: number;
     /// Horizontal gap between adjacent columns.
-    colGap: number;
+    scriptCardColGap: number;
     /// Vertical gap between adjacent rows.
-    rowGap: number;
+    scriptCardRowGap: number;
     /// Padding around the whole grid (applied to both layers so coordinates align).
-    padding: number;
+    outerGridPadding: number;
     /// Corner radius of the rounded edge turns.
-    cornerRadius: number;
-    /// Lateral separation between parallel edges sharing a port.
-    offsetStep: number;
+    edgeCornerRadius: number;
     /// Width of a page-reference placeholder card in the top bar.
     pageCardWidth: number;
     /// Height of a page-reference placeholder card in the top bar.
     pageCardHeight: number;
     /// Horizontal gap between adjacent page-reference cards.
     pageCardGap: number;
+    /// Vertical gap between wrapped page-reference card rows.
+    pageRowGap: number;
     /// Vertical gap between the page-reference bar and the top of the grid.
     pageBarGap: number;
 }
 
 export const DEFAULT_OVERVIEW_LAYOUT: OverviewLayoutConfig = {
-    cardWidth: 200,
-    cardHeight: 132,
-    colGap: 56,
-    rowGap: 56,
-    padding: 32,
-    cornerRadius: 6,
-    offsetStep: 10,
+    scriptCardWidth: 200,
+    scriptCardHeight: 132,
+    scriptCardColGap: 40,
+    scriptCardRowGap: 16,
+    outerGridPadding: 32,
+    edgeCornerRadius: 6,
     pageCardWidth: 160,
-    pageCardHeight: 56,
-    pageCardGap: 40,
-    pageBarGap: 72,
+    pageCardHeight: 28,
+    pageCardGap: 20,
+    pageRowGap: 16,
+    pageBarGap: 40,
 };
 
 /// The placed rectangle for one card. `left`/`top` are the CSS position of the
@@ -141,8 +141,8 @@ export interface OverviewLayout {
 /// The number of columns the grid wraps at for a given available width. At least
 /// one column so a narrow container still lays out (cards may overflow-x then).
 export function computeGridCols(availableWidth: number, config: OverviewLayoutConfig): number {
-    const usable = availableWidth - 2 * config.padding + config.colGap;
-    return Math.max(1, Math.floor(usable / (config.cardWidth + config.colGap)));
+    const usable = availableWidth - 2 * config.outerGridPadding + config.scriptCardColGap;
+    return Math.max(1, Math.floor(usable / (config.scriptCardWidth + config.scriptCardColGap)));
 }
 
 /// Lay out a notebook page's entries into a deterministic row-major grid (feed
@@ -161,19 +161,29 @@ export function layoutOverview(
 ): OverviewLayout {
     const gridCols = computeGridCols(availableWidth, config);
 
-    // Reserve a band above the grid for the page-reference bar when there are cross-page refs, so
-    // the grid drops down to make room. Its height is fixed; the cards themselves are placed below.
+    // Reserve a band above the grid for the page-reference cards when there are cross-page refs, so
+    // the grid drops down to make room. The cards wrap into a left-aligned grid (same as the entry
+    // grid, but with the narrower page-card width), so the band grows one row at a time.
     const pageNames = Array.from(new Set(dependencies.crossPage.map(d => d.targetPageName)));
-    const bandHeight = pageNames.length > 0 ? config.pageCardHeight + config.pageBarGap : 0;
-    const gridTop = config.padding + bandHeight;
+    const pageRefCols = computeGridCols(availableWidth, {
+        ...config,
+        scriptCardWidth: config.pageCardWidth,
+        scriptCardColGap: config.pageCardGap,
+    });
+    const pageRefRows = pageNames.length === 0 ? 0 : Math.ceil(pageNames.length / pageRefCols);
+    const barHeight = pageRefRows === 0
+        ? 0
+        : pageRefRows * config.pageCardHeight + (pageRefRows - 1) * config.pageRowGap;
+    const bandHeight = pageNames.length > 0 ? barHeight + config.pageBarGap : 0;
+    const gridTop = config.outerGridPadding + bandHeight;
 
     // Place each entry into the grid in feed order.
     const rectByScriptId = new Map<number, OverviewRect>();
     entries.forEach((entry, feedIndex) => {
         const col = feedIndex % gridCols;
         const row = Math.floor(feedIndex / gridCols);
-        const left = config.padding + col * (config.cardWidth + config.colGap);
-        const top = gridTop + row * (config.cardHeight + config.rowGap);
+        const left = config.outerGridPadding + col * (config.scriptCardWidth + config.scriptCardColGap);
+        const top = gridTop + row * (config.scriptCardHeight + config.scriptCardRowGap);
         rectByScriptId.set(entry.scriptId, {
             scriptId: entry.scriptId,
             fileName: entry.fileName,
@@ -182,21 +192,21 @@ export function layoutOverview(
             row,
             left,
             top,
-            width: config.cardWidth,
-            height: config.cardHeight,
-            centerX: left + config.cardWidth / 2,
-            centerY: top + config.cardHeight / 2,
+            width: config.scriptCardWidth,
+            height: config.scriptCardHeight,
+            centerX: left + config.scriptCardWidth / 2,
+            centerY: top + config.scriptCardHeight / 2,
         });
     });
 
     const usedRows = entries.length === 0 ? 0 : Math.ceil(entries.length / gridCols);
     const usedCols = entries.length === 0 ? 0 : Math.min(entries.length, gridCols);
     const gridCanvasWidth = usedCols === 0
-        ? 2 * config.padding
-        : 2 * config.padding + usedCols * config.cardWidth + (usedCols - 1) * config.colGap;
+        ? 2 * config.outerGridPadding
+        : 2 * config.outerGridPadding + usedCols * config.scriptCardWidth + (usedCols - 1) * config.scriptCardColGap;
     const canvasHeight = usedRows === 0
-        ? 2 * config.padding + bandHeight
-        : gridTop + usedRows * config.cardHeight + (usedRows - 1) * config.rowGap + config.padding;
+        ? 2 * config.outerGridPadding + bandHeight
+        : gridTop + usedRows * config.scriptCardHeight + (usedRows - 1) * config.scriptCardRowGap + config.outerGridPadding;
 
     // First pass: geometry, edge type, and ports for every drawable dependency.
     // Edges are drawn source → dependent (earlier → later), matching reading order.
@@ -213,7 +223,7 @@ export function layoutOverview(
         const from = rectByScriptId.get(dep.to); // source (referenced, earlier)
         const to = rectByScriptId.get(dep.from); // dependent (referencing, later)
         if (!from || !to) continue;
-        const edgeType = selectEdgeType(from.centerX, from.centerY, to.centerX, to.centerY, config.cardWidth, config.cardHeight);
+        const edgeType = selectEdgeType(from.centerX, from.centerY, to.centerX, to.centerY, config.scriptCardWidth, config.scriptCardHeight);
         prepared.push({
             dep,
             from,
@@ -224,26 +234,9 @@ export function layoutOverview(
         });
     }
 
-    // Assign a deterministic lateral offset to edges that leave the same source
-    // card on the same port, so parallel edges fan out instead of overlapping.
-    // Ordered by the dependent's feed index for stability.
-    const groups = new Map<string, PreparedEdge[]>();
-    for (const pe of prepared) {
-        const key = `${pe.from.scriptId}:${pe.fromPort}`;
-        const group = groups.get(key);
-        if (group) group.push(pe);
-        else groups.set(key, [pe]);
-    }
-    const offsetByEdge = new Map<PreparedEdge, number>();
-    for (const group of groups.values()) {
-        group.sort((a, b) => a.dep.fromFeedIndex - b.dep.fromFeedIndex);
-        const n = group.length;
-        group.forEach((pe, i) => {
-            offsetByEdge.set(pe, (i - (n - 1) / 2) * config.offsetStep);
-        });
-    }
-
     // Second pass: render each edge's path and accumulate per-card port bitmasks.
+    // Every edge attaches at the center of its port (offset 0), so all edges sharing
+    // a port on a card converge to the exact same point — incoming and outgoing alike.
     const portsByScriptId = new Map<number, number>();
     const addPort = (scriptId: number, port: NodePort) => {
         portsByScriptId.set(scriptId, (portsByScriptId.get(scriptId) ?? 0) | port);
@@ -251,7 +244,6 @@ export function layoutOverview(
     const builder = new PathBuilder();
     const edges: OverviewEdge[] = [];
     for (const pe of prepared) {
-        const offset = offsetByEdge.get(pe) ?? 0;
         buildEdgePathBetweenRectangles(
             builder,
             pe.edgeType,
@@ -259,12 +251,12 @@ export function layoutOverview(
             pe.from.centerY,
             pe.to.centerX,
             pe.to.centerY,
-            config.cardWidth,
-            config.cardHeight,
-            config.cardWidth,
-            config.cardHeight,
-            config.cornerRadius,
-            offset,
+            config.scriptCardWidth,
+            config.scriptCardHeight,
+            config.scriptCardWidth,
+            config.scriptCardHeight,
+            config.edgeCornerRadius,
+            0,
         );
         addPort(pe.from.scriptId, pe.fromPort);
         addPort(pe.to.scriptId, pe.toPort);
@@ -301,17 +293,15 @@ export function layoutOverview(
         return a < b ? -1 : a > b ? 1 : 0;
     });
 
-    // Lay the bar out centered over the grid's used width.
-    const barWidth = orderedPages.length === 0
-        ? 0
-        : orderedPages.length * config.pageCardWidth + (orderedPages.length - 1) * config.pageCardGap;
-    const gridUsedWidth = gridCanvasWidth - 2 * config.padding;
-    const barLeft = config.padding + Math.max(0, (gridUsedWidth - barWidth) / 2);
+    // Lay the page cards out left-to-right, top-to-bottom in a wrapping grid, mirroring the entry
+    // grid but with the narrower page-card width. Left-aligned at the padding, not centered.
     const pageRefRects: PageRefRect[] = [];
     const rectByPageName = new Map<string, PageRefRect>();
     orderedPages.forEach((pageName, i) => {
-        const left = barLeft + i * (config.pageCardWidth + config.pageCardGap);
-        const top = config.padding;
+        const col = i % pageRefCols;
+        const row = Math.floor(i / pageRefCols);
+        const left = config.outerGridPadding + col * (config.pageCardWidth + config.pageCardGap);
+        const top = config.outerGridPadding + row * (config.pageCardHeight + config.pageRowGap);
         const rect: PageRefRect = {
             pageName,
             refCount: refsByPage.get(pageName)!.count,
@@ -325,6 +315,10 @@ export function layoutOverview(
         pageRefRects.push(rect);
         rectByPageName.set(pageName, rect);
     });
+    const usedPageCols = orderedPages.length === 0 ? 0 : Math.min(orderedPages.length, pageRefCols);
+    const barCanvasWidth = usedPageCols === 0
+        ? 0
+        : 2 * config.outerGridPadding + usedPageCols * config.pageCardWidth + (usedPageCols - 1) * config.pageCardGap;
 
     // Page-reference edges: page card (source, above) → referencing grid card (dependent, below).
     // Same geometry machinery as intra-page edges; the page card sits above so the natural edge
@@ -352,26 +346,9 @@ export function layoutOverview(
             toPort: PORTS_TO[edgeType] as NodePort,
         });
     }
-    const pageGroups = new Map<string, PreparedPageEdge[]>();
-    for (const pe of preparedPage) {
-        const key = `${pe.from.pageName}:${pe.fromPort}`;
-        const group = pageGroups.get(key);
-        if (group) group.push(pe);
-        else pageGroups.set(key, [pe]);
-    }
-    const offsetByPageEdge = new Map<PreparedPageEdge, number>();
-    for (const group of pageGroups.values()) {
-        group.sort((a, b) => a.dep.fromFeedIndex - b.dep.fromFeedIndex);
-        const n = group.length;
-        group.forEach((pe, i) => {
-            offsetByPageEdge.set(pe, (i - (n - 1) / 2) * config.offsetStep);
-        });
-    }
-
     const portsByPageName = new Map<string, number>();
     const pageRefEdges: PageRefEdge[] = [];
     for (const pe of preparedPage) {
-        const offset = offsetByPageEdge.get(pe) ?? 0;
         buildEdgePathBetweenRectangles(
             builder,
             pe.edgeType,
@@ -381,10 +358,10 @@ export function layoutOverview(
             pe.to.centerY,
             config.pageCardWidth,
             config.pageCardHeight,
-            config.cardWidth,
-            config.cardHeight,
-            config.cornerRadius,
-            offset,
+            config.scriptCardWidth,
+            config.scriptCardHeight,
+            config.edgeCornerRadius,
+            0,
         );
         portsByPageName.set(pe.from.pageName, (portsByPageName.get(pe.from.pageName) ?? 0) | pe.fromPort);
         addPort(pe.to.scriptId, pe.toPort);
@@ -398,7 +375,7 @@ export function layoutOverview(
         });
     }
 
-    const canvasWidth = Math.max(gridCanvasWidth, barLeft + barWidth + config.padding);
+    const canvasWidth = Math.max(gridCanvasWidth, barCanvasWidth);
 
     return {
         config,

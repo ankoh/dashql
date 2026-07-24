@@ -16,16 +16,16 @@ function deps(intra: PageDependency[] = [], crossPage: PageReferenceDependency[]
 
 // Small deterministic config so grid math is easy to reason about in assertions.
 const CONFIG: OverviewLayoutConfig = {
-    cardWidth: 100,
-    cardHeight: 50,
-    colGap: 20,
-    rowGap: 20,
-    padding: 10,
-    cornerRadius: 4,
-    offsetStep: 8,
+    scriptCardWidth: 100,
+    scriptCardHeight: 50,
+    scriptCardColGap: 20,
+    scriptCardRowGap: 20,
+    outerGridPadding: 10,
+    edgeCornerRadius: 4,
     pageCardWidth: 80,
     pageCardHeight: 30,
     pageCardGap: 20,
+    pageRowGap: 20,
     pageBarGap: 40,
 };
 
@@ -123,7 +123,7 @@ describe('layoutOverview edges', () => {
         expect(layout.portsByScriptId.get(2)! & NodePort.West).toBeTruthy();
     });
 
-    it('separates parallel edges leaving one card on the same port with distinct offsets', () => {
+    it('attaches parallel edges leaving one card on the same port at the same point', () => {
         // Both entry 2 and entry 3 reference entry 1 — two edges leaving entry 1's East port.
         const intra: PageDependency[] = [
             { from: 2, to: 1, fromFeedIndex: 1, toFeedIndex: 0 },
@@ -131,7 +131,11 @@ describe('layoutOverview edges', () => {
         ];
         const layout = layoutOverview(entries, deps(intra), WIDTH_3_COLS, null, CONFIG);
         expect(layout.edges).toHaveLength(2);
-        // Distinct offsets produce distinct path strings for the two parallel edges.
+        // Both leave entry 1's East port, so both edges start at the exact same attachment
+        // point (the port center, no fan-out offset). The `M x y` start command is shared.
+        const start = (p: string) => p.slice(0, p.indexOf('L'));
+        expect(start(layout.edges[0].path)).toEqual(start(layout.edges[1].path));
+        // They still end at different cards, so the full paths differ.
         expect(layout.edges[0].path).not.toEqual(layout.edges[1].path);
     });
 
@@ -172,9 +176,9 @@ describe('layoutOverview page-reference bar', () => {
         expect(layout.pageRefRects.find(r => r.pageName === 'catalog')!.refCount).toBe(1);
 
         // Bar sits at the top padding; the grid is pushed down by the band (card height + bar gap).
-        expect(layout.pageRefRects.every(r => r.top === CONFIG.padding)).toBe(true);
+        expect(layout.pageRefRects.every(r => r.top === CONFIG.outerGridPadding)).toBe(true);
         const band = CONFIG.pageCardHeight + CONFIG.pageBarGap;
-        expect(layout.rectByScriptId.get(1)!.top).toBe(CONFIG.padding + band);
+        expect(layout.rectByScriptId.get(1)!.top).toBe(CONFIG.outerGridPadding + band);
 
         // One edge per cross-page reference, each landing on its page card.
         expect(layout.pageRefEdges).toHaveLength(3);
@@ -186,7 +190,7 @@ describe('layoutOverview page-reference bar', () => {
         expect(layout.pageRefRects).toHaveLength(0);
         expect(layout.pageRefEdges).toHaveLength(0);
         // Grid starts at the plain top padding — unchanged from before the bar existed.
-        expect(layout.rectByScriptId.get(1)!.top).toBe(CONFIG.padding);
+        expect(layout.rectByScriptId.get(1)!.top).toBe(CONFIG.outerGridPadding);
     });
 });
 
@@ -195,6 +199,6 @@ describe('layoutOverview defaults', () => {
         const layout = layoutOverview([], deps(), 800, null, DEFAULT_OVERVIEW_LAYOUT);
         expect(layout.rectByScriptId.size).toBe(0);
         expect(layout.edges).toHaveLength(0);
-        expect(layout.canvasWidth).toBe(2 * DEFAULT_OVERVIEW_LAYOUT.padding);
+        expect(layout.canvasWidth).toBe(2 * DEFAULT_OVERVIEW_LAYOUT.outerGridPadding);
     });
 });
