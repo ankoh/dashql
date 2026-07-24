@@ -16,6 +16,7 @@ import { sleep } from '../../utils/sleep.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useRouteContext } from '../../router.js';
 import { useNotebookState } from '../../notebook/notebook_state_registry.js';
+import { useStorageReader } from '../../platform/storage/storage_provider.js';
 
 const COPY_CHECKMARK_DURATION_MS = 1000;
 
@@ -40,6 +41,7 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
 
     const [notebook, _modifyNotebook] = useNotebookState(route.sessionId ?? null);
     const [connection, _modifyConnection] = useConnectionState(notebook?.sessionId ?? null);
+    const storage = useStorageReader();
     const [state, setState] = React.useState<State>(() => ({
         publicURLText: null,
         copyStartedAt: null,
@@ -65,7 +67,7 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
             if (notebook != null && connection != null) {
                 const conn = getConnectionParamsFromStateDetails(connection.details);
                 if (conn) {
-                    setupUrl = await encodeNotebookAsZipUrl(notebook, conn, NotebookLinkTarget.WEB, connection.name, settings.withConnectionInfo, settings.withLoginHint);
+                    setupUrl = await encodeNotebookAsZipUrl(storage.backend, notebook.sessionId, conn, NotebookLinkTarget.WEB, settings.withConnectionInfo, settings.withLoginHint);
                 }
             }
 

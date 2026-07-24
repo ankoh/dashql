@@ -3,9 +3,8 @@ import * as buf from "@bufbuild/protobuf";
 import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 
 import { BASE64URL_CODEC } from '../utils/base64.js';
-import { NotebookState } from './notebook_state.js';
-import type { SessionData, NotebookMetadata, PageData, ScriptData } from '../platform/storage/storage_backend.js';
-import { createSessionZip } from '../platform/storage/session_export.js';
+import type { StorageBackend, SessionData, ConnectionParams } from '../platform/storage/storage_backend.js';
+import { exportSessionAsZip } from '../platform/storage/session_export.js';
 import { sanitizeConnectionParamsForSharing } from '../connection/connection_params.js';
 
 export enum NotebookLinkTarget {
@@ -13,10 +12,17 @@ export enum NotebookLinkTarget {
     WEB
 }
 
+/// Export a session as a shareable ZIP.
+///
+/// Pages, scripts and the draft are read straight from disk (via `exportSessionAsZip`) so the shared
+/// archive matches the persisted folder/file layout exactly. The session name is carried through from
+/// the stored session untouched. Only the connection params are rewritten for sharing: the stored
+/// params are swapped for the live connection's params, sanitized of secrets (or dropped entirely for
+/// a dataless share), with the login hint optionally stripped.
 export async function encodeNotebookAsZip(
-    notebookState: NotebookState,
+    backend: StorageBackend,
+    sessionId: string,
     connectionParams: any,
-    sessionName: string | null = null,
     // When true, include the connection identity (secrets stripped) so a recipient gets a
     // prefilled sign-in. When false, drop it entirely and share a dataless session.
     withConnectionInfo: boolean = true,
@@ -24,71 +30,27 @@ export async function encodeNotebookAsZip(
     // connection identity. When false, strip it so the link/file doesn't reveal who shared it.
     withLoginHint: boolean = true
 ): Promise<Blob> {
-    // Create session data
-    const notebookMetadata: NotebookMetadata = {
-        originalFileName: notebookState.notebookMetadata.originalFileName,
-        createdAt: new Date().toISOString(),
-    };
-
-    const sharedConnectionParams = withConnectionInfo
+    const sharedConnectionParams: ConnectionParams = withConnectionInfo
         ? sanitizeConnectionParamsForSharing(connectionParams, withLoginHint)
         : { dataless: {} };
 
-    const sessionData: SessionData = {
-        sessionId: notebookState.sessionId,
-        sessionPath: notebookState.sessionId,
-        connectionParams: sharedConnectionParams,
-        notebook: notebookMetadata,
-        // Carry the user-supplied session name so a shared link/file restores under the same label.
-        // Omit it entirely when unnamed rather than writing an empty string, matching how a session
-        // that was never named is persisted.
-        ...(sessionName?.trim() ? { name: sessionName.trim() } : {}),
-    };
-
-    // Convert notebook pages to storage format. Iterate folders/files in sorted order.
-    const pages: PageData[] = [];
-    const sortedFolders = Object.keys(notebookState.notebookPages).sort((a, b) => a.localeCompare(b));
-    for (let pageIdx = 0; pageIdx < sortedFolders.length; pageIdx++) {
-        const page = notebookState.notebookPages[sortedFolders[pageIdx]];
-        const pageOrder = pageIdx + 1; // Pages are 1-indexed
-
-        const scripts: ScriptData[] = [];
-        const sortedFiles = Object.keys(page.scripts).sort((a, b) => a.localeCompare(b));
-        for (let entryIdx = 0; entryIdx < sortedFiles.length; entryIdx++) {
-            const pageScript = page.scripts[sortedFiles[entryIdx]];
-            const scriptOrder = entryIdx + 1; // Scripts are 1-indexed
-            const scriptData = notebookState.scripts[pageScript.scriptId];
-            if (scriptData) {
-                scripts.push({
-                    name: `${String(scriptOrder).padStart(2, '0')}-script.sql`,
-                    sql: scriptData.script.toString()
-                });
-            }
-        }
-
-        pages.push({
-            name: `page-${pageOrder}`,
-            scripts
-        });
-    }
-
-    // Get draft/composer script
-    const composerScriptData = notebookState.scripts[notebookState.uncommittedScriptId];
-    const draftSql = composerScriptData ? composerScriptData.script.toString() : null;
-
-    // Use shared zip creation logic
-    return await createSessionZip(sessionData, pages, draftSql);
+    return await exportSessionAsZip(sessionId, backend, {
+        transformSession: (session: SessionData): SessionData => ({
+            ...session,
+            connectionParams: sharedConnectionParams,
+        }),
+    });
 }
 
 export async function encodeNotebookAsZipUrl(
-    notebookState: NotebookState,
+    backend: StorageBackend,
+    sessionId: string,
     connectionParams: any,
     target: NotebookLinkTarget,
-    sessionName: string | null = null,
     withConnectionInfo: boolean = true,
     withLoginHint: boolean = true
 ): Promise<URL> {
-    const zipBlob = await encodeNotebookAsZip(notebookState, connectionParams, sessionName, withConnectionInfo, withLoginHint);
+    const zipBlob = await encodeNotebookAsZip(backend, sessionId, connectionParams, withConnectionInfo, withLoginHint);
     const zipBytes = new Uint8Array(await zipBlob.arrayBuffer());
 
     // Wrap the zip in AppEventData - convert to base64 string as required by JSON schema

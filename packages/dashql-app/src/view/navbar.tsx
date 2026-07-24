@@ -217,7 +217,7 @@ export const NavBar = (): React.ReactElement => {
                 return;
             }
 
-            const url = await encodeNotebookAsZipUrl(notebook, connParams, setupLinkTarget, connection.name);
+            const url = await encodeNotebookAsZipUrl(storageReader.backend, notebook.sessionId, connParams, setupLinkTarget);
             if (!cancelled) {
                 setSetupUrl(url);
             }
@@ -228,7 +228,7 @@ export const NavBar = (): React.ReactElement => {
         return () => {
             cancelled = true;
         };
-    }, [notebook, connection, setupLinkTarget]);
+    }, [notebook, connection, setupLinkTarget, storageReader.backend]);
 
     React.useEffect(() => {
         logger.debug("Navigated to path", { "path": location.pathname }, LOG_CTX);

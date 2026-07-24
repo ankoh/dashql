@@ -20,6 +20,7 @@ import { encodeNotebookAsZipUrl, NotebookLinkTarget } from '../../notebook/noteb
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
+import { useStorageReader } from '../../platform/storage/storage_provider.js';
 import { useRouterNavigate, NOTEBOOK_PATH } from '../../router.js';
 import { useNotebookSetup } from '../../notebook/notebook_setup.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
@@ -47,6 +48,7 @@ interface SetupURLs {
 export function ConnectionHeader(props: Props): React.ReactElement {
     const logger = useLogger();
     const navigate = useRouterNavigate();
+    const storage = useStorageReader();
     const setupNotebook = useNotebookSetup();
     const modifyConnection = useDynamicConnectionDispatch()[1];
     const notebookRegistry = useNotebookRegistry()[0];
@@ -168,8 +170,8 @@ export function ConnectionHeader(props: Props): React.ReactElement {
             }
 
             const [urlWeb, urlNative] = await Promise.all([
-                encodeNotebookAsZipUrl(props.notebook, connParams, NotebookLinkTarget.WEB, props.connection.name),
-                encodeNotebookAsZipUrl(props.notebook, connParams, NotebookLinkTarget.NATIVE, props.connection.name)
+                encodeNotebookAsZipUrl(storage.backend, props.notebook.sessionId, connParams, NotebookLinkTarget.WEB),
+                encodeNotebookAsZipUrl(storage.backend, props.notebook.sessionId, connParams, NotebookLinkTarget.NATIVE)
             ]);
 
             if (!cancelled) {
@@ -185,7 +187,7 @@ export function ConnectionHeader(props: Props): React.ReactElement {
         return () => {
             cancelled = true;
         };
-    }, [props.notebook, props.connection]);
+    }, [props.notebook, props.connection, storage.backend]);
 
     // Determine platform type
     const platformType = usePlatformType();
