@@ -79,6 +79,17 @@
 }
 .version_info_value {
     grid-column: 2;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    column-gap: 8px;
+}
+.version_info_latest {
+    font-size: 0.75rem;
+    padding: 1px 6px;
+    border-radius: 8px;
+    color: var(--text_color_secondary, #57606a);
+    background-color: var(--bg_color_secondary, #f6f8fa);
 }
 
 

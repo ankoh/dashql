@@ -19,7 +19,7 @@ import {
 } from '../platform/version/version_check.js';
 import { Button, ButtonVariant, IconButton } from './foundations/button.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
-import { ReleaseManifest } from '../platform/version/web_version_check.js';
+import { compareReleaseVersions, detectReleaseChannel, ReleaseChannel, ReleaseManifest } from '../platform/version/web_version_check.js';
 import { Result, RESULT_ERROR, RESULT_OK } from '../utils/result.js';
 import { IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
 import { ReleaseBundles } from './release_bundle.js';
@@ -29,10 +29,15 @@ import { ProgressBar } from './foundations/progress_bar.js';
 import { useProcess } from '../platform/process.js';
 
 interface UpdateChannelProps {
+    channel: ReleaseChannel;
     name: string;
+    /// Whether this is the channel the app currently tracks for updates
+    isActive: boolean;
     releaseManifest: Result<ReleaseManifest | null> | null;
     updateManifest: Result<InstallableUpdate | null> | null;
     installationStatus: InstallationState | null;
+    /// Install an update from this channel. Also persists the channel as the active one.
+    onInstall: (channel: ReleaseChannel, update: InstallableUpdate) => void;
 }
 
 const UpdateChannel: React.FC<UpdateChannelProps> = (props: UpdateChannelProps) => {
@@ -52,19 +57,22 @@ const UpdateChannel: React.FC<UpdateChannelProps> = (props: UpdateChannelProps) 
             // If the installation status refers to this channel, we render the installation status instead.
             // If it's not referring to this channel, we render nothing.
             if (props.installationStatus == null) {
-                // If the update manifest succeeded but is null, the released version cannot be installed
-                if (props.updateManifest.value == null) {
-                    status = <span>version incompatible</span>;
-                } else {
-                    // The version can be installed, render a button to trigger installation
+                // Whether the channel offers an upgrade is decided by the release manifest (the same
+                // signal the navbar indicator uses). We only ever signal a strict upgrade so we never
+                // nudge towards a downgrade (e.g. an older stable while on a newer canary).
+                const isUpgrade = versionName != null && compareReleaseVersions(versionName, DASHQL_VERSION) > 0;
+                if (!isUpgrade) {
+                    status = props.isActive
+                        ? <span className={styles.update_channel_action_status}>up to date</span>
+                        : null;
+                } else if (props.updateManifest.value != null) {
+                    // The upgrade is installable, render a button to trigger installation.
                     const installable = props.updateManifest.value;
-                    status = <Button onClick={async () => {
-                        try {
-                            await installable.download();
-                        } catch (e: unknown) {
-                            console.error(e);
-                        }
-                    }}>Install</Button>;
+                    status = <Button onClick={() => props.onInstall(props.channel, installable)}>Install</Button>;
+                } else {
+                    // The manifest advertises a newer version but the tauri check returned no installable
+                    // update yet (e.g. the check is still in flight or failed). Surface it without an action.
+                    status = <span className={styles.update_channel_action_status}>update available</span>;
                 }
             } else {
                 // Does the current installation refer to this channel?
@@ -130,6 +138,24 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
     const versionCheck = useVersionCheck();
     const process = useProcess();
 
+    // The channel the app currently tracks. It is fully dictated by the installed version scheme.
+    const activeChannel: ReleaseChannel = detectReleaseChannel(DASHQL_VERSION);
+    const activeUpdateManifest = activeChannel == "canary" ? canaryUpdateManifest : stableUpdateManifest;
+
+    // Are we on the most recent version of the active channel?
+    // A successful update check that yields no update means we're up to date.
+    let onLatestVersion: boolean | null = null;
+    if (activeUpdateManifest?.type === RESULT_OK) {
+        onLatestVersion = activeUpdateManifest.value == null;
+    }
+
+    // Install an update. The app restarts on the new version afterwards, so the channel re-derives itself.
+    const onInstall = React.useCallback((_channel: ReleaseChannel, update: InstallableUpdate) => {
+        update.download().catch((e: unknown) => {
+            console.error(e);
+        });
+    }, []);
+
     if (versionCheck == VersionCheckStatusCode.RestartPending) {
         return (
             <div className={styles.restart_overlay}>
@@ -184,7 +210,16 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
                     Current Version
                 </div>
                 <div className={styles.version_info_value}>
-                    {DASHQL_VERSION}
+                    <span>{DASHQL_VERSION}</span>
+                    {!isWebPlatform && onLatestVersion === true && (
+                        <span className={styles.version_info_latest}>latest</span>
+                    )}
+                </div>
+                <div className={styles.version_info_key}>
+                    Channel
+                </div>
+                <div className={styles.version_info_value}>
+                    {activeChannel}
                 </div>
                 <div className={styles.version_info_key}>
                     Git Commit
@@ -200,16 +235,22 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
                     </div>
                     <div className={styles.update_channel_list}>
                         <UpdateChannel
+                            channel="stable"
                             name="stable"
+                            isActive={activeChannel == "stable"}
                             releaseManifest={stableReleaseManifest}
                             updateManifest={stableUpdateManifest}
                             installationStatus={installationStatus}
+                            onInstall={onInstall}
                         />
                         <UpdateChannel
+                            channel="canary"
                             name="canary"
+                            isActive={activeChannel == "canary"}
                             releaseManifest={canaryReleaseManifest}
                             updateManifest={canaryUpdateManifest}
                             installationStatus={installationStatus}
+                            onInstall={onInstall}
                         />
                     </div>
                 </div>

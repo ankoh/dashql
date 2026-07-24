@@ -5,8 +5,8 @@ import { check, DownloadEvent, Update } from '@tauri-apps/plugin-updater';
 import { useLogger } from '../logger/logger_provider.js';
 import { awaitAndSet, Result, RESULT_OK } from '../../utils/result.js';
 import { Logger, stringifyError } from '../logger/logger.js';
-import { loadReleaseManifest, ReleaseChannel, ReleaseManifest } from './web_version_check.js';
-import { DASHQL_CANARY_RELEASE_MANIFEST, DASHQL_STABLE_RELEASE_MANIFEST } from '../../globals.js';
+import { compareReleaseVersions, detectReleaseChannel, loadReleaseManifest, ReleaseChannel, ReleaseManifest } from './web_version_check.js';
+import { DASHQL_CANARY_RELEASE_MANIFEST, DASHQL_STABLE_RELEASE_MANIFEST, DASHQL_VERSION } from '../../globals.js';
 import { STABLE_RELEASE_MANIFEST_CTX, STABLE_UPDATE_MANIFEST_CTX, CANARY_RELEASE_MANIFEST_CTX, CANARY_UPDATE_MANIFEST_CTX, VERSION_CHECK_CTX, VersionCheckStatusCode, InstallableUpdate, InstallationStatusSetter, InstallationStatusCode, InstallationState, INSTALLATION_STATUS_CTX } from './version_check.js';
 
 class InstallableTauriUpdate implements InstallableUpdate {
@@ -124,46 +124,47 @@ export const NativeVersionCheck: React.FC<Props> = (props: Props) => {
         awaitAndSet(checkChannelUpdates("canary", setInstallationStatus, logger), setCanaryUpdate);
     }, []);
 
+    // The channel the app currently tracks for the update indicator.
+    // It is fully dictated by the installed version scheme.
+    const activeChannel = detectReleaseChannel(DASHQL_VERSION);
+    const activeRelease = activeChannel == "canary" ? canaryRelease : stableRelease;
+    const activeUpdate = activeChannel == "canary" ? canaryUpdate : stableUpdate;
 
-    // Find any updates
-    let checkedForUpdates = false;
-    const updates: InstallableUpdate[] = [];
-    if (stableUpdate != null && stableUpdate.type == RESULT_OK) {
-        checkedForUpdates = true;
-        if (stableUpdate.value != null) {
-            updates.push(stableUpdate.value);
-        }
-    }
-    if (canaryUpdate != null && canaryUpdate.type == RESULT_OK) {
-        checkedForUpdates = true;
-        if (canaryUpdate.value != null) {
-            updates.push(canaryUpdate.value);
-        }
-    }
-
-    // Derive the version check status
+    // Derive the version check status from the active channel only.
+    // We only surface the update indicator for the channel the user is on, but any ongoing
+    // installation (which may target another channel that the user just switched to) still wins.
+    //
+    // The indicator is driven by the release manifest (the same signal the version overlay shows),
+    // comparing the advertised version against the installed one ourselves. This keeps the navbar and
+    // the overlay consistent and independent of the tauri `check()` round-trip, and we only signal a
+    // strict upgrade so we never nudge towards a downgrade.
     let status = VersionCheckStatusCode.Unknown;
-    if (checkedForUpdates) {
-        status = VersionCheckStatusCode.UpToDate;
-        if (updates.length > 0) {
-            status = VersionCheckStatusCode.UpdateAvailable;
-        }
-        // TODO consolidate error handling for updates
-        for (const update of updates) {
-            if (update === installationStatus?.update) {
-                switch (installationStatus.statusCode) {
-                    case InstallationStatusCode.Started:
-                    case InstallationStatusCode.InProgress:
-                        status = VersionCheckStatusCode.UpdateInstalling;
-                        break;
-                    case InstallationStatusCode.RestartPending:
-                        status = VersionCheckStatusCode.RestartPending;
-                        break;
-                    case InstallationStatusCode.Failed:
-                        status = VersionCheckStatusCode.UpdateFailed;
-                        break;
-                }
-            }
+    if (activeRelease != null && activeRelease.type == RESULT_OK) {
+        const advertised = activeRelease.value.version;
+        status = compareReleaseVersions(advertised, DASHQL_VERSION) > 0
+            ? VersionCheckStatusCode.UpdateAvailable
+            : VersionCheckStatusCode.UpToDate;
+    }
+    // Fall back to the tauri check if the manifest is unavailable.
+    if (status == VersionCheckStatusCode.Unknown && activeUpdate != null && activeUpdate.type == RESULT_OK) {
+        status = activeUpdate.value != null
+            ? VersionCheckStatusCode.UpdateAvailable
+            : VersionCheckStatusCode.UpToDate;
+    }
+    // An installation always reflects the update the user actually triggered, regardless of channel.
+    // TODO consolidate error handling for updates
+    if (installationStatus != null) {
+        switch (installationStatus.statusCode) {
+            case InstallationStatusCode.Started:
+            case InstallationStatusCode.InProgress:
+                status = VersionCheckStatusCode.UpdateInstalling;
+                break;
+            case InstallationStatusCode.RestartPending:
+                status = VersionCheckStatusCode.RestartPending;
+                break;
+            case InstallationStatusCode.Failed:
+                status = VersionCheckStatusCode.UpdateFailed;
+                break;
         }
     }
     return (
