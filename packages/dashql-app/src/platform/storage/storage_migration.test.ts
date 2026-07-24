@@ -110,6 +110,7 @@ class MemoryBackend implements StorageBackend {
         c.set(hash, bytes);
         this.cache.set(sessionId, c);
     }
+    async touchQueryResultCacheAccess(): Promise<void> { }
     async deleteQueryResultCache(sessionId: string, hash: string): Promise<void> {
         this.cache.get(sessionId)?.delete(hash);
     }

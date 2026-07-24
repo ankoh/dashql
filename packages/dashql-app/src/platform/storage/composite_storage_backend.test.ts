@@ -158,6 +158,7 @@ class MemoryRegistry implements SessionRegistryBackend {
         c.set(hash, bytes);
         this.cache.set(sessionId, c);
     }
+    async touchQueryResultCacheAccess(_sessionId: string, _hash: string): Promise<void> { }
     async deleteQueryResultCache(sessionId: string, hash: string): Promise<void> {
         this.cache.get(sessionId)?.delete(hash);
     }

@@ -31,6 +31,7 @@ import { useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { useStorageReader } from '../platform/storage/storage_provider.js';
 import { type CachedQueryResult } from '../platform/storage/storage_backend.js';
 import { getConnectionParamsFromStateDetails, createConnectionParamsSignature } from './connection_params.js';
+import { ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { computeQueryResultCacheKey } from './query_result_cache_key.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { createTrace } from '../platform/logger/trace_context.js';
@@ -45,6 +46,27 @@ import { LoggableException, stringifyError } from '../platform/logger/logger.js'
 const LOG_CTX = 'query_executor';
 
 let NEXT_QUERY_ID = 1;
+
+/// Compute the file-based cache key for a query against a connection, or null when the connection has
+/// no recoverable params/signature (e.g. before setup completes). This is the same derivation the
+/// executor uses on its cacheable path; it's exported so callers that want to *probe* the cache
+/// (e.g. auto-running a visualization only on a cache hit) key their lookup identically. Never
+/// throws — a failure to derive the key is reported as null (treat as "not cacheable / a miss").
+export async function computeQueryCacheKeyForConnection(
+    details: ConnectionStateDetailsVariant,
+    queryText: string,
+): Promise<string | null> {
+    try {
+        const params = getConnectionParamsFromStateDetails(details);
+        const sig = params ? createConnectionParamsSignature(params) : null;
+        if (sig == null) {
+            return null;
+        }
+        return await computeQueryResultCacheKey(sig, queryText);
+    } catch {
+        return null;
+    }
+}
 
 /// The query executor function
 export type QueryExecutor = (sessionId: string, args: QueryExecutionArgs) => [number, Promise<arrow.Table | null>];
@@ -132,29 +154,47 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             cacheDeleted: false,
             cachedAt: null,
         };
+
+        // Compute the cache key up front for cacheable queries. This is best-effort: if the
+        // connection has no recoverable params/signature (e.g. before setup completes) we simply skip
+        // caching and execute normally. Never let a cache concern surface into the query path.
+        // `cacheOnly` implies caching, so it participates in the key computation too.
+        let cacheHash: string | null = null;
+        if (args.cacheable || args.cacheOnly) {
+            cacheHash = await computeQueryCacheKeyForConnection(conn.details, args.query);
+        }
+
+        // Cache-only probe: before registering *any* query state, check whether the result is already
+        // on disk. On a miss the whole execution is a no-op — no state is registered and the backend
+        // is never touched — so the returned promise just resolves to null. This backs auto-running a
+        // visualization when it scrolls into view: instant if cached, otherwise left un-run. The
+        // loaded entry is carried into the cache read path below so we never load the bytes twice.
+        let preloaded: CachedQueryResult | null = null;
+        if (args.cacheOnly) {
+            if (cacheHash == null) {
+                return null;
+            }
+            try {
+                preloaded = await storageReader.backend.loadQueryResultCache(sessionId, cacheHash);
+            } catch (e: any) {
+                traced.warn("Failed to read query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
+                preloaded = null;
+            }
+            if (preloaded == null) {
+                traced.info("Cache-only query missed; skipping execution", {
+                    "session": sessionId,
+                    "query": queryId.toString(),
+                }, LOG_CTX);
+                return null;
+            }
+        }
+
         connDispatch(sessionId, {
             type: EXECUTE_QUERY,
             value: [queryId, initialState],
         });
 
         // XXX Add explicit query preparation here later
-
-        // Compute the cache key up front for cacheable queries. This is best-effort: if the
-        // connection has no recoverable params/signature (e.g. before setup completes) we simply skip
-        // caching and execute normally. Never let a cache concern surface into the query path.
-        let cacheHash: string | null = null;
-        if (args.cacheable) {
-            try {
-                const params = getConnectionParamsFromStateDetails(conn.details);
-                const sig = params ? createConnectionParamsSignature(params) : null;
-                if (sig != null) {
-                    cacheHash = await computeQueryResultCacheKey(sig, args.query);
-                }
-            } catch (e: any) {
-                traced.warn("Failed to compute query cache key", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
-                cacheHash = null;
-            }
-        }
 
         // Execute the query and consume the results
         let resultStream: QueryExecutionResponseStream | null = null;
@@ -164,12 +204,15 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             // Cache read path: on a hit, load the Arrow IPC bytes and drive the state machine as if
             // the result had just streamed in, skipping the backend entirely.
             if (cacheHash != null) {
-                let cached: CachedQueryResult | null = null;
-                try {
-                    cached = await storageReader.backend.loadQueryResultCache(sessionId, cacheHash);
-                } catch (e: any) {
-                    traced.warn("Failed to read query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
-                    cached = null;
+                // Reuse the cache-only preload when present, so its bytes are read exactly once.
+                let cached: CachedQueryResult | null = preloaded;
+                if (cached == null) {
+                    try {
+                        cached = await storageReader.backend.loadQueryResultCache(sessionId, cacheHash);
+                    } catch (e: any) {
+                        traced.warn("Failed to read query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
+                        cached = null;
+                    }
                 }
                 // A user cancel during the async cache read should behave like any other cancel:
                 // let the catch below route it to QUERY_CANCELLED.
@@ -179,6 +222,14 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 if (cached != null) {
                     table = arrow.tableFromIPC(cached.bytes);
                     servedFromCache = true;
+                    // Record the access so eviction sees this as a recently-used (LRU) entry. This
+                    // bumps only the empty `.last_access` marker, never the payload, so it is cheap and
+                    // leaves the payload's "cached at" write time intact. Best-effort: a failure here
+                    // must never surface into the query path (it only means the entry looks colder to
+                    // eviction than it is).
+                    void storageReader.backend.touchQueryResultCacheAccess(sessionId, cacheHash).catch((e: any) => {
+                        traced.warn("Failed to record query cache access", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
+                    });
                     traced.info("Served query from cache", {
                         "session": sessionId,
                         "query": queryId.toString(),

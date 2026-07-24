@@ -30,6 +30,7 @@ describe('exportSessionAsZip', () => {
             saveNotebookScriptDraft: vi.fn(),
             loadQueryResultCache: vi.fn().mockResolvedValue(null),
             saveQueryResultCache: vi.fn(),
+            touchQueryResultCacheAccess: vi.fn(),
             deleteQueryResultCache: vi.fn(),
             loadAppSettings: vi.fn(),
             saveAppSettings: vi.fn(),

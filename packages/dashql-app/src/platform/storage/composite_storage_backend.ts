@@ -265,6 +265,9 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
     async saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void> {
         return (await this.backendFor(sessionId)).saveQueryResultCache(sessionId, hash, bytes);
     }
+    async touchQueryResultCacheAccess(sessionId: string, hash: string): Promise<void> {
+        return (await this.backendFor(sessionId)).touchQueryResultCacheAccess(sessionId, hash);
+    }
     async deleteQueryResultCache(sessionId: string, hash: string): Promise<void> {
         return (await this.backendFor(sessionId)).deleteQueryResultCache(sessionId, hash);
     }

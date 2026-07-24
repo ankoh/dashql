@@ -13,6 +13,7 @@ import {
     fakeScriptPreviewModule,
     fakeStatusIndicatorModule,
     fakeSymbolIconModule,
+    IntersectionObserverMock,
     ResizeObserverMock,
 } from '../../test/view_mocks.js';
 
@@ -42,8 +43,18 @@ vi.mock('../foundations/size_observer.js', () => ({
 }));
 vi.mock('../../utils/scrollbar.js', () => fakeScrollbarModule());
 vi.mock('../../utils/key_events.js', () => ({
+    // The real hook keeps each call site's subscribers independent (every component that calls it
+    // installs its own document listeners), so multiple components in the tree register in parallel —
+    // e.g. the feed's handlers plus a Tooltip's Escape inside the view toggle. The mock must not let a
+    // nested component's registration clobber the feed's, yet must keep the feed's *latest* closures
+    // as it re-renders (its handlers close over state like the compose editor view, set post-mount).
+    // Model that by keying on the handler signature and keeping the most recent one per signature:
+    // a re-render replaces its own same-signature handlers, while a distinct signature (the Tooltip's
+    // capture-less Escape) coexists. `beforeEach` clears this back to `[]` per test.
     useKeyEvents: (handlers: typeof mockState.keyHandlers) => {
-        mockState.keyHandlers = handlers;
+        const sig = (h: (typeof handlers)[number]) => `${h.key}/${h.ctrlKey}/${h.capture}`;
+        const next = mockState.keyHandlers.filter(existing => !handlers.some(h => sig(h) === sig(existing)));
+        mockState.keyHandlers = [...next, ...handlers];
     },
 }));
 vi.mock('../../notebook/notebook_commands.js', async () => {
@@ -103,6 +114,7 @@ vi.mock('./feed_entry_footer.js', async () => {
     };
 });
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+vi.stubGlobal('IntersectionObserver', IntersectionObserverMock);
 
 
 import {
@@ -762,9 +774,14 @@ describe('NotebookScriptFeed', () => {
             scrollTarget: null,
         });
 
-        // The overview toggle is offered on wide boards; switch into the grid.
-        const toggle = container.querySelector('[aria-label="Show overview"]') as HTMLButtonElement | null;
-        expect(toggle).not.toBeNull();
+        // The overview toggle is offered on wide boards; switch into the grid. It's a SegmentedControl
+        // IconButton, so its accessible name comes from a Tooltip label (aria-labelledby -> the tooltip
+        // text div), not a direct aria-label — resolve the button through that label.
+        const toggle = Array.from(container.querySelectorAll('button')).find(btn => {
+            const labelId = btn.getAttribute('aria-labelledby');
+            return labelId != null && container.querySelector(`#${labelId}`)?.textContent === 'Show overview';
+        }) as HTMLButtonElement | undefined;
+        expect(toggle).toBeDefined();
         act(() => {
             toggle!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
         });

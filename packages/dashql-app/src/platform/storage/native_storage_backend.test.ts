@@ -282,6 +282,50 @@ describe('NativeStorageBackend (one-dir-one-session)', () => {
             // Deleting an already-gone entry is a no-op.
             await expect(backend.deleteQueryResultCache(SID, 'h1')).resolves.toBeUndefined();
         });
+
+        it('seeds an access marker on write and removes it on delete', async () => {
+            await backend.saveQueryResultCache(SID, 'h1', bytesOf('a'));
+            expect(fsStore.binFiles.has(`${DIR}/cache/h1.arrow.last_access`)).toBe(true);
+
+            await backend.deleteQueryResultCache(SID, 'h1');
+            // The marker must not outlive its payload, or it would leak as a zero-byte file.
+            expect(fsStore.binFiles.has(`${DIR}/cache/h1.arrow.last_access`)).toBe(false);
+        });
+
+        it('touch bumps the marker mtime without re-touching the payload', async () => {
+            await backend.saveQueryResultCache(SID, 'h1', bytesOf('arrow-payload'));
+            const payloadMtime = fsStore.mtimes.get(`${DIR}/cache/h1.arrow`);
+            const markerMtimeBefore = fsStore.mtimes.get(`${DIR}/cache/h1.arrow.last_access`);
+
+            await backend.touchQueryResultCacheAccess(SID, 'h1');
+            // Payload write time is preserved (it is the UI's "cached at"); only the marker advances.
+            expect(fsStore.mtimes.get(`${DIR}/cache/h1.arrow`)).toBe(payloadMtime);
+            expect(fsStore.mtimes.get(`${DIR}/cache/h1.arrow.last_access`)!).toBeGreaterThan(markerMtimeBefore!);
+        });
+
+        it('reaps an orphaned access marker on the next save', async () => {
+            await backend.saveQueryResultCache(SID, 'h1', bytesOf('a'));
+            // Simulate a crash between payload-delete and marker-delete: strand the marker.
+            fsStore.binFiles.delete(`${DIR}/cache/h1.arrow`);
+            expect(fsStore.binFiles.has(`${DIR}/cache/h1.arrow.last_access`)).toBe(true);
+
+            // The next save walks the cache dir for eviction and reaps the orphan in that same pass.
+            await backend.saveQueryResultCache(SID, 'h2', bytesOf('b'));
+            expect(fsStore.binFiles.has(`${DIR}/cache/h1.arrow.last_access`)).toBe(false);
+        });
+
+        it('does not list access markers as cache entries', async () => {
+            // Two payloads plus their markers live in cache/, but only the .arrow payloads count as
+            // entries — the round-trip below must still see both, and markers must never masquerade
+            // as loadable results.
+            await backend.saveQueryResultCache(SID, 'h1', bytesOf('a'));
+            await backend.saveQueryResultCache(SID, 'h2', bytesOf('b'));
+            expect(await backend.loadQueryResultCache(SID, 'h1')).not.toBeNull();
+            expect(await backend.loadQueryResultCache(SID, 'h2')).not.toBeNull();
+            // The marker is not itself a payload: reading it as a hash yields the marker bytes only if
+            // the caller asked for the literal marker hash, never via the payload hash.
+            expect(await backend.loadQueryResultCache(SID, 'h1.arrow')).toBeNull();
+        });
     });
 
     describe('deleteSession / clearAllStorage', () => {

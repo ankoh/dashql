@@ -78,3 +78,18 @@ export class ResizeObserverMock {
     disconnect() { }
     unobserve() { }
 }
+
+/// Inert IntersectionObserver stand-in for jsdom (which provides none). It records the callback but
+/// never fires it, so a component's "on visible" effect stays dormant in tests that don't opt in. A
+/// test that wants to simulate a card scrolling into view can capture the instance and invoke its
+/// callback directly with a synthetic `[{ isIntersecting: true }]` entry.
+export class IntersectionObserverMock {
+    callback: IntersectionObserverCallback;
+    constructor(callback: IntersectionObserverCallback) {
+        this.callback = callback;
+    }
+    observe() { }
+    disconnect() { }
+    unobserve() { }
+    takeRecords(): IntersectionObserverEntry[] { return []; }
+}

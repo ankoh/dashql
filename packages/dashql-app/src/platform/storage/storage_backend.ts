@@ -8,6 +8,12 @@ export const STORAGE_SESSION_FILE = 'dashql-session.json';
 export const STORAGE_NOTEBOOK_FOLDER = 'notebook';
 export const STORAGE_CACHE_FOLDER = 'cache';
 export const STORAGE_CACHE_EXTENSION = '.arrow';
+/// Suffix of the empty "last access" marker that sits beside each cached `.arrow` file, e.g.
+/// `<hash>.arrow.last_access`. Its own mtime is the entry's last-access time and is bumped (by
+/// rewriting the empty file) on every cache hit — this is how the FIFO-by-write-time cache is turned
+/// into an LRU without rewriting the (potentially large) payload. The marker is advisory: the
+/// `.arrow` files are authoritative, so a missing marker just falls back to the payload's own mtime.
+export const STORAGE_CACHE_ACCESS_SUFFIX = '.last_access';
 
 /// A cached query result loaded from disk: the Arrow IPC bytes plus the entry's write time.
 export interface CachedQueryResult {
@@ -116,6 +122,12 @@ export interface StorageBackend {
     /// On a hit the returned entry carries both the Arrow IPC bytes and the file's write time
     /// (`cachedAt`), so the UI can show how old the cached result is.
     loadQueryResultCache(sessionId: string, hash: string): Promise<CachedQueryResult | null>;
+    /// Record a cache access by bumping the entry's `<hash>.arrow.last_access` marker's mtime (an
+    /// empty file, rewritten so its mtime advances). This is the LRU signal consumed by eviction; it
+    /// deliberately does *not* re-touch the payload `.arrow`, so the payload's mtime stays meaningful
+    /// as the "cached at" timestamp. Best-effort: callers invoke this on a cache hit and ignore
+    /// failures (a missing marker degrades eviction to write-time/FIFO for that entry).
+    touchQueryResultCacheAccess(sessionId: string, hash: string): Promise<void>;
     /// Store a query result (Arrow IPC bytes) under `<hash>.arrow` in the session's `cache/` folder,
     /// evicting least-recently-used entries first to stay under the size and count thresholds.
     saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void>;

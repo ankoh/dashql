@@ -64,8 +64,11 @@ const ESTIMATED_ROW_HEIGHT = 120;
 const FEED_EDGE_PADDING = 8;
 const FEED_BOTTOM_FADE_HEIGHT = 24;
 /// Minimum board width (px) at which the zoomed-out overview grid is offered. Roughly matches the
-/// 1300px window-width CSS breakpoint that hides the toggle, once the desktop sidebar is subtracted.
-const OVERVIEW_MIN_BOARD_WIDTH = 1000;
+/// 1350px window-width CSS breakpoint that hides the toggle, once the desktop sidebar is subtracted.
+const OVERVIEW_MIN_BOARD_WIDTH = 1050;
+/// Distance (px) the view toggle is inset from the right edge of the feed, on top of any scrollbar
+/// width. Keeps the segmented control clear of the scrollbar so it doesn't underflow it.
+const FEED_VIEW_TOGGLE_INSET = 16;
 
 /// Resolve the output columns (result schema) a script produced on its most recent execution, for
 /// the agent's visualize context. Output columns only exist after execution, so this reads the
@@ -106,9 +109,12 @@ interface CollapsedScriptCardProps {
     onRerun: (fileName: string, cacheKey: string | null) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
+    /// Called when the card first scrolls into view. Backs the cache-only auto-run of visualizations:
+    /// a VISUALISE entry whose result is already cached renders itself as soon as it's seen.
+    onVisible: (fileName: string) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
     const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
@@ -191,6 +197,31 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
         }
     }, [isEditing]);
 
+    // Fire onVisible the first time the card intersects the viewport. This drives the cache-only
+    // auto-run of visualizations: seeing the card is the trigger to render it if its data is cached.
+    // The callback is idempotent per script on the feed side (it de-dupes by cache key), so we only
+    // need to fire once per mount — disconnect after the first intersection.
+    const cardRef = React.useRef<HTMLDivElement>(null);
+    const onVisibleRef = React.useRef(onVisible);
+    onVisibleRef.current = onVisible;
+    React.useEffect(() => {
+        const el = cardRef.current;
+        if (el == null) {
+            return;
+        }
+        const observer = new IntersectionObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.isIntersecting) {
+                    onVisibleRef.current(scriptFileName);
+                    observer.disconnect();
+                    break;
+                }
+            }
+        });
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [scriptFileName]);
+
     const handleHeaderPointerDown = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
         if (event.button !== 0 || event.defaultPrevented) {
             return;
@@ -216,6 +247,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
 
     return (
         <div
+            ref={cardRef}
             className={styles.feed_entry_card}
             onPointerEnter={() => onFocus(scriptFileName)}
         >
@@ -370,13 +402,14 @@ interface ScriptFeedRowProps {
     onRerun: (fileName: string, cacheKey: string | null) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
+    onVisible: (fileName: string) => void;
     onHeightMeasured: (index: number, height: number) => void;
     fillerRowHeight: number;
     heightsVersion: number;
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onHeightMeasured } = props;
+    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible, onHeightMeasured } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -435,6 +468,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onRerun={onRerun}
                     onAcceptDiff={onAcceptDiff}
                     onRejectDiff={onRejectDiff}
+                    onVisible={onVisible}
                 />
             </div>
         </div>
@@ -634,6 +668,76 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         }
         rerunEntry(notebook, scriptData, executeQuery, props.modifyNotebook);
     }, [props.notebook, props.modifyNotebook, isDisconnected, executeQuery, storageReader]);
+
+    // Auto-run a visualization when its card scrolls into view — but only when the data is already
+    // cached, so we never kick off a backend query the user didn't ask for.
+    //
+    // Scope, deliberately narrow:
+    //   - Only VISUALISE entries whose renderer is `vegalite`. UMAP is never auto-run: its projection
+    //     is far too expensive to trigger on a scroll-past (and cache-only wouldn't recompute it
+    //     anyway — this just makes the exclusion explicit and cheap).
+    //   - Only entries that haven't run yet this session (no `latestQueryId`); a manual run or a
+    //     prior auto-run already owns the result, and we must not clobber it.
+    //   - Skipped while disconnected (the cache read itself doesn't need the backend, but staying
+    //     consistent with the other execute paths keeps the behaviour predictable).
+    // The executor's `cacheOnly` mode does the actual "hit → serve, miss → no-op" decision; on a hit
+    // its promise resolves to the table and we link the query to the entry, on a miss it resolves to
+    // null and we leave the entry un-run. A per-(script, query-text) guard keeps react-window's
+    // remounts (and the effect re-fires) from re-attempting the same probe.
+    const autoRunAttemptedRef = React.useRef<Set<string>>(new Set());
+    const handleEntryVisible = React.useCallback((fileName: string) => {
+        if (isDisconnected) {
+            return;
+        }
+        const notebook = props.notebook;
+        const entry = notebook.notebookPages[notebook.notebookUserFocus.folderName]?.scripts[fileName];
+        const scriptData = entry != null ? notebook.scripts[entry.scriptId] : undefined;
+        if (scriptData == null) {
+            return;
+        }
+        // Only cache-backed auto-run for vega-lite visualizations; never UMAP, never plain SQL.
+        const vq = scriptData.annotations.visualizeQuery;
+        if (vq == null || vq.renderer !== 'vegalite') {
+            return;
+        }
+        // Already has a result (manual run or earlier auto-run) — leave it be.
+        if (scriptData.latestQueryId != null) {
+            return;
+        }
+        const queryText = getExecutableQueryText(notebook, scriptData);
+        if (queryText.trim().length === 0) {
+            return;
+        }
+        // De-dupe: one probe per (script, resolved query text). An edit changes the text and so is
+        // re-probed; a bare remount is not.
+        const attemptKey = `${scriptData.scriptKey}:${queryText}`;
+        if (autoRunAttemptedRef.current.has(attemptKey)) {
+            return;
+        }
+        autoRunAttemptedRef.current.add(attemptKey);
+
+        const scriptKey = scriptData.scriptKey;
+        const [queryId, execution] = executeQuery(notebook.sessionId, {
+            query: queryText,
+            analyzeResults: true,
+            cacheOnly: true,
+            metadata: {
+                queryType: QueryType.USER_PROVIDED,
+                title: 'Notebook Query',
+                description: null,
+                issuer: 'Visualization Auto-run',
+                userProvided: true,
+            },
+        });
+        // Link the query to the entry only on a cache hit. `cacheOnly` resolves to null on a miss
+        // (nothing was registered), so registering unconditionally would point the entry at a
+        // phantom query.
+        void execution.then(table => {
+            if (table != null) {
+                props.modifyNotebook({ type: REGISTER_QUERY, value: [scriptKey, queryId] });
+            }
+        }).catch(() => {});
+    }, [props.notebook, props.modifyNotebook, isDisconnected, executeQuery]);
 
     // Send the compose editor's text to the agent run as a natural-language prompt.
     // The focused feed entry is the context + default in-place target.
@@ -935,24 +1039,33 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onRerun: handleRerunEntry,
         onAcceptDiff: handleAcceptDiff,
         onRejectDiff: handleRejectDiff,
+        onVisible: handleEntryVisible,
         onHeightMeasured: handleHeightMeasured,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleShowStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleShowStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, handleEntryVisible, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container} data-tauri-drag-region="deep">
             {overviewAvailable && (
-                <button
-                    type="button"
-                    className={styles.view_toggle}
-                    aria-label={viewMode === 'overview' ? 'Show feed' : 'Show overview'}
-                    aria-pressed={viewMode === 'overview'}
-                    title={viewMode === 'overview' ? 'Show feed' : 'Show overview'}
-                    onClick={() => setViewMode(m => m === 'overview' ? 'feed' : 'overview')}
-                >
-                    {viewMode === 'overview' ? <ListUnorderedIcon /> : <AppsIcon />}
-                </button>
+                <div className={styles.view_toggle} style={{ right: composeScrollbarInset + FEED_VIEW_TOGGLE_INSET }}>
+                    <SegmentedControl
+                        aria-label="Feed view"
+                        size={SegmentedControlSize.Small}
+                        onChange={(index) => setViewMode(index === 0 ? 'overview' : 'feed')}
+                    >
+                        <SegmentedControl.IconButton
+                            icon={AppsIcon}
+                            aria-label="Show overview"
+                            selected={viewMode === 'overview'}
+                        />
+                        <SegmentedControl.IconButton
+                            icon={ListUnorderedIcon}
+                            aria-label="Show feed"
+                            selected={viewMode === 'feed'}
+                        />
+                    </SegmentedControl>
+                </div>
             )}
             <div className={styles.feed_list_container} ref={listContainerRef}>
                 {viewMode === 'overview' ? (

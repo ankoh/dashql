@@ -1,4 +1,4 @@
-import { type StorageBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION } from './storage_backend.js';
+import { type StorageBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION, STORAGE_CACHE_ACCESS_SUFFIX } from './storage_backend.js';
 import { type CacheFileStat, type QueryResultCacheStore, evictToFit } from './query_result_cache_eviction.js';
 
 import { exists, mkdir, readDir, readFile, readTextFile, remove, rename, stat, writeFile, writeTextFile } from '@tauri-apps/plugin-fs';
@@ -278,41 +278,87 @@ export class NativeStorageBackend implements StorageBackend {
             await writeTextFile(gitignore, `${STORAGE_CACHE_FOLDER}/\n`);
         }
 
-        // The native readDir entry carries no size/mtime, so eviction has to stat each cache file.
         const cacheDir = await this.abs(STORAGE_CACHE_FOLDER);
-        const store: QueryResultCacheStore = {
-            listCacheFiles: async (): Promise<CacheFileStat[]> => {
-                const entries = await readDir(cacheDir);
-                const stats: CacheFileStat[] = [];
-                for (const entry of entries) {
-                    if (entry.isFile && entry.name.endsWith(STORAGE_CACHE_EXTENSION)) {
-                        const meta = await stat(await join(cacheDir, entry.name));
-                        stats.push({
-                            name: entry.name,
-                            size: meta.size,
-                            mtimeMs: meta.mtime ? meta.mtime.getTime() : 0,
-                        });
-                    }
-                }
-                return stats;
-            },
-            deleteCacheFile: async (_sessionId: string, name: string): Promise<void> => {
-                const path = await join(cacheDir, name);
-                if (await exists(path)) {
-                    await remove(path);
-                }
-            },
-        };
-        await evictToFit(store, sessionId, bytes.byteLength);
+        await evictToFit(this.cacheStoreForDir(cacheDir), sessionId, bytes.byteLength);
 
         const file = await this.abs(`${STORAGE_CACHE_FOLDER}/${hash}${STORAGE_CACHE_EXTENSION}`);
         await writeFile(file, bytes);
+        // Seed the access marker so a freshly written (never-hit) entry has a last-access time.
+        await writeFile(await join(cacheDir, `${hash}${STORAGE_CACHE_EXTENSION}${STORAGE_CACHE_ACCESS_SUFFIX}`), new Uint8Array(0));
+    }
+
+    /// Build the eviction store over the cache directory. The native readDir entry carries no
+    /// size/mtime, so eviction has to `stat()` each file. Pairs each `<hash>.arrow` payload with its
+    /// `<hash>.arrow.last_access` marker (an empty file whose mtime is the last access time), falling
+    /// back to the payload's own mtime when the marker is absent. Marker files are skipped by the
+    /// listing and removed alongside their `.arrow` sibling on delete.
+    ///
+    /// The listing also reaps orphaned markers — a marker whose payload no longer exists. Deletion is
+    /// payload-then-marker, so a crash in between (or any external cache tampering) can strand a
+    /// zero-byte marker; folding the reap into this scan (which runs on every save, before eviction)
+    /// cleans them up with no extra directory walk and no background timer. Orphan reaping is
+    /// best-effort: a failed delete is ignored (the marker is harmless and will be retried next save).
+    private cacheStoreForDir(cacheDir: string): QueryResultCacheStore {
+        return {
+            listCacheFiles: async (): Promise<CacheFileStat[]> => {
+                const entries = await readDir(cacheDir);
+                // First pass: collect marker mtimes keyed by their payload name, and payload stats.
+                const accessMs = new Map<string, number>();
+                const payloads: { name: string; size: number; mtimeMs: number }[] = [];
+                for (const entry of entries) {
+                    if (!entry.isFile) {
+                        continue;
+                    }
+                    if (entry.name.endsWith(STORAGE_CACHE_ACCESS_SUFFIX)) {
+                        const meta = await stat(await join(cacheDir, entry.name));
+                        accessMs.set(entry.name.slice(0, -STORAGE_CACHE_ACCESS_SUFFIX.length), meta.mtime ? meta.mtime.getTime() : 0);
+                    } else if (entry.name.endsWith(STORAGE_CACHE_EXTENSION)) {
+                        const meta = await stat(await join(cacheDir, entry.name));
+                        payloads.push({ name: entry.name, size: meta.size, mtimeMs: meta.mtime ? meta.mtime.getTime() : 0 });
+                    }
+                }
+                // Reap markers whose payload is gone (best-effort).
+                const payloadNames = new Set(payloads.map(p => p.name));
+                for (const payloadName of accessMs.keys()) {
+                    if (!payloadNames.has(payloadName)) {
+                        try {
+                            await remove(await join(cacheDir, `${payloadName}${STORAGE_CACHE_ACCESS_SUFFIX}`));
+                        } catch {
+                            // Ignore: a harmless empty file; retried on the next save.
+                        }
+                    }
+                }
+                return payloads.map(p => ({
+                    ...p,
+                    lastAccessMs: accessMs.get(p.name) ?? p.mtimeMs,
+                }));
+            },
+            deleteCacheFile: async (_sessionId: string, name: string): Promise<void> => {
+                // Drop the payload and its access marker together; tolerate either being gone.
+                for (const entry of [name, `${name}${STORAGE_CACHE_ACCESS_SUFFIX}`]) {
+                    const path = await join(cacheDir, entry);
+                    if (await exists(path)) {
+                        await remove(path);
+                    }
+                }
+            },
+        };
+    }
+
+    async touchQueryResultCacheAccess(_sessionId: string, hash: string): Promise<void> {
+        // Bump only the empty marker's mtime — never the payload — so this stays cheap regardless of
+        // result size and leaves the payload's "cached at" write time intact.
+        const marker = await this.abs(`${STORAGE_CACHE_FOLDER}/${hash}${STORAGE_CACHE_EXTENSION}${STORAGE_CACHE_ACCESS_SUFFIX}`);
+        await writeFile(marker, new Uint8Array(0));
     }
 
     async deleteQueryResultCache(_sessionId: string, hash: string): Promise<void> {
-        const file = await this.abs(`${STORAGE_CACHE_FOLDER}/${hash}${STORAGE_CACHE_EXTENSION}`);
-        if (await exists(file)) {
-            await remove(file);
+        // Remove the payload and its access marker together.
+        for (const suffix of ['', STORAGE_CACHE_ACCESS_SUFFIX]) {
+            const file = await this.abs(`${STORAGE_CACHE_FOLDER}/${hash}${STORAGE_CACHE_EXTENSION}${suffix}`);
+            if (await exists(file)) {
+                await remove(file);
+            }
         }
     }
 
