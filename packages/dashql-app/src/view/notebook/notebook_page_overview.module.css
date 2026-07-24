@@ -4,18 +4,14 @@
 
     --overview_node_bg: white;
     --overview_card_port_bg: hsl(210deg, 12.68%, 84.16%);
-    --overview_card_bg: rgb(255, 255, 255);
     --overview_card_count_bg: rgba(0, 0, 0, 0.05);
-    --overview_node_type_icon_bg: hsl(210deg, 12%, 16%);
-    --overview_node_focus_border_color: hsl(208.5deg 24.69% 71.76%);
+    /* Inner-dot color of a port whose edge is focused (ring stays default). */
     --overview_node_focus_port_color: hsl(208.5deg 24.69% 41.76%);
 
     --overview_default_border_width: 1px;
-    --overview_focus_border_width: 2px;
 
     --overview_port_size_inner: 8px;
     --overview_port_size: calc(var(--overview_port_size_inner) + 2 * var(--overview_default_border_width));
-    --overview_port_size_focused: calc(var(--overview_port_size_inner) + 2 * var(--overview_focus_border_width));
 }
 
 /* ------------------------------------------------------------------------- */
@@ -134,16 +130,11 @@
     transition: border-color ease-out 0.12s;
 }
 
-.card_focused .card_frame {
-    border: var(--overview_focus_border_width) solid var(--overview_node_focus_border_color);
-}
+/* A focused card keeps the default border color and width — focus is signalled by
+   the highlighted edge and the colored port dot, not by a blue card outline. */
 
 .card_header {
-    display: grid;
-    grid-template-columns: 1fr max-content;
-    align-items: center;
-    column-gap: 8px;
-    padding: 4px 6px 4px 8px;
+    padding: 4px 8px;
     font-size: 0.7rem;
     font-weight: 500;
     color: var(--overview_title_fg, inherit);
@@ -162,42 +153,19 @@
     line-height: 1.1;
 }
 
-/* Catalog-style type chip: a small dark rounded badge with a monospace glyph,
-   sitting at the trailing edge of a card header (revived from the catalog node). */
-.node_type_icon_container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.node_type_icon {
-    border-radius: 3px;
-    background-color: var(--overview_node_type_icon_bg);
-    min-width: 20px;
-    height: 12px;
-    padding: 0 3px;
-    box-sizing: border-box;
-    color: white;
-    text-align: center;
-    font-family: 'Roboto Mono';
-    font-size: 0.5rem;
-    font-weight: 500;
-    line-height: 12px;
-}
-
 /* ------------------------------------------------------------------------- */
 /* Page-reference placeholder card (top bar) */
 
 /* Thin single-row card standing in for a referenced other page. Same white
    catalog-entry look as the grid cards (border, radius, ports) but a compact
-   one-line layout: a type chip, the page name, then a reference-count badge.
+   one-line layout: the page name, then a reference-count badge.
    Applied to the inner frame so it overrides the grid card's row template. */
 .page_ref_frame {
     grid-template-rows: none;
-    grid-template-columns: max-content 1fr max-content;
+    grid-template-columns: 1fr max-content;
     align-items: center;
     column-gap: 8px;
-    padding: 0 6px 0 8px;
+    padding: 0 8px;
     font-size: 0.7rem;
 }
 
@@ -311,78 +279,8 @@
     );
 }
 
-.node_port_border_focused {
-    width: var(--overview_port_size_focused);
-    height: var(--overview_port_size_focused);
-    border-radius: calc(var(--overview_port_size_focused) / 2);
-}
-.node_port_border_focused::before {
-    position: absolute;
-    top: var(--overview_focus_border_width);
-    left: var(--overview_focus_border_width);
-    width: calc(var(--overview_port_size_focused) - (var(--overview_focus_border_width) * 2));
-    height: calc(var(--overview_port_size_focused) - (var(--overview_focus_border_width) * 2));
-    content: '';
-    background-color: var(--overview_card_bg);
-    border-radius: 50%;
-    transition: background-color ease-out 0.12s;
-}
-.node_port_border_focused::after {
-    position: absolute;
-    top: calc(var(--overview_port_size_focused) / 4);
-    left: calc(var(--overview_port_size_focused) / 4);
-    width: calc(var(--overview_port_size_focused) / 2);
-    height: calc(var(--overview_port_size_focused) / 2);
-    content: '';
-    border-radius: 50%;
+/* A focused port keeps the default ring (size + border color) and only recolors its
+   inner dot, so it coordinates with the highlighted edge without a blue outline. */
+.node_port_focused::after {
     background-color: var(--overview_node_focus_port_color);
-    transition: background-color ease-out 0.12s;
-}
-.node_port_border_focused.node_port_north {
-    position: absolute;
-    bottom: calc(-1 * var(--overview_port_size_focused) / 2);
-    left: calc(50% - var(--overview_port_size_focused) / 2);
-    background-image: linear-gradient(
-        180deg,
-        transparent 0%,
-        transparent 50%,
-        var(--overview_node_focus_border_color) 50%,
-        var(--overview_node_focus_border_color) 100%
-    );
-}
-.node_port_border_focused.node_port_west {
-    position: absolute;
-    top: calc(50% - var(--overview_port_size_focused) / 2);
-    left: calc(-1 * var(--overview_port_size_focused) / 2);
-    background-image: linear-gradient(
-        270deg,
-        transparent 0%,
-        transparent 50%,
-        var(--overview_node_focus_border_color) 50%,
-        var(--overview_node_focus_border_color) 100%
-    );
-}
-.node_port_border_focused.node_port_east {
-    position: absolute;
-    top: calc(50% - var(--overview_port_size_focused) / 2);
-    right: calc(-1 * var(--overview_port_size_focused) / 2);
-    background-image: linear-gradient(
-        90deg,
-        transparent 0%,
-        transparent 50%,
-        var(--overview_node_focus_border_color) 50%,
-        var(--overview_node_focus_border_color) 100%
-    );
-}
-.node_port_border_focused.node_port_south {
-    position: absolute;
-    top: calc(-1 * var(--overview_port_size_focused) / 2);
-    left: calc(50% - var(--overview_port_size_focused) / 2);
-    background-image: linear-gradient(
-        0deg,
-        transparent 0%,
-        transparent 50%,
-        var(--overview_node_focus_border_color) 50%,
-        var(--overview_node_focus_border_color) 100%
-    );
 }

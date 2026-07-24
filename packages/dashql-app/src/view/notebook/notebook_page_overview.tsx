@@ -76,6 +76,25 @@ export function NotebookPageOverview(props: NotebookPageOverviewProps): React.Re
         if (folderName) modifyNotebook({ type: SELECT_PAGE, value: folderName });
     }, [modifyNotebook, notebook.notebookPages]);
 
+    // Ports on a grid card that a *focused* edge attaches to, so those exact ports render in the
+    // focused style — on *both* ends of a focused edge, not just the focused card. Covers intra-page
+    // edges (both endpoints) and page-reference edges (the grid card they land on).
+    const focusedPortsByScriptId = React.useMemo(() => {
+        const focused = new Map<number, number>();
+        const add = (scriptId: number, port: number) =>
+            focused.set(scriptId, (focused.get(scriptId) ?? 0) | port);
+        for (const edge of layout.edges) {
+            if (!edge.focused) continue;
+            add(edge.fromScriptId, edge.fromPort);
+            add(edge.toScriptId, edge.toPort);
+        }
+        for (const edge of layout.pageRefEdges) {
+            if (!edge.focused) continue;
+            add(edge.toScriptId, edge.toPort);
+        }
+        return focused;
+    }, [layout.edges, layout.pageRefEdges]);
+
     // Cards, sorted by feed order for a stable DOM order.
     const cards = React.useMemo(() => {
         return entries.map(entry => {
@@ -88,13 +107,13 @@ export function NotebookPageOverview(props: NotebookPageOverviewProps): React.Re
                     rect={rect}
                     scriptData={notebook.scripts[entry.scriptId]}
                     ports={layout.portsByScriptId.get(entry.scriptId) ?? 0}
-                    focused={entry.scriptId === focusedScriptId}
+                    focusedPorts={focusedPortsByScriptId.get(entry.scriptId) ?? 0}
                     onFocus={handleFocus}
                     onExpand={handleExpand}
                 />
             );
         });
-    }, [entries, layout, notebook.scripts, sessionId, focusedScriptId, handleFocus, handleExpand]);
+    }, [entries, layout, notebook.scripts, sessionId, focusedPortsByScriptId, handleFocus, handleExpand]);
 
     // Ports on a page-reference card that a *focused* edge attaches to, so they render in
     // the focused style (matching the highlighted edge + the grid card's port on the other end).

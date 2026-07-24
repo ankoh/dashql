@@ -28,9 +28,7 @@ function renderPort(port: NodePort, ports: number, focusedPorts: number): React.
     return (
         <div
             key={port}
-            className={classNames(PORT_PLACEMENT_CLASS[port], {
-                [styles.node_port_border_default]: !focused,
-                [styles.node_port_border_focused]: focused,
+            className={classNames(PORT_PLACEMENT_CLASS[port], styles.node_port_border_default, {
                 [styles.node_port_focused]: focused,
             })}
             data-port={port}
@@ -61,9 +59,6 @@ export function PageRefCard(props: PageRefCardProps): React.ReactElement {
             data-page={rect.pageName}
         >
             <div className={classNames(styles.card_frame, styles.page_ref_frame)}>
-                <div className={styles.node_type_icon_container}>
-                    <span className={styles.node_type_icon}>PG</span>
-                </div>
                 <div className={styles.page_ref_name}>{rect.pageName}</div>
                 <div className={styles.page_ref_badge}>{rect.refCount}</div>
             </div>

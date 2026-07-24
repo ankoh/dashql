@@ -14,7 +14,8 @@ interface OverviewCardProps {
     scriptData: ScriptData | undefined;
     /// Union bitmask of the ports this card has an edge on (NodePort values).
     ports: number;
-    focused: boolean;
+    /// Subset of `ports` whose edge is focused, so those ports render highlighted.
+    focusedPorts: number;
     onFocus: (fileName: string) => void;
     onExpand: (fileName: string) => void;
 }
@@ -29,14 +30,13 @@ const PORT_PLACEMENT_CLASS: Record<NodePort, string> = {
 };
 
 /// Render one circular port element for a side the card has an edge on.
-function renderPort(port: NodePort, ports: number, focused: boolean): React.ReactElement | null {
+function renderPort(port: NodePort, ports: number, focusedPorts: number): React.ReactElement | null {
     if ((ports & port) === 0) return null;
+    const focused = (focusedPorts & port) !== 0;
     return (
         <div
             key={port}
-            className={classNames(PORT_PLACEMENT_CLASS[port], {
-                [styles.node_port_border_default]: !focused,
-                [styles.node_port_border_focused]: focused,
+            className={classNames(PORT_PLACEMENT_CLASS[port], styles.node_port_border_default, {
                 [styles.node_port_focused]: focused,
             })}
             data-port={port}
@@ -49,7 +49,7 @@ function renderPort(port: NodePort, ports: number, focused: boolean): React.Reac
 /// dependency edges attach. Revived from the catalog renderer's node + ports DOM,
 /// but with `ScriptPreview` as the body instead of a plain label.
 export function OverviewCard(props: OverviewCardProps): React.ReactElement {
-    const { rect, scriptData, ports, focused } = props;
+    const { rect, scriptData, ports, focusedPorts } = props;
     const displayName = scriptDisplayName(rect.fileName);
 
     const handlePointerDown = React.useCallback(() => {
@@ -61,7 +61,7 @@ export function OverviewCard(props: OverviewCardProps): React.ReactElement {
 
     return (
         <div
-            className={classNames(styles.card, { [styles.card_focused]: focused })}
+            className={styles.card}
             style={{
                 left: rect.left,
                 top: rect.top,
@@ -75,9 +75,6 @@ export function OverviewCard(props: OverviewCardProps): React.ReactElement {
             <div className={styles.card_frame}>
                 <div className={styles.card_header}>
                     <div className={styles.card_label}>{displayName}</div>
-                    <div className={styles.node_type_icon_container}>
-                        <span className={styles.node_type_icon}>SQL</span>
-                    </div>
                 </div>
                 <div className={styles.card_body}>
                     WIP
@@ -87,10 +84,10 @@ export function OverviewCard(props: OverviewCardProps): React.ReactElement {
                 </div>
             </div>
             <div className={styles.node_ports}>
-                {renderPort(NodePort.North, ports, focused)}
-                {renderPort(NodePort.East, ports, focused)}
-                {renderPort(NodePort.South, ports, focused)}
-                {renderPort(NodePort.West, ports, focused)}
+                {renderPort(NodePort.North, ports, focusedPorts)}
+                {renderPort(NodePort.East, ports, focusedPorts)}
+                {renderPort(NodePort.South, ports, focusedPorts)}
+                {renderPort(NodePort.West, ports, focusedPorts)}
             </div>
         </div>
     );
