@@ -64,21 +64,26 @@ export function getConnectionParamsFromStateDetails(params: ConnectionStateDetai
 /// are preserved so a recipient can be prompted with a prefilled sign-in, but no secret that
 /// would grant access on its own is included. This is always applied when connection info is
 /// shared — sharing raw secrets is never intended.
-export function sanitizeConnectionParamsForSharing(params: ConnectionParams): ConnectionParams {
+///
+/// The login hint (the resolved account username / login) identifies the sharer personally, so
+/// it is only carried when `withLoginHint` is true. When false it is cleared while the rest of
+/// the (non-secret) connection identity is preserved.
+export function sanitizeConnectionParamsForSharing(params: ConnectionParams, withLoginHint: boolean = true): ConnectionParams {
     if ('salesforce' in params && params.salesforce) {
         // Keep instanceUrl, appConsumerKey and the login hint; drop the connected-app secret.
-        return { salesforce: { ...params.salesforce, appConsumerSecret: "" } };
+        return { salesforce: { ...params.salesforce, appConsumerSecret: "", ...(withLoginHint ? {} : { login: "" }) } };
     }
     if ('trino' in params && params.trino) {
         // Keep endpoint, catalog and the basic-auth username; drop the basic-auth secret /
         // access token. OAuth params (client id + urls) carry no secret and are left as-is.
+        // The basic-auth username doubles as the login hint here.
         const trino = params.trino;
         return {
             trino: {
                 ...trino,
                 auth: {
                     ...trino.auth,
-                    ...(trino.auth?.basic ? { basic: { ...trino.auth.basic, secret: "" } } : {}),
+                    ...(trino.auth?.basic ? { basic: { ...trino.auth.basic, secret: "", ...(withLoginHint ? {} : { username: "" }) } } : {}),
                 },
             },
         };
@@ -94,6 +99,19 @@ export function sanitizeConnectionParamsForSharing(params: ConnectionParams): Co
     }
     // Dataless carries no secrets.
     return params;
+}
+
+/// Whether the connection params carry a login hint (the resolved account username / login) that
+/// could be shared. Used to decide if the "share login hint" toggle should be offered at all.
+export function connectionParamsHaveLoginHint(params: ConnectionParams | null): boolean {
+    if (!params) return false;
+    if ('salesforce' in params && params.salesforce) {
+        return !!params.salesforce.login;
+    }
+    if ('trino' in params && params.trino) {
+        return !!params.trino.auth?.basic?.username;
+    }
+    return false;
 }
 
 export function createConnectionParamsSignature(params: ConnectionParams): any {

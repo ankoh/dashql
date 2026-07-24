@@ -74,6 +74,23 @@ describe('encodeNotebookAsZip', () => {
         expect(session.connectionParams.salesforce.appConsumerSecret).toBe('');
     });
 
+    it('drops the login hint but keeps the rest of the salesforce identity when withLoginHint is off', async () => {
+        const sfParams = {
+            salesforce: {
+                hyperProtocol: 'V3_HTTP',
+                instanceUrl: 'https://example.my.salesforce.com',
+                appConsumerKey: 'consumer-key',
+                appConsumerSecret: 'super-secret',
+                login: 'user@example.com',
+            },
+        };
+        const zipBlob = await encodeNotebookAsZip(makeNotebookState('uuid-1'), sfParams, null, true, false);
+        const session = await readSessionData(zipBlob);
+        expect(session.connectionParams.salesforce.appConsumerKey).toBe('consumer-key');
+        expect(session.connectionParams.salesforce.login).toBe('');
+        expect(session.connectionParams.salesforce.appConsumerSecret).toBe('');
+    });
+
     it('drops all connection info to a dataless session when the toggle is off', async () => {
         const sfParams = {
             salesforce: {

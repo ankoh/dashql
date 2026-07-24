@@ -6,10 +6,14 @@ import { ToggleSwitch } from '../foundations/toggle_switch.js';
 export interface NotebookExportSettings {
     withCatalog: boolean;
     withConnectionInfo: boolean;
+    withLoginHint: boolean;
 }
 
 interface Props {
     withCatalog: boolean;
+    // Whether the connection actually has a login hint to share. When false the login-hint toggle
+    // is disabled and forced off — there is nothing to include.
+    withLoginHint: boolean;
     settings: NotebookExportSettings;
     setSettings: (s: NotebookExportSettings) => void;
 }
@@ -26,6 +30,11 @@ export const NotebookExportSettingsView: React.FC<Props> = (props: Props) => {
         props.setSettings({ ...props.settings, withConnectionInfo: !props.settings.withConnectionInfo });
     }, [props.settings, props.setSettings]);
 
+    const toggleLoginHint = React.useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        props.setSettings({ ...props.settings, withLoginHint: !props.settings.withLoginHint });
+    }, [props.settings, props.setSettings]);
+
     return (
         <div className={styles.root}>
             <div className={styles.part_list}>
@@ -38,6 +47,18 @@ export const NotebookExportSettingsView: React.FC<Props> = (props: Props) => {
                         checked={props.settings.withConnectionInfo}
                         onClick={toggleConnectionInfo}
                         aria-labelledby="export-toggle-connection-label"
+                    />
+                </div>
+                <div id="export-toggle-login-hint-label" className={styles.part_name}>
+                    Login Hint
+                </div>
+                <div className={styles.part_toggle}>
+                    <ToggleSwitch
+                        size="medium"
+                        checked={props.withLoginHint && props.settings.withConnectionInfo && props.settings.withLoginHint}
+                        disabled={!props.withLoginHint || !props.settings.withConnectionInfo}
+                        onClick={toggleLoginHint}
+                        aria-labelledby="export-toggle-login-hint-label"
                     />
                 </div>
                 <div id="export-toggle-notebook-label" className={styles.part_name}>

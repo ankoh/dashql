@@ -19,7 +19,10 @@ export async function encodeNotebookAsZip(
     sessionName: string | null = null,
     // When true, include the connection identity (secrets stripped) so a recipient gets a
     // prefilled sign-in. When false, drop it entirely and share a dataless session.
-    withConnectionInfo: boolean = true
+    withConnectionInfo: boolean = true,
+    // When true, carry the login hint (the sharer's resolved account username) in the shared
+    // connection identity. When false, strip it so the link/file doesn't reveal who shared it.
+    withLoginHint: boolean = true
 ): Promise<Blob> {
     // Create session data
     const notebookMetadata: NotebookMetadata = {
@@ -28,7 +31,7 @@ export async function encodeNotebookAsZip(
     };
 
     const sharedConnectionParams = withConnectionInfo
-        ? sanitizeConnectionParamsForSharing(connectionParams)
+        ? sanitizeConnectionParamsForSharing(connectionParams, withLoginHint)
         : { dataless: {} };
 
     const sessionData: SessionData = {
@@ -82,9 +85,10 @@ export async function encodeNotebookAsZipUrl(
     connectionParams: any,
     target: NotebookLinkTarget,
     sessionName: string | null = null,
-    withConnectionInfo: boolean = true
+    withConnectionInfo: boolean = true,
+    withLoginHint: boolean = true
 ): Promise<URL> {
-    const zipBlob = await encodeNotebookAsZip(notebookState, connectionParams, sessionName, withConnectionInfo);
+    const zipBlob = await encodeNotebookAsZip(notebookState, connectionParams, sessionName, withConnectionInfo, withLoginHint);
     const zipBytes = new Uint8Array(await zipBlob.arrayBuffer());
 
     // Wrap the zip in AppEventData - convert to base64 string as required by JSON schema

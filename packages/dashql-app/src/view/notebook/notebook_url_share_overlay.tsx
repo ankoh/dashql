@@ -11,7 +11,7 @@ import { TextInput } from '../foundations/text_input.js';
 import { NotebookExportSettings, NotebookExportSettingsView } from './notebook_export_settings_view.js';
 import { classNames } from '../../utils/classnames.js';
 import { encodeNotebookAsZipUrl, NotebookLinkTarget } from '../../notebook/notebook_export.js';
-import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
+import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { sleep } from '../../utils/sleep.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useRouteContext } from '../../router.js';
@@ -50,6 +50,7 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
     const [settings, setSettings] = React.useState<NotebookExportSettings>({
         withCatalog: false,
         withConnectionInfo: true,
+        withLoginHint: true,
     });
 
     React.useEffect(() => {
@@ -64,7 +65,7 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
             if (notebook != null && connection != null) {
                 const conn = getConnectionParamsFromStateDetails(connection.details);
                 if (conn) {
-                    setupUrl = await encodeNotebookAsZipUrl(notebook, conn, NotebookLinkTarget.WEB, connection.name, settings.withConnectionInfo);
+                    setupUrl = await encodeNotebookAsZipUrl(notebook, conn, NotebookLinkTarget.WEB, connection.name, settings.withConnectionInfo, settings.withLoginHint);
                 }
             }
 
@@ -125,6 +126,11 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
         [state, setState],
     );
 
+    const hasLoginHint = React.useMemo(
+        () => connection != null && connectionParamsHaveLoginHint(getConnectionParamsFromStateDetails(connection.details)),
+        [connection],
+    );
+
     const ButtonIcon = state.copyFinishedAt != null && state.uiResetAt == null ? CheckIcon : PaperclipIcon;
     return (
         <AnchoredOverlay
@@ -152,6 +158,7 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
                 </div>
                 <NotebookExportSettingsView
                     withCatalog={false}
+                    withLoginHint={hasLoginHint}
                     settings={settings}
                     setSettings={setSettings}
                 />

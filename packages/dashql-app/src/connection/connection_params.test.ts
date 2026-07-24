@@ -21,6 +21,25 @@ describe('sanitizeConnectionParamsForSharing', () => {
         expect(params.salesforce!.appConsumerSecret).toBe('super-secret');
     });
 
+    it('clears the salesforce login hint when withLoginHint is false but keeps the rest of the identity', () => {
+        const params: ConnectionParams = {
+            salesforce: {
+                hyperProtocol: 'V3_HTTP',
+                instanceUrl: 'https://example.my.salesforce.com',
+                appConsumerKey: 'consumer-key',
+                appConsumerSecret: 'super-secret',
+                login: 'user@example.com',
+            },
+        };
+        const sanitized = sanitizeConnectionParamsForSharing(params, false) as any;
+        expect(sanitized.salesforce.login).toBe('');
+        expect(sanitized.salesforce.appConsumerSecret).toBe('');
+        expect(sanitized.salesforce.appConsumerKey).toBe('consumer-key');
+        expect(sanitized.salesforce.instanceUrl).toBe('https://example.my.salesforce.com');
+        // The original must not be mutated.
+        expect(params.salesforce!.login).toBe('user@example.com');
+    });
+
     it('strips the trino basic-auth secret but keeps the username', () => {
         const params: ConnectionParams = {
             trino: {
@@ -34,6 +53,21 @@ describe('sanitizeConnectionParamsForSharing', () => {
         expect(sanitized.trino.auth.basic.username).toBe('alice');
         expect(sanitized.trino.endpoint).toBe('https://trino.example.com');
         expect(params.trino!.auth.basic!.secret).toBe('password');
+    });
+
+    it('clears the trino basic-auth username when withLoginHint is false', () => {
+        const params: ConnectionParams = {
+            trino: {
+                endpoint: 'https://trino.example.com',
+                catalogName: 'tpch',
+                auth: { authType: 'AUTH_BASIC', basic: { username: 'alice', secret: 'password' } },
+            },
+        };
+        const sanitized = sanitizeConnectionParamsForSharing(params, false) as any;
+        expect(sanitized.trino.auth.basic.username).toBe('');
+        expect(sanitized.trino.auth.basic.secret).toBe('');
+        expect(sanitized.trino.endpoint).toBe('https://trino.example.com');
+        expect(params.trino!.auth.basic!.username).toBe('alice');
     });
 
     it('clears hyper TLS file paths but keeps the endpoint and protocol', () => {

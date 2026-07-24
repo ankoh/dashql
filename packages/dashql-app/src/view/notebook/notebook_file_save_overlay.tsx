@@ -10,16 +10,17 @@ import { NotebookExportSettings, NotebookExportSettingsView } from './notebook_e
 import { NotebookState } from '../../notebook/notebook_state.js';
 import { classNames } from '../../utils/classnames.js';
 import { encodeNotebookAsZip } from '../../notebook/notebook_export.js';
+import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { formatBytes } from '../../utils/format.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_provider.js';
 import { IconButton } from '../../view/foundations/button.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 
-async function packAndCompressFile(conn: ConnectionState, notebook: NotebookState, withConnectionInfo: boolean): Promise<Uint8Array> {
+async function packAndCompressFile(conn: ConnectionState, notebook: NotebookState, withConnectionInfo: boolean, withLoginHint: boolean): Promise<Uint8Array> {
     const connectionParams = await import('../../connection/connection_params.js').then(m =>
         m.getConnectionParamsFromStateDetails(conn.details)
     );
-    const zipBlob = await encodeNotebookAsZip(notebook, connectionParams, conn.name, withConnectionInfo);
+    const zipBlob = await encodeNotebookAsZip(notebook, connectionParams, conn.name, withConnectionInfo, withLoginHint);
     const arrayBuffer = await zipBlob.arrayBuffer();
     return new Uint8Array(arrayBuffer);
 }
@@ -41,6 +42,7 @@ export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     const [settings, setSettings] = React.useState<NotebookExportSettings>({
         withCatalog: true,
         withConnectionInfo: true,
+        withLoginHint: true,
     });
 
     const [fileBytes, setFileBytes] = React.useState<Uint8Array>(new Uint8Array());
@@ -55,7 +57,7 @@ export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
         }
         const cancellation = new AbortController();
         const pack = async () => {
-            const fileBytes = await packAndCompressFile(conn, notebook, settings.withConnectionInfo);
+            const fileBytes = await packAndCompressFile(conn, notebook, settings.withConnectionInfo, settings.withLoginHint);
             if (!cancellation.signal.aborted) {
                 setFileBytes(fileBytes);
             }
@@ -63,6 +65,11 @@ export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
         pack();
         return () => cancellation.abort();
     }, [settings, props.conn, props.notebook, props.isOpen]);
+
+    const hasLoginHint = React.useMemo(
+        () => props.conn != null && connectionParamsHaveLoginHint(getConnectionParamsFromStateDetails(props.conn.details)),
+        [props.conn],
+    );
 
     const downloadFile = React.useCallback(async () => {
         await fileDownloader.downloadBufferAsFile(fileBytes, fileName);
@@ -101,6 +108,7 @@ export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
                 </div>
                 <NotebookExportSettingsView
                     withCatalog={true}
+                    withLoginHint={hasLoginHint}
                     settings={settings}
                     setSettings={setSettings}
                 />
