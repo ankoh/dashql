@@ -12,7 +12,7 @@ import { PlatformType, usePlatformType } from '../platform/platform_type.js';
 import { DASHQL_VERSION } from '../globals.js';
 import { VersionCheckIndicator } from './version_viewer.js';
 import { VersionInfoOverlay } from './version_viewer.js';
-import { encodeNotebookAsZipUrl, NotebookLinkTarget } from '../notebook/notebook_export.js';
+import { exportSessionAsUrl, SessionLinkTarget } from '../platform/storage/session_export.js';
 import { getConnectionParamsFromStateDetails } from '../connection/connection_params.js';
 import { useConnectionState } from '../connection/connection_registry.js';
 import { useStorageReader } from '../platform/storage/storage_provider.js';
@@ -199,7 +199,7 @@ export const NavBar = (): React.ReactElement => {
 
     const isBrowser = platform === PlatformType.WEB;
     const isMac = platform === PlatformType.MACOS;
-    const setupLinkTarget = isBrowser ? NotebookLinkTarget.NATIVE : NotebookLinkTarget.WEB;
+    const setupLinkTarget = isBrowser ? SessionLinkTarget.NATIVE : SessionLinkTarget.WEB;
 
     const [setupUrl, setSetupUrl] = React.useState<URL | null>(null);
     React.useEffect(() => {
@@ -217,7 +217,7 @@ export const NavBar = (): React.ReactElement => {
                 return;
             }
 
-            const url = await encodeNotebookAsZipUrl(storageReader.backend, notebook.sessionId, connParams, setupLinkTarget);
+            const url = await exportSessionAsUrl(storageReader.backend, notebook.sessionId, connParams, setupLinkTarget);
             if (!cancelled) {
                 setSetupUrl(url);
             }

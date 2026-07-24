@@ -9,7 +9,7 @@ import { ConnectionState } from '../../connection/connection_state.js';
 import { NotebookExportSettings, NotebookExportSettingsView } from './notebook_export_settings_view.js';
 import { NotebookState } from '../../notebook/notebook_state.js';
 import { classNames } from '../../utils/classnames.js';
-import { encodeNotebookAsZip } from '../../notebook/notebook_export.js';
+import { exportSessionAsSharedZip } from '../../platform/storage/session_export.js';
 import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { formatBytes } from '../../utils/format.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_provider.js';
@@ -22,7 +22,7 @@ async function packAndCompressFile(backend: StorageBackend, conn: ConnectionStat
     const connectionParams = await import('../../connection/connection_params.js').then(m =>
         m.getConnectionParamsFromStateDetails(conn.details)
     );
-    const zipBlob = await encodeNotebookAsZip(backend, notebook.sessionId, connectionParams, withConnectionInfo, withLoginHint);
+    const zipBlob = await exportSessionAsSharedZip(backend, notebook.sessionId, connectionParams, withConnectionInfo, withLoginHint);
     const arrayBuffer = await zipBlob.arrayBuffer();
     return new Uint8Array(arrayBuffer);
 }

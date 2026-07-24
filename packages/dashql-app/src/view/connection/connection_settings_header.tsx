@@ -16,7 +16,7 @@ import { CopyToClipboardButton } from '../../utils/clipboard.js';
 import { IndicatorStatus, StatusIndicator } from '../../view/foundations/status_indicator.js';
 import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
 import { NotebookState } from '../../notebook/notebook_state.js';
-import { encodeNotebookAsZipUrl, NotebookLinkTarget } from '../../notebook/notebook_export.js';
+import { exportSessionAsUrl, SessionLinkTarget } from '../../platform/storage/session_export.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
@@ -170,8 +170,8 @@ export function ConnectionHeader(props: Props): React.ReactElement {
             }
 
             const [urlWeb, urlNative] = await Promise.all([
-                encodeNotebookAsZipUrl(storage.backend, props.notebook.sessionId, connParams, NotebookLinkTarget.WEB),
-                encodeNotebookAsZipUrl(storage.backend, props.notebook.sessionId, connParams, NotebookLinkTarget.NATIVE)
+                exportSessionAsUrl(storage.backend, props.notebook.sessionId, connParams, SessionLinkTarget.WEB),
+                exportSessionAsUrl(storage.backend, props.notebook.sessionId, connParams, SessionLinkTarget.NATIVE)
             ]);
 
             if (!cancelled) {

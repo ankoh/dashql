@@ -10,7 +10,7 @@ import { IconButton } from '../../view/foundations/button.js';
 import { TextInput } from '../foundations/text_input.js';
 import { NotebookExportSettings, NotebookExportSettingsView } from './notebook_export_settings_view.js';
 import { classNames } from '../../utils/classnames.js';
-import { encodeNotebookAsZipUrl, NotebookLinkTarget } from '../../notebook/notebook_export.js';
+import { exportSessionAsUrl, SessionLinkTarget } from '../../platform/storage/session_export.js';
 import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { sleep } from '../../utils/sleep.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
@@ -67,7 +67,7 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
             if (notebook != null && connection != null) {
                 const conn = getConnectionParamsFromStateDetails(connection.details);
                 if (conn) {
-                    setupUrl = await encodeNotebookAsZipUrl(storage.backend, notebook.sessionId, conn, NotebookLinkTarget.WEB, settings.withConnectionInfo, settings.withLoginHint);
+                    setupUrl = await exportSessionAsUrl(storage.backend, notebook.sessionId, conn, SessionLinkTarget.WEB, settings.withConnectionInfo, settings.withLoginHint);
                 }
             }
 
