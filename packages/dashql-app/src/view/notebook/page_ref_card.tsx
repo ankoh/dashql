@@ -9,6 +9,8 @@ interface PageRefCardProps {
     rect: PageRefRect;
     /// Union bitmask of the ports this card has an edge on (NodePort values).
     ports: number;
+    /// Subset of `ports` whose edge is focused, so those ports render highlighted.
+    focusedPorts: number;
     onSelect: (pageName: string) => void;
 }
 
@@ -20,12 +22,17 @@ const PORT_PLACEMENT_CLASS: Record<NodePort, string> = {
     [NodePort.West]: styles.node_port_west,
 };
 
-function renderPort(port: NodePort, ports: number): React.ReactElement | null {
+function renderPort(port: NodePort, ports: number, focusedPorts: number): React.ReactElement | null {
     if ((ports & port) === 0) return null;
+    const focused = (focusedPorts & port) !== 0;
     return (
         <div
             key={port}
-            className={classNames(PORT_PLACEMENT_CLASS[port], styles.node_port_border_default)}
+            className={classNames(PORT_PLACEMENT_CLASS[port], {
+                [styles.node_port_border_default]: !focused,
+                [styles.node_port_border_focused]: focused,
+                [styles.node_port_focused]: focused,
+            })}
             data-port={port}
         />
     );
@@ -35,7 +42,7 @@ function renderPort(port: NodePort, ports: number): React.ReactElement | null {
 /// the current page reference. Slimmer than a grid card: just the page name and a
 /// count badge of how many entries point at it. Clicking navigates to that page.
 export function PageRefCard(props: PageRefCardProps): React.ReactElement {
-    const { rect, ports } = props;
+    const { rect, ports, focusedPorts } = props;
 
     const handlePointerDown = React.useCallback(() => {
         props.onSelect(rect.pageName);
@@ -43,7 +50,7 @@ export function PageRefCard(props: PageRefCardProps): React.ReactElement {
 
     return (
         <div
-            className={classNames(styles.card, styles.page_ref_card)}
+            className={styles.card}
             style={{
                 left: rect.left,
                 top: rect.top,
@@ -53,16 +60,18 @@ export function PageRefCard(props: PageRefCardProps): React.ReactElement {
             onPointerDown={handlePointerDown}
             data-page={rect.pageName}
         >
-            <div className={styles.node_type_icon_container}>
-                <span className={styles.node_type_icon}>PG</span>
+            <div className={classNames(styles.card_frame, styles.page_ref_frame)}>
+                <div className={styles.node_type_icon_container}>
+                    <span className={styles.node_type_icon}>PG</span>
+                </div>
+                <div className={styles.page_ref_name}>{rect.pageName}</div>
+                <div className={styles.page_ref_badge}>{rect.refCount}</div>
             </div>
-            <div className={styles.page_ref_name}>{rect.pageName}</div>
-            <div className={styles.page_ref_badge}>{rect.refCount}</div>
             <div className={styles.node_ports}>
-                {renderPort(NodePort.North, ports)}
-                {renderPort(NodePort.East, ports)}
-                {renderPort(NodePort.South, ports)}
-                {renderPort(NodePort.West, ports)}
+                {renderPort(NodePort.North, ports, focusedPorts)}
+                {renderPort(NodePort.East, ports, focusedPorts)}
+                {renderPort(NodePort.South, ports, focusedPorts)}
+                {renderPort(NodePort.West, ports, focusedPorts)}
             </div>
         </div>
     );

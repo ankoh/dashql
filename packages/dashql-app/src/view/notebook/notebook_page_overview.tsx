@@ -96,6 +96,17 @@ export function NotebookPageOverview(props: NotebookPageOverviewProps): React.Re
         });
     }, [entries, layout, notebook.scripts, sessionId, focusedScriptId, handleFocus, handleExpand]);
 
+    // Ports on a page-reference card that a *focused* edge attaches to, so they render in
+    // the focused style (matching the highlighted edge + the grid card's port on the other end).
+    const focusedPortsByPageName = React.useMemo(() => {
+        const focused = new Map<string, number>();
+        for (const edge of layout.pageRefEdges) {
+            if (!edge.focused) continue;
+            focused.set(edge.fromPageName, (focused.get(edge.fromPageName) ?? 0) | edge.fromPort);
+        }
+        return focused;
+    }, [layout.pageRefEdges]);
+
     // Placeholder cards for referenced other pages, in the bar above the grid.
     const pageRefCards = React.useMemo(() => {
         return layout.pageRefRects.map(rect => (
@@ -103,10 +114,11 @@ export function NotebookPageOverview(props: NotebookPageOverviewProps): React.Re
                 key={`page:${rect.pageName}`}
                 rect={rect}
                 ports={layout.portsByPageName.get(rect.pageName) ?? 0}
+                focusedPorts={focusedPortsByPageName.get(rect.pageName) ?? 0}
                 onSelect={handleSelectPage}
             />
         ));
-    }, [layout.pageRefRects, layout.portsByPageName, handleSelectPage]);
+    }, [layout.pageRefRects, layout.portsByPageName, focusedPortsByPageName, handleSelectPage]);
 
     // Edges: normal first, focused last so they render on top. Page-reference edges use a distinct
     // "leaves this page" style and render beneath the intra-page edges.

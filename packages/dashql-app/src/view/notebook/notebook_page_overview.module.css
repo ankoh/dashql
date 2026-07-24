@@ -110,8 +110,20 @@
 /* ------------------------------------------------------------------------- */
 /* Card (one per feed entry) */
 
+/* Outer positioning wrapper. Deliberately *not* clipped so the ports, which sit
+   half-outside the card edges, are not cut off. Holds the clipped frame and the
+   port overlay as siblings. */
 .card {
     position: absolute;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+/* Inner frame: the visible card surface. Clips its rounded corners + content
+   (header border, body overflow) without affecting the ports on the wrapper. */
+.card_frame {
+    width: 100%;
+    height: 100%;
     box-sizing: border-box;
     border-radius: 6px;
     border: var(--overview_default_border_width) solid var(--border_color_primary);
@@ -119,11 +131,10 @@
     overflow: hidden;
     display: grid;
     grid-template-rows: max-content 1fr;
-    cursor: pointer;
     transition: border-color ease-out 0.12s;
 }
 
-.card_focused {
+.card_focused .card_frame {
     border: var(--overview_focus_border_width) solid var(--overview_node_focus_border_color);
 }
 
@@ -179,9 +190,10 @@
 
 /* Thin single-row card standing in for a referenced other page. Same white
    catalog-entry look as the grid cards (border, radius, ports) but a compact
-   one-line layout: a type chip, the page name, then a reference-count badge. */
-.page_ref_card {
-    display: grid;
+   one-line layout: a type chip, the page name, then a reference-count badge.
+   Applied to the inner frame so it overrides the grid card's row template. */
+.page_ref_frame {
+    grid-template-rows: none;
     grid-template-columns: max-content 1fr max-content;
     align-items: center;
     column-gap: 8px;
