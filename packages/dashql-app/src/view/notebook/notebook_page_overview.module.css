@@ -43,6 +43,9 @@
 
 .board {
     position: relative;
+    /* Centered horizontally: the layout reserves clearance on both sides for the floating view
+       toggle, so the grid width stays within the container and centering keeps both edges clear. */
+    margin: 0 auto;
 }
 
 /* The node and edge layers share this container so their padded coordinate

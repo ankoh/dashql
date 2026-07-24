@@ -66,8 +66,7 @@ const FEED_BOTTOM_FADE_HEIGHT = 24;
 /// Minimum board width (px) at which the zoomed-out overview grid is offered. Roughly matches the
 /// 1350px window-width CSS breakpoint that hides the toggle, once the desktop sidebar is subtracted.
 const OVERVIEW_MIN_BOARD_WIDTH = 1050;
-/// Distance (px) the view toggle is inset from the right edge of the feed, on top of any scrollbar
-/// width. Keeps the segmented control clear of the scrollbar so it doesn't underflow it.
+/// Distance (px) the view toggle is inset from the left edge of the feed.
 const FEED_VIEW_TOGGLE_INSET = 16;
 
 /// Resolve the output columns (result schema) a script produced on its most recent execution, for
@@ -1048,21 +1047,21 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     return (
         <div className={styles.feed_body_container} data-tauri-drag-region="deep">
             {overviewAvailable && (
-                <div className={styles.view_toggle} style={{ right: composeScrollbarInset + FEED_VIEW_TOGGLE_INSET }}>
+                <div className={styles.view_toggle} style={{ left: FEED_VIEW_TOGGLE_INSET }}>
                     <SegmentedControl
                         aria-label="Feed view"
                         size={SegmentedControlSize.Small}
-                        onChange={(index) => setViewMode(index === 0 ? 'overview' : 'feed')}
+                        onChange={(index) => setViewMode(index === 0 ? 'feed' : 'overview')}
                     >
-                        <SegmentedControl.IconButton
-                            icon={AppsIcon}
-                            aria-label="Show overview"
-                            selected={viewMode === 'overview'}
-                        />
                         <SegmentedControl.IconButton
                             icon={ListUnorderedIcon}
                             aria-label="Show feed"
                             selected={viewMode === 'feed'}
+                        />
+                        <SegmentedControl.IconButton
+                            icon={AppsIcon}
+                            aria-label="Show overview"
+                            selected={viewMode === 'overview'}
                         />
                     </SegmentedControl>
                 </div>

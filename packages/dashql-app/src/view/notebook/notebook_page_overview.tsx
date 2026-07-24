@@ -17,6 +17,12 @@ export interface NotebookPageOverviewProps {
     showDetails: (initialTab?: DetailsTabKey) => void;
 }
 
+/// Horizontal space (px) reserved on each side of the grid for the feed view toggle that floats in
+/// the top-left corner. The board is centered and its width capped so the leftmost column never
+/// slides underneath the toggle. Symmetric so centering keeps both edges clear. Covers the toggle
+/// inset (16px) plus the small segmented control (~66px) with a little breathing room.
+const VIEW_TOGGLE_CLEARANCE = 96;
+
 /// Zoomed-out map of a single notebook page: each feed entry is a fixed-size card
 /// laid out in a deterministic row-major grid, with dependency edges drawn
 /// between cards. Reuses the revived catalog NodeLayer/EdgeLayer + ports. All
@@ -28,7 +34,9 @@ export function NotebookPageOverview(props: NotebookPageOverviewProps): React.Re
 
     const containerRef = React.useRef<HTMLDivElement>(null);
     const containerSize = observeSize(containerRef);
-    const availableWidth = containerSize?.width ?? 0;
+    // Reserve clearance on both sides for the floating view toggle so the centered grid never slides
+    // underneath it. The grid wraps within (and is later capped to) this reduced width.
+    const availableWidth = Math.max(0, (containerSize?.width ?? 0) - 2 * VIEW_TOGGLE_CLEARANCE);
 
     const page = getSelectedPage(notebook);
     const entries = getSelectedPageEntries(notebook);
