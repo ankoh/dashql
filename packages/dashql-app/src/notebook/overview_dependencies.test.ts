@@ -19,42 +19,57 @@ afterEach(async () => {
     dql!.resetUnsafe();
 });
 
-/// Build a page + fully-analyzed script map for a set of feed entries. Each entry
-/// is registered in a shared catalog under its notebook path (clean folder/file),
-/// mirroring analyzeNotebookScript, so cross-script references resolve.
+interface BuiltPage {
+    folderName: string;
+    files: { fileName: string; text: string }[];
+}
+
+/// Build one or more pages that share a single catalog, so cross-page references resolve. Returns
+/// the per-page {page, entries} plus the shared script map. Each script is registered under its
+/// clean notebook path (folder/file), exactly as analyzeNotebookScript does.
+function buildPages(pages: BuiltPage[]): {
+    scripts: ScriptDataMap;
+    pages: { page: NotebookPage; entries: NotebookPageScript[] }[];
+} {
+    const catalog = dql!.createCatalog();
+    const scripts: ScriptDataMap = {};
+    const built: { page: NotebookPage; entries: NotebookPageScript[] }[] = [];
+
+    for (const { folderName, files } of pages) {
+        const pageScripts: { [fileName: string]: NotebookPageScript } = {};
+        const entries: NotebookPageScript[] = [];
+        for (const { fileName, text } of files) {
+            const script = dql!.createScript(catalog);
+            const scriptKey = script.getCatalogEntryId();
+            script.insertTextAt(0, text);
+            script.setNotebookPath(`${normalizePageName(folderName)}/${scriptDisplayName(fileName)}`);
+            const buffers = analyzeScript(script);
+            catalog.loadScript(script, scriptKey);
+
+            scripts[scriptKey] = {
+                scriptKey,
+                scriptAnalysis: { buffers, outdated: false },
+                fileName,
+                folderName,
+            } as unknown as ScriptData;
+
+            const pageScript = createPageScript(scriptKey, fileName);
+            pageScripts[fileName] = pageScript;
+            entries.push(pageScript);
+        }
+        built.push({ page: { folderName, scripts: pageScripts }, entries });
+    }
+
+    return { scripts, pages: built };
+}
+
+/// Convenience wrapper for the single-page tests.
 function buildPage(
     folderName: string,
     files: { fileName: string; text: string }[],
 ): { page: NotebookPage; scripts: ScriptDataMap; entries: NotebookPageScript[] } {
-    const catalog = dql!.createCatalog();
-    const scripts: ScriptDataMap = {};
-    const pageScripts: { [fileName: string]: NotebookPageScript } = {};
-    const entries: NotebookPageScript[] = [];
-
-    files.forEach(({ fileName, text }, i) => {
-        const script = dql!.createScript(catalog);
-        const scriptKey = script.getCatalogEntryId();
-        script.insertTextAt(0, text);
-        // Register under the clean display path, exactly as analyzeNotebookScript does.
-        script.setNotebookPath(`${normalizePageName(folderName)}/${scriptDisplayName(fileName)}`);
-        const buffers = analyzeScript(script);
-        catalog.loadScript(script, scriptKey);
-
-        const scriptData = {
-            scriptKey,
-            scriptAnalysis: { buffers, outdated: false },
-            fileName,
-            folderName,
-        } as unknown as ScriptData;
-        scripts[scriptKey] = scriptData;
-
-        const pageScript = createPageScript(scriptKey, fileName);
-        pageScripts[fileName] = pageScript;
-        entries.push(pageScript);
-        void i;
-    });
-
-    return { page: { folderName, scripts: pageScripts }, scripts, entries };
+    const { scripts, pages } = buildPages([{ folderName, files }]);
+    return { page: pages[0].page, scripts, entries: pages[0].entries };
 }
 
 describe('computePageDependencies', () => {
@@ -64,12 +79,13 @@ describe('computePageDependencies', () => {
             { fileName: '2_derived.sql', text: 'select * from dashql.notebook."main/base"' },
         ]);
 
-        const deps = computePageDependencies(entries, scripts, page);
-        expect(deps).toHaveLength(1);
-        expect(deps[0].fromFeedIndex).toBe(1); // the derived (dependent) entry
-        expect(deps[0].toFeedIndex).toBe(0); // the base (source) entry
-        expect(deps[0].from).toBe(entries[1].scriptId);
-        expect(deps[0].to).toBe(entries[0].scriptId);
+        const { intra, crossPage } = computePageDependencies(entries, scripts, page);
+        expect(intra).toHaveLength(1);
+        expect(intra[0].fromFeedIndex).toBe(1); // the derived (dependent) entry
+        expect(intra[0].toFeedIndex).toBe(0); // the base (source) entry
+        expect(intra[0].from).toBe(entries[1].scriptId);
+        expect(intra[0].to).toBe(entries[0].scriptId);
+        expect(crossPage).toHaveLength(0);
     });
 
     it('finds a VISUALIZE script reference', () => {
@@ -78,8 +94,8 @@ describe('computePageDependencies', () => {
             { fileName: '2_chart.sql', text: 'VISUALIZE dashql.notebook."main/base" USING vegalite (mark => bar)' },
         ]);
 
-        const deps = computePageDependencies(entries, scripts, page);
-        expect(deps.some(d => d.from === entries[1].scriptId && d.to === entries[0].scriptId)).toBe(true);
+        const { intra } = computePageDependencies(entries, scripts, page);
+        expect(intra.some(d => d.from === entries[1].scriptId && d.to === entries[0].scriptId)).toBe(true);
     });
 
     it('drops forward references (only backward edges are kept)', () => {
@@ -90,18 +106,58 @@ describe('computePageDependencies', () => {
             { fileName: '2_b.sql', text: 'select 1 as x' },
         ]);
 
-        const deps = computePageDependencies(entries, scripts, page);
-        expect(deps).toHaveLength(0);
+        const { intra } = computePageDependencies(entries, scripts, page);
+        expect(intra).toHaveLength(0);
     });
 
-    it('ignores references that do not resolve within the page', () => {
+    it('attributes a resolved reference into another page as a cross-page edge', () => {
+        const { scripts, pages } = buildPages([
+            { folderName: '1_main', files: [{ fileName: '1_base.sql', text: 'select 1 as x' }] },
+            { folderName: '2_sales', files: [{ fileName: '1_derived.sql', text: 'select * from dashql.notebook."main/base"' }] },
+        ]);
+        const sales = pages[1];
+
+        const { intra, crossPage } = computePageDependencies(sales.entries, scripts, sales.page);
+        expect(intra).toHaveLength(0);
+        expect(crossPage).toHaveLength(1);
+        expect(crossPage[0].from).toBe(sales.entries[0].scriptId);
+        expect(crossPage[0].fromFeedIndex).toBe(0);
+        expect(crossPage[0].targetPageName).toBe('main'); // clean name, prefix stripped
+    });
+
+    it('collapses multiple references into one page to a single cross-page edge', () => {
+        const { scripts, pages } = buildPages([
+            {
+                folderName: '1_main',
+                files: [
+                    { fileName: '1_a.sql', text: 'select 1 as x' },
+                    { fileName: '2_b.sql', text: 'select 2 as y' },
+                ],
+            },
+            {
+                folderName: '2_sales',
+                files: [{
+                    fileName: '1_join.sql',
+                    text: 'select * from dashql.notebook."main/a" join dashql.notebook."main/b" using (z)',
+                }],
+            },
+        ]);
+        const sales = pages[1];
+
+        const { crossPage } = computePageDependencies(sales.entries, scripts, sales.page);
+        expect(crossPage).toHaveLength(1);
+        expect(crossPage[0].targetPageName).toBe('main');
+    });
+
+    it('ignores unresolved references (no matching script on any page)', () => {
         const { page, scripts, entries } = buildPage('1_main', [
             { fileName: '1_base.sql', text: 'select 1 as x' },
-            { fileName: '2_derived.sql', text: 'select * from dashql.notebook."other_page/base"' },
+            { fileName: '2_derived.sql', text: 'select * from dashql.notebook."ghost/base"' },
         ]);
 
-        const deps = computePageDependencies(entries, scripts, page);
-        expect(deps).toHaveLength(0);
+        const { intra, crossPage } = computePageDependencies(entries, scripts, page);
+        expect(intra).toHaveLength(0);
+        expect(crossPage).toHaveLength(0);
     });
 
     it('contributes no edges for entries without an analyzed buffer', () => {
@@ -115,7 +171,8 @@ describe('computePageDependencies', () => {
             [entries[1].scriptId]: { scriptAnalysis: { buffers: { analyzed: null, parsed: null, destroy: () => {} }, outdated: false } } as unknown as ScriptData,
         };
 
-        const deps = computePageDependencies(entries, bareScripts, page);
-        expect(deps).toHaveLength(0);
+        const { intra, crossPage } = computePageDependencies(entries, bareScripts, page);
+        expect(intra).toHaveLength(0);
+        expect(crossPage).toHaveLength(0);
     });
 });

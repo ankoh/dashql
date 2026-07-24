@@ -1,14 +1,16 @@
 import * as React from 'react';
 import * as styles from './notebook_page_overview.module.css';
 
-import { getSelectedPage, getSelectedPageEntries, NotebookState, SELECT_ENTRY } from '../../notebook/notebook_state.js';
+import { getSelectedPage, getSelectedPageEntries, getSortedFolderNames, NotebookState, SELECT_ENTRY, SELECT_PAGE } from '../../notebook/notebook_state.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { computePageDependencies } from '../../notebook/overview_dependencies.js';
 import { DEFAULT_OVERVIEW_LAYOUT, layoutOverview } from '../../notebook/overview_layout.js';
+import { normalizePageName } from '../../notebook/notebook_types.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { EdgeLayer } from './edge_layer.js';
 import { NodeLayer } from './node_layer.js';
 import { OverviewCard } from './overview_card.js';
+import { PageRefCard } from './page_ref_card.js';
 import { TabKey as DetailsTabKey } from './notebook_script_details.js';
 
 export interface NotebookPageOverviewProps {
@@ -52,7 +54,7 @@ export function NotebookPageOverview(props: NotebookPageOverviewProps): React.Re
     // any of their analyzed buffers change. Keyed on the scripts map so a
     // re-analysis (fresh buffers) refreshes the edges.
     const dependencies = React.useMemo(() => {
-        if (!page) return [];
+        if (!page) return { intra: [], crossPage: [] };
         return computePageDependencies(entries, notebook.scripts, page);
     }, [entries, notebook.scripts, page]);
 
@@ -67,6 +69,12 @@ export function NotebookPageOverview(props: NotebookPageOverviewProps): React.Re
         modifyNotebook({ type: SELECT_ENTRY, value: fileName });
         props.showDetails();
     }, [modifyNotebook, props.showDetails]);
+    // Placeholder page cards carry the *clean* page name; resolve it to the owning folder (the tab
+    // key) at click time so no scriptId→folder index is needed. SELECT_PAGE no-ops on a miss.
+    const handleSelectPage = React.useCallback((pageName: string) => {
+        const folderName = getSortedFolderNames(notebook.notebookPages).find(f => normalizePageName(f) === pageName);
+        if (folderName) modifyNotebook({ type: SELECT_PAGE, value: folderName });
+    }, [modifyNotebook, notebook.notebookPages]);
 
     // Cards, sorted by feed order for a stable DOM order.
     const cards = React.useMemo(() => {
@@ -88,10 +96,34 @@ export function NotebookPageOverview(props: NotebookPageOverviewProps): React.Re
         });
     }, [entries, layout, notebook.scripts, sessionId, focusedScriptId, handleFocus, handleExpand]);
 
-    // Edges: normal first, focused last so they render on top.
+    // Placeholder cards for referenced other pages, in the bar above the grid.
+    const pageRefCards = React.useMemo(() => {
+        return layout.pageRefRects.map(rect => (
+            <PageRefCard
+                key={`page:${rect.pageName}`}
+                rect={rect}
+                ports={layout.portsByPageName.get(rect.pageName) ?? 0}
+                onSelect={handleSelectPage}
+            />
+        ));
+    }, [layout.pageRefRects, layout.portsByPageName, handleSelectPage]);
+
+    // Edges: normal first, focused last so they render on top. Page-reference edges use a distinct
+    // "leaves this page" style and render beneath the intra-page edges.
     const edgePaths = React.useMemo(() => {
         const normal: React.ReactElement[] = [];
         const focused: React.ReactElement[] = [];
+        layout.pageRefEdges.forEach((edge, i) => {
+            const el = (
+                <path
+                    key={`pageedge:${edge.fromPageName}-${edge.toScriptId}-${i}`}
+                    className={edge.focused ? styles.page_ref_edge_path_focused : styles.page_ref_edge_path}
+                    d={edge.path}
+                    data-edge={`${edge.fromPageName}-${edge.toScriptId}`}
+                />
+            );
+            (edge.focused ? focused : normal).push(el);
+        });
         layout.edges.forEach((edge, i) => {
             const el = (
                 <path
@@ -104,7 +136,7 @@ export function NotebookPageOverview(props: NotebookPageOverviewProps): React.Re
             (edge.focused ? focused : normal).push(el);
         });
         return [...normal, ...focused];
-    }, [layout.edges]);
+    }, [layout.edges, layout.pageRefEdges]);
 
     return (
         <div ref={containerRef} className={styles.board_container}>
@@ -127,7 +159,7 @@ export function NotebookPageOverview(props: NotebookPageOverviewProps): React.Re
                     paddingRight={0}
                     paddingBottom={0}
                     paddingLeft={0}
-                    nodes={cards}
+                    nodes={<>{pageRefCards}{cards}</>}
                 />
             </div>
         </div>

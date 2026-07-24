@@ -2,11 +2,16 @@ import { describe, it, expect } from 'vitest';
 
 import { NodePort } from '../utils/graph_edges.js';
 import { NotebookPageScript } from './notebook_types.js';
-import { PageDependency } from './overview_dependencies.js';
+import { PageDependencies, PageDependency, PageReferenceDependency } from './overview_dependencies.js';
 import { DEFAULT_OVERVIEW_LAYOUT, OverviewLayoutConfig, computeGridCols, layoutOverview } from './overview_layout.js';
 
 function entry(scriptId: number, fileName: string): NotebookPageScript {
     return { scriptId, fileName };
+}
+
+/// Bundle intra/cross-page dependency lists into the PageDependencies shape layoutOverview expects.
+function deps(intra: PageDependency[] = [], crossPage: PageReferenceDependency[] = []): PageDependencies {
+    return { intra, crossPage };
 }
 
 // Small deterministic config so grid math is easy to reason about in assertions.
@@ -18,6 +23,10 @@ const CONFIG: OverviewLayoutConfig = {
     padding: 10,
     cornerRadius: 4,
     offsetStep: 8,
+    pageCardWidth: 80,
+    pageCardHeight: 30,
+    pageCardGap: 20,
+    pageBarGap: 40,
 };
 
 // Width that fits exactly three columns: 2*10 + 3*100 + 2*20 = 360.
@@ -47,7 +56,7 @@ describe('layoutOverview grid placement', () => {
     ];
 
     it('places entries row-major in feed order, wrapping at gridCols', () => {
-        const layout = layoutOverview(entries, [], WIDTH_3_COLS, null, CONFIG);
+        const layout = layoutOverview(entries, deps(), WIDTH_3_COLS, null, CONFIG);
         expect(layout.gridCols).toBe(3);
 
         const r1 = layout.rectByScriptId.get(1)!;
@@ -68,21 +77,21 @@ describe('layoutOverview grid placement', () => {
     });
 
     it('reflows responsively when the width changes', () => {
-        const narrow = layoutOverview(entries, [], 130, null, CONFIG); // 1 column
+        const narrow = layoutOverview(entries, deps(), 130, null, CONFIG); // 1 column
         expect(narrow.gridCols).toBe(1);
         expect(narrow.rectByScriptId.get(4)!.row).toBe(3);
     });
 
     it('sizes the canvas from used columns and rows', () => {
-        const layout = layoutOverview(entries, [], WIDTH_3_COLS, null, CONFIG);
+        const layout = layoutOverview(entries, deps(), WIDTH_3_COLS, null, CONFIG);
         // 3 columns used, 2 rows used.
         expect(layout.canvasWidth).toBe(2 * 10 + 3 * 100 + 2 * 20);
         expect(layout.canvasHeight).toBe(2 * 10 + 2 * 50 + 1 * 20);
     });
 
     it('is deterministic (same input -> identical output)', () => {
-        const a = layoutOverview(entries, [], WIDTH_3_COLS, null, CONFIG);
-        const b = layoutOverview(entries, [], WIDTH_3_COLS, null, CONFIG);
+        const a = layoutOverview(entries, deps(), WIDTH_3_COLS, null, CONFIG);
+        const b = layoutOverview(entries, deps(), WIDTH_3_COLS, null, CONFIG);
         expect(JSON.stringify([...a.rectByScriptId])).toEqual(JSON.stringify([...b.rectByScriptId]));
         expect(a.edges).toEqual(b.edges);
     });
@@ -97,8 +106,8 @@ describe('layoutOverview edges', () => {
 
     it('emits an edge between the dependent and its source with ports on both cards', () => {
         // Entry 2 (col 1) references entry 1 (col 0) — a right-neighbor edge.
-        const deps: PageDependency[] = [{ from: 2, to: 1, fromFeedIndex: 1, toFeedIndex: 0 }];
-        const layout = layoutOverview(entries, deps, WIDTH_3_COLS, null, CONFIG);
+        const intra: PageDependency[] = [{ from: 2, to: 1, fromFeedIndex: 1, toFeedIndex: 0 }];
+        const layout = layoutOverview(entries, deps(intra), WIDTH_3_COLS, null, CONFIG);
 
         expect(layout.edges).toHaveLength(1);
         const edge = layout.edges[0];
@@ -116,35 +125,74 @@ describe('layoutOverview edges', () => {
 
     it('separates parallel edges leaving one card on the same port with distinct offsets', () => {
         // Both entry 2 and entry 3 reference entry 1 — two edges leaving entry 1's East port.
-        const deps: PageDependency[] = [
+        const intra: PageDependency[] = [
             { from: 2, to: 1, fromFeedIndex: 1, toFeedIndex: 0 },
             { from: 3, to: 1, fromFeedIndex: 2, toFeedIndex: 0 },
         ];
-        const layout = layoutOverview(entries, deps, WIDTH_3_COLS, null, CONFIG);
+        const layout = layoutOverview(entries, deps(intra), WIDTH_3_COLS, null, CONFIG);
         expect(layout.edges).toHaveLength(2);
         // Distinct offsets produce distinct path strings for the two parallel edges.
         expect(layout.edges[0].path).not.toEqual(layout.edges[1].path);
     });
 
     it('marks edges touching the focused card', () => {
-        const deps: PageDependency[] = [{ from: 2, to: 1, fromFeedIndex: 1, toFeedIndex: 0 }];
-        const focused = layoutOverview(entries, deps, WIDTH_3_COLS, /* focusedScriptId */ 1, CONFIG);
+        const intra: PageDependency[] = [{ from: 2, to: 1, fromFeedIndex: 1, toFeedIndex: 0 }];
+        const focused = layoutOverview(entries, deps(intra), WIDTH_3_COLS, /* focusedScriptId */ 1, CONFIG);
         expect(focused.edges[0].focused).toBe(true);
 
-        const unfocused = layoutOverview(entries, deps, WIDTH_3_COLS, /* focusedScriptId */ 3, CONFIG);
+        const unfocused = layoutOverview(entries, deps(intra), WIDTH_3_COLS, /* focusedScriptId */ 3, CONFIG);
         expect(unfocused.edges[0].focused).toBe(false);
     });
 
     it('drops edges whose endpoints are not placed', () => {
-        const deps: PageDependency[] = [{ from: 99, to: 1, fromFeedIndex: 5, toFeedIndex: 0 }];
-        const layout = layoutOverview(entries, deps, WIDTH_3_COLS, null, CONFIG);
+        const intra: PageDependency[] = [{ from: 99, to: 1, fromFeedIndex: 5, toFeedIndex: 0 }];
+        const layout = layoutOverview(entries, deps(intra), WIDTH_3_COLS, null, CONFIG);
         expect(layout.edges).toHaveLength(0);
+    });
+});
+
+describe('layoutOverview page-reference bar', () => {
+    const entries = [
+        entry(1, '1_a.sql'),
+        entry(2, '2_b.sql'),
+        entry(3, '3_c.sql'),
+    ];
+
+    it('places one placeholder card per referenced page and drops the grid below the band', () => {
+        const crossPage: PageReferenceDependency[] = [
+            { from: 2, fromFeedIndex: 1, targetPageName: 'sales' },
+            { from: 3, fromFeedIndex: 2, targetPageName: 'sales' },
+            { from: 1, fromFeedIndex: 0, targetPageName: 'catalog' },
+        ];
+        const layout = layoutOverview(entries, deps([], crossPage), WIDTH_3_COLS, null, CONFIG);
+
+        // One card per distinct page, with the correct fan-in counts.
+        expect(layout.pageRefRects.map(r => r.pageName).sort()).toEqual(['catalog', 'sales']);
+        expect(layout.pageRefRects.find(r => r.pageName === 'sales')!.refCount).toBe(2);
+        expect(layout.pageRefRects.find(r => r.pageName === 'catalog')!.refCount).toBe(1);
+
+        // Bar sits at the top padding; the grid is pushed down by the band (card height + bar gap).
+        expect(layout.pageRefRects.every(r => r.top === CONFIG.padding)).toBe(true);
+        const band = CONFIG.pageCardHeight + CONFIG.pageBarGap;
+        expect(layout.rectByScriptId.get(1)!.top).toBe(CONFIG.padding + band);
+
+        // One edge per cross-page reference, each landing on its page card.
+        expect(layout.pageRefEdges).toHaveLength(3);
+        expect(layout.portsByPageName.get('sales')).toBeTruthy();
+    });
+
+    it('adds no band when there are no cross-page references', () => {
+        const layout = layoutOverview(entries, deps(), WIDTH_3_COLS, null, CONFIG);
+        expect(layout.pageRefRects).toHaveLength(0);
+        expect(layout.pageRefEdges).toHaveLength(0);
+        // Grid starts at the plain top padding — unchanged from before the bar existed.
+        expect(layout.rectByScriptId.get(1)!.top).toBe(CONFIG.padding);
     });
 });
 
 describe('layoutOverview defaults', () => {
     it('handles an empty page', () => {
-        const layout = layoutOverview([], [], 800, null, DEFAULT_OVERVIEW_LAYOUT);
+        const layout = layoutOverview([], deps(), 800, null, DEFAULT_OVERVIEW_LAYOUT);
         expect(layout.rectByScriptId.size).toBe(0);
         expect(layout.edges).toHaveLength(0);
         expect(layout.canvasWidth).toBe(2 * DEFAULT_OVERVIEW_LAYOUT.padding);

@@ -90,6 +90,23 @@
     pointer-events: stroke;
 }
 
+/* Cross-page reference edges: dashed + lighter, reading as "leaves this page". */
+.page_ref_edge_path {
+    stroke: var(--overview_edges_bg);
+    stroke-width: 1.5px;
+    stroke-dasharray: 4 4;
+    fill: transparent;
+    pointer-events: stroke;
+}
+
+.page_ref_edge_path_focused {
+    stroke: var(--overview_edge_focus_color);
+    stroke-width: 2px;
+    stroke-dasharray: 4 4;
+    fill: transparent;
+    pointer-events: stroke;
+}
+
 /* ------------------------------------------------------------------------- */
 /* Card (one per feed entry) */
 
@@ -125,6 +142,44 @@
     overflow: hidden;
     font-size: 0.6rem;
     line-height: 1.1;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Page-reference placeholder card (top bar) */
+
+.page_ref_card {
+    /* Override the grid card's two-row template: a centered label + badge instead. */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background-color: var(--overview_edges_bg);
+    border-style: dashed;
+    border-color: var(--border_color_primary);
+    color: var(--text_color_secondary, inherit);
+}
+
+.page_ref_name {
+    font-size: 0.72rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.page_ref_badge {
+    flex: none;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    box-sizing: border-box;
+    border-radius: 8px;
+    background-color: var(--overview_node_bg);
+    color: var(--text_color_secondary, inherit);
+    font-size: 0.62rem;
+    font-weight: 600;
+    line-height: 16px;
+    text-align: center;
 }
 
 /* ------------------------------------------------------------------------- */
