@@ -67,7 +67,7 @@ const FEED_BOTTOM_FADE_HEIGHT = 24;
 /// 1350px window-width CSS breakpoint that hides the toggle, once the desktop sidebar is subtracted.
 const OVERVIEW_MIN_BOARD_WIDTH = 1050;
 /// Distance (px) the view toggle is inset from the left edge of the feed.
-const FEED_VIEW_TOGGLE_INSET = 16;
+const FEED_VIEW_TOGGLE_INSET = 20;
 
 /// Resolve the output columns (result schema) a script produced on its most recent execution, for
 /// the agent's visualize context. Output columns only exist after execution, so this reads the

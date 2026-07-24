@@ -39,7 +39,7 @@
     .view_toggle {
         /* left offset is set inline: FEED_VIEW_TOGGLE_INSET */
         position: absolute;
-        top: 12px;
+        top: 20px;
         z-index: 3;
         display: flex;
     }
