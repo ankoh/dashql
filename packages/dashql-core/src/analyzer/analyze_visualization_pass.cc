@@ -565,6 +565,12 @@ void AnalyzeVisualizationPass::Finish() {
                     std::get_if<AnalyzedScript::TableReference::RelationExpression>(&it->second.get().inner);
                 if (!rel) break;
                 spec.resolved_source.qualified_name = rel->table_name;
+                // Carry the resolved catalog table id through to the packed spec so TypeScript can map
+                // a script reference back to the producing script by (id >> 32) without re-resolving
+                // the "<folder>/<file>" name. Absent when the reference did not resolve.
+                if (rel->resolved_table.has_value()) {
+                    spec.resolved_source.resolved_table_id = rel->resolved_table->catalog_table_id;
+                }
                 bool is_script_ref = rel->table_name.database_name.get().text == "dashql" &&
                                      rel->table_name.schema_name.get().text == "notebook";
                 spec.resolved_source.kind =

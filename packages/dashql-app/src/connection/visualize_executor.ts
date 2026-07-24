@@ -6,30 +6,24 @@ import { ResolvedVisualizeQuery } from '../notebook/notebook_types.js';
 import { parseUmapSpec } from '../view/visualization/umap/umap_spec.js';
 import { DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
 
-/// Looks up a script's text by its (folder, file) coordinates.
-/// Returns null if the script does not exist in the notebook.
-export type ScriptTextByPath = (folder: string, file: string) => string | null;
+/// Looks up a script's text by its notebook scriptKey (its catalog entry id).
+/// Returns null if no such script exists in the notebook.
+export type ScriptTextByKey = (scriptKey: number) => string | null;
 
 function quoteIdent(name: string): string {
     return '"' + name.replace(/"/g, '""') + '"';
 }
 
-/// Reads the `"<folder>/<file>"` path a VISUALIZE script reference points at.
+/// The producing script's scriptKey for a VISUALIZE script reference.
 ///
-/// Script references are encoded as `dashql.notebook."<folder>/<file>"`; the
-/// combined "<folder>/<file>" lives in the `table_name` slot of the spec's
-/// qualified name. Returns `[folder, file]` when the slot holds a well-formed
-/// path, otherwise null.
-function readScriptReferencePath(spec: buffers.analyzer.VisualizationSpec): [string, string] | null {
-    const tmpName = new buffers.analyzer.QualifiedTableName();
-    const qname = spec.sourceQualifiedName(tmpName);
-    const path = qname?.tableName() ?? null;
-    if (!path) return null;
-    const slash = path.indexOf('/');
-    if (slash > 0 && slash < path.length - 1) {
-        return [path.substring(0, slash), path.substring(slash + 1)];
-    }
-    return null;
+/// A script reference resolves through the catalog to the producing script's synthetic output table.
+/// The resolved table id is packed as `(catalog_entry_id << 32) | table_index`, and the catalog
+/// entry id equals the producing script's notebook scriptKey. Returns null when the reference did
+/// not resolve (packed id 0 — entry ids start at 1, so a valid id is always >= 2^32).
+function readScriptReferenceKey(spec: buffers.analyzer.VisualizationSpec): number | null {
+    const packed = spec.sourceResolvedTableId();
+    if (packed === 0n) return null;
+    return Number(packed >> 32n);
 }
 
 /// Resolves the executable SQL and the Vega-Lite spec for the first VISUALIZE
@@ -42,7 +36,7 @@ function readScriptReferencePath(spec: buffers.analyzer.VisualizationSpec): [str
 export function resolveVisualizeQuery(
     scriptBuffers: DashQLScriptBuffers,
     scriptText: string,
-    lookupScriptText: ScriptTextByPath,
+    lookupScriptText: ScriptTextByKey,
 ): ResolvedVisualizeQuery | null {
     const analyzedPtr = scriptBuffers.analyzed;
     const parsedPtr = scriptBuffers.parsed;
@@ -60,9 +54,9 @@ export function resolveVisualizeQuery(
     let sql: string | null = null;
     switch (spec.sourceKind()) {
         case buffers.analyzer.VisSourceKind.SCRIPT_REFERENCE: {
-            const ref = readScriptReferencePath(spec);
-            if (ref) {
-                sql = lookupScriptText(ref[0], ref[1]);
+            const producerKey = readScriptReferenceKey(spec);
+            if (producerKey != null) {
+                sql = lookupScriptText(producerKey);
             }
             break;
         }

@@ -753,6 +753,12 @@ struct ResolvedVisSource {
     /// For ScriptReference / TableReference: the resolved qualified name (copied
     /// from the table reference produced by NameResolutionPass)
     std::optional<QualifiedTableName> qualified_name;
+    /// For ScriptReference / TableReference: the resolved catalog table id (copied from the table
+    /// reference's resolved_table). Its packed form is (catalog_entry_id << 32) | table_index, so the
+    /// upper 32 bits identify the producing script's catalog entry — which is exactly its notebook
+    /// scriptKey. TypeScript uses this to inline the producing script's text without any name lookup.
+    /// Absent when the reference did not resolve (e.g. the source script has an error).
+    std::optional<QualifiedCatalogObjectID> resolved_table_id;
     /// For InlineSelect: the AST node id of the OBJECT_SQL_SELECT subquery
     std::optional<uint32_t> inline_select_ast_node_id;
 };

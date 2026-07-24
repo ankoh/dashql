@@ -47,17 +47,11 @@ export function createDefaultNotebook(
 
     let mainScriptData = createScriptData(mainScript, mainFileName, mainFolderName);
     // Initial analyze: only the main script exists, so cross-script references can't resolve yet.
-    const initialPages = {
-        [mainFolderName]: {
-            folderName: mainFolderName,
-            scripts: { [mainFileName]: createPageScript(mainScriptData.scriptKey, mainFileName) },
-        },
-    };
     mainScriptData = analyzeNotebookScript(
         mainScriptData,
         registry,
         conn.catalog,
-        makeScriptLookup(initialPages, { [mainScriptData.scriptKey]: mainScriptData }),
+        makeScriptLookup({ [mainScriptData.scriptKey]: mainScriptData }),
         logger,
     );
 

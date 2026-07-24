@@ -1334,7 +1334,7 @@ describe('analyzeAllScriptsInNotebook', () => {
 
         const s1 = reduce(state, {
             type: CREATE_NOTEBOOK_ENTRY_WITH_TEXT,
-            value: { text: `visualize dashql.notebook."${MAIN_FOLDER}/${sourceFile}" using vegalite ( mark => bar, encoding => ( x => (field => a) ) )` },
+            value: { text: `visualize dashql.notebook."${MAIN_FOLDER}/${scriptDisplayName(sourceFile)}" using vegalite ( mark => bar, encoding => ( x => (field => a) ) )` },
         });
 
         const next = analyzeAllScriptsInNotebook(s1, logger);
@@ -1572,8 +1572,9 @@ describe('CREATE_NOTEBOOK_ENTRY_WITH_TEXT', () => {
         const sourceFile = state.notebookUserFocus.fileName;
         // Give the focused entry a SELECT so it can be referenced by path
         const s1 = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: getSelectedPage(state)!.scripts[sourceFile].scriptId, text: 'SELECT 1 as a' } });
-        // Script references are encoded as `dashql.notebook."<folder>/<file>"`.
-        const visualize = `visualize dashql.notebook."${MAIN_FOLDER}/${sourceFile}" using vegalite ( mark => bar, encoding => ( x => (field => a) ) )`;
+        // Script references address the source by its clean display name (no ordering prefix, no
+        // ".sql"), which is the namespace the catalog registers scripts under.
+        const visualize = `visualize dashql.notebook."${MAIN_FOLDER}/${scriptDisplayName(sourceFile)}" using vegalite ( mark => bar, encoding => ( x => (field => a) ) )`;
         const s2 = reduce(s1, { type: CREATE_NOTEBOOK_ENTRY_WITH_TEXT, value: { text: visualize } });
         const focusFile = s2.notebookUserFocus.fileName;
         const newEntry = getSelectedPage(s2)!.scripts[focusFile];

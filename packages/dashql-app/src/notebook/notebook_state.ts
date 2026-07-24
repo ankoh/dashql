@@ -4,7 +4,7 @@ import * as Immutable from 'immutable';
 import { analyzeScript, DashQLCompletionState, DashQLPendingDiff, DashQLProcessorUpdateOut, DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, SemanticUserFocus } from './focus.js';
 import { ConnectorInfo } from '../connection/connector_info.js';
-import { resolveVisualizeQuery, ScriptTextByPath } from '../connection/visualize_executor.js';
+import { resolveVisualizeQuery, ScriptTextByKey } from '../connection/visualize_executor.js';
 import { VariantKind } from '../utils/index.js';
 import { REPLACE_NOTEBOOK, CREATE_NOTEBOOK_PAGE, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK_PAGE, DELETE_NOTEBOOK_SCRIPT, groupDraftWrites, groupNotebookWrites, groupPageRenames, groupPageWrites, groupScriptDeletes, groupScriptRenames, groupScriptWrites, RENAME_NOTEBOOK_PAGE, RENAME_NOTEBOOK_SCRIPT, StorageWriter, WRITE_NOTEBOOK_DRAFT, WRITE_NOTEBOOK_SCRIPT } from '../platform/storage/storage_writer.js';
 import { NotebookStateWithoutId } from './notebook_state_registry.js';
@@ -686,7 +686,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 annotations: deriveScriptAnnotations(
                     update.scriptBuffers,
                     prevScript.script.toString(),
-                    makeScriptLookup(state.notebookPages, state.scripts),
+                    makeScriptLookup(state.scripts),
                 ),
             };
             // Update semantic user focus
@@ -1295,7 +1295,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             scriptData.script.replaceText(text);
             // Re-analyze through the path-aware helper (destroys the stale buffers, refreshes
             // buffers + annotations incl. visualizeQuery, reloads the script into the catalog)
-            const scriptLookup = makeScriptLookup(state.notebookPages, state.scripts);
+            const scriptLookup = makeScriptLookup(state.scripts);
             const nextScriptData = analyzeNotebookScript(scriptData, state.scriptRegistry, state.connectionCatalog, scriptLookup, logger);
             nextScriptData.pendingDiff = pendingDiff;
 
@@ -1368,7 +1368,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             scriptData.pendingDiff.diffBuffer.destroy();
             // Rewrite the script text in-place and re-analyze through the path-aware helper.
             scriptData.script.replaceText(priorText);
-            const scriptLookup = makeScriptLookup(state.notebookPages, state.scripts);
+            const scriptLookup = makeScriptLookup(state.scripts);
             const nextScriptData = analyzeNotebookScript(scriptData, state.scriptRegistry, state.connectionCatalog, scriptLookup, logger);
             nextScriptData.pendingDiff = null;
 
@@ -1457,7 +1457,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             // Analyze before persisting so annotations (incl. resolved visualizeQuery for a
             // SCRIPT_REFERENCE to an existing entry) are ready. The lookup spans the new
             // page/script maps so cross-script references resolve.
-            scriptData = analyzeNotebookScript(scriptData, state.scriptRegistry, state.connectionCatalog, makeScriptLookup(newPages, newScripts), logger);
+            scriptData = analyzeNotebookScript(scriptData, state.scriptRegistry, state.connectionCatalog, makeScriptLookup(newScripts), logger);
             newScripts[scriptKey] = scriptData;
 
             const next: NotebookState = {
@@ -1578,7 +1578,7 @@ export function rotateScriptStatistics(
 function deriveScriptAnnotations(
     data: DashQLScriptBuffers,
     scriptText: string,
-    lookupScriptText: ScriptTextByPath,
+    lookupScriptText: ScriptTextByKey,
 ): NotebookScriptAnnotations {
     if (!data.analyzed) {
         return createEmptyAnnotations();
@@ -1613,39 +1613,12 @@ function deriveScriptAnnotations(
     };
 }
 
-export function makeScriptLookup(pages: NotebookPageMap, scripts: ScriptDataMap): ScriptTextByPath {
-    // SQL references address pages and scripts by their clean names (without the ordering prefix),
-    // so resolve against indexes keyed by clean name. Fall back to the raw key for direct lookups by
-    // an already-prefixed name. If two entries strip to the same clean name (only possible
-    // transiently mid-rename), the lexicographically-first prefixed key wins, matching feed order.
-    const byCleanName = new Map<string, NotebookPage>();
-    for (const key of Object.keys(pages).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))) {
-        const clean = normalizePageName(key);
-        if (!byCleanName.has(clean)) byCleanName.set(clean, pages[key]);
-    }
-    // Per page, an index from clean display file name (no prefix, no ".sql") to script id, built in
-    // numeric file order. References are written against the display name (dashql.notebook."x/foo").
-    const filesByCleanName = new Map<NotebookPage, Map<string, number>>();
-    const cleanFilesFor = (page: NotebookPage): Map<string, number> => {
-        let index = filesByCleanName.get(page);
-        if (!index) {
-            index = new Map<string, number>();
-            for (const file of Object.keys(page.scripts).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))) {
-                const clean = scriptDisplayName(file);
-                if (!index.has(clean)) index.set(clean, page.scripts[file].scriptId);
-            }
-            filesByCleanName.set(page, index);
-        }
-        return index;
-    };
-    return (folder, file) => {
-        const page = pages[folder] ?? byCleanName.get(folder);
-        if (page == null) return null;
-        // Resolve by raw key (direct lookup) or by clean display name (the reference namespace).
-        const scriptId = page.scripts[file]?.scriptId ?? cleanFilesFor(page).get(scriptDisplayName(file));
-        if (scriptId == null) return null;
-        return scripts[scriptId]?.script.toString() ?? null;
-    };
+export function makeScriptLookup(scripts: ScriptDataMap): ScriptTextByKey {
+    // Script references (`dashql.notebook."folder/file"`) are resolved by the C++ catalog during
+    // name resolution; the resolved table id encodes the producing script's catalog entry id, which
+    // equals its notebook scriptKey (see readScriptReferenceKey / ScriptData.scriptKey). So resolving
+    // a reference to its source text is a direct scriptKey lookup — no name/page indexing needed.
+    return (scriptKey) => scripts[scriptKey]?.script.toString() ?? null;
 }
 
 /// Resolve the executable SQL text for a script.
@@ -1687,7 +1660,7 @@ export function getExecutableQueryText(notebook: NotebookState, scriptData: Scri
         const resolved = resolveVisualizeQuery(
             buffers,
             scriptText,
-            makeScriptLookup(notebook.notebookPages, notebook.scripts),
+            makeScriptLookup(notebook.scripts),
         );
         return resolved?.sql ?? scriptText;
     } finally {
@@ -1732,7 +1705,7 @@ function computePendingDiff(
     }
 }
 
-export function analyzeNotebookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, scriptLookup: ScriptTextByPath, _logger: Logger): ScriptData {
+export function analyzeNotebookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, scriptLookup: ScriptTextByKey, _logger: Logger): ScriptData {
     const next: ScriptData = { ...scriptData };
     next.scriptAnalysis.buffers.destroy(next.scriptAnalysis.buffers);
 
@@ -1781,7 +1754,7 @@ export function analyzeOutdatedScriptInNotebook<V extends NotebookStateWithoutId
         return state;
     }
     // Create the next notebook state
-    const nextScriptData = analyzeNotebookScript(scriptData, state.scriptRegistry, state.connectionCatalog, makeScriptLookup(state.notebookPages, state.scripts), logger);
+    const nextScriptData = analyzeNotebookScript(scriptData, state.scriptRegistry, state.connectionCatalog, makeScriptLookup(state.scripts), logger);
     const next = {
         ...clearSemanticUserFocus(state),
         scripts: {
@@ -1865,7 +1838,7 @@ export function analyzeAllScriptsInNotebook<V extends NotebookStateWithoutId>(st
 
     // The text-based lookup used for SCRIPT_REFERENCE sources is independent of
     // analysis, so one lookup over the (shared) script objects covers the pass.
-    const scriptLookup = makeScriptLookup(state.notebookPages, scripts);
+    const scriptLookup = makeScriptLookup(scripts);
 
     for (const scriptKey of orderedKeys) {
         let ok = false;
