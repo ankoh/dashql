@@ -345,6 +345,15 @@ export class NativeStorageBackend implements StorageBackend {
         };
     }
 
+    async listQueryResultCache(sessionId: string): Promise<CacheFileStat[]> {
+        const cacheDir = await this.abs(STORAGE_CACHE_FOLDER);
+        if (!(await exists(cacheDir))) {
+            // No cache folder yet — nothing cached.
+            return [];
+        }
+        return this.cacheStoreForDir(cacheDir).listCacheFiles(sessionId);
+    }
+
     async touchQueryResultCacheAccess(_sessionId: string, hash: string): Promise<void> {
         // Bump only the empty marker's mtime — never the payload — so this stays cheap regardless of
         // result size and leaves the payload's "cached at" write time intact.

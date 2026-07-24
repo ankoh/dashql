@@ -11,6 +11,7 @@ import {
     STORAGE_MANIFEST_FILE,
     STORAGE_SESSION_FILE,
 } from './storage_backend.js';
+import { type CacheFileStat } from './query_result_cache_eviction.js';
 import { NativeStorageBackend } from './native_storage_backend.js';
 import { type SessionLocation, locationFromEntry } from './session_locator.js';
 import { grantFsScope } from './native_fs_scope.js';
@@ -267,6 +268,9 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
     }
     async touchQueryResultCacheAccess(sessionId: string, hash: string): Promise<void> {
         return (await this.backendFor(sessionId)).touchQueryResultCacheAccess(sessionId, hash);
+    }
+    async listQueryResultCache(sessionId: string): Promise<CacheFileStat[]> {
+        return (await this.backendFor(sessionId)).listQueryResultCache(sessionId);
     }
     async deleteQueryResultCache(sessionId: string, hash: string): Promise<void> {
         return (await this.backendFor(sessionId)).deleteQueryResultCache(sessionId, hash);

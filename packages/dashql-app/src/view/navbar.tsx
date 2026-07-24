@@ -46,12 +46,13 @@ const OpenIn = (props: { url?: string | null; alt?: string; icon?: string; label
     </div>
 );
 
-const InternalsButton = (_props: {}) => {
+const InternalsButton = (props: { sessionId: string | null }) => {
     const [showInternalsViewerOverlay, setInternalsViewerOverlay] = React.useState<boolean>(false);
 
     return (
         <div className={styles.tab}>
             <InternalsViewerOverlay
+                sessionId={props.sessionId}
                 isOpen={showInternalsViewerOverlay}
                 onClose={() => setInternalsViewerOverlay(false)}
                 renderAnchor={(p: object) => (
@@ -252,7 +253,7 @@ export const NavBar = (): React.ReactElement => {
                 <SessionBar sessionId={sessionId} sessionName={connection?.name ?? null} sessionPath={sessionPath} onClose={handleCloseNotebook} />
             </div>
             <div className={styles.version_container}>
-                <InternalsButton />
+                <InternalsButton sessionId={sessionId} />
                 <VersionButton />
                 {isBrowser &&
                     <OpenIn label="Open in App" url={setupUrl?.toString()} icon={`${symbols}#download_desktop`} newWindow={false} state={route} />

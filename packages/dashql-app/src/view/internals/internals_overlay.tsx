@@ -9,11 +9,14 @@ import { StorageWriterView } from './storage_writer_view.js';
 import { LogViewer } from './log_viewer.js';
 import { OverlaySize } from '../foundations/overlay.js';
 import { QueryViewer } from './query_viewer.js';
+import { QueryCacheView } from './query_cache_view.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
 import { DockerManager } from './docker_manager.js';
 import { useDockerClient } from '../../platform/docker/docker_client_provider.js';
 
 interface InternalsViewerProps {
+    /// The active session UUID, used by session-scoped tabs (e.g. the query cache inspector).
+    sessionId: string | null;
     onClose: () => void;
 }
 
@@ -24,6 +27,7 @@ enum TabKey {
     StorageWriter = 3,
     Docker = 4,
     AISettings = 5,
+    QueryCache = 6,
 }
 
 export const InternalsViewer: React.FC<InternalsViewerProps> = (props: InternalsViewerProps) => {
@@ -32,7 +36,7 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
     const dockerEnabled = dockerClient != null;
 
     const tabKeys = React.useMemo(() => {
-        const keys: TabKey[] = [TabKey.LogViewer, TabKey.QueryViewer, TabKey.StorageWriter];
+        const keys: TabKey[] = [TabKey.LogViewer, TabKey.QueryViewer, TabKey.StorageWriter, TabKey.QueryCache];
         if (dockerEnabled) {
             keys.push(TabKey.Docker);
         }
@@ -71,6 +75,14 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     description: 'View storage writer statistics',
                     disabled: false,
                 },
+                [TabKey.QueryCache]: {
+                    tabId: TabKey.QueryCache,
+                    icon: `${icons}#folder`,
+                    labelShort: 'Query Cache',
+                    ariaLabel: 'Query result cache',
+                    description: 'Inspect and evict cached query results',
+                    disabled: false,
+                },
                 [TabKey.Docker]: {
                     tabId: TabKey.Docker,
                     icon: `${icons}#package`,
@@ -105,7 +117,10 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     <QueryViewer onClose={props.onClose} />
                 ),
                 [TabKey.StorageWriter]: _props => (
-                    <StorageWriterView onClose={props.onClose} />
+                    <StorageWriterView sessionId={props.sessionId} onClose={props.onClose} />
+                ),
+                [TabKey.QueryCache]: _props => (
+                    <QueryCacheView sessionId={props.sessionId} onClose={props.onClose} />
                 ),
                 [TabKey.Docker]: _props => (
                     <DockerManager onClose={props.onClose} />
@@ -122,6 +137,10 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
 }
 
 type InternalsViewerOverlayProps = {
+    /// The active session UUID, forwarded to session-scoped tabs (e.g. the query cache inspector).
+    /// Omitted on setup/loading pages that have no active session — the query cache tab then shows
+    /// an empty "no active session" state.
+    sessionId?: string | null;
     isOpen: boolean;
     onClose: () => void;
     renderAnchor: (p: object) => React.ReactElement;
@@ -143,7 +162,7 @@ export function InternalsViewerOverlay(props: InternalsViewerOverlayProps) {
                 height: OverlaySize.L,
             }}
         >
-            <InternalsViewer onClose={props.onClose} />
+            <InternalsViewer sessionId={props.sessionId ?? null} onClose={props.onClose} />
         </AnchoredOverlay>
     );
 }

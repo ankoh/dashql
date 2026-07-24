@@ -11,7 +11,7 @@ import { OverlaySize } from '../foundations/overlay.js';
 import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
 import { JsonView } from '../json/json_view.js';
 import { useStorageWriter } from '../../platform/storage/storage_provider.js';
-import { StorageWriteKey, StorageWriterStatistics, StorageWriteStatisticsMap } from '../../platform/storage/storage_writer.js';
+import { StorageWriteKey, StorageWriterStatistics, StorageWriteStatisticsMap, storageWriteKeyBelongsToSession, storageWriteKeyWithinSession } from '../../platform/storage/storage_writer.js';
 import { formatBytes, formatMilliseconds } from '../../utils/format.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { useKeyEvents } from '../../utils/key_events.js';
@@ -20,6 +20,9 @@ export const ROW_HEIGHT = 32;
 
 export interface StorageWriterEntry {
     key: StorageWriteKey;
+    /// The key with the active session's id prefix stripped, shown in the Key column (the full key
+    /// stays in the row tooltip and the detail modal).
+    label: string;
     stats: StorageWriterStatistics;
 }
 
@@ -47,7 +50,7 @@ export const StorageWriterRow = (props: RowComponentProps<StorageWriterRowProps>
         >
             <div className={styles.stat_row_main}>
                 <div className={styles.stat_cell_key} title={entry.key}>
-                    {entry.key}
+                    {entry.label}
                 </div>
                 <div className={styles.stat_cell_tasks}>
                     {entry.stats.totalScheduledWrites}
@@ -66,8 +69,10 @@ export const StorageWriterRow = (props: RowComponentProps<StorageWriterRowProps>
     );
 };
 
-function buildEntries(statsMap: StorageWriteStatisticsMap): StorageWriterEntry[] {
-    const entries: StorageWriterEntry[] = [...statsMap.entries()].map(([key, stats]) => ({ key, stats }));
+function buildEntries(statsMap: StorageWriteStatisticsMap, sessionId: string): StorageWriterEntry[] {
+    const entries: StorageWriterEntry[] = [...statsMap.entries()]
+        .filter(([key]) => storageWriteKeyBelongsToSession(key, sessionId))
+        .map(([key, stats]) => ({ key, label: storageWriteKeyWithinSession(key, sessionId), stats }));
     // Sort by last write descending (most recent first), entries with no write go last
     entries.sort((a, b) => {
         const at = a.stats.lastWrite?.getTime() ?? -1;
@@ -88,7 +93,9 @@ function entryToObject(entry: StorageWriterEntry): object {
     };
 }
 
-export function StorageWriterView(props: { onClose: () => void; }) {
+export function StorageWriterView(props: { sessionId: string | null; onClose: () => void; }) {
+    const { sessionId } = props;
+
     // Subscribe for storage write statistics
     const storageWriter = useStorageWriter();
     const [statsMap, setStatsMap] = React.useState<StorageWriteStatisticsMap | null>(storageWriter.getStatistics());
@@ -98,11 +105,11 @@ export function StorageWriterView(props: { onClose: () => void; }) {
         return () => storageWriter.unsubscribeStatisticsListener(listener);
     }, []);
 
-    // Build sorted entries from the stats map
+    // Build sorted entries from the stats map, scoped to the active session.
     const entries = React.useMemo<StorageWriterEntry[]>(() => {
-        if (!statsMap) return [];
-        return buildEntries(statsMap);
-    }, [statsMap]);
+        if (!statsMap || sessionId == null) return [];
+        return buildEntries(statsMap, sessionId);
+    }, [statsMap, sessionId]);
 
     // Container size for the virtual list
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -210,7 +217,9 @@ export function StorageWriterView(props: { onClose: () => void; }) {
                 </div>
                 <div className={styles.stat_grid_container} ref={containerRef}>
                     {entries.length === 0 ? (
-                        <div className={styles.empty_state}>Nothing to see here</div>
+                        <div className={styles.empty_state}>
+                            {sessionId == null ? 'Select a session to see its storage writes' : 'Nothing to see here'}
+                        </div>
                     ) : (
                         <List
                             listRef={listRef}

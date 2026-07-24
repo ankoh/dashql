@@ -9,6 +9,7 @@ import {
     type CachedQueryResult,
     StorageBackendType,
 } from './storage_backend.js';
+import { type CacheFileStat } from './query_result_cache_eviction.js';
 import { TestLogger } from '../logger/test_logger.js';
 
 // Spy standing in for the Tauri `grant_fs_scope` bridge. Hoisted so the vi.mock factory can use it.
@@ -159,6 +160,11 @@ class MemoryRegistry implements SessionRegistryBackend {
         this.cache.set(sessionId, c);
     }
     async touchQueryResultCacheAccess(_sessionId: string, _hash: string): Promise<void> { }
+    async listQueryResultCache(sessionId: string): Promise<CacheFileStat[]> {
+        return [...(this.cache.get(sessionId)?.entries() ?? [])].map(([hash, bytes]) => ({
+            name: `${hash}.arrow`, size: bytes.byteLength, mtimeMs: 0, lastAccessMs: 0,
+        }));
+    }
     async deleteQueryResultCache(sessionId: string, hash: string): Promise<void> {
         this.cache.get(sessionId)?.delete(hash);
     }

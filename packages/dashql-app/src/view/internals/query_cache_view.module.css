@@ -1,0 +1,136 @@
+:root {
+    --stat_cell_height: 32px;
+    --query_cache_header_color: hsl(208.5, 24.69%, 31.76%);
+}
+
+.overlay {
+    height: 100%;
+    display: grid;
+    grid-template-rows: 40px 32px 1fr;
+    position: relative;
+}
+
+.header_container {
+    grid-row: 1;
+    width: 100%;
+
+    display: grid;
+    grid-template-rows: 100%;
+    grid-template-columns: max-content auto max-content;
+
+    border-bottom: 1px solid var(--border_color_primary);
+    border-top-right-radius: var(--border_radius);
+    border-top-left-radius: var(--border_radius);
+}
+
+.header_left_container {
+    grid-column: 1;
+    margin-left: 16px;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    column-gap: 8px;
+}
+
+.header_right_container {
+    grid-column: 3;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    column-gap: 8px;
+    padding: 0px 4px;
+    overflow: hidden;
+}
+
+.title {
+    font-size: 1rem;
+}
+
+/* A compact summary of the aggregate cache totals, shown next to the title. */
+.summary {
+    font-family: 'Roboto Mono';
+    font-size: 0.75rem;
+    color: var(--query_cache_header_color);
+    white-space: nowrap;
+}
+
+/* Column layout: hash takes remaining space, fixed widths for the metric/action columns */
+.stat_header_main,
+.stat_row_main {
+    width: 100%;
+    height: var(--stat_cell_height);
+
+    display: grid;
+    grid-template-columns: 1fr 72px 96px 96px 32px;
+    grid-template-rows: var(--stat_cell_height);
+    align-items: center;
+    padding: 0 8px;
+    box-sizing: border-box;
+    column-gap: 8px;
+}
+
+/* Column header row */
+.stat_header_row {
+    grid-row: 2;
+    border-bottom: 1px solid var(--border_color_primary);
+    font-family: 'Roboto Mono';
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--query_cache_header_color);
+}
+
+/* Virtual list container */
+.stat_grid_container {
+    grid-row: 3;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 0 0 var(--border_radius) var(--border_radius);
+    position: relative;
+
+    font-family: 'Roboto Mono';
+    font-size: 0.75rem;
+}
+
+.empty_state {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6e7781;
+    font-size: 0.85rem;
+}
+
+/* Row */
+.stat_row {
+    width: 100%;
+    border-top: 1px solid var(--log_border_color);
+}
+
+.stat_row:first-child {
+    border-top: none;
+}
+
+/* Cells */
+.stat_cell_hash {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.stat_cell_size,
+.stat_cell_cached,
+.stat_cell_accessed {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.stat_cell_actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

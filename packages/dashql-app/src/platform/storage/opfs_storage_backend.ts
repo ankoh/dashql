@@ -464,6 +464,17 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         await this.writeEmptyFile(cacheDir, `${hash}${STORAGE_CACHE_EXTENSION}${STORAGE_CACHE_ACCESS_SUFFIX}`);
     }
 
+    async listQueryResultCache(sessionId: string): Promise<CacheFileStat[]> {
+        let cacheDir: FileSystemDirectoryHandle;
+        try {
+            cacheDir = await this.getSessionDir(this.cacheRelPath(sessionId), false);
+        } catch {
+            // No cache folder yet — nothing cached.
+            return [];
+        }
+        return this.cacheStoreForDir(cacheDir).listCacheFiles(sessionId);
+    }
+
     async touchQueryResultCacheAccess(sessionId: string, hash: string): Promise<void> {
         // Bump only the empty marker's mtime — never the payload — so this stays cheap regardless of
         // result size and leaves the payload's "cached at" write time intact.

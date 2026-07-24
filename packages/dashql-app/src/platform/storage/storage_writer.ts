@@ -7,7 +7,7 @@ import { NotebookState } from '../../notebook/notebook_state.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { getConnectionParamsFromStateDetails, createDefaultConnectionParamsForConnector } from '../../connection/connection_params.js';
 import type { StorageBackend, SessionData, NotebookMetadata as StorageNotebookMetadata } from './storage_backend.js';
-import { STORAGE_NOTEBOOK_FOLDER } from './storage_backend.js';
+import { STORAGE_NOTEBOOK_FOLDER, STORAGE_SESSION_FILE } from './storage_backend.js';
 
 const LOG_CTX = 'storage_writer';
 
@@ -86,7 +86,12 @@ export type StorageWriteTaskVariant =
     ;
 
 export type StorageWriteKey = string;
-export const groupSessionWrites = (sessionPath: string) => `${sessionPath}/`;
+/// The manifest is keyed on its real file path (`<sessionPath>/dashql-session.json`) so the key it is
+/// *scheduled* under matches the path its *completed* write is recorded under — otherwise the manifest
+/// shows up as two rows in the stats view (a phantom `<sessionPath>/` schedule row plus the real
+/// file's write row). Keying both on the file also means a scheduled-but-not-yet-flushed manifest
+/// write coalesces onto the same statistics row as its completion.
+export const groupSessionWrites = (sessionPath: string) => `${sessionPath}/${STORAGE_SESSION_FILE}`;
 export const groupSessionSchemaWrites = (sessionPath: string) => `${sessionPath}/dashql-relations.sql`;
 export const groupSessionFunctionWrites = (sessionPath: string) => `${sessionPath}/dashql-functions.sql`;
 export const groupNotebookWrites = (sessionPath: string) => `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}`;
@@ -95,14 +100,37 @@ export const groupDraftWrites = (sessionPath: string) => `${sessionPath}/noteboo
 export const groupScriptWrites = (sessionPath: string, folderName: string, fileName: string) =>
     `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${folderName}/${fileName}`;
 export const groupScriptDeletes = (sessionPath: string, pageName: string, scriptName: string) =>
-    `delete:${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${scriptName}`;
-/// A page/script rename lives in its own `rename:` keyspace, keyed by the *source* path. Keeping it
+    `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${scriptName}:delete`;
+/// A page/script rename lives in its own `:rename` keyspace, keyed by the *source* path. Keeping it
 /// off the write/delete keyspaces means a later content write (or delete) of the destination never
-/// coalesces onto — and so never clobbers — a still-pending rename of the same name.
+/// coalesces onto — and so never clobbers — a still-pending rename of the same name. The action lives
+/// in a `:rename` *suffix* rather than a prefix so the key still starts with the session path and
+/// sorts/scopes like every other file key.
 export const groupPageRenames = (sessionPath: string, oldPageName: string) =>
-    `rename:${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${oldPageName}`;
+    `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${oldPageName}:rename`;
 export const groupScriptRenames = (sessionPath: string, pageName: string, oldScriptName: string) =>
-    `rename:${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${oldScriptName}`;
+    `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${oldScriptName}:rename`;
+
+/// Whether a statistics key belongs to a given session. Every write key is a path rooted at the
+/// session id (`<sessionId>/…`), with the `:delete`/`:rename` action namespaces living in a suffix
+/// (see the group* helpers above), so the session owns the key when it is the session id itself or a
+/// descendant of it. Used to scope the storage-writer stats view to the active session.
+export function storageWriteKeyBelongsToSession(key: StorageWriteKey, sessionId: string): boolean {
+    return key === sessionId || key.startsWith(`${sessionId}/`);
+}
+
+/// Strip the session-id prefix from a write key for display, keeping any `:delete`/`:rename` suffix
+/// so the action stays legible. Once the stats view is scoped to a single session the session id is
+/// redundant on every row, so e.g. `<sessionId>/notebook/page-1/01.sql` renders as
+/// `notebook/page-1/01.sql` and `<sessionId>/notebook/page-1:rename` as `notebook/page-1:rename`.
+/// The bare session key collapses to an empty string. Keys that don't belong to the session are
+/// returned unchanged.
+export function storageWriteKeyWithinSession(key: StorageWriteKey, sessionId: string): string {
+    if (!storageWriteKeyBelongsToSession(key, sessionId)) {
+        return key;
+    }
+    return key === sessionId ? '' : key.slice(sessionId.length + 1);
+}
 
 interface AsyncStorageWriteTask {
     /// The latest task

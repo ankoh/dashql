@@ -326,6 +326,22 @@ describe('NativeStorageBackend (one-dir-one-session)', () => {
             // the caller asked for the literal marker hash, never via the payload hash.
             expect(await backend.loadQueryResultCache(SID, 'h1.arrow')).toBeNull();
         });
+
+        it('lists cached entries (payloads only) with size and recency, empty when no cache folder', async () => {
+            // No cache folder yet -> empty listing, never throws.
+            expect(await backend.listQueryResultCache(SID)).toEqual([]);
+
+            await backend.saveQueryResultCache(SID, 'h1', bytesOf('aa'));
+            await backend.saveQueryResultCache(SID, 'h2', bytesOf('bbbb'));
+
+            const listed = await backend.listQueryResultCache(SID);
+            // Only the two .arrow payloads count — the access markers are folded into lastAccessMs.
+            expect(listed.map(e => e.name).sort()).toEqual(['h1.arrow', 'h2.arrow']);
+            const h2 = listed.find(e => e.name === 'h2.arrow')!;
+            expect(h2.size).toBe(4);
+            expect(typeof h2.mtimeMs).toBe('number');
+            expect(typeof h2.lastAccessMs).toBe('number');
+        });
     });
 
     describe('deleteSession / clearAllStorage', () => {

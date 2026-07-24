@@ -1,6 +1,8 @@
 import type * as app_manifest from '@ankoh/dashql-jsonschema/app_manifest.js';
 import type * as app_session from '@ankoh/dashql-jsonschema/app_session.js';
 
+import type { CacheFileStat } from './query_result_cache_eviction.js';
+
 // Storage file and folder naming conventions
 export const STORAGE_MANIFEST_FILE = 'dashql-manifest.json';
 export const STORAGE_SESSIONS_FOLDER = 'sessions';
@@ -131,6 +133,11 @@ export interface StorageBackend {
     /// Store a query result (Arrow IPC bytes) under `<hash>.arrow` in the session's `cache/` folder,
     /// evicting least-recently-used entries first to stay under the size and count thresholds.
     saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void>;
+    /// List the session's cached query results with their size and recency metadata (one entry per
+    /// `<hash>.arrow` payload; the `.last_access` markers are folded in as `lastAccessMs`). Returns an
+    /// empty array when the session has no cache folder yet. This is the read side of the same
+    /// listing the eviction policy walks, exposed for the internals cache inspector.
+    listQueryResultCache(sessionId: string): Promise<CacheFileStat[]>;
     /// Delete a single cached query result by content hash. A no-op when the entry is already gone.
     deleteQueryResultCache(sessionId: string, hash: string): Promise<void>;
 

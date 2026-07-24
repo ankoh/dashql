@@ -3,6 +3,7 @@ import * as core from '../../core/index.js';
 import { beforeAll, afterEach, describe, expect, it } from 'vitest';
 
 import { type StorageBackend, type SessionData, type PageData, type ScriptData, type CachedQueryResult, StorageBackendType } from './storage_backend.js';
+import { type CacheFileStat } from './query_result_cache_eviction.js';
 import {
     StorageWriter,
     WRITE_SESSION_MANIFEST,
@@ -11,8 +12,11 @@ import {
     WRITE_NOTEBOOK_SCRIPT,
     groupSessionWrites,
     groupPageRenames,
+    groupScriptDeletes,
     groupScriptRenames,
     groupScriptWrites,
+    storageWriteKeyBelongsToSession,
+    storageWriteKeyWithinSession,
 } from './storage_writer.js';
 import { type ConnectionState } from '../../connection/connection_state.js';
 import { createDatalessConnectionState } from '../../connection/dataless/dataless_connection_state.js';
@@ -65,6 +69,7 @@ class CountingBackend implements StorageBackend {
     async loadQueryResultCache(): Promise<CachedQueryResult | null> { return null; }
     async saveQueryResultCache(): Promise<void> { }
     async touchQueryResultCacheAccess(): Promise<void> { }
+    async listQueryResultCache(): Promise<CacheFileStat[]> { return []; }
     async deleteQueryResultCache(): Promise<void> { }
 }
 
@@ -103,6 +108,7 @@ class CallLogBackend implements StorageBackend {
     async loadQueryResultCache(): Promise<CachedQueryResult | null> { return null; }
     async saveQueryResultCache(): Promise<void> { }
     async touchQueryResultCacheAccess(): Promise<void> { }
+    async listQueryResultCache(): Promise<CacheFileStat[]> { return []; }
     async deleteQueryResultCache(): Promise<void> { }
 }
 
@@ -117,6 +123,41 @@ beforeAll(async () => {
 
 afterEach(() => {
     dql!.resetUnsafe();
+});
+
+describe('storage write key session scoping', () => {
+    const SID = 'a0000000-0000-4000-8000-000000000001';
+    const OTHER = 'b0000000-0000-4000-8000-000000000002';
+
+    it('recognises keys that belong to a session across namespaces', () => {
+        expect(storageWriteKeyBelongsToSession(SID, SID)).toBe(true);
+        expect(storageWriteKeyBelongsToSession(groupSessionWrites(SID), SID)).toBe(true);
+        expect(storageWriteKeyBelongsToSession(groupScriptWrites(SID, 'page-1', '01.sql'), SID)).toBe(true);
+        expect(storageWriteKeyBelongsToSession(groupScriptRenames(SID, 'page-1', '01.sql'), SID)).toBe(true);
+        expect(storageWriteKeyBelongsToSession(groupScriptDeletes(SID, 'page-1', '01.sql'), SID)).toBe(true);
+    });
+
+    it('rejects keys from a different session (no id-prefix false positives)', () => {
+        expect(storageWriteKeyBelongsToSession(groupSessionWrites(OTHER), SID)).toBe(false);
+        expect(storageWriteKeyBelongsToSession(groupScriptWrites(OTHER, 'page-1', '01.sql'), SID)).toBe(false);
+        // A session id that is a string prefix of another must not match.
+        expect(storageWriteKeyBelongsToSession(`${SID}-suffix/notebook`, SID)).toBe(false);
+    });
+
+    it('strips the session id prefix for display, keeping the action namespace suffix', () => {
+        expect(storageWriteKeyWithinSession(groupScriptWrites(SID, 'page-1', '01.sql'), SID))
+            .toBe('notebook/page-1/01.sql');
+        expect(storageWriteKeyWithinSession(groupScriptRenames(SID, 'page-1', '01.sql'), SID))
+            .toBe('notebook/page-1/01.sql:rename');
+        expect(storageWriteKeyWithinSession(groupScriptDeletes(SID, 'page-1', '01.sql'), SID))
+            .toBe('notebook/page-1/01.sql:delete');
+        // The session manifest keys on its real file path, so it reads as a normal file row.
+        expect(storageWriteKeyWithinSession(groupSessionWrites(SID), SID)).toBe('dashql-session.json');
+        // A bare session id (no trailing path) still collapses to empty.
+        expect(storageWriteKeyWithinSession(SID, SID)).toBe('');
+        // A key from another session is returned unchanged.
+        expect(storageWriteKeyWithinSession(groupSessionWrites(OTHER), SID)).toBe(groupSessionWrites(OTHER));
+    });
 });
 
 function makeConnection(sessionId: string): ConnectionState {
@@ -211,7 +252,7 @@ describe('StorageWriter notebook renames', () => {
     it('keeps a rename and a later write of the new name as two distinct, ordered ops', async () => {
         // A rename of A->B, then a content edit of B (the post-rename name), is exactly the sequence a
         // user produces by renaming a script and then typing into it. The rename lives in its own
-        // `rename:` keyspace keyed by the source, the write in the destination keyspace, so they do not
+        // `:rename` keyspace keyed by the source, the write in the destination keyspace, so they do not
         // coalesce — and since the rename is scheduled first, the move runs before the content write.
         const backend = new CallLogBackend();
         const writer = new StorageWriter(logger, backend);
