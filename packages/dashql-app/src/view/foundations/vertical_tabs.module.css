@@ -17,13 +17,13 @@
     height: 100%;
 
     display: grid;
-    grid-template-columns: 49px 1fr;
+    grid-template-columns: 49px minmax(0, 1fr);
     grid-template-rows: 100%;
     overflow: hidden;
 }
 
 .container_split {
-    grid-template-columns: max-content 1fr;
+    grid-template-columns: max-content minmax(0, 1fr);
     /* Rows are set dynamically via inline style: top-pane, handle, bottom-pane */
 }
 
