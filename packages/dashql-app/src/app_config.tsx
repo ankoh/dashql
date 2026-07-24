@@ -34,6 +34,9 @@ export interface AppSettings {
     scriptDebugMode?: boolean;
     tableDebugMode?: boolean;
     formattingDebugMode?: boolean;
+    /// Force the OAuth identity provider to re-prompt for login instead of silently reusing an
+    /// existing browser session. Adds `prompt=login` to the authorization request.
+    forceReLogin?: boolean;
     minLogLevel?: number;
     aiProvider?: AIProviderSettings;
 }

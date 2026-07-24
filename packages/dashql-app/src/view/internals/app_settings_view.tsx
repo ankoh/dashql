@@ -49,6 +49,15 @@ export function AppSettings(props: { onClose: () => void; }) {
             }
         }));
     }, [reconfigure]);
+    const toggleForceReLogin = React.useCallback(() => {
+        reconfigure((value: AppConfig | null) => (value == null ? null : {
+            ...value,
+            settings: {
+                ...(value.settings ?? {}),
+                forceReLogin: !value.settings?.forceReLogin,
+            }
+        }));
+    }, [reconfigure]);
     const revertSetupConfirmation = React.useCallback(() => {
         // Enable pause after setup, then reload
         reconfigure((value: AppConfig | null) => (value == null ? null : {
@@ -192,6 +201,18 @@ export function AppSettings(props: { onClose: () => void; }) {
                             onClick={toggleFormattingDebugMode}
                             disabled={config == null}
                             aria-labelledby="app-setting-formatting-debug-mode"
+                        />
+                    </div>
+                    <div id="app-setting-force-relogin" className={styles.setting_name}>
+                        Force Re-Login
+                    </div>
+                    <div className={styles.setting_switch}>
+                        <ToggleSwitch
+                            size="medium"
+                            checked={config?.settings?.forceReLogin ?? false}
+                            onClick={toggleForceReLogin}
+                            disabled={config == null}
+                            aria-labelledby="app-setting-force-relogin"
                         />
                     </div>
                     <div className={styles.setting_name}>

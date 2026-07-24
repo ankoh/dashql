@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as style from './connection_settings.module.css';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { KeyIcon, PlugIcon, XIcon } from '@primer/octicons-react';
+import { KeyIcon, PersonIcon, PlugIcon, XIcon } from '@primer/octicons-react';
 
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { ConnectionHealth, ConnectionStatus } from '../../connection/connection_state.js';
@@ -174,14 +174,18 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
         value: null
     });
 
-    // Helper to start the authorization
+    // Helper to start the authorization.
+    // Carry a previously resolved/shared login through as the OAuth login_hint. It is not a
+    // user-editable field here — it is populated after connect from the userinfo endpoint or
+    // seeded from a shared link — so we read it straight from the restored setupParams.
+    const restoredLogin = salesforceConnection?.proto.setupParams?.login ?? "";
     const setupParams = React.useMemo<connection.SalesforceConnectionParams>(() => ({
         hyperProtocol: pageState.hyperProtocol,
         instanceUrl: pageState.instanceUrl,
         appConsumerKey: pageState.appConsumerKey,
         appConsumerSecret: "",
-        login: "",
-    }), [pageState.hyperProtocol, pageState.instanceUrl, pageState.appConsumerKey]);
+        login: restoredLogin,
+    }), [pageState.hyperProtocol, pageState.instanceUrl, pageState.appConsumerKey, restoredLogin]);
     const setupAbortController = React.useRef<AbortController | null>(null);
     const setupConnection = async () => {
         let validationSucceeded = true;
@@ -334,6 +338,16 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
                             value={dcAuthInfo?.coreAccessToken ?? ''}
                             placeholder=""
                             leadingVisual={KeyIcon}
+                            readOnly
+                            disabled
+                            logContext={LOG_CTX}
+                        />
+                        <TextField
+                            name="Login"
+                            caption="Account offered as the sign-in hint"
+                            value={restoredLogin}
+                            placeholder=""
+                            leadingVisual={PersonIcon}
                             readOnly
                             disabled
                             logContext={LOG_CTX}

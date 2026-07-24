@@ -5,6 +5,7 @@ import { ToggleSwitch } from '../foundations/toggle_switch.js';
 
 export interface NotebookExportSettings {
     withCatalog: boolean;
+    withConnectionInfo: boolean;
 }
 
 interface Props {
@@ -20,6 +21,11 @@ export const NotebookExportSettingsView: React.FC<Props> = (props: Props) => {
         props.setSettings({ ...props.settings, withCatalog: !props.settings.withCatalog });
     }, [props.settings, props.setSettings]);
 
+    const toggleConnectionInfo = React.useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        props.setSettings({ ...props.settings, withConnectionInfo: !props.settings.withConnectionInfo });
+    }, [props.settings, props.setSettings]);
+
     return (
         <div className={styles.root}>
             <div className={styles.part_list}>
@@ -27,7 +33,12 @@ export const NotebookExportSettingsView: React.FC<Props> = (props: Props) => {
                     Connection Settings
                 </div>
                 <div className={styles.part_toggle}>
-                    <ToggleSwitch size="medium" checked={true} disabled={true} aria-labelledby="export-toggle-connection-label" />
+                    <ToggleSwitch
+                        size="medium"
+                        checked={props.settings.withConnectionInfo}
+                        onClick={toggleConnectionInfo}
+                        aria-labelledby="export-toggle-connection-label"
+                    />
                 </div>
                 <div id="export-toggle-notebook-label" className={styles.part_name}>
                     Notebook Data

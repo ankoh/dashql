@@ -56,4 +56,37 @@ describe('encodeNotebookAsZip', () => {
         const session = await readSessionData(zipBlob);
         expect('name' in session).toBe(false);
     });
+
+    it('shares the salesforce identity without the consumer secret when connection info is included', async () => {
+        const sfParams = {
+            salesforce: {
+                hyperProtocol: 'V3_HTTP',
+                instanceUrl: 'https://example.my.salesforce.com',
+                appConsumerKey: 'consumer-key',
+                appConsumerSecret: 'super-secret',
+                login: 'user@example.com',
+            },
+        };
+        const zipBlob = await encodeNotebookAsZip(makeNotebookState('uuid-1'), sfParams, null, true);
+        const session = await readSessionData(zipBlob);
+        expect(session.connectionParams.salesforce.appConsumerKey).toBe('consumer-key');
+        expect(session.connectionParams.salesforce.login).toBe('user@example.com');
+        expect(session.connectionParams.salesforce.appConsumerSecret).toBe('');
+    });
+
+    it('drops all connection info to a dataless session when the toggle is off', async () => {
+        const sfParams = {
+            salesforce: {
+                hyperProtocol: 'V3_HTTP',
+                instanceUrl: 'https://example.my.salesforce.com',
+                appConsumerKey: 'consumer-key',
+                appConsumerSecret: 'super-secret',
+                login: 'user@example.com',
+            },
+        };
+        const zipBlob = await encodeNotebookAsZip(makeNotebookState('uuid-1'), sfParams, null, false);
+        const session = await readSessionData(zipBlob);
+        expect('salesforce' in session.connectionParams).toBe(false);
+        expect('dataless' in session.connectionParams).toBe(true);
+    });
 });

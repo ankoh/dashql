@@ -15,11 +15,11 @@ import { useFileDownloader } from '../../platform/file/file_downloader_provider.
 import { IconButton } from '../../view/foundations/button.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 
-async function packAndCompressFile(conn: ConnectionState, notebook: NotebookState, withCatalog: boolean): Promise<Uint8Array> {
+async function packAndCompressFile(conn: ConnectionState, notebook: NotebookState, withConnectionInfo: boolean): Promise<Uint8Array> {
     const connectionParams = await import('../../connection/connection_params.js').then(m =>
         m.getConnectionParamsFromStateDetails(conn.details)
     );
-    const zipBlob = await encodeNotebookAsZip(notebook, connectionParams, conn.name);
+    const zipBlob = await encodeNotebookAsZip(notebook, connectionParams, conn.name, withConnectionInfo);
     const arrayBuffer = await zipBlob.arrayBuffer();
     return new Uint8Array(arrayBuffer);
 }
@@ -40,6 +40,7 @@ export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
 
     const [settings, setSettings] = React.useState<NotebookExportSettings>({
         withCatalog: true,
+        withConnectionInfo: true,
     });
 
     const [fileBytes, setFileBytes] = React.useState<Uint8Array>(new Uint8Array());
@@ -54,7 +55,7 @@ export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
         }
         const cancellation = new AbortController();
         const pack = async () => {
-            const fileBytes = await packAndCompressFile(conn, notebook, settings.withCatalog);
+            const fileBytes = await packAndCompressFile(conn, notebook, settings.withConnectionInfo);
             if (!cancellation.signal.aborted) {
                 setFileBytes(fileBytes);
             }

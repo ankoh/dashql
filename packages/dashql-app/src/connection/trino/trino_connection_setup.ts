@@ -201,6 +201,7 @@ async function setupTrinoConnectionOAuth(
     _config: TrinoConnectorConfig,
     client: TrinoApiClientInterface,
     httpClient: HttpClient,
+    forceReLogin: boolean,
     abortSignal: AbortSignal
 ): Promise<TrinoChannelInterface> {
     let channel: TrinoChannelInterface;
@@ -239,6 +240,11 @@ async function setupTrinoConnectionOAuth(
             code_challenge_method: 'S256',
             scope: 'openid email profile offline_access',
         });
+        if (forceReLogin) {
+            // Force the identity provider to re-authenticate instead of silently reusing an
+            // existing session cookie in the system browser.
+            authURLParams.set('prompt', 'login');
+        }
 
         // if (oauthConfig.scopes) {
         //     authURLParams.set('scope', oauthConfig.scopes);
@@ -326,7 +332,7 @@ async function setupTrinoConnectionOAuth(
 
     } catch (error: any) {
         if (error.name === 'AbortError') {
-            logger.warn("Cancelled OAuth flow", {}, LOG_CTX);
+            logger.info("Cancelled OAuth flow", {}, LOG_CTX);
             modifyState({
                 type: OAUTH_CANCELLED,
                 value: {
@@ -357,13 +363,14 @@ export async function setupTrinoConnection(
     client: TrinoApiClientInterface,
     httpClient: HttpClient,
     _platformType: PlatformType,
+    forceReLogin: boolean,
     abortSignal: AbortSignal
 ): Promise<TrinoChannelInterface> {
     // Determine auth type
     const authType = params.auth?.authType ?? "AUTH_BASIC";
     switch (authType) {
         case "AUTH_OAUTH":
-            return await setupTrinoConnectionOAuth(modifyState, logger, params, config, client, httpClient, abortSignal);
+            return await setupTrinoConnectionOAuth(modifyState, logger, params, config, client, httpClient, forceReLogin, abortSignal);
         case "AUTH_BASIC":
         default:
             return await setupTrinoConnectionBasic(modifyState, logger, params, client, abortSignal);
@@ -380,10 +387,11 @@ export function createTrinoSetup(
     config: TrinoConnectorConfig,
     logger: Logger,
     httpClient: HttpClient,
-    platformType: PlatformType
+    platformType: PlatformType,
+    forceReLogin: boolean
 ): (TrinoSetupApi | null) {
     const setup = async (modifyState: Dispatch<TrinoConnectorAction>, params: connection.TrinoConnectionParams, abort: AbortSignal) => {
-        return await setupTrinoConnection(modifyState, logger, params, config, trinoClient, httpClient, platformType, abort);
+        return await setupTrinoConnection(modifyState, logger, params, config, trinoClient, httpClient, platformType, forceReLogin, abort);
     };
     const reset = async (updateState: Dispatch<TrinoConnectorAction>) => {
         updateState({

@@ -87,6 +87,7 @@ export const OAUTH_WEB_WINDOW_OPENED = Symbol('OAUTH_WEB_WINDOW_OPENED');
 export const RECEIVED_CORE_AUTH_CODE = Symbol('RECEIVED_AUTH_CODE');
 export const REQUESTING_CORE_AUTH_TOKEN = Symbol('REQUESTING_CORE_AUTH_TOKEN');
 export const RECEIVED_CORE_AUTH_TOKEN = Symbol('RECEIVED_CORE_ACCESS_TOKEN');
+export const RECEIVED_CORE_USER_INFO = Symbol('RECEIVED_CORE_USER_INFO');
 export const REQUESTING_DATA_CLOUD_ACCESS_TOKEN = Symbol('REQUESTING_DATA_CLOUD_ACCESS_TOKEN');
 export const RECEIVED_DATA_CLOUD_ACCESS_TOKEN = Symbol('RECEIVED_DATA_CLOUD_ACCESS_TOKEN');
 
@@ -105,6 +106,7 @@ export type SalesforceConnectionStateAction =
     | VariantKind<typeof OAUTH_WEB_WINDOW_OPENED, null>
     | VariantKind<typeof RECEIVED_CORE_AUTH_CODE, auth.TemporaryToken>
     | VariantKind<typeof RECEIVED_CORE_AUTH_TOKEN, connection.SalesforceCoreAccessToken>
+    | VariantKind<typeof RECEIVED_CORE_USER_INFO, connection.SalesforceCoreUserInfo>
     | VariantKind<typeof RECEIVED_DATA_CLOUD_ACCESS_TOKEN, connection.SalesforceDataCloudAccessToken>
     | VariantKind<typeof REQUESTING_CORE_AUTH_TOKEN, null>
     | VariantKind<typeof REQUESTING_DATA_CLOUD_ACCESS_TOKEN, null>
@@ -409,6 +411,29 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 }
             };
             break;
+        case RECEIVED_CORE_USER_INFO: {
+            // Persist the resolved account identity into setupParams.login so it is emitted as
+            // the OAuth `login_hint` on subsequent connects and can be carried into shared
+            // links/files. Resolving user info is best-effort (see salesforce_connection_setup):
+            // if the connected app lacks the openid/profile scope we never reach this action.
+            const resolvedLogin = action.value.preferredUsername ?? action.value.email ?? details.proto.setupParams?.login ?? "";
+            next = {
+                ...state,
+                details: {
+                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    value: {
+                        ...details,
+                        proto: {
+                            ...details.proto,
+                            setupParams: details.proto.setupParams
+                                ? { ...details.proto.setupParams, login: resolvedLogin }
+                                : details.proto.setupParams,
+                        },
+                    }
+                }
+            };
+            break;
+        }
         case REQUESTING_DATA_CLOUD_ACCESS_TOKEN:
             next = {
                 ...state,

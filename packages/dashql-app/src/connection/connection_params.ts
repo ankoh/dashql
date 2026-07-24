@@ -59,6 +59,43 @@ export function getConnectionParamsFromStateDetails(params: ConnectionStateDetai
     }
 }
 
+/// Strip sensitive credentials from connection params before they are encoded into a shared
+/// link or file. Identity/hint fields (instance urls, consumer keys, usernames, login hints)
+/// are preserved so a recipient can be prompted with a prefilled sign-in, but no secret that
+/// would grant access on its own is included. This is always applied when connection info is
+/// shared — sharing raw secrets is never intended.
+export function sanitizeConnectionParamsForSharing(params: ConnectionParams): ConnectionParams {
+    if ('salesforce' in params && params.salesforce) {
+        // Keep instanceUrl, appConsumerKey and the login hint; drop the connected-app secret.
+        return { salesforce: { ...params.salesforce, appConsumerSecret: "" } };
+    }
+    if ('trino' in params && params.trino) {
+        // Keep endpoint, catalog and the basic-auth username; drop the basic-auth secret /
+        // access token. OAuth params (client id + urls) carry no secret and are left as-is.
+        const trino = params.trino;
+        return {
+            trino: {
+                ...trino,
+                auth: {
+                    ...trino.auth,
+                    ...(trino.auth?.basic ? { basic: { ...trino.auth.basic, secret: "" } } : {}),
+                },
+            },
+        };
+    }
+    if ('hyper' in params && params.hyper) {
+        // Keep endpoint and protocol; drop local TLS key/cert/ca file paths.
+        return {
+            hyper: {
+                ...params.hyper,
+                tls: { clientKeyPath: "", clientCertPath: "", caCertsPath: "" },
+            },
+        };
+    }
+    // Dataless carries no secrets.
+    return params;
+}
+
 export function createConnectionParamsSignature(params: ConnectionParams): any {
     if ('dataless' in params) return createDatalessConnectionParamsSignature(params.dataless);
     if ('trino' in params) return createTrinoConnectionParamsSignature(params.trino);

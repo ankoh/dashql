@@ -15,6 +15,7 @@ import {
     OAUTH_WEB_WINDOW_OPENED,
     RECEIVED_CORE_AUTH_CODE,
     RECEIVED_CORE_AUTH_TOKEN,
+    RECEIVED_CORE_USER_INFO,
     RECEIVED_DATA_CLOUD_ACCESS_TOKEN,
     REQUESTING_CORE_AUTH_TOKEN,
     REQUESTING_DATA_CLOUD_ACCESS_TOKEN,
@@ -72,7 +73,7 @@ const DEFAULT_EXPIRATION_TIME_MS = 2 * 60 * 60 * 1000;
 const OAUTH_POPUP_NAME = 'DashQL OAuth';
 const OAUTH_POPUP_SETTINGS = 'toolbar=no, menubar=no, width=600, height=700, top=100, left=100';
 
-export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, platformType: PlatformType, apiClient: SalesforceApiClientInterface, grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, appEvents: PlatformEventListener, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
+export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, platformType: PlatformType, apiClient: SalesforceApiClientInterface, grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, appEvents: PlatformEventListener, forceReLogin: boolean, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
     let hyperChannel: HyperDatabaseChannel;
     let sfChannel: SalesforceDatabaseChannel;
     let oauthPopup: Window | null = null;
@@ -147,14 +148,20 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             `response_type=code`,
             `state=${authStateBase64}`
         ];
-        if (params.login != null) {
-            paramParts.push(`login_hint=${params.login}`);
+        if (forceReLogin) {
+            // Force the identity provider to re-authenticate instead of silently reusing an
+            // existing session cookie in the browser (or system browser for native flows).
+            paramParts.push(`prompt=login`);
+        }
+        if (params.login) {
+            // Emails/usernames can contain characters like '+' and '@' that must be encoded.
+            paramParts.push(`login_hint=${encodeURIComponent(params.login)}`);
         }
         const url = `${params.instanceUrl}/services/oauth2/authorize?${paramParts.join('&')}`;
 
         // Either start request the oauth flow through a browser popup or by opening a url using the shell plugin
         if (flowVariant == "WEB_OPENER_FLOW") {
-            logger.debug("Opening popup", { "url": url.toString() }, LOG_CTX);
+            logger.info("Opening popup", { "url": url.toString() }, LOG_CTX);
             // Open popup window
             const popup = window.open(url, OAUTH_POPUP_NAME, OAUTH_POPUP_SETTINGS);
             if (!popup) {
@@ -167,7 +174,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             modifyState({ type: OAUTH_WEB_WINDOW_OPENED, value: null });
         } else {
             // Just open the link with the default browser
-            logger.debug("Opening URL", { "url": url.toString() }, LOG_CTX);
+            logger.info("Opening URL", { "url": url.toString() }, LOG_CTX);
             shell.open(url);
             modifyState({ type: OAUTH_NATIVE_LINK_OPENED, value: null });
         }
@@ -175,7 +182,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         // Await the oauth redirect
         const authCode = await appEvents.waitForOAuthRedirect(abortSignal);
         abortSignal.throwIfAborted();
-        logger.debug("Received OAuth code", { "code": JSON.stringify(authCode) }, LOG_CTX);
+        logger.info("Received OAuth code", { "code": JSON.stringify(authCode) }, LOG_CTX);
 
         closeOAuthPopup();
 
@@ -208,11 +215,30 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             pkceChallenge.verifier,
             abortSignal,
         );
-        logger.debug("Received core access token", { "token": JSON.stringify(coreAccessToken) }, LOG_CTX);
+        logger.info("Received core access token", { "token": JSON.stringify(coreAccessToken) }, LOG_CTX);
         modifyState({
             type: RECEIVED_CORE_AUTH_TOKEN,
             value: coreAccessToken,
         });
+        abortSignal.throwIfAborted();
+
+        // Resolve the account identity (email/username) to prefill the OAuth login_hint on
+        // future connects and shared links. This is strictly best-effort: the userinfo
+        // endpoint requires the openid/profile scope, which the connected app may not grant.
+        // A failure here must never abort the auth flow, so we swallow it and continue.
+        try {
+            const userInfo = await apiClient.getCoreUserInfo(coreAccessToken, abortSignal);
+            logger.info("Received core user info", { "userInfo": JSON.stringify(userInfo) }, LOG_CTX);
+            modifyState({
+                type: RECEIVED_CORE_USER_INFO,
+                value: userInfo,
+            });
+        } catch (error: any) {
+            if (error?.name === 'AbortError') {
+                throw error;
+            }
+            logger.info("Could not resolve core user info (login hint will be skipped)", { "error": stringifyError(error) }, LOG_CTX);
+        }
         abortSignal.throwIfAborted();
 
         // Request the data cloud access token
@@ -221,7 +247,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             value: null,
         });
         const dcToken = await apiClient.getDataCloudAccessToken(coreAccessToken, abortSignal);
-        logger.debug("Received data cloud token", { "token": JSON.stringify(dcToken) }, LOG_CTX);
+        logger.info("Received data cloud token", { "token": JSON.stringify(dcToken) }, LOG_CTX);
         modifyState({
             type: RECEIVED_DATA_CLOUD_ACCESS_TOKEN,
             value: dcToken,
@@ -287,7 +313,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
     } catch (error: any) {
         closeOAuthPopup();
         if (error.name === 'AbortError') {
-            logger.warn("Cancelled OAuth flow", {}, LOG_CTX);
+            logger.info("Cancelled OAuth flow", {}, LOG_CTX);
             modifyState({
                 type: SETUP_CANCELLED,
                 value: error,
@@ -313,9 +339,9 @@ export interface SalesforceSetupApi {
     reset(dispatch: Dispatch<SalesforceConnectionStateAction>): Promise<void>
 }
 
-export function createSalesforceSetup(grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, salesforceApi: SalesforceApiClientInterface, platformType: PlatformType, appEvents: PlatformEventListener, config: SalesforceConnectorConfig, logger: Logger): (SalesforceSetupApi | null) {
+export function createSalesforceSetup(grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, salesforceApi: SalesforceApiClientInterface, platformType: PlatformType, appEvents: PlatformEventListener, config: SalesforceConnectorConfig, forceReLogin: boolean, logger: Logger): (SalesforceSetupApi | null) {
     const setup = async (updateState: Dispatch<SalesforceConnectionStateAction>, params: connection.SalesforceConnectionParams, abort: AbortSignal) => {
-        return setupSalesforceConnection(updateState, logger, params, config, platformType, salesforceApi, grpcClient, httpClient, appEvents, abort);
+        return setupSalesforceConnection(updateState, logger, params, config, platformType, salesforceApi, grpcClient, httpClient, appEvents, forceReLogin, abort);
     };
     const reset = async (updateState: Dispatch<SalesforceConnectionStateAction>) => {
         updateState({

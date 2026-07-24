@@ -6,6 +6,7 @@ import { BASE64URL_CODEC } from '../utils/base64.js';
 import { NotebookState } from './notebook_state.js';
 import type { SessionData, NotebookMetadata, PageData, ScriptData } from '../platform/storage/storage_backend.js';
 import { createSessionZip } from '../platform/storage/session_export.js';
+import { sanitizeConnectionParamsForSharing } from '../connection/connection_params.js';
 
 export enum NotebookLinkTarget {
     NATIVE,
@@ -15,7 +16,10 @@ export enum NotebookLinkTarget {
 export async function encodeNotebookAsZip(
     notebookState: NotebookState,
     connectionParams: any,
-    sessionName: string | null = null
+    sessionName: string | null = null,
+    // When true, include the connection identity (secrets stripped) so a recipient gets a
+    // prefilled sign-in. When false, drop it entirely and share a dataless session.
+    withConnectionInfo: boolean = true
 ): Promise<Blob> {
     // Create session data
     const notebookMetadata: NotebookMetadata = {
@@ -23,10 +27,14 @@ export async function encodeNotebookAsZip(
         createdAt: new Date().toISOString(),
     };
 
+    const sharedConnectionParams = withConnectionInfo
+        ? sanitizeConnectionParamsForSharing(connectionParams)
+        : { dataless: {} };
+
     const sessionData: SessionData = {
         sessionId: notebookState.sessionId,
         sessionPath: notebookState.sessionId,
-        connectionParams,
+        connectionParams: sharedConnectionParams,
         notebook: notebookMetadata,
         // Carry the user-supplied session name so a shared link/file restores under the same label.
         // Omit it entirely when unnamed rather than writing an empty string, matching how a session
@@ -73,9 +81,10 @@ export async function encodeNotebookAsZipUrl(
     notebookState: NotebookState,
     connectionParams: any,
     target: NotebookLinkTarget,
-    sessionName: string | null = null
+    sessionName: string | null = null,
+    withConnectionInfo: boolean = true
 ): Promise<URL> {
-    const zipBlob = await encodeNotebookAsZip(notebookState, connectionParams, sessionName);
+    const zipBlob = await encodeNotebookAsZip(notebookState, connectionParams, sessionName, withConnectionInfo);
     const zipBytes = new Uint8Array(await zipBlob.arrayBuffer());
 
     // Wrap the zip in AppEventData - convert to base64 string as required by JSON schema

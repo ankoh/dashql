@@ -20,16 +20,17 @@ export const TrinoConnector: React.FC<Props> = (props: Props) => {
     const httpClient = useHttpClient();
     const platformType = usePlatformType();
     const connectorConfig = config?.connectors?.trino;
+    const forceReLogin = config?.settings?.forceReLogin ?? false;
 
     const [api, setup] = React.useMemo(() => {
         if (!connectorConfig) {
             return [null, null];
         } else {
             const api: TrinoApiClientInterface = new TrinoApiClient(logger, httpClient);
-            const setup = createTrinoSetup(api!, connectorConfig, logger, httpClient, platformType);
+            const setup = createTrinoSetup(api!, connectorConfig, logger, httpClient, platformType, forceReLogin);
             return [api, setup];
         }
-    }, [connectorConfig, httpClient, platformType]);
+    }, [connectorConfig, httpClient, platformType, forceReLogin]);
 
     return (
         <API_CTX.Provider value={api}>

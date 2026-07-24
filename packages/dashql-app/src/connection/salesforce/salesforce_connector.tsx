@@ -23,6 +23,7 @@ export const SalesforceConnector: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const config = useAppConfig();
     const connectorConfig = config?.connectors?.salesforce;
+    const forceReLogin = config?.settings?.forceReLogin ?? false;
     const httpClient = useHttpClient();
     const grpcClient = useHyperGrpcClient();
     const hyperHttpClient = useHyperHttpClient();
@@ -40,10 +41,10 @@ export const SalesforceConnector: React.FC<Props> = (props: Props) => {
             return [null, null];
         } else {
             const api = new SalesforceApiClient(logger, httpClient);
-            const setup = createSalesforceSetup(grpcClient, hyperHttpClient, api, platformType, appEvents, connectorConfig, logger);
+            const setup = createSalesforceSetup(grpcClient, hyperHttpClient, api, platformType, appEvents, connectorConfig, forceReLogin, logger);
             return [api, setup];
         }
-    }, [connectorConfig, httpClient, grpcClient, hyperHttpClient, platformType, appEvents]);
+    }, [connectorConfig, httpClient, grpcClient, hyperHttpClient, platformType, appEvents, forceReLogin]);
 
     return (
         <API_CTX.Provider value={api}>
