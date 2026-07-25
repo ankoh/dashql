@@ -42,13 +42,18 @@ export function NotebookPageOverview(props: NotebookPageOverviewProps): React.Re
 
     const page = getSelectedPage(notebook);
     const entries = getSelectedPageEntries(notebook);
-    const focusedFileName = notebook.notebookUserFocus.fileName;
 
-    // Resolve the focused entry's scriptId so focused edges/ports render on top.
+    // Edges/ports focus on *hover*, not selection: a click now navigates to the entry's script
+    // details, so focusing on selection would flash the highlight for a frame and then leave the
+    // grid. Hover keeps the "which cards does this connect to?" affordance without hijacking the
+    // click. Local to the overview — no notebook state involved.
+    const [hoveredFileName, setHoveredFileName] = React.useState<string | null>(null);
+
+    // Resolve the hovered entry's scriptId so its edges/ports render focused and on top.
     const focusedScriptId = React.useMemo(() => {
-        if (!focusedFileName || !page) return null;
-        return page.scripts[focusedFileName]?.scriptId ?? null;
-    }, [focusedFileName, page]);
+        if (!hoveredFileName || !page) return null;
+        return page.scripts[hoveredFileName]?.scriptId ?? null;
+    }, [hoveredFileName, page]);
 
     // Dependencies are derived from analyzer output; recompute when the entries or
     // any of their analyzed buffers change. Keyed on the scripts map so a
@@ -69,6 +74,10 @@ export function NotebookPageOverview(props: NotebookPageOverviewProps): React.Re
         modifyNotebook({ type: SELECT_ENTRY, value: fileName });
         props.showDetails();
     }, [modifyNotebook, props.showDetails]);
+    // Hovering a card focuses its edges/ports; leaving it (fileName === null) clears the focus.
+    const handleHover = React.useCallback((fileName: string | null) => {
+        setHoveredFileName(fileName);
+    }, []);
     // Placeholder page cards carry the *clean* page name; resolve it to the owning folder (the tab
     // key) at click time so no scriptId→folder index is needed. SELECT_PAGE no-ops on a miss.
     const handleSelectPage = React.useCallback((pageName: string) => {
@@ -109,10 +118,11 @@ export function NotebookPageOverview(props: NotebookPageOverviewProps): React.Re
                     ports={layout.portsByScriptId.get(entry.scriptId) ?? 0}
                     focusedPorts={focusedPortsByScriptId.get(entry.scriptId) ?? 0}
                     onOpen={handleOpen}
+                    onHover={handleHover}
                 />
             );
         });
-    }, [entries, layout, notebook.scripts, sessionId, focusedPortsByScriptId, handleOpen]);
+    }, [entries, layout, notebook.scripts, sessionId, focusedPortsByScriptId, handleOpen, handleHover]);
 
     // Ports on a page-reference card that a *focused* edge attaches to, so they render in
     // the focused style (matching the highlighted edge + the grid card's port on the other end).

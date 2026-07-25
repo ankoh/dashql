@@ -24,6 +24,9 @@ interface OverviewCardProps {
     /// Open this entry's script details. Fired on a single click anywhere on the card except the
     /// header body toggle.
     onOpen: (fileName: string) => void;
+    /// Focus this card's edges/ports on hover. Called with the card's fileName on pointer enter and
+    /// with `null` on pointer leave.
+    onHover: (fileName: string | null) => void;
 }
 
 /// Maps a NodePort to its CSS placement class. Revived from the catalog
@@ -102,6 +105,12 @@ export function OverviewCard(props: OverviewCardProps): React.ReactElement {
     const handleClick = React.useCallback(() => {
         props.onOpen(rect.fileName);
     }, [props.onOpen, rect.fileName]);
+    const handleMouseEnter = React.useCallback(() => {
+        props.onHover(rect.fileName);
+    }, [props.onHover, rect.fileName]);
+    const handleMouseLeave = React.useCallback(() => {
+        props.onHover(null);
+    }, [props.onHover]);
     // The body toggle lives inside the card, whose click handler opens the script details. Stop the
     // click at the control so switching the body (script ↔ visualization) doesn't also navigate.
     const stopPropagation = React.useCallback((event: React.SyntheticEvent) => {
@@ -118,6 +127,8 @@ export function OverviewCard(props: OverviewCardProps): React.ReactElement {
                 height: rect.height,
             }}
             onClick={handleClick}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
             data-file={rect.fileName}
         >
             <div className={styles.card_frame}>
