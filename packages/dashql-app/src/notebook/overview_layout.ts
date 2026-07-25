@@ -38,8 +38,8 @@ export interface OverviewLayoutConfig {
 }
 
 export const DEFAULT_OVERVIEW_LAYOUT: OverviewLayoutConfig = {
-    scriptCardWidth: 200,
-    scriptCardHeight: 132,
+    scriptCardWidth: 220,
+    scriptCardHeight: 160,
     scriptCardColGap: 40,
     scriptCardRowGap: 16,
     outerGridPadding: 32,

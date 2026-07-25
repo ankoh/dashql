@@ -13,9 +13,13 @@ import { TraceLogPanel } from './trace_log_panel.js';
 import { TabHeader, useResultRowCount, formatRowCountDetail } from './tab_header.js';
 import { QueryResultCacheLabel, QueryResultRerunButton } from './query_result_cache_controls.js';
 
-const FEED_LIMIT_RESULT_ROWS = 8;
+const FEED_LIMIT_RESULT_ROWS = 6;
 /// The Log tab's viewport auto-expands to fit its rows and caps at this many (then scrolls).
-const FEED_LIMIT_LOG_ROWS = 8;
+const FEED_LIMIT_LOG_ROWS = 6;
+/// Cap the Vega-Lite chart height in the feed footer so a single vis entry doesn't dominate the
+/// feed while scrolling. Only the vega-lite renderer honors this; the umap scatter fills its
+/// container as before.
+const FEED_VISUALIZATION_HEIGHT = 180;
 
 const enum FooterTab {
     Log = 0,
@@ -174,6 +178,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                         <VisualizationDispatch
                             query={props.queryState}
                             visualizeQuery={props.visualizeQuery}
+                            height={FEED_VISUALIZATION_HEIGHT}
                             transparent
                             wheelZoom={false}
                         />

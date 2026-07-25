@@ -9,6 +9,8 @@ export enum SegmentedControlSize {
     Tiny,
     Small,
     Medium,
+    XSmall,
+    XXSmall,
 }
 
 export enum SegmentedControlVariant {
@@ -182,6 +184,8 @@ const Root: React.FC<SegmentedControlProps> = ({
                     [styles.full_width]: fullWidth,
                     [styles.size_tiny]: size === SegmentedControlSize.Tiny,
                     [styles.size_small]: size === SegmentedControlSize.Small,
+                    [styles.size_xsmall]: size === SegmentedControlSize.XSmall,
+                    [styles.size_xxsmall]: size === SegmentedControlSize.XXSmall,
                     [styles.variant_invisible]: variant === SegmentedControlVariant.Invisible,
                 },
                 className

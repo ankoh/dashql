@@ -15,6 +15,12 @@ interface Props {
     /// Enable scroll-wheel zoom. Disabled in the feed footer so the wheel scrolls the feed
     /// instead of being captured by the chart. Defaults to true.
     wheelZoom?: boolean;
+    /// Optional exact chart width/height in px. Currently honored by the Vega-Lite renderer (sizes
+    /// the whole plot to `fit`); the umap scatter already fills its container.
+    width?: number;
+    height?: number;
+    /// Optional uniform scale (<1 shrinks fonts/marks/axes). Honored by the Vega-Lite renderer.
+    scale?: number;
 }
 
 /// Renders the visualization for a resolved VISUALIZE query, dispatching on the
@@ -38,6 +44,6 @@ export function VisualizationDispatch(props: Props): React.ReactElement | null {
             );
         case 'vegalite':
         default:
-            return <VegaLiteView query={props.query} vegaLiteSpec={vq.vegaLiteSpec} />;
+            return <VegaLiteView query={props.query} vegaLiteSpec={vq.vegaLiteSpec} width={props.width} height={props.height} scale={props.scale} />;
     }
 }

@@ -43,6 +43,34 @@
     font-size: 11px;
 }
 
+/* Sizes below Tiny, for cramped hosts like the notebook grid cards. Each shrinks the segment box,
+   the inset/radius, and the octicon SVG (which otherwise keeps its intrinsic 16px). */
+.segmented_control.size_xsmall {
+    --segmented-control-icon-width: 20px;
+    --segmented-control-button-inner-padding: 6px;
+    --segmented-control-button-bg-inset: 3px;
+    --segmented-control-outer-radius: 6px;
+    height: 20px;
+    font-size: 10px;
+}
+.segmented_control.size_xsmall svg {
+    width: 13px;
+    height: 13px;
+}
+
+.segmented_control.size_xxsmall {
+    --segmented-control-icon-width: 18px;
+    --segmented-control-button-inner-padding: 4px;
+    --segmented-control-button-bg-inset: 2px;
+    --segmented-control-outer-radius: 5px;
+    height: 18px;
+    font-size: 9px;
+}
+.segmented_control.size_xxsmall svg {
+    width: 11px;
+    height: 11px;
+}
+
 /* ==================== Invisible variant ====================
    Borderless like the Button's invisible variant: no outer border, no background,
    and no dividers between segments. */

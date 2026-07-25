@@ -10,6 +10,18 @@ import { resolveVisibleRowIndices } from '../query_result/visible_rows.js';
 interface Props {
     query: QueryExecutionState | null;
     vegaLiteSpec: TopLevelSpec | null;
+    /// Optional exact width/height in px for the whole chart. When either is set, the view is sized
+    /// to `fit` — the entire plot (marks, axes, legend) is scaled to fit the given box — so a cramped
+    /// host (e.g. a grid card) gets a chart that fits exactly instead of overflowing. An unset
+    /// dimension falls back to the container (width) / vega's default (height).
+    width?: number;
+    height?: number;
+    /// Optional uniform scale factor (<1 shrinks). `fit` only rescales the plot *area*; label fonts,
+    /// mark sizes and stroke widths keep their absolute px, so on a tiny box they look oversized.
+    /// This renders the chart into a `1/scale` larger logical box and CSS-scales the result down, so
+    /// *everything* — text, marks, axes — shrinks uniformly while still landing in the width×height
+    /// box. Defaults to 1 (no scaling).
+    scale?: number;
 }
 
 /// Convert an arrow row object to a vega-compatible plain object.
@@ -73,15 +85,31 @@ export function VegaLiteView(props: Props): React.ReactElement {
         return visibleRows != null ? arrowRowsAtIndices(dataTable, visibleRows) : arrowTableToRows(dataTable);
     }, [succeeded, dataTable, tableComputation, filterTable, orderingTable]);
 
+    // A uniform scale (<1) is applied via CSS transform on the chart container. To still land in the
+    // requested width×height box, the chart is laid out into a `1/scale` larger logical box so that
+    // scaling it back down recovers the exact size — but with fonts/marks/strokes visually smaller.
+    const scale = props.scale != null && props.scale > 0 ? props.scale : 1;
+    const width = props.width != null ? Math.round(props.width / scale) : null;
+    const height = props.height != null ? Math.round(props.height / scale) : null;
     React.useEffect(() => {
         const el = containerRef.current;
         if (!el || !spec || !rows) return;
 
         let disposed = false;
         let view: { finalize: () => void } | null = null;
-        const withData = { ...spec, data: { values: rows } } as TopLevelSpec & { width?: unknown };
-        // Always grow to container width
-        if (withData.width === undefined) withData.width = 'container';
+        const withData = { ...spec, data: { values: rows } } as TopLevelSpec & {
+            width?: unknown;
+            height?: unknown;
+            autosize?: unknown;
+        };
+        // Pin whichever exact dimensions were requested; otherwise grow width to the container.
+        withData.width = width != null ? width : 'container';
+        if (height != null) withData.height = height;
+        // When an exact box is requested, switch to `fit` autosizing so the whole plot (marks +
+        // axes + legend) is scaled into that box rather than overflowing it.
+        if (width != null || height != null) {
+            withData.autosize = { type: 'fit', contains: 'padding' };
+        }
         // Lazy-load vega-embed (and vega-interpreter, which avoids the
         // CSP-violating `Function()` eval that vega's default expression
         // compiler does) to keep them out of the import graph for non-vis paths.
@@ -113,7 +141,7 @@ export function VegaLiteView(props: Props): React.ReactElement {
             if (view) view.finalize();
             if (el) el.replaceChildren();
         };
-    }, [spec, rows]);
+    }, [spec, rows, width, height, scale]);
 
     if (!spec) {
         return <div className={styles.empty}>No visualization available</div>;
@@ -125,10 +153,21 @@ export function VegaLiteView(props: Props): React.ReactElement {
         return <div className={styles.empty}>Result is empty</div>;
     }
 
+    // When scaling, the chart container is laid out at the enlarged logical size and shrunk with a
+    // CSS transform anchored top-left, so the whole plot renders smaller within the requested box.
+    const chartStyle: React.CSSProperties | undefined = scale !== 1
+        ? {
+            width: width ?? undefined,
+            height: height ?? undefined,
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
+        }
+        : undefined;
+
     return (
         <div className={styles.root}>
             {error && <div className={styles.error}>{error}</div>}
-            <div ref={containerRef} className={styles.chart} />
+            <div ref={containerRef} className={styles.chart} style={chartStyle} />
         </div>
     );
 }
