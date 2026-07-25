@@ -62,10 +62,10 @@ export function NotebookPageOverview(props: NotebookPageOverviewProps): React.Re
         return layoutOverview(entries, dependencies, availableWidth, focusedScriptId, config);
     }, [entries, dependencies, availableWidth, focusedScriptId, config]);
 
-    const handleFocus = React.useCallback((fileName: string) => {
-        modifyNotebook({ type: SELECT_ENTRY, value: fileName });
-    }, [modifyNotebook]);
-    const handleExpand = React.useCallback((fileName: string) => {
+    // A single click on a card selects the entry and opens its script details. Escape in the details
+    // view returns here: the feed (which owns the grid view mode) stays mounted beneath the details
+    // overlay, so closing details reveals the grid exactly as it was left.
+    const handleOpen = React.useCallback((fileName: string) => {
         modifyNotebook({ type: SELECT_ENTRY, value: fileName });
         props.showDetails();
     }, [modifyNotebook, props.showDetails]);
@@ -108,12 +108,11 @@ export function NotebookPageOverview(props: NotebookPageOverviewProps): React.Re
                     scriptData={notebook.scripts[entry.scriptId]}
                     ports={layout.portsByScriptId.get(entry.scriptId) ?? 0}
                     focusedPorts={focusedPortsByScriptId.get(entry.scriptId) ?? 0}
-                    onFocus={handleFocus}
-                    onExpand={handleExpand}
+                    onOpen={handleOpen}
                 />
             );
         });
-    }, [entries, layout, notebook.scripts, sessionId, focusedPortsByScriptId, handleFocus, handleExpand]);
+    }, [entries, layout, notebook.scripts, sessionId, focusedPortsByScriptId, handleOpen]);
 
     // Ports on a page-reference card that a *focused* edge attaches to, so they render in
     // the focused style (matching the highlighted edge + the grid card's port on the other end).

@@ -21,8 +21,9 @@ interface OverviewCardProps {
     ports: number;
     /// Subset of `ports` whose edge is focused, so those ports render highlighted.
     focusedPorts: number;
-    onFocus: (fileName: string) => void;
-    onExpand: (fileName: string) => void;
+    /// Open this entry's script details. Fired on a single click anywhere on the card except the
+    /// header body toggle.
+    onOpen: (fileName: string) => void;
 }
 
 /// Maps a NodePort to its CSS placement class. Revived from the catalog
@@ -98,14 +99,11 @@ export function OverviewCard(props: OverviewCardProps): React.ReactElement {
         return () => observer.disconnect();
     }, [showVisualization]);
 
-    const handlePointerDown = React.useCallback(() => {
-        props.onFocus(rect.fileName);
-    }, [props.onFocus, rect.fileName]);
-    const handleDoubleClick = React.useCallback(() => {
-        props.onExpand(rect.fileName);
-    }, [props.onExpand, rect.fileName]);
-    // The toggle lives inside the card, whose pointer/double-click handlers focus and expand the
-    // entry. Stop those events at the control so switching the body doesn't also focus/expand.
+    const handleClick = React.useCallback(() => {
+        props.onOpen(rect.fileName);
+    }, [props.onOpen, rect.fileName]);
+    // The body toggle lives inside the card, whose click handler opens the script details. Stop the
+    // click at the control so switching the body (script ↔ visualization) doesn't also navigate.
     const stopPropagation = React.useCallback((event: React.SyntheticEvent) => {
         event.stopPropagation();
     }, []);
@@ -119,8 +117,7 @@ export function OverviewCard(props: OverviewCardProps): React.ReactElement {
                 width: rect.width,
                 height: rect.height,
             }}
-            onPointerDown={handlePointerDown}
-            onDoubleClick={handleDoubleClick}
+            onClick={handleClick}
             data-file={rect.fileName}
         >
             <div className={styles.card_frame}>
@@ -138,15 +135,13 @@ export function OverviewCard(props: OverviewCardProps): React.ReactElement {
                                 icon={GraphIcon}
                                 aria-label="Show visualization"
                                 selected={body === CardBody.Visualization}
-                                onPointerDown={stopPropagation}
-                                onDoubleClick={stopPropagation}
+                                onClick={stopPropagation}
                             />
                             <SegmentedControl.IconButton
                                 icon={CodeIcon}
                                 aria-label="Show script"
                                 selected={body === CardBody.Script}
-                                onPointerDown={stopPropagation}
-                                onDoubleClick={stopPropagation}
+                                onClick={stopPropagation}
                             />
                         </SegmentedControl>
                     )}
