@@ -77,10 +77,13 @@ export function OverviewCard(props: OverviewCardProps): React.ReactElement {
                     <div className={styles.card_label}>{displayName}</div>
                 </div>
                 <div className={styles.card_body}>
-                    WIP
-                    {/*scriptData && (
-                        <ScriptPreview sessionId={props.sessionId} scriptData={scriptData} />
-                    )*/}
+                    {scriptData && (
+                        <ScriptPreview
+                            className={styles.card_preview}
+                            sessionId={props.sessionId}
+                            scriptData={scriptData}
+                        />
+                    )}
                 </div>
             </div>
             <div className={styles.node_ports}>

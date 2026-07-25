@@ -149,8 +149,36 @@
 
 .card_body {
     overflow: hidden;
-    font-size: 0.6rem;
-    line-height: 1.1;
+    /* The preview fills the remaining row; its own scroller clips overflow. */
+    min-height: 0;
+}
+
+/* The read-only, syntax-highlighted script preview shown inside a grid card.
+   Deliberately tiny — the card is cramped, so this is a familiar glance at the
+   script rather than a legible read. `pointer-events: none` lets the card keep
+   handling focus/expand clicks instead of CodeMirror swallowing them. */
+.card_preview {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+}
+.card_preview :global(.cm-editor) {
+    height: 100%;
+    font-size: 0.5rem;
+    line-height: 1.25;
+}
+.card_preview :global(.cm-scroller) {
+    padding: 4px 4px;
+}
+.card_preview :global(.cm-content) {
+    /* Compact preview never wants a cursor gutter or extra bottom padding. */
+    padding: 0;
+}
+.card_preview :global(.cm-line) {
+    /* CodeMirror's default 0 2px line padding is wasteful in the cramped card. */
+    padding: 0;
 }
 
 /* ------------------------------------------------------------------------- */
