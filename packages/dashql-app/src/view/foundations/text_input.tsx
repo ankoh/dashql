@@ -45,7 +45,10 @@ export function TextInput(props: TextInputProps): React.ReactElement {
                 placeholder={props.placeholder}
                 disabled={props.disabled}
                 onChange={props.onChange}
-                autoComplete={props.autoComplete?.toString()}
+                autoComplete={props.autoComplete ? "on" : "off"}
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
             />
             {props.trailingVisual && (
                 <span className={styles.trailing_visual_container}>
