@@ -5,6 +5,9 @@ import { resolveSymbolSpan } from '../core/tokens.js';
 import { ResolvedVisualizeQuery } from '../notebook/notebook_types.js';
 import { parseUmapSpec } from '../view/visualization/umap/umap_spec.js';
 import { DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
+import { type LoggerLike } from '../platform/logger/logger.js';
+
+const LOG_CTX = 'visualize_executor';
 
 /// Looks up a script's text by its notebook scriptKey (its catalog entry id).
 /// Returns null if no such script exists in the notebook.
@@ -37,6 +40,7 @@ export function resolveVisualizeQuery(
     scriptBuffers: DashQLScriptBuffers,
     scriptText: string,
     lookupScriptText: ScriptTextByKey,
+    logger?: LoggerLike,
 ): ResolvedVisualizeQuery | null {
     const analyzedPtr = scriptBuffers.analyzed;
     const parsedPtr = scriptBuffers.parsed;
@@ -111,6 +115,9 @@ export function resolveVisualizeQuery(
         default: {
             const vegaLiteSpecRaw = spec.vegaliteSpec();
             if (!vegaLiteSpecRaw) return null;
+            // Log the final Vega-Lite JSON so the generated spec can be inspected
+            // (e.g. to check which field-def properties like `stack` survived transcoding).
+            logger?.info('generated Vega-Lite spec', { spec: vegaLiteSpecRaw }, LOG_CTX);
             let vegaLiteSpec: TopLevelSpec;
             try {
                 vegaLiteSpec = JSON.parse(vegaLiteSpecRaw) as TopLevelSpec;
