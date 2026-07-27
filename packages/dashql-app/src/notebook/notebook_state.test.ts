@@ -453,15 +453,33 @@ describe('UPDATE_NOTEBOOK_ENTRY', () => {
         expect(next).toBe(state);
     });
 
-    it('marks script analysis outdated on rename', () => {
+    it('re-analyzes the renamed script inline so its analysis stays fresh', () => {
         const state = buildState();
         const file = state.notebookUserFocus.fileName;
         const scriptId = getSelectedPage(state)!.scripts[file].scriptId;
         const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
         expect(s1.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
 
+        // The rename re-registers the script under its new notebook path immediately, so the renamed
+        // script's own analysis is refreshed (not deferred).
         const s2 = reduce(s1, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: file, newFileName: '02-renamed.sql' } });
-        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(true);
+        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
+    });
+
+    it('marks other scripts outdated on rename so cross-script references re-resolve', () => {
+        const s0 = buildState();
+        const s1 = reduce(s0, { type: CREATE_NOTEBOOK_ENTRY, value: null });
+        const files = getSortedFileNames(getSelectedPage(s1)!);
+        const renamedId = getSelectedPage(s1)!.scripts[files[0]].scriptId;
+        const otherId = getSelectedPage(s1)!.scripts[files[1]].scriptId;
+        // Bring both scripts up to date first.
+        const s2 = reduce(reduce(s1, { type: ANALYZE_OUTDATED_SCRIPT, value: renamedId }), { type: ANALYZE_OUTDATED_SCRIPT, value: otherId });
+        expect(s2.scripts[otherId].scriptAnalysis.outdated).toBe(false);
+
+        const s3 = reduce(s2, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: files[0], newFileName: 'renamed' } });
+        // The renamed script is fresh, but the other script is marked outdated so it re-resolves refs.
+        expect(s3.scripts[renamedId].scriptAnalysis.outdated).toBe(false);
+        expect(s3.scripts[otherId].scriptAnalysis.outdated).toBe(true);
     });
 
     it('does not mark outdated when fileName is unchanged', () => {
@@ -476,7 +494,7 @@ describe('UPDATE_NOTEBOOK_ENTRY', () => {
         expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
     });
 
-    it('updates catalog path after re-analysis following rename, using clean names', () => {
+    it('updates the catalog path immediately on rename, using clean names', () => {
         const state = buildState();
         const oldName = state.notebookUserFocus.fileName;
         const folder = MAIN_FOLDER;
@@ -487,15 +505,14 @@ describe('UPDATE_NOTEBOOK_ENTRY', () => {
         const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
         expect(s1.scripts[scriptId].annotations.tableDefs).toContain(`${folder}/${scriptDisplayName(oldName)}`);
 
+        // The rename re-analyzes inline, so the catalog path is updated to the new clean name right
+        // away — no deferred re-analysis needed. The stale old path is gone.
         const s2 = reduce(s1, { type: UPDATE_NOTEBOOK_ENTRY, value: { fileName: oldName, newFileName: 'renamed' } });
-        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(true);
         const newName = getSortedFileNames(getSelectedPage(s2)!)[0];
-
-        const s3 = reduce(s2, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
-        expect(s3.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
-        expect(s3.scripts[scriptId].annotations.tableDefs).toContain(`${folder}/renamed`);
+        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
         expect(scriptDisplayName(newName)).toBe('renamed');
-        expect(s3.scripts[scriptId].annotations.tableDefs).not.toContain(`${folder}/${scriptDisplayName(oldName)}`);
+        expect(s2.scripts[scriptId].annotations.tableDefs).toContain(`${folder}/renamed`);
+        expect(s2.scripts[scriptId].annotations.tableDefs).not.toContain(`${folder}/${scriptDisplayName(oldName)}`);
     });
 });
 

@@ -687,6 +687,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     update.scriptBuffers,
                     prevScript.script.toString(),
                     makeScriptLookup(state.scripts),
+                    logger,
                 ),
             };
             // Update semantic user focus
@@ -964,19 +965,37 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 [page.folderName]: { ...page, scripts: newPageScripts },
             };
 
-            // Update the script data fileName; mark analysis outdated on rename so the catalog path gets updated
+            // Update the script data fileName. On rename we must re-analyze *immediately* rather than
+            // just marking the analysis outdated: the clean file name is the script's SQL reference
+            // namespace, so the analyzer has to re-register it in the catalog under the new notebook
+            // path. Deferring this (waiting until the script is next viewed) leaves the catalog holding
+            // the old notebook-path table declaration, so cross-script references — and VISUALIZE
+            // script-ref completion — keep resolving to the stale name.
             const scriptId = entry.scriptId;
             const updatedScriptData = state.scripts[scriptId];
-            const newScripts = updatedScriptData ? {
-                ...state.scripts,
-                [scriptId]: {
-                    ...updatedScriptData,
-                    fileName: newFileName,
-                    scriptAnalysis: renamed
-                        ? { ...updatedScriptData.scriptAnalysis, outdated: true }
-                        : updatedScriptData.scriptAnalysis,
+            const newScripts = { ...state.scripts };
+            if (updatedScriptData) {
+                const renamedScriptData: ScriptData = { ...updatedScriptData, fileName: newFileName };
+                if (renamed) {
+                    // Re-analyze through the path-aware helper so the analyzer picks up the new notebook
+                    // path and reloads the script into the catalog under its new name.
+                    newScripts[scriptId] = analyzeNotebookScript(
+                        renamedScriptData, state.scriptRegistry, state.connectionCatalog, makeScriptLookup(newScripts), logger,
+                    );
+                    // The catalog entry changed name; mark all other scripts outdated so cross-script
+                    // references (qualified-name table refs, VISUALIZE script refs) re-resolve.
+                    for (const key in newScripts) {
+                        if (+key === scriptId) continue;
+                        const other = newScripts[key];
+                        newScripts[key] = {
+                            ...other,
+                            scriptAnalysis: { ...other.scriptAnalysis, outdated: true },
+                        };
+                    }
+                } else {
+                    newScripts[scriptId] = renamedScriptData;
                 }
-            } : state.scripts;
+            }
 
             // Keep focus on this script across the rename
             const focusFile = state.notebookUserFocus.fileName === oldFileName
@@ -984,7 +1003,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 : state.notebookUserFocus.fileName;
 
             const next = {
-                ...state,
+                ...(renamed ? clearSemanticUserFocus(state) : state),
                 notebookPages: newPages,
                 scripts: newScripts,
                 notebookUserFocus: { ...state.notebookUserFocus, fileName: focusFile },
@@ -1579,6 +1598,7 @@ function deriveScriptAnnotations(
     data: DashQLScriptBuffers,
     scriptText: string,
     lookupScriptText: ScriptTextByKey,
+    logger?: Logger,
 ): NotebookScriptAnnotations {
     if (!data.analyzed) {
         return createEmptyAnnotations();
@@ -1603,7 +1623,7 @@ function deriveScriptAnnotations(
     // Resolve the first VISUALIZE statement (if any) into its executable SQL +
     // parsed Vega-Lite spec. We do this once at analysis time so consumers
     // don't have to touch the flatbuffer or re-parse JSON.
-    const visualizeQuery = resolveVisualizeQuery(data, scriptText, lookupScriptText);
+    const visualizeQuery = resolveVisualizeQuery(data, scriptText, lookupScriptText, logger);
 
     return {
         tableRefs: [],
@@ -1705,7 +1725,7 @@ function computePendingDiff(
     }
 }
 
-export function analyzeNotebookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, scriptLookup: ScriptTextByKey, _logger: Logger): ScriptData {
+export function analyzeNotebookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, scriptLookup: ScriptTextByKey, logger: Logger): ScriptData {
     const next: ScriptData = { ...scriptData };
     next.scriptAnalysis.buffers.destroy(next.scriptAnalysis.buffers);
 
@@ -1730,6 +1750,7 @@ export function analyzeNotebookScript(scriptData: ScriptData, registry: core.Das
         next.scriptAnalysis.buffers,
         next.script.toString(),
         scriptLookup,
+        logger,
     );
 
     // Update the script in the registry

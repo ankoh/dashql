@@ -430,6 +430,13 @@ describe('OPFSStorageBackend', () => {
             expect(pages[0].scripts).toEqual([]);
         });
 
+        it('renaming a script in a never-flushed session is a no-op', async () => {
+            // A session whose folder was never written to disk (e.g. a fresh session renamed before its
+            // first flush). getSessionDir re-wraps the OPFS NotFoundError into a generic "Directory not
+            // found" Error, so the no-op guard must recognise that too — otherwise this throws.
+            await backend.renameNotebookScript('never-flushed-session', 'page-1', '1_old.sql', '1_new.sql');
+        });
+
         // Covers the primary (Chromium) path where FileSystemFileHandle.move() exists, rather than the
         // copy+delete fallback every other test exercises.
         describe('with native FileSystemFileHandle.move()', () => {

@@ -317,10 +317,10 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         if (oldScriptName === newScriptName) {
             return;
         }
-        // Navigate without creating anything: if the page or the source file isn't flushed yet, the
-        // pending write under the new name creates both, so there is nothing to move. Walk by hand
-        // (rather than via getPageDir, which re-wraps NotFoundError into a generic Error) so a missing
-        // page/file surfaces as a clean NotFoundError we can no-op on.
+        // Navigate without creating anything: if the session, page, or source file isn't flushed yet,
+        // the pending write under the new name creates them, so there is nothing to move. The
+        // notebook/page/file handles surface a raw OPFS NotFoundError, but getSessionDir re-wraps that
+        // into a generic "Directory not found" Error, so the no-op guard has to recognise both forms.
         let pageDir: FileSystemDirectoryHandle;
         try {
             const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), false);
@@ -328,7 +328,7 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
             pageDir = await notebookDir.getDirectoryHandle(pageName, { create: false });
             await pageDir.getFileHandle(oldScriptName, { create: false });
         } catch (error) {
-            if ((error as any).name === 'NotFoundError') {
+            if ((error as any).name === 'NotFoundError' || ((error as any).message ?? '').startsWith('Directory not found')) {
                 return;
             }
             throw error;
