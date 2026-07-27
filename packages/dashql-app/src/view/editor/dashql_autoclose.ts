@@ -4,7 +4,7 @@ import { EditorSelection, Prec, Transaction } from '@codemirror/state';
 const PAIRS: Record<string, string> = { '(': ')', '[': ']', '{': '}' };
 const QUOTES = new Set(['"', "'", '`']);
 const CLOSERS = new Set([')', ']', '}']);
-const BEFORE_CLOSE = /^[\s)\]};,]|$/;
+const BEFORE_CLOSE = /^[\s)\]};,]?$/;
 
 export function handleInput(view: EditorView, from: number, to: number, insert: string): boolean {
     if (insert.length !== 1) return false;

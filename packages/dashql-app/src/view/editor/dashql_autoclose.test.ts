@@ -58,11 +58,10 @@ describe('autoclose brackets', () => {
         expect(docAndCursor(view)).toEqual({ doc: 'fn(())', cursor: 4 });
     });
 
-    it('auto-closes ( before a letter', () => {
+    it('does not auto-close ( before a word char', () => {
         view = createView('abc', 1);
         const handled = handleInput(view, 1, 1, '(');
-        expect(handled).toBe(true);
-        expect(docAndCursor(view)).toEqual({ doc: 'a()bc', cursor: 2 });
+        expect(handled).toBe(false);
     });
 });
 
@@ -94,11 +93,10 @@ describe('autoclose quotes', () => {
         expect(handled).toBe(false);
     });
 
-    it('auto-closes quote before a letter', () => {
+    it('does not auto-close quote before a word char', () => {
         view = createView('abc', 0);
         const handled = handleInput(view, 0, 0, '"');
-        expect(handled).toBe(true);
-        expect(docAndCursor(view)).toEqual({ doc: '""abc', cursor: 1 });
+        expect(handled).toBe(false);
     });
 
     it('auto-closes quote before whitespace', () => {
