@@ -700,6 +700,9 @@ struct VisEncodingChannel {
     std::optional<VisBin> bin;
     /// The time unit for temporal fields (year, month, day, etc.)
     std::optional<std::string_view> time_unit;
+    /// The AST node id of the `stack` value (a string like `normalize`/`zero`/`center`,
+    /// or a boolean `false` to disable stacking). Emitted by node type.
+    std::optional<uint32_t> stack_node_id;
     /// The scale definition for this channel
     std::optional<VisScale> scale;
     /// The axis definition for this channel

@@ -35,6 +35,9 @@ const UnresolvedColumnReferenceDecoration = Decoration.mark({
 const ErrorDecoration = Decoration.mark({
     class: 'dashql-error',
 });
+const WarningDecoration = Decoration.mark({
+    class: 'dashql-warning',
+});
 
 function buildDecorationsFromErrors(
     _state: EditorState,
@@ -72,15 +75,16 @@ function buildDecorationsFromErrors(
         }
     }
     if (analyzed !== null) {
-        // Analyzer errors
+        // Analyzer errors (and WARNING-severity diagnostics, e.g. unsupported VISUALIZE keys)
         for (let i = 0; i < analyzed.errorsLength(); ++i) {
             const error = analyzed.errors(i, tmpAnalyzerError)!;
             const loc = error.textSpan();
             if (!loc) continue;
+            const isWarning = error.severity() === dashql.buffers.analyzer.AnalyzerErrorSeverity.WARNING;
             decorations.push({
                 from: loc.offset(),
                 to: loc.offset() + loc.length(),
-                decoration: ErrorDecoration,
+                decoration: isWarning ? WarningDecoration : ErrorDecoration,
             });
         }
     }

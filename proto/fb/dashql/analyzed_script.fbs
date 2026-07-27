@@ -250,11 +250,22 @@ enum NameTag: uint8 {
 enum AnalyzerErrorType: uint8 {
     COLUMN_REF_AMBIGUOUS,
     DUPLICATE_TABLE_ALIAS,
+    UNSUPPORTED_VIS_KEY,
+}
+
+/// The severity of an analyzer error. WARNING-level diagnostics still carry a
+/// text span (so they underline in the editor) but must not gate the agent
+/// verify loop, which treats a script as failing only on ERROR-level diagnostics.
+enum AnalyzerErrorSeverity: uint8 {
+    ERROR = 0,
+    WARNING = 1,
 }
 
 table AnalyzerError {
     /// The error type
     error_type: AnalyzerErrorType;
+    /// The severity (defaults to ERROR for existing diagnostics)
+    severity: AnalyzerErrorSeverity = ERROR;
     /// The ast node id
     ast_node_id: uint32;
     /// The symbol location

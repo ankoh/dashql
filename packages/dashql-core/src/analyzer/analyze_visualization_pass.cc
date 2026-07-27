@@ -112,6 +112,37 @@ std::optional<bool> ReadBoolValue(AnalysisState& state, const buffers::parser::N
 
 uint32_t NodeId(AnalysisState& state, const buffers::parser::Node* node) { return node - state.ast.data(); }
 
+/// The display name for a field-def key, used in the "unsupported key" warning message.
+/// Returns an empty view for keys that are not field-def keys.
+std::string_view VisFieldDefKeyName(AttributeKey key) {
+    switch (key) {
+        case AttributeKey::VIS_FIELD_DEF_SORT: return "sort";
+        case AttributeKey::VIS_FIELD_DEF_IMPUTE: return "impute";
+        case AttributeKey::VIS_FIELD_DEF_CONDITION: return "condition";
+        case AttributeKey::VIS_FIELD_DEF_TITLE: return "title";
+        case AttributeKey::VIS_FIELD_DEF_BAND_POSITION: return "band_position";
+        case AttributeKey::VIS_FIELD_DEF_DATUM: return "datum";
+        case AttributeKey::VIS_FIELD_DEF_VALUE: return "value";
+        case AttributeKey::VIS_FIELD_DEF_FORMAT: return "format";
+        case AttributeKey::VIS_FIELD_DEF_FORMAT_TYPE: return "format_type";
+        default: return {};
+    }
+}
+
+/// Emit a WARNING-level diagnostic that a field-def key is accepted by the grammar but
+/// not carried through to the generated Vega-Lite spec. It underlines the key in the
+/// editor (it has a text span) but must not gate the agent verify loop.
+void WarnUnsupportedVisKey(AnalysisState& state, const buffers::parser::Node& child, std::string_view key_name) {
+    auto& warning = state.analyzed->errors.emplace_back();
+    warning.error_type = buffers::analyzer::AnalyzerErrorType::UNSUPPORTED_VIS_KEY;
+    warning.severity = buffers::analyzer::AnalyzerErrorSeverity::WARNING;
+    warning.ast_node_id = NodeId(state, &child);
+    auto sym_span = child.symbol_span();
+    warning.symbol_span = std::make_unique<buffers::parser::SymbolSpan>(sym_span);
+    warning.text_span = std::make_unique<buffers::parser::TextSpan>(state.scanned.ResolveTextSpan(sym_span));
+    warning.message = std::string(key_name) + " is not yet supported and will be ignored";
+}
+
 /// Recursively extract a mark definition from an OBJECT_VIS_MARK node.
 /// Mark properties are literals/enums read directly off the AST subtree, so this
 /// is self-contained and does not depend on the merge-up node states. `point` and
@@ -394,10 +425,10 @@ void AnalyzeVisualizationPass::Visit(std::span<const buffers::parser::Node> mors
                 channel.axis = std::move(node_state.axis);
                 channel.legend = std::move(node_state.legend);
 
-                auto [field_node, type_node, bin_node, aggregate_node, time_unit_node] =
+                auto [field_node, type_node, bin_node, aggregate_node, time_unit_node, stack_node] =
                     state.GetAttributes<AttributeKey::VIS_FIELD_DEF_FIELD, AttributeKey::VIS_FIELD_DEF_TYPE,
                                         AttributeKey::VIS_FIELD_DEF_BIN, AttributeKey::VIS_FIELD_DEF_AGGREGATE,
-                                        AttributeKey::VIS_FIELD_DEF_TIME_UNIT>(node);
+                                        AttributeKey::VIS_FIELD_DEF_TIME_UNIT, AttributeKey::VIS_FIELD_DEF_STACK>(node);
 
                 if (field_node) {
                     auto* expr = state.GetDerivedForNode<AnalyzedScript::Expression>(*field_node);
@@ -423,6 +454,21 @@ void AnalyzeVisualizationPass::Visit(std::span<const buffers::parser::Node> mors
 
                 if (time_unit_node) {
                     channel.time_unit = ReadTextValue(state, time_unit_node);
+                }
+
+                if (stack_node) {
+                    channel.stack_node_id = NodeId(state, stack_node);
+                }
+
+                // Warn about field-def keys the grammar accepts but we do not (yet) carry
+                // through to the generated spec. These underline in the editor without
+                // gating the agent verify loop (WARNING severity).
+                for (size_t i = 0; i < node.children_count(); ++i) {
+                    auto& child = state.ast[node.children_begin_or_value() + i];
+                    auto key_name = VisFieldDefKeyName(child.attribute_key());
+                    if (!key_name.empty()) {
+                        WarnUnsupportedVisKey(state, child, key_name);
+                    }
                 }
 
                 // Reset consumed state

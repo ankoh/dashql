@@ -189,6 +189,22 @@ visualize-snapshots:
           )
         );
 
+  - name: vis_stack
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+    script:
+      input: |
+        VISUALIZE sales USING vegalite (
+          mark => bar,
+          encoding => (
+            x => (field => date, type => temporal),
+            y => (field => revenue, type => quantitative, aggregate => sum, stack => 'normalize'),
+            color => (field => category, type => nominal)
+          )
+        );
+
   - name: vis_bin
     catalog:
       script:
@@ -201,6 +217,21 @@ visualize-snapshots:
           encoding => (
             x => (field => revenue, type => quantitative, bin => true),
             y => (field => category, type => nominal)
+          )
+        );
+
+  - name: vis_unsupported_key
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+    script:
+      input: |
+        VISUALIZE sales USING vegalite (
+          mark => bar,
+          encoding => (
+            x => (field => category, type => nominal, sort => 'descending'),
+            y => (field => revenue, type => quantitative)
           )
         );
 

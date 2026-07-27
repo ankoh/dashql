@@ -198,6 +198,12 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
         error_node.set_type(c4::yml::MAP);
         error_node.append_child() << c4::yml::key("type")
                                   << std::string(buffers::analyzer::EnumNameAnalyzerErrorType(error.error_type));
+        // Only dump non-default (WARNING) severities to avoid churning the many ERROR snapshots.
+        if (error.severity != buffers::analyzer::AnalyzerErrorSeverity::ERROR) {
+            error_node.append_child()
+                << c4::yml::key("severity")
+                << std::string(buffers::analyzer::EnumNameAnalyzerErrorSeverity(error.severity));
+        }
         error_node.append_child() << c4::yml::key("message") << error.message;
         EncodeLocationText(error_node,
                            script.parsed_script->scanned_script->ResolveTextSpan(*error.symbol_span),
@@ -492,6 +498,9 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
                     }
                     if (channel.time_unit.has_value()) {
                         ch_node.append_child() << c4::yml::key("time-unit") << std::string(*channel.time_unit);
+                    }
+                    if (channel.stack_node_id.has_value()) {
+                        ch_node.append_child() << c4::yml::key("stack-node-id") << *channel.stack_node_id;
                     }
                     if (channel.scale.has_value()) {
                         auto scale_node = ch_node.append_child();

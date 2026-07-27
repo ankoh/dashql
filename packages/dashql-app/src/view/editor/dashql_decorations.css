@@ -24,6 +24,12 @@
     text-decoration-style: wavy;
 }
 
+.dashql-warning {
+    position: relative;
+    text-decoration: underline 1px goldenrod;
+    text-decoration-style: wavy;
+}
+
 .dashql-quote-tombstoned {
     color: rgb(160, 160, 160);
     text-decoration: underline 1px rgb(160, 160, 160);

@@ -22,6 +22,44 @@ interface Props {
     /// *everything* — text, marks, axes — shrinks uniformly while still landing in the width×height
     /// box. Defaults to 1 (no scaling).
     scale?: number;
+    /// Suppress all legends. Legends eat a lot of space in a cramped host (e.g. a grid card
+    /// thumbnail), so the compact rendering strips them by injecting `legend: null` into every
+    /// encoding channel. Defaults to false (legends shown as authored).
+    hideLegend?: boolean;
+}
+
+/// The encoding channels that can produce a legend in Vega-Lite. Setting `legend: null` on any of
+/// these suppresses its legend.
+const LEGEND_CHANNELS = ['color', 'fill', 'stroke', 'size', 'shape', 'opacity', 'strokeWidth', 'strokeDash', 'angle'];
+
+/// Recursively strip legends from a Vega-Lite spec by setting `legend: null` on every legend-bearing
+/// encoding channel. Walks nested specs (layer / hconcat / vconcat / concat / facet / spec) so
+/// composed views are covered too. Returns a deep-ish copy with the mutations applied; the input is
+/// left untouched.
+function stripLegends<T>(spec: T): T {
+    if (Array.isArray(spec)) {
+        return spec.map(stripLegends) as unknown as T;
+    }
+    if (spec == null || typeof spec !== 'object') {
+        return spec;
+    }
+    const out: Record<string, unknown> = { ...(spec as Record<string, unknown>) };
+    if (out.encoding != null && typeof out.encoding === 'object') {
+        const encoding: Record<string, unknown> = { ...(out.encoding as Record<string, unknown>) };
+        for (const channel of LEGEND_CHANNELS) {
+            const def = encoding[channel];
+            if (def != null && typeof def === 'object' && !Array.isArray(def)) {
+                encoding[channel] = { ...(def as Record<string, unknown>), legend: null };
+            }
+        }
+        out.encoding = encoding;
+    }
+    for (const key of ['layer', 'hconcat', 'vconcat', 'concat', 'spec']) {
+        if (out[key] != null && typeof out[key] === 'object') {
+            out[key] = stripLegends(out[key]);
+        }
+    }
+    return out as unknown as T;
 }
 
 /// Convert an arrow row object to a vega-compatible plain object.
@@ -97,7 +135,8 @@ export function VegaLiteView(props: Props): React.ReactElement {
 
         let disposed = false;
         let view: { finalize: () => void } | null = null;
-        const withData = { ...spec, data: { values: rows } } as TopLevelSpec & {
+        const baseSpec = props.hideLegend ? stripLegends(spec) : spec;
+        const withData = { ...baseSpec, data: { values: rows } } as TopLevelSpec & {
             width?: unknown;
             height?: unknown;
             autosize?: unknown;
@@ -123,7 +162,11 @@ export function VegaLiteView(props: Props): React.ReactElement {
                 renderer: 'canvas',
                 ast: true,
                 expr: interp.expressionInterpreter,
-                config: { background: 'transparent' },
+                // `mark.tooltip: true` makes Vega-Lite derive a tooltip from each mark's encoded
+                // fields; vega-embed installs the vega-tooltip handler by default, so hovering a
+                // mark shows its data. Applied via config so it covers every mark without editing
+                // the generated spec.
+                config: { background: 'transparent', mark: { tooltip: true } },
             });
         }).then(result => {
             if (!result) return;
@@ -141,7 +184,7 @@ export function VegaLiteView(props: Props): React.ReactElement {
             if (view) view.finalize();
             if (el) el.replaceChildren();
         };
-    }, [spec, rows, width, height, scale]);
+    }, [spec, rows, width, height, scale, props.hideLegend]);
 
     if (!spec) {
         return <div className={styles.empty}>No visualization available</div>;

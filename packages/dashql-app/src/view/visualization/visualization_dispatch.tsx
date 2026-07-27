@@ -21,6 +21,9 @@ interface Props {
     height?: number;
     /// Optional uniform scale (<1 shrinks fonts/marks/axes). Honored by the Vega-Lite renderer.
     scale?: number;
+    /// Suppress legends (they crowd out a cramped host like a grid card). Honored by the Vega-Lite
+    /// renderer.
+    hideLegend?: boolean;
 }
 
 /// Renders the visualization for a resolved VISUALIZE query, dispatching on the
@@ -44,6 +47,6 @@ export function VisualizationDispatch(props: Props): React.ReactElement | null {
             );
         case 'vegalite':
         default:
-            return <VegaLiteView query={props.query} vegaLiteSpec={vq.vegaLiteSpec} width={props.width} height={props.height} scale={props.scale} />;
+            return <VegaLiteView query={props.query} vegaLiteSpec={vq.vegaLiteSpec} width={props.width} height={props.height} scale={props.scale} hideLegend={props.hideLegend} />;
     }
 }

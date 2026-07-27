@@ -779,3 +779,77 @@ analyzer-snapshots:
               - channel: VIS_ENCODING_Y
                 field-expr: 1
                 field-type: NOMINAL
+
+  - name: vis_unsupported_key_warns
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE sales USING vegalite (
+          mark => bar,
+          encoding => (
+            x => (field => category, type => nominal, sort => 'descending'),
+            y => (field => revenue, type => quantitative)
+          )
+        );
+      catalog-id: 2
+      errors:
+        - type: UNSUPPORTED_VIS_KEY
+          severity: WARNING
+          message: sort is not yet supported and will be ignored
+          text: "'descending'"
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "category"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          statement-id: 0
+          text: "revenue"
+        - expression-idx: 2
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'descending'"
+      constants:
+        - expression: 2
+          text: "'descending'"
+      visualizations:
+        - statement-id: 0
+          source: "sales"
+          renderer: vegalite
+          vegalite:
+            mark: BAR
+            encodings:
+              - channel: VIS_ENCODING_X
+                field-expr: 0
+                field-type: NOMINAL
+              - channel: VIS_ENCODING_Y
+                field-expr: 1
+                field-type: QUANTITATIVE

@@ -181,3 +181,18 @@ analyzer-snapshots:
             y => (field => category, type => nominal)
           )
         );
+
+  - name: vis_unsupported_key_warns
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+    script:
+      input: |
+        VISUALIZE sales USING vegalite (
+          mark => bar,
+          encoding => (
+            x => (field => category, type => nominal, sort => 'descending'),
+            y => (field => revenue, type => quantitative)
+          )
+        );

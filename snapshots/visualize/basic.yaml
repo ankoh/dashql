@@ -708,6 +708,71 @@ visualize-snapshots:
         )
       );
 
+  - name: vis_stack
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE sales USING vegalite (
+          mark => bar,
+          encoding => (
+            x => (field => date, type => temporal),
+            y => (field => revenue, type => quantitative, aggregate => sum, stack => 'normalize'),
+            color => (field => category, type => nominal)
+          )
+        );
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "name": "sales"
+        },
+        "mark": "bar",
+        "encoding": {
+          "x": {
+            "field": "date",
+            "type": "temporal"
+          },
+          "y": {
+            "field": "revenue",
+            "type": "quantitative",
+            "aggregate": "sum",
+            "stack": "normalize"
+          },
+          "color": {
+            "field": "category",
+            "type": "nominal"
+          }
+        }
+      }
+    roundtrip: |-
+      VISUALIZE sales USING vegalite (
+        mark => bar,
+        encoding => (
+          x => (field => date, type => temporal),
+          y => (field => revenue, type => quantitative, aggregate => sum, stack => 'normalize'),
+          color => (field => category, type => nominal)
+        )
+      );
+
   - name: vis_bin
     catalog:
       script:
@@ -763,6 +828,63 @@ visualize-snapshots:
         encoding => (
           x => (field => revenue, type => quantitative, bin => true),
           y => (field => category, type => nominal)
+        )
+      );
+
+  - name: vis_unsupported_key
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    script:
+      input: |
+        VISUALIZE sales USING vegalite (
+          mark => bar,
+          encoding => (
+            x => (field => category, type => nominal, sort => 'descending'),
+            y => (field => revenue, type => quantitative)
+          )
+        );
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "name": "sales"
+        },
+        "mark": "bar",
+        "encoding": {
+          "x": {
+            "field": "category",
+            "type": "nominal"
+          },
+          "y": {
+            "field": "revenue",
+            "type": "quantitative"
+          }
+        }
+      }
+    roundtrip: |-
+      VISUALIZE sales USING vegalite (
+        mark => bar,
+        encoding => (
+          x => (field => category, type => nominal),
+          y => (field => revenue, type => quantitative)
         )
       );
 

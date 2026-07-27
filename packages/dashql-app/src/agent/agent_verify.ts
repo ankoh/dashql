@@ -54,8 +54,14 @@ export function verifyScript(instance: core.DashQL, catalog: core.DashQLCatalog,
             const message = parsedReader.parserErrors(i)?.message();
             if (message) parserErrors.push(message);
         }
+        const tmpAnalyzerError = new core.buffers.analyzer.AnalyzerError();
         for (let i = 0; i < analyzedReader.errorsLength(); ++i) {
-            const message = analyzedReader.errors(i)?.message();
+            const error = analyzedReader.errors(i, tmpAnalyzerError);
+            if (!error) continue;
+            // WARNING-severity diagnostics (e.g. unsupported-but-valid VISUALIZE keys) must not
+            // gate the agent loop — they underline in the editor but the chart is otherwise fine.
+            if (error.severity() === core.buffers.analyzer.AnalyzerErrorSeverity.WARNING) continue;
+            const message = error.message();
             if (message) analyzerErrors.push(message);
         }
         visualizationSpecs = analyzedReader.visualizationSpecsLength();

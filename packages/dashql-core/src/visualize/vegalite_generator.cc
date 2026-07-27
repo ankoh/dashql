@@ -512,6 +512,30 @@ void WriteBin(W& writer, const VisBin& b) {
     writer.EndObject();
 }
 
+/// Write a `stack` field-def value. Vega-Lite accepts a stack-offset string
+/// (`"zero"` / `"center"` / `"normalize"`) or a boolean `false` to disable stacking.
+/// The value is emitted by AST node type: booleans become a JSON bool, everything
+/// else becomes a string (single quotes stripped from string literals).
+template <typename W>
+void WriteStack(W& writer, uint32_t node_id, const AnalyzedScript& script) {
+    auto& node = script.parsed_script->nodes[node_id];
+    if (node.node_type() == buffers::parser::NodeType::BOOL) {
+        writer.Bool(node.children_begin_or_value() != 0);
+        return;
+    }
+    auto span = script.parsed_script->scanned_script->ResolveTextSpan(node.symbol_span());
+    auto input = script.parsed_script->scanned_script->GetInput();
+    std::string text(input.substr(span.offset(), span.length()));
+    if (text.size() >= 2 && text.front() == '\'' && text.back() == '\'') {
+        text = text.substr(1, text.size() - 2);
+    }
+    if (text == "true" || text == "false") {
+        writer.Bool(text == "true");
+        return;
+    }
+    writer.String(text.c_str());
+}
+
 }  // namespace
 
 std::string GenerateVegaLiteSpec(const VisualizationSpec& spec, const AnalyzedScript& script) {
@@ -598,6 +622,10 @@ std::string GenerateVegaLiteSpec(const VisualizationSpec& spec, const AnalyzedSc
             if (channel.time_unit.has_value()) {
                 writer.Key("timeUnit");
                 writer.String(channel.time_unit->data(), channel.time_unit->size());
+            }
+            if (channel.stack_node_id.has_value()) {
+                writer.Key("stack");
+                WriteStack(writer, *channel.stack_node_id, script);
             }
             if (channel.scale.has_value()) {
                 writer.Key("scale");

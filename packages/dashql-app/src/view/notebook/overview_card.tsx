@@ -167,6 +167,7 @@ export function OverviewCard(props: OverviewCardProps): React.ReactElement {
                                     width={visSize.width}
                                     height={visSize.height}
                                     scale={GRID_VISUALIZATION_SCALE}
+                                    hideLegend
                                     interactive={false}
                                     wheelZoom={false}
                                 />
