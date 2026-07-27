@@ -263,6 +263,31 @@ describe('startAgentRun (fake host)', () => {
         expect(host.committed).toEqual([{ intent: 'visualize', candidate: 'VISUALIZE x USING vegalite (mark => bar)' }]);
     });
 
+    it('enriches an opaque parser error with a spec-level hint for an unsupported mark', async () => {
+        // The pie-chart bug: transcode SUCCEEDS (emitting `mark => pie`), then verification fails
+        // with the grammar's opaque "unexpected identifier literal". Without the diagnosis the model
+        // would repeat `pie` every attempt; the hint tells it to switch to arc + theta + color.
+        const host = new FakeHost();
+        let v = 0;
+        host.verifyImpl = () => (++v === 1 ? failing('syntax error, unexpected identifier literal') : clean());
+        const ai = new MockAIClient('visualize', [
+            '{"mark":"pie","encoding":{"x":{"field":"x"},"y":{"field":"y"}}}',
+            '{"mark":"arc","encoding":{"theta":{"field":"y"},"color":{"field":"x"}}}',
+        ]);
+        const { agent, actions } = await drive(host, ai, { intentOverride: 'visualize' });
+
+        expect(agent!.phase).toBe(AgentRunPhase.SUCCEEDED);
+        expect(agent!.attempt).toBe(2);
+        // The failed attempt records BOTH the raw parser error and the actionable hint, hint first.
+        const first = attemptResults(actions).find(r => r.attempt === 1)!;
+        expect(first.errors[0]).toContain('no "pie" mark');
+        expect(first.errors).toContain('syntax error, unexpected identifier literal');
+        // The repair prompt carries the hint so the model can actually correct the mark.
+        const repair = lastGenerationPrompt(ai);
+        expect(repair).toContain('no "pie" mark');
+        expect(repair).toContain('theta');
+    });
+
     it('reframes the visualize prompt as an edit when the host is editing a chart', async () => {
         const host = new FakeHost();
         host.editingChart = true;

@@ -21,6 +21,59 @@ export interface GenerationPromptInput {
     editingChart?: boolean;
 }
 
+/// The complete set of Vega-Lite marks DashQL's transcoder + grammar accept (mirrors the
+/// `VisMarkType` enum in proto/fb and the `vis_mark_type` grammar rule). The prompt lists these
+/// and `diagnoseVegaLiteSpec` validates against them — one source of truth so the two can't drift.
+export const SUPPORTED_VEGA_MARKS: readonly string[] = [
+    'bar', 'line', 'area', 'point', 'circle', 'square', 'rect', 'arc', 'rule', 'tick', 'text',
+    'trail', 'boxplot', 'geoshape', 'image',
+];
+
+/// Guidance for marks a model reaches for that Vega-Lite doesn't actually have, keyed by the bad
+/// value. The transcoder emits these as a bare identifier the grammar then rejects with an opaque
+/// "unexpected identifier literal", so we translate the mistake into the correct construction.
+const UNSUPPORTED_MARK_HINTS: Record<string, string> = {
+    pie: 'Vega-Lite has no "pie" mark — use mark "arc" with a "theta" channel (the aggregated measure) and a "color" channel (the category), not x/y.',
+    donut: 'Vega-Lite has no "donut" mark — use mark "arc" (add "innerRadius" on the mark object for the hole) with a "theta" channel (the aggregated measure) and a "color" channel (the category).',
+    doughnut: 'Vega-Lite has no "doughnut" mark — use mark "arc" (add "innerRadius" on the mark object for the hole) with a "theta" channel (the aggregated measure) and a "color" channel (the category).',
+    scatter: 'Vega-Lite has no "scatter" mark — use mark "point" with quantitative x and y channels.',
+    bubble: 'Vega-Lite has no "bubble" mark — use mark "point" (or "circle") with x, y and a "size" channel.',
+    histogram: 'Vega-Lite has no "histogram" mark — use mark "bar" with "bin": true on x and {"aggregate": "count"} on y.',
+    column: 'Vega-Lite has no "column" mark — use mark "bar".',
+};
+
+/// Extract the mark type from a raw Vega-Lite spec: `"mark": "bar"` or `"mark": {"type": "bar"}`.
+/// Returns the lowercased type, or null when there is no usable mark. Never throws.
+function extractMarkType(spec: any): string | null {
+    const mark = spec?.mark;
+    if (typeof mark === 'string') return mark.toLowerCase();
+    if (mark != null && typeof mark === 'object' && typeof mark.type === 'string') {
+        return mark.type.toLowerCase();
+    }
+    return null;
+}
+
+/// Diagnose a raw Vega-Lite spec for known, actionable mistakes BEFORE the opaque parser error is
+/// all the repair loop has to work with. Today it catches an unsupported "mark" (the pie/donut →
+/// arc trap and its cousins); the returned strings are appended to the attempt's errors so the
+/// repair prompt tells the model exactly what to change. Defensive: bad JSON yields no hints (the
+/// underlying parse/verify error already covers that), and it never throws.
+export function diagnoseVegaLiteSpec(rawSpecJson: string): string[] {
+    let spec: any;
+    try {
+        spec = JSON.parse(rawSpecJson);
+    } catch {
+        return [];
+    }
+    const mark = extractMarkType(spec);
+    if (mark == null || SUPPORTED_VEGA_MARKS.includes(mark)) return [];
+    const hint = UNSUPPORTED_MARK_HINTS[mark];
+    return [
+        hint ??
+            `"${mark}" is not a supported mark. Choose one of: ${SUPPORTED_VEGA_MARKS.join(', ')}.`,
+    ];
+}
+
 /// Build the classification prompt. The model must answer with exactly one word.
 export function buildClassifyPrompt(userPrompt: string): string {
     return [
@@ -145,9 +198,11 @@ SCOPE — a SINGLE view only:
   "resolve", "projection" or "datasets". Express the request as one mark + one encoding.
 - Do NOT include a "data" field — the data source is supplied separately by DashQL.
 
-MARK — "mark" is either a string or an object {"type": <mark>, …}. Mark types:
-  bar, line, area, point, circle, square, rect, arc, rule, tick, text, trail,
-  boxplot, geoshape, image.
+MARK — "mark" is either a string or an object {"type": <mark>, …}. Mark types (this is the
+  COMPLETE list — any other value is rejected):
+  ${SUPPORTED_VEGA_MARKS.join(', ')}.
+  There is NO "pie" or "donut" mark. A pie / donut chart is mark "arc" with a "theta" channel
+  (the aggregated measure) and a "color" channel (the category) — never x/y.
   As an object it may also carry: "point"/"line" (boolean or a nested mark object, e.g.
   a line with visible points), "filled", "fill", "stroke", "color", "opacity",
   "fillOpacity", "strokeOpacity", "strokeWidth", "strokeDash", "size", "shape", "angle",

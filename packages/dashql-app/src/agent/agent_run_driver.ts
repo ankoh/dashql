@@ -15,6 +15,7 @@ import {
     buildClassifyPrompt,
     buildSqlPrompt,
     buildVisualizePrompt,
+    diagnoseVegaLiteSpec,
     extractJsonObject,
     extractSql,
     parseIntent,
@@ -89,6 +90,17 @@ function summarizeErrors(errors: string[]): string {
     if (errors.length === 0) return '';
     const first = truncateForLog(errors[0], 200);
     return errors.length > 1 ? `${first} (+${errors.length - 1} more)` : first;
+}
+
+/// Enrich a visualize attempt's verification errors with actionable, spec-level hints before they
+/// feed the next repair prompt. The parser reports an unsupported mark (the pie/donut → arc trap)
+/// as an opaque "unexpected identifier literal" — nothing the model can act on, so it repeats the
+/// same mistake every attempt. Diagnosing the raw spec turns that into "use mark 'arc' with theta …"
+/// and prepends it so the hint leads. No-op for SQL runs, a missing spec, or a clean spec.
+function withSpecDiagnosis(intent: AgentIntent, vegaLiteRaw: string | null, errors: string[]): string[] {
+    if (intent !== 'visualize' || vegaLiteRaw == null) return errors;
+    const hints = diagnoseVegaLiteSpec(vegaLiteRaw).filter((h) => !errors.includes(h));
+    return hints.length > 0 ? [...hints, ...errors] : errors;
 }
 
 /// Await a long-running promise while emitting a periodic heartbeat log, so the trace log keeps
@@ -326,7 +338,7 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
             } catch (e: any) {
                 // Parsing / transcoding failed — treat as a verifiable error and repair.
                 candidateText = vegaLiteRaw ?? completion;
-                errors = [e?.message ? String(e.message) : String(e)];
+                errors = withSpecDiagnosis(intent, vegaLiteRaw, [e?.message ? String(e.message) : String(e)]);
                 previousCandidate = candidateText;
                 dispatchAgent({
                     type: AGENT_ATTEMPT_RESULT,
@@ -366,7 +378,7 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
                 verifyErrors.push('The statement did not resolve into a visualization. Check the source and channels.');
             }
 
-            errors = verifyErrors;
+            errors = withSpecDiagnosis(intent, vegaLiteRaw, verifyErrors);
             previousCandidate = candidateText;
             dispatchAgent({
                 type: AGENT_ATTEMPT_RESULT,

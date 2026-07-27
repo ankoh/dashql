@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { buildVisualizePrompt } from './agent_prompts.js';
+import { buildVisualizePrompt, diagnoseVegaLiteSpec, SUPPORTED_VEGA_MARKS } from './agent_prompts.js';
 
 const CTX = 'Source query (feeds the chart):\nselect v as x, random() as y\n\nCurrent chart (Vega-Lite spec):\n{ "mark": "point" }';
 
@@ -56,5 +56,55 @@ describe('buildVisualizePrompt — edit vs generate framing', () => {
         expect(prompt).toContain('The statement did not resolve into a visualization.');
         // The repair block trails the instruction.
         expect(prompt.indexOf('did not pass verification')).toBeGreaterThan(prompt.indexOf('Instruction:'));
+    });
+});
+
+describe('diagnoseVegaLiteSpec — actionable hints for bad specs', () => {
+    it('turns the "pie" mark into the arc + theta + color guidance', () => {
+        const spec = '{"mark":"pie","encoding":{"x":{"field":"x","type":"nominal"},"y":{"field":"y","type":"nominal"}}}';
+        const hints = diagnoseVegaLiteSpec(spec);
+        expect(hints).toHaveLength(1);
+        expect(hints[0]).toContain('no "pie" mark');
+        expect(hints[0]).toContain('arc');
+        expect(hints[0]).toContain('theta');
+        expect(hints[0]).toContain('color');
+    });
+
+    it('recognizes an unsupported mark carried on a mark object', () => {
+        const hints = diagnoseVegaLiteSpec('{"mark":{"type":"donut"}}');
+        expect(hints).toHaveLength(1);
+        expect(hints[0]).toContain('arc');
+        expect(hints[0]).toContain('innerRadius');
+    });
+
+    it('is case-insensitive about the mark value', () => {
+        expect(diagnoseVegaLiteSpec('{"mark":"PIE"}')[0]).toContain('arc');
+    });
+
+    it('falls back to the full supported-mark list for an unknown mark with no specific hint', () => {
+        const hints = diagnoseVegaLiteSpec('{"mark":"sunburst"}');
+        expect(hints).toHaveLength(1);
+        expect(hints[0]).toContain('"sunburst" is not a supported mark');
+        for (const mark of SUPPORTED_VEGA_MARKS) {
+            expect(hints[0]).toContain(mark);
+        }
+    });
+
+    it('maps other common non-marks (scatter, histogram, bubble, column) to real marks', () => {
+        expect(diagnoseVegaLiteSpec('{"mark":"scatter"}')[0]).toContain('point');
+        expect(diagnoseVegaLiteSpec('{"mark":"histogram"}')[0]).toContain('bar');
+        expect(diagnoseVegaLiteSpec('{"mark":"bubble"}')[0]).toContain('size');
+        expect(diagnoseVegaLiteSpec('{"mark":"column"}')[0]).toContain('bar');
+    });
+
+    it('returns no hints for a supported mark', () => {
+        expect(diagnoseVegaLiteSpec('{"mark":"arc","encoding":{"theta":{"field":"y"}}}')).toEqual([]);
+        expect(diagnoseVegaLiteSpec('{"mark":{"type":"bar"}}')).toEqual([]);
+    });
+
+    it('returns no hints when there is no mark or the JSON is malformed', () => {
+        expect(diagnoseVegaLiteSpec('{"encoding":{}}')).toEqual([]);
+        expect(diagnoseVegaLiteSpec('not json')).toEqual([]);
+        expect(diagnoseVegaLiteSpec('')).toEqual([]);
     });
 });
