@@ -72,7 +72,10 @@ async fn connect_tls_endpoint(
     endpoint: Endpoint,
     tls: GrpcRequestTlsConfig,
 ) -> Result<tonic::transport::Channel, Status> {
-    let mut tls_config = ClientTlsConfig::new();
+    // Seed with the OS trust store so servers using publicly-trusted (or
+    // corporate) CAs validate out of the box. An explicit cacerts header can
+    // still add its own trust anchor on top.
+    let mut tls_config = ClientTlsConfig::new().with_native_roots();
 
     if let Some(cacerts_path) = tls.cacerts.as_deref() {
         let pem = read_tls_file(cacerts_path, "ca certificates").await?;
