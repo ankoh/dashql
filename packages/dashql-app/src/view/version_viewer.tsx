@@ -2,7 +2,7 @@ import * as React from 'react';
 import symbols from '@ankoh/dashql-svg-symbols';
 import * as styles from './version_viewer.module.css';
 
-import { XIcon } from '@primer/octicons-react';
+import { SyncIcon, XIcon } from '@primer/octicons-react';
 
 import { DASHQL_GIT_COMMIT, DASHQL_VERSION } from '../globals.js';
 import {
@@ -15,6 +15,7 @@ import {
     useStableReleaseManifest,
     useStableUpdateManifest,
     useVersionCheck,
+    useVersionCheckRefresh,
     VersionCheckStatusCode,
 } from '../platform/version/version_check.js';
 import { Button, ButtonVariant, IconButton } from './foundations/button.js';
@@ -136,6 +137,7 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
     const canaryUpdateManifest = useCanaryUpdateManifest();
     const installationStatus = useInstallationStatus();
     const versionCheck = useVersionCheck();
+    const refreshVersionCheck = useVersionCheckRefresh();
     const process = useProcess();
 
     // The channel the app currently tracks. It is fully dictated by the installed version scheme.
@@ -196,6 +198,15 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
                     <div className={styles.title}>Version</div>
                 </div>
                 <div className={styles.header_right_container}>
+                    {refreshVersionCheck != null && (
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Check for updates"
+                            onClick={() => refreshVersionCheck()}
+                        >
+                            <SyncIcon />
+                        </IconButton>
+                    )}
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         aria-label="Close"

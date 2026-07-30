@@ -5,7 +5,7 @@ import { awaitAndSet, Result, RESULT_ERROR, RESULT_OK } from '../../utils/result
 import { Logger, stringifyError } from '../logger/logger.js';
 import { createTrace } from '../logger/trace_context.js';
 import { DASHQL_CANARY_RELEASE_MANIFEST, DASHQL_STABLE_RELEASE_MANIFEST } from '../../globals.js';
-import { CANARY_RELEASE_MANIFEST_CTX, CANARY_UPDATE_MANIFEST_CTX, INSTALLATION_STATUS_CTX, STABLE_RELEASE_MANIFEST_CTX, STABLE_UPDATE_MANIFEST_CTX, VERSION_CHECK_CTX, VersionCheckStatusCode } from './version_check.js';
+import { CANARY_RELEASE_MANIFEST_CTX, CANARY_UPDATE_MANIFEST_CTX, INSTALLATION_STATUS_CTX, STABLE_RELEASE_MANIFEST_CTX, STABLE_UPDATE_MANIFEST_CTX, VERSION_CHECK_CTX, VERSION_CHECK_REFRESH_CTX, VersionCheckStatusCode } from './version_check.js';
 
 const LOG_CTX = "version_check";
 
@@ -138,24 +138,30 @@ export const WebVersionCheck: React.FC<Props> = (props: Props) => {
     const [stableRelease, setStableRelease] = React.useState<Result<ReleaseManifest> | null>(null);
     const [canaryRelease, setCanaryRelease] = React.useState<Result<ReleaseManifest> | null>(null);
 
-    React.useEffect(() => {
+    const refresh = React.useCallback(() => {
         awaitAndSet(loadReleaseManifest("stable", DASHQL_STABLE_RELEASE_MANIFEST, logger), setStableRelease);
         awaitAndSet(loadReleaseManifest("canary", DASHQL_CANARY_RELEASE_MANIFEST, logger), setCanaryRelease);
-    }, []);
+    }, [logger]);
+
+    React.useEffect(() => {
+        refresh();
+    }, [refresh]);
 
     return (
         <VERSION_CHECK_CTX.Provider value={VersionCheckStatusCode.Disabled}>
-            <INSTALLATION_STATUS_CTX.Provider value={null}>
-                <STABLE_RELEASE_MANIFEST_CTX.Provider value={stableRelease}>
-                    <STABLE_UPDATE_MANIFEST_CTX.Provider value={null}>
-                        <CANARY_RELEASE_MANIFEST_CTX.Provider value={canaryRelease}>
-                            <CANARY_UPDATE_MANIFEST_CTX.Provider value={null}>
-                                {props.children}
-                            </CANARY_UPDATE_MANIFEST_CTX.Provider>
-                        </CANARY_RELEASE_MANIFEST_CTX.Provider>
-                    </STABLE_UPDATE_MANIFEST_CTX.Provider>
-                </STABLE_RELEASE_MANIFEST_CTX.Provider>
-            </INSTALLATION_STATUS_CTX.Provider>
+            <VERSION_CHECK_REFRESH_CTX.Provider value={refresh}>
+                <INSTALLATION_STATUS_CTX.Provider value={null}>
+                    <STABLE_RELEASE_MANIFEST_CTX.Provider value={stableRelease}>
+                        <STABLE_UPDATE_MANIFEST_CTX.Provider value={null}>
+                            <CANARY_RELEASE_MANIFEST_CTX.Provider value={canaryRelease}>
+                                <CANARY_UPDATE_MANIFEST_CTX.Provider value={null}>
+                                    {props.children}
+                                </CANARY_UPDATE_MANIFEST_CTX.Provider>
+                            </CANARY_RELEASE_MANIFEST_CTX.Provider>
+                        </STABLE_UPDATE_MANIFEST_CTX.Provider>
+                    </STABLE_RELEASE_MANIFEST_CTX.Provider>
+                </INSTALLATION_STATUS_CTX.Provider>
+            </VERSION_CHECK_REFRESH_CTX.Provider>
         </VERSION_CHECK_CTX.Provider>
     );
 };

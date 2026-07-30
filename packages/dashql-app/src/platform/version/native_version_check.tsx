@@ -7,7 +7,7 @@ import { awaitAndSet, Result, RESULT_OK } from '../../utils/result.js';
 import { Logger, stringifyError } from '../logger/logger.js';
 import { compareReleaseVersions, detectReleaseChannel, loadReleaseManifest, ReleaseChannel, ReleaseManifest } from './web_version_check.js';
 import { DASHQL_CANARY_RELEASE_MANIFEST, DASHQL_STABLE_RELEASE_MANIFEST, DASHQL_VERSION } from '../../globals.js';
-import { STABLE_RELEASE_MANIFEST_CTX, STABLE_UPDATE_MANIFEST_CTX, CANARY_RELEASE_MANIFEST_CTX, CANARY_UPDATE_MANIFEST_CTX, VERSION_CHECK_CTX, VersionCheckStatusCode, InstallableUpdate, InstallationStatusSetter, InstallationStatusCode, InstallationState, INSTALLATION_STATUS_CTX } from './version_check.js';
+import { STABLE_RELEASE_MANIFEST_CTX, STABLE_UPDATE_MANIFEST_CTX, CANARY_RELEASE_MANIFEST_CTX, CANARY_UPDATE_MANIFEST_CTX, VERSION_CHECK_CTX, VERSION_CHECK_REFRESH_CTX, VersionCheckStatusCode, InstallableUpdate, InstallationStatusSetter, InstallationStatusCode, InstallationState, INSTALLATION_STATUS_CTX } from './version_check.js';
 
 class InstallableTauriUpdate implements InstallableUpdate {
     /// The logger
@@ -117,12 +117,16 @@ export const NativeVersionCheck: React.FC<Props> = (props: Props) => {
     const [canaryUpdate, setCanaryUpdate] = React.useState<Result<InstallableTauriUpdate | null> | null>(null);
     const [installationStatus, setInstallationStatus] = React.useState<InstallationState | null>(null);
 
-    React.useEffect(() => {
+    const refresh = React.useCallback(() => {
         awaitAndSet(loadReleaseManifest("stable", DASHQL_STABLE_RELEASE_MANIFEST, logger), setStableRelease);
         awaitAndSet(loadReleaseManifest("canary", DASHQL_CANARY_RELEASE_MANIFEST, logger), setCanaryRelease);
         awaitAndSet(checkChannelUpdates("stable", setInstallationStatus, logger), setStableUpdate);
         awaitAndSet(checkChannelUpdates("canary", setInstallationStatus, logger), setCanaryUpdate);
-    }, []);
+    }, [logger]);
+
+    React.useEffect(() => {
+        refresh();
+    }, [refresh]);
 
     // The channel the app currently tracks for the update indicator.
     // It is fully dictated by the installed version scheme.
@@ -169,17 +173,19 @@ export const NativeVersionCheck: React.FC<Props> = (props: Props) => {
     }
     return (
         <VERSION_CHECK_CTX.Provider value={status}>
-            <INSTALLATION_STATUS_CTX.Provider value={installationStatus}>
-                <STABLE_RELEASE_MANIFEST_CTX.Provider value={stableRelease}>
-                    <STABLE_UPDATE_MANIFEST_CTX.Provider value={stableUpdate}>
-                        <CANARY_RELEASE_MANIFEST_CTX.Provider value={canaryRelease}>
-                            <CANARY_UPDATE_MANIFEST_CTX.Provider value={canaryUpdate}>
-                                {props.children}
-                            </CANARY_UPDATE_MANIFEST_CTX.Provider>
-                        </CANARY_RELEASE_MANIFEST_CTX.Provider>
-                    </STABLE_UPDATE_MANIFEST_CTX.Provider>
-                </STABLE_RELEASE_MANIFEST_CTX.Provider>
-            </INSTALLATION_STATUS_CTX.Provider>
+            <VERSION_CHECK_REFRESH_CTX.Provider value={refresh}>
+                <INSTALLATION_STATUS_CTX.Provider value={installationStatus}>
+                    <STABLE_RELEASE_MANIFEST_CTX.Provider value={stableRelease}>
+                        <STABLE_UPDATE_MANIFEST_CTX.Provider value={stableUpdate}>
+                            <CANARY_RELEASE_MANIFEST_CTX.Provider value={canaryRelease}>
+                                <CANARY_UPDATE_MANIFEST_CTX.Provider value={canaryUpdate}>
+                                    {props.children}
+                                </CANARY_UPDATE_MANIFEST_CTX.Provider>
+                            </CANARY_RELEASE_MANIFEST_CTX.Provider>
+                        </STABLE_UPDATE_MANIFEST_CTX.Provider>
+                    </STABLE_RELEASE_MANIFEST_CTX.Provider>
+                </INSTALLATION_STATUS_CTX.Provider>
+            </VERSION_CHECK_REFRESH_CTX.Provider>
         </VERSION_CHECK_CTX.Provider>
     );
 };
