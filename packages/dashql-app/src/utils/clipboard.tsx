@@ -32,7 +32,7 @@ export function CopyToClipboardButton(props: Props): React.ReactElement {
     const copy = React.useCallback(async () => {
         try {
             await navigator.clipboard.writeText(value);
-            logger.error("Copied to clipboard", { "chars": value.length.toString() }, props.logContext);
+            logger.info("Copied to clipboard", { "chars": value.length.toString() }, props.logContext);
             setLastCopied(Date.now());
         } catch (e: any) {
             logger.error("Copying failed", { "error": stringifyError(e) }, props.logContext);
