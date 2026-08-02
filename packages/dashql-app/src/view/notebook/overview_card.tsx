@@ -179,6 +179,8 @@ export function OverviewCard(props: OverviewCardProps): React.ReactElement {
                                 className={styles.card_preview}
                                 sessionId={props.sessionId}
                                 scriptData={scriptData}
+                                showStoryControls={false}
+                                showStoryGutter={false}
                             />
                         )
                     )}

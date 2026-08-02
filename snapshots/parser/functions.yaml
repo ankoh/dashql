@@ -8,6 +8,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 19
+          description:
+            text: "select reg..) from foo"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select reg..) from foo"
@@ -84,6 +88,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 21
+          description:
+            text: "select * f.. '30 days'"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select * f.. '30 days'"
@@ -166,6 +174,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 21
+          description:
+            text: "select * f.. '30 days'"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select * f.. '30 days'"

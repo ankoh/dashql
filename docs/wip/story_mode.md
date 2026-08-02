@@ -4,7 +4,7 @@
 
 Make documented notebook entries quieter without adding a third dedicated feed mode. The existing vertical feed and zoomed-out overview should progressively present a script as a story when it has leading SQL comments:
 
-- Beautify leading comments as readable narrative.
+- Preserve leading comments as normal SQL comments in the current editor theme.
 - Collapse their associated SQL statement behind a small SQL control.
 - Keep undocumented SQL visible rather than hiding code unexpectedly.
 - Let the user expand SQL inline in the vertical feed.
@@ -21,8 +21,8 @@ The SQL file remains the source of truth. Comments are user-authored input today
 - Multi-statement scripts render one section per statement.
 - A documented statement renders narrative plus a collapsed SQL control.
 - An undocumented statement remains visibly rendered as compact SQL.
-- Comment-only entries render narrative without an SQL control.
-- Comment bodies use plain narrative formatting: delimiters and conventional block-comment prefixes are removed, and paragraphs are preserved. Markdown is not interpreted.
+- Comment-only entries continue to use the normal compact preview.
+- Comments keep their original delimiters, source formatting, and scanner-provided comment syntax highlighting. Markdown is not interpreted.
 - Pending agent diffs and parse failures use the current compact SQL preview rather than story presentation, preserving existing diff/error behavior.
 
 ```mermaid
@@ -52,12 +52,12 @@ table Statement {
     nodes_begin: uint32;
     node_count: uint32;
     statement_span: TextSpan;
-    leading_comments_begin: uint32;
-    leading_comments_count: uint32;
+    description_begin: uint32;
+    description_count: uint32;
 }
 ```
 
-`leading_comments_begin` and `leading_comments_count` index the ordered existing comment-span vector. This avoids duplicating comment locations while making the association available to every frontend consumer.
+`description_begin` and `description_count` index the ordered existing comment-span vector. This avoids duplicating comment locations while making the association available to every frontend consumer.
 
 Association rules:
 
@@ -99,8 +99,6 @@ The story preview uses the raw source document so parsed offsets stay valid. It 
 
 Decorations:
 
-- `Decoration.replace` hides comment delimiters (`--`, `/*`, `*/`) and conventional leading block-comment `*` prefixes.
-- Mark and line decorations apply readable narrative typography and paragraph spacing to the remaining comment text.
 - A replacement decoration hides each collapsed documented statement.
 - A `WidgetType` at the statement boundary renders the SQL control.
 - When a statement is expanded, remove its replacement decoration and retain a control that can collapse it again.

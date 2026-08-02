@@ -8,6 +8,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "select dat.. '90' day;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select dat..l '90' day"

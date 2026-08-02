@@ -8,6 +8,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 4
+          description:
+            text: "select 1"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -35,6 +39,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 6
+          description:
+            text: "select 1, 2"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1, 2"
@@ -69,6 +77,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "select 1, 2\nfrom a"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1, 2\nfrom a"

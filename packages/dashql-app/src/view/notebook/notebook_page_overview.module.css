@@ -177,6 +177,10 @@
     pointer-events: none;
     user-select: none;
 }
+.card_preview :global([data-dashql-story-control]) {
+    pointer-events: auto;
+    user-select: auto;
+}
 .card_preview :global(.cm-editor) {
     height: 100%;
     font-size: 0.5rem;

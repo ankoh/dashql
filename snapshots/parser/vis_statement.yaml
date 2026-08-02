@@ -8,6 +8,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 1
+          description:
+            text: "VISUALISE;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALISE"
@@ -25,6 +29,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 1
+          description:
+            text: "VISUALIZE;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE"
@@ -42,6 +50,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 4
+          description:
+            text: "VISUALIZE .. => line);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..k => line)"
@@ -70,6 +82,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 7
+          description:
+            text: "VISUALIZE ..k => bar);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..rk => bar)"
@@ -108,6 +124,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "VISUALIZE ..=> point);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE .. => point)"
@@ -150,6 +170,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 12
+          description:
+            text: "VISUALIZE .. => line);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..k => line)"
@@ -205,6 +229,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "VISUALIZE ..t => 400);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..ht => 400)"
@@ -254,6 +282,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 13
+          description:
+            text: "VISUALIZE ..al)\n  )\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..nal)\n  )\n)"
@@ -325,6 +357,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 18
+          description:
+            text: "VISUALIZE ..ve)\n  )\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..ive)\n  )\n)"
@@ -413,6 +449,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 17
+          description:
+            text: "VISUALIZE ..]))\n  )\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..0]))\n  )\n)"
@@ -493,6 +533,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 15
+          description:
+            text: "VISUALIZE ..e))\n  )\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..se))\n  )\n)"
@@ -567,6 +611,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 15
+          description:
+            text: "VISUALIZE ..'))\n  )\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..t'))\n  )\n)"
@@ -651,6 +699,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 21
+          description:
+            text: "VISUALIZE ..  )\n  )\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..   )\n  )\n)"
@@ -755,6 +807,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 13
+          description:
+            text: "VISUALIZE ..nue\n  )\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..enue\n  )\n)"
@@ -825,6 +881,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 23
+          description:
+            text: "VISUALIZE ..al)\n  )\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..nal)\n  )\n)"
@@ -930,6 +990,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "VISUALIZE ..=> 0.8)\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE .. => 0.8)\n)"
@@ -982,6 +1046,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "VISUALIZE ..> true)\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..=> true)\n)"
@@ -1031,6 +1099,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "VISUALIZE ..hite'))\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..white'))\n)"
@@ -1096,6 +1168,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 20
+          description:
+            text: "VISUALIZE ..rue\n  )\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..true\n  )\n)"
@@ -1190,6 +1266,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "VISUALIZE ..]))\n  )\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..0]))\n  )\n)"
@@ -1254,6 +1334,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "VISUALIZE ..ng => 20);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..ing => 20)"
@@ -1307,6 +1391,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 37
+          description:
+            text: "VISUALIZE ..Region'\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE .. Region'\n)"
@@ -1460,6 +1548,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 5
+          description:
+            text: "VISUALIZE .. => 800,);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..h => 800,)"
@@ -1497,6 +1589,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "VISUALIZE ..),\n  ),\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..,),\n  ),\n)"
@@ -1567,6 +1663,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 18
+          description:
+            text: "SELECT vis..le FROM t;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT vis..ale FROM t"
@@ -1640,6 +1740,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 26
+          description:
+            text: "SELECT mar..nd FROM t;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT mar..end FROM t"
@@ -1739,6 +1843,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "VISUALIZE ..mbedding);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..embedding)"
@@ -1787,6 +1895,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 15
+          description:
+            text: "VISUALIZE ..=> name\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE .. => name\n)"
@@ -1861,6 +1973,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 15
+          description:
+            text: "VISUALIZE .. cosine\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..> cosine\n)"
@@ -1930,6 +2046,10 @@ parser-snapshots:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 16
+          description:
+            text: "VISUALIZE ..mbedding);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
             text: "VISUALIZE ..embedding)"
@@ -1998,6 +2118,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 30
+          description:
+            text: "SELECT vec..ap FROM t;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT vec..map FROM t"

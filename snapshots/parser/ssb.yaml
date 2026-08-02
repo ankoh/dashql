@@ -13,6 +13,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 59
+          description:
+            text: "select sum..ntity < 25"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select sum..ntity < 25"
@@ -222,6 +226,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 60
+          description:
+            text: "select sum.. 26 and 35"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select sum.. 26 and 35"
@@ -434,6 +442,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 67
+          description:
+            text: "select sum.. 26 and 35"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select sum.. 26 and 35"
@@ -670,6 +682,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 96
+          description:
+            text: "select sum.., p_brand1"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select sum.., p_brand1"
@@ -1007,6 +1023,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 97
+          description:
+            text: "select sum.., p_brand1"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select sum.., p_brand1"
@@ -1346,6 +1366,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 96
+          description:
+            text: "select sum.., p_brand1"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select sum.., p_brand1"
@@ -1682,6 +1706,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 122
+          description:
+            text: "select c_n..venue desc"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select c_n..venue desc"
@@ -2099,6 +2127,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 122
+          description:
+            text: "select c_c..venue desc"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select c_c..venue desc"
@@ -2519,6 +2551,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 142
+          description:
+            text: "select c_c..venue desc"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select c_c..venue desc"
@@ -3003,6 +3039,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 135
+          description:
+            text: "select c_c..venue desc"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select c_c..venue desc"
@@ -3465,6 +3505,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 132
+          description:
+            text: "select d_y.., c_nation"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select d_y.., c_nation"
@@ -3918,6 +3962,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 162
+          description:
+            text: "select d_y..p_category"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select d_y..p_category"
@@ -4466,6 +4514,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 152
+          description:
+            text: "select d_y.., p_brand1"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select d_y.., p_brand1"

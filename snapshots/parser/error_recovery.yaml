@@ -9,6 +9,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 4
+          description:
+            text: "SELECT 1;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT 1"
@@ -39,6 +43,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "SELECT * F..g invalid)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..g invalid)"
@@ -101,6 +109,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 6
+          description:
+            text: "SELECT a FROM"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT a FROM"
@@ -135,6 +147,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 7
+          description:
+            text: "SELECT a FRO"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT a FRO"
@@ -172,6 +188,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 5
+          description:
+            text: "SELECT  FROM A"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT  FROM A"
@@ -202,6 +222,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "SELECT * F..ROM A WHER"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..ROM A WHER"
@@ -245,6 +269,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 8
+          description:
+            text: "SELECT * F..OM A WHERE"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..OM A WHERE"

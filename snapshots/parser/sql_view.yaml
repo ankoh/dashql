@@ -8,6 +8,10 @@ parser-snapshots:
         - type: CREATE_VIEW
           ast-begin: 0
           ast-size: 7
+          description:
+            text: "create vie..s select 1"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_VIEW
             text: "create vie..s select 1"

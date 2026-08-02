@@ -238,6 +238,11 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
         if ((event.target as HTMLElement).closest('[data-diff-actions]') != null) {
             return;
         }
+        // Story SQL controls own their activation: in the feed they toggle the statement in place.
+        // This capture handler otherwise opens Details before the widget's click can run.
+        if ((event.target as HTMLElement).closest('[data-dashql-story-control]') != null) {
+            return;
+        }
         // The body is a read-only preview (with a compact diff overlay while a rewrite is staged);
         // clicking it always expands into Details, where the full normal-text diff and its own
         // Accept/Reject controls live. Quick accept/reject stays on the feed via the body overlay / ⏎ ⎋.

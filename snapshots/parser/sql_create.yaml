@@ -8,6 +8,10 @@ parser-snapshots:
         - type: CREATE_TABLE_AS
           ast-begin: 0
           ast-size: 7
+          description:
+            text: "create tab..s select 1"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE_AS
             text: "create tab..s select 1"
@@ -45,6 +49,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 8
+          description:
+            text: "create tab..a integer)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..a integer)"
@@ -85,6 +93,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 13
+          description:
+            text: "create tab..b tinyint)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..b tinyint)"
@@ -142,6 +154,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 13
+          description:
+            text: "create tab..b varchar)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..b varchar)"
@@ -199,6 +215,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "create tab..b varchar)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..b varchar)"
@@ -259,6 +279,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 13
+          description:
+            text: "create tab..b varchar)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..b varchar)"
@@ -316,6 +340,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "create tab..eferrable)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..eferrable)"
@@ -362,6 +390,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 13
+          description:
+            text: "create tab..e \"de_DE\")"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..e \"de_DE\")"
@@ -418,6 +450,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "create tem..a integer)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tem..a integer)"
@@ -461,6 +497,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 12
+          description:
+            text: "create tab..'thing2'))"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..'thing2'))"
@@ -514,6 +554,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 12
+          description:
+            text: "create tab.. not null)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab.. not null)"
@@ -567,6 +611,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "create tab..imary key)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..imary key)"
@@ -617,6 +665,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "create tab..efault 42)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..efault 42)"

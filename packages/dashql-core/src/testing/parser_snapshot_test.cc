@@ -109,6 +109,7 @@ void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript
                                       std::string_view text) {
     auto& nodes = parsed.nodes;
     auto& statements = parsed.statements;
+    auto descriptions = parsed.AssociateDescriptions();
     auto* stmt_type_tt = buffers::parser::StatementTypeTypeTable();
 
     auto stmts_node = root.append_child();
@@ -121,6 +122,13 @@ void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript
         stmt.append_child() << c4::yml::key("type") << std::string(stmt_type_tt->names[static_cast<uint16_t>(s.type)]);
         stmt.append_child() << c4::yml::key("ast-begin") << s.nodes_begin;
         stmt.append_child() << c4::yml::key("ast-size") << s.node_count;
+        auto& description = descriptions[stmt_id];
+        auto description_node = stmt.append_child();
+        description_node << c4::yml::key("description");
+        description_node |= c4::yml::MAP;
+        EncodeLocationText(description_node, description.statement_span, text);
+        description_node.append_child() << c4::yml::key("description-begin") << description.description_begin;
+        description_node.append_child() << c4::yml::key("description-count") << description.description_count;
         ParserSnapshotTest::EncodeAST(stmt, text, scanned, nodes, s.root);
     }
 

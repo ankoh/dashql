@@ -29,6 +29,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 154
+          description:
+            text: "with custo..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with custo..\nlimit 100"
@@ -610,6 +614,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 523
+          description:
+            text: "with wscs ..week_seq1;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with wscs .._week_seq1"
@@ -2389,6 +2397,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 116
+          description:
+            text: "select  dt..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  dt.. limit 100"
@@ -2887,6 +2899,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 875
+          description:
+            text: "with year_..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with year_..\nlimit 100"
@@ -5851,6 +5867,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 995
+          description:
+            text: "with ssr a..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with ssr a..\nlimit 100"
@@ -9264,6 +9284,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 179
+          description:
+            text: "select  a...limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  a... limit 100"
@@ -9871,6 +9895,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 158
+          description:
+            text: "select  i_..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  i_.. limit 100"
@@ -10506,6 +10534,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 621
+          description:
+            text: "select  s_..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  s_.. limit 100"
@@ -12183,6 +12215,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 398
+          description:
+            text: "select cas..n_sk = 1\n;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cas..son_sk = 1"
@@ -13601,6 +13637,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 355
+          description:
+            text: "select\n  c..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n  c..\nlimit 100"
@@ -14859,6 +14899,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 507
+          description:
+            text: "with year_..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with year_..\nlimit 100"
@@ -16553,6 +16597,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 181
+          description:
+            text: "select i_i..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select i_i..\nlimit 100"
@@ -17230,6 +17278,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 352
+          description:
+            text: "select avg..\n     ))\n;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select avg..50\n     ))"
@@ -18487,6 +18539,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 1197
+          description:
+            text: "with  cros..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with  cros.. limit 100"
@@ -22538,6 +22594,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 839
+          description:
+            text: "with  cros..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with  cros.. limit 100"
@@ -25315,6 +25375,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 129
+          description:
+            text: "select  ca..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  ca.. limit 100"
@@ -25767,6 +25831,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 189
+          description:
+            text: "select\n   ..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..\nlimit 100"
@@ -26440,6 +26508,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 362
+          description:
+            text: "select  i_..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  i_..\nlimit 100"
@@ -27689,6 +27761,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 829
+          description:
+            text: "with resul..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with resul.. limit 100"
@@ -30446,6 +30522,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 189
+          description:
+            text: "select  i_..imit 100 ;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  i_..\nlimit 100"
@@ -31106,6 +31186,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 181
+          description:
+            text: "select  i_..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  i_..\nlimit 100"
@@ -31757,6 +31841,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 218
+          description:
+            text: "select  *\n..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  *\n.. limit 100"
@@ -32537,6 +32625,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 341
+          description:
+            text: "with resul..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with resul..\nlimit 100"
@@ -33731,6 +33823,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 480
+          description:
+            text: "with frequ..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with frequ.. limit 100"
@@ -35383,6 +35479,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 568
+          description:
+            text: "with frequ..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with frequ.. limit 100"
@@ -37318,6 +37418,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 298
+          description:
+            text: "with ssale..tore_name;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with ssale..store_name"
@@ -38386,6 +38490,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 298
+          description:
+            text: "with ssale..tore_name;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with ssale..store_name"
@@ -39451,6 +39559,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 261
+          description:
+            text: "select\n i_..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n i_.. limit 100"
@@ -40335,6 +40447,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 158
+          description:
+            text: "select  i_..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  i_.. limit 100"
@@ -40898,6 +41014,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 363
+          description:
+            text: "with resul..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with resul.. limit 100"
@@ -42159,6 +42279,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 540
+          description:
+            text: "select  *\n..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  *\n..\nlimit 100"
@@ -43953,6 +44077,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 267
+          description:
+            text: "select\n   ..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   .. limit 100"
@@ -44864,6 +44992,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 261
+          description:
+            text: "with custo..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with custo..\nlimit 100"
@@ -45790,6 +45922,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 494
+          description:
+            text: "with ss as..ca_county;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with ss as...ca_county"
@@ -47387,6 +47523,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 139
+          description:
+            text: "select  su..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  su..\nlimit 100"
@@ -47941,6 +48081,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 412
+          description:
+            text: "with ss as..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with ss as..\nlimit 100"
@@ -49372,6 +49516,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 256
+          description:
+            text: "select c_l..flag desc;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select c_l.._flag desc"
@@ -50243,6 +50391,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 365
+          description:
+            text: "select\n  c..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n  c.. limit 100"
@@ -51518,6 +51670,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 350
+          description:
+            text: "with resul..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with resul.. limit 100"
@@ -52702,6 +52858,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 135
+          description:
+            text: "select  i_..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  i_.. limit 100"
@@ -53172,6 +53332,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 203
+          description:
+            text: "select  co..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  co..\nlimit 100"
@@ -53859,6 +54023,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 328
+          description:
+            text: "with inv a..inv2.cov\n;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with inv a.., inv2.cov"
@@ -54950,6 +55118,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 336
+          description:
+            text: "with inv a..inv2.cov\n;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with inv a.., inv2.cov"
@@ -56064,6 +56236,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 226
+          description:
+            text: "select\n   ..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..\nlimit 100"
@@ -56887,6 +57063,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 573
+          description:
+            text: "select  di..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  di.. limit 100"
@@ -58735,6 +58915,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 132
+          description:
+            text: "select  dt..imit 100 ;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  dt..\nlimit 100"
@@ -59185,6 +59369,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 254
+          description:
+            text: "select  s_..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  s_.. limit 100"
@@ -60076,6 +60264,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 323
+          description:
+            text: "select    ..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select    ..\nlimit 100"
@@ -61187,6 +61379,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 171
+          description:
+            text: "select  ca..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  ca.. limit 100"
@@ -61772,6 +61968,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 275
+          description:
+            text: "select  c_..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  c_.. limit 100"
@@ -62711,6 +62911,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 488
+          description:
+            text: "with v1 as..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with v1 as.. limit 100"
@@ -64350,6 +64554,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 274
+          description:
+            text: "select sum..0\n  )\n )\n;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select sum..000\n  )\n )"
@@ -65384,6 +65592,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 908
+          description:
+            text: "select\n 'w..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n 'w.. limit 100"
@@ -68427,6 +68639,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 401
+          description:
+            text: "select\n   ..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..\nlimit 100"
@@ -69830,6 +70046,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 588
+          description:
+            text: "WITH web_t..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "WITH web_t..\nlimit 100"
@@ -71774,6 +71994,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 124
+          description:
+            text: "select  dt..imit 100 ;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  dt..\nlimit 100"
@@ -72208,6 +72432,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 282
+          description:
+            text: "select  * ..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  * ..\nlimit 100"
@@ -73156,6 +73384,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 354
+          description:
+            text: "with my_cu..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with my_cu.. limit 100"
@@ -74365,6 +74597,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 96
+          description:
+            text: "select  i_..imit 100 ;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  i_..\nlimit 100"
@@ -74758,6 +74994,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 418
+          description:
+            text: "with ss as..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with ss as.. limit 100"
@@ -76212,6 +76452,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 446
+          description:
+            text: "with v1 as..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with v1 as.. limit 100"
@@ -77720,6 +77964,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 590
+          description:
+            text: "with ss_it..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with ss_it.. limit 100"
@@ -79710,6 +79958,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 517
+          description:
+            text: "with wss a..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with wss a..\nlimit 100"
@@ -81495,6 +81747,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 416
+          description:
+            text: "with ss as..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with ss as.. limit 100"
@@ -82955,6 +83211,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 333
+          description:
+            text: "select  pr..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  pr..\nlimit 100"
@@ -84086,6 +84346,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 311
+          description:
+            text: "select\n   ..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..\nlimit 100"
@@ -85149,6 +85413,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 282
+          description:
+            text: "select  *\n..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  *\n..\nlimit 100"
@@ -86161,6 +86429,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 819
+          description:
+            text: "with cs_ui.. ,cs2.cnt;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with cs_ui..  ,cs2.cnt"
@@ -88818,6 +89090,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 246
+          description:
+            text: "select\n	s_..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n	s_..\nlimit 100"
@@ -89856,6 +90132,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 2138
+          description:
+            text: "select\n   ..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   .. limit 100"
@@ -97089,6 +97369,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 833
+          description:
+            text: "with resul..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with resul..\nlimit 100"
@@ -99892,6 +100176,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 273
+          description:
+            text: "select  c_..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  c_.. limit 100"
@@ -100831,6 +101119,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 302
+          description:
+            text: "select\n  c..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n  c.. limit 100"
@@ -101873,6 +102165,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 356
+          description:
+            text: "with resul..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with resul.. limit 100"
@@ -103110,6 +103406,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 288
+          description:
+            text: "select i_b..rand_id\n ;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select i_b..i_brand_id"
@@ -104101,6 +104401,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 336
+          description:
+            text: "select  i_..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  i_..\nlimit 100"
@@ -105237,6 +105541,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 233
+          description:
+            text: "select c_l.._name asc;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select c_l..t_name asc"
@@ -106042,6 +106350,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 422
+          description:
+            text: "with year_..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with year_..\nlimit 100"
@@ -107477,6 +107789,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 636
+          description:
+            text: "WITH all_s..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "WITH all_s.. limit 100"
@@ -109592,6 +109908,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 283
+          description:
+            text: "select  ch..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  ch..\nlimit 100"
@@ -110647,6 +110967,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 869
+          description:
+            text: "with ss as..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with ss as.. limit 100"
@@ -113658,6 +113982,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 646
+          description:
+            text: "with ws as..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with ws as..\nlimit 100"
@@ -115827,6 +116155,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 238
+          description:
+            text: "select\n  c..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n  c..\nlimit 100"
@@ -116706,6 +117038,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 855
+          description:
+            text: "with ssr a..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with ssr a.. limit 100"
@@ -119610,6 +119946,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 285
+          description:
+            text: "with custo..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with custo.. limit 100"
@@ -120579,6 +120919,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 135
+          description:
+            text: "select  i_..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  i_.. limit 100"
@@ -121093,6 +121437,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 507
+          description:
+            text: "with sr_it..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with sr_it.. limit 100"
@@ -122809,6 +123157,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 120
+          description:
+            text: "select  c_..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  c_.. limit 100"
@@ -123294,6 +123646,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 438
+          description:
+            text: "select  su..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  su..\nlimit 100"
@@ -124754,6 +125110,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 268
+          description:
+            text: "with resul..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with resul.. limit 100"
@@ -125679,6 +126039,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 202
+          description:
+            text: "select cou..ool_cust\n;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cou.. cool_cust"
@@ -126429,6 +126793,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 1213
+          description:
+            text: "select  *\n..ese') s8\n;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  *\n.. 'ese') s8"
@@ -130214,6 +130582,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 254
+          description:
+            text: "select  *\n..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  *\n..\nlimit 100"
@@ -131072,6 +131444,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 221
+          description:
+            text: "select cas..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cas.. limit 100"
@@ -131811,6 +132187,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 211
+          description:
+            text: "select\n   ..oss) desc;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..loss) desc"
@@ -132541,6 +132921,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 149
+          description:
+            text: "select\n   ..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..\nlimit 100"
@@ -133074,6 +133458,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 138
+          description:
+            text: "select  ss..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  ss..\nlimit 100"
@@ -133576,6 +133964,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 184
+          description:
+            text: "select\n   ..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..\nlimit 100"
@@ -134223,6 +134615,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 230
+          description:
+            text: "with ws_wh..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with ws_wh..\nlimit 100"
@@ -135001,6 +135397,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 91
+          description:
+            text: "select  co..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select  co..\nlimit 100"
@@ -135325,6 +135725,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 239
+          description:
+            text: "with ssci ..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with ssci ..\nlimit 100"
@@ -136150,6 +136554,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 180
+          description:
+            text: "select i_i..\n        ;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select i_i..venueratio"
@@ -136807,6 +137215,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 311
+          description:
+            text: "select\n   ..limit 100;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..\nlimit 100"

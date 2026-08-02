@@ -296,6 +296,19 @@ describe('NotebookScriptFeed', () => {
         expect(showDetails).toHaveBeenCalledTimes(1);
     });
 
+    it('does not open Details when a story SQL control is activated', () => {
+        const notebook = createNotebookState();
+        const modifyNotebook = vi.fn();
+        const showDetails = vi.fn();
+        renderFeed({ notebook, modifyNotebook, showDetails });
+        const control = container.querySelector('[data-dashql-story-control]')!;
+        act(() => {
+            control.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }));
+        });
+        expect(showDetails).not.toHaveBeenCalled();
+        expect(modifyNotebook).not.toHaveBeenCalledWith(expect.objectContaining({ type: SELECT_ENTRY }));
+    });
+
     it('keeps the read-only preview (with a diff overlay) while an agent rewrite is pending', () => {
         renderFeed({
             notebook: withPendingDiff(createNotebookState(), 101, 'select 0'),

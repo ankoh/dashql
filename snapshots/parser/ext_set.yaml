@@ -8,6 +8,10 @@ parser-snapshots:
         - type: SET
           ast-begin: 0
           ast-size: 4
+          description:
+            text: "SET variab..= 'value';"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_EXT_SET
             text: "SET variab.. = 'value'"
@@ -42,6 +46,10 @@ parser-snapshots:
         - type: SET
           ast-begin: 0
           ast-size: 22
+          description:
+            text: "SET variab..43, 44]\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_EXT_SET
             text: "SET variab..[43, 44]\n)"
@@ -135,6 +143,10 @@ parser-snapshots:
         - type: SET
           ast-begin: 0
           ast-size: 17
+          description:
+            text: "SET variab..param),\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_EXT_SET
             text: "SET variab..eparam),\n)"

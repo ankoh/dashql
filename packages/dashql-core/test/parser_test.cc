@@ -87,4 +87,35 @@ TEST(ParserTest, NoHintWhenIdentAlsoInvalid) {
     EXPECT_TRUE(script->errors.front().hint.empty());
 }
 
+TEST(ParserTest, AssociatesLeadingCommentBlocksWithStatements) {
+    constexpr std::string_view text =
+        "-- first statement\n"
+        "-- has two lines\n"
+        "select 1;\n"
+        "\n"
+        "/* second statement */\n"
+        "select 2; -- trailing\n"
+        "select 3";
+    auto script = ParseString(text);
+
+    ASSERT_EQ(script->statements.size(), 3u);
+    ASSERT_EQ(script->scanned_script->comments.size(), 4u);
+    auto descriptions = script->AssociateDescriptions();
+    ASSERT_EQ(descriptions.size(), 3u);
+
+    auto& first = descriptions[0];
+    EXPECT_EQ(first.description_begin, 0u);
+    EXPECT_EQ(first.description_count, 2u);
+    EXPECT_EQ(text.substr(first.statement_span.offset(), first.statement_span.length()), "select 1;");
+
+    auto& second = descriptions[1];
+    EXPECT_EQ(second.description_begin, 2u);
+    EXPECT_EQ(second.description_count, 1u);
+    EXPECT_EQ(text.substr(second.statement_span.offset(), second.statement_span.length()), "select 2; -- trailing");
+
+    auto& third = descriptions[2];
+    EXPECT_EQ(third.description_count, 0u);
+    EXPECT_EQ(text.substr(third.statement_span.offset(), third.statement_span.length()), "select 3");
+}
+
 }  // namespace

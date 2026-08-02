@@ -8,6 +8,10 @@ parser-snapshots:
         - type: EXPLAIN
           ast-begin: 0
           ast-size: 5
+          description:
+            text: "explain select 1"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_EXT_EXPLAIN
             text: "explain select 1"
@@ -39,6 +43,10 @@ parser-snapshots:
         - type: EXPLAIN
           ast-begin: 0
           ast-size: 8
+          description:
+            text: "explain (a..) select 1"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_EXT_EXPLAIN
             text: "explain (a..) select 1"
@@ -80,6 +88,10 @@ parser-snapshots:
         - type: EXPLAIN
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "explain (a..) select 1"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_EXT_EXPLAIN
             text: "explain (a..) select 1"
@@ -130,6 +142,10 @@ parser-snapshots:
         - type: EXPLAIN
           ast-begin: 0
           ast-size: 12
+          description:
+            text: "explain (a..) select 1"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_EXT_EXPLAIN
             text: "explain (a..) select 1"
@@ -183,6 +199,10 @@ parser-snapshots:
         - type: EXPLAIN
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "explain cr..d integer)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_EXT_EXPLAIN
             text: "explain cr..d integer)"
@@ -227,6 +247,10 @@ parser-snapshots:
         - type: EXPLAIN
           ast-begin: 0
           ast-size: 22
+          description:
+            text: "explain se..here a > 1"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_EXT_EXPLAIN
             text: "explain se..here a > 1"

@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as core from '../../core/index.js';
 import * as themes from '../editor/themes/index.js';
 
-import { EditorState, type Extension } from '@codemirror/state';
+import { EditorState, StateEffect, type Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
 import { useAppConfig } from '../../app_config.js';
@@ -13,6 +13,7 @@ import { Logger, stringifyError } from '../../platform/logger/logger.js';
 import { CodeMirror } from '../editor/codemirror.js';
 import { DashQLScannerDecorationUpdateEffect, DashQLStandaloneScannerDecorationPlugin } from '../editor/dashql_decorations_standalone.js';
 import { DashQLDiffDecorationUpdateEffect, DashQLStandaloneDiffDecorationPlugin } from '../editor/dashql_diff_decorations.js';
+import { createStoryDecorations, DashQLStoryUpdateEffect, hasStatementDescriptions } from '../editor/dashql_story_decorations.js';
 import type { DashQLPendingDiff } from '../editor/dashql_processor.js';
 
 const LOG_CTX = 'script_preview';
@@ -25,31 +26,50 @@ const SCRIPT_PREVIEW_LAYOUT = EditorView.theme({
     },
 });
 
-const SCRIPT_PREVIEW_EXTENSIONS: Extension[] = [
-    themes.xcode.xcodeLight,
-    EditorState.readOnly.of(true),
-    EditorView.editable.of(false),
-    SCRIPT_PREVIEW_LAYOUT,
-    DashQLStandaloneScannerDecorationPlugin,
-    DashQLStandaloneDiffDecorationPlugin,
-];
-
 export interface ScriptPreviewProps {
     className?: string;
     /// The session the script belongs to. Used to reach the core instance for the compact diff.
     sessionId: string;
     scriptData: ScriptData;
     onReady?: (ready: boolean) => void;
+    /// Story controls expand inline in the feed and open Details from the fixed overview cards.
+    storyActivation?: 'toggle' | 'open';
+    onStoryActivate?: () => void;
+    /// Show collapsed statement controls for descriptions. The overview keeps its SQL preview compact.
+    showStoryControls?: boolean;
+    /// The feed always shows line numbers (and story fold arrows); compact grid cards do not.
+    showStoryGutter?: boolean;
 }
 
 interface PreviewSnapshot {
     scriptText: string;
     parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null;
+    ownsParsed: boolean;
     /// The compact-formatted diff overlay for a staged agent rewrite, or null when none is pending.
     /// Owned by the snapshot: its `diffBuffer` is freed when the snapshot is replaced or unmounts.
     /// This is a *separate* buffer from `scriptData.pendingDiff` (whose offsets index the normal,
     /// unformatted text); the offsets here index the compact preview text shown below.
     diff: DashQLPendingDiff | null;
+}
+
+/// Description previews retain raw source text because their parser spans index the source directly.
+function buildDescriptionPreview(scriptData: ScriptData): PreviewSnapshot | null {
+    const text = scriptData.script.toString();
+    if (scriptData.scriptAnalysis.buffers.parsed == null) return null;
+    // getParsed returns an independently owned serialized buffer. The notebook state's analysis
+    // buffer can be destroyed as soon as the next editor update arrives, so it is unsafe to hand
+    // directly to a long-lived CodeMirror scanner extension.
+    const parsed = scriptData.script.getParsed();
+    if (!hasStatementDescriptions(parsed)) {
+        parsed.destroy();
+        return null;
+    }
+    return {
+        scriptText: text,
+        parsed,
+        ownsParsed: true,
+        diff: null,
+    };
 }
 
 /// Build the compact formatting config used for both the preview text and the compact diff, so the
@@ -161,7 +181,7 @@ function formatPreviewScript(
         const diff = pendingDiff != null
             ? computeCompactDiff(instance, pendingDiff.priorText, formattedScript, maxWidth, debugMode, scriptKey, logger)
             : null;
-        return { scriptText, parsed, diff };
+        return { scriptText, parsed, ownsParsed: true, diff };
     } catch (e: any) {
         logger.warn('Failed to analyze formatted script preview', {
             scriptKey: scriptKey.toString(),
@@ -174,7 +194,7 @@ function formatPreviewScript(
     }
 }
 
-export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, sessionId, scriptData, onReady }) => {
+export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, sessionId, scriptData, onReady, storyActivation = 'toggle', onStoryActivate, showStoryControls = true, showStoryGutter = true }) => {
     const config = useAppConfig();
     const logger = useLogger();
     // Reach the core instance (mirrors ScriptEditor) so a staged rewrite can be diffed against its
@@ -186,10 +206,31 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, session
     const [previewSnapshot, setPreviewSnapshot] = React.useState<PreviewSnapshot>(() => ({
         scriptText: '',
         parsed: null,
+        ownsParsed: false,
         diff: null,
     }));
+    const appliedDescriptionParsedRef = React.useRef<core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null>(null);
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
     const pendingDiff = scriptData.pendingDiff;
+    const descriptionPreview = React.useMemo(
+        () => showStoryControls && pendingDiff == null ? buildDescriptionPreview(scriptData) : null,
+        [pendingDiff, scriptData, scriptData.scriptAnalysis.buffers, showStoryControls],
+    );
+    const previewExtensions = React.useMemo((): Extension[] => [
+        themes.xcode.xcodeLight,
+        EditorState.readOnly.of(true),
+        EditorView.editable.of(false),
+        SCRIPT_PREVIEW_LAYOUT,
+        DashQLStandaloneScannerDecorationPlugin,
+        DashQLStandaloneDiffDecorationPlugin,
+        ...createStoryDecorations({
+            activation: storyActivation,
+            onActivate: () => onStoryActivate?.(),
+            // The normal feed owns its line-number sidebar even for plain SQL. The fold gutter
+            // appears only when a documented statement has a story control to collapse.
+            showGutter: showStoryGutter,
+        }).extensions,
+    ], [onStoryActivate, showStoryGutter, storyActivation]);
 
     // Track the number of characters that can fit in the preview editor
     React.useLayoutEffect(() => {
@@ -224,6 +265,12 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, session
 
     // Update the preview snapshot when the script, editor dimensions, or staged rewrite change
     React.useEffect(() => {
+        // Story previews retain raw source offsets and do not need width-dependent formatting.
+        if (descriptionPreview != null) {
+            setPreviewSnapshot(descriptionPreview);
+            onReady?.(true);
+            return;
+        }
         // Don't format until we have measured the actual width and the core instance is available.
         if (maxWidthChars == null || instance == null) {
             return;
@@ -240,6 +287,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, session
         setPreviewSnapshot(nextFormatted ?? {
             scriptText: '',
             parsed: null,
+            ownsParsed: false,
             diff: null,
         });
         // Mark as ready after first format attempt (success or failure)
@@ -259,6 +307,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, session
         // changes recompute too (via maxWidthChars) since compact offsets shift with the layout.
         pendingDiff,
         onReady,
+        descriptionPreview,
     ]);
 
     // Clean up the parsed script and the compact diff buffer when the snapshot is replaced or the
@@ -266,7 +315,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, session
     // which the notebook state owns and frees on accept/reject).
     React.useEffect(() => {
         return () => {
-            previewSnapshot.parsed?.destroy();
+            if (previewSnapshot.ownsParsed) previewSnapshot.parsed?.destroy();
             previewSnapshot.diff?.diffBuffer.destroy();
         };
     }, [previewSnapshot]);
@@ -275,22 +324,35 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, session
         if (view == null) {
             return;
         }
+        const effects: StateEffect<any>[] = [
+            DashQLScannerDecorationUpdateEffect.of(previewSnapshot.parsed),
+            DashQLDiffDecorationUpdateEffect.of(previewSnapshot.diff),
+        ];
+        // Width changes refresh the preview snapshot, but they must not reset a statement the user
+        // already expanded. Only replace story decorations when the parsed source model changes.
+        const descriptionParsed = descriptionPreview?.parsed ?? null;
+        if (appliedDescriptionParsedRef.current !== descriptionParsed) {
+            effects.push(DashQLStoryUpdateEffect.of(descriptionParsed));
+            appliedDescriptionParsedRef.current = descriptionParsed;
+        }
         view.dispatch({
             changes: {
                 from: 0,
                 to: view.state.doc.length,
                 insert: previewSnapshot.scriptText,
             },
-            effects: [
-                DashQLScannerDecorationUpdateEffect.of(previewSnapshot.parsed),
-                DashQLDiffDecorationUpdateEffect.of(previewSnapshot.diff),
-            ],
+            effects,
         });
     }, [previewSnapshot, view]);
 
     return (
         <div className={className}>
-            <CodeMirror extensions={SCRIPT_PREVIEW_EXTENSIONS} ref={setView} style={{ height: 'auto' }} />
+            <CodeMirror
+                key={descriptionPreview != null ? `description-${storyActivation}` : 'compact'}
+                extensions={previewExtensions}
+                ref={setView}
+                style={{ height: 'auto' }}
+            />
         </div>
     );
 };

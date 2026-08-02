@@ -578,6 +578,11 @@ table Statement {
     root_node: uint32;
     nodes_begin: uint32;
     node_count: uint32;
+    // Byte span of the statement in the source text, including its terminating semicolon when present.
+    statement_span: TextSpan;
+    // Slice into ParsedScript.comments containing this statement's description comments.
+    description_begin: uint32;
+    description_count: uint32;
 }
 
 enum ScannerTokenType: uint8 {

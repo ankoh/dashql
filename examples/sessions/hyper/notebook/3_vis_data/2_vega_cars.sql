@@ -1,6 +1,5 @@
 -- Fetch vega cars
 -- R2 key is read-only and public
-
 select *
 from external(
     s3_location(

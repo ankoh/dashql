@@ -8,6 +8,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 4
+          description:
+            text: "select null"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select null"
@@ -35,6 +39,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 4
+          description:
+            text: "select 1"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -62,6 +70,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 4
+          description:
+            text: "select 1e-04"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1e-04"
@@ -89,6 +101,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 4
+          description:
+            text: "select b'1010'"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select b'1010'"
@@ -116,6 +132,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 6
+          description:
+            text: "select string"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select string"
@@ -150,6 +170,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 6
+          description:
+            text: "select äöü"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select äöü"
@@ -184,6 +208,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 6
+          description:
+            text: "select 📈"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 📈"
@@ -218,6 +246,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 8
+          description:
+            text: "select 1 > 2"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1 > 2"
@@ -257,6 +289,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 4
+          description:
+            text: "select 'foo'"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 'foo'"
@@ -284,6 +320,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 4
+          description:
+            text: "select '''foo'''"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select '''foo'''"
@@ -311,6 +351,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 4
+          description:
+            text: "select '\"foo\"'"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select '\"foo\"'"
@@ -338,6 +382,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 5
+          description:
+            text: "select 1 \"foo\""
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1 \"foo\""
@@ -363,22 +411,68 @@ parser-snapshots:
   - name: comments_cstyle
     input: |-
       /* foo */
+      select 1
     expected:
-      statements: []
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "select 1"
+            description-begin: 0
+            description-count: 1
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
       scanner-errors: []
       parser-errors: []
-      line-breaks: []
+      line-breaks:
+        - text: [9,10]
       comments:
         - text: "/* foo */"
 
   - name: comments_cstyle_nested
     input: |-
       /* foo /* bar */ */
+      select 1
     expected:
-      statements: []
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "select 1"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
       scanner-errors: []
       parser-errors: []
-      line-breaks: []
+      line-breaks:
+        - text: [19,20]
       comments:
         - text: "/* bar */ */"
 
@@ -390,6 +484,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 6
+          description:
+            text: "select 1, 2"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1, 2"
@@ -423,6 +521,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "select a from b"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a from b"
@@ -470,6 +572,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "select a from b.c"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a from b.c"
@@ -519,6 +625,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 12
+          description:
+            text: "select a f..m only b.c"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a f..m only b.c"
@@ -571,6 +681,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 12
+          description:
+            text: "select a f..m b.c as d"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a f..m b.c as d"
@@ -623,6 +737,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 13
+          description:
+            text: "select a from b, c"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a from b, c"
@@ -679,6 +797,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 17
+          description:
+            text: "select a i.. from c, d"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a i.. from c, d"
@@ -748,6 +870,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "select a f..group by 1"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a f..group by 1"
@@ -808,6 +934,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "select a f..ow c as ()"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a f..ow c as ()"
@@ -869,6 +999,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 18
+          description:
+            text: "select a f..tion by d)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a f..tion by d)"
@@ -944,6 +1078,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 26
+          description:
+            text: "select a f..following)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a f..following)"
@@ -1045,6 +1183,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 26
+          description:
+            text: "select a f..rrent row)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a f..rrent row)"
@@ -1147,6 +1289,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 33
+          description:
+            text: "select a f..tion by f)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a f..tion by f)"
@@ -1271,6 +1417,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "select dis..t a from b"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select dis..t a from b"
@@ -1322,6 +1472,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "select dis..) a from b"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select dis..) a from b"
@@ -1382,6 +1536,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 6
+          description:
+            text: "select all from b"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select all from b"
@@ -1415,6 +1573,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 4
+          description:
+            text: "values (1)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "values (1)"
@@ -1441,6 +1603,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 6
+          description:
+            text: "values (1), (2);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "values (1), (2)"
@@ -1472,6 +1638,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 8
+          description:
+            text: "values (1,..2), (3, 4)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "values (1,..2), (3, 4)"
@@ -1507,6 +1677,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 4
+          description:
+            text: "TABLE a"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "TABLE a"
@@ -1534,6 +1708,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "SELECT 1 U..N SELECT 2"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT 1 U..N SELECT 2"
@@ -1584,6 +1762,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 12
+          description:
+            text: "SELECT 1 U..L SELECT 2"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT 1 U..L SELECT 2"
@@ -1637,6 +1819,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 12
+          description:
+            text: "SELECT 1 U..T SELECT 2"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT 1 U..T SELECT 2"
@@ -1690,6 +1876,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "SELECT 1 I..T SELECT 2"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT 1 I..T SELECT 2"
@@ -1740,6 +1930,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "WITH a AS ..) SELECT 2"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "WITH a AS ..) SELECT 2"
@@ -1791,6 +1985,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 17
+          description:
+            text: "WITH a AS ..) SELECT 3"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "WITH a AS ..) SELECT 3"
@@ -1862,6 +2060,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 18
+          description:
+            text: "WITH RECUR..) SELECT 3"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "WITH RECUR..) SELECT 3"
@@ -1936,6 +2138,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "select a order by b"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a order by b"
@@ -1987,6 +2193,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 15
+          description:
+            text: "select a o..er by b, c"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a o..er by b, c"
@@ -2051,6 +2261,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 17
+          description:
+            text: "select a o..sc, c desc"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a o..sc, c desc"
@@ -2121,6 +2335,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 19
+          description:
+            text: "select a o..nulls last"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a o..nulls last"
@@ -2198,6 +2416,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 8
+          description:
+            text: "select 1 into b;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1 into b"
@@ -2228,6 +2450,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 8
           ast-size: 8
+          description:
+            text: "select 1 from b;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1 from b"
@@ -2269,6 +2495,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 24
+          description:
+            text: "select * f.. a.x = b.y"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select * f.. a.x = b.y"
@@ -2358,6 +2588,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 8
+          description:
+            text: "select 1 into b;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1 into b"
@@ -2388,6 +2622,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 8
           ast-size: 23
+          description:
+            text: "select c f..c = $a + 1"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select c f..c = $a + 1"
@@ -2477,6 +2715,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 41
+          description:
+            text: "select * i..h = $month"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select * i..h = $month"
@@ -2618,6 +2860,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 26
+          description:
+            text: "select v i..) as t(v);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select v i..0) as t(v)"
@@ -2718,6 +2964,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 15
+          description:
+            text: "select * f..arg') foo;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select * f..earg') foo"
@@ -2782,6 +3032,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 7
+          description:
+            text: "select som..unc 'foo';"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select som..func 'foo'"
@@ -2819,6 +3073,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "select som..(1) 'foo';"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select som..c(1) 'foo'"
@@ -2866,6 +3124,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 7
+          description:
+            text: "select integer '1';"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select integer '1'"
@@ -2904,6 +3166,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 7
+          description:
+            text: "select int..to second;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select int.. to second"
@@ -2942,6 +3208,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 7
+          description:
+            text: "select int..'90' hour;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select int.. '90' hour"
@@ -2980,6 +3250,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 7
+          description:
+            text: "select int..al 1 hour;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select int..val 1 hour"
@@ -3018,6 +3292,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "select cas..ime zone);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cas..time zone)"
@@ -3067,6 +3345,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "select cas..ime zone);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cas..time zone)"
@@ -3119,6 +3401,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "select cas..ime zone);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cas..time zone)"
@@ -3168,6 +3454,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "select cas..ime zone);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cas..time zone)"
@@ -3220,6 +3510,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "select cas..val year);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cas..rval year)"
@@ -3269,6 +3563,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "select cas..erval(2));"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cas..terval(2))"
@@ -3318,6 +3616,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "select cas..sometype);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cas.. sometype)"
@@ -3367,6 +3669,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "select cas..' as bit);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cas..1' as bit)"
@@ -3416,6 +3722,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "select cas..s bit(2));"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cas..as bit(2))"
@@ -3468,6 +3778,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "select cas..rying(2));"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cas..arying(2))"
@@ -3520,6 +3834,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "select 1 o..hema.+) 2;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1 o..chema.+) 2"
@@ -3564,6 +3882,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select 1 b..n 0 and 3;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1 b..en 0 and 3"
@@ -3605,6 +3927,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select 1 b..c 0 and 3;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1 b..ic 0 and 3"
@@ -3646,6 +3972,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select 1 n..n 0 and 3;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1 n..en 0 and 3"
@@ -3687,6 +4017,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select 1 n..c 0 and 3;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1 n..ic 0 and 3"
@@ -3728,6 +4062,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select 1 b..c 0 and 3;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1 b..ic 0 and 3"
@@ -3769,6 +4107,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select 1 n..c 0 and 3;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1 n..ic 0 and 3"
@@ -3810,6 +4152,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 8
+          description:
+            text: "select '20..one 'mst';"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select '20..zone 'mst'"
@@ -3849,6 +4195,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 7
+          description:
+            text: "select 1::integer;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1::integer"
@@ -3887,6 +4237,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select 1 c..llate foo;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1 c..ollate foo"
@@ -3929,6 +4283,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 24
+          description:
+            text: "select (da..1-02-10');"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select (da..21-02-10')"
@@ -4018,6 +4376,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 12
+          description:
+            text: "select a i..ct from b;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a i..nct from b"
@@ -4071,6 +4433,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 12
+          description:
+            text: "select a i..ct from b;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a i..nct from b"
@@ -4124,6 +4490,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "select a i..(integer);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a i.. (integer)"
@@ -4172,6 +4542,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "select a i..(integer);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a i.. (integer)"
@@ -4226,6 +4600,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "select cas..      end;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cas..       end"
@@ -4292,6 +4670,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 12
+          description:
+            text: "select cas..      end;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cas..       end"
@@ -4349,6 +4731,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 7
+          description:
+            text: "select $1 from c"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select $1 from c"
@@ -4388,6 +4774,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select somefunc(1)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select somefunc(1)"
@@ -4432,6 +4822,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "select som..tion by c)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select som..tion by c)"
@@ -4493,6 +4887,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "select som..rder by c)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select som..rder by c)"
@@ -4554,6 +4952,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 18
+          description:
+            text: "select som..ere a = b)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select som..ere a = b)"
@@ -4627,6 +5029,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 8
+          description:
+            text: "select (select 1)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select (select 1)"
@@ -4669,6 +5075,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 16
+          description:
+            text: "select (se..rom b).foo"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select (se..rom b).foo"
@@ -4737,6 +5147,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "select exi..(select a)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select exi..(select a)"
@@ -4786,6 +5200,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select (a).foo"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select (a).foo"
@@ -4830,6 +5248,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "select a i..(select 1)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a i..(select 1)"
@@ -4891,6 +5313,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 12
+          description:
+            text: "select a in (2, 3)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a in (2, 3)"
@@ -4942,6 +5368,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "select a l..select 1);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a l..(select 1)"
@@ -5004,6 +5434,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "select a l..select 1);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a l..(select 1)"
@@ -5066,6 +5500,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "select a l..select 1);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a l..(select 1)"
@@ -5128,6 +5566,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 15
+          description:
+            text: "select a l..o('bar'));"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select a l..oo('bar'))"
@@ -5192,6 +5634,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "select som..(default);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select som..c(default)"
@@ -5240,6 +5686,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 5
+          description:
+            text: "select cur..rent_date;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select current_date"
@@ -5271,6 +5721,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 5
+          description:
+            text: "select cur..rent_time;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select current_time"
@@ -5302,6 +5756,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 5
+          description:
+            text: "select cur..timestamp;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cur.._timestamp"
@@ -5333,6 +5791,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 5
+          description:
+            text: "select localtime;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select localtime"
@@ -5364,6 +5826,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 5
+          description:
+            text: "select loc..timestamp;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select loc..ltimestamp"
@@ -5395,6 +5861,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 7
+          description:
+            text: "select cur.._time(42);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cur..t_time(42)"
@@ -5432,6 +5902,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 7
+          description:
+            text: "select cur..stamp(42);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cur..estamp(42)"
@@ -5469,6 +5943,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 7
+          description:
+            text: "select loc..ltime(42);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select loc..altime(42)"
@@ -5506,6 +5984,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 7
+          description:
+            text: "select loc..stamp(42);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select loc..estamp(42)"
@@ -5543,6 +6025,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 5
+          description:
+            text: "select cur..rent_role;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select current_role"
@@ -5574,6 +6060,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 5
+          description:
+            text: "select cur..rent_user;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select current_user"
@@ -5605,6 +6095,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 5
+          description:
+            text: "select ses..sion_user;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select session_user"
@@ -5636,6 +6130,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 5
+          description:
+            text: "select user;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select user"
@@ -5667,6 +6165,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 5
+          description:
+            text: "select cur..t_catalog;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cur..nt_catalog"
@@ -5698,6 +6200,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 5
+          description:
+            text: "select cur..nt_schema;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cur..ent_schema"
@@ -5729,6 +6235,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select cas.. integer);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select cas..s integer)"
@@ -5774,6 +6284,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select tre.. integer);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select tre..s integer)"
@@ -5819,6 +6333,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "select nul..lif(a, 1);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select nullif(a, 1)"
@@ -5865,6 +6383,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 12
+          description:
+            text: "select coa..sce(a, b);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select coa..esce(a, b)"
@@ -5918,6 +6440,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select tri..th 'foo');"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select tri..oth 'foo')"
@@ -5962,6 +6488,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select tri..om 'foo');"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select tri..rom 'foo')"
@@ -6006,6 +6536,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "select tri..om 'foo');"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select tri..rom 'foo')"
@@ -6053,6 +6587,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "select tri..', 'bar');"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select tri..o', 'bar')"
@@ -6102,6 +6640,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select tri..om 'foo');"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select tri..rom 'foo')"
@@ -6146,6 +6688,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select tri..om 'foo');"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select tri..rom 'foo')"
@@ -6190,6 +6736,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 8
+          description:
+            text: "select trim('foo');"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select trim('foo')"
@@ -6231,6 +6781,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "select ext.. from foo;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select ext..) from foo"
@@ -6292,6 +6846,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "select ext..3:30:15');"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select ext..13:30:15')"
@@ -6345,6 +6903,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select sub.. 1 for 2);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select sub..m 1 for 2)"
@@ -6389,6 +6951,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 8
+          description:
+            text: "select sub..' from 1);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select sub..r' from 1)"
@@ -6430,6 +6996,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 8
+          description:
+            text: "select sub..r' for 1);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select sub..ar' for 1)"
@@ -6471,6 +7041,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select sub..r', 1, 4);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select sub..ar', 1, 4)"
@@ -6512,6 +7086,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 8
+          description:
+            text: "select sub..obar', 1);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select sub..oobar', 1)"
@@ -6551,6 +7129,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 8
+          description:
+            text: "select pos..'foobar');"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select pos.. 'foobar')"
@@ -6592,6 +7174,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "SELECT ove..' from 3);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT ove..r' from 3)"
@@ -6636,6 +7222,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "SELECT * F..series(1);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F.._series(1)"
@@ -6697,6 +7287,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 14
+          description:
+            text: "SELECT * F..RDINALITY;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..ORDINALITY"
@@ -6758,6 +7352,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 23
+          description:
+            text: "SELECT * F..eries(2));"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..series(2))"
@@ -6849,6 +7447,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 33
+          description:
+            text: "SELECT * F..integer));"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F.. integer))"
@@ -6978,6 +7580,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 39
+          description:
+            text: "SELECT * F..        );"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..         )"
@@ -7127,6 +7733,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "SELECT * F.. SAMPLE 5;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..G SAMPLE 5"
@@ -7177,6 +7787,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "SELECT * F..AMPLE 10%;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..SAMPLE 10%"
@@ -7227,6 +7841,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 12
+          description:
+            text: "SELECT * F..ernoulli);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..bernoulli)"
@@ -7280,6 +7898,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 13
+          description:
+            text: "SELECT * F..BLE (100);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..ABLE (100)"
@@ -7336,6 +7958,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 13
+          description:
+            text: "SELECT * F..tem, 377);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..stem, 377)"
@@ -7392,6 +8018,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 26
+          description:
+            text: "SELECT * F...i=tbl2.i;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..l.i=tbl2.i"
@@ -7487,6 +8117,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 26
+          description:
+            text: "SELECT * F..VOIR(20%);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..RVOIR(20%)"
@@ -7582,6 +8216,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 24
+          description:
+            text: "SELECT * F..b ON c = d"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..b ON c = d"
@@ -7674,6 +8312,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 24
+          description:
+            text: "SELECT * F..b ON c = d"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..b ON c = d"
@@ -7766,6 +8408,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 15
+          description:
+            text: "SELECT * F..OSS JOIN b"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..OSS JOIN b"
@@ -7829,6 +8475,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 15
+          description:
+            text: "SELECT * F..RAL JOIN b"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..RAL JOIN b"
@@ -7892,6 +8542,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 24
+          description:
+            text: "SELECT * F..b ON c = d"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..b ON c = d"
@@ -7984,6 +8638,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 24
+          description:
+            text: "SELECT * F..ON foo = d"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..ON foo = d"
@@ -8076,6 +8734,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 24
+          description:
+            text: "SELECT * F..b ON c = d"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..b ON c = d"
@@ -8168,6 +8830,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 24
+          description:
+            text: "SELECT * F..b ON c = d"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..b ON c = d"
@@ -8260,6 +8926,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 18
+          description:
+            text: "SELECT * F..ING (c, d)"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..ING (c, d)"
@@ -8331,6 +9001,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 25
+          description:
+            text: "SELECT * F.. col1 = 5;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..E col1 = 5"
@@ -8427,6 +9101,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 25
+          description:
+            text: "SELECT * F.. col1 = 5;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..E col1 = 5"
@@ -8523,6 +9201,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 25
+          description:
+            text: "SELECT * F.. col1 = 5;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..E col1 = 5"
@@ -8619,6 +9301,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 25
+          description:
+            text: "SELECT * F.. col1 = 5;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..E col1 = 5"
@@ -8715,6 +9401,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 25
+          description:
+            text: "SELECT * F.. col1 = 5;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..E col1 = 5"
@@ -8811,6 +9501,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 28
+          description:
+            text: "SELECT * F.. col1 = 5;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..E col1 = 5"
@@ -8916,6 +9610,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 29
+          description:
+            text: "SELECT * F.. col1 = 5;"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..E col1 = 5"
@@ -9024,6 +9722,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "SELECT * F..o LIMIT 42"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..o LIMIT 42"
@@ -9067,6 +9769,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "SELECT * F.. OFFSET 21"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F.. OFFSET 21"
@@ -9113,6 +9819,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "SELECT * F.. LIMIT ALL"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F.. LIMIT ALL"
@@ -9156,6 +9866,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "SELECT * F.. OFFSET 21"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F.. OFFSET 21"
@@ -9202,6 +9916,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "SELECT * F.. ROWS ONLY"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F.. ROWS ONLY"
@@ -9245,6 +9963,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "SELECT * F..1 ROW ONLY"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..1 ROW ONLY"
@@ -9288,6 +10010,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "SELECT * F..1 ROW ONLY"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..1 ROW ONLY"
@@ -9331,6 +10057,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "SELECT * F..IT ALL, 21"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..IT ALL, 21"
@@ -9377,6 +10107,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 24
+          description:
+            text: "select v i.. integer);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select v i..a integer)"

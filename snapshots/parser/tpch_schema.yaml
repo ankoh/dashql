@@ -99,6 +99,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 87
+          description:
+            text: "create tab..artkey)\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..partkey)\n)"
@@ -389,6 +393,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 87
           ast-size: 69
+          description:
+            text: "create tab..uppkey)\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..suppkey)\n)"
@@ -619,6 +627,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 156
           ast-size: 50
+          description:
+            text: "create tab..uppkey)\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..suppkey)\n)"
@@ -784,6 +796,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 206
           ast-size: 78
+          description:
+            text: "create tab..ustkey)\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..custkey)\n)"
@@ -1044,6 +1060,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 284
           ast-size: 84
+          description:
+            text: "create tab..derkey)\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..rderkey)\n)"
@@ -1324,6 +1344,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 368
           ast-size: 150
+          description:
+            text: "create tab..number)\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..enumber)\n)"
@@ -1818,6 +1842,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 518
           ast-size: 40
+          description:
+            text: "create tab..ionkey)\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..tionkey)\n)"
@@ -1953,6 +1981,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 558
           ast-size: 33
+          description:
+            text: "create tab..ionkey)\n);"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..gionkey)\n)"
@@ -2173,6 +2205,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 87
+          description:
+            text: "create tab..partkey));"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab.._partkey))"
@@ -2463,6 +2499,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 87
           ast-size: 69
+          description:
+            text: "create tab..suppkey));"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab.._suppkey))"
@@ -2693,6 +2733,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 156
           ast-size: 50
+          description:
+            text: "create tab..suppkey));"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab.._suppkey))"
@@ -2858,6 +2902,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 206
           ast-size: 78
+          description:
+            text: "create tab..custkey));"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab.._custkey))"
@@ -3118,6 +3166,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 284
           ast-size: 84
+          description:
+            text: "create tab..rderkey));"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..orderkey))"
@@ -3398,6 +3450,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 368
           ast-size: 150
+          description:
+            text: "create tab..enumber));"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..nenumber))"
@@ -3892,6 +3948,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 518
           ast-size: 40
+          description:
+            text: "create tab..tionkey));"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..ationkey))"
@@ -4027,6 +4087,10 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 558
           ast-size: 33
+          description:
+            text: "create tab..gionkey));"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..egionkey))"

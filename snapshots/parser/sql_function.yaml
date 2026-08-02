@@ -8,6 +8,10 @@ parser-snapshots:
         - type: CREATE_FUNCTION
           ast-begin: 0
           ast-size: 16
+          description:
+            text: "create fun..ns varchar"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE_FUNCTION
             text: "create fun..ns varchar"
@@ -76,6 +80,10 @@ parser-snapshots:
         - type: CREATE_FUNCTION
           ast-begin: 0
           ast-size: 5
+          description:
+            text: "create fun..eturns int"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE_FUNCTION
             text: "create fun..eturns int"
@@ -106,6 +114,10 @@ parser-snapshots:
         - type: CREATE_FUNCTION
           ast-begin: 0
           ast-size: 12
+          description:
+            text: "create fun..eturns any"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE_FUNCTION
             text: "create fun..eturns any"
@@ -161,6 +173,10 @@ parser-snapshots:
         - type: CREATE_FUNCTION
           ast-begin: 0
           ast-size: 12
+          description:
+            text: "create agg..ns varchar"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE_FUNCTION
             text: "create agg..ns varchar"
@@ -215,6 +231,10 @@ parser-snapshots:
         - type: CREATE_FUNCTION
           ast-begin: 0
           ast-size: 11
+          description:
+            text: "create fun..eturns int"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE_FUNCTION
             text: "create fun..eturns int"
@@ -264,6 +284,10 @@ parser-snapshots:
         - type: CREATE_FUNCTION
           ast-begin: 0
           ast-size: 19
+          description:
+            text: "create fun..eturns int"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_CREATE_FUNCTION
             text: "create fun..eturns int"

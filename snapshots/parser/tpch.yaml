@@ -28,6 +28,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 157
+          description:
+            text: "select\n   ..linestatus"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..linestatus"
@@ -616,6 +620,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 206
+          description:
+            text: "select\n   ..limit\n	100"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..limit\n	100"
@@ -1349,6 +1357,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 119
+          description:
+            text: "select\n   ..\nlimit\n	10"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..\nlimit\n	10"
@@ -1785,6 +1797,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 80
+          description:
+            text: "select\n   ..erpriority"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..erpriority"
@@ -2101,6 +2117,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 141
+          description:
+            text: "select\n   ..venue desc"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..venue desc"
@@ -2590,6 +2610,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 68
+          description:
+            text: "select\n   ..ntity < 24"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..ntity < 24"
@@ -2863,6 +2887,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 220
+          description:
+            text: "select\n   ..    l_year"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..    l_year"
@@ -3640,6 +3668,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 208
+          description:
+            text: "select\n   ..    o_year"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..    o_year"
@@ -4376,6 +4408,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 170
+          description:
+            text: "select\n   .._year desc"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   .._year desc"
@@ -4995,6 +5031,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 163
+          description:
+            text: "select\n   ..\nlimit\n	20"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..\nlimit\n	20"
@@ -5586,6 +5626,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 149
+          description:
+            text: "select\n   ..alue\" desc"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..alue\" desc"
@@ -6131,6 +6175,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 141
+          description:
+            text: "select\n   ..l_shipmode"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..l_shipmode"
@@ -6639,6 +6687,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 84
+          description:
+            text: "select\n   ..count desc"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..count desc"
@@ -6959,6 +7011,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 97
+          description:
+            text: "select\n   ..995-10-01'"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..995-10-01'"
@@ -7323,6 +7379,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 131
+          description:
+            text: "with reven..	s_suppkey"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "with reven..	s_suppkey"
@@ -7822,6 +7882,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 131
+          description:
+            text: "select\n   ..    p_size"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..    p_size"
@@ -8293,6 +8357,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 84
+          description:
+            text: "select\n   ..\n        )"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..\n        )"
@@ -8625,6 +8693,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 134
+          description:
+            text: "select\n   ..limit\n	100"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..limit\n	100"
@@ -9141,6 +9213,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 248
+          description:
+            text: "select\n   ..\n        )"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..\n        )"
@@ -9968,6 +10044,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 152
+          description:
+            text: "select\n   ..    s_name"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..    s_name"
@@ -10549,6 +10629,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 184
+          description:
+            text: "select\n   ..limit\n	100"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..limit\n	100"
@@ -11208,6 +11292,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 150
+          description:
+            text: "select\n   .. cntrycode"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select\n   .. cntrycode"

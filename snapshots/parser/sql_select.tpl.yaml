@@ -51,10 +51,12 @@ parser-snapshots:
   - name: comments_cstyle
     input: |
       /* foo */
+      select 1
   # Parse nested C-style comments
   - name: comments_cstyle_nested
     input: |
       /* foo /* bar */ */
+      select 1
   # Parse select list with multiple expressions
   - name: select_iconst_list
     input: |

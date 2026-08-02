@@ -8,6 +8,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
+          description:
+            text: "select * f..bname. foo"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select * f..bname. foo"
@@ -56,6 +60,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select * f..me.  where"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select * f..me.  where"
@@ -101,6 +109,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
+          description:
+            text: "select * f..m dbname."
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select * f..m dbname."
@@ -146,6 +158,10 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 18
+          description:
+            text: "select * f..here a = b"
+            description-begin: 0
+            description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
             text: "select * f..here a = b"

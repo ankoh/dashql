@@ -215,10 +215,130 @@ ParsedScript::ParsedScript(std::shared_ptr<ScannedScript> scan, parser::ParseCon
       scanned_script(scan),
       nodes(ctx.nodes.Flatten()),
       statements(std::move(ctx.statements)),
-      errors(std::move(ctx.errors)),
-      vis_spec_spans(std::move(ctx.vis_spec_spans)) {
+       errors(std::move(ctx.errors)),
+       vis_spec_spans(std::move(ctx.vis_spec_spans)) {
     assert(std::is_sorted(statements.begin(), statements.end(),
-                          [](auto& l, auto& r) { return l.nodes_begin < r.nodes_begin; }));
+                           [](auto& l, auto& r) { return l.nodes_begin < r.nodes_begin; }));
+}
+
+/// Return true when every byte in [begin, end) is SQL whitespace or a statement separator.
+/// Comments are checked separately because their text may contain arbitrary characters.
+static bool IsDescriptionGap(std::string_view text, size_t begin, size_t end) {
+    for (size_t i = begin; i < end; ++i) {
+        switch (text[i]) {
+            case ' ':
+            case '\t':
+            case '\n':
+            case '\r':
+            case '\f':
+            case ';':
+                break;
+            default:
+                return false;
+        }
+    }
+    return true;
+}
+
+/// Return the end of the statement source, including comments that trail its terminating semicolon
+/// on the same line. Leading blocks for the next statement always begin after a line break.
+static size_t StatementSourceEnd(std::string_view text, size_t sql_end, size_t limit,
+                                 std::span<const TextSpan> comments) {
+    size_t end = sql_end;
+    for (auto& comment : comments) {
+        if (comment.offset() < end || comment.offset() >= limit) {
+            continue;
+        }
+        if (!IsDescriptionGap(text, end, comment.offset())) {
+            break;
+        }
+        auto gap = text.substr(end, comment.offset() - end);
+        if (gap.find_first_of("\n\r") != std::string_view::npos) {
+            break;
+        }
+        end = comment.offset() + comment.length();
+    }
+    return end;
+}
+
+/// True when the only source between spans is a permitted description gap. A leading comment must start
+/// on a fresh line when it follows prior SQL, so `select 1; -- trailing` never becomes the next
+/// statement's description.
+static bool IsLeadingDescriptionCommentGap(std::string_view text, size_t previous_end, const TextSpan& comment) {
+    if (!IsDescriptionGap(text, previous_end, comment.offset())) {
+        return false;
+    }
+    if (previous_end == 0 || comment.offset() == 0) {
+        return true;
+    }
+    return text.substr(previous_end, comment.offset() - previous_end).find_first_of("\n\r") != std::string_view::npos;
+}
+
+std::vector<ParsedScript::StatementDescription> ParsedScript::AssociateDescriptions() const {
+    auto input = scanned_script->GetInput();
+    auto& comments = scanned_script->comments;
+    std::vector<StatementDescription> metadata;
+    metadata.reserve(statements.size());
+
+    // AST root spans cover SQL tokens, but intentionally exclude statement separators and comments.
+    // Extend each root to its first following semicolon before the next statement's root.
+    for (size_t i = 0; i < statements.size(); ++i) {
+        auto& statement = statements[i];
+        auto root_span = scanned_script->ResolveTextSpan(nodes[statement.root].symbol_span());
+        size_t end = root_span.offset() + root_span.length();
+        size_t next_begin = input.size();
+        if (i + 1 < statements.size()) {
+            next_begin = scanned_script->ResolveTextSpan(nodes[statements[i + 1].root].symbol_span()).offset();
+        }
+        for (size_t cursor = end; cursor < next_begin; ++cursor) {
+            auto comment = std::find_if(comments.begin(), comments.end(), [cursor](const TextSpan& span) {
+                return span.offset() <= cursor && cursor < span.offset() + span.length();
+            });
+            if (comment != comments.end()) {
+                cursor = comment->offset() + comment->length() - 1;
+                continue;
+            }
+            if (input[cursor] == ';') {
+                end = cursor + 1;
+                break;
+            }
+        }
+        end = StatementSourceEnd(input, end, next_begin, comments);
+        metadata.push_back({
+            .statement_span = TextSpan(root_span.offset(), static_cast<uint32_t>(end - root_span.offset())),
+        });
+    }
+
+    size_t comment_cursor = 0;
+    size_t previous_end = 0;
+    for (size_t i = 0; i < statements.size(); ++i) {
+        auto& statement_metadata = metadata[i];
+        while (comment_cursor < comments.size() && comments[comment_cursor].offset() < previous_end) {
+            ++comment_cursor;
+        }
+        size_t begin = comment_cursor;
+        size_t end = begin;
+        size_t cursor = previous_end;
+        while (end < comments.size() && comments[end].offset() < statement_metadata.statement_span.offset()) {
+            auto& comment = comments[end];
+            bool first = end == begin;
+            bool allowed = first
+                ? IsLeadingDescriptionCommentGap(input, cursor, comment)
+                : IsDescriptionGap(input, cursor, comment.offset());
+            if (!allowed) {
+                begin = end + 1;
+            }
+            cursor = comment.offset() + comment.length();
+            ++end;
+        }
+        if (begin < end && IsDescriptionGap(input, cursor, statement_metadata.statement_span.offset())) {
+            statement_metadata.description_begin = static_cast<uint32_t>(begin);
+            statement_metadata.description_count = static_cast<uint32_t>(end - begin);
+        }
+        previous_end = statement_metadata.statement_span.offset() + statement_metadata.statement_span.length();
+        comment_cursor = end;
+    }
+    return metadata;
 }
 
 /// Resolve an ast node
@@ -291,8 +411,14 @@ flatbuffers::Offset<buffers::parser::ParsedScript> ParsedScript::Pack(flatbuffer
     out.external_id = external_id;
     out.nodes = nodes;
     out.statements.reserve(statements.size());
-    for (auto& stmt : statements) {
-        out.statements.push_back(stmt.Pack());
+    auto descriptions = AssociateDescriptions();
+    for (size_t i = 0; i < statements.size(); ++i) {
+        auto statement = statements[i].Pack();
+        auto& metadata = descriptions[i];
+        statement->statement_span = std::make_unique<buffers::parser::TextSpan>(metadata.statement_span);
+        statement->description_begin = metadata.description_begin;
+        statement->description_count = metadata.description_count;
+        out.statements.push_back(std::move(statement));
     }
     // Pack scanner errors
     out.scanner_errors.reserve(scanned_script->errors.size());

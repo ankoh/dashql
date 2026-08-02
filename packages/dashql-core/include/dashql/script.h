@@ -162,6 +162,14 @@ class ParsedScript {
         std::unique_ptr<buffers::parser::StatementT> Pack();
     };
 
+    /// Source-level description metadata corresponding one-to-one with `statements`. Kept outside
+    /// `Statement` so the generated parser's embedded ParseContext layout stays stable.
+    struct StatementDescription {
+        TextSpan statement_span;
+        uint32_t description_begin = 0;
+        uint32_t description_count = 0;
+    };
+
     /// The origin id
     const CatalogEntryID external_id;
     /// The scanned script
@@ -178,6 +186,9 @@ class ParsedScript {
    public:
     /// Constructor
     ParsedScript(std::shared_ptr<ScannedScript> scan, parser::ParseContext&& context);
+
+    /// Derive source spans and contiguous description comment blocks after parsing.
+    std::vector<StatementDescription> AssociateDescriptions() const;
 
     /// Get the nodes
     auto& GetNodes() const { return nodes; }
