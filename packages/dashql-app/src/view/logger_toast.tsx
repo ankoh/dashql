@@ -24,6 +24,10 @@ interface ToastProps {
     onDismiss: (id: number) => void;
 }
 
+export function shouldShowLoggerToast(record: LogRecord): boolean {
+    return record.level === LogLevel.Error;
+}
+
 function Toast({ item, onDismiss }: ToastProps) {
     const CloseIcon = SymbolIcon("x_16");
     const ErrorIcon = SymbolIcon("alert_fill_16");
@@ -91,7 +95,7 @@ export function LoggerToast() {
 
                 // Errors require user attention. Warnings remain available in the logs without
                 // interrupting the user's current workflow.
-                if (record.level !== LogLevel.Error) {
+                if (!shouldShowLoggerToast(record)) {
                     continue;
                 }
 

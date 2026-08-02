@@ -62,7 +62,7 @@ fn connect_endpoint(
             .connect()
             .await
             .map_err(|e| {
-                log::error!("Failed creating channel: {:?}", e);
+                log::warn!("Failed creating channel: {:?}", e);
                 Status::GrpcEndpointConnectFailed{ message: e.to_string() }
             })
     }
@@ -289,7 +289,7 @@ impl GrpcProxy {
         prepare_metadata(request.metadata_mut(), headers);
         let mut response = client.call_unary(request, path).await
             .map_err(|status| {
-                log::error!("Grpc call failed: {:?}", status);
+                log::warn!("Grpc call failed: {:?}", status);
                 Status::GrpcCallFailed { status }
             })?;
         let metadata = std::mem::take(response.metadata_mut());
@@ -318,7 +318,7 @@ impl GrpcProxy {
 
         let mut response = client.call_server_streaming(request, path).await
             .map_err(|status| {
-                log::error!("Grpc call failed: {:?}", status);
+                log::warn!("Grpc call failed: {:?}", status);
                 Status::GrpcCallFailed { status }
             })?;
 

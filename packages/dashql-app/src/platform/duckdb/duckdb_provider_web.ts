@@ -52,7 +52,6 @@ export async function setupWebDuckDB(context: string, logger: Logger): Promise<D
             "error": stringifyError(e),
             "duration": Math.floor(initEnd - initStart).toString()
         }, "webdb");
-        console.error(e);
         throw e;
     }
 }

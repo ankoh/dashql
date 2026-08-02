@@ -90,7 +90,7 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
             // A failed grant means subsequent native reads/writes for this directory will fail with
             // a permission error. Log it, but don't poison the whole restore - other sessions are
             // independent. We deliberately don't mark the scope as granted so a later access retries.
-            this.logger.error('failed to grant native fs scope', { dir, error: String(e?.message ?? e) }, LOG_CTX);
+            this.logger.warn('failed to grant native fs scope', { dir, error: String(e?.message ?? e) }, LOG_CTX);
         }
     }
 

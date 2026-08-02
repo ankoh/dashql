@@ -137,7 +137,7 @@ export abstract class PlatformEventListener {
     /// Subscribe navigation events
     public subscribeSetupEvents(handler: (data: SetupEventVariant) => void): void {
         if (this.setupSubscriber) {
-            this.logger.error("Tried to register more than one notebook setup subscriber", {}, LOG_CTX);
+            this.logger.warn("Tried to register more than one notebook setup subscriber", {}, LOG_CTX);
             return;
         }
         this.logger.info("Subscribing to notebook setup events", {}, LOG_CTX);
@@ -154,7 +154,7 @@ export abstract class PlatformEventListener {
     /// Unsubscribe from notebook setup events
     public unsubscribeSetupEvents(handler: (data: SetupEventVariant) => void): void {
         if (this.setupSubscriber != handler) {
-            this.logger.error("Tried to unregister a notebook setup subscriber that is not registered", {}, LOG_CTX);
+            this.logger.warn("Tried to unregister a notebook setup subscriber that is not registered", {}, LOG_CTX);
         } else {
             this.setupSubscriber = null;
         }

@@ -22,7 +22,6 @@ export async function setupNativeDuckDB(context: string, logger: Logger): Promis
             "error": stringifyError(e),
             "duration": Math.floor(initEnd - initStart).toString()
         }, "webdb");
-        console.error(e);
         throw e;
     }
 }

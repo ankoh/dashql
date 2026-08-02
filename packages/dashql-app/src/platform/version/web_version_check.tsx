@@ -127,7 +127,7 @@ export async function loadReleaseManifest(channel: ReleaseChannel, url: URL, log
         return manifest;
     } catch (e: any) {
         const end = performance.now();
-        traced.error(`Failed to fetch release manifest`, { "channel": channel, "duration": Math.floor(end - start).toString(), "error": stringifyError(e) }, LOG_CTX);
+        traced.warn(`Failed to fetch release manifest`, { "channel": channel, "duration": Math.floor(end - start).toString(), "error": stringifyError(e) }, LOG_CTX);
         throw e;
     }
 }

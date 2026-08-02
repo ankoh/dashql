@@ -92,14 +92,14 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
     const commandDispatch = React.useCallback(
         async (command: NotebookCommandType) => {
             if (notebook == null) {
-                logger.error("Notebook is null", {});
+                logger.warn("Notebook is null", {});
                 return;
             }
             switch (command) {
                 // Execute the query script in the current notebook
                 case NotebookCommandType.ExecuteEditorQuery:
                     if (connection!.connectionHealth != ConnectionHealth.ONLINE) {
-                        logger.error("Cannot execute query command with an unhealthy connection", {
+                        logger.warn("Cannot execute query command with an unhealthy connection", {
                             session: route.sessionId,
                             status: printConnectionHealth(connection?.connectionHealth ?? ConnectionHealth.NOT_STARTED)
                         }, LOG_CTX);
@@ -132,7 +132,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                     break;
                 case NotebookCommandType.RefreshCatalog:
                     if (connection?.connectionHealth != ConnectionHealth.ONLINE) {
-                        logger.error("Cannot refresh the catalog of unhealthy connection", {}, LOG_CTX);
+                        logger.warn("Cannot refresh the catalog of unhealthy connection", {}, LOG_CTX);
                     } else {
                         refreshCatalog(connection.sessionId, true);
                     }

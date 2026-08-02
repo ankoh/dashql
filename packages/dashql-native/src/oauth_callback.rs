@@ -311,7 +311,7 @@ impl OAuthCallbackServer {
                                         .serve_connection(io, service)
                                         .await
                                     {
-                                        log::error!("Failed serving OAuth callback connection: {}", e);
+                                        log::warn!("Failed serving OAuth callback connection: {}", e);
                                     }
                                 });
                             }
@@ -370,4 +370,3 @@ pub async fn start_oauth_callback_server(app_handle: AppHandle) -> Result<(), St
         }
     }
 }
-

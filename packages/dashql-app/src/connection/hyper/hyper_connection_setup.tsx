@@ -81,7 +81,7 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
                 },
             });
         } else if (error instanceof Error) {
-            logger.error("Setup failed", { "error": error?.message }, LOG_CTX);
+            logger.warn("Setup failed", { "error": error?.message }, LOG_CTX);
             updateState({
                 type: HYPER_CHANNEL_SETUP_FAILED,
                 value: {

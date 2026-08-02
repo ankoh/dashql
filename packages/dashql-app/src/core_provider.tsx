@@ -127,7 +127,6 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
                     "error": stringifyError(e),
                     "duration": Math.floor(initEnd - initStart).toString()
                 }, "core");
-                console.error(e);
                 throw e;
             }
         };

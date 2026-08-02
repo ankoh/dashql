@@ -195,7 +195,7 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
         const responseBody = await response.json();
         if (responseBody.error) {
             const errorDesc = responseBody.error_description;
-            this.logger.error(errorDesc, {}, LOG_CTX);
+            this.logger.warn(errorDesc, {}, LOG_CTX);
             throw new Error(errorDesc);
         } else {
             const parsed = parseCoreAccessToken(responseBody);

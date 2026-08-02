@@ -95,7 +95,7 @@ async function checkChannelUpdates(channel: ReleaseChannel, setInstallationStatu
     } catch (e: any) {
         const err = e instanceof Error ? e : new Error(stringifyError(e));
         const end = performance.now();
-        logger.error(`Checking for channel updates failed`, { "channel": channel, "duration": Math.floor(end - start).toString(), "error": stringifyError(e) }, "version_check");
+        logger.warn(`Checking for channel updates failed`, { "channel": channel, "duration": Math.floor(end - start).toString(), "error": stringifyError(e) }, "version_check");
         throw err;
     }
 }
@@ -189,4 +189,3 @@ export const NativeVersionCheck: React.FC<Props> = (props: Props) => {
         </VERSION_CHECK_CTX.Provider>
     );
 };
-

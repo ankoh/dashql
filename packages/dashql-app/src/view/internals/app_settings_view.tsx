@@ -87,7 +87,7 @@ export function AppSettings(props: { onClose: () => void; }) {
 
     const clearStorage = React.useCallback(async () => {
         if (!storageReader.backend.clearAllStorage) {
-            logger.error("clearAllStorage not supported by storage backend", {}, "app_settings");
+            logger.warn("clearAllStorage not supported by storage backend", {}, "app_settings");
             return;
         }
 
@@ -107,7 +107,7 @@ export function AppSettings(props: { onClose: () => void; }) {
             alert("Storage cleared successfully. The page will now reload.");
             window.location.reload();
         } catch (error) {
-            logger.error("Failed to clear storage", {
+            logger.warn("Failed to clear storage", {
                 error: error instanceof Error ? error.message : String(error)
             }, "app_settings");
             alert(`Failed to clear storage: ${error instanceof Error ? error.message : String(error)}`);

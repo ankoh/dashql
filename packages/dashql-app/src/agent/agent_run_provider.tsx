@@ -143,7 +143,7 @@ export const AgentRunProvider: React.FC<Props> = (props: Props) => {
 
     const run = React.useCallback<StartAgentRun>((args) => {
         if (aiClient == null) {
-            logger.error('Cannot start agent run without an AI client', {}, LOG_CTX);
+            logger.warn('Cannot start agent run without an AI client', {}, LOG_CTX);
             return;
         }
         // One active run per session: abort any previous one.

@@ -90,7 +90,7 @@ export function QueryCacheView(props: { sessionId: string | null; onClose: () =>
             const files = await storageReader.backend.listQueryResultCache(sessionId);
             setEntries(sortEntries(files));
         } catch (e: any) {
-            logger.error('failed to list query result cache', { error: String(e?.message ?? e) }, LOG_CTX);
+            logger.warn('failed to list query result cache', { error: String(e?.message ?? e) }, LOG_CTX);
             setEntries([]);
         }
     }, [sessionId, storageReader, logger]);
@@ -106,7 +106,7 @@ export function QueryCacheView(props: { sessionId: string | null; onClose: () =>
         try {
             await storageReader.backend.deleteQueryResultCache(sessionId, hashOf(name));
         } catch (e: any) {
-            logger.error('failed to delete query result cache entry', { error: String(e?.message ?? e) }, LOG_CTX);
+            logger.warn('failed to delete query result cache entry', { error: String(e?.message ?? e) }, LOG_CTX);
         }
         await refresh();
     }, [sessionId, storageReader, logger, refresh]);

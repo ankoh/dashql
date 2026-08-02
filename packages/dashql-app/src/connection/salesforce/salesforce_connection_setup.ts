@@ -319,7 +319,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
                 value: error,
             });
         } else if (error instanceof Error) {
-            logger.error("Failed OAuth flow", { "error": stringifyError(error) }, LOG_CTX);
+            logger.warn("Failed OAuth flow", { "error": stringifyError(error) }, LOG_CTX);
             modifyState({
                 type: SETUP_FAILED,
                 value: {

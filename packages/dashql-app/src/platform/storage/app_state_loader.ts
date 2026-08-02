@@ -426,7 +426,7 @@ async function restoreSession(
     } catch (notebookError) {
         const notebookDuration = performance.now() - notebookStartTime;
 
-        logger.error("Failed to restore notebook", {
+        logger.warn("Failed to restore notebook", {
             sessionId,
             durationMs: notebookDuration.toFixed(2),
             error: stringifyError(notebookError),
@@ -684,7 +684,7 @@ export async function restoreAppState(
                     continue;
                 }
 
-                logger.error("Failed to restore session", {
+                logger.warn("Failed to restore session", {
                     index: `${i + 1}/${sessions.length}`,
                     sessionPath: sessionEntry.path,
                     durationMs: sessionDuration.toFixed(2),

@@ -147,7 +147,7 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
                 value: error.message,
             });
         } else if (error instanceof Error) {
-            logger.error("Oauth flow failed", { "error": stringifyError(error) });
+            logger.warn("Oauth flow failed", { "error": stringifyError(error) });
             updateState({
                 type: SETUP_FAILED,
                 value: {

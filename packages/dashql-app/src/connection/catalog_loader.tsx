@@ -61,11 +61,11 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
         // Check if we know the session id.
         const conn = connMap.get(sessionId);
         if (!conn) {
-            traced.error("Failed to resolve connection", { "session": sessionId }, LOG_CTX);
+            traced.warn("Failed to resolve connection", { "session": sessionId }, LOG_CTX);
             throw new Error(`couldn't find a connection with session id ${sessionId}`);
         }
         if (!executor) {
-            traced.error("Query executor not configured", { "session": sessionId }, LOG_CTX);
+            traced.warn("Query executor not configured", { "session": sessionId }, LOG_CTX);
             throw new Error(`couldn't find trino executor`);
         }
 
@@ -173,14 +173,13 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
 
         } catch (e: any) {
             if (e?.name === 'AbortError') {
-                traced.error("Cancelled catalog update", { "session": sessionId, "error": e?.message ?? String(e) }, LOG_CTX);
+                traced.info("Cancelled catalog update", { "session": sessionId, "error": e?.message ?? String(e) }, LOG_CTX);
                 connDispatch(sessionId, {
                     type: CATALOG_UPDATE_CANCELLED,
                     value: [updateId, e],
                 });
             } else {
-                traced.error("Failed to update catalog", { "session": sessionId, "error": e?.message ?? String(e) }, LOG_CTX);
-                console.error(e);
+                traced.warn("Failed to update catalog", { "session": sessionId, "error": e?.message ?? String(e) }, LOG_CTX);
                 connDispatch(sessionId, {
                     type: CATALOG_UPDATE_FAILED,
                     value: [updateId, e],

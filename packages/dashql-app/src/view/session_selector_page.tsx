@@ -226,7 +226,7 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
         const backend = storageReader.backend;
         if (backend instanceof CompositeStorageBackend) {
             backend.reorderSessions(reordered).catch(e =>
-                logger.error('failed to persist session order', { error: String(e) }, 'session_selector')
+                logger.warn('failed to persist session order', { error: String(e) }, 'session_selector')
             );
             setOrderVersion(v => v + 1);
         }

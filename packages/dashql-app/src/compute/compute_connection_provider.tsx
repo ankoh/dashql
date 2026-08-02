@@ -25,7 +25,7 @@ export const ComputeConnectionProvider: React.FC<Props> = (props: Props) => {
                     setDuckdb(webdb);
                 }
             } catch (e: any) {
-                logger.error("Failed to create compute database", { error: stringifyError(e) }, "compute");
+                logger.warn("Failed to create compute database", { error: stringifyError(e) }, "compute");
             }
         };
         init();

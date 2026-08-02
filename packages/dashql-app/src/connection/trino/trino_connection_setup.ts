@@ -89,7 +89,7 @@ async function setupTrinoConnectionBasic(
                 value: error.message,
             });
         } else {
-            logger.error("Setup failed", { "message": error.message, "details": error.data }, LOG_CTX);
+            logger.warn("Setup failed", { "message": error.message, "details": error.data }, LOG_CTX);
             modifyState({
                 type: TRINO_CHANNEL_SETUP_FAILED,
                 value: error,
@@ -340,7 +340,7 @@ async function setupTrinoConnectionOAuth(
                 },
             });
         } else {
-            logger.error("Failed OAuth flow", { "error": stringifyError(error) }, LOG_CTX);
+            logger.warn("Failed OAuth flow", { "error": stringifyError(error) }, LOG_CTX);
             modifyState({
                 type: OAUTH_FAILED,
                 value: {

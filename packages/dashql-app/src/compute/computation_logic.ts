@@ -975,7 +975,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
                 "table": task.tableId.toString(),
                 "error": stringifyError(error),
             }, LOG_CTX);
-            logger.exception(exception);
+            logger.warn(exception.message, exception.keyValues, exception.target);
             throw exception;
         }
     }
@@ -1129,7 +1129,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
                 "columnName": task.columnEntry.value.inputFieldName,
                 "error": stringifyError(error),
             }, LOG_CTX);
-            logger.exception(exception);
+            logger.warn(exception.message, exception.keyValues, exception.target);
             throw exception;
         }
     }

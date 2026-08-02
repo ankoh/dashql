@@ -306,9 +306,9 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
 
         } catch (error: any) {
             if (error instanceof LoggableException) {
-                logger.exception(error);
+                logger.warn(error.message, error.keyValues, error.target);
             } else {
-                logger.error("Error while setting up trino connection", {
+                logger.warn("Error while setting up trino connection", {
                     authType: (pageState.newParams.auth?.authType ?? 0).toString(),
                     error: stringifyError(error)
                 }, LOG_CTX);
@@ -578,4 +578,3 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
         </ div>
     );
 };
-
