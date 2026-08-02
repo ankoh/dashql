@@ -332,7 +332,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         value: [queryId, table!, metadata, resultStream!.getMetrics()],
                     });
                 } else {
-                    traced.error("Query returned no results", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
+                    traced.warn("Query returned no results", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
                 }
             }
         } catch (e: any) {
@@ -347,13 +347,13 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 });
             } else {
                 if (e instanceof LoggableException) {
-                    traced.exception(e);
+                    traced.warn(e.message, e.keyValues, e.target);
                 } else {
-                    traced.error("Query failed with unknown error", {
+                    traced.warn("Query failed with unknown error", {
                         query: queryId.toString(),
                         session: sessionId,
                         raw: stringifyError(e),
-                    });
+                    }, LOG_CTX);
                 }
                 connDispatch(sessionId, {
                     type: QUERY_FAILED,
@@ -379,7 +379,11 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     value: [queryId],
                 });
             } catch (e: any) {
-                console.error(e);
+                traced.warn("Query result processing failed", {
+                    query: queryId.toString(),
+                    session: sessionId,
+                    error: stringifyError(e),
+                }, LOG_CTX);
                 connDispatch(sessionId, {
                     type: QUERY_FAILED,
                     value: [queryId, e, null],

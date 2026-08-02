@@ -194,8 +194,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
 
             // Surface any sessions that were refused a load in the selector. This is just an
             // aggregate count for the log — each refused session already logs a WARN with its path
-            // and reason (which raises a UI popup), so a second WARN here would only double up. Keep
-            // it at INFO.
+            // and reason, so a second WARN here would only duplicate the diagnostic. Keep it at INFO.
             if (loaded.invalidSessions.size > 0) {
                 traced.info("Some sessions were refused a load", {
                     count: loaded.invalidSessions.size.toString()

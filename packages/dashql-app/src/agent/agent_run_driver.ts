@@ -197,10 +197,9 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
                         candidateKV, LOG_CTX);
                 } else {
                     const count = action.value.errors.length;
-                    // INFO, not WARN: a failed attempt is an expected step of the repair loop (the
-                    // run may still succeed on a later attempt). WARN surfaces as an overlay toast in
-                    // the app, which is too noisy for a normal mid-loop retry — the terminal outcome
-                    // (AGENT_FAILED) is what warrants attention, and it logs at error level.
+                    // INFO, not WARN: a failed attempt is an expected step of the repair loop and the
+                    // run may still succeed on a later attempt. Reserve WARN for the terminal expected
+                    // failure so logs distinguish retries from outcomes.
                     tracedLog.info(
                         `Attempt ${action.value.attempt} failed verification with ${count} ${count === 1 ? 'error' : 'errors'}: ${summarizeErrors(action.value.errors)}`,
                         { ...candidateKV, errors: action.value.errors.join('; ') }, LOG_CTX);
@@ -211,8 +210,8 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
                 tracedLog.info(action.value.message, {}, LOG_CTX);
                 break;
             case AGENT_FAILED:
-                // A run that simply exhausted its attempts is an expected outcome of a fuzzy loop —
-                // WARN, not ERROR (ERROR pops up as an overlay toast in the app, reserved for real
+                // A run that simply exhausted its attempts is an expected outcome of a fuzzy loop.
+                // WARN does not pop up; ERROR is reserved for real
                 // failures like a thrown exception).
                 if (action.value.expected) {
                     tracedLog.warn(action.value.error, {}, LOG_CTX);

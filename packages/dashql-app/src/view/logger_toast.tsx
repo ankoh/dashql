@@ -25,24 +25,19 @@ interface ToastProps {
 }
 
 function Toast({ item, onDismiss }: ToastProps) {
-    const isWarning = item.record.level === LogLevel.Warn;
-    const isError = item.record.level === LogLevel.Error;
     const CloseIcon = SymbolIcon("x_16");
     const ErrorIcon = SymbolIcon("alert_fill_16");
-    const WarningIcon = SymbolIcon("alert_fill_16");
 
     return (
         <div
-            className={classNames(styles.toast, {
-                [styles.toast_warning]: isWarning,
-                [styles.toast_error]: isError,
+            className={classNames(styles.toast, styles.toast_error, {
                 [styles.toast_exiting]: item.exiting,
             })}
             role="alert"
             aria-live="assertive"
         >
             <div className={styles.toast_icon}>
-                {isError ? <ErrorIcon /> : <WarningIcon />}
+                <ErrorIcon />
             </div>
             <div className={styles.toast_content}>
                 <div className={styles.toast_message}>{item.record.message}</div>
@@ -94,8 +89,9 @@ export function LoggerToast() {
                 const record = buf.at(i);
                 if (!record) continue;
 
-                // Only show warnings and errors
-                if (record.level !== LogLevel.Warn && record.level !== LogLevel.Error) {
+                // Errors require user attention. Warnings remain available in the logs without
+                // interrupting the user's current workflow.
+                if (record.level !== LogLevel.Error) {
                     continue;
                 }
 
@@ -138,4 +134,3 @@ export function LoggerToast() {
         document.body
     );
 }
-
