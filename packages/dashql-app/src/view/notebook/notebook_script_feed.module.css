@@ -161,6 +161,9 @@
     max-width: var(--notebook_list_entry_max_width);
     overflow: hidden;
     display: grid;
+    /* SQL previews can contain unbreakable tokens. Keep their intrinsic width from enlarging the
+       grid column (and therefore every row, including the action bar) beyond the card. */
+    grid-template-columns: minmax(0, 1fr);
     /* Row 1 is the fixed-height action bar; every following row (optional status bar, body, optional
        footer) auto-sizes to its content. The card itself is content-height, so an explicit body
        track is unnecessary and would misalign as the optional rows appear/disappear. */
@@ -247,6 +250,7 @@
 .feed_body {
     position: relative;
     width: 100%;
+    min-width: 0;
     cursor: text;
     background-color:var(--notebook_feed_preview_background);
 }
@@ -263,6 +267,7 @@
 .script_preview_editor {
     padding: 0;
     width: 100%;
+    min-width: 0;
     overflow-y: auto;
     overflow-x: hidden;
 }
@@ -281,6 +286,13 @@
     box-sizing: border-box;
     min-width: 49px;
     padding: 0 4px;
+}
+
+/* Keep both overlay buttons inside short one-line scripts. The content-height minimum is expressed
+   in lines so pending rewrites always reserve two editor rows without making normal previews taller. */
+.feed_body[data-pending-diff] .script_preview_editor :global(.cm-content),
+.feed_body[data-pending-diff] .script_preview_editor :global(.cm-gutters) {
+    min-height: 2.8em;
 }
 
 .diff_editor.diff_editor {

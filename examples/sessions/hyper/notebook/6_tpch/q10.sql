@@ -1,3 +1,4 @@
+-- Return the top 20 customers by revenue from October 1993 to December 1993.
 select
     c_custkey,
     c_name,

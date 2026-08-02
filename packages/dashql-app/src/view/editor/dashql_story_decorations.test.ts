@@ -41,6 +41,19 @@ describe('DashQL story decorations', () => {
         parsed.destroy();
     });
 
+    it('stays expanded until a documented story model is supplied', () => {
+        const parsed = parseDescriptions('-- summary\nselect 1;');
+        const { extensions, field } = createStoryDecorations({ activation: 'toggle' });
+        let state = EditorState.create({ doc: '-- summary\nselect 1;', extensions });
+
+        state = state.update({ effects: DashQLStoryUpdateEffect.of(null) }).state;
+        expect(state.field(field).atomicRanges.size).toBe(0);
+
+        state = state.update({ effects: DashQLStoryUpdateEffect.of(parsed) }).state;
+        expect(state.field(field).atomicRanges.size).toBeGreaterThan(0);
+        parsed.destroy();
+    });
+
     it('renders a named native control for overview activation', () => {
         const onActivate = vi.fn();
         const parsed = parseDescriptions('-- summary\nselect 1;');

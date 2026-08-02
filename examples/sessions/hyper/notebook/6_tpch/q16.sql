@@ -1,3 +1,5 @@
+-- Get the count of distinct suppliers for each brand, type, and size of parts,
+-- excluding those from suppliers with complaints.
 select
   p_brand,
   p_type,

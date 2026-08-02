@@ -1,3 +1,4 @@
+-- Retrieve the top 100 customers by total order value in descending order.
 select
   c_name,
   c_custkey,

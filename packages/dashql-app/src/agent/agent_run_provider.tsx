@@ -26,6 +26,8 @@ export interface StartAgentRunArgs {
     contextScriptKey: number | null;
     /// A manual intent override, or null to auto-classify.
     intentOverride: AgentIntent | null;
+    /// Optional attempt cap.
+    maxAttempts?: number;
     /// The surface the run acts on (built by the caller from its own state — e.g. a notebook).
     host: AgentHost;
 }
@@ -159,6 +161,7 @@ export const AgentRunProvider: React.FC<Props> = (props: Props) => {
                 prompt: args.prompt,
                 contextScriptKey: args.contextScriptKey,
                 intentOverride: args.intentOverride,
+                maxAttempts: args.maxAttempts,
             },
             {
                 aiClient,

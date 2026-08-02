@@ -1,3 +1,5 @@
+-- Retrieve the number of waits for each supplier in Saudi Arabia that has
+-- experienced a delay in delivery.
 select
   s_name,
   count(*) as numwait

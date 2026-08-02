@@ -1,3 +1,4 @@
+-- Return the total profit for each nation and year where products are green.
 select
     nation,
     o_year,

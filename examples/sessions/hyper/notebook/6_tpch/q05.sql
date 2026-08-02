@@ -1,3 +1,5 @@
+-- Calculate the total revenue for each Asian nation from January 1994 to
+-- December 1994.
 select
     n_name,
     sum(l_extendedprice * (1 - l_discount)) as revenue

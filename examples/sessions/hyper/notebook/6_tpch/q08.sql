@@ -1,3 +1,4 @@
+-- Calculate the market share of Brazil for each year.
 select
     o_year,
     sum(

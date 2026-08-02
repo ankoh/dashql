@@ -25,17 +25,20 @@ export function resolveAIClientSettings(settings: AIProviderSettings | undefined
     };
 }
 
+/// A provider block opts into AI; omitted fields use the defaults above. Keep an explicitly blank
+/// endpoint as disabled so clearing the field in Settings remains a valid way to turn AI off.
+export function isAIProviderConfigured(settings: AIProviderSettings | undefined): boolean {
+    return settings != null && (settings.endpointUrl ?? DEFAULT_AI_ENDPOINT_URL).trim().length > 0;
+}
+
 export const AIClientProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const httpClient = useHttpClient();
     const config = useAppConfig();
-    // Only expose a client once the user has actually configured an AI provider. The app ships
-    // without an `aiProvider` block, so a missing endpoint means "not configured" — in that case
-    // useAIClient() stays null, which is how AI-mode features (Switch Mode, the agent loop) gate
-    // themselves. We key off the raw stored endpoint rather than the resolved settings so the
-    // localhost default doesn't make AI look configured when it isn't.
+    // Only expose a client once the user has an `aiProvider` block. Individual fields are optional
+    // and resolve to defaults, so a provider that only overrides the model or headers is configured.
     const stored = config?.settings?.aiProvider;
-    const configured = (stored?.endpointUrl ?? '').trim().length > 0;
+    const configured = isAIProviderConfigured(stored);
     const settings = resolveAIClientSettings(stored);
 
     const client = React.useMemo<AIClient | null>(() => {

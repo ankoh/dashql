@@ -1,3 +1,5 @@
+-- Compute the top 10 highest revenue orders for customers in the 'BUILDING'
+-- segment placed after March 15th, 1995.
 select
     l_orderkey,
     sum(l_extendedprice * (1 - l_discount)) as revenue,

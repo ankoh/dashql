@@ -105,7 +105,7 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onClick 
                 type="button"
                 className={styles.status_bar_clickable}
                 onClick={onClick}
-                aria-label="Show log"
+                aria-label={`Show log: ${status.message}`}
             >
                 {indicator}
                 {message}

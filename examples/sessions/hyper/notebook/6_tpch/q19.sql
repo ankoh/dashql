@@ -1,3 +1,5 @@
+-- Compute total revenue for orders with specific brand, container, quantity,
+-- size, and shipping conditions.
 select
   sum(l_extendedprice * (1 - l_discount)) as revenue
 from

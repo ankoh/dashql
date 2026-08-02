@@ -1,3 +1,5 @@
+-- Retrieve top 100 European suppliers of brass parts with the lowest supply
+-- cost.
 select
     s_acctbal,
     s_name,

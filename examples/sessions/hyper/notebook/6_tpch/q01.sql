@@ -1,3 +1,5 @@
+-- Show the total sales and average order quantities for each return flag and
+-- order status.
 select
     l_returnflag,
     l_linestatus,

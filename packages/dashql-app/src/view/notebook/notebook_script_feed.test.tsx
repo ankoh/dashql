@@ -28,10 +28,13 @@ const mockState = vi.hoisted(() => ({
     }>,
     queryStates: new Map<number, { traceId: number; status: number }>(),
     agentRuns: new Map<number, { traceId: number; phase?: number; log?: Array<{ message: string }> }>(),
+    latestAgentRunId: null as number | null,
     // Drives the mocked size observer. Wide enough by default that the overview toggle is offered
     // (the feed only shows it at >= 1000px of board width); a test can narrow it to hide the toggle.
     observedWidth: 1200,
+    startAgentRun: vi.fn(),
 }));
+vi.mock('../../platform/ai_client_provider.js', () => ({ useAIClient: () => ({}) }));
 vi.mock('react-window', async () => fakeReactWindowModule(await import('react'), mockState.scrollToRowMock));
 vi.mock('./script_editor.js', async () => fakeScriptEditorModule(await import('react'), mockState));
 vi.mock('./notebook_script_preview.js', async () => fakeScriptPreviewModule(await import('react')));
@@ -86,8 +89,8 @@ vi.mock('../../agent/agent_run_provider.js', () => ({
         if (runId == null) return null;
         return mockState.agentRuns.get(runId) ?? null;
     },
-    useLatestAgentRunState: () => null,
-    useStartAgentRun: () => vi.fn(),
+    useLatestAgentRunState: () => mockState.latestAgentRunId == null ? null : mockState.agentRuns.get(mockState.latestAgentRunId) ?? null,
+    useStartAgentRun: () => mockState.startAgentRun,
     useCancelAgentRun: () => vi.fn(),
 }));
 vi.mock('../internals/trace_log_viewer.js', async () => {
@@ -245,7 +248,9 @@ describe('NotebookScriptFeed', () => {
         mockState.keyHandlers = [];
         mockState.queryStates.clear();
         mockState.agentRuns.clear();
+        mockState.latestAgentRunId = null;
         mockState.observedWidth = 1200;
+        mockState.startAgentRun.mockReset();
     });
 
     afterEach(() => {
@@ -322,6 +327,7 @@ describe('NotebookScriptFeed', () => {
         // render a preview; the only editor is the compose card.
         expect(container.querySelectorAll('[data-testid="script-preview"]').length).toBe(2);
         expect(container.querySelectorAll('[data-testid="script-editor"]').length).toBe(1);
+        expect(container.querySelectorAll('[data-pending-diff="true"]')).toHaveLength(1);
     });
 
     it('expands into details when a pending-diff card body is clicked', () => {
@@ -368,6 +374,48 @@ describe('NotebookScriptFeed', () => {
             type: DELETE_NOTEBOOK_ENTRY,
             value: '01-script.sql',
         });
+    });
+
+    it('starts description generation for the clicked entry', () => {
+        const notebook = createNotebookState();
+        const modifyNotebook = vi.fn();
+        renderFeed({ notebook, modifyNotebook, showDetails: vi.fn() });
+
+        const buttons = container.querySelectorAll('[aria-label="Generate statement descriptions"]');
+        expect(buttons.length).toBe(2);
+        expect((buttons[0] as HTMLButtonElement).disabled).toBe(false);
+        act(() => { (buttons[1] as HTMLButtonElement).click(); });
+
+        expect(mockState.startAgentRun).toHaveBeenCalledTimes(1);
+        expect(mockState.startAgentRun).toHaveBeenCalledWith(expect.objectContaining({
+            sessionId: notebook.sessionId,
+            contextScriptKey: 102,
+            intentOverride: 'describe',
+        }));
+    });
+
+    it('disables description generation while a pending rewrite is awaiting review', () => {
+        renderFeed({
+            notebook: withPendingDiff(createNotebookState(), 101, 'select 0'),
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+        });
+        const buttons = container.querySelectorAll('[aria-label="Generate statement descriptions"]');
+        expect((buttons[0] as HTMLButtonElement).disabled).toBe(true);
+        expect((buttons[1] as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    it('shows a stop control for a card agent run while the composer remains in SQL mode', () => {
+        const notebook = createNotebookState();
+        mockState.agentRuns.set(9, {
+            traceId: 300,
+            phase: 2 /* GENERATING */,
+            log: [{ message: 'Generating statement descriptions' }],
+        });
+        mockState.latestAgentRunId = 9;
+        notebook.scripts[101] = { ...notebook.scripts[101], latestAgentRunId: 9 };
+        renderFeed({ notebook, modifyNotebook: vi.fn(), showDetails: vi.fn() });
+        expect(container.querySelector('[aria-label="Stop agent run"]')).not.toBeNull();
     });
 
     it('dispatches PROMOTE_UNCOMMITTED_SCRIPT when Send is clicked', () => {
@@ -614,7 +662,7 @@ describe('NotebookScriptFeed', () => {
             showDetails: vi.fn(),
             scrollTarget: null,
         });
-        const statusBar = container.querySelector('[aria-label="Show log"]');
+        const statusBar = container.querySelector('[aria-label^="Show log"]');
         expect(statusBar).not.toBeNull();
         expect(statusBar!.textContent).toContain('Generating a SQL query from your request');
         // The staged-rewrite editor is not mounted for an active run — only the compose editor is.
@@ -633,7 +681,7 @@ describe('NotebookScriptFeed', () => {
             showDetails: vi.fn(),
             scrollTarget: null,
         });
-        const statusBar = container.querySelector('[aria-label="Show log"]');
+        const statusBar = container.querySelector('[aria-label^="Show log"]');
         expect(statusBar).not.toBeNull();
         expect(statusBar!.textContent).toContain('Executing query');
     });
@@ -650,7 +698,7 @@ describe('NotebookScriptFeed', () => {
             showDetails: vi.fn(),
             scrollTarget: null,
         });
-        expect(container.querySelector('[aria-label="Show log"]')).toBeNull();
+        expect(container.querySelector('[aria-label^="Show log"]')).toBeNull();
     });
 
     it('shows Accept/Reject on the body once a rewrite is staged', () => {
@@ -671,7 +719,7 @@ describe('NotebookScriptFeed', () => {
         expect(container.querySelector('[aria-label="Accept rewrite"]')).not.toBeNull();
         expect(container.querySelector('[aria-label="Reject rewrite"]')).not.toBeNull();
         // The staged rewrite doesn't feed the bar, so nothing surfaces it here.
-        expect(container.querySelector('[aria-label="Show log"]')).toBeNull();
+        expect(container.querySelector('[aria-label^="Show log"]')).toBeNull();
     });
 
     it('shows the query status bar when a re-execution runs over a staged diff', () => {
@@ -687,7 +735,7 @@ describe('NotebookScriptFeed', () => {
             scrollTarget: null,
         });
         // The bar is the clickable execution strip showing the running query...
-        const statusBar = container.querySelector('[aria-label="Show log"]');
+        const statusBar = container.querySelector('[aria-label^="Show log"]');
         expect(statusBar).not.toBeNull();
         expect(statusBar!.textContent).toContain('Executing query');
         // ...and Accept/Reject stay reachable on the body overlay throughout.

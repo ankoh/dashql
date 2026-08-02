@@ -48,11 +48,23 @@ class FakeHost implements AgentHost {
         this.contextIntents.push(intent);
         return this.contextText;
     }
+    descriptionContexts(): string[] {
+        return [
+            'Target statement 1 of 2\nTarget SQL:\nselect 1;\n\nOther statements (context only):\nStatement 1:\nselect 2;',
+            'Target statement 2 of 2\nTarget SQL:\nselect 2;\n\nOther statements (context only):\nStatement 1:\nselect 1;',
+        ];
+    }
     isEditingChart(): boolean {
         return this.editingChart;
     }
     transcodeVegaLite(rawSpecJson: string): string {
         return this.transcodeImpl(rawSpecJson);
+    }
+    applyDescriptions(descriptions: string[], _expectedSource: string): string {
+        return descriptions.map((description, index) => `-- ${description}\nselect ${index + 1};`).join('\n');
+    }
+    descriptionSource(): string {
+        return 'select 1; select 2;';
     }
     verify(candidateText: string): VerifyResult {
         return this.verifyImpl(candidateText);
@@ -159,6 +171,34 @@ describe('startAgentRun (fake host)', () => {
         // The host's context block reaches the generation prompt.
         expect(lastGenerationPrompt(ai)).toContain('FAKE-CONTEXT');
         expect(host.contextIntents).toEqual(['sql']);
+    });
+
+    it('generates one plain-text description per statement and applies a deterministic script candidate', async () => {
+        const host = new FakeHost();
+        const ai = new MockAIClient('sql', ['Returns the first value.', 'Returns the second value.']);
+        const { agent } = await drive(host, ai, { intentOverride: 'describe', maxAttempts: 1 });
+
+        expect(agent!.phase).toBe(AgentRunPhase.SUCCEEDED);
+        expect(ai.prompts).toHaveLength(2);
+        expect(ai.prompts[0]).toContain('Target statement 1 of 2');
+        expect(ai.prompts[0]).toContain('Other statements (context only)');
+        expect(ai.prompts[0]).toContain('Return only the description text');
+        expect(ai.prompts[0]).not.toContain('JSON');
+        expect(ai.prompts[1]).toContain('Target statement 2 of 2');
+        expect(host.committed).toEqual([{
+            intent: 'describe',
+            candidate: '-- Returns the first value.\nselect 1;\n-- Returns the second value.\nselect 2;',
+        }]);
+    });
+
+    it('fails a description run when a statement response is empty', async () => {
+        const host = new FakeHost();
+        const ai = new MockAIClient('sql', ['Retrieves the current timestamp.', '   ']);
+        const { agent } = await drive(host, ai, { intentOverride: 'describe', maxAttempts: 1 });
+
+        expect(agent!.phase).toBe(AgentRunPhase.FAILED);
+        expect(agent!.error).toContain('empty statement description');
+        expect(host.committed).toHaveLength(0);
     });
 
     it('classifies via the model when no intent override is given', async () => {

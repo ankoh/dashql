@@ -1,3 +1,5 @@
+-- Filter sales data by supplier and customer nations, year, and shipping date
+-- range.
 select
     supp_nation,
     cust_nation,

@@ -50,6 +50,9 @@ interface PreviewSnapshot {
     /// This is a *separate* buffer from `scriptData.pendingDiff` (whose offsets index the normal,
     /// unformatted text); the offsets here index the compact preview text shown below.
     diff: DashQLPendingDiff | null;
+    /// Compact previews own their recomputed diff. Description previews reuse the notebook state's
+    /// raw-source diff because its offsets already align with the unformatted source shown there.
+    ownsDiff: boolean;
 }
 
 /// Description previews retain raw source text because their parser spans index the source directly.
@@ -68,7 +71,8 @@ function buildDescriptionPreview(scriptData: ScriptData): PreviewSnapshot | null
         scriptText: text,
         parsed,
         ownsParsed: true,
-        diff: null,
+        diff: scriptData.pendingDiff,
+        ownsDiff: false,
     };
 }
 
@@ -181,7 +185,7 @@ function formatPreviewScript(
         const diff = pendingDiff != null
             ? computeCompactDiff(instance, pendingDiff.priorText, formattedScript, maxWidth, debugMode, scriptKey, logger)
             : null;
-        return { scriptText, parsed, ownsParsed: true, diff };
+        return { scriptText, parsed, ownsParsed: true, diff, ownsDiff: diff != null };
     } catch (e: any) {
         logger.warn('Failed to analyze formatted script preview', {
             scriptKey: scriptKey.toString(),
@@ -208,12 +212,16 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, session
         parsed: null,
         ownsParsed: false,
         diff: null,
+        ownsDiff: false,
     }));
-    const appliedDescriptionParsedRef = React.useRef<core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null>(null);
+    const appliedDescriptionRef = React.useRef<{
+        view: EditorView;
+        parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null;
+    } | null>(null);
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
     const pendingDiff = scriptData.pendingDiff;
     const descriptionPreview = React.useMemo(
-        () => showStoryControls && pendingDiff == null ? buildDescriptionPreview(scriptData) : null,
+        () => showStoryControls ? buildDescriptionPreview(scriptData) : null,
         [pendingDiff, scriptData, scriptData.scriptAnalysis.buffers, showStoryControls],
     );
     const previewExtensions = React.useMemo((): Extension[] => [
@@ -289,6 +297,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, session
             parsed: null,
             ownsParsed: false,
             diff: null,
+            ownsDiff: false,
         });
         // Mark as ready after first format attempt (success or failure)
         onReady?.(true);
@@ -316,7 +325,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, session
     React.useEffect(() => {
         return () => {
             if (previewSnapshot.ownsParsed) previewSnapshot.parsed?.destroy();
-            previewSnapshot.diff?.diffBuffer.destroy();
+            if (previewSnapshot.ownsDiff) previewSnapshot.diff?.diffBuffer.destroy();
         };
     }, [previewSnapshot]);
 
@@ -329,11 +338,17 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, session
             DashQLDiffDecorationUpdateEffect.of(previewSnapshot.diff),
         ];
         // Width changes refresh the preview snapshot, but they must not reset a statement the user
-        // already expanded. Only replace story decorations when the parsed source model changes.
-        const descriptionParsed = descriptionPreview?.parsed ?? null;
-        if (appliedDescriptionParsedRef.current !== descriptionParsed) {
+        // already expanded. Replace story decorations when the parsed source model changes or when
+        // compact-to-description mode mounts a new CodeMirror view. A pending rewrite deliberately
+        // supplies no story model: the source stays expanded while the separate diff effect remains
+        // active. Accepting clears pendingDiff and installs the story model, collapsing the SQL.
+        // Keep a staged description rewrite expanded so its source diff remains reviewable. Once
+        // Accept clears pendingDiff, push the parsed story model and collapse the statements.
+        const descriptionParsed = pendingDiff == null ? descriptionPreview?.parsed ?? null : null;
+        const appliedDescription = appliedDescriptionRef.current;
+        if (appliedDescription?.view !== view || appliedDescription.parsed !== descriptionParsed) {
             effects.push(DashQLStoryUpdateEffect.of(descriptionParsed));
-            appliedDescriptionParsedRef.current = descriptionParsed;
+            appliedDescriptionRef.current = { view, parsed: descriptionParsed };
         }
         view.dispatch({
             changes: {

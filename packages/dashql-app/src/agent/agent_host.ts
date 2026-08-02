@@ -14,6 +14,9 @@ export interface AgentHost {
     /// source query + current chart + output schema for visualize, …). Returns "" when there is
     /// nothing to contribute.
     buildContext(intent: AgentIntent): string;
+    /// Build one prompt context per statement for description generation. Each context identifies
+    /// its target statement while retaining the complete script for surrounding context.
+    descriptionContexts(): string[];
     /// Is the visualize run editing an existing chart (as opposed to creating one)? Reframes the
     /// visualize prompt from "generate" to "edit". Irrelevant for SQL runs.
     isEditingChart(): boolean;
@@ -21,6 +24,11 @@ export interface AgentHost {
     /// and injecting the data source along the way. THROWS on a malformed spec / transcode failure
     /// so the driver treats it as a verifiable error and repairs.
     transcodeVegaLite(rawSpecJson: string): string;
+    /// Build a complete candidate script by applying one plain-text model response per statement to
+    /// the host's statement metadata. The host preserves SQL byte-for-byte.
+    applyDescriptions(descriptions: string[], expectedSource: string): string;
+    /// Snapshot the source represented by description metadata before the asynchronous model call.
+    descriptionSource(): string;
     /// Verify a candidate script against the parser + analyzer (the loop's safety net whose errors
     /// feed the next repair prompt).
     verify(candidateText: string): VerifyResult;

@@ -22,6 +22,31 @@ const MoveStatementDecoration = Decoration.mark({ class: 'cm-dashql-diff-move' }
 /// A changed sub-range within an updated statement — stronger highlight
 const ChangeDecoration = Decoration.mark({ class: 'cm-dashql-diff-change' });
 
+/// Add strong green ranges for newly inserted or changed line comments. Statement semantic spans
+/// begin at the SQL node, so leading description comments are intentionally absent from ScriptDiff
+/// even though they are the entire visible change for description generation.
+function addChangedCommentDecorations(priorText: string, doc: Text, ranges: Range<Decoration>[]): void {
+    const priorComments = new Map<string, number>();
+    for (const line of priorText.split(/\r?\n/)) {
+        const comment = line.trim();
+        if (!comment.startsWith('--')) continue;
+        priorComments.set(comment, (priorComments.get(comment) ?? 0) + 1);
+    }
+
+    for (let lineNumber = 1; lineNumber <= doc.lines; ++lineNumber) {
+        const line = doc.line(lineNumber);
+        const comment = line.text.trim();
+        if (!comment.startsWith('--')) continue;
+        const priorCount = priorComments.get(comment) ?? 0;
+        if (priorCount > 0) {
+            priorComments.set(comment, priorCount - 1);
+            continue;
+        }
+        const leadingWhitespace = line.text.length - line.text.trimStart().length;
+        ranges.push(ChangeDecoration.range(line.from + leadingWhitespace, line.to));
+    }
+}
+
 /// A gutter marker for a deleted statement.
 ///
 /// A deletion has no target span (the statement is gone from the new text), so we cannot highlight
@@ -57,6 +82,8 @@ function buildDiffDecorations(pending: DashQLPendingDiff | null, doc: Text): Dif
     const docLength = doc.length;
     const ranges: Range<Decoration>[] = [];
     const deleteLines = new Set<number>();
+
+    addChangedCommentDecorations(pending.priorText, doc, ranges);
 
     const tmpOp = new dashql.buffers.diff.ScriptDiffOp();
     const tmpSpan = new dashql.buffers.parser.TextSpan();

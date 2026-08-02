@@ -246,8 +246,6 @@
     outline-offset: -2px;
 }
 .page_tabs_controls {
-    position: relative;
-    z-index: 1100;
     display: flex;
     flex: 0 0 auto;
     height: 100%;

@@ -1,3 +1,5 @@
+-- Filter customer data by country code, excluding customers with orders and
+-- accounting balances above the average.
 select
   cntrycode,
   count(*) as numcust,
