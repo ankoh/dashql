@@ -1,5 +1,8 @@
 #include "dashql/formatter/formatter.h"
 
+#include <algorithm>
+#include <cctype>
+#include <string>
 #include <vector>
 
 #include "dashql/formatter/formatting_program.h"
@@ -26,6 +29,150 @@ using ExtractTarget = buffers::parser::ExtractTarget;
 using TrimDirection = buffers::parser::TrimDirection;
 
 namespace {
+
+bool IsWhitespace(std::string_view text) {
+    for (char ch : text) {
+        if (!std::isspace(static_cast<unsigned char>(ch))) return false;
+    }
+    return true;
+}
+
+std::string_view TrimWhitespace(std::string_view text) {
+    while (!text.empty() && std::isspace(static_cast<unsigned char>(text.front()))) {
+        text.remove_prefix(1);
+    }
+    while (!text.empty() && std::isspace(static_cast<unsigned char>(text.back()))) {
+        text.remove_suffix(1);
+    }
+    return text;
+}
+
+void AppendCommentLine(std::string& output, std::string_view text, size_t max_width) {
+    if (!output.empty() && output.back() != '\n') output += '\n';
+    output += "--";
+    if (text.empty()) return;
+
+    if (max_width >= 4) output += ' ';
+    output += text;
+}
+
+void AppendWrappedCommentParagraph(std::string& output, const std::vector<std::string_view>& words,
+                                   size_t max_width) {
+    if (words.empty()) {
+        AppendCommentLine(output, {}, max_width);
+        return;
+    }
+
+    const size_t prefix_width = max_width >= 4 ? 3 : 2;
+    const size_t content_width = max_width > prefix_width ? max_width - prefix_width : 1;
+    std::string line;
+    for (const auto& word : words) {
+        size_t offset = 0;
+        while (offset < word.size()) {
+            size_t remaining = word.size() - offset;
+            if (!line.empty() && line.size() + 1 + remaining > content_width) {
+                AppendCommentLine(output, line, max_width);
+                line.clear();
+                continue;
+            }
+
+            if (remaining <= content_width - line.size() - (line.empty() ? 0 : 1)) {
+                if (!line.empty()) line += ' ';
+                line.append(word.substr(offset, remaining));
+                offset = word.size();
+            } else {
+                size_t available = content_width - line.size() - (line.empty() ? 0 : 1);
+                if (!line.empty()) line += ' ';
+                line.append(word.substr(offset, available));
+                offset += available;
+                AppendCommentLine(output, line, max_width);
+                line.clear();
+            }
+        }
+    }
+    if (!line.empty()) AppendCommentLine(output, line, max_width);
+}
+
+void AppendCommentBlock(std::string& output, std::string_view input,
+                        std::span<const buffers::parser::TextSpan> comments, size_t max_width) {
+    std::vector<std::string_view> normalized_lines;
+    for (const auto& comment : comments) {
+        auto text = input.substr(comment.offset(), comment.length());
+        bool is_block = text.starts_with("/*");
+        if (is_block) {
+            text.remove_prefix(2);
+            if (text.ends_with("*/")) text.remove_suffix(2);
+        } else if (text.starts_with("--")) {
+            text.remove_prefix(2);
+        }
+
+        while (true) {
+            auto line_end = text.find_first_of("\r\n");
+            auto line = TrimWhitespace(text.substr(0, line_end));
+            if (is_block && line.starts_with('*')) {
+                line = TrimWhitespace(line.substr(1));
+            }
+            normalized_lines.push_back(line);
+
+            if (line_end == std::string_view::npos) break;
+            size_t next = line_end + 1;
+            if (text[line_end] == '\r' && next < text.size() && text[next] == '\n') ++next;
+            text.remove_prefix(next);
+        }
+    }
+
+    while (!normalized_lines.empty() && normalized_lines.front().empty()) {
+        normalized_lines.erase(normalized_lines.begin());
+    }
+    while (!normalized_lines.empty() && normalized_lines.back().empty()) {
+        normalized_lines.pop_back();
+    }
+
+    if (normalized_lines.empty()) {
+        AppendCommentLine(output, {}, max_width);
+        return;
+    }
+
+    std::vector<std::string_view> words;
+    for (const auto& line : normalized_lines) {
+        if (line.empty()) {
+            if (!words.empty()) {
+                AppendWrappedCommentParagraph(output, words, max_width);
+                words.clear();
+            }
+            AppendCommentLine(output, {}, max_width);
+            continue;
+        }
+
+        std::string_view remaining = line;
+        while (!remaining.empty()) {
+            auto word_end = remaining.find_first_of(" \t\r\n\f");
+            auto word = remaining.substr(0, word_end);
+            if (!word.empty()) words.push_back(word);
+            if (word_end == std::string_view::npos) break;
+            remaining.remove_prefix(word_end + 1);
+            remaining = TrimWhitespace(remaining);
+        }
+    }
+    if (!words.empty()) AppendWrappedCommentParagraph(output, words, max_width);
+}
+
+void AppendComments(std::string& output, std::string_view input,
+                    std::span<const buffers::parser::TextSpan> comments, size_t max_width) {
+    size_t block_begin = 0;
+    for (size_t i = 1; i <= comments.size(); ++i) {
+        bool end_block = i == comments.size();
+        if (!end_block) {
+            size_t previous_end = comments[i - 1].offset() + comments[i - 1].length();
+            auto gap = input.substr(previous_end, comments[i].offset() - previous_end);
+            end_block = !IsWhitespace(gap) || std::count(gap.begin(), gap.end(), '\n') > 1;
+        }
+        if (end_block) {
+            AppendCommentBlock(output, input, comments.subspan(block_begin, i - block_begin), max_width);
+            block_begin = i;
+        }
+    }
+}
 
 struct OperatorPrecedence {
     size_t precedence;
@@ -415,6 +562,9 @@ FmtReg Formatter::FormatTableRef(const buffers::parser::Node& node) {
     FmtReg base_reg = 0;
     if (table) {
         base_reg = Reg(*table);
+        if (table->node_type() == NodeType::OBJECT_SQL_SELECT) {
+            base_reg = fmt.Parenthesized(base_reg);
+        }
     } else if (name) {
         base_reg = Reg(*name);
     }
@@ -1964,14 +2114,49 @@ std::string Formatter::WriteOutput() const {
         output += " */\n";
     }
 
+    if (config.mode == buffers::formatting::FormattingMode::INLINE) {
+        for (size_t i = 0; i < parsed.statements.size(); ++i) {
+            const auto& statement = parsed.statements[i];
+            output += fmt.Render(node_states[statement.root].reg, options);
+            output += ';';
+            if (i + 1 < parsed.statements.size()) output += '\n';
+        }
+        return output;
+    }
+
+    auto input = scanned.GetInput();
+    auto comments = std::span<const buffers::parser::TextSpan>{scanned.comments};
+    auto descriptions = parsed.AssociateDescriptions();
+    size_t comment_begin = 0;
     for (size_t i = 0; i < parsed.statements.size(); ++i) {
         const auto& statement = parsed.statements[i];
+        const auto& description = descriptions[i];
+        auto root_span = scanned.ResolveTextSpan(ast[statement.root].symbol_span());
+        size_t before_end = comment_begin;
+        while (before_end < comments.size() && comments[before_end].offset() < root_span.offset()) ++before_end;
+        if (description.description_count > 0 && description.description_begin >= comment_begin) {
+            size_t leading_begin = description.description_begin;
+            size_t leading_end = leading_begin + description.description_count;
+            AppendComments(output, input, comments.subspan(comment_begin, leading_begin - comment_begin),
+                           config.max_width);
+            AppendComments(output, input, comments.subspan(leading_begin, leading_end - leading_begin),
+                           config.max_width);
+        } else {
+            AppendComments(output, input, comments.subspan(comment_begin, before_end - comment_begin),
+                           config.max_width);
+        }
+
+        if (!output.empty() && output.back() != '\n') output += '\n';
         output += fmt.Render(node_states[statement.root].reg, options);
         output += ';';
-        if (i + 1 < parsed.statements.size()) {
-            output += '\n';
-        }
+
+        size_t statement_end = description.statement_span.offset() + description.statement_span.length();
+        size_t within_end = before_end;
+        while (within_end < comments.size() && comments[within_end].offset() < statement_end) ++within_end;
+        AppendComments(output, input, comments.subspan(before_end, within_end - before_end), config.max_width);
+        comment_begin = within_end;
     }
+    AppendComments(output, input, comments.subspan(comment_begin), config.max_width);
     return output;
 }
 

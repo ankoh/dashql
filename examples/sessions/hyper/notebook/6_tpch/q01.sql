@@ -1,7 +1,6 @@
--- Show the total sales and average order quantities for each return flag and
--- order status.
-select
-    l_returnflag,
+-- Show total sales and average order quantities for each return flag and order
+-- status.
+select l_returnflag,
     l_linestatus,
     sum(l_quantity) as sum_qty,
     sum(l_extendedprice) as sum_base_price,
@@ -11,13 +10,7 @@ select
     avg(l_extendedprice) as avg_price,
     avg(l_discount) as avg_disc,
     count(*) as count_order
-from
-    lineitem
-where
-    l_shipdate <= '1998-09-02'
-group by
-    l_returnflag,
-    l_linestatus
-order by
-    l_returnflag,
-    l_linestatus;
+from lineitem
+where l_shipdate <= '1998-09-02'
+group by l_returnflag, l_linestatus
+order by l_returnflag, l_linestatus;

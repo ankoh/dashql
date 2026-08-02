@@ -1,17 +1,8 @@
 -- Calculate the total revenue for each Asian nation from January 1994 to
 -- December 1994.
-select
-    n_name,
-    sum(l_extendedprice * (1 - l_discount)) as revenue
-from
-    customer,
-    orders,
-    lineitem,
-    supplier,
-    nation,
-    region
-where
-    c_custkey = o_custkey
+select n_name, sum(l_extendedprice * (1 - l_discount)) as revenue
+from customer, orders, lineitem, supplier, nation, region
+where c_custkey = o_custkey
     and l_orderkey = o_orderkey
     and l_suppkey = s_suppkey
     and c_nationkey = s_nationkey
@@ -20,7 +11,5 @@ where
     and r_name = 'ASIA'
     and o_orderdate >= '1994-01-01'
     and o_orderdate < '1995-01-01'
-group by
-    n_name
-order by
-    revenue desc;
+group by n_name
+order by revenue desc;

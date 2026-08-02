@@ -107,6 +107,26 @@ describe('DashQL formatting', () => {
         );
     });
 
+    it('reflows block comments as line comments at max width', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `/* A comment block with enough text to wrap across lines. */\nselect 1`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            24,
+            2,
+        );
+        const newScript = script.format(config, catalog);
+        const newScriptText = newScript.toString();
+        expect(newScriptText).toEqual(
+            "-- A comment block with\n" +
+            "-- enough text to wrap\n" +
+            "-- across lines.\n" +
+            "select 1;"
+        );
+    });
+
     it('breaks compact qualified names with leading dots', async () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);

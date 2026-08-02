@@ -46,5 +46,6 @@ INSTANTIATE_TEST_SUITE_P(Demo, FormatterSnapshotTestSuite, ::testing::ValuesIn(F
 INSTANTIATE_TEST_SUITE_P(Functions, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("functions.yaml")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Explain, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("explain.yaml")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Visualize, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("visualize.yaml")), FormatterSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Comments, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("comments.yaml")), FormatterSnapshotTest::TestPrinter());
 
 } // namespace

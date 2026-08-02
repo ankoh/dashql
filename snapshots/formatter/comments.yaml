@@ -1,0 +1,132 @@
+formatter-snapshots:
+
+  - name: leading_block_comment
+    input: |-
+      /* This block comment has enough words to be wrapped at the configured maximum width. */
+      select 1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+          - mode: compact
+            width: 32
+            expected: |-
+              -- This block comment has enough
+              -- words to be wrapped at the
+              -- configured maximum width.
+              select 1;
+          - mode: pretty
+            width: 32
+            expected: |-
+              -- This block comment has enough
+              -- words to be wrapped at the
+              -- configured maximum width.
+              select 1;
+        validation:
+          setup: |-
+
+  - name: decorated_multiline_block_comment
+    input: |-
+      /**
+       * First paragraph with deliberately excessive spacing.
+       *
+       * Second paragraph stays separate.
+       */
+      select a, b from t
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a, b from t;
+          - mode: compact
+            width: 30
+            expected: |-
+              -- First paragraph with
+              -- deliberately excessive
+              -- spacing.
+              --
+              -- Second paragraph stays
+              -- separate.
+              select a, b from t;
+          - mode: pretty
+            width: 30
+            expected: |-
+              -- First paragraph with
+              -- deliberately excessive
+              -- spacing.
+              --
+              -- Second paragraph stays
+              -- separate.
+              select a, b
+              from t;
+        validation:
+          setup: |-
+            create table t(a int, b int);
+
+  - name: line_comment_block
+    input: |-
+      -- Existing line comments are treated as one block and reflowed to the configured width.
+      -- Their original line endings do not constrain the formatted output.
+      select 1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+          - mode: compact
+            width: 36
+            expected: |-
+              -- Existing line comments are
+              -- treated as one block and reflowed
+              -- to the configured width. Their
+              -- original line endings do not
+              -- constrain the formatted output.
+              select 1;
+          - mode: pretty
+            width: 36
+            expected: |-
+              -- Existing line comments are
+              -- treated as one block and reflowed
+              -- to the configured width. Their
+              -- original line endings do not
+              -- constrain the formatted output.
+              select 1;
+        validation:
+          setup: |-
+
+  - name: comments_between_statements
+    input: |-
+      select 1; /* trailing comment that wraps onto another line */
+      /* description for the next statement */
+      select 2
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+              select 2;
+          - mode: compact
+            width: 28
+            expected: |-
+              select 1;
+              -- trailing comment that
+              -- wraps onto another line
+              -- description for the next
+              -- statement
+              select 2;
+          - mode: pretty
+            width: 28
+            expected: |-
+              select 1;
+              -- trailing comment that
+              -- wraps onto another line
+              -- description for the next
+              -- statement
+              select 2;
+        validation:
+          setup: |-
