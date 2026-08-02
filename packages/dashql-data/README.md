@@ -21,10 +21,11 @@ network access is only allowed in the fetch phase (repo rules requiring a pinned
 `sha256`):
 
 1. **Fetch** (`deps.bzl` module extension): each source in `DATASETS` becomes a
-   hash-pinned `http_file`.
+   hash-pinned `http_file`. (`tpch` datasets have no sources — see below.)
 2. **Convert** (`datasets.bzl` → genrule): the vendored DuckDB CLI (`//bazel:duckdb_cli`)
    runs each output's **verbatim SQL** — the author writes the full statement (reader +
    `COPY … TO … (FORMAT …)`); the format is whatever the SQL says (Parquet, CSV, …).
+   `tpch` datasets instead `LOAD` the vendored tpch extension and `CALL dbgen`.
 3. **Assemble** (`copy_to_directory`): stage into `<dataset>/v<version>/<file>`.
 4. **Index** (`dashql-data index`): walk the tree → `index.json`.
 5. **Mirror** (`dashql-data sync`): upload to R2 — versioned files are immutable
@@ -69,6 +70,36 @@ network access is only allowed in the fetch phase (repo rules requiring a pinned
 
 4. Bump `version` whenever you reshape an existing dataset — paths are immutable, so old
    notebooks keep working against the old version.
+
+## TPC-H
+
+TPC-H is hosted as one dataset per scale factor (`tpch-0.001`, `tpch-0.01`, `tpch-0.1`,
+`tpch-1`), each with all 8 tables:
+
+```
+https://data.dashql.app/tpch-<sf>/v1/{customer,lineitem,nation,orders,part,partsupp,region,supplier}.parquet
+```
+
+Unlike the classic dbgen pipeline (a `tpch-dbgen` submodule plus a bespoke
+`.tbl`→Parquet converter), generation reuses the DuckDB CLI we already vendor: a `tpch`
+dataset entry just declares a `scale_factor`, and the convert genrule `CALL dbgen(sf=…)`
++ `COPY … TO … (FORMAT PARQUET)` writes each table directly.
+
+To keep this **hermetic**, the signed `tpch.duckdb_extension` is vendored — DuckDB's
+`tpch` extension is not statically linked, so `CALL dbgen` would otherwise need
+`INSTALL tpch` (network, forbidden in the sandbox). It is fetched as a hash-pinned
+`http_file` per exec platform (`TPCH_EXTENSION_SHA256` in `datasets.bzl`, selected by
+the `//packages/dashql-data:tpch_extension` alias), gunzipped in the genrule, and
+`LOAD`ed by absolute path with autoinstall/autoload disabled.
+
+- **Add a scale factor**: append `{"name": "tpch-<sf>", "version": "1", "kind": "tpch",
+  "scale_factor": "<sf>"}` to `DATASETS`. No sources, no `MODULE.bazel` change (the
+  extension repos are already registered).
+- **Version coupling**: `TPCH_DUCKDB_VERSION` **must** equal `_DUCKDB_VERSION` in
+  `bazel/core_dependencies.bzl` — an extension only loads into the exact CLI build it
+  was compiled against. Renovate bumps both together and reruns
+  `scripts/update_bazel_hashes.py packages/dashql-data/datasets.bzl` to refresh the four
+  extension hashes.
 
 ## Build & publish
 

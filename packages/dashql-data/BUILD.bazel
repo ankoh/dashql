@@ -1,7 +1,35 @@
 load("@rules_rust//rust:defs.bzl", "rust_binary")
-load(":datasets.bzl", "declare_datasets")
+load(":datasets.bzl", "declare_datasets", "tpch_extension_repo_name")
 
 exports_files(["Cargo.toml"])
+
+# The vendored TPC-H extension, selected per exec platform. Unlike //bazel:duckdb_cli
+# (whose macOS zip is universal, so it branches on OS only), the extension is arch-
+# specific — a build compiled for osx_arm64 will not load into an x86_64 process — so
+# we branch on OS × CPU. Names match DuckDB's `PRAGMA platform` (see TPCH_EXTENSION_SHA256).
+[
+    config_setting(
+        name = "is_" + platform,
+        constraint_values = constraints,
+    )
+    for platform, constraints in {
+        "osx_arm64": ["@platforms//os:macos", "@platforms//cpu:arm64"],
+        "osx_amd64": ["@platforms//os:macos", "@platforms//cpu:x86_64"],
+        "linux_amd64": ["@platforms//os:linux", "@platforms//cpu:x86_64"],
+        "linux_arm64": ["@platforms//os:linux", "@platforms//cpu:arm64"],
+    }.items()
+]
+
+alias(
+    name = "tpch_extension",
+    actual = select({
+        ":is_osx_arm64": "@" + tpch_extension_repo_name("osx_arm64") + "//file",
+        ":is_osx_amd64": "@" + tpch_extension_repo_name("osx_amd64") + "//file",
+        ":is_linux_amd64": "@" + tpch_extension_repo_name("linux_amd64") + "//file",
+        ":is_linux_arm64": "@" + tpch_extension_repo_name("linux_arm64") + "//file",
+    }),
+    visibility = ["//visibility:public"],
+)
 
 # The indexer + R2 mirror. `index` runs inside the hermetic build (below); `sync`
 # runs via the :sync target. Client/deps mirror dashql-pack but stay independent.

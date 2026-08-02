@@ -43,6 +43,14 @@ key); it does not drive conversion.
 
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 
+# Two dataset kinds, distinguished by the optional "kind" field (default "sql"):
+#
+#   * "sql"  — fetch each source (http_file), run each output's verbatim SQL through
+#     the DuckDB CLI. This is the general case documented above.
+#   * "tpch" — no sources; generate all 8 TPC-H tables at `scale_factor` with DuckDB's
+#     tpch extension (`CALL dbgen`) and write each to Parquet. The extension is
+#     vendored (see TPCH_* below) and LOADed offline, so generation stays hermetic —
+#     no `INSTALL` (network), no dbgen submodule, no bespoke Arrow/Parquet transcoder.
 DATASETS = [
     {
         "name": "vega-cars",
@@ -61,7 +69,56 @@ DATASETS = [
             "sql": "COPY (SELECT * FROM read_json_auto('{cars}')) TO '{output}' (FORMAT CSV, HEADER)",
         }],
     },
+    # TPC-H at several scale factors (each an independent, immutably-versioned dataset,
+    # e.g. tpch-0.01/v1/lineitem.parquet). Rows scale ~linearly with the SF: SF 1 is
+    # the full ~1 GB standard scale (lineitem ~6M rows); SF 0.001 is a ~1 MB smoke-test
+    # set (lineitem ~6k rows).
+    {"name": "tpch-0.001", "version": "1", "kind": "tpch", "scale_factor": "0.001"},
+    {"name": "tpch-0.01", "version": "1", "kind": "tpch", "scale_factor": "0.01"},
+    {"name": "tpch-0.1", "version": "1", "kind": "tpch", "scale_factor": "0.1"},
+    {"name": "tpch-1", "version": "1", "kind": "tpch", "scale_factor": "1"},
 ]
+
+# --- TPC-H generation via the vendored DuckDB tpch extension ----------------------
+#
+# DuckDB's tpch extension is NOT statically linked into the release CLI: `CALL dbgen`
+# normally requires `INSTALL tpch` (network), which the genrule sandbox forbids. So we
+# vendor the *signed* extension as gzipped, hash-pinned http_files (one per exec
+# platform, deps.bzl), gunzip it in the convert genrule, and LOAD it by absolute path
+# — fully offline. This replaces both moving parts of the classic pipeline (the
+# tpch-dbgen submodule and a hand-written .tbl->Parquet converter) with the CLI we
+# already vendor for the other datasets.
+
+# The DuckDB version whose tpch extension we vendor. MUST equal _DUCKDB_VERSION in
+# bazel/core_dependencies.bzl: an extension only loads into the exact CLI build it was
+# compiled against. Bump both (and the four hashes below) together; the hashes are
+# refreshed by scripts/update_bazel_hashes.py.
+# renovate: datasource=github-releases depName=duckdb/duckdb
+TPCH_DUCKDB_VERSION = "1.5.4"
+
+# sha256 of tpch.duckdb_extension.gz per platform, keyed by DuckDB's own `PRAGMA
+# platform` name (osx_amd64 == x86_64 macOS, linux_amd64 == x86_64 Linux, …).
+TPCH_EXTENSION_SHA256 = {
+    "osx_arm64": "a209167487df9390c497d0f041c2557f2d43dcad199e2cd16e15a7264de53a4b",
+    "osx_amd64": "b8420ecad2a6759f146decdef3f52957ec5bb37a6ab02464a591cccd1d3d17e0",
+    "linux_amd64": "7ec6d5b002e2f19758b3dabd4397d85c55dbfcc43b25faa56659d173decb4ba6",
+    "linux_arm64": "f27a450f729239f7a3c4308d852526463e12642021d5e5b56b202f3a74455c94",
+}
+
+# The 8 TPC-H tables dbgen populates. Each becomes <dataset>/v<version>/<table>.parquet.
+TPCH_TABLES = ["customer", "lineitem", "nation", "orders", "part", "partsupp", "region", "supplier"]
+
+def tpch_extension_url(platform):
+    """CDN URL for one platform's gzipped tpch extension (fetch phase, deps.bzl)."""
+    return "https://extensions.duckdb.org/v{v}/{p}/tpch.duckdb_extension.gz".format(
+        v = TPCH_DUCKDB_VERSION,
+        p = platform,
+    )
+
+def tpch_extension_repo_name(platform):
+    """The `http_file` repo name for one platform's tpch extension. Shared between
+    deps.bzl (declares the repo) and BUILD.bazel (selects one via alias)."""
+    return "tpch_extension_{}".format(platform)
 
 # Public base URL the hosted files are served from (used to root index.json URLs).
 DATA_BASE_URL = "https://data.dashql.app"
@@ -77,6 +134,9 @@ def dataset_repo_name(dataset_name, src_as):
 
 def _source_label(dataset_name, src_as):
     return "@{}//file".format(dataset_repo_name(dataset_name, src_as))
+
+# The vendored tpch extension, selected per exec platform by the alias in BUILD.bazel.
+_TPCH_EXTENSION = "//packages/dashql-data:tpch_extension"
 
 def _resolve_sql(dataset, output):
     """Substitute the two placeholders in an output's verbatim SQL:
@@ -96,6 +156,79 @@ def _resolve_sql(dataset, output):
         sql = sql.replace(placeholder, "$(location {})".format(_source_label(dataset["name"], src["as"])))
     return sql
 
+def _declare_sql_dataset(dataset):
+    """Convert genrule for a "sql" dataset: fetched sources -> DuckDB CLI runs each
+    output's verbatim SQL. Returns the genrule label."""
+    convert_name = "convert_{}".format(_sanitize(dataset["name"]))
+    srcs = [_source_label(dataset["name"], src["as"]) for src in dataset["sources"]]
+    outs = [
+        "{}/v{}/{}".format(dataset["name"], dataset["version"], output["file"])
+        for output in dataset["outputs"]
+    ]
+    version_dir = "$(RULEDIR)/{}/v{}".format(dataset["name"], dataset["version"])
+
+    # One combined SQL script per dataset, fed to the CLI via a quoted heredoc so
+    # arbitrary author SQL (single AND double quotes) passes through verbatim.
+    # Bazel expands the $(RULEDIR)/$(location) make-vars before the shell runs.
+    sql_lines = [_resolve_sql(dataset, output) + ";" for output in dataset["outputs"]]
+    cmd = "\n".join([
+        "mkdir -p {}".format(version_dir),
+        "$(execpath //bazel:duckdb_cli) <<'__DASHQL_SQL__'",
+    ] + sql_lines + [
+        "__DASHQL_SQL__",
+    ])
+    native.genrule(
+        name = convert_name,
+        srcs = srcs,
+        outs = outs,
+        tools = ["//bazel:duckdb_cli"],
+        cmd = cmd,
+    )
+    return ":" + convert_name
+
+def _declare_tpch_dataset(dataset):
+    """Convert genrule for a "tpch" dataset: LOAD the vendored tpch extension offline,
+    `CALL dbgen(sf=…)`, then COPY each of the 8 tables to Parquet. Returns the label.
+
+    The extension is gzipped, so we gunzip it to an mktemp dir first: DuckDB will only
+    LOAD a path ending in `.duckdb_extension`, and rejects relative paths ("hardened
+    program"), so the target must be an absolute *.duckdb_extension file. autoinstall/
+    autoload are disabled so nothing touches the network inside the sandbox."""
+    convert_name = "convert_{}".format(_sanitize(dataset["name"]))
+    sf = dataset["scale_factor"]
+    version_dir = "$(RULEDIR)/{}/v{}".format(dataset["name"], dataset["version"])
+    outs = [
+        "{}/v{}/{}.parquet".format(dataset["name"], dataset["version"], table)
+        for table in TPCH_TABLES
+    ]
+
+    # COPY one Parquet per table into the version dir.
+    copy_lines = [
+        "COPY (SELECT * FROM {t}) TO '{d}/{t}.parquet' (FORMAT PARQUET);".format(t = table, d = version_dir)
+        for table in TPCH_TABLES
+    ]
+    cmd = "\n".join([
+        # Absolute gunzip target ending in .duckdb_extension (DuckDB LOAD constraints).
+        "TPCH_EXT_DIR=$$(mktemp -d)",
+        "gunzip -c $(execpath {ext}) > $$TPCH_EXT_DIR/tpch.duckdb_extension".format(ext = _TPCH_EXTENSION),
+        "mkdir -p {}".format(version_dir),
+        "$(execpath //bazel:duckdb_cli) <<__DASHQL_SQL__",
+        "SET autoinstall_known_extensions=false;",
+        "SET autoload_known_extensions=false;",
+        "LOAD '$$TPCH_EXT_DIR/tpch.duckdb_extension';",
+        "CALL dbgen(sf={});".format(sf),
+    ] + copy_lines + [
+        "__DASHQL_SQL__",
+    ])
+    native.genrule(
+        name = convert_name,
+        srcs = [_TPCH_EXTENSION],
+        outs = outs,
+        tools = ["//bazel:duckdb_cli"],
+        cmd = cmd,
+    )
+    return ":" + convert_name
+
 def declare_datasets(name = "datasets", index_tool = "//packages/dashql-data:dashql-data"):
     """Expand every dataset into convert genrules + assembled tree + index.json.
 
@@ -107,32 +240,10 @@ def declare_datasets(name = "datasets", index_tool = "//packages/dashql-data:das
     """
     output_targets = []
     for dataset in DATASETS:
-        convert_name = "convert_{}".format(_sanitize(dataset["name"]))
-        srcs = [_source_label(dataset["name"], src["as"]) for src in dataset["sources"]]
-        outs = [
-            "{}/v{}/{}".format(dataset["name"], dataset["version"], output["file"])
-            for output in dataset["outputs"]
-        ]
-        version_dir = "$(RULEDIR)/{}/v{}".format(dataset["name"], dataset["version"])
-
-        # One combined SQL script per dataset, fed to the CLI via a quoted heredoc so
-        # arbitrary author SQL (single AND double quotes) passes through verbatim.
-        # Bazel expands the $(RULEDIR)/$(location) make-vars before the shell runs.
-        sql_lines = [_resolve_sql(dataset, output) + ";" for output in dataset["outputs"]]
-        cmd = "\n".join([
-            "mkdir -p {}".format(version_dir),
-            "$(execpath //bazel:duckdb_cli) <<'__DASHQL_SQL__'",
-        ] + sql_lines + [
-            "__DASHQL_SQL__",
-        ])
-        native.genrule(
-            name = convert_name,
-            srcs = srcs,
-            outs = outs,
-            tools = ["//bazel:duckdb_cli"],
-            cmd = cmd,
-        )
-        output_targets.append(":" + convert_name)
+        if dataset.get("kind", "sql") == "tpch":
+            output_targets.append(_declare_tpch_dataset(dataset))
+        else:
+            output_targets.append(_declare_sql_dataset(dataset))
 
     # Output tree (<dataset>/v<version>/<file> at the root) — a single directory the
     # index tool can walk. The package prefix is stripped by default.

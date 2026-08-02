@@ -145,6 +145,11 @@ dashql_datasets = use_extension("//packages/dashql-data:deps.bzl", "dashql_datas
 use_repo(
     dashql_datasets,
     "dataset_vega_cars_cars",
+    # Vendored DuckDB tpch extension, one per exec platform (backs the tpch-* datasets).
+    "tpch_extension_linux_amd64",
+    "tpch_extension_linux_arm64",
+    "tpch_extension_osx_amd64",
+    "tpch_extension_osx_arm64",
 )
 
 # Emscripten binaries (downloaded per-platform; default version is the latest bundled with emsdk 5.0.4).

@@ -19,11 +19,13 @@
     "postUpgradeTasks": {
         "commands": [
             "python3 scripts/update_bazel_hashes.py --force bazel/core_dependencies.bzl",
-            "python3 scripts/update_bazel_hashes.py --force bazel/external_tableauhyperapi.bzl"
+            "python3 scripts/update_bazel_hashes.py --force bazel/external_tableauhyperapi.bzl",
+            "python3 scripts/update_bazel_hashes.py --force packages/dashql-data/datasets.bzl"
         ],
         "fileFilters": [
             "bazel/core_dependencies.bzl",
-            "bazel/external_tableauhyperapi.bzl"
+            "bazel/external_tableauhyperapi.bzl",
+            "packages/dashql-data/datasets.bzl"
         ],
         "executionMode": "branch"
     },
@@ -49,6 +51,13 @@
             "managerFilePatterns": ["/^bazel/external_tableauhyperapi\\.bzl$/"],
             "matchStrings": [
                 "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\nTABLEAUHYPERAPI_VERSION = \"(?<currentValue>[^\"]+)\""
+            ]
+        },
+        {
+            "customType": "regex",
+            "managerFilePatterns": ["/^packages/dashql-data/datasets\\.bzl$/"],
+            "matchStrings": [
+                "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\nTPCH_DUCKDB_VERSION = \"(?<currentValue>[^\"]+)\""
             ]
         },
         {

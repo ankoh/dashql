@@ -183,11 +183,52 @@ def update_tableauhyperapi_hashes(filepath: Path, workspace: Path, force: bool =
 
 
 # ---------------------------------------------------------------------------
+# Handler: packages/dashql-data/datasets.bzl (vendored DuckDB tpch extension)
+# ---------------------------------------------------------------------------
+#
+# The TPCH_EXTENSION_SHA256 dict pins one gzipped tpch extension per platform. The
+# version MUST track the DuckDB CLI (an extension only loads into the exact build it
+# was compiled for), so it is bumped in lockstep with _DUCKDB_VERSION and these four
+# hashes recomputed here. Keys match DuckDB's `PRAGMA platform` names.
+
+
+def update_dashql_data_datasets(filepath: Path, workspace: Path, force: bool = False) -> None:
+    if not force and not versions_changed(filepath, workspace):
+        print(f"No _VERSION changes detected in {filepath}, skipping hash update.")
+        return
+
+    print(f"Updating sha256 hashes in {filepath} ...")
+    content = filepath.read_text()
+    version = get_version(content, "TPCH_DUCKDB_VERSION")
+    print(f"[tpch_extension] version={version}")
+
+    # The set of platforms is whatever keys the dict currently declares.
+    dict_match = re.search(r"TPCH_EXTENSION_SHA256\s*=\s*\{([^}]*)\}", content, re.DOTALL)
+    if not dict_match:
+        raise ValueError("TPCH_EXTENSION_SHA256 dict not found")
+    platforms = re.findall(r'"([^"]+)":\s*"', dict_match.group(1))
+
+    for platform in platforms:
+        url = f"https://extensions.duckdb.org/v{version}/{platform}/tpch.duckdb_extension.gz"
+        sha = compute_sha256(url)
+        print(f"  [{platform}] sha256={sha}")
+        content = re.sub(
+            r'("' + re.escape(platform) + r'":\s*")[^"]*(")',
+            lambda m, s=sha: m.group(1) + s + m.group(2),
+            content,
+        )
+
+    filepath.write_text(content)
+    print("Done.")
+
+
+# ---------------------------------------------------------------------------
 # Dispatch
 # ---------------------------------------------------------------------------
 
 _HANDLERS = {
     "external_tableauhyperapi.bzl": update_tableauhyperapi_hashes,
+    "datasets.bzl": update_dashql_data_datasets,
 }
 
 

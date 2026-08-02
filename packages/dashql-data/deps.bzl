@@ -10,7 +10,14 @@ Registered in `MODULE.bazel`; the generated repos are surfaced with `use_repo`.
 """
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
-load("//packages/dashql-data:datasets.bzl", "DATASETS", "dataset_repo_name")
+load(
+    "//packages/dashql-data:datasets.bzl",
+    "DATASETS",
+    "TPCH_EXTENSION_SHA256",
+    "dataset_repo_name",
+    "tpch_extension_repo_name",
+    "tpch_extension_url",
+)
 
 def _downloaded_name(src):
     """A stable on-disk filename for the fetched source. Cosmetic — the dataset SQL
@@ -21,13 +28,24 @@ def _downloaded_name(src):
 
 def _dashql_datasets_impl(_ctx):
     for dataset in DATASETS:
-        for src in dataset["sources"]:
+        for src in dataset.get("sources", []):
             http_file(
                 name = dataset_repo_name(dataset["name"], src["as"]),
                 urls = [src["url"]],
                 sha256 = src["sha256"],
                 downloaded_file_path = _downloaded_name(src),
             )
+
+    # The vendored DuckDB tpch extension, one hash-pinned http_file per exec platform.
+    # These back the "tpch" datasets: LOADed offline in the convert genrule so `CALL
+    # dbgen` needs no `INSTALL` (network). See datasets.bzl for the version coupling.
+    for platform, sha256 in TPCH_EXTENSION_SHA256.items():
+        http_file(
+            name = tpch_extension_repo_name(platform),
+            urls = [tpch_extension_url(platform)],
+            sha256 = sha256,
+            downloaded_file_path = "tpch.duckdb_extension.gz",
+        )
 
 dashql_datasets = module_extension(
     implementation = _dashql_datasets_impl,
