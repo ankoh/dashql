@@ -62,6 +62,7 @@ export interface NotebookScriptListProps {
 
 const ESTIMATED_ROW_HEIGHT = 120;
 const HEIGHT_CHANGE_EPSILON = 0.5;
+const OVERSCAN_ROW_COUNT = 8;
 const FEED_EDGE_PADDING = 8;
 const FEED_BOTTOM_FADE_HEIGHT = 24;
 /// Minimum board width (px) at which the zoomed-out overview grid is offered. Roughly matches the
@@ -431,12 +432,13 @@ interface ScriptFeedRowProps {
     onRejectDiff: (scriptKey: number) => void;
     onVisible: (fileName: string) => void;
     onHeightMeasured: (scriptId: number, entryIndex: number, height: number) => void;
+    hasMeasuredHeight: (scriptId: number) => boolean;
     fillerRowHeight: number;
     heightsVersion: number;
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, canGenerateDescription, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onGenerateDescription, onShowStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible, onHeightMeasured } = props;
+    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, canGenerateDescription, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onGenerateDescription, onShowStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible, onHeightMeasured, hasMeasuredHeight } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -458,11 +460,16 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
             const h = el.getBoundingClientRect().height;
             if (h > 0 && entry != null) onHeightMeasured(entry.scriptId, entryIndex, h);
         };
-        measure();
+        // A virtual row is remounted whenever it returns to the overscan range. Its cached height
+        // is already valid, so avoid a synchronous layout read on every scroll frame. The observer
+        // still catches real height changes, while first-time rows measure immediately.
+        if (entry != null && !hasMeasuredHeight(entry.scriptId)) {
+            measure();
+        }
         const ro = new ResizeObserver(measure);
         ro.observe(el);
         return () => ro.disconnect();
-    }, [entry, entryIndex, isFillerRow, onHeightMeasured]);
+    }, [entry, entryIndex, hasMeasuredHeight, isFillerRow, onHeightMeasured]);
 
     if (isFillerRow) {
         return <div className={styles.feed_list_filler} style={props.style} />;
@@ -987,6 +994,10 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         return heightsRef.current.get(scriptId) ?? ESTIMATED_ROW_HEIGHT;
     }, []);
 
+    const hasMeasuredHeight = React.useCallback((scriptId: number) => {
+        return heightsRef.current.has(scriptId);
+    }, []);
+
     // Measure list container dimensions for react-window
     const listContainerSize = observeSize(listContainerRef);
     const listWidth = listContainerSize?.width ?? 0;
@@ -1099,9 +1110,10 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onRejectDiff: handleRejectDiff,
         onVisible: handleEntryVisible,
         onHeightMeasured: handleHeightMeasured,
+        hasMeasuredHeight,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, aiAvailable, agentActive, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleGenerateDescription, handleShowStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, handleEntryVisible, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, aiAvailable, agentActive, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleGenerateDescription, handleShowStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, handleEntryVisible, handleHeightMeasured, hasMeasuredHeight, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container} data-tauri-drag-region="deep">
@@ -1138,6 +1150,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                         listRef={listRef}
                         style={{ width: listWidth, height: listHeight, scrollbarGutter: 'stable' }}
                         rowCount={entries.length + 2}
+                        overscanCount={OVERSCAN_ROW_COUNT}
                         rowHeight={(rowIndex) => {
                             if (rowIndex === 0) {
                                 return FEED_EDGE_PADDING;
