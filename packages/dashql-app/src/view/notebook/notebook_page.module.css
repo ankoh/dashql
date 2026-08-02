@@ -195,10 +195,88 @@
     gap: 0;
     width: 100%;
     min-width: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 0 16px;
-    -webkit-overflow-scrolling: touch;
+    padding: 0;
+    overflow: hidden;
+}
+.page_tabs_viewport {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    overflow: hidden;
+}
+.page_tabs_pages {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+}
+.page_stack_nav {
+    display: flex;
+    flex: 0 0 20px;
+    align-self: center;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 20px;
+    height: var(--notebook_tab_height);
+    margin: 0 4px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--border_radius);
+    background: var(--notebook_tabs_background_color);
+    color: var(--color-fg-muted);
+    cursor: pointer;
+}
+.page_stack_nav:last-child {
+    color: var(--color-fg-muted);
+    opacity: 1;
+}
+.page_stack_nav:hover:not(:disabled) {
+    background-color: rgba(208, 215, 222, 0.32);
+    border-color: var(--border_color_primary);
+}
+.page_stack_nav:disabled {
+    color: var(--color-fg-subtle);
+    cursor: default;
+    opacity: 0.4;
+}
+.page_stack_nav:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: -2px;
+}
+.page_tabs_controls {
+    position: relative;
+    z-index: 1100;
+    display: flex;
+    flex: 0 0 auto;
+    height: 100%;
+    background-color: var(--notebook_tabs_background_color);
+}
+.page_tabs_measurements {
+    position: absolute;
+    top: -10000px;
+    left: 0;
+    display: flex;
+    visibility: hidden;
+    pointer-events: none;
+}
+.page_tab_measurement {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: var(--notebook_tab_height);
+    padding: 0 18px;
+    border: 1px solid transparent;
+    font-size: 0.875rem;
+    font-family: inherit;
+    font-weight: 400;
+    white-space: nowrap;
+    text-transform: uppercase;
+}
+.page_tab_action_measurement {
+    width: 18px;
+    height: 1px;
 }
 .page_tab,
 .page_tab_selected,
@@ -226,6 +304,36 @@
     justify-content: center;
     align-items: center;
 }
+.page_tab,
+.page_tab_selected {
+    position: absolute;
+    top: 0;
+    min-width: 0;
+    overflow: hidden;
+    will-change: left, width;
+}
+.page_tabs_viewport[data-stacked="true"] .page_tab,
+.page_tabs_viewport[data-stacked="true"] .page_tab_selected {
+    background-color: var(--notebook_tabs_background_color);
+}
+.page_tabs_viewport[data-stacked="true"] .page_tab_selected {
+    background-color: #fff;
+}
+.page_tabs_viewport[data-stacked="true"] .page_tab[data-side="left"] .page_tab_button,
+.page_tabs_viewport[data-stacked="true"] .page_tab[data-side="right"] .page_tab_button {
+    visibility: hidden;
+}
+.page_stack_dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background-color: #57606a;
+    transform: translate(-50%, -50%);
+}
 .page_tab:hover,
 .page_tab_selected:hover,
 .catalog_tab:hover,
@@ -233,11 +341,6 @@
 .functions_tab:hover,
 .functions_tab_selected:hover {
 }
-/* dnd-kit makes each page tab keyboard-focusable (tabIndex=0) so it can be drag-reordered
-   via the keyboard sensor, and the add button is natively focusable. Tab interaction uses
-   clicks and Ctrl+H/L, and the selected tab is shown by the underline, so the browser's
-   default blue focus ring is just visual noise that doesn't fit the tab styling — suppress
-   it across the whole bar (page tabs, the add button, and the relations/functions tabs). */
 .page_tab:focus,
 .page_tab_selected:focus,
 .page_tab_add:focus,
@@ -247,8 +350,17 @@
 .functions_tab_selected:focus {
     outline: none;
 }
+.page_tab:focus-visible,
+.page_tab_selected:focus-visible,
+.page_tab_add:focus-visible,
+.catalog_tab:focus-visible,
+.catalog_tab_selected:focus-visible,
+.functions_tab:focus-visible,
+.functions_tab_selected:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: -2px;
+}
 .page_tab_selected {
-    position: relative;
     font-weight: 500;
 }
 .page_tab_selected::after {
@@ -323,17 +435,24 @@
 }
 
 .page_tab_add {
-    font-size: 1.1rem;
-    padding: 6px 10px;
-    margin-left: 4px;
+    align-self: center;
+    box-sizing: border-box;
+    width: 24px;
+    height: var(--notebook_tab_height);
+    min-height: 0;
+    margin: 0 4px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--border_radius);
 }
 .page_tab_add:hover {
-    color: var(--color-accent-fg);
+    background-color: rgba(208, 215, 222, 0.32);
+    border-color: var(--border_color_primary);
 }
 
 .catalog_tab,
 .catalog_tab_selected {
-    margin-left: auto;
+    margin-left: 0;
 }
 .catalog_tab_selected {
     position: relative;
@@ -371,6 +490,44 @@
     display: flex;
     justify-content: center;
     align-items: center;
+}
+.catalog_tab_label_long,
+.catalog_tab_label_short {
+    padding: 0 8px;
+}
+.catalog_tab_label_short {
+    display: none;
+}
+
+@media only screen and (max-width: 700px) {
+    .page_tabs_controls .page_tab_button {
+        gap: 0;
+        margin: 0 2px;
+    }
+    .catalog_tab_label_long {
+        display: none;
+    }
+    .catalog_tab_label_short {
+        display: inline;
+        padding: 0 4px;
+    }
+    .catalog_tab,
+    .catalog_tab_selected,
+    .functions_tab,
+    .functions_tab_selected {
+        padding: 0;
+    }
+    .page_tab_add {
+        margin: 0 4px;
+        padding: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page_tab,
+    .page_tab_selected {
+        transition: none !important;
+    }
 }
 
 .header_left_container {
