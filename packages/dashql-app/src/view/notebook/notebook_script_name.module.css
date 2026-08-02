@@ -36,8 +36,7 @@
     display: inline-flex;
     align-items: center;
     box-sizing: border-box;
-    background-color: var(--notebook_script_name_background);
-    border: 1px solid var(--border_color_primary);
+    border: 1px solid transparent;
     border-radius: 8px;
     padding: 2px 8px;
     font-weight: 500;
@@ -67,7 +66,7 @@
     align-items: center;
     box-sizing: border-box;
     background-color: var(--notebook_script_name_background);
-    border: 1px solid var(--color-accent-emphasis, var(--border_color_primary));
+    border: 1px solid var(--border_color_primary);
     border-radius: 8px;
     padding: 1px 4px;
     font-weight: 500;

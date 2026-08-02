@@ -37,10 +37,6 @@
     cursor: pointer;
 }
 
-.tab_header_clickable_inner:hover {
-    background-color: hsl(210, 20%, 96%);
-}
-
 .tab_header_title {
     flex-shrink: 0;
     font-weight: 500;

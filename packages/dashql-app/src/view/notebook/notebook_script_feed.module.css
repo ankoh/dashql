@@ -3,7 +3,7 @@
 :root {
     --notebook_feed_preview_background: transparent;
     --notebook_feed_entry_headerbar_background: hsl(210, 29%, 98%);
-    --notebook_feed_entry_footer_background: hsl(210, 29%, 98%);
+    --notebook_feed_entry_footer_background: transparent;
 }
 
 
@@ -194,8 +194,8 @@
 .feed_entry_actions {
     display: none;
     align-items: center;
-    gap: 4px;
     flex-shrink: 0;
+    padding: 0 4px 0 4px;
 }
 
 .feed_entry_card:hover .feed_entry_actions {

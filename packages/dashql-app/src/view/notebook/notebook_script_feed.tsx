@@ -284,15 +284,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                         } : undefined}
                         fileNameTrailing={
                             <span className={styles.feed_entry_actions}>
-                                <IconButton
-                                    variant={ButtonVariant.Invisible}
-                                    size={ButtonSize.Tiny}
-                                    aria-label="Rename script"
-                                    onClick={startEditing}
-                                    className={styles.feed_entry_action_button}
-                                >
-                                    <PencilIcon size={12} />
-                                </IconButton>
+                                <PencilIcon size={12} />
                             </span>
                         }
                     />
