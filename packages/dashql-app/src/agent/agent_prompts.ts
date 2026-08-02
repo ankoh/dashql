@@ -142,6 +142,8 @@ export function buildDescribePrompt(input: GenerationPromptInput): string {
         'Start with an imperative verb that accurately describes the target SQL operation or result.',
         'Do not start with "This statement", "This query", "The statement", or "The query".',
         'Ground the description in the target SQL fields, relations, filters, grouping, or ordering.',
+        'For a VISUALIZE statement, use the resolved source script text and Vega-Lite spec to describe',
+        'both the data being visualized and the chart design, including its mark and encodings.',
         'Make the description specific and complete enough to cover the entire statement, including',
         'its material inputs, transformations, filters, aggregation, ordering, and limits when present.',
         'Include material subqueries: explain what they compute and how their results filter, compare,',

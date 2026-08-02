@@ -21,7 +21,7 @@ import {
 import { createDatalessConnectorInfo } from '../connection/connector_info.js';
 import { StorageWriter, StorageWriteTaskVariant } from '../platform/storage/storage_writer.js';
 import { Logger } from '../platform/logger/logger.js';
-import { createEmptyMetadata, createPageScript, generateScriptFileName } from './notebook_types.js';
+import { createEmptyMetadata, createPageScript, generateScriptFileName, scriptDisplayName } from './notebook_types.js';
 
 class NullLogger extends Logger {
     public destroy(): void { }
@@ -361,6 +361,43 @@ describe('startAgentRun — description path', () => {
         expect((applied[0].value as any).withDiff).toBe(true);
         expect(notebook.scripts[focusedKey].script.toString()).toContain('-- Lists sales categories.');
         expect(notebook.scripts[focusedKey].script.toString()).toContain('-- Lists sales amounts.');
+    });
+
+    it('sends a VISUALIZE target its resolved source script text and Vega-Lite spec', async () => {
+        const { state: sourceState, focusedKey: sourceKey } = buildNotebook('select category, amount from sales');
+        const [visKey, visData] = createEmptyScriptData(dql!, sourceState.connectionCatalog);
+        const visFile = '2_chart.sql';
+        const sourceName = scriptDisplayName(sourceState.scripts[sourceKey].fileName);
+        visData.script.replaceText(
+            `VISUALIZE dashql.notebook."main/${sourceName}" USING vegalite (` +
+            'mark => bar, encoding => (x => (field => category), y => (field => amount)))',
+        );
+        const state = analyzeAllScriptsInNotebook({
+            ...sourceState,
+            scripts: {
+                ...sourceState.scripts,
+                [visKey]: { ...visData, folderName: MAIN_FOLDER, fileName: visFile },
+            },
+            notebookPages: {
+                [MAIN_FOLDER]: {
+                    ...sourceState.notebookPages[MAIN_FOLDER],
+                    scripts: {
+                        ...sourceState.notebookPages[MAIN_FOLDER].scripts,
+                        [visFile]: createPageScript(visKey, visFile),
+                    },
+                },
+            },
+        }, logger);
+        const ai = new MockAIClient('sql', ['Charts sales amounts by category.']);
+        const { agent } = await drive(state, visKey, ai, { intentOverride: 'describe' });
+
+        expect(agent!.phase).toBe(AgentRunPhase.SUCCEEDED);
+        const prompt = generationPrompt(ai);
+        expect(prompt).toContain('Source script text:\nselect category, amount from sales');
+        expect(prompt).toContain('Vega-Lite spec:');
+        expect(prompt).toContain('"mark": "bar"');
+        expect(prompt).toContain('"field": "category"');
+        expect(prompt).toContain('"field": "amount"');
     });
 });
 

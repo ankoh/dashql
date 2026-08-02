@@ -2,6 +2,7 @@ import * as core from '../core/index.js';
 
 import { AgentIntent } from '../agent/agent_prompts.js';
 import { getExecutableQueryText, NotebookState, ScriptData } from './notebook_state.js';
+import { normalizePageName, scriptDisplayName } from './notebook_types.js';
 
 /// A column of a query's output schema: its name and (best-effort) type.
 export interface OutputColumn {
@@ -70,6 +71,7 @@ export function buildStatementDescriptionContexts(input: AgentContextInput): str
         type: string;
         existing: string;
         sql: string;
+        visualize: string[];
     }> = [];
     for (let i = 0; i < parsed.statementsLength(); ++i) {
         const current = parsed.statements(i, statement);
@@ -93,6 +95,7 @@ export function buildStatementDescriptionContexts(input: AgentContextInput): str
             type: core.buffers.parser.StatementType[current.statementType()],
             existing: existing.length > 0 ? existing.join('\n') : '(none)',
             sql: statementText,
+            visualize: buildVisualizeDescriptionContext(input, i),
         });
     }
     return statementContexts.map((target, targetIndex) => {
@@ -101,6 +104,7 @@ export function buildStatementDescriptionContexts(input: AgentContextInput): str
             `Type: ${target.type}`,
             `Existing description: ${target.existing}`,
             `Target SQL:\n${target.sql}`,
+            ...target.visualize,
         ];
         const others = statementContexts.filter((_, index) => index !== targetIndex);
         if (others.length > 0) {
@@ -111,6 +115,56 @@ export function buildStatementDescriptionContexts(input: AgentContextInput): str
         }
         return lines.join('\n');
     });
+}
+
+/// Add the resolved data source and chart specification for a VISUALIZE statement. The statement's
+/// SQL only contains a notebook reference, which is not enough to describe the data or chart.
+function buildVisualizeDescriptionContext(input: AgentContextInput, statementIndex: number): string[] {
+    const data = input.contextScriptData;
+    const analyzedPtr = data?.scriptAnalysis.buffers.analyzed ?? null;
+    if (data == null || analyzedPtr == null) return [];
+
+    const analyzed = analyzedPtr.read();
+    const spec = new core.buffers.analyzer.VisualizationSpec();
+    let matched: core.buffers.analyzer.VisualizationSpec | null = null;
+    for (let i = 0; i < analyzed.visualizationSpecsLength(); ++i) {
+        const current = analyzed.visualizationSpecs(i, spec);
+        if (current?.astStatementId() === statementIndex) {
+            matched = current;
+            break;
+        }
+    }
+    if (matched == null) return [];
+
+    const parts: string[] = [];
+    if (matched.sourceKind() === core.buffers.analyzer.VisSourceKind.SCRIPT_REFERENCE) {
+        const packed = matched.sourceResolvedTableId();
+        let source = packed !== 0n
+            ? input.notebook.scripts[Number(packed >> 32n)]?.script.toString().trim()
+            : null;
+        if (!source) {
+            const qualifiedName = matched.sourceQualifiedName(new core.buffers.analyzer.QualifiedTableName());
+            const path = qualifiedName?.tableName();
+            if (path) {
+                const normalizedPath = path.toLowerCase();
+                source = Object.values(input.notebook.scripts)
+                    .find((script) => `${normalizePageName(script.folderName)}/${scriptDisplayName(script.fileName)}`.toLowerCase() === normalizedPath)
+                    ?.script.toString().trim() ?? null;
+            }
+        }
+        if (source) parts.push(`Source script text:\n${source}`);
+    }
+    if (matched.renderer() === 'vegalite') {
+        const rawSpec = matched.vegaliteSpec();
+        if (rawSpec) {
+            try {
+                parts.push(`Vega-Lite spec:\n${JSON.stringify(JSON.parse(rawSpec), null, 2)}`);
+            } catch {
+                parts.push(`Vega-Lite spec:\n${rawSpec}`);
+            }
+        }
+    }
+    return parts.length > 0 ? ['', ...parts] : [];
 }
 
 /// Describe-only contributor retained for callers that inspect the aggregate agent context.

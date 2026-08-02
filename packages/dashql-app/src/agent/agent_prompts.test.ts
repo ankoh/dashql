@@ -12,6 +12,8 @@ describe('statement description prompts', () => {
         expect(prompt).toContain('describe only the identified target statement');
         expect(prompt).toContain('Start with an imperative verb');
         expect(prompt).toContain('Ground the description in the target SQL');
+        expect(prompt).toContain('resolved source script text and Vega-Lite spec');
+        expect(prompt).toContain('both the data being visualized and the chart design');
         expect(prompt).toContain('cover the entire statement');
         expect(prompt).toContain('filters, aggregation, ordering, and limits');
         expect(prompt).toContain('Include material subqueries');
