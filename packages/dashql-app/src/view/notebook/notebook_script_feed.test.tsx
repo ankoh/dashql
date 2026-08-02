@@ -238,6 +238,7 @@ function withPendingDiff(notebook: NotebookState, scriptKey: number, priorText: 
 describe('NotebookScriptFeed', () => {
     let container: HTMLDivElement;
     let root: Root;
+    let getBoundingClientRect: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
         container = document.createElement('div');
@@ -251,12 +252,18 @@ describe('NotebookScriptFeed', () => {
         mockState.latestAgentRunId = null;
         mockState.observedWidth = 1200;
         mockState.startAgentRun.mockReset();
+        getBoundingClientRect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+            const scriptId = this.closest<HTMLElement>('[data-row-script-id]')?.dataset.rowScriptId;
+            const height = scriptId === '101' ? 200 : scriptId === '102' ? 300 : 0;
+            return { height } as DOMRect;
+        });
     });
 
     afterEach(() => {
         act(() => {
             root.unmount();
         });
+        getBoundingClientRect.mockRestore();
         container.remove();
     });
 
@@ -556,6 +563,37 @@ describe('NotebookScriptFeed', () => {
             index: 2,
             align: 'start',
         });
+    });
+
+    it('keeps measured heights with their scripts when feed order changes', () => {
+        const notebook = createNotebookState();
+        renderFeed({ notebook, modifyNotebook: vi.fn(), showDetails: vi.fn() });
+
+        const list = container.querySelector('[data-testid="mock-list"]')!;
+        expect(list.children[1].getAttribute('data-row-height')).toBe('200');
+        expect(list.children[2].getAttribute('data-row-height')).toBe('300');
+
+        const main = notebook.notebookPages.Main;
+        renderFeed({
+            notebook: {
+                ...notebook,
+                notebookPages: {
+                    ...notebook.notebookPages,
+                    Main: {
+                        ...main,
+                        scripts: {
+                            '01-script.sql': main.scripts['01-script.sql'],
+                            '00-script.sql': { scriptId: 102, fileName: '00-script.sql' },
+                        },
+                    },
+                },
+            },
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+        });
+
+        expect(list.children[1].getAttribute('data-row-height')).toBe('300');
+        expect(list.children[2].getAttribute('data-row-height')).toBe('200');
     });
 
     it('does not scroll when only the focused entry changes (e.g. hover-driven SELECT_ENTRY)', () => {

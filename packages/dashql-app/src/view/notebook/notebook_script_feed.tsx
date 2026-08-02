@@ -61,6 +61,7 @@ export interface NotebookScriptListProps {
 }
 
 const ESTIMATED_ROW_HEIGHT = 120;
+const HEIGHT_CHANGE_EPSILON = 0.5;
 const FEED_EDGE_PADDING = 8;
 const FEED_BOTTOM_FADE_HEIGHT = 24;
 /// Minimum board width (px) at which the zoomed-out overview grid is offered. Roughly matches the
@@ -429,7 +430,7 @@ interface ScriptFeedRowProps {
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
     onVisible: (fileName: string) => void;
-    onHeightMeasured: (index: number, height: number) => void;
+    onHeightMeasured: (scriptId: number, entryIndex: number, height: number) => void;
     fillerRowHeight: number;
     heightsVersion: number;
 }
@@ -455,13 +456,13 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         if (!el) return;
         const measure = () => {
             const h = el.getBoundingClientRect().height;
-            if (h > 0) onHeightMeasured(entryIndex, h);
+            if (h > 0 && entry != null) onHeightMeasured(entry.scriptId, entryIndex, h);
         };
         measure();
         const ro = new ResizeObserver(measure);
         ro.observe(el);
         return () => ro.disconnect();
-    }, [entryIndex, isFillerRow, onHeightMeasured]);
+    }, [entry, entryIndex, isFillerRow, onHeightMeasured]);
 
     if (isFillerRow) {
         return <div className={styles.feed_list_filler} style={props.style} />;
@@ -963,27 +964,33 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     ], [feedActive, composeEditorView, handleComposeSend, entries.length, props.showDetails, props.notebook, handleAcceptDiff, handleRejectDiff, viewMode]);
     useKeyEvents(keyHandlers);
 
-    // Height cache for variable-height rows
-    const heightsRef = React.useRef<number[]>([]);
+    const listContainerRef = React.useRef<HTMLDivElement>(null);
+    const listRef = useListRef(null);
+
+    // Cache measurements by script identity rather than feed position. Feed order changes when a
+    // script is renamed, moved, deleted, or a different page is selected; a positional cache makes
+    // those operations temporarily assign a previous card's height to a different card.
+    const heightsRef = React.useRef<Map<number, number>>(new Map());
     const [heightsVersion, setHeightsVersion] = React.useState(0);
 
-    const handleHeightMeasured = React.useCallback((index: number, height: number) => {
-        if (heightsRef.current[index] !== height) {
-            heightsRef.current[index] = height;
-            setHeightsVersion(v => v + 1);
+    const handleHeightMeasured = React.useCallback((scriptId: number, _entryIndex: number, height: number) => {
+        const previousHeight = heightsRef.current.get(scriptId) ?? ESTIMATED_ROW_HEIGHT;
+        if (Math.abs(previousHeight - height) < HEIGHT_CHANGE_EPSILON) {
+            return;
         }
+
+        heightsRef.current.set(scriptId, height);
+        setHeightsVersion(v => v + 1);
     }, []);
 
-    const getRowHeight = React.useCallback((row: number) => {
-        return heightsRef.current[row] ?? ESTIMATED_ROW_HEIGHT;
+    const getRowHeight = React.useCallback((scriptId: number) => {
+        return heightsRef.current.get(scriptId) ?? ESTIMATED_ROW_HEIGHT;
     }, []);
 
     // Measure list container dimensions for react-window
-    const listContainerRef = React.useRef<HTMLDivElement>(null);
     const listContainerSize = observeSize(listContainerRef);
     const listWidth = listContainerSize?.width ?? 0;
     const listHeight = listContainerSize?.height ?? 0;
-    const listRef = useListRef(null);
 
     // The overview grid is only offered on wide boards (the toggle is hidden below ~1000px of board
     // width, matching the ~1300px window CSS breakpoint). If the board shrinks below that while in
@@ -1136,7 +1143,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                                 return FEED_EDGE_PADDING;
                             }
                             if (rowIndex <= entries.length) {
-                                return getRowHeight(rowIndex - 1);
+                                return getRowHeight(entries[rowIndex - 1].scriptId);
                             }
                             return fillerRowHeight + FEED_EDGE_PADDING;
                         }}

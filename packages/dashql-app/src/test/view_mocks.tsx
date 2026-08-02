@@ -67,12 +67,21 @@ export function fakeReactWindowModule(
             rowProps: any;
             style?: React.CSSProperties;
         }) => {
-            const children = Array.from({ length: props.rowCount }, (_, index) => React.createElement(props.rowComponent, {
-                key: index,
-                index,
-                style: { height: props.rowHeight(index) },
-                ...props.rowProps,
-            }));
+            const children = Array.from({ length: props.rowCount }, (_, index) => React.createElement(
+                'div',
+                {
+                    key: index,
+                    'data-row-height': props.rowHeight(index),
+                    'data-row-script-id': index > 0 && index <= props.rowProps.entries.length
+                        ? props.rowProps.entries[index - 1].scriptId
+                        : undefined,
+                },
+                React.createElement(props.rowComponent, {
+                    index,
+                    style: { height: props.rowHeight(index) },
+                    ...props.rowProps,
+                }),
+            ));
             return React.createElement('div', { 'data-testid': 'mock-list', style: props.style }, children);
         },
     };
