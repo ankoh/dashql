@@ -29,10 +29,6 @@
     cursor: pointer;
 }
 
-.log_header_target:hover {
-    background-color: hsl(210, 20%, 96%);
-}
-
 .log_header_title {
     flex-shrink: 0;
     font-weight: 500;

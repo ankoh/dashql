@@ -8,6 +8,7 @@ import { DashQLCompletionAbortEffect, DashQLCompletionStatus, DashQLProcessorPlu
 import icons from '@ankoh/dashql-svg-symbols';
 
 import type { Icon } from '@primer/octicons-react';
+import { CommentAiIcon } from '@primer/octicons-react';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { ButtonGroup } from '../foundations/button_group.js';
@@ -16,7 +17,8 @@ import { QueryExecutionStatus } from '../../connection/query_execution_state.js'
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { useQueryState, useQueryExecutor } from '../../connection/query_executor.js';
-import { useAgentRunState } from '../../agent/agent_run_provider.js';
+import { useAgentRunState, useLatestAgentRunState, useStartAgentRun } from '../../agent/agent_run_provider.js';
+import { agentRunIsActive } from '../../agent/agent_run_state.js';
 import { EntryStatusBar } from './entry_status_bar.js';
 import { deriveEntryStatus } from './entry_status_model.js';
 import { TraceLogPanel } from './trace_log_panel.js';
@@ -28,6 +30,7 @@ import { useStorageReader } from '../../platform/storage/storage_provider.js';
 import { normalizePageName, scriptDisplayName } from '../../notebook/notebook_types.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { useAppConfig } from '../../app_config.js';
+import { useAIClient } from '../../platform/ai_client_provider.js';
 import { ScriptEditor } from './script_editor.js';
 import { acceptPendingDiff, rejectPendingDiff } from '../editor/dashql_diff_hint.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
@@ -38,8 +41,22 @@ import { VisualizationDispatch } from '../visualization/visualization_dispatch.j
 import { ColumnAggregationBar } from '../visualization/column_aggregation_bar.js';
 import { createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../editor/dashql_processor.js';
+import { createNotebookAgentHost } from '../../notebook/notebook_agent_host.js';
+import { OutputColumn } from '../../notebook/notebook_agent_context.js';
 
 const AUTO_VSPLIT_MIN_HEIGHT = 720;
+
+function outputColumnsForScript(
+    notebook: NotebookState,
+    connection: ConnectionState | null,
+    scriptKey: number,
+): OutputColumn[] | null {
+    const queryId = notebook.scripts[scriptKey]?.latestQueryId ?? null;
+    if (connection == null || queryId == null) return null;
+    const query = connection.queriesActive.get(queryId) ?? connection.queriesFinished.get(queryId) ?? null;
+    const schema = query?.resultSchema ?? null;
+    return schema?.fields.map(field => ({ name: field.name, type: field.type?.toString() ?? null })) ?? null;
+}
 
 export enum TabKey {
     Editor = 0,
@@ -62,6 +79,8 @@ export interface NotebookScriptDetailsProps {
 
 export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (props) => {
     const config = useAppConfig();
+    const aiAvailable = useAIClient() != null;
+    const startAgentRun = useStartAgentRun();
     const [selectedTab, selectTab] = React.useState<TabKey>(props.initialTab ?? TabKey.Editor);
     const [splitModeEnabled, setSplitModeEnabled] = React.useState<boolean>(false);
     const [splitTab, setSplitTab] = React.useState<TabKey | null>(null);
@@ -239,6 +258,25 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     // too, mirroring the feed's status bar. Both drive the editor-effect accept/reject path, which
     // round-trips through UPDATE_FROM_PROCESSOR to clear the pending diff.
     const hasPendingDiff = scriptData?.pendingDiff != null;
+    const latestAgentRun = useLatestAgentRunState(props.notebook.sessionId);
+    const agentActive = latestAgentRun != null && agentRunIsActive(latestAgentRun.phase);
+    const canGenerateDescription = aiAvailable && !agentActive && !hasPendingDiff;
+    const handleGenerateDescription = React.useCallback(() => {
+        if (!canGenerateDescription || scriptData == null) return;
+        const host = createNotebookAgentHost({
+            notebook: props.notebook,
+            contextScriptKey: scriptData.scriptKey,
+            modifyNotebook: props.modifyNotebook,
+            resolveOutputColumns: (scriptKey) => outputColumnsForScript(props.notebook, props.connection, scriptKey),
+        });
+        startAgentRun({
+            sessionId: props.notebook.sessionId,
+            prompt: 'Generate concise descriptions for every statement in this script.',
+            contextScriptKey: scriptData.scriptKey,
+            intentOverride: 'describe',
+            host,
+        });
+    }, [canGenerateDescription, scriptData, props.notebook, props.modifyNotebook, props.connection, startAgentRun]);
     const handleAcceptDiff = React.useCallback(() => {
         if (editorView != null) acceptPendingDiff(editorView);
     }, [editorView]);
@@ -546,6 +584,15 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                 <ScriptStatisticsBar stats={scriptData.statistics} />
                             </div>
                         )}
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            onClick={handleGenerateDescription}
+                            aria-label="Generate statement descriptions"
+                            title={canGenerateDescription ? 'Generate statement descriptions' : 'Configure AI or wait for the current agent run'}
+                            disabled={!canGenerateDescription}
+                        >
+                            <CommentAiIcon size={16} />
+                        </IconButton>
                         <IconButton
                             className={styles.entry_card_collapse_button}
                             variant={ButtonVariant.Invisible}
