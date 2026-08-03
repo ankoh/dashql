@@ -32,6 +32,22 @@ formatter-snapshots:
             expected: |-
               select 1, 2;
 
+  - name: select_hyper_obfuscated_literals
+    input: |-
+      select /*String(C5FA)*/,/*Integer(FCD0)*/,/*Float(5A86)*/,/*HexString(C85C)*/,/*BitString(8AB8)*/
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select /*String(C5FA)*/, /*Integer(FCD0)*/, /*Float(5A86)*/, /*HexString(C85C)*/, /*BitString(8AB8)*/;
+          - mode: compact
+            expected: |-
+              select /*String(C5FA)*/, /*Integer(FCD0)*/, /*Float(5A86)*/, /*HexString(C85C)*/, /*BitString(8AB8)*/;
+          - mode: pretty
+            expected: |-
+              select /*String(C5FA)*/, /*Integer(FCD0)*/, /*Float(5A86)*/, /*HexString(C85C)*/, /*BitString(8AB8)*/;
+
   - name: select_distinct
     input: |-
       select distinct a, b from t
