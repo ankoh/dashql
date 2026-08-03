@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeConnectionParamsForSharing, ConnectionParams } from './connection_params.js';
+import { sanitizeConnectionParamsForSharing, createDefaultConnectionParamsForConnector, ConnectionParams } from './connection_params.js';
+import { CONNECTOR_INFOS, ConnectorType } from './connector_info.js';
+
+describe('createDefaultConnectionParamsForConnector', () => {
+    it('uses HTTP for Salesforce', () => {
+        const params = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD]);
+        expect(params).toMatchObject({ salesforce: { hyperProtocol: 'V3_HTTP' } });
+    });
+});
 
 describe('sanitizeConnectionParamsForSharing', () => {
     it('strips the salesforce consumer secret but keeps the identity and login hint', () => {
