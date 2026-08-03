@@ -37,7 +37,7 @@
 
 .sticky_column_container {
     /* Contains the sticky first column cells - uses CSS sticky */
-    background-color: var(--data_table_bg);
+    background-color: white;
 }
 
 .sticky_header_container {
@@ -93,7 +93,7 @@
 }
 
 .header_corner_cell {
-    background-color: var(--data_table_bg);
+    background-color: white;
     border-right: 1px solid rgb(210, 210, 210);
     border-bottom: 1px solid rgb(210, 210, 210);
     box-sizing: border-box;
@@ -160,7 +160,7 @@
 }
 
 .plots_corner_cell {
-    background-color: var(--data_table_bg);
+    background-color: white;
     border-right: 1px solid rgb(210, 210, 210);
     border-bottom: 1px solid rgb(210, 210, 210);
     box-sizing: border-box;

@@ -51,6 +51,7 @@ export function fakeSizeObserverModule() {
 export function fakeScrollbarModule() {
     return {
         useScrollbarWidth: () => 0,
+        useScrollbarHeight: () => 0,
     };
 }
 
