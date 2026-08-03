@@ -27,7 +27,7 @@ wasm-bindgen = "=0.2.105"
 js-sys = "0.3.69"
 getrandom = "0.4"
 wgpu = "24"
-bytemuck = { version = "1", features = ["derive"] }
+bytemuck = { version = "1.25.2", features = ["derive"] }
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
