@@ -147,7 +147,7 @@ export async function queryPgAttribute(
     return queryResult;
 }
 
-async function updatePgSchemaScript(
+export async function updatePgSchemaScript(
     logger: LoggerLike,
     sessionId: string,
     connectionDispatch: DynamicConnectionDispatch,
@@ -160,11 +160,14 @@ async function updatePgSchemaScript(
 ): Promise<void> {
     const queryResult = await queryPgAttribute(sessionId, connectionDispatch, updateId, databaseName, schemaNames, executor);
     if (queryResult == null || queryResult.numRows === 0) {
-        return;
+        throw new Error('pg_attribute returned no catalog relations');
     }
 
     const header = generateCatalogScriptHeader(CatalogSource.PgClass);
     const catalogSQL = generateCatalogSQLFromPgAttribute(queryResult, databaseName);
+    if (catalogSQL.length === 0) {
+        throw new Error('pg_attribute returned no usable catalog relations');
+    }
 
     connectionDispatch(sessionId, {
         type: CATALOG_UPDATE_SCHEMA_SCRIPT,

@@ -78,10 +78,11 @@ describe('ConnectionCommandList', () => {
         expect(commandDispatch).toHaveBeenCalledWith(2);
     });
 
-    it('shows a disabled loading indicator while refreshing', () => {
+    it('shows a disabled loading indicator without changing the label while refreshing', () => {
         const refresh = renderConnection(createConnection(7, [7]));
 
-        expect(refresh.textContent).toContain('Refreshing Catalog');
+        expect(refresh.textContent).toContain('Refresh Catalog');
+        expect(refresh.textContent).not.toContain('Refreshing Catalog');
         expect(refresh.disabled).toBe(true);
         expect(refresh.getAttribute('aria-busy')).toBe('true');
         expect(refresh.querySelector('[data-testid="status-indicator"]')).not.toBeNull();

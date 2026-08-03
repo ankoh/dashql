@@ -143,7 +143,7 @@ export async function updateInformationSchemaCatalog(
     // to the caller so we never overwrite the existing catalog script with partial data.
     const queryResult = await queryInformationSchema(sessionId, connectionDispatch, updateId, catalogName, schemaNames, executor);
     if (queryResult == null || queryResult.numRows === 0) {
-        return;
+        throw new Error('information_schema returned no catalog relations');
     }
 
     // Generate SQL from query results before touching the script so an empty
@@ -151,7 +151,7 @@ export async function updateInformationSchemaCatalog(
     const header = generateCatalogScriptHeader(CatalogSource.InformationSchema);
     const catalogSQL = generateCatalogSQLFromInformationSchema(queryResult);
     if (catalogSQL.length === 0) {
-        return;
+        throw new Error('information_schema returned no usable catalog relations');
     }
 
     // Mark loading started

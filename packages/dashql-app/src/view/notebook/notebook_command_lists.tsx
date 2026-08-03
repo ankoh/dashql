@@ -76,7 +76,7 @@ export const ConnectionCommandList: React.FC<{
                         : <SyncIcon />}
                 </ActionList.Leading>
                 <ActionList.ItemText>
-                    {isRefreshing ? 'Refreshing Catalog' : 'Refresh Catalog'}
+                    Refresh Catalog
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + R</ActionList.Trailing>
             </ActionList.ListItem>

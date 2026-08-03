@@ -179,7 +179,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                     value: [updateId, e],
                 });
             } else {
-                traced.warn("Failed to update catalog", { "session": sessionId, "error": e?.message ?? String(e) }, LOG_CTX);
+                traced.error("Failed to update catalog", { "session": sessionId, "error": e?.message ?? String(e) }, LOG_CTX);
                 connDispatch(sessionId, {
                     type: CATALOG_UPDATE_FAILED,
                     value: [updateId, e],
