@@ -118,4 +118,20 @@ TEST(ParserTest, AssociatesLeadingCommentBlocksWithStatements) {
     EXPECT_EQ(text.substr(third.statement_span.offset(), third.statement_span.length()), "select 3");
 }
 
+TEST(ParserTest, ParsesHyperQueryWithObfuscatedLiterals) {
+    constexpr std::string_view text = R"SQL(
+with source as (
+    select /*String(C5FA)*/ as value
+)
+(select count() from source where 1 > (/*Integer(4888)*/))
+limit /*Integer(FCD0)*/
+)SQL";
+
+    auto script = ParseString(text);
+
+    EXPECT_TRUE(script->errors.empty());
+    ASSERT_EQ(script->statements.size(), 1u);
+    EXPECT_EQ(script->statements.front().type, buffers::parser::StatementType::SELECT);
+}
+
 }  // namespace

@@ -199,6 +199,38 @@ TEST(ScannerTest, FindTokenAtOffset) {
     }
 }
 
+TEST(ScannerTest, ScansHyperObfuscatedLiteralsAsTypedTokens) {
+    rope::Rope buffer{128};
+    buffer.Insert(0,
+                  "select /*String(C5FA)*/, /*Integer(FCD0)*/, /*Float(5A86)*/, /*HexString(C85C)*/, "
+                  "/*BitString(8AB8)*/");
+    auto scanned = parser::Scanner::Scan(buffer, 0, 1);
+    auto parsed = parser::Parser::Parse(scanned);
+    auto packed = parsed->PackTokens();
+
+    EXPECT_EQ(packed->token_types,
+              (std::vector<ScannerToken>{ScannerToken::KEYWORD, ScannerToken::LITERAL_STRING, ScannerToken::NONE,
+                                         ScannerToken::LITERAL_INTEGER, ScannerToken::NONE,
+                                         ScannerToken::LITERAL_FLOAT, ScannerToken::NONE, ScannerToken::LITERAL_HEX,
+                                         ScannerToken::NONE, ScannerToken::LITERAL_BINARY}));
+    EXPECT_TRUE(scanned->comments.empty());
+    EXPECT_TRUE(parsed->errors.empty());
+}
+
+TEST(ScannerTest, LeavesOtherBlockCommentsUnchanged) {
+    rope::Rope buffer{128};
+    buffer.Insert(0, "select /*String(ABC)*/ /*Integer(ABCDE)*/ /*Float(abcd)*/ /*Other(1234)*/ 1");
+    auto scanned = parser::Scanner::Scan(buffer, 0, 1);
+    auto parsed = parser::Parser::Parse(scanned);
+    auto packed = parsed->PackTokens();
+
+    EXPECT_EQ(scanned->comments.size(), 4u);
+    EXPECT_EQ(packed->token_types,
+              (std::vector<ScannerToken>{ScannerToken::KEYWORD, ScannerToken::COMMENT, ScannerToken::COMMENT,
+                                         ScannerToken::COMMENT, ScannerToken::COMMENT, ScannerToken::LITERAL_INTEGER}));
+    EXPECT_TRUE(parsed->errors.empty());
+}
+
 TEST(ScannerTest, FindTokenInterleaved) {
     size_t n = 2048;
     std::stringstream ss;

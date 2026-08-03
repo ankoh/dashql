@@ -227,6 +227,14 @@ xcstart         \/\*{op_chars}*
 xcstop          \*+\/
 xcinside        [^*/]+
 
+/* Hyper replaces literals with typed block comments containing an uppercase,
+ * four-digit hexadecimal hash. Disable case folding for these exact markers. */
+hyper_obfuscated_string     (?-i:\/\*String\([0-9A-F]{4}\)\*\/)
+hyper_obfuscated_integer    (?-i:\/\*Integer\([0-9A-F]{4}\)\*\/)
+hyper_obfuscated_float      (?-i:\/\*Float\([0-9A-F]{4}\)\*\/)
+hyper_obfuscated_hex_string (?-i:\/\*HexString\([0-9A-F]{4}\)\*\/)
+hyper_obfuscated_bit_string (?-i:\/\*BitString\([0-9A-F]{4}\)\*\/)
+
 digit           [0-9]
 ident_start     [A-Za-z\200-\377_]
 ident_cont      [A-Za-z\200-\377_0-9\$]
@@ -337,6 +345,12 @@ auto& ext_depth = ctx.ext_depth;
 
 {space}+        {}
 {comment}       { ctx.AddComment(loc); } 
+
+{hyper_obfuscated_string}     { return Parser::make_SCONST(loc); }
+{hyper_obfuscated_integer}    { return Parser::make_ICONST(loc); }
+{hyper_obfuscated_float}      { return Parser::make_FCONST(loc); }
+{hyper_obfuscated_hex_string} { return Parser::make_XCONST(loc); }
+{hyper_obfuscated_bit_string} { return Parser::make_BCONST(loc); }
 
 {xcstart}       { ext_begin = loc; ++ext_depth; BEGIN(xc); }
 <xc>{xcstart}   { ext_begin = loc; ++ext_depth; }
