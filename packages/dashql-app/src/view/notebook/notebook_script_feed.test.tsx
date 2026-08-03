@@ -33,6 +33,8 @@ const mockState = vi.hoisted(() => ({
     // (the feed only shows it at >= 1000px of board width); a test can narrow it to hide the toggle.
     observedWidth: 1200,
     startAgentRun: vi.fn(),
+    cancelAgentRun: vi.fn(),
+    cancelQuery: vi.fn(),
 }));
 vi.mock('../../platform/ai_client_provider.js', () => ({ useAIClient: () => ({}) }));
 vi.mock('react-window', async () => fakeReactWindowModule(await import('react'), mockState.scrollToRowMock));
@@ -79,6 +81,7 @@ vi.mock('../../connection/query_executor.js', () => ({
         return mockState.queryStates.get(queryId) ?? null;
     },
     useQueryExecutor: () => vi.fn(),
+    useCancelQuery: () => mockState.cancelQuery,
 }));
 vi.mock('../../platform/storage/storage_provider.js', () => ({
     useStorageReader: () => ({ backend: { deleteQueryResultCache: vi.fn() } }),
@@ -91,7 +94,7 @@ vi.mock('../../agent/agent_run_provider.js', () => ({
     },
     useLatestAgentRunState: () => mockState.latestAgentRunId == null ? null : mockState.agentRuns.get(mockState.latestAgentRunId) ?? null,
     useStartAgentRun: () => mockState.startAgentRun,
-    useCancelAgentRun: () => vi.fn(),
+    useCancelAgentRun: () => mockState.cancelAgentRun,
 }));
 vi.mock('../internals/trace_log_viewer.js', async () => {
     const React = await import('react');
@@ -131,8 +134,12 @@ import {
 import { ConnectionHealth, type ConnectionState } from '../../connection/connection_state.js';
 import { NotebookScriptFeed } from './notebook_script_feed.js';
 
-function createOnlineConnection(): ConnectionState {
-    return { connectionHealth: ConnectionHealth.ONLINE } as unknown as ConnectionState;
+function createOnlineConnection(activeQueryIds: number[] = []): ConnectionState {
+    return {
+        connectionHealth: ConnectionHealth.ONLINE,
+        queriesActive: new Map(activeQueryIds.map(id => [id, {}])),
+        queriesActiveOrdered: activeQueryIds,
+    } as unknown as ConnectionState;
 }
 
 function makeScriptData(scriptKey: number, text: string, fileName: string = '', folderName: string = '') {
@@ -252,6 +259,8 @@ describe('NotebookScriptFeed', () => {
         mockState.latestAgentRunId = null;
         mockState.observedWidth = 1200;
         mockState.startAgentRun.mockReset();
+        mockState.cancelAgentRun.mockReset();
+        mockState.cancelQuery.mockReset();
         getBoundingClientRect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
             const scriptId = this.closest<HTMLElement>('[data-row-script-id]')?.dataset.rowScriptId;
             const height = scriptId === '101' ? 200 : scriptId === '102' ? 300 : 0;
@@ -422,7 +431,57 @@ describe('NotebookScriptFeed', () => {
         mockState.latestAgentRunId = 9;
         notebook.scripts[101] = { ...notebook.scripts[101], latestAgentRunId: 9 };
         renderFeed({ notebook, modifyNotebook: vi.fn(), showDetails: vi.fn() });
-        expect(container.querySelector('[aria-label="Stop agent run"]')).not.toBeNull();
+        const stop = container.querySelector('[aria-label="Stop agent run"]') as HTMLButtonElement;
+        expect(stop).not.toBeNull();
+        act(() => stop.click());
+        expect(mockState.cancelAgentRun).toHaveBeenCalledWith(notebook.sessionId);
+    });
+
+    it('uses the compose stop control to cancel a running query', () => {
+        const notebook = createNotebookState();
+        notebook.scripts[101] = { ...notebook.scripts[101], latestQueryId: 42 };
+        mockState.queryStates.set(42, { traceId: 100, status: 4 /* RUNNING */ });
+        renderFeed({
+            notebook,
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            conn: createOnlineConnection([42]),
+        });
+
+        const stop = container.querySelector('[aria-label="Stop query"]') as HTMLButtonElement;
+        expect(stop).not.toBeNull();
+        act(() => stop.click());
+        expect(mockState.cancelQuery).toHaveBeenCalledWith(notebook.sessionId, 42);
+    });
+
+    it('cancels the latest running query when the focused entry is idle', () => {
+        const notebook = createNotebookState();
+        renderFeed({
+            notebook,
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            conn: createOnlineConnection([41, 42]),
+        });
+
+        const stop = container.querySelector('[aria-label="Stop query"]') as HTMLButtonElement;
+        expect(stop).not.toBeNull();
+        act(() => stop.click());
+        expect(mockState.cancelQuery).toHaveBeenCalledWith(notebook.sessionId, 42);
+    });
+
+    it('prefers cancelling the focused query over a newer background query', () => {
+        const notebook = createNotebookState();
+        notebook.scripts[101] = { ...notebook.scripts[101], latestQueryId: 41 };
+        renderFeed({
+            notebook,
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            conn: createOnlineConnection([41, 42]),
+        });
+
+        const stop = container.querySelector('[aria-label="Stop query"]') as HTMLButtonElement;
+        act(() => stop.click());
+        expect(mockState.cancelQuery).toHaveBeenCalledWith(notebook.sessionId, 41);
     });
 
     it('dispatches PROMOTE_UNCOMMITTED_SCRIPT when Send is clicked', () => {
@@ -703,6 +762,7 @@ describe('NotebookScriptFeed', () => {
         const statusBar = container.querySelector('[aria-label^="Show log"]');
         expect(statusBar).not.toBeNull();
         expect(statusBar!.textContent).toContain('Generating a SQL query from your request');
+        expect(container.querySelector('[aria-label="Cancel agent run"]')).not.toBeNull();
         // The staged-rewrite editor is not mounted for an active run — only the compose editor is.
         expect(container.querySelectorAll('[data-testid="script-editor"]').length).toBe(1);
     });
@@ -722,6 +782,10 @@ describe('NotebookScriptFeed', () => {
         const statusBar = container.querySelector('[aria-label^="Show log"]');
         expect(statusBar).not.toBeNull();
         expect(statusBar!.textContent).toContain('Executing query');
+        const cancel = container.querySelector('[aria-label="Cancel query"]') as HTMLButtonElement;
+        expect(cancel).not.toBeNull();
+        act(() => cancel.click());
+        expect(mockState.cancelQuery).toHaveBeenCalledWith(notebook.sessionId, 42);
     });
 
     it('hides the status bar once a query succeeds', () => {

@@ -70,10 +70,20 @@ export async function computeQueryCacheKeyForConnection(
 
 /// The query executor function
 export type QueryExecutor = (sessionId: string, args: QueryExecutionArgs) => [number, Promise<arrow.Table | null>];
+export type CancelQuery = (sessionId: string, queryId: number) => void;
+interface QueryExecutionRuntime {
+    cancellation: AbortController;
+    resultStream: QueryExecutionResponseStream | null;
+}
 /// The React context to resolve the active query executor
-const EXECUTOR_CTX = React.createContext<QueryExecutor | null>(null);
+interface QueryExecutorContextValue {
+    execute: QueryExecutor;
+    cancel: CancelQuery;
+}
+const EXECUTOR_CTX = React.createContext<QueryExecutorContextValue | null>(null);
 /// The hook to resolve the query executor
-export const useQueryExecutor = () => React.useContext(EXECUTOR_CTX)!;
+export const useQueryExecutor = () => React.useContext(EXECUTOR_CTX)!.execute;
+export const useCancelQuery = () => React.useContext(EXECUTOR_CTX)!.cancel;
 /// Use the query state
 export function useQueryState(sessionId: string | null, queryId: number | null) {
     const [connReg, _connDispatch] = useConnectionState(sessionId);
@@ -93,9 +103,10 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     const [_, computeDispatch] = useComputationRegistry();
     const computeDb = useComputeDatabase();
     const storageReader = useStorageReader();
+    const queryRuntimes = React.useRef(new Map<number, QueryExecutionRuntime>());
 
     // Execute a query with pre-allocated query id
-    const executeImpl = React.useCallback(async (sessionId: string, args: QueryExecutionArgs, queryId: number): Promise<arrow.Table | null> => {
+    const executeImpl = React.useCallback(async (sessionId: string, args: QueryExecutionArgs, queryId: number, runtime: QueryExecutionRuntime): Promise<arrow.Table | null> => {
         // Start a new trace for this query execution
         const trace = createTrace();
         const traced = logger.withTrace(trace);
@@ -121,7 +132,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             queryText: args.query,
             queryMetadata: args.metadata,
             status: QueryExecutionStatus.REQUESTED,
-            cancellation: new AbortController(),
+            cancellation: runtime.cancellation,
             resultStream: null,
             error: null,
             metrics: {
@@ -260,16 +271,16 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 // Start the query
                 switch (conn.details.type) {
                     case SALESFORCE_DATA_CLOUD_CONNECTOR:
-                        resultStream = await executeSalesforceQuery(conn.details.value, args);
+                        resultStream = await executeSalesforceQuery(conn.details.value, args, initialState.cancellation.signal);
                         break;
                     case HYPER_CONNECTOR:
-                        resultStream = await executeHyperQuery(conn.details.value, args);
+                        resultStream = await executeHyperQuery(conn.details.value, args, initialState.cancellation.signal);
                         break;
                     case TRINO_CONNECTOR:
-                        resultStream = await executeTrinoQuery(conn.details.value, args);
+                        resultStream = await executeTrinoQuery(conn.details.value, args, initialState.cancellation.signal);
                         break;
                     case DATALESS_CONNECTOR:
-                        resultStream = await executeDemoQuery(conn.details.value, args);
+                        resultStream = await executeDemoQuery(conn.details.value, args, initialState.cancellation.signal);
                         break;
                 }
                 traced.debug("Received query results", {
@@ -278,6 +289,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 }, LOG_CTX);
 
                 if (resultStream != null) {
+                    runtime.resultStream = resultStream;
                     connDispatch(sessionId, {
                         type: QUERY_RUNNING,
                         value: [queryId, resultStream],
@@ -313,7 +325,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     );
 
                     // Subscribe to query_status and result messages
-                    await resultStream.produce(consumeBatches, consumeProgress);
+                    await resultStream.produce(consumeBatches, consumeProgress, initialState.cancellation.signal);
                     table = new arrow.Table(batches.length > 0 ? batches[0].schema : new arrow.Schema(), batches);
 
                     traced.info("Executed query", {
@@ -336,14 +348,17 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 }
             }
         } catch (e: any) {
-            if ((e.message === 'AbortError')) {
+            if (initialState.cancellation.signal.aborted || e?.name === 'AbortError' || e?.message === 'AbortError') {
+                const cancellationError = e instanceof LoggableException
+                    ? e
+                    : new LoggableException('Query was cancelled', {}, LOG_CTX);
                 traced.warn("Cancelled query", {
                     query: queryId.toString(),
                     session: sessionId
                 }, LOG_CTX);
                 connDispatch(sessionId, {
                     type: QUERY_CANCELLED,
-                    value: [queryId, e, resultStream?.getMetrics() ?? null],
+                    value: [queryId, cancellationError, resultStream?.getMetrics() ?? null],
                 });
             } else {
                 if (e instanceof LoggableException) {
@@ -373,12 +388,27 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 });
 
                 await analyzeTable(queryId, table!, computeDispatch, computeDb, traced, args.projection);
+                initialState.cancellation.signal.throwIfAborted();
 
                 connDispatch(sessionId, {
                     type: QUERY_PROCESSED_RESULTS,
                     value: [queryId],
                 });
             } catch (e: any) {
+                if (initialState.cancellation.signal.aborted || e?.name === 'AbortError') {
+                    const cancellationError = e instanceof LoggableException
+                        ? e
+                        : new LoggableException('Query was cancelled', {}, LOG_CTX);
+                    traced.warn("Cancelled query during result processing", {
+                        query: queryId.toString(),
+                        session: sessionId,
+                    }, LOG_CTX);
+                    connDispatch(sessionId, {
+                        type: QUERY_CANCELLED,
+                        value: [queryId, cancellationError, resultStream?.getMetrics() ?? null],
+                    });
+                    return null;
+                }
                 traced.warn("Query result processing failed", {
                     query: queryId.toString(),
                     session: sessionId,
@@ -423,12 +453,35 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     // Allocate the next query id and start the execution
     const execute = React.useCallback<QueryExecutor>((sessionId: string, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] => {
         const queryId = NEXT_QUERY_ID++;
-        const execution = executeImpl(sessionId, args, queryId);
+        const runtime: QueryExecutionRuntime = {
+            cancellation: new AbortController(),
+            resultStream: null,
+        };
+        queryRuntimes.current.set(queryId, runtime);
+        const execution = executeImpl(sessionId, args, queryId, runtime);
+        const removeRuntime = () => queryRuntimes.current.delete(queryId);
+        void execution.then(removeRuntime, removeRuntime);
         return [queryId, execution];
     }, [executeImpl]);
 
+    const cancel = React.useCallback<CancelQuery>((sessionId, queryId) => {
+        const runtime = queryRuntimes.current.get(queryId);
+        if (runtime == null) return;
+        runtime.cancellation.abort();
+        const cancellation = runtime.resultStream?.cancel?.();
+        void cancellation?.catch((e: any) => {
+            logger.warn('Failed to cancel query at the backend', {
+                query: queryId.toString(),
+                session: sessionId,
+                error: stringifyError(e),
+            }, LOG_CTX);
+        });
+    }, [logger]);
+
+    const value = React.useMemo(() => ({ execute, cancel }), [execute, cancel]);
+
     return (
-        <EXECUTOR_CTX.Provider value={execute}>
+        <EXECUTOR_CTX.Provider value={value}>
             {props.children}
         </EXECUTOR_CTX.Provider>
     );

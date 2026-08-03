@@ -66,6 +66,7 @@ class WebHyperResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<U
     metadata: Map<string, string>;
     /// Callback invoked whenever a new QueryStatus is observed.
     progressCallback: ((progress: QueryExecutionProgress) => void) | null;
+    abort: AbortSignal | undefined;
 
     constructor(httpClient: HyperDatabaseHttpClient, logger: Logger, queryId: string, initialStatus: QueryStatus, initialBytes: Uint8Array | null, parallelChunks: number) {
         this.httpClient = httpClient;
@@ -81,6 +82,7 @@ class WebHyperResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<U
         this.metrics = createQueryResponseStreamMetrics();
         this.metadata = new Map();
         this.progressCallback = null;
+        this.abort = undefined;
         if (initialBytes) {
             this.metrics.totalDataBytesReceived += initialBytes.byteLength;
         }
@@ -113,7 +115,7 @@ class WebHyperResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<U
             queryId: this.queryId,
             chunkId,
             omitSchema,
-        }).catch(rethrowAsHyperQueryError);
+        }, undefined, this.abort).catch(rethrowAsHyperQueryError);
         if (status) {
             this.status = status;
             this.emitProgress();
@@ -153,7 +155,7 @@ class WebHyperResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<U
             this.status = await this.httpClient.getQueryStatus({
                 queryId: this.queryId,
                 waitTimeMs: CHUNK_POLL_DELAY_MS,
-            }).catch(rethrowAsHyperQueryError);
+            }, this.abort).catch(rethrowAsHyperQueryError);
             this.emitProgress();
         }
     }
@@ -173,6 +175,10 @@ export class WebHyperQueryResultStream implements QueryExecutionResponseStream {
         this.resultSchema = new AsyncValue();
     }
 
+    async cancel(): Promise<void> {
+        await this.reader.httpClient.cancelQuery(this.reader.queryId);
+    }
+
     getMetadata(): Map<string, string> {
         return this.reader.metadata;
     }
@@ -187,6 +193,7 @@ export class WebHyperQueryResultStream implements QueryExecutionResponseStream {
     }
 
     async produce(batches: AsyncConsumer<QueryExecutionResponseStream, arrow.RecordBatch>, progress: AsyncConsumer<QueryExecutionResponseStream, QueryExecutionProgress>, abort?: AbortSignal): Promise<void> {
+        this.reader.abort = abort;
         this.reader.progressCallback = (update: QueryExecutionProgress) => {
             progress.resolve(this, update);
         };
@@ -280,4 +287,3 @@ export class WebHyperDatabaseClient implements HyperDatabaseClient {
         return new WebHyperDatabaseChannel(client, context, this.logger, this.parallelChunks);
     }
 }
-

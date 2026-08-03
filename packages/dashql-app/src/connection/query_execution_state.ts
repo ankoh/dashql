@@ -80,6 +80,8 @@ export interface QueryExecutionProgress {
 }
 
 export interface QueryExecutionResponseStream {
+    /// Ask the backend to stop the query, when the connector supports explicit cancellation.
+    cancel?(): Promise<void>;
     /// Get the result metadata (after completion)
     getMetadata(): Map<string, string>;
     /// Get the stream metrics
@@ -89,7 +91,7 @@ export interface QueryExecutionResponseStream {
     /// Await the schema message
     getSchema(): Promise<arrow.Schema | null>;
     /// Await the next record batch
-    produce(batches: AsyncConsumer<QueryExecutionResponseStream, arrow.RecordBatch>, progress: AsyncConsumer<QueryExecutionResponseStream, QueryExecutionProgress>): Promise<void>;
+    produce(batches: AsyncConsumer<QueryExecutionResponseStream, arrow.RecordBatch>, progress: AsyncConsumer<QueryExecutionResponseStream, QueryExecutionProgress>, abort?: AbortSignal): Promise<void>;
 }
 
 export interface QueryMetrics {

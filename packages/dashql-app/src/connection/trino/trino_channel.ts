@@ -34,9 +34,10 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
     latestQueryProgress: QueryExecutionProgress | null;
     /// The metrics
     queryMetrics: QueryExecutionMetrics;
+    endpoint: TrinoApiEndpoint;
 
     /// The constructor
-    constructor(logger: Logger, apiClient: TrinoApiClientInterface, result: TrinoQueryResult, metrics: QueryExecutionMetrics) {
+    constructor(logger: Logger, apiClient: TrinoApiClientInterface, endpoint: TrinoApiEndpoint, result: TrinoQueryResult, metrics: QueryExecutionMetrics) {
         this.logger = logger;
         this.apiClient = apiClient;
         this.currentStatus = QueryExecutionStatus.RUNNING;
@@ -47,10 +48,16 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
         this.latestQueryState = result.stats?.state ?? null;
         this.latestQueryProgress = null;
         this.queryMetrics = metrics;
+        this.endpoint = endpoint;
+    }
+
+    async cancel(): Promise<void> {
+        const queryId = this.latestQueryResult?.id;
+        if (queryId != null) await this.apiClient.cancelQuery(this.endpoint, queryId);
     }
 
     /// Fetch the next query result
-    async fetchNextQueryResult(): Promise<TrinoQueryResult | null> {
+    async fetchNextQueryResult(abort?: AbortSignal): Promise<TrinoQueryResult | null> {
         // Do we have a next URI?
         const nextUri = this.latestQueryResult?.nextUri;
         if (!nextUri) {
@@ -61,7 +68,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
         // Get the next query result
         this.queryMetrics.totalQueryRequestsStarted += 1;
         const timeBefore = (new Date()).getTime();
-        const queryResult = await this.apiClient.getQueryResult(nextUri);
+        const queryResult = await this.apiClient.getQueryResult(nextUri, abort);
         const timeAfter = (new Date()).getTime();
         this.latestQueryResult = queryResult;
         this.latestQueryStats = queryResult.stats ?? null;
@@ -125,7 +132,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
             // While still running
             while (this.latestQueryState == "QUEUED" || this.latestQueryState == "RUNNING" || this.latestQueryState == "FINISHING") {
                 // Fetch the next query result
-                const result = await this.fetchNextQueryResult();
+                const result = await this.fetchNextQueryResult(abort);
                 abort?.throwIfAborted();
 
                 // Has a data attribute?
@@ -187,7 +194,7 @@ export class TrinoChannel implements TrinoChannelInterface {
     }
 
     /// Execute Query
-    async executeQuery(param: proto.salesforce_hyperdb_grpc_v1.pb.QueryParam): Promise<TrinoQueryResultStream> {
+    async executeQuery(param: proto.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal): Promise<TrinoQueryResultStream> {
         const metrics = createQueryResponseStreamMetrics();
         const timeBefore = (new Date()).getTime();
 
@@ -195,14 +202,14 @@ export class TrinoChannel implements TrinoChannelInterface {
             this.logger.debug("Executing query", {}, LOG_CTX);
             metrics.totalQueryRequestsStarted += 1;
 
-            const result = await this.apiClient.runQuery(this.endpoint, this.catalogName, param.query);
+            const result = await this.apiClient.runQuery(this.endpoint, this.catalogName, param.query, abort);
             const timeAfter = (new Date()).getTime();
 
             metrics.totalQueryRequestsSucceeded += 1;
             metrics.totalQueryRequestDurationMs += timeAfter - timeBefore;
 
             this.logger.debug("Opened query result stream", {}, LOG_CTX);
-            const stream = new TrinoQueryResultStream(this.logger, this.apiClient, result, metrics);
+            const stream = new TrinoQueryResultStream(this.logger, this.apiClient, this.endpoint, result, metrics);
             return stream;
         } catch (e: any) {
             const timeAfter = (new Date()).getTime();

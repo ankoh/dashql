@@ -84,6 +84,24 @@ describe('WebHyperDatabaseClient', () => {
             expect(headers.get('Authorization')).toBe('Bearer test-token');
         });
 
+        it('cancels the backend query through the result stream', async () => {
+            const spy = vi.spyOn(mock, 'fetch');
+            mock.setHandler(() => ({
+                queryId: 'q-cancel',
+                completionStatus: 'RUNNING_OR_UNSPECIFIED',
+            }));
+
+            const channel = await client.connect(makeHyperArgs(), noopContext);
+            const stream = await channel.executeQuery({ query: 'select slow()' } as any);
+            await stream.cancel?.();
+
+            const cancelRequest = spy.mock.calls.find(([input, init]) => {
+                const url = input instanceof URL ? input : new URL(input.toString());
+                return init?.method === 'DELETE' && url.pathname === '/api/v3/query/q-cancel';
+            });
+            expect(cancelRequest).toBeDefined();
+        });
+
         it('forwards query parameters as request settings', async () => {
             let capturedSettings: Record<string, unknown> | undefined;
             const ctx: HyperDatabaseConnectionContext = {

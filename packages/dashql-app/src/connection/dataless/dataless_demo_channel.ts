@@ -68,8 +68,9 @@ export class DemoDatabaseChannel {
     constructor() { }
 
     /// Execute Query
-    async executeQuery(config: DemoQuerySpec, _abort?: AbortSignal): Promise<QueryExecutionResponseStream> {
+    async executeQuery(config: DemoQuerySpec, abort?: AbortSignal): Promise<QueryExecutionResponseStream> {
         const [schema, batches] = generateRandomData(config);
+        abort?.throwIfAborted();
         return new DemoQueryExecutionResponseStream(config, schema, batches);
     }
     /// Destroy the connection

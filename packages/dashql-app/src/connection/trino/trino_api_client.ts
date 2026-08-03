@@ -162,9 +162,9 @@ export interface TrinoQueryInfo {
 
 export interface TrinoApiClientInterface {
     /// Run a query
-    runQuery(endpoint: TrinoApiEndpoint, catalogName: string, text: string): Promise<TrinoQueryResult>;
+    runQuery(endpoint: TrinoApiEndpoint, catalogName: string, text: string, abort?: AbortSignal): Promise<TrinoQueryResult>;
     /// Get a query result
-    getQueryResult(nextUri: string): Promise<TrinoQueryResult>;
+    getQueryResult(nextUri: string, abort?: AbortSignal): Promise<TrinoQueryResult>;
     /// Get a query info
     getQueryInfo(endpoint: TrinoApiEndpoint, queryId: string): Promise<TrinoQueryInfo>;
     /// Cancel a query
@@ -184,7 +184,7 @@ export class TrinoApiClient implements TrinoApiClientInterface {
     }
 
     /// Run a query
-    async runQuery(endpoint: TrinoApiEndpoint, catalogName: string, text: string): Promise<TrinoQueryResult> {
+    async runQuery(endpoint: TrinoApiEndpoint, catalogName: string, text: string, abort?: AbortSignal): Promise<TrinoQueryResult> {
         this.logger.debug("Running query", { "text": text }, LOG_CTX);
         const url = new URL(`${endpoint.endpoint}/v1/statement`);
         const headers = new Headers();
@@ -193,7 +193,8 @@ export class TrinoApiClient implements TrinoApiClientInterface {
         const rawResponse = await this.httpClient.fetch(url, {
             method: 'POST',
             body: text,
-            headers
+            headers,
+            signal: abort,
         });
         if (rawResponse.status != 200) {
             throw new LoggableException(`Query failed`, {
@@ -207,13 +208,14 @@ export class TrinoApiClient implements TrinoApiClientInterface {
     }
 
     /// Get the query result batch
-    async getQueryResult(nextUri: string): Promise<TrinoQueryResult> {
+    async getQueryResult(nextUri: string, abort?: AbortSignal): Promise<TrinoQueryResult> {
         this.logger.debug("Getting query results", { "nextUri": nextUri }, LOG_CTX);
         const url = new URL(nextUri);
         const headers = new Headers();
         const rawResponse = await this.httpClient.fetch(url, {
             method: 'GET',
-            headers
+            headers,
+            signal: abort,
         });
         if (rawResponse.status != 200) {
             throw new LoggableException(`Failed to fetch query results`, {

@@ -5,6 +5,8 @@ import { EntryStatus } from './entry_status_model.js';
 import { StatusIndicator } from '../foundations/status_indicator.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
+import { ButtonVariant, IconButton } from '../foundations/button.js';
+import { SymbolIcon } from '../foundations/symbol_icon.js';
 
 interface EntryStatusBarProps {
     /// The derived status to show. When null the caller shouldn't render the bar at all.
@@ -12,6 +14,10 @@ interface EntryStatusBarProps {
     /// Reveal the underlying trace log (footer / status panel). When set, the bar becomes a
     /// clickable strip.
     onClick?: () => void;
+    /// Cancel the in-flight work represented by this status. When set, a visible Cancel button is
+    /// rendered at the right edge without making the whole bar a nested button.
+    onCancel?: () => void;
+    cancelLabel?: string;
 }
 
 /// The white-card contents of the error-detail overlay: the full error message plus a key/value
@@ -48,14 +54,13 @@ const ErrorDetailCard: React.FC<{
 /// work is in flight — an agent run or a query execution. Purely presentational; contents come from
 /// `deriveEntryStatus`. A failed query's key-values are revealed on hover over the message (see
 /// ErrorDetailOverlay).
-export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onClick }) => {
+export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onClick, onCancel, cancelLabel = 'Cancel operation' }) => {
     const [showDetail, setShowDetail] = React.useState(false);
     const hasErrorDetail = status.errorDetail != null;
+    const CancelIcon = SymbolIcon('x_16');
 
     // For a failed query the message becomes a click anchor that opens a white-card overlay with the
-    // full error text and its key-values, matching the app's other anchored overlays. Clicking the
-    // message must not also trigger the strip's onClick (which reveals the trace log), so we stop
-    // propagation on the anchor.
+    // full error text and its key-values, matching the app's other anchored overlays.
     const message = hasErrorDetail ? (
         <AnchoredOverlay
             open={showDetail}
@@ -71,8 +76,6 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onClick 
                         {...anchorProps}
                         className={styles.status_bar_message_clickable}
                         onClick={(e: React.MouseEvent<HTMLSpanElement>) => {
-                            // Don't let the click also reach the strip's onClick (which reveals the trace log).
-                            e.stopPropagation();
                             anchorProps.onClick?.(e);
                         }}
                     >
@@ -98,24 +101,34 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onClick 
         />
     );
 
-    // Clickable strip (reveals the trace log) vs. a static row.
-    if (onClick != null) {
-        return (
+    return (
+        <div className={styles.status_bar}>
+            {onClick != null ? (
             <button
                 type="button"
-                className={styles.status_bar_clickable}
+                className={styles.status_bar_log_button}
                 onClick={onClick}
                 aria-label={`Show log: ${status.message}`}
             >
                 {indicator}
                 {message}
             </button>
-        );
-    }
-    return (
-        <div className={styles.status_bar}>
-            {indicator}
-            {message}
+            ) : (
+                <div className={styles.status_bar_content}>
+                    {indicator}
+                    {message}
+                </div>
+            )}
+            {onCancel != null && (
+                <IconButton
+                    variant={ButtonVariant.Invisible}
+                    className={styles.status_bar_cancel}
+                    onClick={onCancel}
+                    aria-label={cancelLabel}
+                >
+                    <CancelIcon size={16} />
+                </IconButton>
+            )}
         </div>
     );
 };

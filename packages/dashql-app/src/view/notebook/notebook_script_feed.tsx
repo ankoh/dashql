@@ -22,7 +22,7 @@ import { AgentRunPhase, agentRunIsActive } from '../../agent/agent_run_state.js'
 import { OutputColumn } from '../../notebook/notebook_agent_context.js';
 import { createNotebookAgentHost } from '../../notebook/notebook_agent_host.js';
 import { QueryType } from '../../connection/query_execution_state.js';
-import { useQueryExecutor, useQueryState } from '../../connection/query_executor.js';
+import { useCancelQuery, useQueryExecutor, useQueryState } from '../../connection/query_executor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { ScriptEditor } from './script_editor.js';
 import { PromptEditor } from './prompt_editor.js';
@@ -35,7 +35,7 @@ import { SegmentedControl, SegmentedControlSize } from '../foundations/segmented
 import { NotebookScriptName } from './notebook_script_name.js';
 import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
 import { EntryStatusBar } from './entry_status_bar.js';
-import { deriveEntryStatus } from './entry_status_model.js';
+import { deriveEntryStatus, EntryStatusKind } from './entry_status_model.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
 import { TabKey as DetailsTabKey } from './notebook_script_details.js';
 import { NotebookPageOverview } from './notebook_page_overview.js';
@@ -134,6 +134,8 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
     const CheckIcon: Icon = SymbolIcon('check_16');
     const CrossIcon: Icon = SymbolIcon('x_16');
     const queryState = useQueryState(sessionId, scriptData?.latestQueryId ?? null);
+    const cancelQuery = useCancelQuery();
+    const cancelAgentRun = useCancelAgentRun();
 
     // Resolve the agent run by its id (handle) just like the query above — the run carries its
     // own trace id, so the footer no longer needs a denormalized trace id on ScriptData.
@@ -152,6 +154,13 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
     // query success. A staged rewrite doesn't feed the bar — its Accept/Reject controls live on the
     // body overlay — so the bar stays free to show the rewritten statement's re-execution status.
     const entryStatus = deriveEntryStatus(agentRunState, queryState);
+    const cancelEntryOperation = React.useCallback(() => {
+        if (entryStatus?.kind === EntryStatusKind.Agent) {
+            cancelAgentRun(sessionId);
+        } else if (entryStatus?.kind === EntryStatusKind.Query && scriptData?.latestQueryId != null) {
+            cancelQuery(sessionId, scriptData.latestQueryId);
+        }
+    }, [cancelAgentRun, cancelQuery, entryStatus?.kind, scriptData?.latestQueryId, sessionId]);
 
     // A monotonic nonce handed to the footer: bumped when the user clicks the status bar so the
     // footer reveals the matching trace's Log tab on demand (work no longer auto-switches it). The
@@ -338,6 +347,8 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                 <EntryStatusBar
                     status={entryStatus}
                     onClick={() => showLog(entryStatus.traceId)}
+                    onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancelEntryOperation : undefined}
+                    cancelLabel={entryStatus.kind === EntryStatusKind.Agent ? 'Cancel agent run' : 'Cancel query'}
                 />
             )}
             <div
@@ -535,8 +546,25 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const sessionId = props.notebook.sessionId;
     const startAgentRun = useStartAgentRun();
     const cancelAgentRun = useCancelAgentRun();
+    const cancelQuery = useCancelQuery();
     const agentState = useLatestAgentRunState(sessionId);
     const agentActive = agentState != null && agentRunIsActive(agentState.phase);
+    const focusedScript = getSelectedEntry(props.notebook);
+    const focusedScriptData = focusedScript != null ? props.notebook.scripts[focusedScript.scriptId] : null;
+    const focusedQueryId = focusedScriptData?.latestQueryId ?? null;
+    const focusedQueryActive = focusedQueryId != null && props.conn?.queriesActive.has(focusedQueryId);
+    const latestActiveQueryId = props.conn != null && props.conn.queriesActiveOrdered.length > 0
+        ? props.conn.queriesActiveOrdered[props.conn.queriesActiveOrdered.length - 1]
+        : null;
+    const activeQueryId = focusedQueryActive ? focusedQueryId : latestActiveQueryId;
+    const cancellableOperation = agentActive ? 'agent run' : activeQueryId != null ? 'query' : null;
+    const cancelActiveOperation = React.useCallback(() => {
+        if (agentActive) {
+            cancelAgentRun(sessionId);
+        } else if (activeQueryId != null) {
+            cancelQuery(sessionId, activeQueryId);
+        }
+    }, [activeQueryId, agentActive, cancelAgentRun, cancelQuery, sessionId]);
 
     // When the input mode changes (via Ctrl+M, the "Switch Mode" command, or the toggle in the
     // action bar) the editor instance swaps. Request that the freshly mounted editor take focus.
@@ -1215,10 +1243,9 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                                     </SegmentedControl.Button>
                                 </SegmentedControl>
                             )}
-                            {/* While an agent run is active the send button becomes a stop button
-                                that cancels it — progress is now shown in the focused card's Log tab,
-                                so there is no separate status strip anymore. */}
-                            {agentActive ? (
+                            {/* Prefer the active agent run, then the focused entry's query, then the
+                                session's most recently started query. */}
+                            {cancellableOperation != null ? (
                                 <>
                                     <StatusIndicator
                                         className={styles.compose_progress_spinner}
@@ -1231,8 +1258,8 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                                         variant={ButtonVariant.Default}
                                         size={ButtonSize.Small}
                                         className={styles.compose_send_button}
-                                        aria-label="Stop agent run"
-                                        onClick={() => cancelAgentRun(sessionId)}
+                                        aria-label={`Stop ${cancellableOperation}`}
+                                        onClick={cancelActiveOperation}
                                     >
                                         <SquareFillIcon />
                                     </IconButton>

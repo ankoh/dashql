@@ -16,11 +16,11 @@ import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { ConnectionState } from '../../connection/connection_state.js';
-import { useQueryState, useQueryExecutor } from '../../connection/query_executor.js';
-import { useAgentRunState, useLatestAgentRunState, useStartAgentRun } from '../../agent/agent_run_provider.js';
+import { useCancelQuery, useQueryState, useQueryExecutor } from '../../connection/query_executor.js';
+import { useAgentRunState, useLatestAgentRunState, useStartAgentRun, useCancelAgentRun } from '../../agent/agent_run_provider.js';
 import { agentRunIsActive } from '../../agent/agent_run_state.js';
 import { EntryStatusBar } from './entry_status_bar.js';
-import { deriveEntryStatus } from './entry_status_model.js';
+import { deriveEntryStatus, EntryStatusKind } from './entry_status_model.js';
 import { TraceLogPanel } from './trace_log_panel.js';
 import { TabHeader, useResultRowCount, formatRowCountDetail } from './tab_header.js';
 import { QueryResultCacheLabel, QueryResultRerunButton } from './query_result_cache_controls.js';
@@ -38,6 +38,7 @@ import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.j
 import { NotebookScriptName } from './notebook_script_name.js';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
 import { VisualizationDispatch } from '../visualization/visualization_dispatch.js';
+import { IndicatorStatus } from '../foundations/status_indicator.js';
 import { ColumnAggregationBar } from '../visualization/column_aggregation_bar.js';
 import { createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../editor/dashql_processor.js';
@@ -286,6 +287,8 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
 
     const activeQueryId = scriptData?.latestQueryId ?? null;
     const activeQueryState = useQueryState(props.notebook?.sessionId ?? null, activeQueryId);
+    const cancelQuery = useCancelQuery();
+    const cancelAgentRun = useCancelAgentRun();
 
     // Refresh: drop the stale cache entry for this result, then re-execute — a plain cacheable run
     // then misses the cache and re-populates it. Surfaced on the Data/Chart tab headers when the
@@ -313,6 +316,13 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     const agentTraceId = agentRunState?.traceId ?? null;
     const queryTraceId = activeQueryState?.traceId ?? null;
     const entryStatus = deriveEntryStatus(agentRunState, activeQueryState);
+    const cancelEntryOperation = React.useCallback(() => {
+        if (entryStatus?.kind === EntryStatusKind.Agent) {
+            cancelAgentRun(props.notebook.sessionId);
+        } else if (entryStatus?.kind === EntryStatusKind.Query && activeQueryId != null) {
+            cancelQuery(props.notebook.sessionId, activeQueryId);
+        }
+    }, [activeQueryId, cancelAgentRun, cancelQuery, entryStatus?.kind, props.notebook.sessionId]);
 
     // Clicking the status bar reveals the matching trace on the Status tab (bump a nonce the
     // TraceLogPanel keys off, riding along the clicked source's trace id — same contract as the feed
@@ -610,6 +620,8 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                         <EntryStatusBar
                             status={entryStatus}
                             onClick={() => showLog(entryStatus.traceId)}
+                            onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancelEntryOperation : undefined}
+                            cancelLabel={entryStatus.kind === EntryStatusKind.Agent ? 'Cancel agent run' : 'Cancel query'}
                         />
                     )}
                     <VerticalTabs

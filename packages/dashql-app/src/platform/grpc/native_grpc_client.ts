@@ -155,6 +155,15 @@ export class NativeGrpcServerStream implements AsyncIterator<NativeGrpcServerStr
                 throw new ChannelError({ message: "stream failed" }, 400, new Headers(batch.metadata));
         }
     }
+
+    public async destroy(): Promise<void> {
+        if (this.reachedEndOfStream) return;
+        this.reachedEndOfStream = true;
+        const url = new URL(this.endpoint.proxyEndpoint);
+        url.pathname = `/grpc/channel/${this.channelId}/stream/${this.streamId}`;
+        const response = await fetch(new Request(url, { method: 'DELETE' }));
+        await throwIfError(response);
+    }
 }
 
 export class NativeGrpcServerStreamMessageIterator implements AsyncIterator<Uint8Array> {

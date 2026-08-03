@@ -94,6 +94,9 @@ export class NativeHyperQueryResultStream implements QueryExecutionResponseStrea
         this.resultReader = new QueryResultReader(stream, logger);
         this.resultSchema = new AsyncValue();
     }
+    async cancel(): Promise<void> {
+        await this.resultReader.grpcStream.destroy();
+    }
 
     /// Get the metadata
     getMetadata(): Map<string, string> {
@@ -113,6 +116,8 @@ export class NativeHyperQueryResultStream implements QueryExecutionResponseStrea
     }
     /// Produce the result batches
     async produce(batches: AsyncConsumer<QueryExecutionResponseStream, arrow.RecordBatch>, _progress: AsyncConsumer<QueryExecutionResponseStream, QueryExecutionProgress>, abort?: AbortSignal): Promise<void> {
+        const cancel = () => { void this.cancel(); };
+        abort?.addEventListener('abort', cancel, { once: true });
         try {
             const arrowReader = await arrow.AsyncRecordBatchStreamReader.from(this.resultReader);
             abort?.throwIfAborted();
@@ -143,6 +148,8 @@ export class NativeHyperQueryResultStream implements QueryExecutionResponseStrea
                 }
             }
             throw e;
+        } finally {
+            abort?.removeEventListener('abort', cancel);
         }
     }
 }
@@ -163,7 +170,8 @@ class NativeHyperDatabaseChannel implements HyperDatabaseChannel {
     }
 
     /// Execute a query against Hyper
-    public async executeQuery(params: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam): Promise<HyperQueryResultStream> {
+    public async executeQuery(params: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal): Promise<HyperQueryResultStream> {
+        abort?.throwIfAborted();
         params.outputFormat = pb.salesforce_hyperdb_grpc_v1.pb.QueryParam_OutputFormat.ARROW_STREAM;
         for (const db of this.connection.getAttachedDatabases()) {
             params.database.push(buf.create(pb.salesforce_hyperdb_grpc_v1.pb.AttachedDatabaseSchema, db));
@@ -175,6 +183,10 @@ class NativeHyperDatabaseChannel implements HyperDatabaseChannel {
             path: "/salesforce.hyperdb.grpc.v1.HyperService/ExecuteQuery",
             body: buf.toBinary(pb.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, params)
         });
+        if (abort?.aborted) {
+            await stream.destroy();
+            abort.throwIfAborted();
+        }
         return new NativeHyperQueryResultStream(stream, this.connection, this.logger);
     }
 
