@@ -17,6 +17,7 @@ pub const HEADER_NAME_READ_TIMEOUT: &'static str = "dashql-read-timeout";
 pub const HEADER_NAME_BATCH_TIMEOUT: &'static str = "dashql-batch-timeout";
 pub const HEADER_NAME_BATCH_BYTES: &'static str = "dashql-batch-bytes";
 pub const HEADER_NAME_BATCH_EVENT: &'static str = "dashql-batch-event";
+pub const HEADER_NAME_RESPONSE_STARTED: &'static str = "dashql-response-started";
 pub const HEADER_NAME_BATCH_MESSAGES: &'static str = "dashql-batch-messages";
 pub const HEADER_NAME_BATCH_CHUNKS: &'static str = "dashql-batch-chunks";
 pub const HEADER_NAME_ARROW_STATUS: &'static str = "dashql-arrow-status";

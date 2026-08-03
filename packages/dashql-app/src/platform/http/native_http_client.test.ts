@@ -63,5 +63,29 @@ describe('Native HTTP client', () => {
         ]));
         await server.close();
     });
-});
 
+    it("exposes upstream response headers before reading the body", async () => {
+        const server = new TestHttpServer();
+        await server.start();
+        server.handler = async (_request, response) => {
+            response.statusCode = 202;
+            response.statusMessage = 'Accepted';
+            response.setHeader('x-hyperdb-status', JSON.stringify({ queryId: 'q-native' }));
+            response.end(Buffer.from([1, 2, 3, 4]));
+        };
+
+        const logger = new TestLogger();
+        const client = new NativeHttpClient({
+            proxyEndpoint: new URL("dashql-native://localhost")
+        }, logger);
+        const response = await client.fetch(new URL('/api/v3/query', server.endpoint!), {
+            method: 'POST',
+        });
+
+        expect(response.status).toEqual(202);
+        expect(response.statusText).toEqual('Accepted');
+        expect(response.headers.get('x-hyperdb-status')).toEqual(JSON.stringify({ queryId: 'q-native' }));
+        expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3, 4]));
+        await server.close();
+    });
+});

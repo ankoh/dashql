@@ -2,7 +2,7 @@ import { DetailedError } from '../../utils/error.js';
 import { RawProxyError } from '../channel_common.js';
 import { HttpClient, HttpFetchResult } from './http_client.js';
 import { Logger } from '../logger/logger.js';
-import { HEADER_NAME_BATCH_BYTES, HEADER_NAME_BATCH_EVENT, HEADER_NAME_BATCH_TIMEOUT, HEADER_NAME_ENDPOINT, HEADER_NAME_METHOD, HEADER_NAME_PATH, HEADER_NAME_READ_TIMEOUT, HEADER_NAME_SEARCH_PARAMS, HEADER_NAME_STREAM_ID } from '../native_proxy_headers.js';
+import { HEADER_NAME_BATCH_BYTES, HEADER_NAME_BATCH_EVENT, HEADER_NAME_BATCH_TIMEOUT, HEADER_NAME_ENDPOINT, HEADER_NAME_ERROR, HEADER_NAME_METHOD, HEADER_NAME_PATH, HEADER_NAME_READ_TIMEOUT, HEADER_NAME_RESPONSE_STARTED, HEADER_NAME_SEARCH_PARAMS, HEADER_NAME_STREAM_ID } from '../native_proxy_headers.js';
 
 export enum NativeHttpServerStreamBatchEvent {
     StreamFailed = "StreamFailed",
@@ -27,19 +27,6 @@ export class NativeHttpError extends Error implements DetailedError {
     }
 }
 
-async function throwIfError(response: Response): Promise<void> {
-    if (response.headers.get("dashql-error") ?? false) {
-        const proxyError = await response.json() as RawProxyError;
-        throw new NativeHttpError(proxyError);
-    } else if (response.status < 200 || response.status >= 300) {
-        let body: string | undefined = undefined;
-        try {
-            body = await response.text();
-        } catch (e) { }
-        throw new NativeHttpError({ message: body ?? response.statusText });
-    }
-}
-
 export class NativeHttpServerStream implements HttpFetchResult {
     /// The endpoint
     endpoint: NativeHttpProxyConfig;
@@ -57,6 +44,12 @@ export class NativeHttpServerStream implements HttpFetchResult {
     logger: Logger;
     /// The text decoder for decoding utf8
     textDecoder: TextDecoder;
+    /// Body bytes received while loading the upstream response headers
+    initialBody: ArrayBuffer | null;
+    /// Whether more response batches need to be fetched
+    fetchNext: boolean;
+    /// Proxy error deferred until the response body is consumed
+    deferredError: NativeHttpError | null;
 
     /// Constructor
     constructor(endpoint: NativeHttpProxyConfig, streamId: number | null, headers: Headers, status: number, statusText: string, initialErrorBody: RawProxyError | null, logger: Logger) {
@@ -68,6 +61,83 @@ export class NativeHttpServerStream implements HttpFetchResult {
         this.streamId = streamId;
         this.logger = logger;
         this.textDecoder = new TextDecoder();
+        this.initialBody = null;
+        this.fetchNext = streamId != null;
+        this.deferredError = null;
+    }
+
+    private updateFetchState(batchEvent: string | null): void {
+        switch (batchEvent) {
+            case NativeHttpServerStreamBatchEvent.StreamFailed:
+            case NativeHttpServerStreamBatchEvent.StreamFinished:
+            case NativeHttpServerStreamBatchEvent.FlushAfterClose:
+                this.fetchNext = false;
+                break;
+            case NativeHttpServerStreamBatchEvent.FlushAfterTimeout:
+            case NativeHttpServerStreamBatchEvent.FlushAfterBytes:
+                this.fetchNext = true;
+                break;
+        }
+    }
+
+    private async readNextBatch(): Promise<{ response: Response; buffer: ArrayBuffer }> {
+        const url = new URL(this.endpoint.proxyEndpoint);
+        url.pathname = `/http/stream/${this.streamId}`;
+        const headers = new Headers();
+        headers.set(HEADER_NAME_BATCH_BYTES, "4000000"); // 4 MB
+        headers.set(HEADER_NAME_BATCH_TIMEOUT, "1000");
+        headers.set(HEADER_NAME_READ_TIMEOUT, "10000");
+
+        const response = await fetch(new Request(url, {
+            method: 'GET',
+            headers,
+        }));
+        if (response.headers.get(HEADER_NAME_ERROR) ?? false) {
+            const proxyError = await response.json() as RawProxyError;
+            throw new NativeHttpError(proxyError);
+        }
+
+        const batchEvent = response.headers.get(HEADER_NAME_BATCH_EVENT);
+        this.logger.debug("Received fetch response", { "event": batchEvent }, "native_http_client");
+        this.updateFetchState(batchEvent);
+        return { response, buffer: await response.arrayBuffer() };
+    }
+
+    async initialize(): Promise<void> {
+        if (this.streamId == null) {
+            return;
+        }
+        const chunks = [];
+        let totalChunkBytes = 0;
+        while (this.fetchNext) {
+            let response: Response;
+            let buffer: ArrayBuffer;
+            try {
+                ({ response, buffer } = await this.readNextBatch());
+            } catch (error) {
+                if (error instanceof NativeHttpError) {
+                    this.deferredError = error;
+                    return;
+                }
+                throw error;
+            }
+            chunks.push(buffer);
+            totalChunkBytes += buffer.byteLength;
+            if (response.headers.has(HEADER_NAME_RESPONSE_STARTED)) {
+                this.headers = response.headers;
+                this.status = response.status;
+                this.statusText = response.statusText;
+                break;
+            }
+        }
+
+        const combined = new Uint8Array(totalChunkBytes);
+        let offset = 0;
+        for (const chunk of chunks) {
+            combined.set(new Uint8Array(chunk), offset);
+            offset += chunk.byteLength;
+        }
+        this.initialBody = combined.buffer;
     }
 
     async json(): Promise<any> {
@@ -94,47 +164,24 @@ export class NativeHttpServerStream implements HttpFetchResult {
 
     /// Get the response as array buffer
     async arrayBuffer(): Promise<ArrayBuffer> {
+        if (this.deferredError != null) {
+            throw this.deferredError;
+        }
         if (this.streamId == null) {
             return new ArrayBuffer(0);
         }
 
-        // Prepare request
-        const url = new URL(this.endpoint.proxyEndpoint);
-        url.pathname = `/http/stream/${this.streamId}`;
-        const headers = new Headers();
-        headers.set(HEADER_NAME_BATCH_BYTES, "4000000"); // 4 MB
-        headers.set(HEADER_NAME_BATCH_TIMEOUT, "1000");
-        headers.set(HEADER_NAME_READ_TIMEOUT, "10000");
-
         const chunks = [];
         let totalChunkBytes = 0;
+        if (this.initialBody != null) {
+            chunks.push(this.initialBody);
+            totalChunkBytes += this.initialBody.byteLength;
+            this.initialBody = null;
+        }
 
         // Fetch all the chunks
-        let fetchNext = true;
-        while (fetchNext) {
-            const request = new Request(url, {
-                method: 'GET',
-                headers,
-            });
-            const response = await fetch(request);
-            await throwIfError(response);
-
-            // Get batch event
-            const batchEvent = response.headers.get(HEADER_NAME_BATCH_EVENT);
-            this.logger.debug("Received fetch response", { "event": batchEvent }, "native_http_client")
-            switch (batchEvent) {
-                case "StreamFailed":
-                    fetchNext = false;
-                    break;
-                case "StreamFinished":
-                case "FlushAfterClose":
-                    fetchNext = false;
-                    break;
-                case "FlushAfterTimeout":
-                case "FlushAfterBytes":
-                    break;
-            }
-            const buffer = await response.arrayBuffer();
+        while (this.fetchNext) {
+            const { buffer } = await this.readNextBatch();
             chunks.push(buffer)
             totalChunkBytes += buffer.byteLength;
         }
@@ -213,14 +260,15 @@ export class NativeHttpClient implements HttpClient {
             }
             streamId = Number.parseInt(streamIdText);
 
-            return new NativeHttpServerStream(this.endpoint, streamId, response.headers, response.status, response.statusText, null, this.logger);;
+            const stream = new NativeHttpServerStream(this.endpoint, streamId, response.headers, response.status, response.statusText, null, this.logger);
+            await stream.initialize();
+            return stream;
         } else {
             let rawProxyError: any | null = null;
-            if (response.headers.get("dashql-error") ?? false) {
+            if (response.headers.get(HEADER_NAME_ERROR) ?? false) {
                 rawProxyError = await response.json() as RawProxyError;
             }
             return new NativeHttpServerStream(this.endpoint, streamId, response.headers, response.status, response.statusText, rawProxyError, this.logger);;
         }
     }
 }
-

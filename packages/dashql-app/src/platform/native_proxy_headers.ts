@@ -6,11 +6,13 @@ export const HEADER_NAME_STREAM_ID = 'dashql-stream-id';
 export const HEADER_NAME_UPLOAD_ID = 'dashql-upload-id';
 export const HEADER_NAME_BATCH_BYTES = 'dashql-batch-bytes';
 export const HEADER_NAME_BATCH_EVENT = 'dashql-batch-event';
+export const HEADER_NAME_RESPONSE_STARTED = 'dashql-response-started';
 export const HEADER_NAME_BATCH_MESSAGES = 'dashql-batch-messages';
 export const HEADER_NAME_BATCH_CHUNKS = 'dashql-batch-chunks';
 export const HEADER_NAME_READ_TIMEOUT = 'dashql-read-timeout';
 export const HEADER_NAME_BATCH_TIMEOUT = 'dashql-batch-timeout';
 export const HEADER_NAME_ARROW_STATUS = 'dashql-arrow-status';
+export const HEADER_NAME_ERROR = 'dashql-error';
 
 export const HEADER_NAME_METHOD = 'dashql-method';
 export const HEADER_NAME_ENDPOINT = 'dashql-endpoint';

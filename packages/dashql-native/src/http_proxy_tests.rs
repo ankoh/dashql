@@ -7,6 +7,7 @@ use crate::proxy_headers::HEADER_NAME_READ_TIMEOUT;
 use crate::proxy_headers::HEADER_NAME_BATCH_TIMEOUT;
 use crate::proxy_headers::HEADER_NAME_BATCH_BYTES;
 use crate::proxy_headers::HEADER_NAME_SEARCH_PARAMS;
+use crate::proxy_headers::HEADER_NAME_RESPONSE_STARTED;
 use crate::proxy_headers::HEADER_NAME_STREAM_ID;
 use crate::test::http_server_mock::spawn_http_service_mock;
 use crate::test::http_server_mock::HttpServiceMock;
@@ -67,6 +68,8 @@ async fn test_http_stream_setup() -> anyhow::Result<()> {
         .unwrap();
     let response = route_ipc_request(request).await;
     assert_eq!(response.status(), 200);
+    assert_eq!(response.headers().get(HEADER_NAME_RESPONSE_STARTED).unwrap(), "true");
+    assert_eq!(response.headers().get("dashql-test-header").unwrap(), "foo");
 
     // Delete http channel
     let request: Request<Vec<u8>> = Request::builder()
