@@ -26,6 +26,8 @@ import { CatalogFunctionsView } from './catalog_functions_view.js';
 import { ConnectionCommandList, NotebookCommandList } from './notebook_command_lists.js';
 import { NotebookScriptDetails, TabKey as DetailsTabKey } from './notebook_script_details.js';
 import { NotebookScriptFeed } from './notebook_script_feed.js';
+import { isCatalogRefreshRunning } from '../../connection/catalog_update_state.js';
+import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
 import { CatalogTab, NotebookPageTabs } from './notebook_page_tabs.js';
 
 const LOG_CTX = 'notebook_page';
@@ -260,6 +262,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
         return <div />;
     }
     const isDisconnected = conn?.connectionHealth !== ConnectionHealth.ONLINE;
+    const isRefreshing = isCatalogRefreshRunning(conn ?? null);
     // The feed sits below the catalog/details overlay and is the visible, interactive layer only
     // when neither a catalog tab nor the details view is open. While hidden it must not react to the
     // global feed key handlers (Enter/Escape/…), so this flag is threaded down to gate them.
@@ -293,11 +296,14 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                             )}
                             <IconButton
                                 variant={ButtonVariant.Default}
-                                aria-label="Refresh Schema"
-                                disabled={isDisconnected}
+                                aria-label={isRefreshing ? 'Refreshing Schema' : 'Refresh Schema'}
+                                aria-busy={isRefreshing}
+                                disabled={isDisconnected || isRefreshing || !conn?.connectorInfo.features.refreshSchemaAction}
                                 onClick={() => sessionCommand(NotebookCommandType.RefreshCatalog)}
                             >
-                                <SyncIcon />
+                                {isRefreshing
+                                    ? <StatusIndicator status={IndicatorStatus.Running} width="16px" height="16px" fill="currentColor" />
+                                    : <SyncIcon />}
                             </IconButton>
                             <IconButton
                                 variant={ButtonVariant.Default}

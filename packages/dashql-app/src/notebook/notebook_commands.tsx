@@ -15,6 +15,7 @@ import { useQueryExecutor } from '../connection/query_executor.js';
 import { useRouteContext, useRouterNavigate, CHANGE_SESSION } from '../router.js';
 import { useNotebookRegistry, useNotebookState } from './notebook_state_registry.js';
 import { useAIClient } from '../platform/ai_client_provider.js';
+import { isCatalogRefreshRunning } from '../connection/catalog_update_state.js';
 
 const LOG_CTX = "notebook_commands";
 
@@ -133,6 +134,8 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                 case NotebookCommandType.RefreshCatalog:
                     if (connection?.connectionHealth != ConnectionHealth.ONLINE) {
                         logger.warn("Cannot refresh the catalog of unhealthy connection", {}, LOG_CTX);
+                    } else if (isCatalogRefreshRunning(connection)) {
+                        logger.debug("Catalog refresh already running", { session: connection.sessionId }, LOG_CTX);
                     } else {
                         refreshCatalog(connection.sessionId, true);
                     }
@@ -232,7 +235,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                 key: 'r',
                 ctrlKey: true,
                 callback: requireConnector(c =>
-                    !c.features.executeQueryAction
+                    !c.features.refreshSchemaAction
                         ? () => commandNotImplemented(c, 'REFRESH_SCHEMA')
                         : () => commandDispatch(NotebookCommandType.RefreshCatalog),
                 ),

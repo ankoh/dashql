@@ -64,6 +64,12 @@ export interface CatalogUpdateTaskState {
     lastUpdateAt: Date | null;
 }
 
+export function isCatalogRefreshRunning(connection: ConnectionState | null): boolean {
+    if (connection == null) return false;
+    const refreshId = connection.catalogUpdates.currentFullRefresh;
+    return refreshId != null && connection.catalogUpdates.tasksRunning.has(refreshId);
+}
+
 export function reduceCatalogAction(state: ConnectionState, action: CatalogAction, storage: StorageWriter): ConnectionState {
     const now = new Date();
 

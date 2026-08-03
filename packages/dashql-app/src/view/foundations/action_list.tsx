@@ -25,6 +25,7 @@ export interface ListItemProps {
     selected?: boolean;
     'data-item'?: string;
     tabIndex?: number;
+    'aria-busy'?: boolean;
 }
 
 export const ListItem = React.forwardRef<HTMLButtonElement, ListItemProps>((props, ref) => {
@@ -41,6 +42,7 @@ export const ListItem = React.forwardRef<HTMLButtonElement, ListItemProps>((prop
             data-item={props['data-item']}
             tabIndex={props.tabIndex}
             aria-selected={props.selected}
+            aria-busy={props['aria-busy']}
         >
             {props.children}
         </button>

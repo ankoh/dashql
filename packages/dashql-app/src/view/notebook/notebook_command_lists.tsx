@@ -13,6 +13,8 @@ import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
 import { CONNECTION_HEALTH_COLORS } from '../connection/connection_status.js';
 import { useAIClient } from '../../platform/ai_client_provider.js';
+import { isCatalogRefreshRunning } from '../../connection/catalog_update_state.js';
+import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
 
 export const ConnectionCommandList: React.FC<{
     conn: ConnectionState | null;
@@ -28,6 +30,7 @@ export const ConnectionCommandList: React.FC<{
     const health = props.conn?.connectionHealth ?? 0;
     const statusColor = CONNECTION_HEALTH_COLORS[health];
     const showHealthCheck = props.conn?.connectorInfo.features.healthChecks ?? false;
+    const isRefreshing = isCatalogRefreshRunning(props.conn);
     return (
         <>
             <ActionList.ListItem
@@ -63,14 +66,17 @@ export const ConnectionCommandList: React.FC<{
                 <ActionList.Trailing>Ctrl + E</ActionList.Trailing>
             </ActionList.ListItem>
             <ActionList.ListItem
-                disabled={isDisconnected || !props.conn?.connectorInfo.features.refreshSchemaAction}
+                disabled={isDisconnected || isRefreshing || !props.conn?.connectorInfo.features.refreshSchemaAction}
+                aria-busy={isRefreshing}
                 onClick={() => notebookCommand(NotebookCommandType.RefreshCatalog)}
             >
                 <ActionList.Leading>
-                    <SyncIcon />
+                    {isRefreshing
+                        ? <StatusIndicator status={IndicatorStatus.Running} width="16px" height="16px" fill="currentColor" />
+                        : <SyncIcon />}
                 </ActionList.Leading>
                 <ActionList.ItemText>
-                    Refresh Catalog
+                    {isRefreshing ? 'Refreshing Catalog' : 'Refresh Catalog'}
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + R</ActionList.Trailing>
             </ActionList.ListItem>
