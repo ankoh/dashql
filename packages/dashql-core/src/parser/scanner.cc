@@ -35,17 +35,6 @@ void Scanner::AddComment(buffers::parser::SymbolSpan location) {
     output->comments.push_back(buffers::parser::TextSpan(location.offset(), location.length()));
 }
 
-/// Read a parameter
-Parser::symbol_type Scanner::ReadParameter(buffers::parser::SymbolSpan loc) {
-    auto text = GetInputData().substr(loc.offset(), loc.length());
-    int64_t value;
-    auto result = std::from_chars(text.data(), text.data() + text.size(), value);
-    if (result.ec == std::errc::invalid_argument) {
-        AddError(loc, "invalid parameter");
-    }
-    return Parser::make_PARAM(loc);
-}
-
 /// Read an integer
 Parser::symbol_type Scanner::ReadInteger(buffers::parser::SymbolSpan loc) {
     auto text = GetInputData().substr(loc.offset(), loc.length());

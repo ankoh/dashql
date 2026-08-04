@@ -142,7 +142,7 @@ parser-snapshots:
       statements:
         - type: SET
           ast-begin: 0
-          ast-size: 17
+          ast-size: 18
           description:
             text: "SET variab..param),\n);"
             description-begin: 0
@@ -198,6 +198,9 @@ parser-snapshots:
                                         type: OBJECT_SQL_PARAMETER_REF
                                         text: "$someparam"
                                         children:
+                                          - key: SQL_PARAMETER_PREFIX
+                                            type: OPERATOR
+                                            text: "$"
                                           - key: SQL_PARAMETER_NAME
                                             type: ARRAY
                                             text: "someparam"

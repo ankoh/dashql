@@ -311,9 +311,6 @@ real            ({integer}|{decimal})[Ee][-+]?{digit}+
 realfail1       ({integer}|{decimal})[Ee]
 realfail2       ({integer}|{decimal})[Ee][-+]
 
-param           \${integer}
-param2          \?{integer}
-
 other           .
 
 /*
@@ -557,8 +554,6 @@ auto& ext_depth = ctx.ext_depth;
                     return Parser::make_Op(loc);
                 }
 
-{param}         { return ctx.ReadParameter(loc); }
-{param2}        { return ctx.ReadParameter(loc); }
 {integer}       { return ctx.ReadInteger(loc); }
 {decimal}       { return Parser::make_FCONST(loc); }
 {decimalfail}   { yyless(yyleng - 2); return Parser::make_FCONST(loc); }

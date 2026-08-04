@@ -536,6 +536,7 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_CONST_CAST_FUNC_NAME:
         case AttributeKey::SQL_COLUMN_CONSTRAINT_COLLATE:
         case AttributeKey::SQL_TABLEREF_NAME:
+        case AttributeKey::SQL_PARAMETER_NAME:
         case AttributeKey::SQL_TABLE_CONSTRAINT_REFERENCES_NAME:
         case AttributeKey::SQL_COLUMN_REF_PATH:
             return FormatQualifiedName(node);
@@ -767,6 +768,17 @@ FmtReg Formatter::FormatIntervalType(const buffers::parser::Node& node) {
         parts.push_back(fmt.Parenthesized(Reg(*precision)));
     }
     return fmt.Concat(std::move(parts));
+}
+
+FmtReg Formatter::FormatConstTypeCast(const buffers::parser::Node& node) {
+    auto [type, value] =
+        GetAttributes<AttributeKey::SQL_CONST_CAST_TYPE, AttributeKey::SQL_CONST_CAST_VALUE>(node);
+    if (!type || !value) return FormatUnimplemented(node);
+
+    auto type_reg = Reg(*type);
+    auto value_reg = Reg(*value);
+    if (type_reg == 0 || value_reg == 0) return FormatUnimplemented(node);
+    return fmt.Concat({type_reg, fmt.Text(" "), value_reg});
 }
 
 FmtReg Formatter::FormatConstIntervalCast(const buffers::parser::Node& node) {
@@ -1035,6 +1047,26 @@ FmtReg Formatter::FormatColumnRef(const buffers::parser::Node& node) {
     auto [path] = GetAttributes<AttributeKey::SQL_COLUMN_REF_PATH>(node);
     if (path) return Reg(*path);
     return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatParameterRef(const buffers::parser::Node& node) {
+    auto [prefix, name] =
+        GetAttributes<AttributeKey::SQL_PARAMETER_PREFIX, AttributeKey::SQL_PARAMETER_NAME>(node);
+    if (!prefix || !name) return FormatUnimplemented(node);
+
+    auto prefix_reg = Reg(*prefix);
+    auto name_reg = Reg(*name);
+    if (prefix_reg == 0 || name_reg == 0) return FormatUnimplemented(node);
+    return fmt.Concat({prefix_reg, name_reg});
+}
+
+FmtReg Formatter::FormatRelationExpression(const buffers::parser::Node& node) {
+    auto [name] = GetAttributes<AttributeKey::SQL_TABLEREF_NAME>(node);
+    if (!name) return FormatUnimplemented(node);
+
+    auto name_reg = Reg(*name);
+    if (name_reg == 0) return FormatUnimplemented(node);
+    return fmt.Concat({fmt.Text("table"), fmt.Parenthesized(name_reg)});
 }
 
 FmtReg Formatter::FormatColumnDef(const buffers::parser::Node& node) {
@@ -2000,6 +2032,10 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatTimestampType(node);
         case NodeType::OBJECT_SQL_COLUMN_REF:
             return FormatColumnRef(node);
+        case NodeType::OBJECT_SQL_PARAMETER_REF:
+            return FormatParameterRef(node);
+        case NodeType::OBJECT_SQL_RELATION_EXPR:
+            return FormatRelationExpression(node);
         case NodeType::OBJECT_SQL_SELECT_EXPRESSION:
             return FormatSelectExpression(node);
         case NodeType::OBJECT_SQL_RESULT_TARGET:
@@ -2050,6 +2086,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatWindowFrame(node);
         case NodeType::OBJECT_SQL_FUNCTION_ARG:
             return FormatFunctionArg(node);
+        case NodeType::OBJECT_SQL_CONST_TYPE_CAST:
+            return FormatConstTypeCast(node);
         case NodeType::OBJECT_SQL_CONST_INTERVAL_CAST:
             return FormatConstIntervalCast(node);
         case NodeType::OBJECT_SQL_CONST_FUNCTION_CAST:
@@ -2082,6 +2120,7 @@ FmtReg Formatter::FormatNode(size_t node_id) {
         case NodeType::LITERAL_STRING:
         case NodeType::LITERAL_INTERVAL:
         case NodeType::BOOL:
+        case NodeType::OPERATOR:
         case NodeType::NAME:
             return FormatLeaf(node);
         default:

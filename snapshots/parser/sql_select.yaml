@@ -2621,7 +2621,7 @@ parser-snapshots:
                         text: "b"
         - type: SELECT
           ast-begin: 8
-          ast-size: 23
+          ast-size: 24
           description:
             text: "select c f..c = $a + 1"
             description-begin: 0
@@ -2693,6 +2693,9 @@ parser-snapshots:
                               - type: OBJECT_SQL_PARAMETER_REF
                                 text: "$a"
                                 children:
+                                  - key: SQL_PARAMETER_PREFIX
+                                    type: OPERATOR
+                                    text: "$"
                                   - key: SQL_PARAMETER_NAME
                                     type: ARRAY
                                     text: "a"
@@ -2714,7 +2717,7 @@ parser-snapshots:
       statements:
         - type: SELECT
           ast-begin: 0
-          ast-size: 41
+          ast-size: 42
           description:
             text: "select * i..h = $month"
             description-begin: 0
@@ -2841,6 +2844,9 @@ parser-snapshots:
                               - type: OBJECT_SQL_PARAMETER_REF
                                 text: "$month"
                                 children:
+                                  - key: SQL_PARAMETER_PREFIX
+                                    type: OPERATOR
+                                    text: "$"
                                   - key: SQL_PARAMETER_NAME
                                     type: ARRAY
                                     text: "month"
@@ -3022,6 +3028,635 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks: []
+      comments: []
+
+  - name: select_functable_table_argument
+    input: |-
+      select * from hybrid_search(TABLE("search_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION") as v;
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 27
+          description:
+            text: "select * f..ON\") as v;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f..ION\") as v"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from hybri..ION\") as v"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "hybrid_sea..ION\") as v"
+                    children:
+                      - key: SQL_TABLEREF_ALIAS
+                        type: NAME
+                        text: "v"
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_FUNCTION_TABLE
+                        text: "hybrid_sea..PRESSION\")"
+                        children:
+                          - key: SQL_FUNCTION_TABLE_FUNCTION
+                            type: OBJECT_SQL_FUNCTION_EXPRESSION
+                            text: "hybrid_sea..PRESSION\")"
+                            children:
+                              - key: SQL_FUNCTION_NAME
+                                type: ARRAY
+                                text: "hybrid_search"
+                                children:
+                                  - type: NAME
+                                    text: "hybrid_search"
+                              - key: SQL_FUNCTION_ARGUMENTS
+                                type: ARRAY
+                                text: "TABLE(\"sea..XPRESSION\""
+                                children:
+                                  - type: OBJECT_SQL_FUNCTION_ARG
+                                    text: "TABLE(\"sea..dex__dlm\")"
+                                    children:
+                                      - key: SQL_FUNCTION_ARG_VALUE
+                                        type: OBJECT_SQL_RELATION_EXPR
+                                        text: "TABLE(\"sea..dex__dlm\")"
+                                        children:
+                                          - key: SQL_TABLEREF_NAME
+                                            type: ARRAY
+                                            text: "\"search_index__dlm\""
+                                            children:
+                                              - type: NAME
+                                                text: "\"search_index__dlm\""
+                                  - type: OBJECT_SQL_FUNCTION_ARG
+                                    text: ":\"_SEARCH_STRING\""
+                                    children:
+                                      - key: SQL_FUNCTION_ARG_VALUE
+                                        type: OBJECT_SQL_PARAMETER_REF
+                                        text: ":\"_SEARCH_STRING\""
+                                        children:
+                                          - key: SQL_PARAMETER_PREFIX
+                                            type: OPERATOR
+                                            text: ":"
+                                          - key: SQL_PARAMETER_NAME
+                                            type: ARRAY
+                                            text: "\"_SEARCH_STRING\""
+                                            children:
+                                              - type: NAME
+                                                text: "\"_SEARCH_STRING\""
+                                  - type: OBJECT_SQL_FUNCTION_ARG
+                                    text: ":\"_PREFILT..XPRESSION\""
+                                    children:
+                                      - key: SQL_FUNCTION_ARG_VALUE
+                                        type: OBJECT_SQL_PARAMETER_REF
+                                        text: ":\"_PREFILT..XPRESSION\""
+                                        children:
+                                          - key: SQL_PARAMETER_PREFIX
+                                            type: OPERATOR
+                                            text: ":"
+                                          - key: SQL_PARAMETER_NAME
+                                            type: ARRAY
+                                            text: "\"_PREFILTE..XPRESSION\""
+                                            children:
+                                              - type: NAME
+                                                text: "\"_PREFILTE..XPRESSION\""
+                          - key: SQL_FUNCTION_TABLE_WITH_ORDINALITY
+                            type: BOOL
+                            value: 0
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: select_functable_table_argument_full_query
+    input: |-
+      SELECT
+          "v"."hybrid_score__c" AS "Score",
+          "c"."Chunk__c" AS "Chunk",
+          "c"."SourceRecordId__c" AS "SourceRecordId",
+          "c"."RecordId__c" AS "RecordId",
+          "c"."DataSource__c" AS "DataSource",
+          "c"."DataSourceObject__c" AS "DataSourceObject"
+      FROM
+          hybrid_search(
+              TABLE("KnowledgeArticle_index__dlm"),
+                  :"_SEARCH_STRING",
+                  :"_PREFILTER_EXPRESSION",
+                  /*Integer(EED3)*/
+          ) AS "v"
+              INNER JOIN "KnowledgeArticle_chunk__dlm" AS "c" ON "c"."RecordId__c" = "v"."RecordId__c"
+              INNER JOIN "ssot__KnowledgeArticleVersion__dlm" AS "kav" ON "c"."SourceRecordId__c" = "kav"."ssot__Id__c"
+              AND "c"."SourceRecordId__c" IN (
+                  SELECT DISTINCT "kds"."ParentId__c"
+                  FROM "DataCategorySelectionCustom__dlm" AS "kds"
+                  WHERE ARRAY_CONTAINS(:"CATEGORY_IDS", "kds"."DataCategoryId__c")
+              )
+      ORDER BY "Score" DESC
+          LIMIT /*Integer(7776)*/
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 146
+          description:
+            text: "SELECT\n   ..er(7776)*/"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT\n   ..er(7776)*/"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "\"v\".\"hybri..rceObject\""
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "\"v\".\"hybri..AS \"Score\""
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "\"v\".\"hybri.._score__c\""
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "\"v\".\"hybri.._score__c\""
+                            children:
+                              - type: NAME
+                                text: "\"v\""
+                              - type: NAME
+                                text: "\"hybrid_score__c\""
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "\"Score\""
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "\"c\".\"Chunk..AS \"Chunk\""
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "\"c\".\"Chunk__c\""
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "\"c\".\"Chunk__c\""
+                            children:
+                              - type: NAME
+                                text: "\"c\""
+                              - type: NAME
+                                text: "\"Chunk__c\""
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "\"Chunk\""
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "\"c\".\"Sourc..eRecordId\""
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "\"c\".\"Sourc..cordId__c\""
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "\"c\".\"Sourc..cordId__c\""
+                            children:
+                              - type: NAME
+                                text: "\"c\""
+                              - type: NAME
+                                text: "\"SourceRecordId__c\""
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "\"SourceRecordId\""
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "\"c\".\"Recor..\"RecordId\""
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "\"c\".\"RecordId__c\""
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "\"c\".\"RecordId__c\""
+                            children:
+                              - type: NAME
+                                text: "\"c\""
+                              - type: NAME
+                                text: "\"RecordId__c\""
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "\"RecordId\""
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "\"c\".\"DataS..ataSource\""
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "\"c\".\"DataSource__c\""
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "\"c\".\"DataSource__c\""
+                            children:
+                              - type: NAME
+                                text: "\"c\""
+                              - type: NAME
+                                text: "\"DataSource__c\""
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "\"DataSource\""
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "\"c\".\"DataS..rceObject\""
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "\"c\".\"DataS..Object__c\""
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "\"c\".\"DataS..Object__c\""
+                            children:
+                              - type: NAME
+                                text: "\"c\""
+                              - type: NAME
+                                text: "\"DataSourc..Object__c\""
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "\"DataSourceObject\""
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM\n    h..\n        )"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "hybrid_sea..\n        )"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: "hybrid_sea..\n        )"
+                        children:
+                          - key: SQL_JOIN_ON
+                            type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "\"c\".\"Sourc..\n        )"
+                            children:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: AND
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "\"c\".\"Sourc..\n        )"
+                                children:
+                                  - type: OBJECT_SQL_NARY_EXPRESSION
+                                    text: "\"c\".\"Sourc..ot__Id__c\""
+                                    children:
+                                      - key: SQL_EXPRESSION_OPERATOR
+                                        type: ENUM_SQL_EXPRESSION_OPERATOR
+                                        value: EQUAL
+                                      - key: SQL_EXPRESSION_ARGS
+                                        type: ARRAY
+                                        text: "\"c\".\"Sourc..ot__Id__c\""
+                                        children:
+                                          - type: OBJECT_SQL_COLUMN_REF
+                                            text: "\"c\".\"Sourc..cordId__c\""
+                                            children:
+                                              - key: SQL_COLUMN_REF_PATH
+                                                type: ARRAY
+                                                text: "\"c\".\"Sourc..cordId__c\""
+                                                children:
+                                                  - type: NAME
+                                                    text: "\"c\""
+                                                  - type: NAME
+                                                    text: "\"SourceRecordId__c\""
+                                          - type: OBJECT_SQL_COLUMN_REF
+                                            text: "\"kav\".\"ssot__Id__c\""
+                                            children:
+                                              - key: SQL_COLUMN_REF_PATH
+                                                type: ARRAY
+                                                text: "\"kav\".\"ssot__Id__c\""
+                                                children:
+                                                  - type: NAME
+                                                    text: "\"kav\""
+                                                  - type: NAME
+                                                    text: "\"ssot__Id__c\""
+                                  - type: OBJECT_SQL_NARY_EXPRESSION
+                                    text: "\"c\".\"Sourc..\n        )"
+                                    children:
+                                      - key: SQL_EXPRESSION_OPERATOR
+                                        type: ENUM_SQL_EXPRESSION_OPERATOR
+                                        value: IN
+                                      - key: SQL_EXPRESSION_ARGS
+                                        type: ARRAY
+                                        text: "\"c\".\"Sourc..\n        )"
+                                        children:
+                                          - type: OBJECT_SQL_COLUMN_REF
+                                            text: "\"c\".\"Sourc..cordId__c\""
+                                            children:
+                                              - key: SQL_COLUMN_REF_PATH
+                                                type: ARRAY
+                                                text: "\"c\".\"Sourc..cordId__c\""
+                                                children:
+                                                  - type: NAME
+                                                    text: "\"c\""
+                                                  - type: NAME
+                                                    text: "\"SourceRecordId__c\""
+                                          - type: OBJECT_SQL_SELECT_EXPRESSION
+                                            text: "(\n        ..\n        )"
+                                            children:
+                                              - key: SQL_SELECT_EXPRESSION_STATEMENT
+                                                type: OBJECT_SQL_SELECT
+                                                text: "(\n        ..\n        )"
+                                                children:
+                                                  - key: SQL_SELECT_DISTINCT
+                                                    type: ARRAY
+                                                    text: "DISTINCT"
+                                                    children: []
+                                                  - key: SQL_SELECT_TARGETS
+                                                    type: ARRAY
+                                                    text: "\"kds\".\"ParentId__c\""
+                                                    children:
+                                                      - type: OBJECT_SQL_RESULT_TARGET
+                                                        text: "\"kds\".\"ParentId__c\""
+                                                        children:
+                                                          - key: SQL_RESULT_TARGET_VALUE
+                                                            type: OBJECT_SQL_COLUMN_REF
+                                                            text: "\"kds\".\"ParentId__c\""
+                                                            children:
+                                                              - key: SQL_COLUMN_REF_PATH
+                                                                type: ARRAY
+                                                                text: "\"kds\".\"ParentId__c\""
+                                                                children:
+                                                                  - type: NAME
+                                                                    text: "\"kds\""
+                                                                  - type: NAME
+                                                                    text: "\"ParentId__c\""
+                                                  - key: SQL_SELECT_FROM
+                                                    type: ARRAY
+                                                    text: "FROM \"Data..\" AS \"kds\""
+                                                    children:
+                                                      - type: OBJECT_SQL_TABLEREF
+                                                        text: "\"DataCateg..\" AS \"kds\""
+                                                        children:
+                                                          - key: SQL_TABLEREF_NAME
+                                                            type: ARRAY
+                                                            text: "\"DataCateg..stom__dlm\""
+                                                            children:
+                                                              - type: NAME
+                                                                text: "\"DataCateg..stom__dlm\""
+                                                          - key: SQL_TABLEREF_ALIAS
+                                                            type: NAME
+                                                            text: "\"kds\""
+                                                  - key: SQL_SELECT_WHERE
+                                                    type: OBJECT_SQL_FUNCTION_EXPRESSION
+                                                    text: "ARRAY_CONT..oryId__c\")"
+                                                    children:
+                                                      - key: SQL_FUNCTION_NAME
+                                                        type: ARRAY
+                                                        text: "ARRAY_CONTAINS"
+                                                        children:
+                                                          - type: NAME
+                                                            text: "ARRAY_CONTAINS"
+                                                      - key: SQL_FUNCTION_ARGUMENTS
+                                                        type: ARRAY
+                                                        text: ":\"CATEGORY..goryId__c\""
+                                                        children:
+                                                          - type: OBJECT_SQL_FUNCTION_ARG
+                                                            text: ":\"CATEGORY_IDS\""
+                                                            children:
+                                                              - key: SQL_FUNCTION_ARG_VALUE
+                                                                type: OBJECT_SQL_PARAMETER_REF
+                                                                text: ":\"CATEGORY_IDS\""
+                                                                children:
+                                                                  - key: SQL_PARAMETER_PREFIX
+                                                                    type: OPERATOR
+                                                                    text: ":"
+                                                                  - key: SQL_PARAMETER_NAME
+                                                                    type: ARRAY
+                                                                    text: "\"CATEGORY_IDS\""
+                                                                    children:
+                                                                      - type: NAME
+                                                                        text: "\"CATEGORY_IDS\""
+                                                          - type: OBJECT_SQL_FUNCTION_ARG
+                                                            text: "\"kds\".\"Dat..goryId__c\""
+                                                            children:
+                                                              - key: SQL_FUNCTION_ARG_VALUE
+                                                                type: OBJECT_SQL_COLUMN_REF
+                                                                text: "\"kds\".\"Dat..goryId__c\""
+                                                                children:
+                                                                  - key: SQL_COLUMN_REF_PATH
+                                                                    type: ARRAY
+                                                                    text: "\"kds\".\"Dat..goryId__c\""
+                                                                    children:
+                                                                      - type: NAME
+                                                                        text: "\"kds\""
+                                                                      - type: NAME
+                                                                        text: "\"DataCategoryId__c\""
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: INNER
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: "hybrid_sea..\n        )"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "hybrid_sea..cordId__c\""
+                                children:
+                                  - key: SQL_TABLEREF_TABLE
+                                    type: OBJECT_SQL_JOINED_TABLE
+                                    text: "hybrid_sea..cordId__c\""
+                                    children:
+                                      - key: SQL_JOIN_ON
+                                        type: OBJECT_SQL_NARY_EXPRESSION
+                                        text: "\"c\".\"Recor..cordId__c\""
+                                        children:
+                                          - key: SQL_EXPRESSION_OPERATOR
+                                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                                            value: EQUAL
+                                          - key: SQL_EXPRESSION_ARGS
+                                            type: ARRAY
+                                            text: "\"c\".\"Recor..cordId__c\""
+                                            children:
+                                              - type: OBJECT_SQL_COLUMN_REF
+                                                text: "\"c\".\"RecordId__c\""
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "\"c\".\"RecordId__c\""
+                                                    children:
+                                                      - type: NAME
+                                                        text: "\"c\""
+                                                      - type: NAME
+                                                        text: "\"RecordId__c\""
+                                              - type: OBJECT_SQL_COLUMN_REF
+                                                text: "\"v\".\"RecordId__c\""
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "\"v\".\"RecordId__c\""
+                                                    children:
+                                                      - type: NAME
+                                                        text: "\"v\""
+                                                      - type: NAME
+                                                        text: "\"RecordId__c\""
+                                      - key: SQL_JOIN_TYPE
+                                        type: ENUM_SQL_JOIN_TYPE
+                                        value: INNER
+                                      - key: SQL_JOIN_INPUT
+                                        type: ARRAY
+                                        text: "hybrid_sea..cordId__c\""
+                                        children:
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "hybrid_sea..  ) AS \"v\""
+                                            children:
+                                              - key: SQL_TABLEREF_ALIAS
+                                                type: NAME
+                                                text: "\"v\""
+                                              - key: SQL_TABLEREF_TABLE
+                                                type: OBJECT_SQL_FUNCTION_TABLE
+                                                text: "hybrid_sea..3)*/\n    )"
+                                                children:
+                                                  - key: SQL_FUNCTION_TABLE_FUNCTION
+                                                    type: OBJECT_SQL_FUNCTION_EXPRESSION
+                                                    text: "hybrid_sea..3)*/\n    )"
+                                                    children:
+                                                      - key: SQL_FUNCTION_NAME
+                                                        type: ARRAY
+                                                        text: "hybrid_search"
+                                                        children:
+                                                          - type: NAME
+                                                            text: "hybrid_search"
+                                                      - key: SQL_FUNCTION_ARGUMENTS
+                                                        type: ARRAY
+                                                        text: "TABLE(\"Kno..er(EED3)*/"
+                                                        children:
+                                                          - type: OBJECT_SQL_FUNCTION_ARG
+                                                            text: "TABLE(\"Kno..dex__dlm\")"
+                                                            children:
+                                                              - key: SQL_FUNCTION_ARG_VALUE
+                                                                type: OBJECT_SQL_RELATION_EXPR
+                                                                text: "TABLE(\"Kno..dex__dlm\")"
+                                                                children:
+                                                                  - key: SQL_TABLEREF_NAME
+                                                                    type: ARRAY
+                                                                    text: "\"Knowledge..ndex__dlm\""
+                                                                    children:
+                                                                      - type: NAME
+                                                                        text: "\"Knowledge..ndex__dlm\""
+                                                          - type: OBJECT_SQL_FUNCTION_ARG
+                                                            text: ":\"_SEARCH_STRING\""
+                                                            children:
+                                                              - key: SQL_FUNCTION_ARG_VALUE
+                                                                type: OBJECT_SQL_PARAMETER_REF
+                                                                text: ":\"_SEARCH_STRING\""
+                                                                children:
+                                                                  - key: SQL_PARAMETER_PREFIX
+                                                                    type: OPERATOR
+                                                                    text: ":"
+                                                                  - key: SQL_PARAMETER_NAME
+                                                                    type: ARRAY
+                                                                    text: "\"_SEARCH_STRING\""
+                                                                    children:
+                                                                      - type: NAME
+                                                                        text: "\"_SEARCH_STRING\""
+                                                          - type: OBJECT_SQL_FUNCTION_ARG
+                                                            text: ":\"_PREFILT..XPRESSION\""
+                                                            children:
+                                                              - key: SQL_FUNCTION_ARG_VALUE
+                                                                type: OBJECT_SQL_PARAMETER_REF
+                                                                text: ":\"_PREFILT..XPRESSION\""
+                                                                children:
+                                                                  - key: SQL_PARAMETER_PREFIX
+                                                                    type: OPERATOR
+                                                                    text: ":"
+                                                                  - key: SQL_PARAMETER_NAME
+                                                                    type: ARRAY
+                                                                    text: "\"_PREFILTE..XPRESSION\""
+                                                                    children:
+                                                                      - type: NAME
+                                                                        text: "\"_PREFILTE..XPRESSION\""
+                                                          - type: OBJECT_SQL_FUNCTION_ARG
+                                                            text: "/*Integer(EED3)*/"
+                                                            children:
+                                                              - key: SQL_FUNCTION_ARG_VALUE
+                                                                type: LITERAL_INTEGER
+                                                                text: "/*Integer(EED3)*/"
+                                                  - key: SQL_FUNCTION_TABLE_WITH_ORDINALITY
+                                                    type: BOOL
+                                                    value: 0
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "\"Knowledge..lm\" AS \"c\""
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "\"Knowledge..hunk__dlm\""
+                                                children:
+                                                  - type: NAME
+                                                    text: "\"Knowledge..hunk__dlm\""
+                                              - key: SQL_TABLEREF_ALIAS
+                                                type: NAME
+                                                text: "\"c\""
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "\"ssot__Kno..\" AS \"kav\""
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "\"ssot__Kno..sion__dlm\""
+                                    children:
+                                      - type: NAME
+                                        text: "\"ssot__Kno..sion__dlm\""
+                                  - key: SQL_TABLEREF_ALIAS
+                                    type: NAME
+                                    text: "\"kav\""
+              - key: SQL_SELECT_LIMIT
+                type: LITERAL_INTEGER
+                text: "/*Integer(7776)*/"
+              - key: SQL_SELECT_ORDER
+                type: ARRAY
+                text: "ORDER BY \"..core\" DESC"
+                children:
+                  - type: OBJECT_SQL_ORDER
+                    text: "\"Score\" DESC"
+                    children:
+                      - key: SQL_ORDER_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "\"Score\""
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "\"Score\""
+                            children:
+                              - type: NAME
+                                text: "\"Score\""
+                      - key: SQL_ORDER_DIRECTION
+                        type: ENUM_SQL_ORDER_DIRECTION
+                        value: DESCENDING
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [6,7]
+        - text: [44,45]
+        - text: [75,76]
+        - text: [124,125]
+        - text: [161,162]
+        - text: [202,203]
+        - text: [254,255]
+        - text: [259,260]
+        - text: [278,279]
+        - text: [324,325]
+        - text: [355,356]
+        - text: [393,394]
+        - text: [423,424]
+        - text: [436,437]
+        - text: [533,534]
+        - text: [647,648]
+        - text: [688,689]
+        - text: [736,737]
+        - text: [797,798]
+        - text: [874,875]
+        - text: [884,885]
+        - text: [906,907]
       comments: []
 
   - name: select_funcconst_1
@@ -4730,7 +5365,7 @@ parser-snapshots:
       statements:
         - type: SELECT
           ast-begin: 0
-          ast-size: 7
+          ast-size: 11
           description:
             text: "select $1 from c"
             description-begin: 0
@@ -4741,27 +5376,38 @@ parser-snapshots:
             children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
-                text: "$1 from c"
+                text: "$1"
                 children:
                   - type: OBJECT_SQL_RESULT_TARGET
-                    text: "$1 from c"
+                    text: "$1"
                     children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: OBJECT_SQL_PARAMETER_REF
-                        text: "$1 from"
+                        text: "$1"
                         children:
+                          - key: SQL_PARAMETER_PREFIX
+                            type: OPERATOR
+                            text: "$"
                           - key: SQL_PARAMETER_NAME
                             type: ARRAY
-                            text: "from"
+                            text: "1"
                             children:
                               - type: NAME
-                                text: "from"
-                      - key: SQL_RESULT_TARGET_NAME
-                        type: NAME
+                                text: "1"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from c"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "c"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
                         text: "c"
-      scanner-errors:
-        - message: invalid parameter
-          text: "$1"
+                        children:
+                          - type: NAME
+                            text: "c"
+      scanner-errors: []
       parser-errors: []
       line-breaks: []
       comments: []

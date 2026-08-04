@@ -559,6 +559,27 @@ formatter-snapshots:
             expected: |-
               select date '2021-01-10';
 
+  - name: expr_const_type_cast_timestamp
+    input: |-
+      select * from test where date_trunc('day', event_timestamp) = timestamp '2026-07-29 00:00:00'
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from test where date_trunc('day', event_timestamp) = timestamp '2026-07-29 00:00:00';
+          - mode: compact
+            expected: |-
+              select * from test where date_trunc('day', event_timestamp) = timestamp '2026-07-29 00:00:00';
+          - mode: pretty
+            expected: |-
+              select *
+              from test
+              where date_trunc('day', event_timestamp) = timestamp '2026-07-29 00:00:00';
+        validation:
+          setup: |-
+            create table test (event_timestamp timestamp);
+
   - name: expr_const_function_cast_args
     input: |-
       select somefunc(1, 2) 'foo'

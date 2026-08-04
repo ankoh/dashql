@@ -43,7 +43,6 @@ class Scanner {
     /// Read a parameter
     std::string_view GetInputData() const { return {input_data.data(), input_data.size()}; };
     /// Read a parameter
-    Parser::symbol_type ReadParameter(buffers::parser::SymbolSpan loc);
     /// Read an integer
     Parser::symbol_type ReadInteger(buffers::parser::SymbolSpan loc);
     /// Read an identifier

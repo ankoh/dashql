@@ -184,6 +184,39 @@ formatter-snapshots:
     dialects:
       duckdb:
 
+  - name: tableref_function_table_relation_argument
+    input: select * from hybrid_search(TABLE("search_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION") as v
+    dialects:
+      duckdb:
+
+  - name: tableref_function_table_relation_argument_full_query
+    input: |-
+      SELECT
+          "v"."hybrid_score__c" AS "Score",
+          "c"."Chunk__c" AS "Chunk",
+          "c"."SourceRecordId__c" AS "SourceRecordId",
+          "c"."RecordId__c" AS "RecordId",
+          "c"."DataSource__c" AS "DataSource",
+          "c"."DataSourceObject__c" AS "DataSourceObject"
+      FROM
+          hybrid_search(
+              TABLE("KnowledgeArticle_index__dlm"),
+                  :"_SEARCH_STRING",
+                  :"_PREFILTER_EXPRESSION",
+                  /*Integer(EED3)*/
+          ) AS "v"
+              INNER JOIN "KnowledgeArticle_chunk__dlm" AS "c" ON "c"."RecordId__c" = "v"."RecordId__c"
+              INNER JOIN "ssot__KnowledgeArticleVersion__dlm" AS "kav" ON "c"."SourceRecordId__c" = "kav"."ssot__Id__c"
+              AND "c"."SourceRecordId__c" IN (
+                  SELECT DISTINCT "kds"."ParentId__c"
+                  FROM "DataCategorySelectionCustom__dlm" AS "kds"
+                  WHERE ARRAY_CONTAINS(:"CATEGORY_IDS", "kds"."DataCategoryId__c")
+              )
+      ORDER BY "Score" DESC
+          LIMIT /*Integer(7776)*/
+    dialects:
+      duckdb:
+
   - name: tableref_function_table_ordinality
     input: select * from generate_series(1, 10) with ordinality t(x, n)
     dialects:

@@ -69,6 +69,7 @@ struct Formatter {
     FmtReg FormatTypeName(const buffers::parser::Node& node);
     FmtReg FormatIntervalType(const buffers::parser::Node& node);
     FmtReg FormatIntervalTypeEnum(const buffers::parser::Node& node);
+    FmtReg FormatConstTypeCast(const buffers::parser::Node& node);
     FmtReg FormatConstIntervalCast(const buffers::parser::Node& node);
     FmtReg FormatConstFunctionCast(const buffers::parser::Node& node);
     FmtReg FormatNumericType(const buffers::parser::Node& node);
@@ -78,6 +79,8 @@ struct Formatter {
     FmtReg FormatGenericType(const buffers::parser::Node& node);
     FmtReg FormatTimestampType(const buffers::parser::Node& node);
     FmtReg FormatColumnRef(const buffers::parser::Node& node);
+    FmtReg FormatParameterRef(const buffers::parser::Node& node);
+    FmtReg FormatRelationExpression(const buffers::parser::Node& node);
     FmtReg FormatSelectExpression(const buffers::parser::Node& node);
     FmtReg FormatColumnDef(const buffers::parser::Node& node);
     FmtReg FormatTableConstraintType(const buffers::parser::Node& node);

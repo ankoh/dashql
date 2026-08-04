@@ -211,6 +211,36 @@ parser-snapshots:
   - name: select_functable
     input: |
       select * from somefunc('somearg') foo;
+  # Parse Data Cloud TABLE relation and named bind arguments
+  - name: select_functable_table_argument
+    input: |
+      select * from hybrid_search(TABLE("search_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION") as v;
+  # Parse Data Cloud hybrid search query with joins and a subquery
+  - name: select_functable_table_argument_full_query
+    input: |-
+      SELECT
+          "v"."hybrid_score__c" AS "Score",
+          "c"."Chunk__c" AS "Chunk",
+          "c"."SourceRecordId__c" AS "SourceRecordId",
+          "c"."RecordId__c" AS "RecordId",
+          "c"."DataSource__c" AS "DataSource",
+          "c"."DataSourceObject__c" AS "DataSourceObject"
+      FROM
+          hybrid_search(
+              TABLE("KnowledgeArticle_index__dlm"),
+                  :"_SEARCH_STRING",
+                  :"_PREFILTER_EXPRESSION",
+                  /*Integer(EED3)*/
+          ) AS "v"
+              INNER JOIN "KnowledgeArticle_chunk__dlm" AS "c" ON "c"."RecordId__c" = "v"."RecordId__c"
+              INNER JOIN "ssot__KnowledgeArticleVersion__dlm" AS "kav" ON "c"."SourceRecordId__c" = "kav"."ssot__Id__c"
+              AND "c"."SourceRecordId__c" IN (
+                  SELECT DISTINCT "kds"."ParentId__c"
+                  FROM "DataCategorySelectionCustom__dlm" AS "kds"
+                  WHERE ARRAY_CONTAINS(:"CATEGORY_IDS", "kds"."DataCategoryId__c")
+              )
+      ORDER BY "Score" DESC
+          LIMIT /*Integer(7776)*/
   # Parse function call with constant argument (no parens around constant)
   - name: select_funcconst_1
     input: |

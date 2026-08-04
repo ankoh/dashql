@@ -1398,17 +1398,32 @@ sql_b_expr:
 sql_param_ref:
   DOLLAR sql_attr_name {
       $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_PARAMETER_REF, {
+          Attr(Key::SQL_PARAMETER_PREFIX, Operator(@1)),
           Attr(Key::SQL_PARAMETER_NAME, ctx.Array(@2, {$2})),
       });
   }
   | QUESTION_MARK sql_attr_name {
       $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_PARAMETER_REF, {
+          Attr(Key::SQL_PARAMETER_PREFIX, Operator(@1)),
           Attr(Key::SQL_PARAMETER_NAME, ctx.Array(@2, {$2})),
       });
   }
-  | PARAM sql_attr_name {
+  | COLON sql_attr_name {
       $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_PARAMETER_REF, {
+          Attr(Key::SQL_PARAMETER_PREFIX, Operator(@1)),
           Attr(Key::SQL_PARAMETER_NAME, ctx.Array(@2, {$2})),
+      });
+  }
+  | DOLLAR ICONST {
+      $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_PARAMETER_REF, {
+          Attr(Key::SQL_PARAMETER_PREFIX, Operator(@1)),
+          Attr(Key::SQL_PARAMETER_NAME, ctx.Array(@2, {ctx.NameFromStringLiteral(@2)})),
+      });
+  }
+  | QUESTION_MARK ICONST {
+      $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_PARAMETER_REF, {
+          Attr(Key::SQL_PARAMETER_PREFIX, Operator(@1)),
+          Attr(Key::SQL_PARAMETER_NAME, ctx.Array(@2, {ctx.NameFromStringLiteral(@2)})),
       });
   };
 
@@ -1874,6 +1889,14 @@ sql_func_arg_expr:
     sql_a_expr {
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_FUNCTION_ARG, {
             Attr(Key::SQL_FUNCTION_ARG_VALUE, ctx.Expression(std::move($1))),
+        });
+    }
+  | TABLE LRB sql_qualified_name RRB {
+        auto relation = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_RELATION_EXPR, {
+            Attr(Key::SQL_TABLEREF_NAME, std::move($3)),
+        });
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_FUNCTION_ARG, {
+            Attr(Key::SQL_FUNCTION_ARG_VALUE, std::move(relation)),
         });
     }
   | sql_param_name COLON_EQUALS sql_a_expr {
