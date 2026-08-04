@@ -174,8 +174,15 @@ export class StorageWriter {
     statisticsSubscribers: Set<StorageWriteStatisticsSubscriber>;
     /// Is the writer paused? While paused, debounced timers don't process tasks.
     paused: boolean;
+    /// Sessions temporarily held by external reload/conflict handling.
+    pausedSessions: Set<string>;
     /// The executions that are currently in flight (used by flush() to await completion).
     inFlight: Set<Promise<void>>;
+    /// Last content known to have been persisted by this writer, keyed by storage-relative path.
+    completedFileContents: Map<string, string | null>;
+    /// Monotonic scheduled-write generation per key, used to revalidate destructive prompts.
+    writeKeyGenerations: Map<string, number>;
+    nextWriteGeneration: number;
 
     constructor(logger: Logger, backend: StorageBackend) {
         this.logger = logger;
@@ -184,7 +191,11 @@ export class StorageWriter {
         this.statistics = Immutable.Map();
         this.statisticsSubscribers = new Set();
         this.paused = false;
+        this.pausedSessions = new Set();
         this.inFlight = new Set();
+        this.completedFileContents = new Map();
+        this.writeKeyGenerations = new Map();
+        this.nextWriteGeneration = 1;
     }
 
     /// Pause the writer.
@@ -204,6 +215,9 @@ export class StorageWriter {
         }
         this.paused = false;
         for (const [key, task] of this.pendingTasks) {
+            if ([...this.pausedSessions].some(sessionId => storageWriteKeyBelongsToSession(key, sessionId))) {
+                continue;
+            }
             task.timer = setTimeout(() => this.processTask(key), task.debounceDurationMs);
         }
     }
@@ -220,7 +234,7 @@ export class StorageWriter {
             if (task) {
                 clearTimeout(task.timer);
             }
-            await this.processTask(key);
+            await this.processTask(key, true);
         }
         this.paused = wasPaused;
         // Await any executions that were already in flight (e.g. a timer that fired just before).
@@ -232,6 +246,68 @@ export class StorageWriter {
     public getStatistics(): StorageWriteStatisticsMap {
         return this.statistics;
     }
+
+    public pauseSession(sessionId: string): void {
+        this.pausedSessions.add(sessionId);
+        for (const [key, task] of this.pendingTasks) {
+            if (storageWriteKeyBelongsToSession(key, sessionId)) {
+                clearTimeout(task.timer);
+            }
+        }
+    }
+
+    public resumeSession(sessionId: string): void {
+        if (!this.pausedSessions.delete(sessionId) || this.paused) {
+            return;
+        }
+        for (const [key, task] of this.pendingTasks) {
+            if (storageWriteKeyBelongsToSession(key, sessionId)) {
+                task.timer = setTimeout(() => this.processTask(key), task.debounceDurationMs);
+            }
+        }
+    }
+
+    /// Pending write keys below a session path. This is intentionally path-based: every writer key
+    /// is rooted at the session id, including the delete/rename action namespaces.
+    public getPendingKeysForSession(sessionId: string, include: (key: string) => boolean = () => true): string[] {
+        return [...this.pendingTasks.keys()].filter(key => storageWriteKeyBelongsToSession(key, sessionId) && include(key));
+    }
+
+    /// Discard pending writes for a session, resolving their promises as not executed. Used only
+    /// after the user explicitly chooses an externally-written disk version over local debounced
+    /// edits. Writes already in flight cannot be cancelled and are handled by settle().
+    public cancelPendingWritesForSession(sessionId: string, include: (key: string) => boolean = () => true): void {
+        for (const [key, task] of this.pendingTasks) {
+            if (!storageWriteKeyBelongsToSession(key, sessionId) || !include(key)) {
+                continue;
+            }
+            clearTimeout(task.timer);
+            this.pendingTasks.delete(key);
+            task.resolveLatestTask(false);
+        }
+    }
+
+    /// Wait for writes that have already started without flushing pending debounced work.
+    public async settle(): Promise<void> {
+        while (this.inFlight.size > 0) {
+            await Promise.all([...this.inFlight]);
+        }
+    }
+
+    public getSessionWriteGeneration(sessionId: string, include: (key: string) => boolean = () => true): number {
+        let generation = 0;
+        for (const [key, value] of this.writeKeyGenerations) {
+            if (storageWriteKeyBelongsToSession(key, sessionId) && include(key)) {
+                generation = Math.max(generation, value);
+            }
+        }
+        return generation;
+    }
+
+    public getCompletedFileContent(path: string): string | null | undefined {
+        return this.completedFileContents.get(path);
+    }
+
     public subscribeStatisticsListener(listener: StorageWriteStatisticsSubscriber) {
         this.statisticsSubscribers.add(listener);
 
@@ -241,6 +317,7 @@ export class StorageWriter {
     }
 
     public async write(key: string, task: StorageWriteTaskVariant, debounceFor: number = 0): Promise<boolean> {
+        this.writeKeyGenerations.set(key, this.nextWriteGeneration++);
         // Is there a previous task with the same key?
         const prevTask = this.pendingTasks.get(key);
         let scheduledAt: Date;
@@ -272,13 +349,13 @@ export class StorageWriter {
         return await taskPromise;
     }
 
-    protected async processTask(key: string) {
+    protected async processTask(key: string, force: boolean = false) {
         const task = this.pendingTasks.get(key);
         if (!task) {
             return;
         }
         // If a timer fires while paused, leave the task pending - it'll be re-armed on resume().
-        if (this.paused) {
+        if (!force && (this.paused || [...this.pausedSessions].some(sessionId => storageWriteKeyBelongsToSession(key, sessionId)))) {
             return;
         }
         this.pendingTasks.delete(key);
@@ -402,6 +479,7 @@ export class StorageWriter {
                 const writeDuration = timeAfter.getTime() - timeBefore.getTime();
                 const actualPath = `${sessionPath}/dashql-session.json`;
                 this.registerWrite(actualPath, JSON.stringify(connData).length, writeDuration);
+                this.completedFileContents.set(actualPath, JSON.stringify(connData, null, 2));
                 break;
             }
             case WRITE_SESSION_CATALOG_SCRIPT: {
@@ -420,6 +498,7 @@ export class StorageWriter {
                 const writeDuration = timeAfter.getTime() - timeBefore.getTime();
                 const actualPath = `${sessionPath}/dashql-relations.sql`;
                 this.registerWrite(actualPath, schemaSQL.length, writeDuration);
+                this.completedFileContents.set(actualPath, schemaSQL);
                 break;
             }
             case WRITE_SESSION_FUNCTION_SCRIPT: {
@@ -437,6 +516,7 @@ export class StorageWriter {
                 const writeDuration = timeAfter.getTime() - timeBefore.getTime();
                 const actualPath = `${sessionPath}/dashql-functions.sql`;
                 this.registerWrite(actualPath, functionsSQL.length, writeDuration);
+                this.completedFileContents.set(actualPath, functionsSQL);
                 break;
             }
             case REPLACE_NOTEBOOK: {
@@ -462,6 +542,7 @@ export class StorageWriter {
                             await this.backend.saveNotebookScript(sessionPath, folderName, pageScript.fileName, sql);
                             const t1 = new Date();
                             this.registerWrite(`${sessionPath}/notebook/${folderName}/${pageScript.fileName}`, sql.length, t1.getTime() - t0.getTime());
+                            this.completedFileContents.set(`${sessionPath}/notebook/${folderName}/${pageScript.fileName}`, sql);
                         }
                     }
                 }
@@ -474,6 +555,7 @@ export class StorageWriter {
                     await this.backend.saveNotebookScriptDraft(sessionPath, composerSql);
                     const t1 = new Date();
                     this.registerWrite(`${sessionPath}/notebook/dashql-draft.sql`, composerSql.length, t1.getTime() - t0.getTime());
+                    this.completedFileContents.set(`${sessionPath}/notebook/dashql-draft.sql`, composerSql);
                 }
 
                 // Save session last so it never references content that doesn't exist yet.
@@ -510,6 +592,7 @@ export class StorageWriter {
                 await this.backend.saveSessionManifest(sessionPath, connData);
                 const sessionTimeAfter = new Date();
                 this.registerWrite(`${sessionPath}/dashql-session.json`, JSON.stringify(connData).length, sessionTimeAfter.getTime() - sessionTimeBefore.getTime());
+                this.completedFileContents.set(`${sessionPath}/dashql-session.json`, JSON.stringify(connData, null, 2));
 
                 break;
             }
@@ -528,6 +611,7 @@ export class StorageWriter {
                 const actualPath = `${sessionPath}/notebook/${folderName}/${fileName}`;
                 const timeAfter = new Date();
                 this.registerWrite(actualPath, sql.length, timeAfter.getTime() - timeBefore.getTime());
+                this.completedFileContents.set(actualPath, sql);
                 break;
             }
             case WRITE_NOTEBOOK_DRAFT: {
@@ -543,6 +627,7 @@ export class StorageWriter {
                 const actualPath = `${sessionPath}/notebook/dashql-draft.sql`;
                 const timeAfter = new Date();
                 this.registerWrite(actualPath, sql.length, timeAfter.getTime() - timeBefore.getTime());
+                this.completedFileContents.set(actualPath, sql);
                 break;
             }
             case DELETE_SESSION:
@@ -551,6 +636,11 @@ export class StorageWriter {
                     sessionPath: task.value
                 }, LOG_CTX);
                 await this.backend.deleteSession(task.value);
+                for (const path of this.completedFileContents.keys()) {
+                    if (storageWriteKeyBelongsToSession(path, task.value)) {
+                        this.completedFileContents.set(path, null);
+                    }
+                }
                 break;
             case DELETE_NOTEBOOK:
                 // Deleting notebook means deleting the session (1:1 relationship)
@@ -573,6 +663,7 @@ export class StorageWriter {
                     await this.backend.saveNotebookScript(sessionPath, pageName, script.fileName, script.sql);
                     const t1 = new Date();
                     this.registerWrite(`${sessionPath}/notebook/${pageName}/${script.fileName}`, script.sql.length, t1.getTime() - t0.getTime());
+                    this.completedFileContents.set(`${sessionPath}/notebook/${pageName}/${script.fileName}`, script.sql);
                 }
                 break;
             }
@@ -584,6 +675,11 @@ export class StorageWriter {
                     pageName,
                 }, LOG_CTX);
                 await this.backend.deleteNotebookPage(sessionPath, pageName);
+                for (const path of this.completedFileContents.keys()) {
+                    if (path.startsWith(`${sessionPath}/notebook/${pageName}/`)) {
+                        this.completedFileContents.set(path, null);
+                    }
+                }
                 break;
             }
             case RENAME_NOTEBOOK_PAGE: {
@@ -595,6 +691,14 @@ export class StorageWriter {
                     newPageName,
                 }, LOG_CTX);
                 await this.backend.renameNotebookPage(sessionPath, oldPageName, newPageName);
+                const oldPrefix = `${sessionPath}/notebook/${oldPageName}/`;
+                const newPrefix = `${sessionPath}/notebook/${newPageName}/`;
+                for (const [path, content] of [...this.completedFileContents]) {
+                    if (path.startsWith(oldPrefix)) {
+                        this.completedFileContents.set(path, null);
+                        this.completedFileContents.set(`${newPrefix}${path.slice(oldPrefix.length)}`, content);
+                    }
+                }
                 break;
             }
             case DELETE_NOTEBOOK_SCRIPT: {
@@ -606,6 +710,7 @@ export class StorageWriter {
                     scriptName,
                 }, LOG_CTX);
                 await this.backend.deleteNotebookScript(sessionPath, pageName, scriptName);
+                this.completedFileContents.set(`${sessionPath}/notebook/${pageName}/${scriptName}`, null);
                 break;
             }
             case RENAME_NOTEBOOK_SCRIPT: {
@@ -618,6 +723,13 @@ export class StorageWriter {
                     newScriptName,
                 }, LOG_CTX);
                 await this.backend.renameNotebookScript(sessionPath, pageName, oldScriptName, newScriptName);
+                const oldPath = `${sessionPath}/notebook/${pageName}/${oldScriptName}`;
+                const newPath = `${sessionPath}/notebook/${pageName}/${newScriptName}`;
+                const content = this.completedFileContents.get(oldPath);
+                this.completedFileContents.set(oldPath, null);
+                if (content !== undefined) {
+                    this.completedFileContents.set(newPath, content);
+                }
                 break;
             }
         }

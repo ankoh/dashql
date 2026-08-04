@@ -160,6 +160,108 @@ describe('storage write key session scoping', () => {
     });
 });
 
+describe('StorageWriter session coordination', () => {
+    const SID = 'a0000000-0000-4000-8000-000000000001';
+
+    it('holds and resumes debounced writes for one session', async () => {
+        vi.useFakeTimers();
+        try {
+            const backend = new CallLogBackend();
+            const writer = new StorageWriter(logger, backend);
+            writer.pauseSession(SID);
+            const result = writer.write(
+                groupScriptWrites(SID, 'page', '1.sql'),
+                { type: WRITE_NOTEBOOK_SCRIPT, value: [SID, 'page', '1.sql', 'SELECT 1'] },
+                10,
+            );
+
+            await vi.advanceTimersByTimeAsync(20);
+            expect(backend.calls).toEqual([]);
+            expect(writer.getPendingKeysForSession(SID)).toHaveLength(1);
+
+            writer.resumeSession(SID);
+            await vi.advanceTimersByTimeAsync(20);
+            await expect(result).resolves.toBe(true);
+            expect(backend.calls).toEqual(['write:page/1.sql=SELECT 1']);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('cancels only the selected session pending writes', async () => {
+        vi.useFakeTimers();
+        try {
+            const backend = new CallLogBackend();
+            const writer = new StorageWriter(logger, backend);
+            const other = 'b0000000-0000-4000-8000-000000000002';
+            writer.pauseSession(SID);
+            writer.pauseSession(other);
+            const cancelled = writer.write(
+                groupScriptWrites(SID, 'page', '1.sql'),
+                { type: WRITE_NOTEBOOK_SCRIPT, value: [SID, 'page', '1.sql', 'SELECT 1'] },
+                10,
+            );
+            const retained = writer.write(
+                groupScriptWrites(other, 'page', '2.sql'),
+                { type: WRITE_NOTEBOOK_SCRIPT, value: [other, 'page', '2.sql', 'SELECT 2'] },
+                10,
+            );
+
+            writer.cancelPendingWritesForSession(SID);
+            await expect(cancelled).resolves.toBe(false);
+            expect(writer.getPendingKeysForSession(SID)).toEqual([]);
+            expect(writer.getPendingKeysForSession(other)).toHaveLength(1);
+
+            writer.resumeSession(other);
+            await vi.advanceTimersByTimeAsync(20);
+            await expect(retained).resolves.toBe(true);
+            expect(backend.calls).toEqual(['write:page/2.sql=SELECT 2']);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('flushes session-paused writes when an outer lifecycle requires a full drain', async () => {
+        const backend = new CallLogBackend();
+        const writer = new StorageWriter(logger, backend);
+        writer.pauseSession(SID);
+        const result = writer.write(
+            groupScriptWrites(SID, 'page', '1.sql'),
+            { type: WRITE_NOTEBOOK_SCRIPT, value: [SID, 'page', '1.sql', 'SELECT 1'] },
+            10_000,
+        );
+
+        await writer.flush();
+        await expect(result).resolves.toBe(true);
+        expect(writer.getPendingKeysForSession(SID)).toEqual([]);
+        expect(backend.calls).toEqual(['write:page/1.sql=SELECT 1']);
+    });
+
+    it('can cancel notebook writes without dropping an unrelated manifest write', async () => {
+        const backend = new CountingBackend();
+        const writer = new StorageWriter(logger, backend);
+        writer.pauseSession(SID);
+        const connection = makeConnection(SID);
+        const manifest = writer.write(
+            groupSessionWrites(SID),
+            { type: WRITE_SESSION_MANIFEST, value: [SID, connection] },
+            10_000,
+        );
+        const notebook = writer.write(
+            groupScriptWrites(SID, 'page', '1.sql'),
+            { type: WRITE_NOTEBOOK_SCRIPT, value: [SID, 'page', '1.sql', 'SELECT 1'] },
+            10_000,
+        );
+
+        writer.cancelPendingWritesForSession(SID, key => key.includes('/notebook/'));
+        await expect(notebook).resolves.toBe(false);
+        expect(writer.getPendingKeysForSession(SID)).toEqual([groupSessionWrites(SID)]);
+        writer.resumeSession(SID);
+        await writer.flush();
+        await expect(manifest).resolves.toBe(true);
+    });
+});
+
 function makeConnection(sessionId: string): ConnectionState {
     return { ...createDatalessConnectionState(dql!, new Map()), sessionId };
 }

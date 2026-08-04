@@ -5,7 +5,7 @@ import * as arrow from 'apache-arrow';
 
 import { HyperConnectorAction, reduceHyperConnectorState } from './hyper/hyper_connection_state.js';
 import { SalesforceConnectionStateAction, reduceSalesforceConnectionState } from './salesforce/salesforce_connection_state.js';
-import { CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
+import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
 import { generateCatalogScriptHeader, CatalogSource } from './catalog_sql_generator.js';
 import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
 import { VariantKind } from '../utils/variant.js';
@@ -591,6 +591,65 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
         queriesFinished: new Map(),
         queriesFinishedOrdered: [],
     };
+}
+
+/// Apply catalog files read from storage without scheduling a persistence write. The connection
+/// object and catalog remain alive, so active channels, query history and consumers keep stable
+/// references while notebook scripts are subsequently re-analyzed against the refreshed catalog.
+export function replaceConnectionCatalogFromStorage(
+    state: ConnectionState,
+    schemaSql: string | null,
+    functionsSql: string | null,
+): boolean {
+    let changed = false;
+    const replace = (script: core.DashQLScript, sql: string | null, emptyText: () => string) => {
+        const text = sql ?? emptyText();
+        if (sql == null && catalogScriptHasNoStatements(script.toString())) {
+            return;
+        }
+        if (script.toString() === text) {
+            return;
+        }
+        try {
+            state.catalog.dropScript(script);
+        } catch {
+            // The script may not be loaded yet.
+        }
+        script.replaceText(text);
+        if (text.trim().length > 0) {
+            script.analyze();
+            state.catalog.loadScript(script, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+        }
+        changed = true;
+    };
+    replace(state.catalogRelationScript, schemaSql, () => generateCatalogScriptHeader(CatalogSource.Unknown));
+    replace(state.catalogFunctionScript, functionsSql, () => generateFunctionScriptHeader(CatalogSource.Unknown));
+    if (changed) {
+        state.catalogUpdates.restoredAt = new Date();
+    }
+    return changed;
+}
+
+/// Generated empty catalog files contain only comments and whitespace. Treat those as equivalent to
+/// an absent file so unrelated notebook watcher events do not report a false external catalog edit.
+export function connectionCatalogMatchesStorage(
+    state: ConnectionState,
+    schemaSql: string | null,
+    functionsSql: string | null,
+): boolean {
+    const matches = (script: core.DashQLScript, sql: string | null) => sql == null
+        ? catalogScriptHasNoStatements(script.toString())
+        : script.toString() === sql;
+    return matches(state.catalogRelationScript, schemaSql)
+        && matches(state.catalogFunctionScript, functionsSql);
+}
+
+export function catalogFileMatchesStorage(script: core.DashQLScript, sql: string | null): boolean {
+    return sql == null ? catalogScriptHasNoStatements(script.toString()) : script.toString() === sql;
+}
+
+function catalogScriptHasNoStatements(sql: string): boolean {
+    return sql.split('\n').every(line => line.trim() === '' || line.trimStart().startsWith('--'));
 }
 
 export function computeConnectionSignature(state: ConnectionState, hasher: Hasher) {

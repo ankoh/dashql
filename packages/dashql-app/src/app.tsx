@@ -43,6 +43,7 @@ import { getGlobalLogger, LoggerProvider } from './platform/logger/logger_provid
 import { stringifyError } from './platform/logger/logger.js';
 import { DuckDBProvider } from './platform/duckdb/duckdb_provider.js';
 import { isDebugBuild } from './globals.js';
+import { NativeSessionSync } from './platform/storage/native_session_sync_react.js';
 
 import './../static/fonts/fonts.css';
 import './colors.css';
@@ -62,6 +63,7 @@ const NotebookProviders = (props: { children: React.ReactElement }) => (
                         <ComputationScheduler />
                         <QueryExecutorProvider>
                             <NotebookStateRegistry>
+                                <NativeSessionSync />
                                 <CatalogLoaderProvider>
                                     <AgentRunProvider>
                                         <NotebookCommands>

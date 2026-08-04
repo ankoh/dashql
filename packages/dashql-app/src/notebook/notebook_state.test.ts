@@ -32,6 +32,8 @@ import {
     getSelectedPageEntries,
     getSortedFileNames,
     getSortedFolderNames,
+    notebookMatchesStorageSnapshot,
+    replaceNotebookFromStorage,
 } from './notebook_state.js';
 import { createDatalessConnectorInfo } from '../connection/connector_info.js';
 import { StorageWriter, StorageWriteTaskVariant, WRITE_NOTEBOOK_SCRIPT, DELETE_NOTEBOOK_SCRIPT, RENAME_NOTEBOOK_PAGE, RENAME_NOTEBOOK_SCRIPT, CREATE_NOTEBOOK_PAGE, DELETE_NOTEBOOK_PAGE } from "../platform/storage/storage_writer.js";
@@ -133,6 +135,56 @@ function buildState(): NotebookState {
         semanticUserFocus: null,
     };
 }
+
+describe('external storage replacement', () => {
+    it('detects page-only structural changes', () => {
+        const state = buildState();
+        const fileName = state.notebookUserFocus.fileName;
+        expect(notebookMatchesStorageSnapshot(state, {
+            pages: [{ name: 'Renamed', scripts: [{ name: fileName, sql: '' }] }],
+            draft: null,
+        })).toBe(false);
+        destroyState(state);
+        state.connectionCatalog.destroy();
+    });
+
+    it('reuses same-path scripts and replaces added, removed, and changed content', () => {
+        const state = buildState();
+        const oldFile = state.notebookUserFocus.fileName;
+        const retained = state.scripts[state.notebookPages[MAIN_FOLDER].scripts[oldFile].scriptId];
+        retained.script.replaceText('SELECT 1');
+
+        const next = replaceNotebookFromStorage(state, {
+            pages: [{
+                name: MAIN_FOLDER,
+                scripts: [
+                    { name: oldFile, sql: 'SELECT 2' },
+                    { name: '2_added.sql', sql: 'SELECT 3' },
+                ],
+            }],
+            draft: 'SELECT 4',
+        }, logger);
+
+        const retainedAfter = next.scripts[next.notebookPages[MAIN_FOLDER].scripts[oldFile].scriptId];
+        expect(retainedAfter.script.ptr).toBe(retained.script.ptr);
+        expect(retainedAfter.script.toString()).toBe('SELECT 2');
+        expect(next.scripts[next.notebookPages[MAIN_FOLDER].scripts['2_added.sql'].scriptId].script.toString()).toBe('SELECT 3');
+        expect(next.scripts[next.uncommittedScriptId].script.toString()).toBe('SELECT 4');
+        expect(notebookMatchesStorageSnapshot(next, {
+            pages: [{
+                name: MAIN_FOLDER,
+                scripts: [
+                    { name: oldFile, sql: 'SELECT 2' },
+                    { name: '2_added.sql', sql: 'SELECT 3' },
+                ],
+            }],
+            draft: 'SELECT 4',
+        })).toBe(true);
+
+        destroyState(next);
+        next.connectionCatalog.destroy();
+    });
+});
 
 function reduce(state: NotebookState, action: Parameters<typeof reduceNotebookState>[1]): NotebookState {
     return reduceNotebookState(state, action, storage, logger, true);

@@ -63,6 +63,46 @@ export interface NotebookState {
     semanticUserFocus: SemanticUserFocus | null;
 }
 
+/// Storage-shaped notebook content used when an external filesystem change replaces the persisted
+/// notebook. Keeping this type here prevents the native watcher from knowing about WASM lifetime
+/// and catalog invariants.
+export interface NotebookStorageSnapshot {
+    pages: Array<{
+        name: string;
+        scripts: Array<{ name: string; sql: string }>;
+    }>;
+    draft: string | null;
+}
+
+export function notebookMatchesStorageSnapshot(state: NotebookState, snapshot: NotebookStorageSnapshot): boolean {
+    const diskPages = new Set(snapshot.pages.map(page => page.name));
+    const memoryPages = new Set(Object.keys(state.notebookPages));
+    // "Untitled" is virtual when the disk has no pages, matching startup restoration.
+    if (diskPages.size === 0 && memoryPages.size === 1 && memoryPages.has('Untitled')) {
+        memoryPages.clear();
+    }
+    if (diskPages.size !== memoryPages.size || [...diskPages].some(page => !memoryPages.has(page))) {
+        return false;
+    }
+    const diskScripts = new Map<string, string>();
+    for (const page of snapshot.pages) {
+        for (const script of page.scripts) {
+            diskScripts.set(`${page.name}/${script.name}`, script.sql);
+        }
+    }
+    const memoryScripts = Object.values(state.scripts).filter(script => script.folderName && script.fileName);
+    if (memoryScripts.length !== diskScripts.size) {
+        return false;
+    }
+    for (const script of memoryScripts) {
+        if (diskScripts.get(`${script.folderName}/${script.fileName}`) !== script.script.toString()) {
+            return false;
+        }
+    }
+    const draft = state.scripts[state.uncommittedScriptId]?.script.toString() ?? '';
+    return draft === (snapshot.draft ?? '');
+}
+
 /// A script analysis
 export interface ScriptAnalysis {
     /// The processed script buffers
@@ -1544,6 +1584,131 @@ export function destroyState(state: NotebookState): NotebookState {
         destroyScriptData(script);
     }
     return state;
+}
+
+/// Replace persisted notebook content without scheduling writes back to storage.
+///
+/// Scripts that remain at the same page/file path retain their WASM identity, query history and UI
+/// references. Added and removed paths allocate/free their WASM state here, where the catalog and
+/// script-registry lifetime rules are already centralized.
+export function replaceNotebookFromStorage(
+    state: NotebookState,
+    snapshot: NotebookStorageSnapshot,
+    logger: Logger,
+    forceAnalyze: boolean = false,
+): NotebookState {
+    const existingByPath = new Map<string, ScriptData>();
+    for (const script of Object.values(state.scripts)) {
+        if (script.folderName && script.fileName) {
+            existingByPath.set(`${script.folderName}/${script.fileName}`, script);
+        }
+    }
+
+    const scripts: ScriptDataMap = {};
+    const notebookPages: NotebookPageMap = {};
+    let contentChanged = false;
+
+    for (const page of snapshot.pages) {
+        const pageScripts: { [fileName: string]: NotebookPageScript } = {};
+        for (const stored of page.scripts) {
+            const path = `${page.name}/${stored.name}`;
+            let scriptData = existingByPath.get(path);
+            if (scriptData) {
+                existingByPath.delete(path);
+                if (scriptData.script.toString() !== stored.sql) {
+                    scriptData.pendingDiff?.diffBuffer.destroy();
+                    scriptData.completion?.buffer.destroy();
+                    scriptData.script.replaceText(stored.sql);
+                    scriptData = {
+                        ...scriptData,
+                        pendingDiff: null,
+                        completion: null,
+                        scriptAnalysis: { ...scriptData.scriptAnalysis, outdated: true },
+                    };
+                    contentChanged = true;
+                }
+            } else {
+                const [scriptKey, created] = createEmptyScriptData(state.instance, state.connectionCatalog, stored.name, page.name);
+                created.script.replaceText(stored.sql);
+                scriptData = created;
+                contentChanged = true;
+            }
+            scripts[scriptData.scriptKey] = scriptData;
+            pageScripts[stored.name] = createPageScript(scriptData.scriptKey, stored.name);
+        }
+        notebookPages[page.name] = { folderName: page.name, scripts: pageScripts };
+    }
+
+    // Files no longer present on disk own WASM objects that must be detached before destruction.
+    for (const removed of existingByPath.values()) {
+        try {
+            state.connectionCatalog.dropScript(removed.script);
+        } catch {
+            // The script may not have completed analysis and therefore may not be in the catalog.
+        }
+        state.scriptRegistry.dropScript(removed.script);
+        destroyScriptData(removed);
+        contentChanged = true;
+    }
+
+    // The composer is not part of a page and retains its identity across reloads.
+    let draft = state.scripts[state.uncommittedScriptId];
+    if (!draft) {
+        const [draftKey, created] = createEmptyScriptData(state.instance, state.connectionCatalog);
+        draft = created;
+        state = { ...state, uncommittedScriptId: draftKey };
+        contentChanged = true;
+    }
+    const draftSql = snapshot.draft ?? '';
+    if (draft.script.toString() !== draftSql) {
+        draft.pendingDiff?.diffBuffer.destroy();
+        draft.completion?.buffer.destroy();
+        draft.script.replaceText(draftSql);
+        draft = {
+            ...draft,
+            pendingDiff: null,
+            completion: null,
+            scriptAnalysis: { ...draft.scriptAnalysis, outdated: true },
+        };
+        contentChanged = true;
+    }
+    scripts[draft.scriptKey] = draft;
+
+    // Match boot restoration: an empty on-disk notebook still has one virtual page in the UI.
+    if (Object.keys(notebookPages).length === 0) {
+        notebookPages['Untitled'] = { folderName: 'Untitled', scripts: {} };
+    }
+
+    const folders = getSortedFolderNames(notebookPages);
+    const previousFolder = state.notebookUserFocus.folderName;
+    const folderName = notebookPages[previousFolder] ? previousFolder : (folders[0] ?? '');
+    const files = folderName ? getSortedFileNames(notebookPages[folderName]) : [];
+    const previousFile = state.notebookUserFocus.fileName;
+    const fileName = notebookPages[folderName]?.scripts[previousFile] ? previousFile : (files[0] ?? '');
+
+    let next: NotebookState = {
+        ...clearSemanticUserFocus(state),
+        scripts,
+        notebookPages,
+        notebookUserFocus: {
+            ...state.notebookUserFocus,
+            folderName,
+            fileName,
+        },
+    };
+
+    if (contentChanged || forceAnalyze) {
+        // Cross-script references can be affected by any add/remove/content change. Re-analyzing the
+        // complete notebook produces the same coherent catalog state as startup restoration.
+        for (const key in next.scripts) {
+            next.scripts[key] = {
+                ...next.scripts[key],
+                scriptAnalysis: { ...next.scripts[key].scriptAnalysis, outdated: true },
+            };
+        }
+        next = analyzeAllScriptsInNotebook(next, logger);
+    }
+    return next;
 }
 
 function destroyDeadScripts(state: NotebookState): NotebookState {

@@ -31,6 +31,8 @@
         "fs:allow-remove",
         "fs:allow-rename",
         "fs:allow-exists",
+        "fs:allow-watch",
+        "fs:allow-unwatch",
         "log:allow-log",
         "log:default",
         "os:allow-arch",
