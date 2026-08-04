@@ -546,25 +546,8 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const sessionId = props.notebook.sessionId;
     const startAgentRun = useStartAgentRun();
     const cancelAgentRun = useCancelAgentRun();
-    const cancelQuery = useCancelQuery();
     const agentState = useLatestAgentRunState(sessionId);
     const agentActive = agentState != null && agentRunIsActive(agentState.phase);
-    const focusedScript = getSelectedEntry(props.notebook);
-    const focusedScriptData = focusedScript != null ? props.notebook.scripts[focusedScript.scriptId] : null;
-    const focusedQueryId = focusedScriptData?.latestQueryId ?? null;
-    const focusedQueryActive = focusedQueryId != null && props.conn?.queriesActive.has(focusedQueryId);
-    const latestActiveQueryId = props.conn != null && props.conn.queriesActiveOrdered.length > 0
-        ? props.conn.queriesActiveOrdered[props.conn.queriesActiveOrdered.length - 1]
-        : null;
-    const activeQueryId = focusedQueryActive ? focusedQueryId : latestActiveQueryId;
-    const cancellableOperation = agentActive ? 'agent run' : activeQueryId != null ? 'query' : null;
-    const cancelActiveOperation = React.useCallback(() => {
-        if (agentActive) {
-            cancelAgentRun(sessionId);
-        } else if (activeQueryId != null) {
-            cancelQuery(sessionId, activeQueryId);
-        }
-    }, [activeQueryId, agentActive, cancelAgentRun, cancelQuery, sessionId]);
 
     // When the input mode changes (via Ctrl+M, the "Switch Mode" command, or the toggle in the
     // action bar) the editor instance swaps. Request that the freshly mounted editor take focus.
@@ -1243,9 +1226,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                                     </SegmentedControl.Button>
                                 </SegmentedControl>
                             )}
-                            {/* Prefer the active agent run, then the focused entry's query, then the
-                                session's most recently started query. */}
-                            {cancellableOperation != null ? (
+                            {agentActive ? (
                                 <>
                                     <StatusIndicator
                                         className={styles.compose_progress_spinner}
@@ -1258,8 +1239,8 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                                         variant={ButtonVariant.Default}
                                         size={ButtonSize.Small}
                                         className={styles.compose_send_button}
-                                        aria-label={`Stop ${cancellableOperation}`}
-                                        onClick={cancelActiveOperation}
+                                        aria-label="Stop agent run"
+                                        onClick={() => cancelAgentRun(sessionId)}
                                     >
                                         <SquareFillIcon />
                                     </IconButton>

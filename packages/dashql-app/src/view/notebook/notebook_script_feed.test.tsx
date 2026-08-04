@@ -437,51 +437,27 @@ describe('NotebookScriptFeed', () => {
         expect(mockState.cancelAgentRun).toHaveBeenCalledWith(notebook.sessionId);
     });
 
-    it('uses the compose stop control to cancel a running query', () => {
+    it('keeps the compose send control available while a query is running', () => {
         const notebook = createNotebookState();
         notebook.scripts[101] = { ...notebook.scripts[101], latestQueryId: 42 };
+        const modifyNotebook = vi.fn();
         mockState.queryStates.set(42, { traceId: 100, status: 4 /* RUNNING */ });
         renderFeed({
             notebook,
-            modifyNotebook: vi.fn(),
+            modifyNotebook,
             showDetails: vi.fn(),
             conn: createOnlineConnection([42]),
         });
 
-        const stop = container.querySelector('[aria-label="Stop query"]') as HTMLButtonElement;
-        expect(stop).not.toBeNull();
-        act(() => stop.click());
-        expect(mockState.cancelQuery).toHaveBeenCalledWith(notebook.sessionId, 42);
-    });
-
-    it('cancels the latest running query when the focused entry is idle', () => {
-        const notebook = createNotebookState();
-        renderFeed({
-            notebook,
-            modifyNotebook: vi.fn(),
-            showDetails: vi.fn(),
-            conn: createOnlineConnection([41, 42]),
+        expect(container.querySelector('[aria-label="Stop query"]')).toBeNull();
+        expect(container.querySelectorAll('[data-testid="status-indicator"]').length).toBe(1);
+        const send = Array.from(container.querySelectorAll('button')).find(button => {
+            const label = button.getAttribute('aria-label');
+            return label === 'Save' || label === 'Save & Execute';
         });
-
-        const stop = container.querySelector('[aria-label="Stop query"]') as HTMLButtonElement;
-        expect(stop).not.toBeNull();
-        act(() => stop.click());
-        expect(mockState.cancelQuery).toHaveBeenCalledWith(notebook.sessionId, 42);
-    });
-
-    it('prefers cancelling the focused query over a newer background query', () => {
-        const notebook = createNotebookState();
-        notebook.scripts[101] = { ...notebook.scripts[101], latestQueryId: 41 };
-        renderFeed({
-            notebook,
-            modifyNotebook: vi.fn(),
-            showDetails: vi.fn(),
-            conn: createOnlineConnection([41, 42]),
-        });
-
-        const stop = container.querySelector('[aria-label="Stop query"]') as HTMLButtonElement;
-        act(() => stop.click());
-        expect(mockState.cancelQuery).toHaveBeenCalledWith(notebook.sessionId, 41);
+        expect(send).toBeDefined();
+        act(() => (send as HTMLButtonElement).click());
+        expect(modifyNotebook).toHaveBeenCalledWith({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
     });
 
     it('dispatches PROMOTE_UNCOMMITTED_SCRIPT when Send is clicked', () => {
