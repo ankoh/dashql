@@ -1,6 +1,7 @@
 import * as arrow from 'apache-arrow';
 
-import { RawProxyError } from '../channel_common.js';
+import { getProxyErrorData, RawProxyError } from '../channel_common.js';
+import { LoggableException } from '../logger/logger.js';
 import {
     HEADER_NAME_BATCH_BYTES,
     HEADER_NAME_BATCH_CHUNKS,
@@ -34,12 +35,13 @@ const DEFAULT_READ_TIMEOUT_MS = 30_000;
 const DEFAULT_BATCH_TIMEOUT_MS = 1000;
 const DEFAULT_BATCH_BYTES = 4_000_000;
 
-export class NativeDuckDBError extends Error {
+export class NativeDuckDBError extends LoggableException {
     data: Record<string, string>;
 
     constructor(error: RawProxyError) {
-        super(error.message);
-        this.data = error.data ?? {};
+        const data = getProxyErrorData(error);
+        super(error.message, data, 'duckdb');
+        this.data = data;
     }
 }
 

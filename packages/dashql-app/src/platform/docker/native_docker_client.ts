@@ -1,5 +1,5 @@
 import { Logger } from "../logger/logger.js";
-import { RawProxyError } from "../channel_common.js";
+import { getProxyErrorData, RawProxyError } from "../channel_common.js";
 import {
     HEADER_NAME_BATCH_BYTES,
     HEADER_NAME_BATCH_EVENT,
@@ -26,7 +26,7 @@ class NativeDockerError extends Error {
     data: Record<string, string>;
     constructor(o: RawProxyError) {
         super(o.message);
-        this.data = o.data ?? {};
+        this.data = getProxyErrorData(o);
     }
 }
 

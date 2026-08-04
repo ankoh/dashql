@@ -3,7 +3,7 @@ import * as arrow from 'apache-arrow';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NativeAPIRustBridge } from '../native_api_rust_bridge.js';
-import { NativeDuckDB } from './duckdb_native_api.js';
+import { NativeDuckDB, NativeDuckDBError } from './duckdb_native_api.js';
 
 function toPlainObjects(table: arrow.Table): any[] {
     return table.toArray().map(row => {
@@ -30,6 +30,23 @@ describe('NativeDuckDB API', () => {
         vi.restoreAllMocks();
         bridge?.close();
         bridge = null;
+    });
+
+    it('preserves native proxy error details for logging', () => {
+        const error = new NativeDuckDBError({
+            message: 'duckdb operation failed',
+            details: {
+                operation: 'insert arrow ipc stream',
+                error: 'unsupported arrow type',
+            },
+        });
+
+        expect(error.message).toEqual('duckdb operation failed');
+        expect(error.data).toEqual({
+            operation: 'insert arrow ipc stream',
+            error: 'unsupported arrow type',
+        });
+        expect(error.keyValues).toEqual(error.data);
     });
 
     it('runs queries, inserts arrow data, and executes prepared statements', async () => {

@@ -19,8 +19,14 @@ export interface ChannelArgs {
 export interface RawProxyError {
     /// The error
     message: string;
-    /// The data
+    /// Error data produced by TypeScript proxy clients.
     data?: Record<string, string>;
+    /// Error data produced by the native Rust proxy.
+    details?: Record<string, string>;
+}
+
+export function getProxyErrorData(error: RawProxyError): Record<string, string> {
+    return error.data ?? error.details ?? {};
 }
 
 export class ChannelError extends LoggableException {
@@ -30,7 +36,7 @@ export class ChannelError extends LoggableException {
     headers: Headers | null;
 
     constructor(error: RawProxyError, status: number, headers?: Headers, target?: string) {
-        super(error.message, error.data, target);
+        super(error.message, getProxyErrorData(error), target);
         this.statusCode = status;
         this.headers = headers ?? null;
     }

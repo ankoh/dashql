@@ -409,16 +409,22 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     });
                     return null;
                 }
+                const processingError = e instanceof LoggableException
+                    ? e
+                    : new LoggableException("Query result processing failed", {
+                        error: stringifyError(e),
+                    }, LOG_CTX);
                 traced.warn("Query result processing failed", {
                     query: queryId.toString(),
                     session: sessionId,
-                    error: stringifyError(e),
+                    error: processingError.message,
+                    ...processingError.keyValues,
                 }, LOG_CTX);
                 connDispatch(sessionId, {
                     type: QUERY_FAILED,
-                    value: [queryId, e, null],
+                    value: [queryId, processingError, null],
                 });
-                throw e;
+                throw processingError;
             }
         }
 
