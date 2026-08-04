@@ -70,6 +70,18 @@ formatter-snapshots:
     dialects:
       duckdb:
 
+  # Conditional functions
+
+  - name: func_nullif
+    input: select nullif(a, b)
+    dialects:
+      duckdb:
+
+  - name: func_coalesce
+    input: select coalesce(a, b)
+    dialects:
+      duckdb:
+
   # Window functions
 
   - name: func_over_partition

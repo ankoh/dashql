@@ -7050,7 +7050,7 @@ parser-snapshots:
                         children:
                           - key: SQL_FUNCTION_NAME
                             type: ENUM_SQL_KNOWN_FUNCTION
-                            value: NULLIF
+                            value: COALESCE
                           - key: SQL_FUNCTION_ARGUMENTS
                             type: ARRAY
                             text: "(a, b)"

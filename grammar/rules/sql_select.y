@@ -1670,7 +1670,7 @@ sql_func_expr_common_subexpr:
     }
   | COALESCE LRB sql_expr_list RRB {
         $$ = ctx.List({
-            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, buffers::parser::KnownFunction::NULLIF)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, buffers::parser::KnownFunction::COALESCE)),
             Attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.Array(Loc({@2, @3, @4}), std::move($3))),
         });
     }

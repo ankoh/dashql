@@ -56396,7 +56396,7 @@ parser-snapshots:
                                                         children:
                                                           - key: SQL_FUNCTION_NAME
                                                             type: ENUM_SQL_KNOWN_FUNCTION
-                                                            value: NULLIF
+                                                            value: COALESCE
                                                           - key: SQL_FUNCTION_ARGUMENTS
                                                             type: ARRAY
                                                             text: "(cr_refund..ed_cash,0)"
@@ -56540,7 +56540,7 @@ parser-snapshots:
                                                         children:
                                                           - key: SQL_FUNCTION_NAME
                                                             type: ENUM_SQL_KNOWN_FUNCTION
-                                                            value: NULLIF
+                                                            value: COALESCE
                                                           - key: SQL_FUNCTION_ARGUMENTS
                                                             type: ARRAY
                                                             text: "(cr_refund..ed_cash,0)"
@@ -65907,7 +65907,7 @@ parser-snapshots:
                                                                                             children:
                                                                                               - key: SQL_FUNCTION_NAME
                                                                                                 type: ENUM_SQL_KNOWN_FUNCTION
-                                                                                                value: NULLIF
+                                                                                                value: COALESCE
                                                                                               - key: SQL_FUNCTION_ARGUMENTS
                                                                                                 type: ARRAY
                                                                                                 text: "(wr.wr_ret..uantity,0)"
@@ -65977,7 +65977,7 @@ parser-snapshots:
                                                                                             children:
                                                                                               - key: SQL_FUNCTION_NAME
                                                                                                 type: ENUM_SQL_KNOWN_FUNCTION
-                                                                                                value: NULLIF
+                                                                                                value: COALESCE
                                                                                               - key: SQL_FUNCTION_ARGUMENTS
                                                                                                 type: ARRAY
                                                                                                 text: "(ws.ws_quantity,0)"
@@ -66064,7 +66064,7 @@ parser-snapshots:
                                                                                             children:
                                                                                               - key: SQL_FUNCTION_NAME
                                                                                                 type: ENUM_SQL_KNOWN_FUNCTION
-                                                                                                value: NULLIF
+                                                                                                value: COALESCE
                                                                                               - key: SQL_FUNCTION_ARGUMENTS
                                                                                                 type: ARRAY
                                                                                                 text: "(wr.wr_ret..urn_amt,0)"
@@ -66134,7 +66134,7 @@ parser-snapshots:
                                                                                             children:
                                                                                               - key: SQL_FUNCTION_NAME
                                                                                                 type: ENUM_SQL_KNOWN_FUNCTION
-                                                                                                value: NULLIF
+                                                                                                value: COALESCE
                                                                                               - key: SQL_FUNCTION_ARGUMENTS
                                                                                                 type: ARRAY
                                                                                                 text: "(ws.ws_net_paid,0)"
@@ -66842,7 +66842,7 @@ parser-snapshots:
                                                                                             children:
                                                                                               - key: SQL_FUNCTION_NAME
                                                                                                 type: ENUM_SQL_KNOWN_FUNCTION
-                                                                                                value: NULLIF
+                                                                                                value: COALESCE
                                                                                               - key: SQL_FUNCTION_ARGUMENTS
                                                                                                 type: ARRAY
                                                                                                 text: "(cr.cr_ret..uantity,0)"
@@ -66912,7 +66912,7 @@ parser-snapshots:
                                                                                             children:
                                                                                               - key: SQL_FUNCTION_NAME
                                                                                                 type: ENUM_SQL_KNOWN_FUNCTION
-                                                                                                value: NULLIF
+                                                                                                value: COALESCE
                                                                                               - key: SQL_FUNCTION_ARGUMENTS
                                                                                                 type: ARRAY
                                                                                                 text: "(cs.cs_quantity,0)"
@@ -66999,7 +66999,7 @@ parser-snapshots:
                                                                                             children:
                                                                                               - key: SQL_FUNCTION_NAME
                                                                                                 type: ENUM_SQL_KNOWN_FUNCTION
-                                                                                                value: NULLIF
+                                                                                                value: COALESCE
                                                                                               - key: SQL_FUNCTION_ARGUMENTS
                                                                                                 type: ARRAY
                                                                                                 text: "(cr.cr_ret.._amount,0)"
@@ -67069,7 +67069,7 @@ parser-snapshots:
                                                                                             children:
                                                                                               - key: SQL_FUNCTION_NAME
                                                                                                 type: ENUM_SQL_KNOWN_FUNCTION
-                                                                                                value: NULLIF
+                                                                                                value: COALESCE
                                                                                               - key: SQL_FUNCTION_ARGUMENTS
                                                                                                 type: ARRAY
                                                                                                 text: "(cs.cs_net_paid,0)"
@@ -67777,7 +67777,7 @@ parser-snapshots:
                                                                                     children:
                                                                                       - key: SQL_FUNCTION_NAME
                                                                                         type: ENUM_SQL_KNOWN_FUNCTION
-                                                                                        value: NULLIF
+                                                                                        value: COALESCE
                                                                                       - key: SQL_FUNCTION_ARGUMENTS
                                                                                         type: ARRAY
                                                                                         text: "(sr.sr_ret..uantity,0)"
@@ -67847,7 +67847,7 @@ parser-snapshots:
                                                                                     children:
                                                                                       - key: SQL_FUNCTION_NAME
                                                                                         type: ENUM_SQL_KNOWN_FUNCTION
-                                                                                        value: NULLIF
+                                                                                        value: COALESCE
                                                                                       - key: SQL_FUNCTION_ARGUMENTS
                                                                                         type: ARRAY
                                                                                         text: "(sts.ss_quantity,0)"
@@ -67934,7 +67934,7 @@ parser-snapshots:
                                                                                     children:
                                                                                       - key: SQL_FUNCTION_NAME
                                                                                         type: ENUM_SQL_KNOWN_FUNCTION
-                                                                                        value: NULLIF
+                                                                                        value: COALESCE
                                                                                       - key: SQL_FUNCTION_ARGUMENTS
                                                                                         type: ARRAY
                                                                                         text: "(sr.sr_ret..urn_amt,0)"
@@ -68004,7 +68004,7 @@ parser-snapshots:
                                                                                     children:
                                                                                       - key: SQL_FUNCTION_NAME
                                                                                         type: ENUM_SQL_KNOWN_FUNCTION
-                                                                                        value: NULLIF
+                                                                                        value: COALESCE
                                                                                       - key: SQL_FUNCTION_ARGUMENTS
                                                                                         type: ARRAY
                                                                                         text: "(sts.ss_net_paid,0)"
@@ -97525,7 +97525,7 @@ parser-snapshots:
                                                 children:
                                                   - key: SQL_FUNCTION_NAME
                                                     type: ENUM_SQL_KNOWN_FUNCTION
-                                                    value: NULLIF
+                                                    value: COALESCE
                                                   - key: SQL_FUNCTION_ARGUMENTS
                                                     type: ARRAY
                                                     text: "(ss_sales_..uantity,0)"
@@ -108077,7 +108077,7 @@ parser-snapshots:
                                                                         children:
                                                                           - key: SQL_FUNCTION_NAME
                                                                             type: ENUM_SQL_KNOWN_FUNCTION
-                                                                            value: NULLIF
+                                                                            value: COALESCE
                                                                           - key: SQL_FUNCTION_ARGUMENTS
                                                                             type: ARRAY
                                                                             text: "(cr_return..uantity,0)"
@@ -108124,7 +108124,7 @@ parser-snapshots:
                                                                         children:
                                                                           - key: SQL_FUNCTION_NAME
                                                                             type: ENUM_SQL_KNOWN_FUNCTION
-                                                                            value: NULLIF
+                                                                            value: COALESCE
                                                                           - key: SQL_FUNCTION_ARGUMENTS
                                                                             type: ARRAY
                                                                             text: "(cr_return..mount,0.0)"
@@ -108472,7 +108472,7 @@ parser-snapshots:
                                                                         children:
                                                                           - key: SQL_FUNCTION_NAME
                                                                             type: ENUM_SQL_KNOWN_FUNCTION
-                                                                            value: NULLIF
+                                                                            value: COALESCE
                                                                           - key: SQL_FUNCTION_ARGUMENTS
                                                                             type: ARRAY
                                                                             text: "(sr_return..uantity,0)"
@@ -108519,7 +108519,7 @@ parser-snapshots:
                                                                         children:
                                                                           - key: SQL_FUNCTION_NAME
                                                                             type: ENUM_SQL_KNOWN_FUNCTION
-                                                                            value: NULLIF
+                                                                            value: COALESCE
                                                                           - key: SQL_FUNCTION_ARGUMENTS
                                                                             type: ARRAY
                                                                             text: "(sr_return_amt,0.0)"
@@ -108867,7 +108867,7 @@ parser-snapshots:
                                                                 children:
                                                                   - key: SQL_FUNCTION_NAME
                                                                     type: ENUM_SQL_KNOWN_FUNCTION
-                                                                    value: NULLIF
+                                                                    value: COALESCE
                                                                   - key: SQL_FUNCTION_ARGUMENTS
                                                                     type: ARRAY
                                                                     text: "(wr_return..uantity,0)"
@@ -108914,7 +108914,7 @@ parser-snapshots:
                                                                 children:
                                                                   - key: SQL_FUNCTION_NAME
                                                                     type: ENUM_SQL_KNOWN_FUNCTION
-                                                                    value: NULLIF
+                                                                    value: COALESCE
                                                                   - key: SQL_FUNCTION_ARGUMENTS
                                                                     type: ARRAY
                                                                     text: "(wr_return_amt,0.0)"
@@ -112868,7 +112868,7 @@ parser-snapshots:
                                                                 children:
                                                                   - key: SQL_FUNCTION_NAME
                                                                     type: ENUM_SQL_KNOWN_FUNCTION
-                                                                    value: NULLIF
+                                                                    value: COALESCE
                                                                   - key: SQL_FUNCTION_ARGUMENTS
                                                                     type: ARRAY
                                                                     text: "(return_amt, 0)"
@@ -112915,7 +112915,7 @@ parser-snapshots:
                                                                         children:
                                                                           - key: SQL_FUNCTION_NAME
                                                                             type: ENUM_SQL_KNOWN_FUNCTION
-                                                                            value: NULLIF
+                                                                            value: COALESCE
                                                                           - key: SQL_FUNCTION_ARGUMENTS
                                                                             type: ARRAY
                                                                             text: "(profit_loss,0)"
@@ -113174,7 +113174,7 @@ parser-snapshots:
                                                         children:
                                                           - key: SQL_FUNCTION_NAME
                                                             type: ENUM_SQL_KNOWN_FUNCTION
-                                                            value: NULLIF
+                                                            value: COALESCE
                                                           - key: SQL_FUNCTION_ARGUMENTS
                                                             type: ARRAY
                                                             text: "(return_amt, 0)"
@@ -113221,7 +113221,7 @@ parser-snapshots:
                                                                 children:
                                                                   - key: SQL_FUNCTION_NAME
                                                                     type: ENUM_SQL_KNOWN_FUNCTION
-                                                                    value: NULLIF
+                                                                    value: COALESCE
                                                                   - key: SQL_FUNCTION_ARGUMENTS
                                                                     type: ARRAY
                                                                     text: "(profit_loss,0)"
@@ -115234,7 +115234,7 @@ parser-snapshots:
                                             children:
                                               - key: SQL_FUNCTION_NAME
                                                 type: ENUM_SQL_KNOWN_FUNCTION
-                                                value: NULLIF
+                                                value: COALESCE
                                               - key: SQL_FUNCTION_ARGUMENTS
                                                 type: ARRAY
                                                 text: "(ws_qty+cs_qty,1)"
@@ -115345,7 +115345,7 @@ parser-snapshots:
                                 children:
                                   - key: SQL_FUNCTION_NAME
                                     type: ENUM_SQL_KNOWN_FUNCTION
-                                    value: NULLIF
+                                    value: COALESCE
                                   - key: SQL_FUNCTION_ARGUMENTS
                                     type: ARRAY
                                     text: "(ws_qty,0)"
@@ -115366,7 +115366,7 @@ parser-snapshots:
                                 children:
                                   - key: SQL_FUNCTION_NAME
                                     type: ENUM_SQL_KNOWN_FUNCTION
-                                    value: NULLIF
+                                    value: COALESCE
                                   - key: SQL_FUNCTION_ARGUMENTS
                                     type: ARRAY
                                     text: "(cs_qty,0)"
@@ -115404,7 +115404,7 @@ parser-snapshots:
                                 children:
                                   - key: SQL_FUNCTION_NAME
                                     type: ENUM_SQL_KNOWN_FUNCTION
-                                    value: NULLIF
+                                    value: COALESCE
                                   - key: SQL_FUNCTION_ARGUMENTS
                                     type: ARRAY
                                     text: "(ws_wc,0)"
@@ -115425,7 +115425,7 @@ parser-snapshots:
                                 children:
                                   - key: SQL_FUNCTION_NAME
                                     type: ENUM_SQL_KNOWN_FUNCTION
-                                    value: NULLIF
+                                    value: COALESCE
                                   - key: SQL_FUNCTION_ARGUMENTS
                                     type: ARRAY
                                     text: "(cs_wc,0)"
@@ -115463,7 +115463,7 @@ parser-snapshots:
                                 children:
                                   - key: SQL_FUNCTION_NAME
                                     type: ENUM_SQL_KNOWN_FUNCTION
-                                    value: NULLIF
+                                    value: COALESCE
                                   - key: SQL_FUNCTION_ARGUMENTS
                                     type: ARRAY
                                     text: "(ws_sp,0)"
@@ -115484,7 +115484,7 @@ parser-snapshots:
                                 children:
                                   - key: SQL_FUNCTION_NAME
                                     type: ENUM_SQL_KNOWN_FUNCTION
-                                    value: NULLIF
+                                    value: COALESCE
                                   - key: SQL_FUNCTION_ARGUMENTS
                                     type: ARRAY
                                     text: "(cs_sp,0)"
@@ -115778,7 +115778,7 @@ parser-snapshots:
                                 children:
                                   - key: SQL_FUNCTION_NAME
                                     type: ENUM_SQL_KNOWN_FUNCTION
-                                    value: NULLIF
+                                    value: COALESCE
                                   - key: SQL_FUNCTION_ARGUMENTS
                                     type: ARRAY
                                     text: "(ws_qty,0)"
@@ -115811,7 +115811,7 @@ parser-snapshots:
                                 children:
                                   - key: SQL_FUNCTION_NAME
                                     type: ENUM_SQL_KNOWN_FUNCTION
-                                    value: NULLIF
+                                    value: COALESCE
                                   - key: SQL_FUNCTION_ARGUMENTS
                                     type: ARRAY
                                     text: "(cs_qty, 0)"
@@ -116028,7 +116028,7 @@ parser-snapshots:
                                             children:
                                               - key: SQL_FUNCTION_NAME
                                                 type: ENUM_SQL_KNOWN_FUNCTION
-                                                value: NULLIF
+                                                value: COALESCE
                                               - key: SQL_FUNCTION_ARGUMENTS
                                                 type: ARRAY
                                                 text: "(ws_qty+cs_qty,1)"
@@ -117139,7 +117139,7 @@ parser-snapshots:
                                                 children:
                                                   - key: SQL_FUNCTION_NAME
                                                     type: ENUM_SQL_KNOWN_FUNCTION
-                                                    value: NULLIF
+                                                    value: COALESCE
                                                   - key: SQL_FUNCTION_ARGUMENTS
                                                     type: ARRAY
                                                     text: "(sr_return_amt, 0)"
@@ -117203,7 +117203,7 @@ parser-snapshots:
                                                         children:
                                                           - key: SQL_FUNCTION_NAME
                                                             type: ENUM_SQL_KNOWN_FUNCTION
-                                                            value: NULLIF
+                                                            value: COALESCE
                                                           - key: SQL_FUNCTION_ARGUMENTS
                                                             type: ARRAY
                                                             text: "(sr_net_loss, 0)"
@@ -117718,7 +117718,7 @@ parser-snapshots:
                                                 children:
                                                   - key: SQL_FUNCTION_NAME
                                                     type: ENUM_SQL_KNOWN_FUNCTION
-                                                    value: NULLIF
+                                                    value: COALESCE
                                                   - key: SQL_FUNCTION_ARGUMENTS
                                                     type: ARRAY
                                                     text: "(cr_return..amount, 0)"
@@ -117782,7 +117782,7 @@ parser-snapshots:
                                                         children:
                                                           - key: SQL_FUNCTION_NAME
                                                             type: ENUM_SQL_KNOWN_FUNCTION
-                                                            value: NULLIF
+                                                            value: COALESCE
                                                           - key: SQL_FUNCTION_ARGUMENTS
                                                             type: ARRAY
                                                             text: "(cr_net_loss, 0)"
@@ -118294,7 +118294,7 @@ parser-snapshots:
                                                 children:
                                                   - key: SQL_FUNCTION_NAME
                                                     type: ENUM_SQL_KNOWN_FUNCTION
-                                                    value: NULLIF
+                                                    value: COALESCE
                                                   - key: SQL_FUNCTION_ARGUMENTS
                                                     type: ARRAY
                                                     text: "(wr_return_amt, 0)"
@@ -118358,7 +118358,7 @@ parser-snapshots:
                                                         children:
                                                           - key: SQL_FUNCTION_NAME
                                                             type: ENUM_SQL_KNOWN_FUNCTION
-                                                            value: NULLIF
+                                                            value: COALESCE
                                                           - key: SQL_FUNCTION_ARGUMENTS
                                                             type: ARRAY
                                                             text: "(wr_net_loss, 0)"

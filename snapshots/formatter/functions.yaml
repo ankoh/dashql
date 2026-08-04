@@ -192,6 +192,38 @@ formatter-snapshots:
             expected: |-
               select trim(name);
 
+  - name: func_nullif
+    input: |-
+      select nullif(a, b)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select nullif(a, b);
+          - mode: compact
+            expected: |-
+              select nullif(a, b);
+          - mode: pretty
+            expected: |-
+              select nullif(a, b);
+
+  - name: func_coalesce
+    input: |-
+      select coalesce(a, b)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select coalesce(a, b);
+          - mode: compact
+            expected: |-
+              select coalesce(a, b);
+          - mode: pretty
+            expected: |-
+              select coalesce(a, b);
+
   - name: func_over_partition
     input: |-
       select sum(x) over (partition by y)
