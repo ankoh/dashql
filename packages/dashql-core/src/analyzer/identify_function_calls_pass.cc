@@ -87,7 +87,10 @@ void IdentifyFunctionCallsPass::Visit(std::span<const buffers::parser::Node> mor
 
                     // Get function arguments
                     auto& func_arg_node = state.ast[func_arg_node_id];
-                    assert(func_arg_node.node_type() == buffers::parser::NodeType::OBJECT_SQL_FUNCTION_ARG);
+                    if (func_arg_node.node_type() != buffers::parser::NodeType::OBJECT_SQL_FUNCTION_ARG) {
+                        args[i].value_ast_node_id = func_arg_node_id;
+                        continue;
+                    }
                     auto [arg_value, arg_name] =
                         state.GetAttributes<AttributeKey::SQL_FUNCTION_ARG_VALUE, AttributeKey::SQL_FUNCTION_ARG_NAME>(
                             func_arg_node);

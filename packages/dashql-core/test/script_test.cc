@@ -16,6 +16,22 @@ TEST(ScriptTest, ParseAutoScans) {
     ASSERT_NO_THROW(script.Parse());
 }
 
+TEST(ScriptTest, AnalyzeSpecialFunctionArguments) {
+    constexpr std::string_view scripts[] = {
+        "select coalesce(a, b)",
+        "select nullif(a, b)",
+        "select current_time(2)",
+        "select substring(a, 1, 2)",
+    };
+
+    Catalog catalog;
+    for (auto input : scripts) {
+        Script script{catalog};
+        script.InsertTextAt(0, input);
+        ASSERT_NO_THROW(script.Analyze()) << input;
+    }
+}
+
 TEST(ScriptTest, AnalyzingBeforeParsing) {
     Catalog catalog;
     Script script{catalog};
