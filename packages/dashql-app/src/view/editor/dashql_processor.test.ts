@@ -24,6 +24,80 @@ afterEach(() => {
 });
 
 describe('DashQL processor completion triggers', () => {
+    it('does not start completion when backspace deletes the newline before a token', () => {
+        const catalog = dql!.createCatalog();
+        const text = '\nSELECT';
+        const cursorOffset = 1;
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, text);
+        const scriptBuffers = analyzeScript(script);
+        const scriptCursor = script.moveCursor(cursorOffset);
+        expect(scriptCursor.read().scannerRelativePosition()).toBe(
+            dashql.buffers.cursor.RelativeSymbolPosition.BEGIN_OF_SYMBOL,
+        );
+        expect(scriptCursor.read().scannerSymbolCompletable()).toBe(true);
+
+        const processorState: DashQLProcessorUpdateIn = {
+            config: {},
+            scriptRegistry: null,
+            scriptKey: 1,
+            script,
+            scriptBuffers,
+            scriptCursor,
+            scriptCompletion: null,
+            scriptPendingDiff: null,
+            derivedFocus: null,
+            onUpdate: () => {},
+        };
+        let editorState = EditorState.create({
+            doc: text,
+            selection: EditorSelection.cursor(cursorOffset),
+            extensions: [DashQLProcessorPlugin],
+        });
+        editorState = editorState.update({ effects: DashQLUpdateEffect.of(processorState) }).state;
+        editorState = editorState.update({
+            changes: { from: 0, to: 1 },
+            selection: EditorSelection.cursor(0),
+            annotations: Transaction.userEvent.of('delete.backward'),
+        }).state;
+
+        expect(editorState.doc.toString()).toBe('SELECT');
+        expect(editorState.field(DashQLProcessorPlugin).scriptCompletion).toBeNull();
+    });
+
+    it('still starts completion when backspace deletes from a token', () => {
+        const catalog = dql!.createCatalog();
+        const text = 'SELECT';
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, text);
+        const processorState: DashQLProcessorUpdateIn = {
+            config: {},
+            scriptRegistry: null,
+            scriptKey: 1,
+            script,
+            scriptBuffers: analyzeScript(script),
+            scriptCursor: script.moveCursor(text.length),
+            scriptCompletion: null,
+            scriptPendingDiff: null,
+            derivedFocus: null,
+            onUpdate: () => {},
+        };
+        let editorState = EditorState.create({
+            doc: text,
+            selection: EditorSelection.cursor(text.length),
+            extensions: [DashQLProcessorPlugin],
+        });
+        editorState = editorState.update({ effects: DashQLUpdateEffect.of(processorState) }).state;
+        editorState = editorState.update({
+            changes: { from: text.length - 1, to: text.length },
+            selection: EditorSelection.cursor(text.length - 1),
+            annotations: Transaction.userEvent.of('delete.backward'),
+        }).state;
+
+        expect(editorState.doc.toString()).toBe('SELEC');
+        expect(editorState.field(DashQLProcessorPlugin).scriptCompletion).not.toBeNull();
+    });
+
     it('does not start completion when typing at the beginning of a token', () => {
         const catalog = dql!.createCatalog();
         const registry = dql!.createScriptRegistry();

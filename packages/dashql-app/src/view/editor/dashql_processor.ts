@@ -347,24 +347,24 @@ function typingAtTokenStart(transaction: Transaction, prevCursor: dashql.FlatBuf
         && prevCursorReader.scannerSymbolCompletable();
 }
 
+function backwardDeleteInsideCompletableToken(prevCursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor> | null) {
+    const cursor = prevCursor?.read();
+    switch (cursor?.scannerRelativePosition()) {
+        case dashql.buffers.cursor.RelativeSymbolPosition.MID_OF_SYMBOL:
+        case dashql.buffers.cursor.RelativeSymbolPosition.END_OF_SYMBOL:
+            return cursor.scannerSymbolCompletable();
+        default:
+            return false;
+    }
+}
+
 function userEventCanStartCompletion(transaction: Transaction, prevCursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor> | null) {
     switch (transaction.annotation(Transaction.userEvent)) {
         case "delete.selection":
         case "delete.forward":
             return true;
         case "delete.backward":
-            // When deleting backward, we only start the completion if we're deleting something from a token.
-            // That means the previous cursor must not be AFTER_SYMBOL or BEFORE_SYMBOL
-            switch (prevCursor?.read().scannerRelativePosition()) {
-                case dashql.buffers.cursor.RelativeSymbolPosition.AFTER_SYMBOL:
-                case dashql.buffers.cursor.RelativeSymbolPosition.BEFORE_SYMBOL:
-                    return false;
-                default:
-                    // Don't auto-start a completion when deleting characters from a non-completable symbol
-                    // (punctuation, literals, ...). Without this, backspacing a trailing comma re-opens
-                    // a completion on the preceding identifier.
-                    return prevCursor?.read().scannerSymbolCompletable() ?? false;
-            }
+            return backwardDeleteInsideCompletableToken(prevCursor);
         case "input.paste":
         case "delete.cut":
         case "input.drop":
@@ -574,6 +574,11 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
 
     if (transaction.docChanged && state.scriptCompletion == prevState.scriptCompletion) {
         if (typingAtTokenStart(transaction, prevState.scriptCursor)) {
+            state = copyLazily(state, prevState);
+            state.scriptCompletion = null;
+            return state;
+        }
+        if (transaction.isUserEvent("delete.backward") && !backwardDeleteInsideCompletableToken(prevState.scriptCursor)) {
             state = copyLazily(state, prevState);
             state.scriptCompletion = null;
             return state;
