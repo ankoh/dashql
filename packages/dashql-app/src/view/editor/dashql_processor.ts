@@ -210,9 +210,16 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
         for (const effect of transaction.effects) {
             // DashQL update effect?
             if (effect.is(DashQLUpdateEffect)) {
+                const keepLocalCompletion = state.script === effect.value.script
+                    && state.scriptBuffers === effect.value.scriptBuffers;
                 state = {
                     ...state,
                     ...effect.value,
+                    // Completion is editor-owned interaction state. An asynchronous notebook
+                    // round-trip must not resurrect a completion that was locally dismissed.
+                    scriptCompletion: keepLocalCompletion
+                        ? state.scriptCompletion
+                        : effect.value.scriptCompletion,
                 };
 
                 // Script changed?
@@ -332,9 +339,16 @@ function isPassiveHint(buffer: dashql.buffers.completion.Completion): boolean {
 
 // Helper to determine if a user event triggers completions.
 // For events, refer to https://codemirror.net/docs/ref/
+function typingAtTokenStart(transaction: Transaction, prevCursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor> | null) {
+    const prevCursorReader = prevCursor?.read();
+    return transaction.isUserEvent("input.type")
+        && transaction.startState.selection.main.empty
+        && prevCursorReader?.scannerRelativePosition() === dashql.buffers.cursor.RelativeSymbolPosition.BEGIN_OF_SYMBOL
+        && prevCursorReader.scannerSymbolCompletable();
+}
+
 function userEventCanStartCompletion(transaction: Transaction, prevCursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor> | null) {
     switch (transaction.annotation(Transaction.userEvent)) {
-        case "input.type":
         case "delete.selection":
         case "delete.forward":
             return true;
@@ -356,7 +370,7 @@ function userEventCanStartCompletion(transaction: Transaction, prevCursor: dashq
         case "input.drop":
             return false;
     }
-    return false;
+    return transaction.isUserEvent("input.type") && !typingAtTokenStart(transaction, prevCursor);
 }
 
 
@@ -559,6 +573,12 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
     }
 
     if (transaction.docChanged && state.scriptCompletion == prevState.scriptCompletion) {
+        if (typingAtTokenStart(transaction, prevState.scriptCursor)) {
+            state = copyLazily(state, prevState);
+            state.scriptCompletion = null;
+            return state;
+        }
+
         // We don't have an ongoing completion and there is a new user-input?
         // Get a completion going.
         const noActiveCompletion = !state.scriptCompletion || state.scriptCompletion.status != DashQLCompletionStatus.AVAILABLE;
