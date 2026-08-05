@@ -83,6 +83,14 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     description: 'Inspect and evict cached query results',
                     disabled: false,
                 },
+                [TabKey.StorageWriter]: {
+                    tabId: TabKey.StorageWriter,
+                    icon: `${icons}#versions_24`,
+                    labelShort: 'Storage Writer',
+                    ariaLabel: 'Storage writer',
+                    description: 'View storage writer statistics',
+                    disabled: false,
+                },
                 [TabKey.Docker]: {
                     tabId: TabKey.Docker,
                     icon: `${icons}#package`,
@@ -93,7 +101,7 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                 },
                 [TabKey.AISettings]: {
                     tabId: TabKey.AISettings,
-                    icon: `${icons}#sparkle_16`,
+                    icon: `${icons}#sparkles_fill_24`,
                     labelShort: 'AI',
                     ariaLabel: 'AI provider settings',
                     description: 'Configure the AI provider',
@@ -101,7 +109,7 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                 },
                 [TabKey.AppSettings]: {
                     tabId: TabKey.AppSettings,
-                    icon: `${icons}#settings`,
+                    icon: `${icons}#settings_24`,
                     labelShort: 'Settings',
                     ariaLabel: 'Application settings',
                     description: 'Configure application settings',
