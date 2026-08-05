@@ -6,7 +6,85 @@ const QUOTES = new Set(['"', "'", '`']);
 const CLOSERS = new Set([')', ']', '}']);
 const BEFORE_CLOSE = /^[\s)\]};,]?$/;
 
-export function handleInput(view: EditorView, from: number, to: number, insert: string): boolean {
+function delimiterImbalance(text: string): number {
+    const openers: string[] = [];
+    let unmatchedClosers = 0;
+    let quote = '';
+    let lineComment = false;
+    let blockCommentDepth = 0;
+
+    for (let i = 0; i < text.length; ++i) {
+        const char = text[i];
+        const next = text[i + 1] ?? '';
+
+        if (lineComment) {
+            if (char === '\n') lineComment = false;
+            continue;
+        }
+        if (blockCommentDepth > 0) {
+            if (char === '/' && next === '*') {
+                blockCommentDepth += 1;
+                ++i;
+            } else if (char === '*' && next === '/') {
+                blockCommentDepth -= 1;
+                ++i;
+            }
+            continue;
+        }
+        if (quote) {
+            if (char === quote) {
+                if (next === quote) {
+                    ++i;
+                } else {
+                    quote = '';
+                }
+            }
+            continue;
+        }
+        if (QUOTES.has(char)) {
+            quote = char;
+            continue;
+        }
+        if (char === '-' && next === '-') {
+            lineComment = true;
+            ++i;
+            continue;
+        }
+        if (char === '/' && next === '*') {
+            blockCommentDepth = 1;
+            ++i;
+            continue;
+        }
+        if (char === ';') {
+            openers.length = 0;
+            unmatchedClosers = 0;
+            continue;
+        }
+        if (PAIRS[char]) {
+            openers.push(char);
+        } else if (CLOSERS.has(char)) {
+            const opener = openers[openers.length - 1];
+            if (opener && PAIRS[opener] === char) {
+                openers.pop();
+            } else {
+                unmatchedClosers += 1;
+            }
+        }
+    }
+    return openers.length + unmatchedClosers;
+}
+
+export function handleInput(
+    view: EditorView,
+    from: number,
+    to: number,
+    insert: string,
+    defaultInsert: () => Transaction = () => view.state.update({
+        changes: { from, to, insert },
+        selection: EditorSelection.cursor(from + insert.length),
+        annotations: Transaction.userEvent.of('input.type'),
+    }),
+): boolean {
     if (insert.length !== 1) return false;
 
     // Overtype: user types a closer and the char at cursor matches
@@ -20,7 +98,10 @@ export function handleInput(view: EditorView, from: number, to: number, insert: 
             });
             return true;
         }
-        if (CLOSERS.has(insert)) return false;
+        if (CLOSERS.has(insert)) {
+            view.dispatch(defaultInsert());
+            return true;
+        }
     }
 
     // Auto-close quotes
@@ -47,6 +128,13 @@ export function handleInput(view: EditorView, from: number, to: number, insert: 
     const doc = view.state.doc;
     const after = from < doc.length ? doc.sliceString(to, to + 1) : '';
     if (!BEFORE_CLOSE.test(after)) return false;
+
+    const withoutSelection = doc.sliceString(0, from) + doc.sliceString(to);
+    const withOpener = doc.sliceString(0, from) + insert + doc.sliceString(to);
+    if (delimiterImbalance(withOpener) < delimiterImbalance(withoutSelection)) {
+        view.dispatch(defaultInsert());
+        return true;
+    }
 
     view.dispatch({
         changes: { from, to, insert: insert + closer },

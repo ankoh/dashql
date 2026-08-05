@@ -58,6 +58,55 @@ describe('autoclose brackets', () => {
         expect(docAndCursor(view)).toEqual({ doc: 'fn(())', cursor: 4 });
     });
 
+    it.each([
+        ['(', ')'],
+        ['[', ']'],
+        ['{', '}'],
+    ])('inserts only %s when it balances an unmatched %s', (opener, closer) => {
+        view = createView(closer, 0);
+        const handled = handleInput(view, 0, 0, opener);
+        expect(handled).toBe(true);
+        expect(docAndCursor(view)).toEqual({ doc: opener + closer, cursor: 1 });
+    });
+
+    it('does not auto-close when an unmatched closer follows whitespace', () => {
+        view = createView('select  value)', 7);
+        const handled = handleInput(view, 7, 7, '(');
+        expect(handled).toBe(true);
+        expect(docAndCursor(view)).toEqual({ doc: 'select ( value)', cursor: 8 });
+    });
+
+    it('still auto-closes when the following closer is already matched', () => {
+        view = createView('(())', 3);
+        const handled = handleInput(view, 3, 3, '(');
+        expect(handled).toBe(true);
+        expect(docAndCursor(view)).toEqual({ doc: '(()())', cursor: 4 });
+    });
+
+    it('still auto-closes before an unmatched closer of a different type', () => {
+        view = createView(']', 0);
+        const handled = handleInput(view, 0, 0, '(');
+        expect(handled).toBe(true);
+        expect(docAndCursor(view)).toEqual({ doc: '()]', cursor: 1 });
+    });
+
+    it.each(["select  ')'", 'select  -- )', 'select  /* ) */'])('ignores closers in SQL text: %s', doc => {
+        view = createView(doc, 7);
+        const handled = handleInput(view, 7, 7, '(');
+        expect(handled).toBe(true);
+        expect(view.state.doc.sliceString(7, 9)).toBe('()');
+    });
+
+    it.each(['select  from t; select )', 'select  /* outer /* nested */ ) */'])(
+        'does not balance against unrelated SQL text: %s',
+        doc => {
+            view = createView(doc, 7);
+            const handled = handleInput(view, 7, 7, '(');
+            expect(handled).toBe(true);
+            expect(view.state.doc.sliceString(7, 9)).toBe('()');
+        },
+    );
+
     it('does not auto-close ( before a word char', () => {
         view = createView('abc', 1);
         const handled = handleInput(view, 1, 1, '(');
@@ -136,10 +185,11 @@ describe('overtype', () => {
         expect(docAndCursor(view)).toEqual({ doc: '""', cursor: 2 });
     });
 
-    it('does not overtype ) when char at cursor differs', () => {
+    it.each([')', ']', '}'])('inserts unmatched closer %s without an opener', closer => {
         view = createView('(x)', 1);
-        const handled = handleInput(view, 1, 1, ')');
-        expect(handled).toBe(false);
+        const handled = handleInput(view, 1, 1, closer);
+        expect(handled).toBe(true);
+        expect(docAndCursor(view)).toEqual({ doc: `(${closer}x)`, cursor: 2 });
     });
 });
 
