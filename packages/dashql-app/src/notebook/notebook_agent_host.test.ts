@@ -7,7 +7,7 @@ import {
     AgentRunState,
     reduceAgentRun,
 } from '../agent/agent_run_state.js';
-import { applyStatementDescriptions, createNotebookAgentHost, chooseApplyAction } from './notebook_agent_host.js';
+import { createNotebookAgentHost, chooseApplyAction } from './notebook_agent_host.js';
 import {
     NotebookState,
     NotebookStateAction,
@@ -145,8 +145,7 @@ async function drive(
     focusedKey: number | null,
     aiClient: AgentAIClient,
     opts: {
-        intentOverride?: 'sql' | 'visualize' | 'describe' | null;
-        maxAttempts?: number;
+        intentOverride?: 'sql' | 'visualize' | null;
         resolveOutputColumns?: (scriptKey: number) => Array<{ name: string; type: string | null }> | null;
     } = {},
 ): Promise<{ agent: AgentRunState | null; notebook: NotebookState; applied: NotebookStateAction[]; registered: Array<[number, number]> }> {
@@ -173,7 +172,7 @@ async function drive(
     });
 
     await startAgentRun(
-        { runId: 1, prompt: 'do the thing', contextScriptKey: focusedKey, intentOverride: opts.intentOverride ?? null, maxAttempts: opts.maxAttempts },
+        { runId: 1, prompt: 'do the thing', contextScriptKey: focusedKey, intentOverride: opts.intentOverride ?? null },
         {
             aiClient,
             host,
@@ -203,74 +202,6 @@ describe('chooseApplyAction', () => {
         const action = chooseApplyAction('visualize', { scriptKey: 7, annotations: { visualizeQuery: { sql: 's' } } } as any, 'visualize x using vegalite ()');
         expect(action.type).toBe(SET_SCRIPT_TEXT);
         expect((action.value as any).scriptKey).toBe(7);
-    });
-    it('describe with a focused script edits in place', () => {
-        const action = chooseApplyAction('describe', { scriptKey: 42 } as any, '-- Description\nselect 1');
-        expect(action.type).toBe(SET_SCRIPT_TEXT);
-        expect((action.value as any).withDiff).toBe(true);
-    });
-});
-
-describe('applyStatementDescriptions', () => {
-    it('adds descriptions to every statement without changing their SQL', () => {
-        const { state, focusedKey } = buildNotebook('select category from sales;select amount from sales');
-        const text = applyStatementDescriptions(state.scripts[focusedKey], [
-            'Lists each sales category.',
-            'Lists each sales amount.',
-        ]);
-        expect(text).toBe(
-            '-- Lists each sales category.\nselect category from sales;\n' +
-            '-- Lists each sales amount.\nselect amount from sales',
-        );
-    });
-
-    it('replaces existing description blocks and preserves Unicode and trailing comments', () => {
-        const source =
-            '-- old description\n' +
-            'select \'€\' as currency; -- retained trailing comment\n\n' +
-            '/* old second description */\n' +
-            '-- old second line\n' +
-            'select amount from sales';
-        const { state, focusedKey } = buildNotebook(source);
-        const text = applyStatementDescriptions(state.scripts[focusedKey], [
-            'Shows the currency symbol.',
-            'Shows sales amounts.',
-        ]);
-        expect(text).toBe(
-            '-- Shows the currency symbol.\n' +
-            'select \'€\' as currency; -- retained trailing comment\n\n' +
-            '-- Shows sales amounts.\n' +
-            'select amount from sales',
-        );
-    });
-
-    it('rejects missing, empty, or extra model descriptions', () => {
-        const { state, focusedKey } = buildNotebook('select 1; select 2');
-        const script = state.scripts[focusedKey];
-        expect(() => applyStatementDescriptions(script, ['Only one.'])).toThrow(/Expected 2/);
-        expect(() => applyStatementDescriptions(script, ['First.', ''])).toThrow(/empty/);
-        expect(() => applyStatementDescriptions(script, ['First.', 'Second.', 'Third.'])).toThrow(/Expected 2/);
-    });
-
-    it('preserves statement indentation and CRLF line endings', () => {
-        const { state, focusedKey } = buildNotebook('select 1;\r\n    select amount from sales');
-        const text = applyStatementDescriptions(state.scripts[focusedKey], ['First.', 'Second.']);
-        expect(text).toBe('-- First.\r\nselect 1;\r\n    -- Second.\r\n    select amount from sales');
-    });
-
-    it('wraps detailed descriptions to readable comment lines', () => {
-        const { state, focusedKey } = buildNotebook('select * from supplier where balance = (select min(balance) from supplier)');
-        const text = applyStatementDescriptions(state.scripts[focusedKey], [
-            'List suppliers whose balance equals the minimum supplier balance computed by the nested subquery, preserving every supplier column in the result.',
-        ]);
-        expect(text).toBe(
-            '-- List suppliers whose balance equals the minimum supplier balance computed by\n' +
-            '-- the nested subquery, preserving every supplier column in the result.\n' +
-            'select * from supplier where balance = (select min(balance) from supplier)',
-        );
-        for (const line of text.split('\n').slice(0, 2)) {
-            expect(line.length).toBeLessThanOrEqual(80);
-        }
     });
 });
 
@@ -337,67 +268,6 @@ describe('startAgentRun — SQL path', () => {
         const ai = new MockAIClient('sql', ['select category from sales']);
         const { registered } = await drive(state, null, ai, { intentOverride: 'sql' });
         expect(registered).toHaveLength(0);
-    });
-});
-
-describe('startAgentRun — description path', () => {
-    it('sends statement text and metadata, then stages a description-only rewrite', async () => {
-        const { state, focusedKey } = buildNotebook('select category from sales; select amount from sales');
-        const ai = new MockAIClient('sql', ['Lists sales categories.', 'Lists sales amounts.']);
-        const { agent, notebook, applied } = await drive(state, focusedKey, ai, {
-            intentOverride: 'describe',
-        });
-
-        expect(agent!.phase).toBe(AgentRunPhase.SUCCEEDED);
-        expect(ai.prompts).toHaveLength(2);
-        expect(ai.prompts[0]).toContain('Target statement 1 of 2');
-        expect(ai.prompts[0]).toContain('Type: SELECT');
-        expect(ai.prompts[0]).toContain('select category from sales;');
-        expect(ai.prompts[0]).toContain('Other statements (context only):\nStatement 1:\nselect amount from sales');
-        expect(ai.prompts[1]).toContain('Target statement 2 of 2');
-        expect(ai.prompts[1]).toContain('Other statements (context only):\nStatement 1:\nselect category from sales;');
-        expect(applied).toHaveLength(1);
-        expect(applied[0].type).toBe(SET_SCRIPT_TEXT);
-        expect((applied[0].value as any).withDiff).toBe(true);
-        expect(notebook.scripts[focusedKey].script.toString()).toContain('-- Lists sales categories.');
-        expect(notebook.scripts[focusedKey].script.toString()).toContain('-- Lists sales amounts.');
-    });
-
-    it('sends a VISUALIZE target its resolved source script text and Vega-Lite spec', async () => {
-        const { state: sourceState, focusedKey: sourceKey } = buildNotebook('select category, amount from sales');
-        const [visKey, visData] = createEmptyScriptData(dql!, sourceState.connectionCatalog);
-        const visFile = '2_chart.sql';
-        const sourceName = scriptDisplayName(sourceState.scripts[sourceKey].fileName);
-        visData.script.replaceText(
-            `VISUALIZE dashql.notebook."main/${sourceName}" USING vegalite (` +
-            'mark => bar, encoding => (x => (field => category), y => (field => amount)))',
-        );
-        const state = analyzeAllScriptsInNotebook({
-            ...sourceState,
-            scripts: {
-                ...sourceState.scripts,
-                [visKey]: { ...visData, folderName: MAIN_FOLDER, fileName: visFile },
-            },
-            notebookPages: {
-                [MAIN_FOLDER]: {
-                    ...sourceState.notebookPages[MAIN_FOLDER],
-                    scripts: {
-                        ...sourceState.notebookPages[MAIN_FOLDER].scripts,
-                        [visFile]: createPageScript(visKey, visFile),
-                    },
-                },
-            },
-        }, logger);
-        const ai = new MockAIClient('sql', ['Charts sales amounts by category.']);
-        const { agent } = await drive(state, visKey, ai, { intentOverride: 'describe' });
-
-        expect(agent!.phase).toBe(AgentRunPhase.SUCCEEDED);
-        const prompt = generationPrompt(ai);
-        expect(prompt).toContain('Source script text:\nselect category, amount from sales');
-        expect(prompt).toContain('Vega-Lite spec:');
-        expect(prompt).toContain('"mark": "bar"');
-        expect(prompt).toContain('"field": "category"');
-        expect(prompt).toContain('"field": "amount"');
     });
 });
 

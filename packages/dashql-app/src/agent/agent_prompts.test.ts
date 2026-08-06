@@ -1,35 +1,8 @@
 import { describe, it, expect } from 'vitest';
 
-import { buildDescribePrompt, buildVisualizePrompt, diagnoseVegaLiteSpec, extractDescription, SUPPORTED_VEGA_MARKS } from './agent_prompts.js';
+import { buildVisualizePrompt, diagnoseVegaLiteSpec, SUPPORTED_VEGA_MARKS } from './agent_prompts.js';
 
 const CTX = 'Source query (feeds the chart):\nselect v as x, random() as y\n\nCurrent chart (Vega-Lite spec):\n{ "mark": "point" }';
-
-describe('statement description prompts', () => {
-    it('requests grounded, action-led plain text for one target statement', () => {
-        const context = 'Target statement 1 of 2\nType: SELECT\nTarget SQL:\nselect 1;\n\nOther statements (context only):\nStatement 1:\nselect 2;';
-        const prompt = buildDescribePrompt({ context, userPrompt: '' });
-        expect(prompt).toContain('Return only the description text');
-        expect(prompt).toContain('describe only the identified target statement');
-        expect(prompt).toContain('Start with an imperative verb');
-        expect(prompt).toContain('Ground the description in the target SQL');
-        expect(prompt).toContain('resolved source script text and Vega-Lite spec');
-        expect(prompt).toContain('both the data being visualized and the chart design');
-        expect(prompt).toContain('cover the entire statement');
-        expect(prompt).toContain('filters, aggregation, ordering, and limits');
-        expect(prompt).toContain('Include material subqueries');
-        expect(prompt).toContain('affect the outer statement');
-        expect(prompt).toContain('Do not stop at a generic high-level summary');
-        expect(prompt).toContain('Do not start with "This statement"');
-        expect(prompt).toContain(context);
-        expect(prompt).not.toContain('Generate a random number');
-        expect(prompt).not.toContain('JSON array');
-    });
-
-    it('trims a plain-text description and rejects an empty response', () => {
-        expect(extractDescription(' First. ')).toBe('First.');
-        expect(() => extractDescription('   ')).toThrow(/empty statement description/);
-    });
-});
 
 describe('buildVisualizePrompt — edit vs generate framing', () => {
     it('frames a fresh chart as a generate task', () => {

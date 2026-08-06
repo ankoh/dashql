@@ -2,7 +2,7 @@
 /// driver passes to `AIClient.generate`. Kept free of React / WASM so they are trivially
 /// unit-testable.
 
-export type AgentIntent = 'sql' | 'visualize' | 'describe';
+export type AgentIntent = 'sql' | 'visualize';
 
 /// Input shared by the SQL / visualize prompt builders.
 export interface GenerationPromptInput {
@@ -129,32 +129,6 @@ export function buildSqlPrompt(input: GenerationPromptInput): string {
         ...repairBlock(input),
     ];
     return lines.join('\n');
-}
-
-/// Build a prompt for one statement description. The model returns plain prose for exactly one
-/// target; the notebook host owns comment serialization and source edits, so model output can never
-/// rewrite SQL. The context includes the full script to preserve surrounding meaning.
-export function buildDescribePrompt(input: GenerationPromptInput): string {
-    return [
-        'Write one concise description for the target statement in a DashQL SQL notebook.',
-        'Return only the description text as one short sentence.',
-        'Do not add quotes, markdown, a SQL comment marker, or an explanation.',
-        'Start with an imperative verb that accurately describes the target SQL operation or result.',
-        'Do not start with "This statement", "This query", "The statement", or "The query".',
-        'Ground the description in the target SQL fields, relations, filters, grouping, or ordering.',
-        'For a VISUALIZE statement, use the resolved source script text and Vega-Lite spec to describe',
-        'both the data being visualized and the chart design, including its mark and encodings.',
-        'Make the description specific and complete enough to cover the entire statement, including',
-        'its material inputs, transformations, filters, aggregation, ordering, and limits when present.',
-        'Include material subqueries: explain what they compute and how their results filter, compare,',
-        'or otherwise affect the outer statement.',
-        'Do not stop at a generic high-level summary that omits important behavior.',
-        'Use the other statements only as context, and describe only the identified target statement.',
-        '',
-        '--- Statement and script context ---',
-        input.context,
-        '--- End context ---',
-    ].join('\n');
 }
 
 /// The task framing that opens the visualize prompt. When a current chart is present the run is an
@@ -301,15 +275,6 @@ Instruction: ${input.userPrompt}`;
 export function extractSql(completion: string): string {
     const fenced = extractFenced(completion);
     return (fenced ?? completion).trim();
-}
-
-/// Extract one plain-text statement description. Fences are tolerated defensively, but no structured
-/// output is required from the model.
-export function extractDescription(completion: string): string {
-    const fenced = extractFenced(completion);
-    const text = (fenced ?? completion).trim();
-    if (text.length === 0) throw new Error('The model returned an empty statement description.');
-    return text;
 }
 
 /// Defensively isolate the first JSON object from a completion: strip fences, then slice

@@ -288,13 +288,6 @@
     padding: 0 4px;
 }
 
-/* Keep both overlay buttons inside short one-line scripts. The content-height minimum is expressed
-   in lines so pending rewrites always reserve two editor rows without making normal previews taller. */
-.feed_body[data-pending-diff] .script_preview_editor :global(.cm-content),
-.feed_body[data-pending-diff] .script_preview_editor :global(.cm-gutters) {
-    min-height: 2.8em;
-}
-
 .diff_editor.diff_editor {
     padding: 0;
     overflow-x: hidden;

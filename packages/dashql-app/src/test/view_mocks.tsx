@@ -11,9 +11,9 @@ export function fakeScriptEditorModule(React: typeof import('react'), state: { c
 
 export function fakeScriptPreviewModule(React: typeof import('react')) {
     return {
-        ScriptPreview: (props: { className?: string }) => React.createElement(
+        ScriptPreview: () => React.createElement(
             'div',
-            { 'data-testid': 'script-preview', className: props.className },
+            { 'data-testid': 'script-preview' },
             'preview',
             React.createElement('button', { 'data-dashql-story-control': 'true' }, 'SQL'),
         ),

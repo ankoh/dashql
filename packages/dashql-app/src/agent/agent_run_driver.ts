@@ -13,12 +13,10 @@ import {
 } from './agent_run_state.js';
 import {
     buildClassifyPrompt,
-    buildDescribePrompt,
     buildSqlPrompt,
     buildVisualizePrompt,
     diagnoseVegaLiteSpec,
     extractJsonObject,
-    extractDescription,
     extractSql,
     parseIntent,
 } from './agent_prompts.js';
@@ -77,9 +75,7 @@ function throwIfAborted(signal: AbortSignal): void {
 /// A reader-friendly noun for the artifact an intent produces. Used to word the progress log so it
 /// says what the agent is actually working on ("Generating a chart …") instead of a bare phase name.
 function intentNoun(intent: AgentIntent): string {
-    if (intent === 'visualize') return 'chart';
-    if (intent === 'describe') return 'statement descriptions';
-    return 'SQL query';
+    return intent === 'visualize' ? 'chart' : 'SQL query';
 }
 
 /// Clip a string for inclusion in a single log line so a long prompt doesn't blow up the row.
@@ -280,8 +276,6 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
         }
 
         const context = host.buildContext(intent);
-        const descriptionSource = intent === 'describe' ? host.descriptionSource() : '';
-        const descriptionContexts = intent === 'describe' ? host.descriptionContexts() : [];
 
         // --- Generate → verify (→ repair) loop ------------------------------
         let candidateText: string | null = null;
@@ -318,16 +312,14 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
                     editingChart: host.isEditingChart(),
                 })
                 : buildSqlPrompt({ context, userPrompt: params.prompt, previousCandidate, errors });
-            const completion: string = intent === 'describe'
-                ? ''
-                : await loggedGenerate(
-                    tracedLog,
-                    aiClient,
-                    repairing ? 'repair' : 'generate',
-                    prompt,
-                    signal,
-                    `the model to ${repairing ? 'repair' : 'generate'} the ${noun}`,
-                );
+            const completion: string = await loggedGenerate(
+                tracedLog,
+                aiClient,
+                repairing ? 'repair' : 'generate',
+                prompt,
+                signal,
+                `the model to ${repairing ? 'repair' : 'generate'} the ${noun}`,
+            );
             throwIfAborted(signal);
 
             // Turn the completion into candidate DSL/SQL. For visualize we hand the raw spec JSON
@@ -336,26 +328,7 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
             // for the attempt record and as the fallback candidate when transcoding throws.
             let vegaLiteRaw: string | null = null;
             try {
-                if (intent === 'describe') {
-                    const descriptions: string[] = [];
-                    for (let i = 0; i < descriptionContexts.length; ++i) {
-                        const descriptionPrompt = buildDescribePrompt({
-                            context: descriptionContexts[i],
-                            userPrompt: params.prompt,
-                        });
-                        const descriptionCompletion = await loggedGenerate(
-                            tracedLog,
-                            aiClient,
-                            repairing ? 'repair' : 'generate',
-                            descriptionPrompt,
-                            signal,
-                            `the model to describe statement ${i + 1} of ${descriptionContexts.length}`,
-                        );
-                        throwIfAborted(signal);
-                        descriptions.push(extractDescription(descriptionCompletion));
-                    }
-                    candidateText = host.applyDescriptions(descriptions, descriptionSource);
-                } else if (intent === 'visualize') {
+                if (intent === 'visualize') {
                     vegaLiteRaw = extractJsonObject(completion);
                     candidateText = host.transcodeVegaLite(vegaLiteRaw);
                 } else {
@@ -373,8 +346,7 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
                 continue;
             }
 
-            // Verify against the parser + analyzer. Describe candidates are complete scripts built
-            // deterministically by the host from model prose plus the unchanged source SQL.
+            // Verify against the parser + analyzer.
             dispatchAgent({
                 type: AGENT_PHASE,
                 value: {

@@ -3,7 +3,7 @@ import * as styles from './notebook_script_feed.module.css';
 
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '@primer/octicons-react';
-import { AppsIcon, CodeIcon, CommentAiIcon, ListUnorderedIcon, PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon } from '@primer/octicons-react';
+import { AppsIcon, CodeIcon, ListUnorderedIcon, PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon } from '@primer/octicons-react';
 
 import { useAppConfig } from '../../app_config.js';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
@@ -98,14 +98,12 @@ interface CollapsedScriptCardProps {
     canDelete: boolean;
     canMoveUp: boolean;
     canMoveDown: boolean;
-    canGenerateDescription: boolean;
     onFocus: (fileName: string) => void;
     onExpand: (fileName: string) => void;
     onDelete: (fileName: string) => void;
     onRename: (oldFileName: string, newFileName: string) => void;
     onMoveUp: (fileName: string) => void;
     onMoveDown: (fileName: string) => void;
-    onGenerateDescription: (fileName: string) => void;
     onShowStatus: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
@@ -117,7 +115,7 @@ interface CollapsedScriptCardProps {
     onVisible: (fileName: string) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, canMoveUp, canMoveDown, canGenerateDescription, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onGenerateDescription, onShowStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
     const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
@@ -305,15 +303,6 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                 )}
                 <IconButton
                     variant={ButtonVariant.Invisible}
-                    onClick={(event) => { event.stopPropagation(); onGenerateDescription(scriptFileName); }}
-                    aria-label="Generate statement descriptions"
-                    title={canGenerateDescription ? 'Generate statement descriptions' : 'Configure AI or wait for the current agent run'}
-                    disabled={!canGenerateDescription}
-                >
-                    <CommentAiIcon size={16} />
-                </IconButton>
-                <IconButton
-                    variant={ButtonVariant.Invisible}
                     onClick={(event) => { event.stopPropagation(); onMoveUp(scriptFileName); }}
                     aria-label="Move script up"
                     disabled={!canMoveUp}
@@ -351,11 +340,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
                     cancelLabel={entryStatus.kind === EntryStatusKind.Agent ? 'Cancel agent run' : 'Cancel query'}
                 />
             )}
-            <div
-                className={styles.feed_body}
-                data-pending-diff={hasPendingDiff || undefined}
-                onPointerDownCapture={handlePreviewPointerDown}
-            >
+            <div className={styles.feed_body} onPointerDownCapture={handlePreviewPointerDown}>
                 {scriptData == null ? null : (
                     // The body is always the read-only compact preview. When the agent stages a
                     // rewrite it overlays the rewrite as a compact in-place diff (so the feed no
@@ -419,14 +404,12 @@ interface ScriptFeedRowProps {
     scriptDebugMode: boolean;
     focusedFileName: string;
     canDelete: boolean;
-    canGenerateDescription: boolean;
     onFocus: (fileName: string) => void;
     onExpand: (fileName: string) => void;
     onDelete: (fileName: string) => void;
     onRename: (oldFileName: string, newFileName: string) => void;
     onMoveUp: (fileName: string) => void;
     onMoveDown: (fileName: string) => void;
-    onGenerateDescription: (fileName: string) => void;
     onShowStatus: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
@@ -441,7 +424,7 @@ interface ScriptFeedRowProps {
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, canGenerateDescription, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onGenerateDescription, onShowStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible, onHeightMeasured, hasMeasuredHeight } = props;
+    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible, onHeightMeasured, hasMeasuredHeight } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -493,14 +476,12 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     canDelete={canDelete}
                     canMoveUp={canMoveUp}
                     canMoveDown={canMoveDown}
-                    canGenerateDescription={canGenerateDescription && scriptData != null && scriptData.pendingDiff == null}
                     onFocus={onFocus}
                     onExpand={onExpand}
                     onDelete={onDelete}
                     onRename={onRename}
                     onMoveUp={onMoveUp}
                     onMoveDown={onMoveDown}
-                    onGenerateDescription={onGenerateDescription}
                     onShowStatus={onShowStatus}
                     onShowTable={onShowTable}
                     onShowVisualization={onShowVisualization}
@@ -619,7 +600,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     // script isn't covered either: its context script is the SQL source, not the new chart entry.
     const executedAgentRunRef = React.useRef<number | null>(null);
     React.useEffect(() => {
-        if (agentState == null || agentState.phase !== AgentRunPhase.SUCCEEDED || agentState.intent !== 'visualize') {
+        if (agentState == null || agentState.phase !== AgentRunPhase.SUCCEEDED) {
             return;
         }
         // Handle each successful run exactly once (the effect re-runs as notebook state settles).
@@ -814,27 +795,6 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             });
         }
     }, [aiAvailable, composeEditorView, props.notebook, props.conn, props.modifyNotebook, startAgentRun]);
-
-    const handleGenerateDescription = React.useCallback((fileName: string) => {
-        if (!aiAvailable || agentActive) return;
-        const notebook = props.notebook;
-        const entry = notebook.notebookPages[notebook.notebookUserFocus.folderName]?.scripts[fileName];
-        const scriptData = entry != null ? notebook.scripts[entry.scriptId] : null;
-        if (scriptData == null || scriptData.pendingDiff != null) return;
-        const host = createNotebookAgentHost({
-            notebook,
-            contextScriptKey: scriptData.scriptKey,
-            modifyNotebook: props.modifyNotebook,
-            resolveOutputColumns: (scriptKey) => outputColumnsForScript(notebook, props.conn, scriptKey),
-        });
-        startAgentRun({
-            sessionId: notebook.sessionId,
-            prompt: 'Generate concise descriptions for every statement in this script.',
-            contextScriptKey: scriptData.scriptKey,
-            intentOverride: 'describe',
-            host,
-        });
-    }, [aiAvailable, agentActive, props.notebook, props.conn, props.modifyNotebook, startAgentRun]);
 
     const handleComposeSend = React.useCallback(() => {
         if (inputMode === 1) {
@@ -1097,14 +1057,12 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         scriptDebugMode,
         focusedFileName,
         canDelete,
-        canGenerateDescription: aiAvailable && !agentActive,
         onFocus: handleFocus,
         onExpand: handleExpand,
         onDelete: handleDelete,
         onRename: handleRename,
         onMoveUp: handleMoveUp,
         onMoveDown: handleMoveDown,
-        onGenerateDescription: handleGenerateDescription,
         onShowStatus: handleShowStatus,
         onShowTable: handleShowTable,
         onShowVisualization: handleShowVisualization,
@@ -1116,7 +1074,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         hasMeasuredHeight,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, aiAvailable, agentActive, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleGenerateDescription, handleShowStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, handleEntryVisible, handleHeightMeasured, hasMeasuredHeight, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleShowStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, handleEntryVisible, handleHeightMeasured, hasMeasuredHeight, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container} data-tauri-drag-region="deep">
@@ -1226,7 +1184,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                                     </SegmentedControl.Button>
                                 </SegmentedControl>
                             )}
-                            {agentActive ? (
+                            {inputMode === 1 && agentActive ? (
                                 <>
                                     <StatusIndicator
                                         className={styles.compose_progress_spinner}

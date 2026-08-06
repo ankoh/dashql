@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
 import { AIClient } from './ai_client.js';
-import { isAIProviderConfigured, resolveAIClientSettings } from './ai_client_provider.js';
 import { Logger } from './logger/logger.js';
 import type { HttpClient, HttpFetchResult } from './http/http_client.js';
 
@@ -99,18 +98,5 @@ describe('AIClient', () => {
         });
         const out = await client.generate('hi', new AbortController().signal);
         expect(out).toBe('');
-    });
-});
-
-describe('AI client provider settings', () => {
-    it('treats a provider with omitted endpoint as configured using the default endpoint', () => {
-        const provider = { model: 'custom-model' };
-        expect(isAIProviderConfigured(provider)).toBe(true);
-        expect(resolveAIClientSettings(provider).endpointUrl).toBe('http://localhost:11434');
-    });
-
-    it('distinguishes an absent provider from an explicitly blank endpoint', () => {
-        expect(isAIProviderConfigured(undefined)).toBe(false);
-        expect(isAIProviderConfigured({ endpointUrl: '   ' })).toBe(false);
     });
 });

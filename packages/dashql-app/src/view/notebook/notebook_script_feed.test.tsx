@@ -343,7 +343,6 @@ describe('NotebookScriptFeed', () => {
         // render a preview; the only editor is the compose card.
         expect(container.querySelectorAll('[data-testid="script-preview"]').length).toBe(2);
         expect(container.querySelectorAll('[data-testid="script-editor"]').length).toBe(1);
-        expect(container.querySelectorAll('[data-pending-diff="true"]')).toHaveLength(1);
     });
 
     it('expands into details when a pending-diff card body is clicked', () => {
@@ -390,51 +389,6 @@ describe('NotebookScriptFeed', () => {
             type: DELETE_NOTEBOOK_ENTRY,
             value: '01-script.sql',
         });
-    });
-
-    it('starts description generation for the clicked entry', () => {
-        const notebook = createNotebookState();
-        const modifyNotebook = vi.fn();
-        renderFeed({ notebook, modifyNotebook, showDetails: vi.fn() });
-
-        const buttons = container.querySelectorAll('[aria-label="Generate statement descriptions"]');
-        expect(buttons.length).toBe(2);
-        expect((buttons[0] as HTMLButtonElement).disabled).toBe(false);
-        act(() => { (buttons[1] as HTMLButtonElement).click(); });
-
-        expect(mockState.startAgentRun).toHaveBeenCalledTimes(1);
-        expect(mockState.startAgentRun).toHaveBeenCalledWith(expect.objectContaining({
-            sessionId: notebook.sessionId,
-            contextScriptKey: 102,
-            intentOverride: 'describe',
-        }));
-    });
-
-    it('disables description generation while a pending rewrite is awaiting review', () => {
-        renderFeed({
-            notebook: withPendingDiff(createNotebookState(), 101, 'select 0'),
-            modifyNotebook: vi.fn(),
-            showDetails: vi.fn(),
-        });
-        const buttons = container.querySelectorAll('[aria-label="Generate statement descriptions"]');
-        expect((buttons[0] as HTMLButtonElement).disabled).toBe(true);
-        expect((buttons[1] as HTMLButtonElement).disabled).toBe(false);
-    });
-
-    it('shows a stop control for a card agent run while the composer remains in SQL mode', () => {
-        const notebook = createNotebookState();
-        mockState.agentRuns.set(9, {
-            traceId: 300,
-            phase: 2 /* GENERATING */,
-            log: [{ message: 'Generating statement descriptions' }],
-        });
-        mockState.latestAgentRunId = 9;
-        notebook.scripts[101] = { ...notebook.scripts[101], latestAgentRunId: 9 };
-        renderFeed({ notebook, modifyNotebook: vi.fn(), showDetails: vi.fn() });
-        const stop = container.querySelector('[aria-label="Stop agent run"]') as HTMLButtonElement;
-        expect(stop).not.toBeNull();
-        act(() => stop.click());
-        expect(mockState.cancelAgentRun).toHaveBeenCalledWith(notebook.sessionId);
     });
 
     it('keeps the compose send control available while a query is running', () => {
