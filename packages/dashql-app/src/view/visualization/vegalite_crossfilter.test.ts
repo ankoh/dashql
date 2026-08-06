@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
     filterTableToVegaCrossFilterRows,
+    injectVegaStableScaleDomains,
     injectVegaLiteCrossFilter,
     MASK_ROW_ID_FIELD,
     VegaCrossFilterUpdater,
@@ -174,6 +175,83 @@ describe('filterTableToVegaCrossFilterRows', () => {
     });
 });
 
+describe('injectVegaStableScaleDomains', () => {
+    it('adds collision-safe domainRaw signals only to data-driven scales', () => {
+        const compiled = {
+            signals: [{ name: '__dashql_stable_domain', value: ['authored'] }],
+            scales: [
+                { name: 'x', type: 'band', domain: { data: 'table', field: 'category' } },
+                { name: 'y', type: 'linear', domain: [0, 100] },
+                { name: 'color', type: 'ordinal', domain: { data: 'table', field: 'category' }, domainRaw: { signal: 'authored' } },
+            ],
+        } as vega.Spec;
+
+        const binding = injectVegaStableScaleDomains(compiled);
+        const runtime = binding.spec as vega.Spec & {
+            scales: Array<Record<string, unknown>>;
+            signals: Array<Record<string, unknown>>;
+        };
+
+        expect(binding.domains).toEqual([{
+            scaleName: 'x',
+            signalName: '__dashql_stable_domain_2',
+        }]);
+        expect(runtime.scales[0].domainRaw).toEqual({ signal: '__dashql_stable_domain_2' });
+        expect(runtime.scales[1]).toEqual(compiled.scales![1]);
+        expect(runtime.scales[2]).toEqual(compiled.scales![2]);
+        expect(runtime.signals).toContainEqual({ name: '__dashql_stable_domain_2', value: null });
+        expect(compiled.scales![0]).not.toHaveProperty('domainRaw');
+    });
+
+    it('keeps aggregate and categorical domains stable while filtering marks', async () => {
+        const sourceRows = [
+            { _rownum: 1, category: 'A' },
+            { _rownum: 2, category: 'A' },
+            { _rownum: 3, category: 'B' },
+        ];
+        const authored = {
+            transform: [{ aggregate: [{ op: 'count', as: 'count' }], groupby: ['category'] }],
+            mark: 'bar',
+            encoding: {
+                x: { field: 'category', type: 'nominal' },
+                y: { field: 'count', type: 'quantitative' },
+            },
+        } as TopLevelSpec;
+        const crossFilter = injectVegaLiteCrossFilter(authored, '_rownum');
+        const stableScales = injectVegaStableScaleDomains(compile(crossFilter.spec).spec);
+        const aggregateData = stableScales.spec.data?.find(data =>
+            data.transform?.some(transform => transform.type === 'aggregate'));
+        expect(aggregateData?.name).toBeDefined();
+
+        const runtime = vega.parse(stableScales.spec, {}, { ast: true });
+        const view = new vega.View(runtime, { expr: expressionInterpreter });
+        const updater = new VegaCrossFilterUpdater(
+            view,
+            crossFilter.sourceDatasetName,
+            sourceRows,
+            crossFilter.maskDatasetName,
+            crossFilter.maskActiveSignalName,
+            undefined,
+            stableScales.domains,
+        );
+        updater.update({
+            active: true,
+            rows: [{
+                [MASK_ROW_ID_FIELD]: 3,
+                [crossFilter.maskSelectedFieldName!]: true,
+            }],
+        });
+
+        await vi.waitFor(() => expect(view.data(aggregateData!.name)).toEqual([
+            expect.objectContaining({ category: 'B', count: 1 }),
+        ]));
+        expect(view.scale('x').domain()).toEqual(['A', 'B']);
+        expect(view.scale('y').domain()).toEqual([0, 2]);
+        updater.dispose();
+        view.finalize();
+    });
+});
+
 describe('VegaCrossFilterUpdater', () => {
     it('serializes runs and coalesces pending masks', async () => {
         let resolveFirstRun: (() => void) | null = null;
@@ -194,6 +272,7 @@ describe('VegaCrossFilterUpdater', () => {
                 signal(...args);
                 return view;
             },
+            scale: vi.fn(),
             runAsync,
         } as VegaCrossFilterView;
         const updater = new VegaCrossFilterUpdater(view, 'source', [{ value: 1 }], 'mask', 'active');
@@ -222,6 +301,7 @@ describe('VegaCrossFilterUpdater', () => {
         const view = {
             data: vi.fn().mockReturnThis(),
             signal: vi.fn().mockReturnThis(),
+            scale: vi.fn(),
             runAsync,
         } as unknown as VegaCrossFilterView;
         const updater = new VegaCrossFilterUpdater(view, 'source', [], 'mask', 'active');

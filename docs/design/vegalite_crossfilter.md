@@ -57,6 +57,7 @@ The runtime spec receives:
 2. A named row-ID mask dataset.
 3. A boolean parameter indicating whether a filter is active.
 4. A leading lookup and filter before all authored transforms.
+5. Initially-null stable-domain signals for compiled, data-driven scales.
 
 For a source row-number field named `_rownum`, the effective structure is:
 
@@ -100,6 +101,12 @@ The lookup and filter are prepended. This ensures aggregate, bin, stack, window,
 density, regression, and scale-domain calculations operate on selected rows. Appending
 the filter would change mark visibility without correctly changing upstream transforms.
 
+The scale domains are handled separately. A `vega-embed` patch adds `domainRaw`
+references to compiled scales whose domains are data-driven. Explicit constant domains
+and authored `domainRaw` expressions are left unchanged. The patch operates on compiled
+Vega rather than Vega-Lite so it also covers domains derived from generated aggregate,
+bin, and stack fields.
+
 Internal source, dataset, signal, and marker names are allocated dynamically to avoid
 collisions with authored names and source fields. Runtime updates use the returned names
 rather than relying on Vega-Lite-generated names such as `source_0`.
@@ -128,6 +135,16 @@ Result-grid ordering is intentionally not applied to Vega-Lite. Ordering control
 display order, while chart semantics depend only on the source rows and active filters.
 
 ## Mask updates
+
+Before applying the first mask, the updater evaluates the complete source with filtering
+disabled. It reads each patched scale through `view.scale(name).domain()`, copies that
+domain into the corresponding stable-domain signal, and then applies the latest pending
+mask. This one-time bootstrap keeps axes, category order, and color mappings based on the
+full result while marks and authored transforms continue to recompute from selected rows.
+
+For example, if an unfiltered aggregate has a maximum count of 100 and the selected rows
+have a maximum count of 12, the bars update to the filtered counts but the quantitative
+axis continues to use the domain derived from 100.
 
 An accepted `filterTable` contains one row-number column. It is converted to records of
 the following shape:
@@ -171,7 +188,8 @@ Rapid brush results are therefore coalesced rather than queued indefinitely.
 The updater also handles asynchronous embed completion:
 
 - The latest mask is retained in a React ref while modules and the View load.
-- The source rows and latest mask are applied immediately after embed completes.
+- The source rows are evaluated once to capture scale domains after embed completes.
+- The latest mask is applied immediately after domain capture.
 - Subsequent filter changes update only the mask.
 - Disposal drops pending work and prevents an old View from being touched after
   finalization.
@@ -213,6 +231,8 @@ Vega input path or SQL pushdown that sends Vega a reduced chart-specific result.
 
 - The source and mask row IDs use the same JavaScript numeric representation.
 - The lookup/filter always precedes authored transforms.
+- Data-driven scale domains are captured from the complete source before the first mask.
+- Explicit and interactive authored scale domains are not overridden.
 - An active empty mask renders no rows.
 - Runtime augmentation never mutates the authored spec.
 - Internal names never assume a reserved namespace.
@@ -231,6 +251,8 @@ Vega input path or SQL pushdown that sends Vega a reduced chart-specific result.
 - operation without a row-number field;
 - integer and bigint filter-table IDs;
 - aggregate updates through a compiled Vega-Lite spec using `vega-interpreter`;
+- stable quantitative and categorical domains while aggregate marks are filtered;
+- preservation of explicit and authored interactive scale domains;
 - mask update serialization and coalescing; and
 - disposal while a View run is pending.
 

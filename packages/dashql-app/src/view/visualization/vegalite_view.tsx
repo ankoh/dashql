@@ -7,9 +7,11 @@ import { QueryExecutionState, QueryExecutionStatus } from '../../connection/quer
 import { useComputationRegistry } from '../../compute/computation_registry.js';
 import {
     filterTableToVegaCrossFilterRows,
+    injectVegaStableScaleDomains,
     injectVegaLiteCrossFilter,
     VegaCrossFilterMask,
     VegaCrossFilterUpdater,
+    VegaStableScaleDomain,
 } from './vegalite_crossfilter.js';
 
 interface Props {
@@ -150,6 +152,7 @@ export function VegaLiteView(props: Props): React.ReactElement {
 
         let disposed = false;
         let finalizeView: (() => void) | null = null;
+        let stableScaleDomains: VegaStableScaleDomain[] = [];
         const baseSpec = crossFilterBinding?.spec ?? (props.hideLegend ? stripLegends(spec) : spec);
         const runtimeSpec = { ...baseSpec } as TopLevelSpec & {
             width?: unknown;
@@ -175,6 +178,11 @@ export function VegaLiteView(props: Props): React.ReactElement {
                 renderer: 'canvas',
                 ast: true,
                 expr: interp.expressionInterpreter,
+                patch: compiledSpec => {
+                    const stableScales = injectVegaStableScaleDomains(compiledSpec);
+                    stableScaleDomains = stableScales.domains;
+                    return stableScales.spec;
+                },
                 // `mark.tooltip: true` makes Vega-Lite derive a tooltip from each mark's encoded
                 // fields; vega-embed installs the vega-tooltip handler by default, so hovering a
                 // mark shows its data. Applied via config so it covers every mark without editing
@@ -196,6 +204,7 @@ export function VegaLiteView(props: Props): React.ReactElement {
                     crossFilterBinding.maskDatasetName,
                     crossFilterBinding.maskActiveSignalName,
                     e => setError(e instanceof Error ? e.message : String(e)),
+                    stableScaleDomains,
                 );
                 crossFilterUpdaterRef.current = updater;
                 updater.update(crossFilterMaskRef.current);

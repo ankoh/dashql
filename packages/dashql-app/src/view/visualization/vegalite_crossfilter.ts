@@ -1,10 +1,12 @@
 import * as arrow from 'apache-arrow';
+import type { Spec as VegaSpec } from 'vega';
 import type { TopLevelSpec } from 'vega-lite';
 
 const SOURCE_DATASET_BASE = '__dashql_source';
 const MASK_DATASET_BASE = '__dashql_crossfilter_ids';
 const MASK_ACTIVE_BASE = '__dashql_crossfilter_active';
 const MASK_SELECTED_FIELD_BASE = '__dashql_crossfilter_selected';
+const STABLE_DOMAIN_SIGNAL_BASE = '__dashql_stable_domain';
 
 export const MASK_ROW_ID_FIELD = '__dashql_row_id';
 
@@ -19,7 +21,18 @@ export interface VegaLiteCrossFilterBinding {
 export interface VegaCrossFilterView {
     data(name: string, values: object[]): VegaCrossFilterView;
     signal(name: string, value: unknown): VegaCrossFilterView;
+    scale(name: string): { domain(): unknown[] };
     runAsync(): Promise<unknown>;
+}
+
+export interface VegaStableScaleDomain {
+    scaleName: string;
+    signalName: string;
+}
+
+export interface VegaStableScaleBinding {
+    spec: VegaSpec;
+    domains: VegaStableScaleDomain[];
 }
 
 export interface VegaCrossFilterMask {
@@ -59,6 +72,59 @@ function collectRuntimeNames(value: unknown, names: Set<string>): void {
     for (const entry of Object.values(object)) {
         collectRuntimeNames(entry, names);
     }
+}
+
+function hasDataReference(value: unknown): boolean {
+    if (Array.isArray(value)) {
+        return value.some(hasDataReference);
+    }
+    if (value == null || typeof value !== 'object') {
+        return false;
+    }
+    const object = value as Record<string, unknown>;
+    if (typeof object.data === 'string') {
+        return true;
+    }
+    return Object.values(object).some(hasDataReference);
+}
+
+/// Override compiled, data-driven Vega scale domains through initially-null signals.
+/// The updater fills these signals after evaluating the complete source once, so later
+/// cross-filter pulses can recompute marks without changing axes or categorical mappings.
+export function injectVegaStableScaleDomains(spec: VegaSpec): VegaStableScaleBinding {
+    const input = spec as VegaSpec & {
+        scales?: Array<Record<string, unknown>>;
+        signals?: Array<Record<string, unknown>>;
+    };
+    const usedNames = new Set<string>();
+    collectRuntimeNames(input, usedNames);
+    const domains: VegaStableScaleDomain[] = [];
+    const signals = [...(input.signals ?? [])];
+    const scales = (input.scales ?? []).map(scale => {
+        const scaleName = scale.name;
+        if (typeof scaleName !== 'string' || scale.domainRaw != null || !hasDataReference(scale.domain)) {
+            return scale;
+        }
+        const signalName = allocateName(STABLE_DOMAIN_SIGNAL_BASE, usedNames);
+        domains.push({ scaleName, signalName });
+        signals.push({ name: signalName, value: null });
+        return {
+            ...scale,
+            domainRaw: { signal: signalName },
+        };
+    });
+
+    if (domains.length === 0) {
+        return { spec, domains };
+    }
+    return {
+        spec: {
+            ...input,
+            scales,
+            signals,
+        },
+        domains,
+    };
 }
 
 /// Add the renderer-owned row-id relation and membership lookup/filter to a runtime copy
@@ -158,6 +224,7 @@ export class VegaCrossFilterUpdater {
     private readonly sourceDatasetName: string;
     private readonly maskDatasetName: string | null;
     private readonly maskActiveSignalName: string | null;
+    private readonly stableScaleDomains: readonly VegaStableScaleDomain[];
     private pending: VegaCrossFilterMask | null = null;
     private running = false;
     private readonly onError: (error: unknown) => void;
@@ -169,6 +236,7 @@ export class VegaCrossFilterUpdater {
         maskDatasetName: string | null,
         maskActiveSignalName: string | null,
         onError: (error: unknown) => void = () => { },
+        stableScaleDomains: readonly VegaStableScaleDomain[] = [],
     ) {
         this.view = view;
         this.sourceDatasetName = sourceDatasetName;
@@ -176,6 +244,7 @@ export class VegaCrossFilterUpdater {
         this.maskDatasetName = maskDatasetName;
         this.maskActiveSignalName = maskActiveSignalName;
         this.onError = onError;
+        this.stableScaleDomains = stableScaleDomains;
     }
 
     update(mask: VegaCrossFilterMask): void {
@@ -199,12 +268,29 @@ export class VegaCrossFilterUpdater {
         try {
             while (this.view != null && this.pending != null) {
                 const view = this.view;
-                const mask = this.pending;
-                this.pending = null;
                 if (this.sourceRows != null) {
                     view.data(this.sourceDatasetName, this.sourceRows);
                     this.sourceRows = null;
+                    if (this.stableScaleDomains.length > 0) {
+                        if (this.maskDatasetName != null && this.maskActiveSignalName != null) {
+                            view
+                                .data(this.maskDatasetName, [])
+                                .signal(this.maskActiveSignalName, false);
+                        }
+                        await view.runAsync();
+                        if (this.view !== view) {
+                            continue;
+                        }
+                        for (const domain of this.stableScaleDomains) {
+                            view.signal(domain.signalName, [...view.scale(domain.scaleName).domain()]);
+                        }
+                    }
                 }
+                const mask = this.pending;
+                if (mask == null) {
+                    continue;
+                }
+                this.pending = null;
                 if (this.maskDatasetName != null && this.maskActiveSignalName != null) {
                     view
                         .data(this.maskDatasetName, mask.rows)
