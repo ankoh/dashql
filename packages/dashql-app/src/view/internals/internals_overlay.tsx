@@ -83,14 +83,6 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     description: 'Inspect and evict cached query results',
                     disabled: false,
                 },
-                [TabKey.StorageWriter]: {
-                    tabId: TabKey.StorageWriter,
-                    icon: `${icons}#versions_24`,
-                    labelShort: 'Storage Writer',
-                    ariaLabel: 'Storage writer',
-                    description: 'View storage writer statistics',
-                    disabled: false,
-                },
                 [TabKey.Docker]: {
                     tabId: TabKey.Docker,
                     icon: `${icons}#package`,
