@@ -75,7 +75,10 @@ describe('processTask', () => {
         const calls = (dispatch as ReturnType<typeof vi.fn>).mock.calls;
         expect(calls).toHaveLength(3);
         expect(calls[0][0]).toMatchObject({ type: UPDATE_SCHEDULER_TASK, value: [task, expect.objectContaining({ status: TaskStatus.TASK_RUNNING })] });
-        expect(calls[1][0]).toEqual({ type: TABLE_FILTERING_SUCCEEDED, value: [42, mockFilter] });
+        expect(calls[1][0]).toEqual({
+            type: TABLE_FILTERING_SUCCEEDED,
+            value: [42, task.value.tableVersion, mockFilter],
+        });
         expect(calls[2][0]).toEqual({ type: UNREGISTER_SCHEDULER_TASK, value: task });
         await expect(result.getValue()).resolves.toBe(mockFilter);
     });
@@ -174,9 +177,14 @@ describe('processTask', () => {
         vi.spyOn(computationLogic, 'computeFilteredColumnAggregates').mockResolvedValue(null);
 
         const result = new AsyncValue<null, LoggableException>();
+        const filterVersion = new ComputationStateVersion(0, 3);
         const task: TaskVariant = {
             type: FILTERED_COLUMN_AGGREGATION_TASK,
-            value: { tableId: 42, columnId: 7 } as any,
+            value: {
+                tableId: 42,
+                columnId: 7,
+                filterTable: { version: filterVersion },
+            } as any,
             result: result as any,
             taskId: 6,
         };
@@ -186,7 +194,10 @@ describe('processTask', () => {
         const calls = (dispatch as ReturnType<typeof vi.fn>).mock.calls;
         expect(calls).toHaveLength(3);
         expect(calls[0][0]).toMatchObject({ type: UPDATE_SCHEDULER_TASK, value: [task, expect.objectContaining({ status: TaskStatus.TASK_RUNNING })] });
-        expect(calls[1][0]).toEqual({ type: FILTERED_COLUMN_AGGREGATION_SUCCEEDED, value: [42, 7, null] });
+        expect(calls[1][0]).toEqual({
+            type: FILTERED_COLUMN_AGGREGATION_SUCCEEDED,
+            value: [42, 7, filterVersion, null],
+        });
         expect(calls[2][0]).toEqual({ type: UNREGISTER_SCHEDULER_TASK, value: task });
         await expect(result.getValue()).resolves.toBeNull();
     });

@@ -32,6 +32,8 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
     const svgContainer = React.useRef<HTMLDivElement>(null);
     const svgContainerSize = observeSize(svgContainer);
     const brushContainer = React.useRef<SVGGElement>(null);
+    const pendingBrushFrame = React.useRef<number | null>(null);
+    const pendingBrushEvent = React.useRef<d3.D3BrushEvent<unknown> | null>(null);
     const margin = { top: 8, right: 8, bottom: 20, left: 8 },
         width = (svgContainerSize?.width ?? 130) - margin.left - margin.right,
         height = (svgContainerSize?.height ?? 50) - margin.top - margin.bottom;
@@ -99,21 +101,52 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
 
     // Notify when brushing starts or ends
     const onBrushStart = React.useCallback(() => {
+        if (pendingBrushFrame.current != null) {
+            cancelAnimationFrame(pendingBrushFrame.current);
+            pendingBrushFrame.current = null;
+            pendingBrushEvent.current = null;
+        }
         props.onBrushingChange?.(true);
     }, [props.onBrushingChange]);
 
     const onBrushEnd = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
-        // Call the regular update handler first
+        if (pendingBrushFrame.current != null) {
+            cancelAnimationFrame(pendingBrushFrame.current);
+            pendingBrushFrame.current = null;
+            pendingBrushEvent.current = null;
+        }
         onBrushUpdate(e);
-        // Then notify that brushing has ended
         props.onBrushingChange?.(false);
     }, [onBrushUpdate, props.onBrushingChange]);
 
+    const onBrushMove = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
+        pendingBrushEvent.current = e;
+        if (pendingBrushFrame.current != null) {
+            return;
+        }
+        pendingBrushFrame.current = requestAnimationFrame(() => {
+            pendingBrushFrame.current = null;
+            const pending = pendingBrushEvent.current;
+            pendingBrushEvent.current = null;
+            if (pending != null) {
+                onBrushUpdateRef.current(pending);
+            }
+        });
+    }, []);
+
+    React.useEffect(() => () => {
+        if (pendingBrushFrame.current != null) {
+            cancelAnimationFrame(pendingBrushFrame.current);
+        }
+    }, []);
+
     // Store callbacks in refs to avoid recreating the D3 brush when callbacks change
     const onBrushUpdateRef = React.useRef(onBrushUpdate);
+    const onBrushMoveRef = React.useRef(onBrushMove);
     const onBrushStartRef = React.useRef(onBrushStart);
     const onBrushEndRef = React.useRef(onBrushEnd);
     onBrushUpdateRef.current = onBrushUpdate;
+    onBrushMoveRef.current = onBrushMove;
     onBrushStartRef.current = onBrushStart;
     onBrushEndRef.current = onBrushEnd;
 
@@ -126,7 +159,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
                 [histXScale.range()[1], height]
             ])
             .on('start', () => onBrushStartRef.current())
-            .on('brush', (e) => onBrushUpdateRef.current(e))
+            .on('brush', (e) => onBrushMoveRef.current(e))
             .on('end', (e) => onBrushEndRef.current(e));
 
         // Add the brush overlay

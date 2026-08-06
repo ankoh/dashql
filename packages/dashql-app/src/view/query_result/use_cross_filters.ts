@@ -25,6 +25,28 @@ function scalarFiltersEqual(left: ScalarFilter[], right: ScalarFilter[]): boolea
     return true;
 }
 
+const pendingSchedules = new WeakMap<object, Set<string>>();
+
+/// Effects in separate consumers can run from the same state snapshot. Keep a task key
+/// reserved until the scheduled operation settles so only the first consumer schedules it.
+function claimSchedule(dispatch: Dispatch<ComputationAction>, key: string): (() => void) | null {
+    const owner = dispatch as object;
+    let schedules = pendingSchedules.get(owner);
+    if (schedules == null) {
+        schedules = new Set();
+        pendingSchedules.set(owner, schedules);
+    }
+    if (schedules.has(key)) {
+        return null;
+    }
+    schedules.add(key);
+    return () => schedules!.delete(key);
+}
+
+function scalarFiltersKey(filters: ScalarFilter[]): string {
+    return filters.map(filter => `${filter.fieldName}\u0000${filter.op}\u0000${filter.value}`).join('\u0001');
+}
+
 export interface CrossFilterController {
     /// The active cross-filter selection (shared, read from the computation state)
     crossFilters: CrossFilters;
@@ -118,6 +140,11 @@ export function useCrossFilters(
         if (hasUpToDateRunningTask) {
             return;
         }
+        const scheduleKey = `filter:${computationState.tableId}:${computationState.version.toString()}:${scalarFiltersKey(crossFilterTransforms)}`;
+        const releaseSchedule = claimSchedule(dispatchComputation, scheduleKey);
+        if (releaseSchedule == null) {
+            return;
+        }
         const filteringTask: TableFilteringTask = {
             tableId: computationState.tableId,
             tableVersion: computationState.version,
@@ -127,7 +154,7 @@ export function useCrossFilters(
             filters: crossFilterTransforms,
             rowNumberColumnName: computationState.rowNumberColumnName,
         };
-        void filterTableDispatched(filteringTask, dispatchComputation);
+        void filterTableDispatched(filteringTask, dispatchComputation).finally(releaseSchedule);
     }, [
         computationState?.dataFrame,
         computationState?.dataTable,
@@ -162,6 +189,12 @@ export function useCrossFilters(
             return;
         }
 
+        const scheduleKey = `aggregate:${state.tableId}:${columnId}:${filterTable.version.toString()}`;
+        const releaseSchedule = claimSchedule(dispatchComputation, scheduleKey);
+        if (releaseSchedule == null) {
+            return;
+        }
+
         const task: WithFilter<ColumnAggregationTask> = {
             tableId: state.tableId,
             tableVersion: state.version,
@@ -172,7 +205,7 @@ export function useCrossFilters(
             filterTable,
             unfilteredAggregate,
         };
-        void computeFilteredColumnAggregatesDispatched(task, dispatchComputation);
+        void computeFilteredColumnAggregatesDispatched(task, dispatchComputation).finally(releaseSchedule);
     }, [dispatchComputation]);
 
     return {

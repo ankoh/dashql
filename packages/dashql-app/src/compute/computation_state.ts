@@ -157,12 +157,12 @@ export type ComputationAction =
     | VariantKind<typeof CREATED_DATA_FRAME, [number, DataFrame]>
 
     | VariantKind<typeof TABLE_ORDERING_SUCCEDED, [number, OrderingTable]>
-    | VariantKind<typeof TABLE_FILTERING_SUCCEEDED, [number, FilterTable | null]>
+    | VariantKind<typeof TABLE_FILTERING_SUCCEEDED, [number, ComputationStateVersion, FilterTable | null]>
     | VariantKind<typeof TABLE_AGGREGATION_SUCCEEDED, [number, TableAggregation]>
     | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, [number, arrow.Table, DataFrame, ColumnGroup[]]>
     | VariantKind<typeof UMAP_COMPUTATION_SUCCEEDED, [number, arrow.Table, DataFrame, ColumnGroup[]]>
     | VariantKind<typeof COLUMN_AGGREGATION_SUCCEEDED, [number, number, ColumnAggregationVariant]>
-    | VariantKind<typeof FILTERED_COLUMN_AGGREGATION_SUCCEEDED, [number, number, WithFilterEpoch<ColumnAggregationVariant> | null]>
+    | VariantKind<typeof FILTERED_COLUMN_AGGREGATION_SUCCEEDED, [number, number, ComputationStateVersion, WithFilterEpoch<ColumnAggregationVariant> | null]>
     | VariantKind<typeof SET_CROSS_FILTERS, [number, CrossFilters]>
     ;
 
@@ -280,7 +280,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             };
         }
         case TABLE_FILTERING_SUCCEEDED: {
-            const [tableId, filterTable] = action.value;
+            const [tableId, completedVersion, filterTable] = action.value;
             memory.acquire(filterTable?.dataFrame);
             const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
@@ -289,8 +289,8 @@ export function reduceComputationState(state: ComputationState, action: Computat
             }
             // Reject stale filter results (must match current state exactly)
             // With pre-allocated versions, only accept results that match the current target
-            if (filterTable && !filterTable.version.filterMatches(tableState.version)) {
-                memory.release(filterTable.dataFrame);
+            if (!completedVersion.filterMatches(tableState.version)) {
+                memory.release(filterTable?.dataFrame);
                 return state;
             }
             return tableFilteringSucceded(state, tableId, filterTable, memory);
@@ -462,7 +462,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             };
         }
         case FILTERED_COLUMN_AGGREGATION_SUCCEEDED: {
-            const [tableId, columnId, newColumnAggregate] = action.value;
+            const [tableId, columnId, completedFilterVersion, newColumnAggregate] = action.value;
             acquireColumnAggregate(newColumnAggregate, memory);
 
             // Computation not registered?
@@ -474,6 +474,14 @@ export function reduceComputationState(state: ComputationState, action: Computat
             // Column aggregation task unknown?
             const currentTask = tableState.tasks.filteredColumnAggregationTasks[columnId];
             if (currentTask == null) {
+                releaseColumnAggregate(newColumnAggregate, memory);
+                return state;
+            }
+            if (!currentTask.filterTable.version.filterMatches(completedFilterVersion)) {
+                releaseColumnAggregate(newColumnAggregate, memory);
+                return state;
+            }
+            if (tableState.filterTable == null || !tableState.filterTable.version.filterMatches(completedFilterVersion)) {
                 releaseColumnAggregate(newColumnAggregate, memory);
                 return state;
             }
@@ -493,21 +501,10 @@ export function reduceComputationState(state: ComputationState, action: Computat
             };
             filteredColumnAggregationTasks[columnId] = task;
 
-            if (tableState.filterTable == null) {
-                // We computed a column aggregation, but the filter was removed in the meantime.
-                // Clear the filtered column aggregates.
-                releaseColumnAggregate(newColumnAggregate, memory);
-                filteredColumnAggregates[columnId] = null;
-                filteredColumnAggregationTasks[columnId] = null;
-                filteredColumnAggregatesOutdated[columnId] = false;
-            } else {
-                // There is a filter table, check if the aggregates were computed on the current filter version.
-                // If not, mark the column aggregate outdated.
-                const aggregateUpToDate = newColumnAggregate?.filterVersion?.filterMatches(
-                    tableState.filterTable.version
-                ) ?? false;
-                filteredColumnAggregatesOutdated[columnId] = !aggregateUpToDate;
-            }
+            const aggregateUpToDate = newColumnAggregate?.filterVersion?.filterMatches(
+                tableState.filterTable.version
+            ) ?? false;
+            filteredColumnAggregatesOutdated[columnId] = !aggregateUpToDate;
 
             // Destroy the previous column aggregate, if there is one
             if (prevColumnAggregate != null) {

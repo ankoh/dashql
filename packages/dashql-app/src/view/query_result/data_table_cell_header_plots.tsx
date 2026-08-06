@@ -74,6 +74,10 @@ export function HeaderPlotsCell(props: HeaderPlotsCellProps): React.ReactElement
 
     const isRightmost = props.columnIndex === props.rightmostVisibleColumn;
 
+    if (!props.isVisible) {
+        return <div style={props.style} />;
+    }
+
     // Some columns carry no summary by design — most notably LIST columns (e.g. float32
     // embedding arrays), for which aggregating value identifiers / frequent values is
     // very expensive and not rendered. Show a "no summary" indicator on the primary

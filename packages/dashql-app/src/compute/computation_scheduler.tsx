@@ -106,7 +106,7 @@ export async function processTask(task: TaskVariant, dispatchComputation: Dispat
                 // Mark as succeeded
                 dispatchComputation({
                     type: TABLE_FILTERING_SUCCEEDED,
-                    value: [task.value.tableId, filter]
+                    value: [task.value.tableId, task.value.tableVersion, filter]
                 });
                 // Resolve the promise
                 task.result.resolve(filter);
@@ -165,7 +165,7 @@ export async function processTask(task: TaskVariant, dispatchComputation: Dispat
                 // Mark as succeeded
                 dispatchComputation({
                     type: FILTERED_COLUMN_AGGREGATION_SUCCEEDED,
-                    value: [task.value.tableId, task.value.columnId, filteredColumnAgg]
+                    value: [task.value.tableId, task.value.columnId, task.value.filterTable.version, filteredColumnAgg]
                 });
                 // Resolve the task
                 task.result.resolve(filteredColumnAgg);

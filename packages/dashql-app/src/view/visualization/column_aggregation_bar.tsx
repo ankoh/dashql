@@ -39,7 +39,9 @@ export function ColumnAggregationBar(props: Props): React.ReactElement | null {
     // Measure the available width so the layout can distribute the leftover space across the
     // columns (same fill-to-width behaviour as the data table).
     const rootRef = React.useRef<HTMLDivElement | null>(null);
+    const scrollRef = React.useRef<HTMLDivElement | null>(null);
     const [containerWidth, setContainerWidth] = React.useState(0);
+    const [scrollLeft, setScrollLeft] = React.useState(0);
     React.useEffect(() => {
         const el = rootRef.current;
         if (!el) return;
@@ -70,6 +72,17 @@ export function ColumnAggregationBar(props: Props): React.ReactElement | null {
         return computeTableLayout(tableFormatter, tableComputation, debugMode, HEADER_ROW_COUNT, effectiveWidth);
     }, [tableComputation, tableFormatter, debugMode, containerWidth]);
 
+    React.useEffect(() => {
+        const element = scrollRef.current;
+        if (!element) return;
+        const updateScrollLeft = () => {
+            setScrollLeft(previous => previous === element.scrollLeft ? previous : element.scrollLeft);
+        };
+        updateScrollLeft();
+        element.addEventListener('scroll', updateScrollLeft, { passive: true });
+        return () => element.removeEventListener('scroll', updateScrollLeft);
+    }, [gridLayout]);
+
     // The cross-filter controller must be called unconditionally to satisfy the rules of hooks;
     // it no-ops harmlessly when there is no table computation / data frame yet.
     const emptyLayout = React.useMemo<DataTableLayout>(() => ({
@@ -92,11 +105,17 @@ export function ColumnAggregationBar(props: Props): React.ReactElement | null {
         return null;
     }
 
+    const viewportLeft = Math.max(0, scrollLeft - containerWidth);
+    const viewportRight = scrollLeft + 2 * containerWidth;
+
     // Skip the leading row-number column (columnIndex 0); render the aggregate plots for the rest.
     const fields = tableComputation.dataTable.schema.fields;
     const cells: React.ReactElement[] = [];
     for (let columnIndex = 1; columnIndex < gridLayout.columnCount; ++columnIndex) {
         const width = gridLayout.columnXOffsets[columnIndex + 1] - gridLayout.columnXOffsets[columnIndex];
+        const columnLeft = gridLayout.columnXOffsets[columnIndex] - gridLayout.columnXOffsets[1];
+        const columnRight = columnLeft + width;
+        const isVisible = columnRight > viewportLeft && columnLeft < viewportRight;
         const fieldId = gridLayout.arrowFieldByColumnIndex[columnIndex];
         const columnName = fields[fieldId]?.name ?? '';
         cells.push(
@@ -116,7 +135,7 @@ export function ColumnAggregationBar(props: Props): React.ReactElement | null {
                     filteredColumnAggregationOutdated={tableComputation.filteredColumnAggregatesOutdated}
                     tableAggregation={tableComputation.tableAggregation}
                     filterTableEpoch={tableComputation.filterTable?.version ?? null}
-                    isVisible={true}
+                    isVisible={isVisible}
                     rightmostVisibleColumn={gridLayout.columnCount - 1}
                     onRequestFilteredColumnAggregation={controller.requestFilteredColumnAggregation}
                     onHistogramFilter={controller.histogramFilter}
@@ -129,7 +148,7 @@ export function ColumnAggregationBar(props: Props): React.ReactElement | null {
 
     return (
         <div ref={rootRef} className={styles.root}>
-            <div className={styles.scroll} style={{ height: COLUMN_HEADER_PLOTS_HEIGHT + COLUMN_NAME_HEIGHT }}>
+            <div ref={scrollRef} className={styles.scroll} style={{ height: COLUMN_HEADER_PLOTS_HEIGHT + COLUMN_NAME_HEIGHT }}>
                 {cells}
             </div>
         </div>

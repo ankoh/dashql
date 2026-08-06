@@ -387,8 +387,9 @@ export const DataTable: React.FC<Props> = (props: Props) => {
             return visibility;
         }
         visibility[0] = true;
-        const viewportLeft = horizontalViewport.left;
-        const viewportRight = horizontalViewport.left + Math.max(horizontalViewport.width, gridContainerWidth);
+        const viewportWidth = Math.max(horizontalViewport.width, gridContainerWidth);
+        const viewportLeft = Math.max(0, horizontalViewport.left - viewportWidth);
+        const viewportRight = horizontalViewport.left + 2 * viewportWidth;
         for (let columnIndex = 1; columnIndex < gridLayout.columnCount; ++columnIndex) {
             const columnLeft = gridLayout.columnXOffsets[columnIndex];
             const columnRight = gridLayout.columnXOffsets[columnIndex + 1];
@@ -656,4 +657,3 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         </div>
     );
 };
-

@@ -649,7 +649,7 @@ describe('ComputationState', () => {
 
             const filterSucceeded: ComputationAction = {
                 type: TABLE_FILTERING_SUCCEEDED,
-                value: [1, {
+                value: [1, new ComputationStateVersion(0, 10), {
                     inputRowNumberColumnName: 'rowNumber',
                     dataTable: filterTable,
                     dataFrame: filterDataFrame,
@@ -676,7 +676,7 @@ describe('ComputationState', () => {
 
             const staleFilterSucceeded: ComputationAction = {
                 type: TABLE_FILTERING_SUCCEEDED,
-                value: [1, {
+                value: [1, new ComputationStateVersion(0, 10), {
                     inputRowNumberColumnName: 'rowNumber',
                     dataTable: filterTable,
                     dataFrame: staleFilterDataFrame,
@@ -708,7 +708,7 @@ describe('ComputationState', () => {
 
             const currentFilterSucceeded: ComputationAction = {
                 type: TABLE_FILTERING_SUCCEEDED,
-                value: [1, {
+                value: [1, new ComputationStateVersion(0, 10), {
                     inputRowNumberColumnName: 'rowNumber',
                     dataTable: filterTable,
                     dataFrame: currentFilterDataFrame,
@@ -783,7 +783,7 @@ describe('ComputationState', () => {
             releaseAllRegisteredDataFramesFromLatestState(state, memory);
         });
 
-        it('keeps stale filtered aggregation results marked outdated without auto-rescheduling', () => {
+        it('discards stale filtered aggregation results without replacing the active task', () => {
             const memory = new DataFrameRegistry(logger);
             const inputDataFrame = createMockDataFrame("__test_input");
             const tableAggregateDataFrame = createMockDataFrame("__test_tbl_agg");
@@ -825,7 +825,7 @@ describe('ComputationState', () => {
                     inputRowNumberColumnName: 'rowNumber',
                     dataTable: filterTable,
                     dataFrame: filterDataFrame,
-                    version: new ComputationStateVersion(0, 9),
+                    version: new ComputationStateVersion(0, 10),
                 },
                 unfilteredAggregate: createOrdinalAggregate(
                     inputTableColumns[1].value as OrdinalGridColumnGroup,
@@ -845,7 +845,7 @@ describe('ComputationState', () => {
 
             const aggregationSucceeded: ComputationAction = {
                 type: FILTERED_COLUMN_AGGREGATION_SUCCEEDED,
-                value: [1, 1, createFilteredOrdinalAggregate(
+                value: [1, 1, new ComputationStateVersion(0, 9), createFilteredOrdinalAggregate(
                     inputTableColumns[1].value as OrdinalGridColumnGroup,
                     filteredAggregateDataFrame,
                     scoreAggregateTable as unknown as BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
@@ -857,8 +857,24 @@ describe('ComputationState', () => {
 
             state = reduceComputationState(state, aggregationSucceeded, memory, logger);
             expect(Object.entries(state.schedulerTasks).length).toEqual(0);
-            expect(state.tableComputations[1].filteredColumnAggregates[1]?.filterVersion.filter).toEqual(9);
+            expect(state.tableComputations[1].filteredColumnAggregates[1]).toBeNull();
             expect(state.tableComputations[1].filteredColumnAggregatesOutdated[1]).toEqual(true);
+            expect(state.tableComputations[1].tasks.filteredColumnAggregationTasks[1]?.progress.status).toEqual(TaskStatus.TASK_RUNNING);
+
+            const currentAggregationSucceeded: ComputationAction = {
+                type: FILTERED_COLUMN_AGGREGATION_SUCCEEDED,
+                value: [1, 1, new ComputationStateVersion(0, 10), createFilteredOrdinalAggregate(
+                    inputTableColumns[1].value as OrdinalGridColumnGroup,
+                    filteredAggregateDataFrame,
+                    scoreAggregateTable as unknown as BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
+                    scoreAggregateTableFormatter,
+                    ordinalColumnAnalysis,
+                    new ComputationStateVersion(0, 10),
+                )],
+            };
+            state = reduceComputationState(state, currentAggregationSucceeded, memory, logger);
+            expect(state.tableComputations[1].filteredColumnAggregates[1]?.filterVersion.filter).toEqual(10);
+            expect(state.tableComputations[1].filteredColumnAggregatesOutdated[1]).toEqual(false);
             expect(state.tableComputations[1].tasks.filteredColumnAggregationTasks[1]?.progress.status).toEqual(TaskStatus.TASK_SUCCEEDED);
         });
     });
