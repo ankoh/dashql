@@ -24,6 +24,55 @@ afterEach(() => {
 });
 
 describe('DashQL processor completion triggers', () => {
+    it('does not start completion when deleting selected comments before a token', () => {
+        const catalog = dql!.createCatalog();
+        const text = `-- Fetch and visualize vega cars data from a parquet file, rendering a point
+-- chart with year on the x-axis and weight on the y-axis.
+VISUALIZE dashql.notebook."vis_data/vega_cars" USING vegalite (
+  mark => point,
+  encoding => (
+    x => (field => "Year", type => temporal),
+    y => (field => "Weight_in_lbs", type => quantitative)
+  )
+);`;
+        const cursorOffset = text.indexOf('VISUALIZE');
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, text);
+        const scriptBuffers = analyzeScript(script);
+        const scriptCursor = script.moveCursor(cursorOffset);
+        expect(scriptCursor.read().scannerRelativePosition()).toBe(
+            dashql.buffers.cursor.RelativeSymbolPosition.BEGIN_OF_SYMBOL,
+        );
+        expect(scriptCursor.read().scannerSymbolCompletable()).toBe(true);
+
+        const processorState: DashQLProcessorUpdateIn = {
+            config: {},
+            scriptRegistry: null,
+            scriptKey: 1,
+            script,
+            scriptBuffers,
+            scriptCursor,
+            scriptCompletion: null,
+            scriptPendingDiff: null,
+            derivedFocus: null,
+            onUpdate: () => {},
+        };
+        let editorState = EditorState.create({
+            doc: text,
+            selection: EditorSelection.range(0, cursorOffset),
+            extensions: [DashQLProcessorPlugin],
+        });
+        editorState = editorState.update({ effects: DashQLUpdateEffect.of(processorState) }).state;
+        editorState = editorState.update({
+            changes: { from: 0, to: cursorOffset },
+            selection: EditorSelection.cursor(0),
+            annotations: Transaction.userEvent.of('delete.selection'),
+        }).state;
+
+        expect(editorState.doc.toString()).toBe(text.slice(cursorOffset));
+        expect(editorState.field(DashQLProcessorPlugin).scriptCompletion).toBeNull();
+    });
+
     it('does not start completion when backspace deletes the newline before a token', () => {
         const catalog = dql!.createCatalog();
         const text = '\nSELECT';

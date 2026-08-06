@@ -361,6 +361,9 @@ function backwardDeleteInsideCompletableToken(prevCursor: dashql.FlatBufferPtr<d
 function userEventCanStartCompletion(transaction: Transaction, prevCursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor> | null) {
     switch (transaction.annotation(Transaction.userEvent)) {
         case "delete.selection":
+            // Deleting a selection before the cursor can leave the same token under the caret.
+            return transaction.changes.mapPos(prevCursor?.read().textOffset() ?? 0) !== transaction.newSelection.main.head
+                || backwardDeleteInsideCompletableToken(prevCursor);
         case "delete.forward":
             return true;
         case "delete.backward":
