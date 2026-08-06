@@ -1,4 +1,4 @@
-import { CrossFilters, MOST_FREQUENT_FILTER, HistogramFilterPredicate } from './cross_filters.js';
+import { CrossFilters, MOST_FREQUENT_FILTER, HistogramFilterPredicate, MostFrequentFilterPredicate } from './cross_filters.js';
 
 describe('CrossFilters', () => {
     describe('constructor', () => {
@@ -51,7 +51,7 @@ describe('CrossFilters', () => {
             const b = new CrossFilters();
             const ordinalGroup = { inputFieldName: 'x', inputFieldType: {} as any, inputFieldNullable: false, statsFields: null, binFieldName: '_bin', binCount: 10 };
             a.addHistogramFilter(1, ordinalGroup, [0, 1]);
-            b.columnFilters[1] = { type: MOST_FREQUENT_FILTER, value: { frequentValueIndex: 0 } };
+            b.columnFilters[1] = { type: MOST_FREQUENT_FILTER, value: { valueId: 1, filters: [] } };
             expect(a.equals(b)).toBe(false);
         });
 
@@ -71,6 +71,18 @@ describe('CrossFilters', () => {
             a.addHistogramFilter(1, ordinalGroup, [2, 5]);
             b.addHistogramFilter(1, ordinalGroup, [2, 5]);
             expect(a.equals(b)).toBe(true);
+        });
+
+        it('compares most-frequent filters by value id', () => {
+            const stringGroup = { inputFieldName: 'category', inputFieldType: {} as any, inputFieldNullable: true, statsFields: null, valueIdFieldName: '_category_id' };
+            const a = new CrossFilters();
+            const b = new CrossFilters();
+            a.addMostFrequentValueFilter(1, stringGroup, 2);
+            b.addMostFrequentValueFilter(1, stringGroup, 2);
+            expect(a.equals(b)).toBe(true);
+
+            b.addMostFrequentValueFilter(1, stringGroup, 3);
+            expect(a.equals(b)).toBe(false);
         });
     });
 
@@ -109,6 +121,28 @@ describe('CrossFilters', () => {
             cf.addHistogramFilter(2, g2, [1, 9]);
             expect(cf.createFilterTransforms()).toHaveLength(4);
         });
+
+        it('returns an equality transform for a most-frequent filter', () => {
+            const cf = new CrossFilters();
+            const stringGroup = { inputFieldName: 'category', inputFieldType: {} as any, inputFieldNullable: true, statsFields: null, valueIdFieldName: '_category_id' };
+            cf.addMostFrequentValueFilter(1, stringGroup, 3);
+            expect(cf.createFilterTransforms()).toEqual([
+                { fieldName: '_category_id', op: '=', value: 3 },
+            ]);
+        });
+
+        it('combines histogram and most-frequent transforms', () => {
+            const cf = new CrossFilters();
+            const ordinalGroup = { inputFieldName: 'score', inputFieldType: {} as any, inputFieldNullable: true, statsFields: null, binFieldName: '_score_bin', binCount: 10 };
+            const stringGroup = { inputFieldName: 'category', inputFieldType: {} as any, inputFieldNullable: true, statsFields: null, valueIdFieldName: '_category_id' };
+            cf.addHistogramFilter(1, ordinalGroup, [2, 7]);
+            cf.addMostFrequentValueFilter(2, stringGroup, 3);
+            expect(cf.createFilterTransforms()).toEqual([
+                { fieldName: '_score_bin', op: '>=', value: 2 },
+                { fieldName: '_score_bin', op: '<=', value: 7 },
+                { fieldName: '_category_id', op: '=', value: 3 },
+            ]);
+        });
     });
 
     describe('containsHistogramFilter', () => {
@@ -146,7 +180,7 @@ describe('CrossFilters', () => {
 
         it('returns false for a MOST_FREQUENT_FILTER when brush is non-null', () => {
             const cf = new CrossFilters();
-            cf.columnFilters[1] = { type: MOST_FREQUENT_FILTER, value: { frequentValueIndex: 0 } };
+            cf.columnFilters[1] = { type: MOST_FREQUENT_FILTER, value: { valueId: 1, filters: [] } };
             expect(cf.containsHistogramFilter(1, [0, 5])).toBe(false);
         });
     });
@@ -197,6 +231,39 @@ describe('CrossFilters', () => {
             cf.addHistogramFilter(1, ordinalGroup, [0, 5]);
             cf.addHistogramFilter(1, ordinalGroup, [2, 8]);
             expect((cf.columnFilters[1].value as HistogramFilterPredicate).selection).toEqual([2, 8]);
+        });
+    });
+
+    describe('most-frequent filters', () => {
+        const stringGroup = { inputFieldName: 'category', inputFieldType: {} as any, inputFieldNullable: true, statsFields: null, valueIdFieldName: '_category_id' };
+
+        it('recognizes the selected value id', () => {
+            const cf = new CrossFilters();
+            expect(cf.containsMostFrequentValueFilter(1, null)).toBe(true);
+            cf.addMostFrequentValueFilter(1, stringGroup, 2);
+            expect(cf.containsMostFrequentValueFilter(1, 2)).toBe(true);
+            expect(cf.containsMostFrequentValueFilter(1, 3)).toBe(false);
+            expect(cf.containsMostFrequentValueFilter(1, null)).toBe(false);
+        });
+
+        it('replaces and removes a selected value', () => {
+            const cf = new CrossFilters();
+            cf.addMostFrequentValueFilter(1, stringGroup, 2);
+            cf.addMostFrequentValueFilter(1, stringGroup, 3);
+            const filter = cf.columnFilters[1].value as MostFrequentFilterPredicate;
+            expect(filter.valueId).toBe(3);
+            expect(filter.filters).toEqual([
+                { fieldName: '_category_id', op: '=', value: 3 },
+            ]);
+
+            cf.addMostFrequentValueFilter(1, stringGroup, null);
+            expect(cf.columnFilters[1]).toBeUndefined();
+        });
+
+        it('does not create a predicate without an id field', () => {
+            const cf = new CrossFilters();
+            cf.addMostFrequentValueFilter(1, { ...stringGroup, valueIdFieldName: null }, 2);
+            expect(cf.columnFilters[1]).toBeUndefined();
         });
     });
 });

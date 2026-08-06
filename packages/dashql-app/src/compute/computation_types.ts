@@ -435,6 +435,7 @@ export type BinnedValuesTable<WidthType extends arrow.DataType = arrow.DataType,
 
 export type FrequentValuesTable<KeyType extends arrow.DataType = arrow.DataType> = arrow.Table<{
     key: KeyType,
+    keyId: arrow.Int64,
     count: arrow.Int64,
 }>
 

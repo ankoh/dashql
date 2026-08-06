@@ -3,7 +3,7 @@ import * as React from 'react';
 import { ComputationAction, SET_CROSS_FILTERS, TableComputationState } from '../../compute/computation_state.js';
 import { CrossFilters } from '../../compute/cross_filters.js';
 import { Dispatch } from '../../utils/variant.js';
-import { ORDINAL_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableAggregation, TableFilteringTask, TaskStatus, WithFilter, ColumnAggregationTask } from '../../compute/computation_types.js';
+import { ORDINAL_COLUMN, STRING_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableAggregation, TableFilteringTask, TaskStatus, WithFilter, ColumnAggregationTask } from '../../compute/computation_types.js';
 import { ScalarFilter } from '../../sql/sqlframe_builder.js';
 import { HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
@@ -102,9 +102,23 @@ export function useCrossFilters(
         dispatchComputation({ type: SET_CROSS_FILTERS, value: [tableId, cloned] });
     }, [dispatchComputation, tableId]);
 
-    const mostFrequentValueFilter: MostFrequentValueFilterCallback = React.useCallback((_table: TableAggregation, _columnIndex: number, _column: StringColumnAggregation, _frequentValueId: number | null) => {
-        // XXX Implement most-frequent-value filtering with ScalarFilter
-    }, []);
+    const mostFrequentValueFilter: MostFrequentValueFilterCallback = React.useCallback((_table: TableAggregation, columnIndex: number, _column: StringColumnAggregation, frequentValueId: number | null) => {
+        if (tableId == null) {
+            return;
+        }
+        const columnGroupId = gridLayoutRef.current.columnGroupByColumnIndex[columnIndex];
+        const columnGroup = columnGroupsRef.current[columnGroupId];
+        if (columnGroup == null || columnGroup.type != STRING_COLUMN || columnGroup.value.valueIdFieldName == null) {
+            return;
+        }
+        const current = crossFiltersRef.current;
+        const nextValueId = current.containsMostFrequentValueFilter(columnGroupId, frequentValueId)
+            ? null
+            : frequentValueId;
+        const cloned = current.clone();
+        cloned.addMostFrequentValueFilter(columnGroupId, columnGroup.value, nextValueId);
+        dispatchComputation({ type: SET_CROSS_FILTERS, value: [tableId, cloned] });
+    }, [dispatchComputation, tableId]);
 
     const crossFilterTransforms = React.useMemo(
         () => crossFilters.createFilterTransforms(),

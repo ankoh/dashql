@@ -34,6 +34,8 @@ function resolveRowUsingOffset(offsets: BigInt64Array, offset: number) {
 export function MostFrequentCell(props: MostFrequentCellProps): React.ReactElement {
     const svgContainer = React.useRef<HTMLDivElement>(null);
     const svgContainerSize = observeSize(svgContainer);
+    const pendingFilterFrame = React.useRef<number | null>(null);
+    const pendingFilterValueId = React.useRef<number | null>(null);
 
     const margin = { top: 4, right: 8, bottom: 20, left: 8 },
         width = (svgContainerSize?.width ?? 130) - margin.left - margin.right,
@@ -47,11 +49,8 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
     const isUnique = props.columnAggregate.analysis.isUnique;
     const hasMore = props.columnAggregate.analysis.countDistinct > props.columnAggregate.frequentValuesTable.numRows;
 
-    let barWidth = width;
     const moreButtonWidth = 8;
-    if (hasMore) {
-        barWidth = Math.max(barWidth) - moreButtonWidth;
-    }
+    const barWidth = Math.max(width - (hasMore ? moreButtonWidth : 0), 0);
 
     // Find row of null value
     let nullRow: number | null = null;
@@ -111,34 +110,63 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
         focusDescription = `${rows} ${rows == 1n ? "row" : "rows"} (${percentage}%)`
     }
 
-    // Track the seelcted bin value
-    const [selectedRow, setSelectedRow] = React.useState<number | null>(null);
-    let selectedValue: string | null = null;
-    if (selectedRow != null) {
-        selectedValue = frequentValueStrings[selectedRow];
-    }
+    const onFilterRef = React.useRef(props.onFilter);
+    const tableAggregationRef = React.useRef(props.tableAggregation);
+    const columnIndexRef = React.useRef(props.columnIndex);
+    const columnAggregateRef = React.useRef(props.columnAggregate);
+    onFilterRef.current = props.onFilter;
+    tableAggregationRef.current = props.tableAggregation;
+    columnIndexRef.current = props.columnIndex;
+    columnAggregateRef.current = props.columnAggregate;
+
+    const queueFilter = React.useCallback((valueId: number | null) => {
+        pendingFilterValueId.current = valueId;
+        if (pendingFilterFrame.current != null) {
+            return;
+        }
+        pendingFilterFrame.current = requestAnimationFrame(() => {
+            pendingFilterFrame.current = null;
+            onFilterRef.current(
+                tableAggregationRef.current,
+                columnIndexRef.current,
+                columnAggregateRef.current,
+                pendingFilterValueId.current,
+            );
+        });
+    }, []);
+
+    React.useEffect(() => () => {
+        if (pendingFilterFrame.current != null) {
+            cancelAnimationFrame(pendingFilterFrame.current);
+        }
+    }, []);
 
     // Listen for pointer events events
     const onPointerOver = React.useCallback((elem: React.MouseEvent<SVGGElement>) => {
         const boundingBox = elem.currentTarget.getBoundingClientRect();
         const relativeX = elem.clientX - boundingBox.left;
+        if (relativeX < 0 || relativeX >= barWidth || frequentValueStrings.length == 0) {
+            setFocusedRow(null);
+            return;
+        }
         const invertedX = xScale.invert(relativeX);
         const row = Math.min(resolveRowUsingOffset(xOffsets, invertedX), frequentValueStrings.length - 1);
         setFocusedRow(row);
-    }, [props.tableAggregation, props.columnIndex, props.columnAggregate, props.onFilter, xScale]);
+    }, [barWidth, frequentValueStrings.length, xOffsets, xScale]);
     const onPointerOut = React.useCallback((_elem: React.MouseEvent<SVGGElement>) => {
         setFocusedRow(null);
     }, []);
     const onClick = React.useCallback((elem: React.MouseEvent<SVGGElement>) => {
         const boundingBox = elem.currentTarget.getBoundingClientRect();
         const relativeX = elem.clientX - boundingBox.left;
+        if (relativeX < 0 || relativeX >= barWidth || frequentValueStrings.length == 0) {
+            return;
+        }
         const invertedX = xScale.invert(relativeX);
         const row = Math.min(resolveRowUsingOffset(xOffsets, invertedX), frequentValueStrings.length - 1);
-        setSelectedRow(prev => prev == row ? null : row);
-        if (props.onFilter) {
-            props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, row);
-        }
-    }, [props.tableAggregation, props.columnAggregate, props.onFilter, xScale]);
+        elem.stopPropagation();
+        queueFilter(Number(frequentValueIds[row]));
+    }, [barWidth, frequentValueIds, frequentValueStrings.length, queueFilter, xOffsets, xScale]);
 
     const percentageLeft = frequentValuePercentages[0];
     const percentageRight = frequentValuePercentages[frequentValuePercentages.length - 1];
@@ -152,6 +180,7 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
                 ...props.style,
                 zIndex: focusedRow != null ? 100 : props.style?.zIndex
             }}
+            onClick={() => queueFilter(null)}
         >
             <div className={styles.root}>
                 <div className={styles.header_container}>

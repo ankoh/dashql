@@ -1,6 +1,6 @@
 import { ScalarFilter } from '../sql/sqlframe_builder.js';
 import { VariantKind } from "../utils/variant.js";
-import { OrdinalGridColumnGroup } from "./computation_types.js";
+import { OrdinalGridColumnGroup, StringGridColumnGroup } from "./computation_types.js";
 
 export const HISTOGRAM_FILTER = Symbol("HISTOGRAM_FILTER");
 export const MOST_FREQUENT_FILTER = Symbol("MOST_FREQUENT_FILTER");
@@ -18,8 +18,10 @@ export interface HistogramFilterPredicate {
 }
 
 export interface MostFrequentFilterPredicate {
-    /// The index in the frequent value table
-    frequentValueIndex: number;
+    /// The stable identifier of the selected value
+    valueId: number;
+    /// The scalar filters
+    filters: ScalarFilter[];
 }
 
 export class CrossFilters {
@@ -68,8 +70,11 @@ export class CrossFilters {
                     break;
                 }
                 case MOST_FREQUENT_FILTER: {
-                    // XXX Implement
-                    return false;
+                    const b = bFilter.value as MostFrequentFilterPredicate;
+                    if (a.value.valueId != b.valueId) {
+                        return false;
+                    }
+                    break;
                 }
             }
         }
@@ -86,6 +91,9 @@ export class CrossFilters {
                     }
                     break;
                 case MOST_FREQUENT_FILTER:
+                    for (const filter of v.value.filters) {
+                        transforms.push(filter);
+                    }
                     break;
             }
         }
@@ -119,6 +127,31 @@ export class CrossFilters {
             value: {
                 selection: brush,
                 filters,
+            }
+        };
+    }
+
+    public containsMostFrequentValueFilter(columnGroupId: number, valueId: number | null): boolean {
+        const existing = this.columnFilters[columnGroupId];
+        if (valueId == null) {
+            return existing === undefined;
+        }
+        return existing?.type == MOST_FREQUENT_FILTER && existing.value.valueId == valueId;
+    }
+
+    public addMostFrequentValueFilter(columnGroupId: number, columnGroup: StringGridColumnGroup, valueId: number | null) {
+        if (valueId == null) {
+            delete this.columnFilters[columnGroupId];
+            return;
+        }
+        if (columnGroup.valueIdFieldName == null) {
+            return;
+        }
+        this.columnFilters[columnGroupId] = {
+            type: MOST_FREQUENT_FILTER,
+            value: {
+                valueId,
+                filters: [{ fieldName: columnGroup.valueIdFieldName, op: "=", value: valueId }],
             }
         };
     }

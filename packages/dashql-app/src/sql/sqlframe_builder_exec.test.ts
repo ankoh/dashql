@@ -105,6 +105,42 @@ describe('SQLFrame execution', () => {
         expect(ids).toEqual([1, 2, 3]);
     });
 
+    it('filters rows by categorical value identifier', async () => {
+        const table = arrow.tableFromArrays({
+            category: ['B', 'A', null, 'A', 'B'],
+        });
+        await conn.insertArrowTable(table, { name: 'input', create: true });
+
+        const sql = SQLFrame.from("input")
+            .rowNumber("rn")
+            .valueIdentifier("category", "cat_id")
+            .filter("cat_id", "=", 1)
+            .project(["rn"])
+            .toSQL();
+        const result = await conn.query(sql);
+        const rows = toPlainObjects(result);
+
+        expect(rows.map((row: any) => row.rn).sort()).toEqual([2, 4]);
+    });
+
+    it('assigns null categories a filterable value identifier', async () => {
+        const table = arrow.tableFromArrays({
+            category: ['B', 'A', null, 'A', 'B'],
+        });
+        await conn.insertArrowTable(table, { name: 'input', create: true });
+
+        const sql = SQLFrame.from("input")
+            .rowNumber("rn")
+            .valueIdentifier("category", "cat_id")
+            .filter("cat_id", "=", 3)
+            .project(["rn"])
+            .toSQL();
+        const result = await conn.query(sql);
+        const rows = toPlainObjects(result);
+
+        expect(rows.map((row: any) => row.rn)).toEqual([3]);
+    });
+
     it('scalar filter range', async () => {
         const table = arrow.tableFromArrays({
             score: new Float64Array([42.0, 10.2, 10.1, 30.005]),
