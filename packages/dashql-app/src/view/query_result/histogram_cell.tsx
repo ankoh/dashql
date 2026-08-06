@@ -32,6 +32,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
     const svgContainer = React.useRef<HTMLDivElement>(null);
     const svgContainerSize = observeSize(svgContainer);
     const brushContainer = React.useRef<SVGGElement>(null);
+    const brushBehavior = React.useRef<d3.BrushBehavior<unknown> | null>(null);
     const pendingBrushFrame = React.useRef<number | null>(null);
     const pendingBrushEvent = React.useRef<d3.D3BrushEvent<unknown> | null>(null);
     const margin = { top: 8, right: 8, bottom: 20, left: 8 },
@@ -109,6 +110,16 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         props.onBrushingChange?.(true);
     }, [props.onBrushingChange]);
 
+    const clearBrush = React.useCallback(() => {
+        const container = brushContainer.current;
+        const brush = brushBehavior.current;
+        if (container != null && brush != null) {
+            d3.select(container).call(brush.move, null);
+            return;
+        }
+        props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, null);
+    }, [props.tableAggregation, props.columnIndex, props.columnAggregate, props.onFilter]);
+
     const onBrushEnd = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
         if (pendingBrushFrame.current != null) {
             cancelAnimationFrame(pendingBrushFrame.current);
@@ -161,6 +172,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
             .on('start', () => onBrushStartRef.current())
             .on('brush', (e) => onBrushMoveRef.current(e))
             .on('end', (e) => onBrushEndRef.current(e));
+        brushBehavior.current = brush;
 
         // Add the brush overlay
         d3.select(brushContainer.current!)
@@ -171,6 +183,9 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
             .selectAll('rect')
             .attr("y", 0)
             .attr('height', height);
+        return () => {
+            brushBehavior.current = null;
+        };
     }, [histXScale, height]);
 
     // Adjust null padding to center null bar horizontally
@@ -383,6 +398,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         <div
             className={props.className}
             style={containerStyle}
+            onClick={clearBrush}
         >
             <div className={styles.root}>
                 <div className={styles.header_container}>
@@ -405,6 +421,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
                                 onPointerOver={onPointerOverBin}
                                 onPointerMove={onPointerOverBin}
                                 onPointerOut={onPointerOutBin}
+                                onClick={event => event.stopPropagation()}
                             />
                             <g
                                 transform={`translate(0, ${height})`}
