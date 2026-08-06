@@ -46,6 +46,7 @@ import { createNotebookAgentHost } from '../../notebook/notebook_agent_host.js';
 import { OutputColumn } from '../../notebook/notebook_agent_context.js';
 
 const AUTO_VSPLIT_MIN_HEIGHT = 720;
+const DETAILS_CARD_MIN_HEIGHT = 240;
 
 function outputColumnsForScript(
     notebook: NotebookState,
@@ -93,6 +94,8 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     const formatPreviewBuffersRef = React.useRef<DashQLScriptBuffers | null>(null);
     const formatPreviewScriptRef = React.useRef<dashql.DashQLScript | null>(null);
     const containerRef = React.useRef<HTMLDivElement>(null);
+    const stopDetailsResizeRef = React.useRef<(() => void) | null>(null);
+    const [detailsCardHeight, setDetailsCardHeight] = React.useState<number | null>(null);
 
     const notebookEntry = getSelectedEntry(props.notebook);
     const scriptData = notebookEntry != null ? props.notebook.scripts[notebookEntry.scriptId] : null;
@@ -104,6 +107,68 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     const folderName = normalizePageName(selectedPage?.folderName ?? '') || 'Untitled';
     const scriptFileName = notebookEntry?.fileName ?? '01-script.sql';
     const scriptDisplay = scriptDisplayName(scriptFileName);
+
+    const measureDetailsCardMaxHeight = React.useCallback(() => {
+        const card = containerRef.current;
+        const parent = card?.parentElement;
+        if (card == null || parent == null) return DETAILS_CARD_MIN_HEIGHT;
+
+        const parentStyle = window.getComputedStyle(parent);
+        const availableHeight = parent.clientHeight
+            - Number.parseFloat(parentStyle.paddingTop || '0')
+            - Number.parseFloat(parentStyle.paddingBottom || '0');
+        return Math.max(DETAILS_CARD_MIN_HEIGHT, Math.round(availableHeight));
+    }, []);
+
+    const handleDetailsResizeStart = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+        const card = containerRef.current;
+        if (card == null) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        stopDetailsResizeRef.current?.();
+
+        const pointerId = event.pointerId;
+        const startY = event.clientY;
+        const startHeight = card.getBoundingClientRect().height;
+        const maxHeight = measureDetailsCardMaxHeight();
+        const handlePointerMove = (moveEvent: PointerEvent) => {
+            if (moveEvent.pointerId !== pointerId) return;
+            moveEvent.preventDefault();
+            const height = Math.max(
+                DETAILS_CARD_MIN_HEIGHT,
+                Math.min(maxHeight, startHeight + moveEvent.clientY - startY),
+            );
+            setDetailsCardHeight(Math.round(height));
+        };
+        const stopResize = () => {
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('pointerup', handlePointerEnd);
+            window.removeEventListener('pointercancel', handlePointerEnd);
+            if (stopDetailsResizeRef.current === stopResize) stopDetailsResizeRef.current = null;
+        };
+        const handlePointerEnd = (endEvent: PointerEvent) => {
+            if (endEvent.pointerId === pointerId) stopResize();
+        };
+
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerEnd);
+        window.addEventListener('pointercancel', handlePointerEnd);
+        stopDetailsResizeRef.current = stopResize;
+    }, [measureDetailsCardMaxHeight]);
+
+    React.useEffect(() => {
+        setDetailsCardHeight(null);
+    }, [notebookEntry?.scriptId]);
+
+    React.useEffect(() => () => stopDetailsResizeRef.current?.(), []);
+
+    // Vega-Lite's responsive container signals listen for window resizes. The card itself is not a
+    // window, so forward its completed React layout change through the event Vega already handles.
+    React.useLayoutEffect(() => {
+        if (detailsCardHeight == null) return;
+        window.dispatchEvent(new Event('resize'));
+    }, [detailsCardHeight]);
 
     const PencilIcon: Icon = SymbolIcon('pencil_16');
     const PencilAIIcon: Icon = SymbolIcon('pencil_ai_16');
@@ -558,6 +623,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                 ref={containerRef}
                 key={notebookEntry?.scriptId}
                 className={styles.entry_body_card}
+                style={detailsCardHeight != null ? { height: detailsCardHeight } : undefined}
             >
                 <div className={styles.entry_card_container}>
                     <div className={styles.entry_card_action_bar}>
@@ -783,6 +849,11 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                         }}
                     />
                 </div>
+                <div
+                    className={styles.entry_body_card_resize_handle}
+                    title="Drag to resize script details vertically"
+                    onPointerDown={handleDetailsResizeStart}
+                />
             </div>
         </div>
     );

@@ -19,7 +19,7 @@ interface Props {
     vegaLiteSpec: TopLevelSpec | null;
     /// Optional exact width/height in px for the whole chart. The view is sized to `fit`, so the
     /// entire plot (marks, axes, legend) fits the available box. An unset dimension falls back to
-    /// the container (width) / vega's default (height).
+    /// the container.
     width?: number;
     height?: number;
     /// Optional uniform scale factor (<1 shrinks). `fit` only rescales the plot *area*; label fonts,
@@ -159,9 +159,9 @@ export function VegaLiteView(props: Props): React.ReactElement {
             height?: unknown;
             autosize?: unknown;
         };
-        // Pin whichever exact dimensions were requested; otherwise grow width to the container.
+        // Pin whichever exact dimensions were requested; otherwise fill the container.
         runtimeSpec.width = width != null ? width : 'container';
-        if (height != null) runtimeSpec.height = height;
+        runtimeSpec.height = height != null ? height : 'container';
         // Include axes, legends and titles in the available size, and recalculate their bounds when
         // data or the container changes instead of relying on fixed outer padding.
         runtimeSpec.autosize = { type: 'fit', contains: 'padding', resize: true };
