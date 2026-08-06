@@ -5,7 +5,12 @@ import type { TopLevelSpec } from 'vega-lite';
 import * as styles from './visualization.module.css';
 import { QueryExecutionState, QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { useComputationRegistry } from '../../compute/computation_registry.js';
-import { resolveVisibleRowIndices } from '../query_result/visible_rows.js';
+import {
+    filterTableToVegaCrossFilterRows,
+    injectVegaLiteCrossFilter,
+    VegaCrossFilterMask,
+    VegaCrossFilterUpdater,
+} from './vegalite_crossfilter.js';
 
 interface Props {
     query: QueryExecutionState | null;
@@ -87,20 +92,9 @@ function arrowTableToRows(table: arrow.Table): Record<string, unknown>[] {
     return rows;
 }
 
-/// Gather only the visible rows (by 0-based index into the table) as vega objects.
-function arrowRowsAtIndices(table: arrow.Table, indices: Int32Array): Record<string, unknown>[] {
-    const rows: Record<string, unknown>[] = [];
-    const fields = table.schema.fields;
-    for (let i = 0; i < indices.length; ++i) {
-        const row = table.get(indices[i]);
-        if (row == null) continue;
-        rows.push(arrowRowToObject(row, fields));
-    }
-    return rows;
-}
-
 export function VegaLiteView(props: Props): React.ReactElement {
     const containerRef = React.useRef<HTMLDivElement | null>(null);
+    const crossFilterUpdaterRef = React.useRef<VegaCrossFilterUpdater | null>(null);
     const [error, setError] = React.useState<string | null>(null);
     const [computationState] = useComputationRegistry();
 
@@ -113,15 +107,37 @@ export function VegaLiteView(props: Props): React.ReactElement {
     // superset of the result columns (system / umap columns are ignored by the spec).
     const tableComputation = queryId != null ? computationState.tableComputations[queryId] ?? null : null;
     const dataTable = tableComputation?.dataTable ?? (succeeded ? props.query?.resultTable ?? null : null);
+    const rowNumberColumnName = tableComputation?.rowNumberColumnName ?? null;
 
-    // Re-embed whenever the active cross-filter / ordering changes.
     const filterTable = tableComputation?.filterTable ?? null;
-    const orderingTable = tableComputation?.orderingTable ?? null;
     const rows = React.useMemo<Record<string, unknown>[] | null>(() => {
         if (!succeeded || !dataTable) return null;
-        const visibleRows = resolveVisibleRowIndices(tableComputation);
-        return visibleRows != null ? arrowRowsAtIndices(dataTable, visibleRows) : arrowTableToRows(dataTable);
-    }, [succeeded, dataTable, tableComputation, filterTable, orderingTable]);
+        return arrowTableToRows(dataTable);
+    }, [succeeded, dataTable]);
+    const crossFilterBinding = React.useMemo(() => {
+        if (spec == null || dataTable == null) {
+            return null;
+        }
+        const baseSpec = props.hideLegend ? stripLegends(spec) : spec;
+        return injectVegaLiteCrossFilter(
+            baseSpec,
+            rowNumberColumnName,
+            dataTable.schema.fields.map(field => field.name),
+        );
+    }, [spec, rowNumberColumnName, dataTable, props.hideLegend]);
+    const maskSelectedFieldName = crossFilterBinding?.maskSelectedFieldName ?? null;
+    const crossFilterMask = React.useMemo<VegaCrossFilterMask>(() => ({
+        active: filterTable != null,
+        rows: filterTable != null && maskSelectedFieldName != null
+            ? filterTableToVegaCrossFilterRows(filterTable.dataTable, maskSelectedFieldName)
+            : [],
+    }), [filterTable, maskSelectedFieldName]);
+    const crossFilterMaskRef = React.useRef(crossFilterMask);
+    crossFilterMaskRef.current = crossFilterMask;
+
+    React.useEffect(() => {
+        crossFilterUpdaterRef.current?.update(crossFilterMask);
+    }, [crossFilterMask]);
 
     // A uniform scale (<1) is applied via CSS transform on the chart container. To still land in the
     // requested width×height box, the chart is laid out into a `1/scale` larger logical box so that
@@ -134,20 +150,20 @@ export function VegaLiteView(props: Props): React.ReactElement {
         if (!el || !spec || !rows) return;
 
         let disposed = false;
-        let view: { finalize: () => void } | null = null;
-        const baseSpec = props.hideLegend ? stripLegends(spec) : spec;
-        const withData = { ...baseSpec, data: { values: rows } } as TopLevelSpec & {
+        let finalizeView: (() => void) | null = null;
+        const baseSpec = crossFilterBinding?.spec ?? (props.hideLegend ? stripLegends(spec) : spec);
+        const runtimeSpec = { ...baseSpec } as TopLevelSpec & {
             width?: unknown;
             height?: unknown;
             autosize?: unknown;
         };
         // Pin whichever exact dimensions were requested; otherwise grow width to the container.
-        withData.width = width != null ? width : 'container';
-        if (height != null) withData.height = height;
+        runtimeSpec.width = width != null ? width : 'container';
+        if (height != null) runtimeSpec.height = height;
         // When an exact box is requested, switch to `fit` autosizing so the whole plot (marks +
         // axes + legend) is scaled into that box rather than overflowing it.
         if (width != null || height != null) {
-            withData.autosize = { type: 'fit', contains: 'padding' };
+            runtimeSpec.autosize = { type: 'fit', contains: 'padding' };
         }
         // Lazy-load vega-embed (and vega-interpreter, which avoids the
         // CSP-violating `Function()` eval that vega's default expression
@@ -157,7 +173,7 @@ export function VegaLiteView(props: Props): React.ReactElement {
             // `ast: true` makes vega parse expressions to an AST and gates the
             // `expr` option on, so vega-interpreter actually replaces the
             // default `new Function()` evaluator (which CSP forbids).
-            return embed.default(el, withData, {
+            return embed.default(el, runtimeSpec, {
                 actions: false,
                 renderer: 'canvas',
                 ast: true,
@@ -174,17 +190,31 @@ export function VegaLiteView(props: Props): React.ReactElement {
                 result.view.finalize();
                 return;
             }
-            view = result.view as unknown as { finalize: () => void };
+            finalizeView = () => result.view.finalize();
+            if (crossFilterBinding != null) {
+                const updater = new VegaCrossFilterUpdater(
+                    result.view,
+                    crossFilterBinding.sourceDatasetName,
+                    rows,
+                    crossFilterBinding.maskDatasetName,
+                    crossFilterBinding.maskActiveSignalName,
+                    e => setError(e instanceof Error ? e.message : String(e)),
+                );
+                crossFilterUpdaterRef.current = updater;
+                updater.update(crossFilterMaskRef.current);
+            }
             setError(null);
         }).catch((e: unknown) => {
             setError(e instanceof Error ? e.message : String(e));
         });
         return () => {
             disposed = true;
-            if (view) view.finalize();
+            crossFilterUpdaterRef.current?.dispose();
+            crossFilterUpdaterRef.current = null;
+            finalizeView?.();
             if (el) el.replaceChildren();
         };
-    }, [spec, rows, width, height, scale, props.hideLegend]);
+    }, [spec, rows, crossFilterBinding, width, height, scale, props.hideLegend]);
 
     if (!spec) {
         return <div className={styles.empty}>No visualization available</div>;

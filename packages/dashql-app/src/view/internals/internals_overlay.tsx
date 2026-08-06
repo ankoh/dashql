@@ -36,7 +36,7 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
     const dockerEnabled = dockerClient != null;
 
     const tabKeys = React.useMemo(() => {
-        const keys: TabKey[] = [TabKey.LogViewer, TabKey.QueryViewer, TabKey.StorageWriter, TabKey.QueryCache];
+        const keys: TabKey[] = [TabKey.LogViewer, TabKey.QueryViewer, TabKey.QueryCache, TabKey.StorageWriter];
         if (dockerEnabled) {
             keys.push(TabKey.Docker);
         }
