@@ -15,10 +15,9 @@ import {
 interface Props {
     query: QueryExecutionState | null;
     vegaLiteSpec: TopLevelSpec | null;
-    /// Optional exact width/height in px for the whole chart. When either is set, the view is sized
-    /// to `fit` — the entire plot (marks, axes, legend) is scaled to fit the given box — so a cramped
-    /// host (e.g. a grid card) gets a chart that fits exactly instead of overflowing. An unset
-    /// dimension falls back to the container (width) / vega's default (height).
+    /// Optional exact width/height in px for the whole chart. The view is sized to `fit`, so the
+    /// entire plot (marks, axes, legend) fits the available box. An unset dimension falls back to
+    /// the container (width) / vega's default (height).
     width?: number;
     height?: number;
     /// Optional uniform scale factor (<1 shrinks). `fit` only rescales the plot *area*; label fonts,
@@ -160,11 +159,9 @@ export function VegaLiteView(props: Props): React.ReactElement {
         // Pin whichever exact dimensions were requested; otherwise grow width to the container.
         runtimeSpec.width = width != null ? width : 'container';
         if (height != null) runtimeSpec.height = height;
-        // When an exact box is requested, switch to `fit` autosizing so the whole plot (marks +
-        // axes + legend) is scaled into that box rather than overflowing it.
-        if (width != null || height != null) {
-            runtimeSpec.autosize = { type: 'fit', contains: 'padding' };
-        }
+        // Include axes, legends and titles in the available size, and recalculate their bounds when
+        // data or the container changes instead of relying on fixed outer padding.
+        runtimeSpec.autosize = { type: 'fit', contains: 'padding', resize: true };
         // Lazy-load vega-embed (and vega-interpreter, which avoids the
         // CSP-violating `Function()` eval that vega's default expression
         // compiler does) to keep them out of the import graph for non-vis paths.
