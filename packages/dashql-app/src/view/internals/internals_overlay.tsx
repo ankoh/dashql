@@ -69,7 +69,7 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                 },
                 [TabKey.StorageWriter]: {
                     tabId: TabKey.StorageWriter,
-                    icon: `${icons}#folder`,
+                    icon: `${icons}#versions_24`,
                     labelShort: 'Storage Writer',
                     ariaLabel: 'Storage writer',
                     description: 'View storage writer statistics',
@@ -77,7 +77,7 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                 },
                 [TabKey.QueryCache]: {
                     tabId: TabKey.QueryCache,
-                    icon: `${icons}#folder`,
+                    icon: `${icons}#cache_24`,
                     labelShort: 'Query Cache',
                     ariaLabel: 'Query result cache',
                     description: 'Inspect and evict cached query results',
