@@ -1,5 +1,3 @@
--- Return the count of customers who have placed at least one order without
--- special requests, grouped by the number of orders they have placed.
 select c_count, count(*) as custdist
 from (
     select c_custkey, count(o_orderkey) as c_count

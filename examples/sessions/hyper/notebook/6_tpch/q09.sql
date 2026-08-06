@@ -1,4 +1,3 @@
--- Return the total profit for each nation and year where products are green.
 select nation, o_year, sum(amount) as sum_profit
 from (
     select n_name as nation,

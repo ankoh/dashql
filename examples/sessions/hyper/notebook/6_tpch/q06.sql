@@ -1,5 +1,3 @@
--- Compute the total revenue from line items sold between January 1, 1994, and
--- January 1, 1995, with discounts between 5% and 7%, and quantities below 24.
 select sum(l_extendedprice * l_discount) as revenue
 from lineitem
 where l_shipdate >= '1994-01-01'

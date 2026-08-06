@@ -1,5 +1,3 @@
--- Calculate the total value of parts supplied by Germany, excluding those with
--- a total value below 0.01.
 select ps_partkey, sum(ps_supplycost * ps_availqty) as value
 from partsupp, supplier, nation
 where ps_suppkey = s_suppkey

@@ -1,5 +1,3 @@
--- Filter orders by priority, counting each order and only including those with
--- pending line items.
 select o_orderpriority, count(*) as order_count
 from orders
 where o_orderdate >= '1993-07-01'

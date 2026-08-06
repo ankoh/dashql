@@ -1,5 +1,3 @@
--- Retrieve the number of waits for each supplier in Saudi Arabia that has
--- experienced a delay in delivery.
 select s_name, count(*) as numwait
 from supplier, lineitem l1, orders, nation
 where s_suppkey = l1.l_suppkey

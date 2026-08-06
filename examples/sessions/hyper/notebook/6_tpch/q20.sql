@@ -1,5 +1,3 @@
--- Retrieve supplier names and addresses that meet specific conditions regarding
--- parts availability.
 select s_name, s_address
 from supplier, nation
 where s_suppkey in (

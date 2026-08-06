@@ -1,5 +1,3 @@
--- Calculate the total promotional revenue from line items sold between
--- September 1st, 1995 and September 30th, 1995.
 select 100.00 *
         sum(
             case

@@ -1,4 +1,3 @@
--- Count the number of high-priority orders by shipping mode.
 select l_shipmode,
     cast(
         sum(

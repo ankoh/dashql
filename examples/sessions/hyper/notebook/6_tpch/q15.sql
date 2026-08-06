@@ -1,4 +1,3 @@
--- Filter top-performing suppliers by total revenue.
 SELECT
   s_suppkey,
   s_name,
