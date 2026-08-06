@@ -11,6 +11,13 @@ import { getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
 
 export type MostFrequentValueFilterCallback = (table: TableAggregation, columnIndex: number, column: StringColumnAggregation, frequentValueId: number | null) => void;
 
+export const MAX_FOCUSED_VALUE_LENGTH = 100;
+
+export function truncateFocusedValue(value: string): string {
+    if (value.length <= MAX_FOCUSED_VALUE_LENGTH) return value;
+    return `${value.slice(0, MAX_FOCUSED_VALUE_LENGTH - 3)}...`;
+}
+
 interface MostFrequentCellProps {
     className?: string;
     style?: React.CSSProperties;
@@ -104,7 +111,8 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
     let focusedValue: string | null = null;
     let focusDescription: string | null = null;
     if (focusedRow != null) {
-        focusedValue = frequentValueStrings[focusedRow];
+        const value = frequentValueStrings[focusedRow];
+        focusedValue = value == null ? null : truncateFocusedValue(value);
         const percentage = Math.round(frequentValuePercentages[focusedRow] * 100 * 100) / 100;
         const rows = frequentValueCounts[focusedRow];
         focusDescription = `${rows} ${rows == 1n ? "row" : "rows"} (${percentage}%)`
