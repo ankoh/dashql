@@ -49,6 +49,9 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
         this.latestQueryProgress = null;
         this.queryMetrics = metrics;
         this.endpoint = endpoint;
+        if (result.columns) {
+            this.resultSchema.resolve(translateTrinoSchema(result, this.logger));
+        }
     }
 
     async cancel(): Promise<void> {

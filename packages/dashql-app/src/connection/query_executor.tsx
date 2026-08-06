@@ -326,7 +326,10 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
 
                     // Subscribe to query_status and result messages
                     await resultStream.produce(consumeBatches, consumeProgress, initialState.cancellation.signal);
-                    table = new arrow.Table(batches.length > 0 ? batches[0].schema : new arrow.Schema(), batches);
+                    const schema = batches.length > 0
+                        ? batches[0].schema
+                        : await resultStream.getSchema() ?? new arrow.Schema();
+                    table = new arrow.Table(schema, batches);
 
                     traced.info("Executed query", {
                         "session": sessionId,

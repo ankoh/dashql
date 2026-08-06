@@ -5,6 +5,7 @@
 
 #include <functional>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <type_traits>
 #include <variant>
@@ -227,6 +228,8 @@ class AnalyzedScript : public CatalogEntry {
         RegisteredName db_name;
         RegisteredName schema_name;
         RegisteredName table_name;
+        std::vector<std::string> column_name_buffers;
+        std::vector<RegisteredName> column_names;
         NotebookOutputNames() : path_buffer{}, db_name{}, schema_name{}, table_name{} {}
     };
     std::optional<NotebookOutputNames> notebook_output_names;
@@ -383,6 +386,9 @@ class Script {
     /// The notebook path for this script (e.g., "main/01-script.sql").
     /// Set externally before analysis. Empty means no notebook registration.
     std::string notebook_path;
+    /// Column names learned from the latest successful execution.
+    /// Empty means static analysis remains the source of the output schema.
+    std::vector<std::string> executed_output_schema;
 
     /// The underlying rope
     rope::Rope text;
@@ -433,6 +439,8 @@ class Script {
     void EraseTextRange(size_t offset, size_t count);
     /// Replace the entire text
     void ReplaceText(std::string_view text);
+    /// Replace the execution-derived output schema. Returns true if it changed.
+    bool SetExecutedOutputSchema(std::vector<std::string> column_names);
     /// Print a script as string
     std::string ToString();
 

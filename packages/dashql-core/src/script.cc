@@ -1129,22 +1129,38 @@ void Script::InsertCharAt(size_t char_idx, uint32_t unicode) {
     auto length = dashql::utf8::utf8proc_encode_char(unicode, reinterpret_cast<uint8_t*>(buffer.data()));
     std::string_view encoded{reinterpret_cast<char*>(buffer.data()), static_cast<size_t>(length)};
     text.Insert(char_idx, encoded);
+    executed_output_schema.clear();
     ++text_version;
 }
 /// Insert a text at an offet
 void Script::InsertTextAt(size_t char_idx, std::string_view encoded) {
     text.Insert(char_idx, encoded);
+    executed_output_schema.clear();
     ++text_version;
 }
 /// Erase a text at an offet
 void Script::EraseTextRange(size_t char_idx, size_t count) {
     text.Remove(char_idx, count);
+    executed_output_schema.clear();
     ++text_version;
 }
 /// Replace the text in the script
 void Script::ReplaceText(std::string_view encoded) {
     text = rope::Rope{1024, encoded};
+    executed_output_schema.clear();
     ++text_version;
+}
+
+bool Script::SetExecutedOutputSchema(std::vector<std::string> column_names) {
+    std::vector<std::string> normalized;
+    normalized.reserve(column_names.size());
+    for (auto& name : column_names) {
+        if (name.empty()) continue;
+        normalized.push_back(std::move(name));
+    }
+    if (normalized == executed_output_schema) return false;
+    executed_output_schema = std::move(normalized);
+    return true;
 }
 /// Print a script as string
 std::string Script::ToString() { return text.ToString(); }
@@ -1257,7 +1273,7 @@ void Script::Analyze(bool parse_if_outdated) {
     }
     // Analyze a script
     auto time_before_analyzing = std::chrono::steady_clock::now();
-    analyzed_script = Analyzer::Analyze(parsed_script, catalog, notebook_path);  // throws on error
+    analyzed_script = Analyzer::Analyze(parsed_script, catalog, notebook_path, executed_output_schema);  // throws on error
     timing_statistics.mutate_analyzer_last_elapsed(
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - time_before_analyzing)
             .count());

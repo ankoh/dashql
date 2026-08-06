@@ -14,7 +14,7 @@ import type { RowComponentProps } from 'react-window';
 import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { ButtonGroup } from '../foundations/button_group.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
-import { getExecutableQueryText, getSelectedEntry, getSelectedPage, getSelectedPageEntries, getSortedFileNames, getUncommittedScriptData, REGISTER_QUERY, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY, REORDER_NOTEBOOK_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../notebook/notebook_state.js';
+import { getExecutableQueryText, getSelectedEntry, getSelectedPage, getSelectedPageEntries, getSortedFileNames, getUncommittedScriptData, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY, REORDER_NOTEBOOK_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../notebook/notebook_state.js';
 import { useAIClient } from '../../platform/ai_client_provider.js';
 import { useComposeInputMode } from '../../notebook/notebook_commands.js';
 import { useLatestAgentRunState, useAgentRunState, useStartAgentRun, useCancelAgentRun } from '../../agent/agent_run_provider.js';
@@ -39,7 +39,7 @@ import { deriveEntryStatus, EntryStatusKind } from './entry_status_model.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
 import { TabKey as DetailsTabKey } from './notebook_script_details.js';
 import { NotebookPageOverview } from './notebook_page_overview.js';
-import { rerunEntry } from './rerun_query.js';
+import { registerNotebookQuery, rerunEntry } from './rerun_query.js';
 import { useStorageReader } from '../../platform/storage/storage_provider.js';
 
 interface FeedScrollTarget {
@@ -621,7 +621,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         if (queryText.trim().length === 0) {
             return;
         }
-        const [queryId] = executeQuery(props.notebook.sessionId, {
+        const [queryId, execution] = executeQuery(props.notebook.sessionId, {
             query: queryText,
             analyzeResults: true,
             cacheable: true,
@@ -634,7 +634,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                 userProvided: true,
             },
         });
-        props.modifyNotebook({ type: REGISTER_QUERY, value: [scriptData.scriptKey, queryId] });
+        registerNotebookQuery(scriptData, queryId, queryText, execution, props.modifyNotebook);
     }, [agentState, props.notebook, props.modifyNotebook, isDisconnected, executeQuery]);
 
     const handleSend = React.useCallback(() => {
@@ -649,7 +649,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         const queryText = scriptData ? getExecutableQueryText(notebook, scriptData) : '';
         props.modifyNotebook({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
         if (executeOnSend && !isDisconnected && queryText.trim().length > 0) {
-            const [queryId] = executeQuery(notebook.sessionId, {
+            const [queryId, execution] = executeQuery(notebook.sessionId, {
                 query: queryText,
                 analyzeResults: true,
                 cacheable: true,
@@ -662,10 +662,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                     userProvided: true
                 }
             });
-            props.modifyNotebook({
-                type: REGISTER_QUERY,
-                value: [scriptKey, queryId]
-            });
+            registerNotebookQuery(scriptData, queryId, queryText, execution, props.modifyNotebook);
         }
     }, [props.notebook, props.modifyNotebook, executeOnSend, isDisconnected, executeQuery]);
 
@@ -749,14 +746,8 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                 userProvided: true,
             },
         });
-        // Link the query to the entry only on a cache hit. `cacheOnly` resolves to null on a miss
-        // (nothing was registered), so registering unconditionally would point the entry at a
-        // phantom query.
-        void execution.then(table => {
-            if (table != null) {
-                props.modifyNotebook({ type: REGISTER_QUERY, value: [scriptKey, queryId] });
-            }
-        }).catch(() => { });
+        // Cache-only misses must not point the entry at a phantom query.
+        registerNotebookQuery(scriptData, queryId, queryText, execution, props.modifyNotebook, true);
     }, [props.notebook, props.modifyNotebook, isDisconnected, executeQuery]);
 
     // Send the compose editor's text to the agent run as a natural-language prompt.

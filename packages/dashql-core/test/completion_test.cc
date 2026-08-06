@@ -387,6 +387,73 @@ TEST(CompletionTest, NotebookQualifiedName_Visualize) {
                        << " context=" << cursor_ptr->context.index();
 }
 
+TEST(CompletionTest, NotebookOutputSchema_FromExecution) {
+    Catalog catalog;
+    Script source{catalog};
+    source.notebook_path = "main/source";
+    source.InsertTextAt(0, "SELECT * FROM remote_table");
+    ASSERT_NO_THROW(source.Analyze());
+    ASSERT_EQ(source.analyzed_script->GetTables().GetSize(), 1);
+    ASSERT_TRUE(source.analyzed_script->GetTables()[0].table_columns.empty());
+    ASSERT_NO_THROW(catalog.LoadScript(source, 0));
+
+    ASSERT_TRUE(source.SetExecutedOutputSchema({"customer_id", "customer_name"}));
+    ASSERT_NO_THROW(source.Analyze());
+    ASSERT_NO_THROW(catalog.LoadScript(source, 0));
+
+    const std::string_view text = "SELECT * FROM dashql.notebook.\"main/source\" AS s WHERE s.cust";
+    Script consumer{catalog};
+    consumer.InsertTextAt(0, text);
+    ASSERT_NO_THROW(consumer.Analyze());
+    consumer.MoveCursor(text.size());
+    auto completion = consumer.CompleteAtCursor();
+
+    bool found_id = false;
+    bool found_name = false;
+    for (auto& candidate : completion->GetResultCandidates()) {
+        found_id |= candidate.completion_text == "customer_id";
+        found_name |= candidate.completion_text == "customer_name";
+    }
+    EXPECT_TRUE(found_id);
+    EXPECT_TRUE(found_name);
+}
+
+TEST(CompletionTest, NotebookOutputSchema_ReplacesPreviousExecutionAndClearsOnEdit) {
+    Catalog catalog;
+    Script source{catalog};
+    source.notebook_path = "main/source";
+    source.InsertTextAt(0, "SELECT * FROM remote_table");
+    ASSERT_TRUE(source.SetExecutedOutputSchema({"old_column"}));
+    ASSERT_NO_THROW(source.Analyze());
+    ASSERT_NO_THROW(catalog.LoadScript(source, 0));
+
+    ASSERT_TRUE(source.SetExecutedOutputSchema({"new_column"}));
+    ASSERT_FALSE(source.SetExecutedOutputSchema({"new_column"}));
+    ASSERT_NO_THROW(source.Analyze());
+    ASSERT_NO_THROW(catalog.LoadScript(source, 0));
+    ASSERT_EQ(source.analyzed_script->GetTables()[0].table_columns.size(), 1);
+    EXPECT_EQ(source.analyzed_script->GetTables()[0].table_columns[0].column_name.get().text, "new_column");
+
+    source.InsertTextAt(source.ToString().size(), " WHERE true");
+    ASSERT_NO_THROW(source.Analyze());
+    ASSERT_NO_THROW(catalog.LoadScript(source, 0));
+    EXPECT_TRUE(source.analyzed_script->GetTables()[0].table_columns.empty());
+}
+
+TEST(CompletionTest, NotebookOutputSchema_PreservesDuplicateColumns) {
+    Catalog catalog;
+    Script source{catalog};
+    source.notebook_path = "main/source";
+    source.InsertTextAt(0, "SELECT * FROM remote_table");
+    ASSERT_TRUE(source.SetExecutedOutputSchema({"value", "value"}));
+    ASSERT_NO_THROW(source.Analyze());
+
+    auto& columns = source.analyzed_script->GetTables()[0].table_columns;
+    ASSERT_EQ(columns.size(), 2);
+    EXPECT_EQ(columns[0].column_name.get().text, "value");
+    EXPECT_EQ(columns[1].column_name.get().text, "value");
+}
+
 TEST(CompletionTest, NoCompletionInsideLineComment) {
     const std::string_view main_script_text = R"SQL(
 SELECT 1 -- sel

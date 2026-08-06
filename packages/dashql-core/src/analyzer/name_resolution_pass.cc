@@ -895,8 +895,27 @@ void NameResolutionPass::Finish() {
         auto& table_decl = state.analyzed->table_declarations.PushBack(
             CatalogEntry::TableDeclaration(schema_id, catalog_table_id, qname));
 
-        // Populate columns from the last statement's output columns
-        if (last_scope && !last_scope->output_columns.empty()) {
+        // Prefer the schema returned by the latest successful execution. It can resolve stars over
+        // external relations whose schemas were unavailable during static analysis.
+        if (!state.executed_output_schema.empty()) {
+            names.column_name_buffers.assign(state.executed_output_schema.begin(), state.executed_output_schema.end());
+            names.column_names.reserve(names.column_name_buffers.size());
+            table_decl.table_columns.reserve(names.column_name_buffers.size());
+            for (auto& column_name : names.column_name_buffers) {
+                names.column_names.push_back(RegisteredName{
+                    .name_id = static_cast<uint32_t>(names.column_names.size()),
+                    .text = column_name,
+                    .location = {},
+                    .occurrences = 1,
+                    .coarse_analyzer_tags = buffers::analyzer::NameTag::COLUMN_NAME,
+                    .resolved_objects = {},
+                });
+                auto& registered_name = names.column_names.back();
+                table_decl.table_columns.emplace_back(catalog_table_id, table_decl.table_columns.size(), std::nullopt,
+                                                       registered_name);
+                table_decl.table_columns.back().table = table_decl;
+            }
+        } else if (last_scope && !last_scope->output_columns.empty()) {
             table_decl.table_columns.reserve(last_scope->output_columns.size());
             for (size_t i = 0; i < last_scope->output_columns.size(); ++i) {
                 auto& out_col = last_scope->output_columns[i];
@@ -907,10 +926,10 @@ void NameResolutionPass::Finish() {
                 table_decl.table_columns.back().object_id = col_id;
                 table_decl.table_columns.back().table = table_decl;
             }
-            table_decl.table_columns_by_name.reserve(table_decl.table_columns.size());
-            for (auto& col : table_decl.table_columns) {
-                table_decl.table_columns_by_name.insert({col.column_name.get().text, col});
-            }
+        }
+        table_decl.table_columns_by_name.reserve(table_decl.table_columns.size());
+        for (auto& col : table_decl.table_columns) {
+            table_decl.table_columns_by_name.insert({col.column_name.get().text, col});
         }
 
         // Index the synthetic table

@@ -39,6 +39,7 @@ interface EmscriptenModule {
     _dashql_script_select_completion_candidate_at_cursor: (result: number, ptr: number, completion: number, candidateId: number) => void;
     _dashql_script_select_completion_catalog_object_at_cursor: (result: number, ptr: number, completion: number, candidateId: number, catalogObjectIdx: number) => void;
     _dashql_script_get_catalog_entry_id: (ptr: number) => number;
+    _dashql_script_set_output_schema: (ptr: number, schema: number, schemaLength: number) => boolean;
     _dashql_script_get_parsed: (result: number, ptr: number) => void;
     _dashql_script_get_analyzed: (result: number, ptr: number) => void;
     _dashql_script_compute_diff: (result: number, source: number, target: number) => void;
@@ -89,6 +90,7 @@ interface DashQLModuleExports {
     dashql_script_select_completion_candidate_at_cursor: (result: number, ptr: number, completion: number, candidateId: number) => void;
     dashql_script_select_completion_catalog_object_at_cursor: (result: number, ptr: number, completion: number, candidateId: number, catalogObjectIdx: number) => void;
     dashql_script_get_catalog_entry_id: (ptr: number) => number;
+    dashql_script_set_output_schema: (ptr: number, schema: number, schemaLength: number) => boolean;
     dashql_script_set_notebook_path: (ptr: number, path: number, path_length: number) => void;
     dashql_script_get_parsed: (result: number, ptr: number) => void;
     dashql_script_get_analyzed: (result: number, ptr: number) => void;
@@ -228,6 +230,7 @@ export class DashQL {
             dashql_script_analyze: module._dashql_script_analyze,
             dashql_script_get_statistics: module._dashql_script_get_statistics,
             dashql_script_get_catalog_entry_id: module._dashql_script_get_catalog_entry_id,
+            dashql_script_set_output_schema: module._dashql_script_set_output_schema,
             dashql_script_set_notebook_path: module._dashql_script_set_notebook_path,
             dashql_script_get_parsed: module._dashql_script_get_parsed,
             dashql_script_get_analyzed: module._dashql_script_get_analyzed,
@@ -692,6 +695,12 @@ export class DashQLScript {
     /// Get the script id
     public getCatalogEntryId(): number {
         return this.ptr.api.instanceExports.dashql_script_get_catalog_entry_id(this.ptr.assertNotNull());
+    }
+    /// Set output column names learned from a successful execution.
+    public setOutputSchema(columnNames: readonly string[]): boolean {
+        const scriptPtr = this.ptr.assertNotNull();
+        const [schemaBegin, schemaLength] = this.ptr.api.copyString(JSON.stringify(columnNames));
+        return !!this.ptr.api.instanceExports.dashql_script_set_output_schema(scriptPtr, schemaBegin, schemaLength);
     }
     /// Set the notebook path for catalog registration (e.g., "main/01-script.sql")
     public setNotebookPath(path: string): void {

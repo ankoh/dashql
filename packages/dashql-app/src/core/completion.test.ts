@@ -202,6 +202,33 @@ describe('DashQL Completion', () => {
             expect(candidates).toContain('"main/02-renamed.sql"');
             expect(candidates).not.toContain('"main/01-old.sql"');
         });
+
+        test('execution output schema updates qualified column completion', () => {
+            const catalog = dql!.createCatalog();
+            const source = dql!.createScript(catalog);
+            source.setNotebookPath('main/source');
+            source.insertTextAt(0, 'SELECT * FROM remote_table');
+            source.analyze();
+            catalog.loadScript(source, 0);
+
+            expect(source.setOutputSchema(['customer_id', 'customer_name'])).toBe(true);
+            expect(source.setOutputSchema(['customer_id', 'customer_name'])).toBe(false);
+            source.analyze();
+            catalog.loadScript(source, 0);
+
+            const text = 'SELECT * FROM dashql.notebook."main/source" AS s WHERE s.customer_';
+            const consumer = dql!.createScript(catalog);
+            consumer.insertTextAt(0, text);
+            consumer.analyze();
+            consumer.moveCursor(text.length).destroy();
+            const completion = consumer.completeAtCursor(10).read();
+            const candidates: string[] = [];
+            for (let i = 0; i < completion.candidatesLength(); ++i) {
+                candidates.push(completion.candidates(i)!.completionText()!);
+            }
+            expect(candidates).toContain('customer_id');
+            expect(candidates).toContain('customer_name');
+        });
     });
 
     describe('candidate selection', () => {

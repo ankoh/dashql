@@ -153,6 +153,7 @@ export const ANALYZE_OUTDATED_SCRIPT = Symbol('ANALYZE_OUTDATED_SCRIPT');
 export const UPDATE_FROM_PROCESSOR = Symbol('UPDATE_FROM_PROCESSOR');
 export const CATALOG_DID_UPDATE = Symbol('CATALOG_DID_UPDATE');
 export const REGISTER_QUERY = Symbol('REGISTER_QUERY');
+export const REGISTER_SCRIPT_OUTPUT_SCHEMA = Symbol('REGISTER_SCRIPT_OUTPUT_SCHEMA');
 export const REGISTER_AGENT_RUN = Symbol('REGISTER_AGENT_RUN');
 export const CREATE_NOTEBOOK_ENTRY = Symbol('CREATE_NOTEBOOK_ENTRY');
 export const DELETE_NOTEBOOK_ENTRY = Symbol('DELETE_NOTEBOOK_ENTRY');
@@ -179,6 +180,12 @@ export type NotebookStateAction =
     | VariantKind<typeof UPDATE_FROM_PROCESSOR, DashQLProcessorUpdateOut>
     | VariantKind<typeof CATALOG_DID_UPDATE, null>
     | VariantKind<typeof REGISTER_QUERY, [ScriptKey, number]>
+    | VariantKind<typeof REGISTER_SCRIPT_OUTPUT_SCHEMA, {
+        scriptKey: ScriptKey;
+        queryId: number;
+        queryText: string;
+        columnNames: string[];
+    }>
     | VariantKind<typeof REGISTER_AGENT_RUN, [ScriptKey, number]>
     | VariantKind<typeof CREATE_NOTEBOOK_ENTRY, null>
     | VariantKind<typeof DELETE_NOTEBOOK_ENTRY, string>
@@ -815,6 +822,46 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 };
                 return next;
             }
+        }
+
+        case REGISTER_SCRIPT_OUTPUT_SCHEMA: {
+            const { scriptKey, queryId, queryText, columnNames } = action.value;
+            const scriptData = state.scripts[scriptKey];
+            if (!scriptData || scriptData.latestQueryId !== queryId) {
+                return state;
+            }
+            // An edit or dependency update may complete while an older query is still running. Only
+            // install a schema when the script still resolves to exactly the SQL that produced it.
+            if (getExecutableQueryText(state, scriptData) !== queryText) {
+                return state;
+            }
+            if (!scriptData.script.setOutputSchema(columnNames)) {
+                return state;
+            }
+
+            const nextScriptData = analyzeNotebookScript(
+                scriptData,
+                state.scriptRegistry,
+                state.connectionCatalog,
+                makeScriptLookup(state.scripts),
+                logger,
+            );
+            const scripts = {
+                ...state.scripts,
+                [scriptKey]: nextScriptData,
+            };
+            for (const key in scripts) {
+                if (+key === scriptKey) continue;
+                const other = scripts[key];
+                scripts[key] = {
+                    ...other,
+                    scriptAnalysis: { ...other.scriptAnalysis, outdated: true },
+                };
+            }
+            return {
+                ...clearSemanticUserFocus(state),
+                scripts,
+            };
         }
 
         case REGISTER_AGENT_RUN: {

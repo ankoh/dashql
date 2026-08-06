@@ -4,15 +4,18 @@
 #include <flatbuffers/detached_buffer.h>
 #include <flatbuffers/flatbuffer_builder.h>
 
+#include <stdexcept>
+
 #include "dashql/analyzer/completion.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/catalog_object.h"
 #include "dashql/exception.h"
-#include "dashql/script.h"
 #include "dashql/script_diff.h"
+#include "dashql/script.h"
 #include "dashql/view/plan_view_model.h"
 #include "dashql/visualize/vegalite.h"
+#include "rapidjson/document.h"
 
 using namespace dashql;
 using namespace dashql::parser;
@@ -69,6 +72,24 @@ extern "C" void dashql_script_new(FFIResult* result, dashql::Catalog* catalog) {
 }
 /// Get the catalog entry id
 extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script) { return script->GetCatalogEntryId(); }
+/// Set output column names learned from execution
+extern "C" bool dashql_script_set_output_schema(Script* script, const char* schema_ptr, size_t schema_length) {
+    std::unique_ptr<const std::byte[]> schema_buffer{reinterpret_cast<const std::byte*>(schema_ptr)};
+    rapidjson::Document schema;
+    schema.Parse(schema_ptr, schema_length);
+    if (schema.HasParseError() || !schema.IsArray()) {
+        throw std::invalid_argument("output schema must be a JSON string array");
+    }
+    std::vector<std::string> columns;
+    columns.reserve(schema.Size());
+    for (auto& value : schema.GetArray()) {
+        if (!value.IsString()) {
+            throw std::invalid_argument("output schema must contain only strings");
+        }
+        columns.emplace_back(value.GetString(), value.GetStringLength());
+    }
+    return script->SetExecutedOutputSchema(std::move(columns));
+}
 /// Set the notebook path for catalog registration
 extern "C" void dashql_script_set_notebook_path(Script* script, const char* path_ptr, size_t path_length) {
     std::unique_ptr<const char[]> path_buffer{path_ptr};

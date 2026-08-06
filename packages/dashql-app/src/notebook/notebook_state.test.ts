@@ -14,6 +14,7 @@ import {
     DELETE_NOTEBOOK_ENTRY,
     PROMOTE_UNCOMMITTED_SCRIPT,
     REGISTER_QUERY,
+    REGISTER_SCRIPT_OUTPUT_SCHEMA,
     REGISTER_AGENT_RUN,
     SELECT_ENTRY,
     SET_SCRIPT_TEXT,
@@ -1429,6 +1430,68 @@ describe('REGISTER_QUERY', () => {
     it('returns the unchanged state for an unknown scriptKey', () => {
         const state = buildState();
         const next = reduce(state, { type: REGISTER_QUERY, value: [99999, 1] });
+        expect(next).toBe(state);
+    });
+});
+
+describe('REGISTER_SCRIPT_OUTPUT_SCHEMA', () => {
+    it('updates the script catalog schema and marks dependent scripts outdated', () => {
+        let state = buildState();
+        const sourceKey = +Object.keys(state.scripts)[0];
+        state = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: sourceKey, text: 'SELECT * FROM remote_table' } });
+        state = reduce(state, { type: CREATE_NOTEBOOK_ENTRY, value: null });
+        const dependentKey = +Object.keys(state.scripts).find(key => +key !== sourceKey)!;
+        state = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: dependentKey });
+        state = reduce(state, { type: REGISTER_QUERY, value: [sourceKey, 42] });
+
+        const next = reduce(state, {
+            type: REGISTER_SCRIPT_OUTPUT_SCHEMA,
+            value: {
+                scriptKey: sourceKey,
+                queryId: 42,
+                queryText: 'SELECT * FROM remote_table',
+                columnNames: ['customer_id', 'customer_name'],
+            },
+        });
+
+        expect(next.scripts[sourceKey].scriptAnalysis.outdated).toBe(false);
+        expect(next.scripts[dependentKey].scriptAnalysis.outdated).toBe(true);
+
+        const text = `SELECT * FROM dashql.notebook."${next.scripts[sourceKey].folderName.replace(/^\d+_/, '')}/${scriptDisplayName(next.scripts[sourceKey].fileName)}" AS s WHERE s.customer_`;
+        const consumer = next.instance.createScript(next.connectionCatalog);
+        consumer.insertTextAt(0, text);
+        consumer.analyze();
+        consumer.moveCursor(text.length).destroy();
+        const completion = consumer.completeAtCursor(10).read();
+        const candidates = Array.from({ length: completion.candidatesLength() }, (_, i) => completion.candidates(i)!.completionText());
+        expect(candidates).toContain('customer_id');
+        expect(candidates).toContain('customer_name');
+        consumer.destroy();
+    });
+
+    it('ignores a result from a superseded query', () => {
+        let state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        state = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: 'SELECT * FROM remote_table' } });
+        state = reduce(state, { type: REGISTER_QUERY, value: [scriptKey, 43] });
+
+        const next = reduce(state, {
+            type: REGISTER_SCRIPT_OUTPUT_SCHEMA,
+            value: { scriptKey, queryId: 42, queryText: 'SELECT * FROM remote_table', columnNames: ['stale'] },
+        });
+        expect(next).toBe(state);
+    });
+
+    it('ignores a result when the executed SQL is stale', () => {
+        let state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        state = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: 'SELECT * FROM remote_table' } });
+        state = reduce(state, { type: REGISTER_QUERY, value: [scriptKey, 42] });
+
+        const next = reduce(state, {
+            type: REGISTER_SCRIPT_OUTPUT_SCHEMA,
+            value: { scriptKey, queryId: 42, queryText: 'SELECT * FROM old_table', columnNames: ['stale'] },
+        });
         expect(next).toBe(state);
     });
 });

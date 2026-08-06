@@ -6,7 +6,7 @@ import { ConnectionHealth, printConnectionHealth } from '../connection/connectio
 import { ConnectorInfo } from '../connection/connector_info.js';
 import { KeyEventHandler, useKeyEvents } from '../utils/key_events.js';
 import { QueryType } from '../connection/query_execution_state.js';
-import { getExecutableQueryText, getSelectedEntry, REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE } from './notebook_state.js';
+import { getExecutableQueryText, getSelectedEntry, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE } from './notebook_state.js';
 import { projectionForVisualizeQuery } from './notebook_types.js';
 import { useCatalogLoaderQueue } from '../connection/catalog_loader.js';
 import { useConnectionState } from '../connection/connection_registry.js';
@@ -16,6 +16,7 @@ import { useRouteContext, useRouterNavigate, CHANGE_SESSION } from '../router.js
 import { useNotebookRegistry, useNotebookState } from './notebook_state_registry.js';
 import { useAIClient } from '../platform/ai_client_provider.js';
 import { isCatalogRefreshRunning } from '../connection/catalog_update_state.js';
+import { registerNotebookQuery } from '../view/notebook/rerun_query.js';
 
 const LOG_CTX = "notebook_commands";
 
@@ -112,7 +113,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         // they are edited, so the resolved VISUALIZE query / derived
                         // annotations are already present here.
                         const queryText = getExecutableQueryText(notebook, scriptData);
-                        const [queryId, _run] = executeQuery(notebook.sessionId, {
+                        const [queryId, execution] = executeQuery(notebook.sessionId, {
                             query: queryText,
                             analyzeResults: true,
                             cacheable: true,
@@ -125,10 +126,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                                 userProvided: true
                             }
                         });
-                        modifyNotebook({
-                            type: REGISTER_QUERY,
-                            value: [scriptData.scriptKey, queryId]
-                        })
+                        registerNotebookQuery(scriptData, queryId, queryText, execution, modifyNotebook);
                     }
                     break;
                 case NotebookCommandType.RefreshCatalog:

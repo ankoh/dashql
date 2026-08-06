@@ -36,6 +36,8 @@ struct AnalysisState {
     Catalog& catalog;
     /// The notebook path for catalog registration (e.g., "main/01-script.sql"). Empty means none.
     std::string_view notebook_path;
+    /// Output columns learned from the latest successful execution.
+    std::span<const std::string> executed_output_schema;
 
     /// A dummy emtpy registered name.
     /// Used to construct qualified column and table identifiers and fill the prefix.
