@@ -9,6 +9,40 @@ import { BIN_COUNT } from '../../compute/computation_logic.js';
 import { getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
 
 export const NULL_SYMBOL = "∅";
+const BRUSH_SETTLE_DELAY_MS = 120;
+
+export class SettledBrushUpdates<T> {
+    private timeout: number | null = null;
+    private pending: T | null = null;
+
+    public schedule(event: T, callback: (event: T) => void): void {
+        this.pending = event;
+        if (this.timeout != null) {
+            window.clearTimeout(this.timeout);
+        }
+        this.timeout = window.setTimeout(() => {
+            this.timeout = null;
+            const pending = this.pending;
+            this.pending = null;
+            if (pending != null) {
+                callback(pending);
+            }
+        }, BRUSH_SETTLE_DELAY_MS);
+    }
+
+    public flush(event: T, callback: (event: T) => void): void {
+        this.cancel();
+        callback(event);
+    }
+
+    public cancel(): void {
+        if (this.timeout != null) {
+            window.clearTimeout(this.timeout);
+            this.timeout = null;
+        }
+        this.pending = null;
+    }
+}
 
 export type HistogramFilterCallback = (table: TableAggregation, columnId: number, column: OrdinalColumnAggregation, filter: [number, number] | null) => void;
 export type BrushingStateCallback = (isBrushing: boolean) => void;
@@ -33,8 +67,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
     const svgContainerSize = observeSize(svgContainer);
     const brushContainer = React.useRef<SVGGElement>(null);
     const brushBehavior = React.useRef<d3.BrushBehavior<unknown> | null>(null);
-    const pendingBrushFrame = React.useRef<number | null>(null);
-    const pendingBrushEvent = React.useRef<d3.D3BrushEvent<unknown> | null>(null);
+    const settledBrushUpdates = React.useRef(new SettledBrushUpdates<d3.D3BrushEvent<unknown>>());
     const margin = { top: 8, right: 8, bottom: 20, left: 8 },
         width = (svgContainerSize?.width ?? 130) - margin.left - margin.right,
         height = (svgContainerSize?.height ?? 50) - margin.top - margin.bottom;
@@ -102,11 +135,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
 
     // Notify when brushing starts or ends
     const onBrushStart = React.useCallback(() => {
-        if (pendingBrushFrame.current != null) {
-            cancelAnimationFrame(pendingBrushFrame.current);
-            pendingBrushFrame.current = null;
-            pendingBrushEvent.current = null;
-        }
+        settledBrushUpdates.current.cancel();
         props.onBrushingChange?.(true);
     }, [props.onBrushingChange]);
 
@@ -121,35 +150,15 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
     }, [props.tableAggregation, props.columnIndex, props.columnAggregate, props.onFilter]);
 
     const onBrushEnd = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
-        if (pendingBrushFrame.current != null) {
-            cancelAnimationFrame(pendingBrushFrame.current);
-            pendingBrushFrame.current = null;
-            pendingBrushEvent.current = null;
-        }
-        onBrushUpdate(e);
+        settledBrushUpdates.current.flush(e, onBrushUpdate);
         props.onBrushingChange?.(false);
     }, [onBrushUpdate, props.onBrushingChange]);
 
     const onBrushMove = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
-        pendingBrushEvent.current = e;
-        if (pendingBrushFrame.current != null) {
-            return;
-        }
-        pendingBrushFrame.current = requestAnimationFrame(() => {
-            pendingBrushFrame.current = null;
-            const pending = pendingBrushEvent.current;
-            pendingBrushEvent.current = null;
-            if (pending != null) {
-                onBrushUpdateRef.current(pending);
-            }
-        });
+        settledBrushUpdates.current.schedule(e, pending => onBrushUpdateRef.current(pending));
     }, []);
 
-    React.useEffect(() => () => {
-        if (pendingBrushFrame.current != null) {
-            cancelAnimationFrame(pendingBrushFrame.current);
-        }
-    }, []);
+    React.useEffect(() => () => settledBrushUpdates.current.cancel(), []);
 
     // Store callbacks in refs to avoid recreating the D3 brush when callbacks change
     const onBrushUpdateRef = React.useRef(onBrushUpdate);

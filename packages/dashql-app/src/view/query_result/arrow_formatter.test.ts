@@ -1,5 +1,5 @@
 import * as arrow from 'apache-arrow';
-import { ArrowTableFormatter, makeArrowValueFormatter } from './arrow_formatter.js';
+import { ArrowTableFormatter, ArrowTextColumnFormatter, makeArrowValueFormatter } from './arrow_formatter.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 
 describe('TableFormatter', () => {
@@ -15,6 +15,20 @@ describe('TableFormatter', () => {
 
         const formatter = new ArrowTableFormatter(table.schema, table.batches, logger);
         expect(formatter.getValue(0, 0)).toEqual(testData[0].toString());
+    });
+
+    it("formats only requested rows until the full batch is requested", () => {
+        const logger = new TestLogger();
+        const table = arrow.tableFromArrays({ test: Int32Array.from([10, 20, 30]) });
+        const formatter = new ArrowTextColumnFormatter(logger, 0, table.schema, table.batches);
+
+        expect(formatter.getValue(0, 1)).toEqual('20');
+        expect(formatter.formattedRowCount).toEqual(1);
+        expect(formatter.getValue(0, 1)).toEqual('20');
+        expect(formatter.formattedRowCount).toEqual(1);
+
+        expect(formatter.getBatchValues(0)).toEqual(['10', '20', '30']);
+        expect(formatter.formattedRowCount).toEqual(3);
     });
 });
 
@@ -75,6 +89,4 @@ describe('makeArrowValueFormatter', () => {
         });
     });
 });
-
-
 

@@ -123,25 +123,27 @@ export function ColumnAggregationBar(props: Props): React.ReactElement | null {
                 <div className={styles.column_name} style={{ height: COLUMN_NAME_HEIGHT }} title={columnName}>
                     {columnName}
                 </div>
-                <HeaderPlotsCell
-                    columnIndex={columnIndex}
-                    style={{ width, height: COLUMN_HEADER_PLOTS_HEIGHT, flexShrink: 0 }}
-                    gridLayout={gridLayout}
-                    columnGroups={tableComputation.columnGroups}
-                    columnAggregations={tableComputation.columnAggregates}
-                    columnAggregationTasks={tableComputation.tasks.columnAggregationTasks}
-                    filteredColumnAggregations={tableComputation.filteredColumnAggregates}
-                    filteredColumnAggregationTasks={tableComputation.tasks.filteredColumnAggregationTasks}
-                    filteredColumnAggregationOutdated={tableComputation.filteredColumnAggregatesOutdated}
-                    tableAggregation={tableComputation.tableAggregation}
-                    filterTableEpoch={tableComputation.filterTable?.version ?? null}
-                    isVisible={isVisible}
-                    rightmostVisibleColumn={gridLayout.columnCount - 1}
-                    onRequestFilteredColumnAggregation={controller.requestFilteredColumnAggregation}
-                    onHistogramFilter={controller.histogramFilter}
-                    onBrushingChange={NOOP_BRUSHING}
-                    onMostFrequentValueFilter={controller.mostFrequentValueFilter}
-                />
+                {isVisible
+                    ? <HeaderPlotsCell
+                        columnIndex={columnIndex}
+                        style={{ width, height: COLUMN_HEADER_PLOTS_HEIGHT, flexShrink: 0 }}
+                        gridLayout={gridLayout}
+                        columnGroups={tableComputation.columnGroups}
+                        columnAggregations={tableComputation.columnAggregates}
+                        columnAggregationTasks={tableComputation.tasks.columnAggregationTasks}
+                        filteredColumnAggregations={tableComputation.filteredColumnAggregates}
+                        filteredColumnAggregationTasks={tableComputation.tasks.filteredColumnAggregationTasks}
+                        filteredColumnAggregationOutdated={tableComputation.filteredColumnAggregatesOutdated}
+                        tableAggregation={tableComputation.tableAggregation}
+                        filterTableEpoch={tableComputation.filterTable?.version ?? null}
+                        isVisible={true}
+                        rightmostVisibleColumn={gridLayout.columnCount - 1}
+                        onRequestFilteredColumnAggregation={controller.requestFilteredColumnAggregation}
+                        onHistogramFilter={controller.histogramFilter}
+                        onBrushingChange={NOOP_BRUSHING}
+                        onMostFrequentValueFilter={controller.mostFrequentValueFilter}
+                    />
+                    : <div style={{ width, height: COLUMN_HEADER_PLOTS_HEIGHT, flexShrink: 0 }} />}
             </div>
         );
     }

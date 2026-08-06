@@ -3,7 +3,6 @@
 export { HeaderNameCell, type HeaderNameCellProps } from './data_table_cell_header_name.js';
 export { HeaderPlotsCell, type HeaderPlotsCellProps } from './data_table_cell_header_plots.js';
 export { DataCell, type DataCellData } from './data_table_cell_data.js';
-export { buildSkeletonStyle, SkeletonOverlay, type SkeletonStyle, type SkeletonOverlayProps } from './data_table_cell_skeleton.js';
 
 export enum TableColumnHeader {
     OnlyColumnName = 0,

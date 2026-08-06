@@ -447,6 +447,9 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
     readonly columnName: string;
     readonly batches: arrow.RecordBatch[];
     readonly batchValues: ((string | null)[] | null)[];
+    readonly loadedBatchValueCount: Uint32Array;
+    readonly batchFormattedLengthSum: Float64Array;
+    readonly batchFormattedLengthMax: Uint32Array;
     readonly valueClassName: string;
     formattedRowCount: number;
     formattedLengthMax: number;
@@ -464,6 +467,9 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
         this.columnName = schema.fields[columnId].name;
         this.batches = batches;
         this.batchValues = Array.from({ length: batches.length }, () => null);
+        this.loadedBatchValueCount = new Uint32Array(batches.length);
+        this.batchFormattedLengthSum = new Float64Array(batches.length);
+        this.batchFormattedLengthMax = new Uint32Array(batches.length);
         this.formattedRowCount = 0;
         this.formattedLengthMax = 0;
         this.formattedLengthSum = 0;
@@ -477,11 +483,14 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
     /// We do not eagerly format all columns.
     /// Instead, we just check lazily if a batch is loaded before resolving a value.
     public ensureBatchIsLoaded(index: number): (string | null)[] {
-        if (this.batchValues[index] != null) {
+        if (this.batchValues[index] != null && this.loadedBatchValueCount[index] === this.batches[index].numRows) {
             return this.batchValues[index]!;
         }
         const data = this.batches[index];
         const column = data.getChildAt(this.columnId)!;
+
+        this.formattedRowCount -= this.loadedBatchValueCount[index];
+        this.formattedLengthSum -= this.batchFormattedLengthSum[index];
 
         const values: (string | null)[] = [];
         let valueLengthSum = 0;
@@ -522,10 +531,13 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
             }
         }
 
-        this.formattedLengthMax = Math.max(this.formattedLengthMax, valueLengthMax)
         this.formattedLengthSum += valueLengthSum;
         this.formattedRowCount += values.length;
         this.batchValues[index] = values;
+        this.loadedBatchValueCount[index] = values.length;
+        this.batchFormattedLengthSum[index] = valueLengthSum;
+        this.batchFormattedLengthMax[index] = valueLengthMax;
+        this.formattedLengthMax = Math.max(...this.batchFormattedLengthMax);
         return values;
     }
 
@@ -533,7 +545,31 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
         return this.ensureBatchIsLoaded(batch);
     }
     public getValue(batch: number, row: number): string | null {
-        return this.getBatchValues(batch)[row];
+        const loaded = this.batchValues[batch];
+        if (loaded != null && this.loadedBatchValueCount[batch] === this.batches[batch].numRows) {
+            return loaded[row];
+        }
+
+        const values = loaded ?? new Array<string | null>(this.batches[batch].numRows);
+        if (loaded == null) {
+            this.batchValues[batch] = values;
+        }
+        if (row in values) {
+            return values[row];
+        }
+
+        const raw = this.batches[batch].getChildAt(this.columnId)!.get(row);
+        const text = raw == null ? null : (this.formatter(raw) || '');
+        values[row] = text;
+        this.loadedBatchValueCount[batch]++;
+        this.formattedRowCount++;
+        if (text != null) {
+            this.formattedLengthSum += text.length;
+            this.formattedLengthMax = Math.max(this.formattedLengthMax, text.length);
+            this.batchFormattedLengthSum[batch] += text.length;
+            this.batchFormattedLengthMax[batch] = Math.max(this.batchFormattedLengthMax[batch], text.length);
+        }
+        return text;
     }
     public getColumnName(): string {
         return this.columnName;

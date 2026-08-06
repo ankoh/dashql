@@ -19,7 +19,7 @@ export interface DataCellData {
     focusedField: number | null;
     focusedRow: number | null;
     gridLayout: DataTableLayout;
-    isBrushing: boolean;
+    hideRowHeader: boolean;
     table: arrow.Table;
     tableFormatter: ArrowTableFormatter;
     rightmostVisibleColumn: number;
@@ -35,14 +35,13 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
     const fieldId = props.gridLayout.arrowFieldByColumnIndex[props.columnIndex];
     let dataRow = props.rowIndex;
 
+    if (props.columnIndex === 0 && props.hideRowHeader) {
+        return null;
+    }
+
     // Translate the row index through the visible row ids, if an indirection table is active
     if (props.visibleRowIds != null) {
         dataRow = Math.max(Number(props.visibleRowIds.get(dataRow)), 1) - 1;
-    }
-
-    // Show skeleton placeholder while brushing (except for row header column)
-    if (props.isBrushing && props.columnIndex > 0) {
-        return null;
     }
 
     // Abort if no formatter is available

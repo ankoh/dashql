@@ -27,6 +27,18 @@ function scalarFiltersEqual(left: ScalarFilter[], right: ScalarFilter[]): boolea
 
 const pendingSchedules = new WeakMap<object, Set<string>>();
 
+interface PendingFilterTask {
+    key: string;
+    task: TableFilteringTask;
+}
+
+interface FilterTaskQueue {
+    activeKey: string | null;
+    pending: PendingFilterTask | null;
+}
+
+const filterTaskQueues = new WeakMap<object, Map<number, FilterTaskQueue>>();
+
 /// Effects in separate consumers can run from the same state snapshot. Keep a task key
 /// reserved until the scheduled operation settles so only the first consumer schedules it.
 function claimSchedule(dispatch: Dispatch<ComputationAction>, key: string): (() => void) | null {
@@ -45,6 +57,53 @@ function claimSchedule(dispatch: Dispatch<ComputationAction>, key: string): (() 
 
 function scalarFiltersKey(filters: ScalarFilter[]): string {
     return filters.map(filter => `${filter.fieldName}\u0000${filter.op}\u0000${filter.value}`).join('\u0001');
+}
+
+/// Run at most one filter task per table and retain only the newest request that arrives
+/// while it is running. Stale brush positions never enter the scheduler.
+function scheduleLatestFilter(
+    dispatch: Dispatch<ComputationAction>,
+    key: string,
+    task: TableFilteringTask,
+): void {
+    const owner = dispatch as object;
+    let queues = filterTaskQueues.get(owner);
+    if (queues == null) {
+        queues = new Map();
+        filterTaskQueues.set(owner, queues);
+    }
+    let queue = queues.get(task.tableId);
+    if (queue == null) {
+        queue = { activeKey: null, pending: null };
+        queues.set(task.tableId, queue);
+    }
+
+    if (queue.activeKey === key) {
+        queue.pending = null;
+        return;
+    }
+    if (queue.pending?.key === key) {
+        return;
+    }
+    if (queue.activeKey != null) {
+        queue.pending = { key, task };
+        return;
+    }
+
+    const launch = (request: PendingFilterTask) => {
+        queue!.activeKey = request.key;
+        void filterTableDispatched(request.task, dispatch).finally(() => {
+            queue!.activeKey = null;
+            const pending = queue!.pending;
+            queue!.pending = null;
+            if (pending != null) {
+                launch(pending);
+            } else {
+                queues!.delete(request.task.tableId);
+            }
+        });
+    };
+    launch({ key, task });
 }
 
 export interface CrossFilterController {
@@ -154,11 +213,7 @@ export function useCrossFilters(
         if (hasUpToDateRunningTask) {
             return;
         }
-        const scheduleKey = `filter:${computationState.tableId}:${computationState.version.toString()}:${scalarFiltersKey(crossFilterTransforms)}`;
-        const releaseSchedule = claimSchedule(dispatchComputation, scheduleKey);
-        if (releaseSchedule == null) {
-            return;
-        }
+        const scheduleKey = `${computationState.version.toString()}:${scalarFiltersKey(crossFilterTransforms)}`;
         const filteringTask: TableFilteringTask = {
             tableId: computationState.tableId,
             tableVersion: computationState.version,
@@ -168,7 +223,7 @@ export function useCrossFilters(
             filters: crossFilterTransforms,
             rowNumberColumnName: computationState.rowNumberColumnName,
         };
-        void filterTableDispatched(filteringTask, dispatchComputation).finally(releaseSchedule);
+        scheduleLatestFilter(dispatchComputation, scheduleKey, filteringTask);
     }, [
         computationState?.dataFrame,
         computationState?.dataTable,
