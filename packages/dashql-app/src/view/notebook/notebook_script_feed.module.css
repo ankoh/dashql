@@ -21,30 +21,6 @@
     overflow: hidden;
 }
 
-/*
-    Feed/overview toggle.
-    Switches only the feed body between the vertical list and the zoomed-out overview grid via a
-    segmented control (list / grid), so it floats in the top-left corner of the feed background
-    rather than in the global page header.
-
-    The overview grid needs room to breathe, so we discourage it on narrow windows: the toggle is
-    hidden below 1350px of window width (roughly 1050px of board width once the desktop sidebar is
-    accounted for). Below that, the feed is the only view.
-*/
-.view_toggle {
-    display: none;
-}
-
-@media only screen and (min-width: 1350px) {
-    .view_toggle {
-        /* left offset is set inline: FEED_VIEW_TOGGLE_INSET */
-        position: absolute;
-        top: 20px;
-        z-index: 3;
-        display: flex;
-    }
-}
-
 .feed_list_item {
     display: flex;
     width: 100%;

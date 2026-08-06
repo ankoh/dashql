@@ -8,7 +8,7 @@ import { resolveVisualizeQuery, ScriptTextByKey } from '../connection/visualize_
 import { VariantKind } from '../utils/index.js';
 import { REPLACE_NOTEBOOK, CREATE_NOTEBOOK_PAGE, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK_PAGE, DELETE_NOTEBOOK_SCRIPT, groupDraftWrites, groupNotebookWrites, groupPageRenames, groupPageWrites, groupScriptDeletes, groupScriptRenames, groupScriptWrites, RENAME_NOTEBOOK_PAGE, RENAME_NOTEBOOK_SCRIPT, StorageWriter, WRITE_NOTEBOOK_DRAFT, WRITE_NOTEBOOK_SCRIPT } from '../platform/storage/storage_writer.js';
 import { NotebookStateWithoutId } from './notebook_state_registry.js';
-import { Logger, stringifyError } from '../platform/logger/logger.js';
+import { Logger, LoggableException, stringifyError } from '../platform/logger/logger.js';
 import { NotebookScriptAnnotations, NotebookPage, NotebookPageScript, NotebookMetadata as NotebookMetadataType, createEmptyAnnotations, createPageScript, generateScriptFileName, planScriptInsertion, normalizePageName, formatPageOrderPrefix, normalizeScriptName, scriptOrderPrefixString, formatScriptOrderPrefix, scriptDisplayName, uniqueScriptBase } from './notebook_types.js';
 
 const LOG_CTX = 'notebook_state';
@@ -1138,19 +1138,38 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const slot = viewOrder.indexOf(oldFolderName);
             const newFolderName = `${formatPageOrderPrefix(slot + 1, viewOrder.length)}${cleanName}`;
 
-            // Update this page's scripts with the new folder name and mark them outdated: the clean
-            // name changed, so the catalog path changes and the scripts must re-analyze.
+            // Re-analyze the renamed page's scripts immediately so their new catalog paths are
+            // registered before any dependent script is executed. Deferring this left the catalog
+            // under the old folder name and made VISUALIZE references fall through unresolved.
             const newScripts = { ...state.scripts };
-            for (const fileName in page.scripts) {
+            for (const fileName of getSortedFileNames(page)) {
                 const entry = page.scripts[fileName];
                 const scriptData = newScripts[entry.scriptId];
                 if (scriptData) {
-                    newScripts[entry.scriptId] = {
+                    const renamedScriptData: ScriptData = {
                         ...scriptData,
                         folderName: newFolderName,
-                        scriptAnalysis: { ...scriptData.scriptAnalysis, outdated: true },
                     };
+                    newScripts[entry.scriptId] = analyzeNotebookScript(
+                        renamedScriptData,
+                        state.scriptRegistry,
+                        state.connectionCatalog,
+                        makeScriptLookup(newScripts),
+                        logger,
+                    );
                 }
+            }
+
+            // The catalog entries above changed names. Their dependents still carry analysis against
+            // the old path and must resolve again, while the renamed source scripts remain fresh.
+            const renamedScriptIds = new Set(Object.values(page.scripts).map(entry => entry.scriptId));
+            for (const key in newScripts) {
+                if (renamedScriptIds.has(+key)) continue;
+                const scriptData = newScripts[key];
+                newScripts[key] = {
+                    ...scriptData,
+                    scriptAnalysis: { ...scriptData.scriptAnalysis, outdated: true },
+                };
             }
 
             const newPages: NotebookPageMap = { ...state.notebookPages };
@@ -1869,35 +1888,67 @@ export function makeScriptLookup(scripts: ScriptDataMap): ScriptTextByKey {
 /// cached SQL is still valid. Trusting it while outdated was the bug where
 /// re-running a vis after changing its source's generate_series kept the old range.
 ///
-/// When outdated (a source may have changed) we re-resolve against a fresh lookup.
-/// The vis script's own analysis (AST + vega-lite spec) is unaffected by source
-/// edits, so we reuse the existing analyzed buffers. The synchronous re-analyze is
-/// only a fallback for a script never analyzed yet (e.g. created mid-session and
-/// neither rendered in an editor nor edited): we must NOT fall back to the raw
-/// script text, which would send `visualize (...)` verbatim to the backend. Those
-/// fallback buffers are deliberately throwaway — analyzed without setNotebookPath()
-/// and owned/freed here — so they must not be handed back into the reducer.
+/// When outdated (a source may have changed or been renamed) we analyze into fresh
+/// throwaway buffers against the current catalog. Reusing the prior analyzed buffers
+/// is insufficient after a rename because an unresolved source has no script key for
+/// resolveVisualizeQuery to look up. We must never fall back to the raw script text,
+/// which would send `visualize (...)` verbatim to the backend. The throwaway buffers
+/// are owned/freed here and must not be handed back into the reducer.
 export function getExecutableQueryText(notebook: NotebookState, scriptData: ScriptData): string {
     const scriptText = scriptData.script.toString();
 
     // Fresh analyzed copy → the cached resolution still reflects the current sources.
     if (scriptData.scriptAnalysis.buffers.analyzed && !scriptData.scriptAnalysis.outdated) {
-        return scriptData.annotations.visualizeQuery?.sql ?? scriptText;
+        if (scriptData.annotations.visualizeQuery != null) {
+            return scriptData.annotations.visualizeQuery.sql;
+        }
+        if (isVisualizeScript(scriptData.scriptAnalysis.buffers, scriptText)) {
+            throw unresolvedVisualizeQuery(scriptData, scriptText);
+        }
+        return scriptText;
     }
 
-    // Outdated or never analyzed → re-resolve against the current notebook.
-    const haveAnalyzed = scriptData.scriptAnalysis.buffers.analyzed != null;
-    const buffers = haveAnalyzed ? scriptData.scriptAnalysis.buffers : analyzeScript(scriptData.script);
+    // Outdated or never analyzed → perform fresh name resolution against the current catalog.
+    const buffers = analyzeScript(scriptData.script);
     try {
         const resolved = resolveVisualizeQuery(
             buffers,
             scriptText,
             makeScriptLookup(notebook.scripts),
         );
-        return resolved?.sql ?? scriptText;
+        if (resolved != null) {
+            return resolved.sql;
+        }
+        if (isVisualizeScript(buffers, scriptText)) {
+            throw unresolvedVisualizeQuery(scriptData, scriptText);
+        }
+        return scriptText;
     } finally {
-        if (!haveAnalyzed) buffers.destroy(buffers);
+        buffers.destroy(buffers);
     }
+}
+
+function isVisualizeScript(buffers: DashQLScriptBuffers, scriptText: string): boolean {
+    if (buffers.parsed) {
+        const parsed = buffers.parsed.read();
+        for (let i = 0; i < parsed.statementsLength(); ++i) {
+            if (parsed.statements(i)?.statementType() === core.buffers.parser.StatementType.VIS_VISUALISE) {
+                return true;
+            }
+        }
+    }
+    // Analysis can fail before it emits a typed statement. Keep the common malformed/unresolved
+    // form from escaping to the backend even when no parsed statement is available.
+    return /^\s*visualize\b/i.test(scriptText);
+}
+
+function unresolvedVisualizeQuery(scriptData: ScriptData, scriptText: string): LoggableException {
+    return new LoggableException('Could not resolve VISUALIZE source query', {
+        scriptKey: scriptData.scriptKey.toString(),
+        folderName: scriptData.folderName,
+        fileName: scriptData.fileName,
+        statement: scriptText,
+    }, LOG_CTX);
 }
 
 /// Compute a staged, statement-level semantic diff from a script's prior text to a new text.

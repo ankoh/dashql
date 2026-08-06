@@ -585,7 +585,7 @@ describe('UPDATE_PAGE_FOLDER_NAME', () => {
         expect(next).toBe(state);
     });
 
-    it('marks all page scripts outdated on folder rename', () => {
+    it('re-analyzes all page scripts on folder rename', () => {
         const state = buildState();
         const file = state.notebookUserFocus.fileName;
         const scriptId = getSelectedPage(state)!.scripts[file].scriptId;
@@ -594,7 +594,7 @@ describe('UPDATE_PAGE_FOLDER_NAME', () => {
         expect(s1.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
 
         const s2 = reduce(s1, { type: UPDATE_PAGE_FOLDER_NAME, value: { folderName: MAIN_FOLDER, newFolderName: 'Analytics' } });
-        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(true);
+        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
     });
 
     it('does not mark outdated when folderName is unchanged', () => {
@@ -609,7 +609,7 @@ describe('UPDATE_PAGE_FOLDER_NAME', () => {
         expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
     });
 
-    it('updates catalog path after re-analysis following folder rename, using clean names', () => {
+    it('updates catalog path immediately following folder rename, using clean names', () => {
         const state = buildState();
         const file = state.notebookUserFocus.fileName;
         const cleanFile = scriptDisplayName(file);
@@ -622,11 +622,67 @@ describe('UPDATE_PAGE_FOLDER_NAME', () => {
 
         const newFolder = 'Analytics';
         const s2 = reduce(s1, { type: UPDATE_PAGE_FOLDER_NAME, value: { folderName: oldFolder, newFolderName: newFolder } });
-        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(true);
+        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
+        expect(s2.scripts[scriptId].annotations.tableDefs).toContain(`${newFolder}/${cleanFile}`);
+        expect(s2.scripts[scriptId].annotations.tableDefs).not.toContain(`${oldFolder}/${cleanFile}`);
+    });
 
-        const s3 = reduce(s2, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
-        expect(s3.scripts[scriptId].annotations.tableDefs).toContain(`${newFolder}/${cleanFile}`);
-        expect(s3.scripts[scriptId].annotations.tableDefs).not.toContain(`${oldFolder}/${cleanFile}`);
+    it('resolves a VISUALIZE reference immediately after its source folder is renamed', () => {
+        const state = buildScriptState(['1_source.sql', '2_chart.sql']);
+        const page = state.notebookPages[MAIN_FOLDER];
+        const sourceId = page.scripts['1_source.sql'].scriptId;
+        const chartId = page.scripts['2_chart.sql'].scriptId;
+        const s1 = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: sourceId, text: 'SELECT 1 AS x' } });
+        const s2 = reduce(s1, {
+            type: SET_SCRIPT_TEXT,
+            value: {
+                scriptKey: chartId,
+                text: `visualize dashql.notebook."Analytics/source" using vegalite ( mark => bar, encoding => ( x => (field => x) ) )`,
+            },
+        });
+
+        expect(s2.scripts[chartId].annotations.visualizeQuery).toBeNull();
+
+        const s3 = reduce(s2, {
+            type: UPDATE_PAGE_FOLDER_NAME,
+            value: { folderName: MAIN_FOLDER, newFolderName: 'Analytics' },
+        });
+
+        expect(s3.scripts[sourceId].scriptAnalysis.outdated).toBe(false);
+        expect(s3.scripts[chartId].scriptAnalysis.outdated).toBe(false);
+        expect(s3.scripts[chartId].annotations.visualizeQuery?.sql).toContain('SELECT 1 AS x');
+        expect(getExecutableQueryText(s3, s3.scripts[chartId])).toContain('SELECT 1 AS x');
+    });
+
+    it('freshly resolves an outdated VISUALIZE in another page after its source folder is renamed', () => {
+        let state = buildState();
+        const originalFolder = state.notebookUserFocus.folderName;
+        const originalFile = state.notebookUserFocus.fileName;
+        const sourceId = state.notebookPages[originalFolder].scripts[originalFile].scriptId;
+        state = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: sourceId, text: 'SELECT 1 AS x' } });
+        state = reduce(state, { type: CREATE_PAGE, value: null });
+
+        const sourceFolder = getSortedFolderNames(state.notebookPages)
+            .find(folder => normalizePageName(folder) === originalFolder)!;
+        const chartFolder = state.notebookUserFocus.folderName;
+        const chartFile = state.notebookUserFocus.fileName;
+        const chartId = state.notebookPages[chartFolder].scripts[chartFile].scriptId;
+        state = reduce(state, {
+            type: SET_SCRIPT_TEXT,
+            value: {
+                scriptKey: chartId,
+                text: `visualize dashql.notebook."Analytics/${scriptDisplayName(originalFile)}" using vegalite ( mark => bar, encoding => ( x => (field => x) ) )`,
+            },
+        });
+        expect(state.scripts[chartId].annotations.visualizeQuery).toBeNull();
+
+        state = reduce(state, {
+            type: UPDATE_PAGE_FOLDER_NAME,
+            value: { folderName: sourceFolder, newFolderName: 'Analytics' },
+        });
+
+        expect(state.scripts[chartId].scriptAnalysis.outdated).toBe(true);
+        expect(getExecutableQueryText(state, state.scripts[chartId])).toContain('SELECT 1 AS x');
     });
 });
 
@@ -1292,6 +1348,18 @@ describe('getExecutableQueryText', () => {
 
         const text = getExecutableQueryText(state, scriptData);
         expect(text).toBe('SELECT 1 as x');
+    });
+
+    it('throws instead of returning raw VISUALIZE text when its source is unresolved', () => {
+        const state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const scriptData = state.scripts[scriptKey];
+        scriptData.script.replaceText(
+            'visualize dashql.notebook."Missing/source" using vegalite ( mark => bar )',
+        );
+
+        expect(() => getExecutableQueryText(state, scriptData))
+            .toThrow('Could not resolve VISUALIZE source query');
     });
 
     it('re-resolves a SCRIPT_REFERENCE against the source script\'s current text', () => {
