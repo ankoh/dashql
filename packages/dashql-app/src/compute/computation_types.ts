@@ -336,6 +336,8 @@ export interface OrdinalColumnAggregation<WidthType extends arrow.DataType = arr
 }
 
 export interface OrdinalColumnAnalysis {
+    /// The total row count
+    totalCount: number;
     /// The value count
     countNotNull: number;
     /// The null count
@@ -375,6 +377,8 @@ export interface StringColumnAggregation {
 }
 
 export interface StringColumnAnalysis {
+    /// The total row count
+    totalCount: number;
     /// The value count
     countNotNull: number;
     /// The null count

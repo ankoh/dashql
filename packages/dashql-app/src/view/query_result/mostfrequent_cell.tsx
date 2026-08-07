@@ -8,6 +8,7 @@ import { observeSize } from '../../view/foundations/size_observer.js';
 import { assert } from '../../utils/assert.js';
 import { NULL_SYMBOL } from './histogram_cell.js';
 import { getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
+import { formatHistogramFocusDescription } from './histogram_label.js';
 
 export type MostFrequentValueFilterCallback = (table: TableAggregation, columnIndex: number, column: StringColumnAggregation, frequentValueId: number | null) => void;
 
@@ -100,6 +101,10 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
         return map;
     }, [props.filteredColumnAggregation]);
 
+    const filteredRowCount = props.filteredColumnAggregation?.type === STRING_COLUMN
+        ? props.filteredColumnAggregation.value.analysis.totalCount
+        : null;
+
     // Get the value IDs for the unfiltered aggregate
     const frequentValueIds = props.columnAggregate.analysis.frequentValueIds;
 
@@ -113,9 +118,16 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
     if (focusedRow != null) {
         const value = frequentValueStrings[focusedRow];
         focusedValue = value == null ? null : truncateFocusedValue(value);
-        const percentage = Math.round(frequentValuePercentages[focusedRow] * 100 * 100) / 100;
-        const rows = frequentValueCounts[focusedRow];
-        focusDescription = `${rows} ${rows == 1n ? "row" : "rows"} (${percentage}%)`
+        const valueId = frequentValueIds[focusedRow];
+        const filteredCount = filteredCountByValueId == null
+            ? null
+            : filteredCountByValueId.get(valueId) ?? 0n;
+        focusDescription = formatHistogramFocusDescription(
+            frequentValueCounts[focusedRow],
+            props.columnAggregate.analysis.totalCount,
+            filteredCount,
+            filteredRowCount,
+        );
     }
 
     const onFilterRef = React.useRef(props.onFilter);

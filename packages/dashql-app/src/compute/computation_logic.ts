@@ -782,10 +782,11 @@ function buildTableAggregationSQL(task: TableAggregationTask): [string, ColumnGr
     return [sql, updatedEntries, countColumn];
 }
 
-function analyzeOrdinalColumn(tableSummary: TableAggregation, columnEntry: OrdinalGridColumnGroup, binnedValues: BinnedValuesTable, binnedValuesFormatter: ArrowTableFormatter): OrdinalColumnAnalysis {
+function analyzeOrdinalColumn(tableSummary: TableAggregation, columnEntry: OrdinalGridColumnGroup, binnedValues: BinnedValuesTable, binnedValuesFormatter: ArrowTableFormatter, filteredTotalCount: number | null = null): OrdinalColumnAnalysis {
     const totalCountVector = tableSummary.table.getChild(tableSummary.countStarFieldName!) as arrow.Vector<arrow.Int64>;
 
-    const totalCount = Number(totalCountVector.get(0) ?? BigInt(0));
+    const unfilteredTotalCount = Number(totalCountVector.get(0) ?? BigInt(0));
+    const totalCount = filteredTotalCount ?? unfilteredTotalCount;
     const minFieldId = tableSummary.tableFieldsByName.get(columnEntry.statsFields!.minAggregateFieldName!)!;
     const maxFieldId = tableSummary.tableFieldsByName.get(columnEntry.statsFields!.maxAggregateFieldName!)!;
     const minValue = tableSummary.tableFormatter.getValue(0, minFieldId) ?? "";
@@ -803,7 +804,9 @@ function analyzeOrdinalColumn(tableSummary: TableAggregation, columnEntry: Ordin
     assert(nullBinId === BIN_COUNT);
 
     const countNull = Number(binCountVector.get(nullBinRowIdx) ?? BigInt(0));
-    const countNotNull = totalCount - countNull;
+    const countNotNull = filteredTotalCount == null
+        ? totalCount - countNull
+        : unfilteredTotalCount - countNull;
 
     const regularBinCount = BIN_COUNT;
     const binLowerBounds: string[] = [];
@@ -830,6 +833,7 @@ function analyzeOrdinalColumn(tableSummary: TableAggregation, columnEntry: Ordin
     }
 
     return {
+        totalCount,
         countNotNull: countNotNull,
         countNull: countNull,
         minValue: minValue,
@@ -841,12 +845,13 @@ function analyzeOrdinalColumn(tableSummary: TableAggregation, columnEntry: Ordin
     };
 }
 
-function analyzeStringColumn(tableSummary: TableAggregation, columnEntry: StringGridColumnGroup, frequentValueTable: FrequentValuesTable, frequentValuesFormatter: ArrowTableFormatter): StringColumnAnalysis {
+function analyzeStringColumn(tableSummary: TableAggregation, columnEntry: StringGridColumnGroup, frequentValueTable: FrequentValuesTable, frequentValuesFormatter: ArrowTableFormatter, filteredTotalCount: number | null = null): StringColumnAnalysis {
     const totalCountVector = tableSummary.table.getChild(tableSummary.countStarFieldName!) as arrow.Vector<arrow.Int64>;
     const notNullCountVector = tableSummary.table.getChild(columnEntry.statsFields!.countFieldName) as arrow.Vector<arrow.Int64>;
     const distinctCountVector = tableSummary.table.getChild(columnEntry.statsFields!.distinctCountFieldName!) as arrow.Vector<arrow.Int64>;
 
-    const totalCount = Number(totalCountVector.get(0) ?? BigInt(0));
+    const unfilteredTotalCount = Number(totalCountVector.get(0) ?? BigInt(0));
+    const totalCount = filteredTotalCount ?? unfilteredTotalCount;
     const notNullCount = Number(notNullCountVector.get(0) ?? BigInt(0));
     const distinctCount = Number(distinctCountVector.get(0) ?? BigInt(0));
 
@@ -868,8 +873,9 @@ function analyzeStringColumn(tableSummary: TableAggregation, columnEntry: String
     const frequentValueIds = keyIdColumn.toArray() as BigInt64Array;
 
     return {
+        totalCount,
         countNotNull: notNullCount,
-        countNull: totalCount - notNullCount,
+        countNull: unfilteredTotalCount - notNullCount,
         countDistinct: distinctCount,
         isUnique: notNullCount == distinctCount,
         frequentValueStrings: frequentValueStrings,
@@ -1087,7 +1093,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
         let columnAggregate: WithFilterEpoch<ColumnAggregationVariant>;
         switch (task.columnEntry.type) {
             case ORDINAL_COLUMN: {
-                const analysis = analyzeOrdinalColumn(task.tableAggregate, task.columnEntry.value, aggregateTable, aggregateTableFormatter);
+                const analysis = analyzeOrdinalColumn(task.tableAggregate, task.columnEntry.value, aggregateTable, aggregateTableFormatter, task.filterTable.dataTable.numRows);
                 columnAggregate = {
                     type: ORDINAL_COLUMN,
                     value: {
@@ -1102,7 +1108,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
                 break;
             }
             case STRING_COLUMN: {
-                const analysis = analyzeStringColumn(task.tableAggregate, task.columnEntry.value, aggregateTable, aggregateTableFormatter);
+                const analysis = analyzeStringColumn(task.tableAggregate, task.columnEntry.value, aggregateTable, aggregateTableFormatter, task.filterTable.dataTable.numRows);
                 columnAggregate = {
                     type: STRING_COLUMN,
                     value: {

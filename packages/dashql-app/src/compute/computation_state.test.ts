@@ -175,6 +175,7 @@ describe('ComputationState', () => {
         "rowNumber": new Int32Array([0, 1]),
     });
     const ordinalColumnAnalysis: OrdinalColumnAnalysis = {
+        totalCount: 4,
         countNotNull: 4,
         countNull: 0,
         minValue: '10',

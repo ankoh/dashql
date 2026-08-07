@@ -7,6 +7,7 @@ import { ColumnAggregationVariant, OrdinalColumnAggregation, ORDINAL_COLUMN, Tab
 import { dataTypeToString } from './arrow_formatter.js';
 import { BIN_COUNT } from '../../compute/computation_logic.js';
 import { getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
+import { formatHistogramFocusDescription } from './histogram_label.js';
 
 export const NULL_SYMBOL = "∅";
 const BRUSH_SETTLE_DELAY_MS = 120;
@@ -202,12 +203,13 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
 
     // Extract filtered bin counts and null count if available
     const hasFilteredAggregate = props.filteredColumnAggregation != null && props.filteredColumnAggregation.type === ORDINAL_COLUMN;
-    const [filteredBinCounts, filteredNullCount] = React.useMemo(() => {
-        if (props.filteredColumnAggregation?.type !== ORDINAL_COLUMN) return [null, null];
+    const [filteredBinCounts, filteredNullCount, filteredRowCount] = React.useMemo(() => {
+        if (props.filteredColumnAggregation?.type !== ORDINAL_COLUMN) return [null, null, null];
         const filteredAgg = props.filteredColumnAggregation.value;
         return [
             filteredAgg.columnAnalysis.binValueCounts,
-            filteredAgg.columnAnalysis.countNull
+            filteredAgg.columnAnalysis.countNull,
+            filteredAgg.columnAnalysis.totalCount,
         ];
     }, [props.filteredColumnAggregation]);
 
@@ -225,16 +227,19 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
     const [focusedNull, setFocusedNull] = React.useState<boolean | null>(null);
     let focusDescription: string | null = null;
     if (focusedBin != null) {
-        const binValueCounts = props.columnAggregate.columnAnalysis.binValueCounts;
-        const binPercentages = props.columnAggregate.columnAnalysis.binPercentages;
-        const percentage = Math.round(binPercentages[focusedBin] * 100 * 100) / 100;
-        const rows = binValueCounts[focusedBin];
-        focusDescription = `${rows} ${rows == 1n ? "row" : "rows"} (${percentage}%)`
+        focusDescription = formatHistogramFocusDescription(
+            binCounts[focusedBin],
+            props.columnAggregate.columnAnalysis.totalCount,
+            filteredBinCounts?.[focusedBin] ?? null,
+            filteredRowCount,
+        );
     } else if (focusedNull) {
-        const nullPercentage = countNull / (countNull + props.columnAggregate.columnAnalysis.countNotNull);
-        const percentage = Math.round(nullPercentage * 100 * 100) / 100;
-        const rows = countNull;
-        focusDescription = `${rows} ${rows == 1 ? "row" : "rows"} (${percentage}%)`
+        focusDescription = formatHistogramFocusDescription(
+            BigInt(countNull),
+            props.columnAggregate.columnAnalysis.totalCount,
+            filteredNullCount == null ? null : BigInt(filteredNullCount),
+            filteredRowCount,
+        );
     }
 
     // Listen for pointer events
