@@ -165,7 +165,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 key: 'l',
                 ctrlKey: true,
                 callback: () => {
-                    if (showDetails || editingFolder !== null || notebook == null) return;
+                    if ((showDetails && catalogTab == null) || editingFolder !== null || notebook == null) return;
                     if (catalogTab === 'functions') return; // already the right-most tab
                     if (catalogTab === 'relations') { setCatalogTab('functions'); return; }
                     // Currently on a page tab; step into the meta tabs only from the last page.
@@ -183,7 +183,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 key: 'h',
                 ctrlKey: true,
                 callback: () => {
-                    if (showDetails || editingFolder !== null || notebook == null) return;
+                    if ((showDetails && catalogTab == null) || editingFolder !== null || notebook == null) return;
                     if (catalogTab === 'functions') { setCatalogTab('relations'); return; }
                     if (catalogTab === 'relations') {
                         // Stepping left off the first meta tab lands on the last page tab.
@@ -347,7 +347,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                         setShowDetails(false);
                     }}
                     onSelectCatalog={(tab) => {
-                        if (showDetails) return;
+                        if (showDetails && catalogTab == null) return;
                         setCatalogTab(tab);
                         setShowDetails(true);
                     }}

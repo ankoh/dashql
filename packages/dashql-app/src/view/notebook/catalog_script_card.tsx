@@ -63,8 +63,8 @@ export const CatalogScriptCard: React.FC<CatalogScriptCardProps> = (props) => {
     }, []);
 
     return (
-        <div key={props.fileName} className={detailStyles.entry_body_card}>
-            <div className={detailStyles.entry_card_container}>
+        <div key={props.fileName} className={detailStyles.entry_single}>
+            <div className={detailStyles.entry_script_card}>
                 <div className={detailStyles.entry_card_action_bar}>
                     <div className={detailStyles.entry_card_file_name}>
                         <NotebookScriptName folder=".." file={props.fileName} icon={<LockIcon size={12} />} />
