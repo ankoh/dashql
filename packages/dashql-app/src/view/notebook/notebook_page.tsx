@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './notebook_page.module.css';
 
-import { PaperAirplaneIcon, SparklesFillIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
+import { DatabaseIcon, PaperAirplaneIcon, SparklesFillIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
 
 import * as ActionList from '../foundations/action_list.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
@@ -13,7 +13,7 @@ import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
 import { CREATE_PAGE, REORDER_PAGES, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE, UPDATE_PAGE_FOLDER_NAME, getSortedFolderNames } from '../../notebook/notebook_state.js';
 import { normalizePageName } from '../../notebook/notebook_types.js';
-import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
+import { COMPOSE_INPUT_MODE_SQL, NotebookCommandType, useComposeInputMode, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
 import { useAIClient } from '../../platform/ai_client_provider.js';
 import { DragEndEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
@@ -48,6 +48,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const [conn, _modifyConn] = useConnectionState(notebook?.sessionId ?? null);
     const [connectionOverlayOpen, setConnectionOverlayOpen] = React.useState<boolean>(false);
     const [showDetails, setShowDetails] = React.useState<boolean>(false);
+    const [detailsScriptId, setDetailsScriptId] = React.useState<number | undefined>(undefined);
     const [detailsInitialTab, setDetailsInitialTab] = React.useState<DetailsTabKey | undefined>(undefined);
     const [feedScrollTarget, setFeedScrollTarget] = React.useState<FeedScrollTarget | null>(null);
     const [catalogTab, setCatalogTab] = React.useState<CatalogTab | null>(null);
@@ -57,6 +58,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const connectionStatusRef = React.useRef<HTMLButtonElement>(null);
 
     const sessionCommand = useNotebookCommandDispatch();
+    const { mode: composeInputMode } = useComposeInputMode();
     const aiAvailable = useAIClient() != null;
     const requestFeedScroll = React.useCallback((fileName: string) => {
         setFeedScrollTarget(prev => ({
@@ -163,7 +165,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 key: 'l',
                 ctrlKey: true,
                 callback: () => {
-                    if (editingFolder !== null || notebook == null) return;
+                    if (showDetails || editingFolder !== null || notebook == null) return;
                     if (catalogTab === 'functions') return; // already the right-most tab
                     if (catalogTab === 'relations') { setCatalogTab('functions'); return; }
                     // Currently on a page tab; step into the meta tabs only from the last page.
@@ -181,7 +183,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 key: 'h',
                 ctrlKey: true,
                 callback: () => {
-                    if (editingFolder !== null || notebook == null) return;
+                    if (showDetails || editingFolder !== null || notebook == null) return;
                     if (catalogTab === 'functions') { setCatalogTab('relations'); return; }
                     if (catalogTab === 'relations') {
                         // Stepping left off the first meta tab lands on the last page tab.
@@ -204,7 +206,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 key: 'j',
                 ctrlKey: true,
                 callback: () => {
-                    if (editingFolder !== null || catalogTab != null || notebook == null) return;
+                    if (showDetails || editingFolder !== null || catalogTab != null || notebook == null) return;
                     modifyNotebook({ type: SELECT_NEXT_ENTRY, value: null });
                 },
             },
@@ -212,7 +214,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 key: 'k',
                 ctrlKey: true,
                 callback: () => {
-                    if (editingFolder !== null || catalogTab != null || notebook == null) return;
+                    if (showDetails || editingFolder !== null || catalogTab != null || notebook == null) return;
                     modifyNotebook({ type: SELECT_PREV_ENTRY, value: null });
                 },
             },
@@ -288,7 +290,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                                 <IconButton
                                     variant={ButtonVariant.Default}
                                     aria-label="Execute Script"
-                                    disabled={isDisconnected}
+                                    disabled={showDetails || isDisconnected}
                                     onClick={() => sessionCommand(NotebookCommandType.ExecuteEditorQuery)}
                                 >
                                     <PaperAirplaneIcon />
@@ -307,11 +309,11 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                             </IconButton>
                             <IconButton
                                 variant={ButtonVariant.Default}
-                                aria-label="Switch Mode"
+                                aria-label={composeInputMode === COMPOSE_INPUT_MODE_SQL ? 'Switch to AI Mode' : 'Switch to SQL Mode'}
                                 disabled={!aiAvailable}
                                 onClick={() => sessionCommand(NotebookCommandType.ToggleComposeInputMode)}
                             >
-                                <SparklesFillIcon />
+                                {composeInputMode === COMPOSE_INPUT_MODE_SQL ? <DatabaseIcon /> : <SparklesFillIcon />}
                             </IconButton>
                         </ButtonGroup>
                     </div>
@@ -331,17 +333,20 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     catalogTab={catalogTab}
                     showCatalogTabs={conn != null}
                     onSelectPage={(folderName) => {
+                        if (showDetails) return;
                         const isSelected = catalogTab == null && folderName === notebook.notebookUserFocus.folderName;
                         setCatalogTab(null);
                         if (!isSelected) modifyNotebook({ type: SELECT_PAGE, value: folderName });
                         setShowDetails(false);
                     }}
                     onAddPage={() => {
+                        if (showDetails) return;
                         modifyNotebook({ type: CREATE_PAGE, value: null });
                         setCatalogTab(null);
                         setShowDetails(false);
                     }}
                     onSelectCatalog={(tab) => {
+                        if (showDetails) return;
                         setCatalogTab(tab);
                         setShowDetails(true);
                     }}
@@ -363,7 +368,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     user returns exactly where they left, matching Ctrl+H/J/K/L precision.
                 */}
                 <div className={feedActive ? styles.feed_layer : styles.feed_layer_hidden}>
-                    <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} active={feedActive} showDetails={(initialTab?: DetailsTabKey) => { setDetailsInitialTab(initialTab); setShowDetails(true); }} scrollTarget={feedScrollTarget} conn={conn ?? null} openConnectionOverlay={() => setConnectionOverlayOpen(true)} />
+                    <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} active={feedActive} showDetails={(fileName?: string, initialTab?: DetailsTabKey) => { const targetFileName = fileName ?? notebook.notebookUserFocus.fileName; setDetailsScriptId(notebook.notebookPages[notebook.notebookUserFocus.folderName]?.scripts[targetFileName]?.scriptId); setDetailsInitialTab(initialTab); setShowDetails(true); }} scrollTarget={feedScrollTarget} conn={conn ?? null} openConnectionOverlay={() => setConnectionOverlayOpen(true)} />
                 </div>
                 {
                     catalogTab === 'relations' && conn
@@ -371,7 +376,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                         : catalogTab === 'functions' && conn
                             ? <CatalogFunctionsView connection={conn} />
                             : showDetails
-                                ? <NotebookScriptDetails notebook={notebook} modifyNotebook={modifyNotebook} connection={conn} hideDetails={() => { setShowDetails(false); setDetailsInitialTab(undefined); }} initialTab={detailsInitialTab} />
+                                ? <NotebookScriptDetails notebook={notebook} modifyNotebook={modifyNotebook} connection={conn} hideDetails={() => { setShowDetails(false); setDetailsScriptId(undefined); setDetailsInitialTab(undefined); }} scriptId={detailsScriptId} initialTab={detailsInitialTab} />
                                 : null
                 }
             </div>
@@ -382,6 +387,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                         <ConnectionCommandList
                             conn={conn ?? null}
                             notebook={notebook}
+                            navigationDisabled={showDetails}
                             onOpenSettings={() => setConnectionOverlayOpen(true)}
                             settingsRef={connectionStatusRef}
                         />
@@ -390,6 +396,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                             conn={conn ?? null}
                             notebook={notebook}
                             modifyNotebook={modifyNotebook}
+                            navigationDisabled={showDetails}
                         />
                     </ActionList.List>
                 </div>

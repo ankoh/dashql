@@ -9,9 +9,6 @@
     white-space: nowrap;
 }
 
-/* The tiny Button defaults to a 20px height (border-box), which reads as cramped for a text+icon
-   action. Nudge the height up a couple px just for this button — the other tiny buttons are icon-only
-   pencils that should stay at the shared size. */
 .rerun_button {
-    height: 24px;
+    flex-shrink: 0;
 }

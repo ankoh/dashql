@@ -42,6 +42,11 @@
     flex-direction: column;
     align-items: center;
     padding: 0px 16px;
+    background:
+        linear-gradient(
+            var(--notebook_body_background_color),
+            var(--notebook_body_background_color)
+        ) center / min(100%, calc(var(--notebook_list_entry_max_width) + 76px)) 100% no-repeat;
 }
 
 .compose_section::before {
@@ -51,7 +56,7 @@
     right: 0px;
     top: calc(100% - 16px);
     height: 32px;
-    width: min(calc(100% - 32px), var(--notebook_list_entry_max_width));
+    width: min(100%, calc(var(--notebook_list_entry_max_width) + 76px));
     transform: translateX(-50%);
     z-index: 0;
     pointer-events: none;
@@ -63,7 +68,7 @@
     position: absolute;
     left: 50%;
     bottom: calc(100% - 24px);
-    width: min(calc(100% - 32px + 32px), calc(var(--notebook_list_entry_max_width) + 32px));
+    width: min(100%, calc(var(--notebook_list_entry_max_width) + 108px));
     height: 64px;
     transform: translateX(-50%);
     z-index: 0;
@@ -93,7 +98,7 @@
     border: 1px solid var(--log_border_color);
     border-radius: var(--border_radius);
     background-color: white;
-    width: 100%;
+    width: calc(100% - 76px);
     overflow: hidden;
     max-width: var(--notebook_list_entry_max_width);
 }
@@ -129,12 +134,28 @@
     color: var(--base_color_neutral_5);
 }
 
-.feed_entry_card {
+.feed_entry_pair {
+    width: 100%;
+    max-width: calc(var(--notebook_list_entry_max_width) + 76px);
+    box-sizing: border-box;
+    padding: 0 38px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.feed_entry_message_script,
+.feed_entry_message_server {
+    width: 100%;
+    position: relative;
+}
+
+.feed_entry_card_script,
+.feed_entry_card_server {
     border: 1px solid var(--log_border_color);
     border-radius: var(--border_radius);
     background-color: white;
     width: 100%;
-    max-width: var(--notebook_list_entry_max_width);
     overflow: hidden;
     display: grid;
     /* SQL previews can contain unbreakable tokens. Keep their intrinsic width from enlarging the
@@ -145,6 +166,121 @@
        track is unnecessary and would misalign as the optional rows appear/disappear. */
     grid-template-rows: 40px;
     grid-auto-rows: auto;
+}
+
+.feed_entry_card_script {
+    position: relative;
+}
+
+.feed_entry_card_server {
+    position: relative;
+    --notebook_feed_entry_headerbar_background: white;
+    grid-template-rows: auto;
+}
+
+/* When the entry has never run, the status bar is the complete server card. Its normal divider
+   would sit directly above the card's own bottom border and read as a double rule. */
+.feed_entry_card_server > :only-child {
+    border-bottom: none;
+}
+
+.feed_entry_card_script::after,
+.feed_entry_card_server::before {
+    content: "";
+    position: absolute;
+    top: 12px;
+    width: 8px;
+    height: 8px;
+    background-color: white;
+    transform: rotate(45deg);
+}
+
+.feed_entry_card_script::after {
+    right: -5px;
+    border-top: 1px solid var(--log_border_color);
+    border-right: 1px solid var(--log_border_color);
+}
+
+.feed_entry_card_server::before {
+    left: -5px;
+    border-bottom: 1px solid var(--log_border_color);
+    border-left: 1px solid var(--log_border_color);
+}
+
+.feed_entry_avatar_script,
+.feed_entry_avatar_server {
+    position: absolute;
+    top: 5px;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--log_border_color);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    flex: 0 0 30px;
+    color: hsl(210, 12%, 36%);
+    background: hsl(210, 29%, 96%);
+}
+
+.feed_entry_avatar_script {
+    right: -38px;
+}
+
+.feed_entry_avatar_server {
+    left: -38px;
+}
+
+@media only screen and (max-width: 700px) {
+    .compose_section::before {
+        width: 100%;
+    }
+
+    .compose_section::after {
+        width: min(100%, calc(var(--notebook_list_entry_max_width) + 32px));
+    }
+
+    .compose_card {
+        width: 100%;
+    }
+
+    .feed_entry_pair {
+        padding: 0;
+    }
+
+    .feed_entry_message_script,
+    .feed_entry_message_server {
+        box-sizing: border-box;
+    }
+
+    .feed_entry_message_script {
+        padding-right: 34px;
+    }
+
+    .feed_entry_message_server {
+        padding-left: 34px;
+    }
+
+    .feed_entry_avatar_script {
+        right: 0;
+    }
+
+    .feed_entry_avatar_server {
+        left: 0;
+    }
+}
+
+@media only screen and (max-width: 480px) {
+    .feed_entry_message_script,
+    .feed_entry_message_server {
+        padding: 0;
+    }
+
+    .feed_entry_avatar_script,
+    .feed_entry_avatar_server,
+    .feed_entry_card_script::after,
+    .feed_entry_card_server::before {
+        display: none;
+    }
 }
 
 .feed_entry_action_bar {
@@ -174,7 +310,7 @@
     padding: 0 4px 0 4px;
 }
 
-.feed_entry_card:hover .feed_entry_actions {
+.feed_entry_card_script:hover .feed_entry_actions {
     display: flex;
 }
 
@@ -188,6 +324,12 @@
 
 .feed_entry_focus_focused,
 .feed_entry_focus_unfocused {
+    appearance: none;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
     flex-shrink: 0;
     width: 32px;
     height: 24px;
@@ -200,6 +342,11 @@
 }
 .feed_entry_focus_unfocused {
     color: hsl(210, 10%, 75%);
+}
+.feed_entry_focus_focused:focus-visible,
+.feed_entry_focus_unfocused:focus-visible {
+    outline: 2px solid var(--focus_outline_color, #0969da);
+    outline-offset: -2px;
 }
 
 .feed_entry_focus_icon,
@@ -275,10 +422,4 @@
 
 .diff_editor :global(.cm-scroller) {
     padding: 8px 8px;
-}
-
-.feed_entry_execution_footer {
-    border-top: 1px solid var(--log_border_color);
-    overflow: hidden;
-    background-color: var(--notebook_feed_entry_footer_background);
 }

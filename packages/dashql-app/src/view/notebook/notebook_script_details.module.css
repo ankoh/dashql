@@ -1,137 +1,78 @@
-/* DetailsMode styles */
-
 :root {
     --notebook_details_actionbar_background: hsl(210, 29%, 98%);
 }
 
-
-@media only screen and (max-width: 1100px) {
-    .entry_body_container {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: 100%;
-        width: 100%;
-        background-color: var(--notebook_body_background_color);
-    }
-
-    .entry_body_card {
-        position: relative;
-        height: 100%;
-        min-height: 240px;
-        max-height: 100%;
-        width: 100%;
-
-        display: flex;
-        flex-direction: column;
-        background-color: white;
-        overflow: hidden;
-    }
-}
-
-@media only screen and (min-width: 1100px) {
-    .entry_body_container {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: 100%;
-        width: 100%;
-        padding: 16px 16px 16px 16px;
-        background-color: var(--notebook_body_background_color);
-
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .entry_body_card {
-        position: relative;
-        height: 100%;
-        min-height: 240px;
-        max-height: 100%;
-        width: 100%;
-        max-width: var(--notebook_entry_max_width);
-        border-radius: var(--border_radius);
-        border: 1px solid var(--log_border_color);
-        overflow: hidden;
-    }
-}
-
-.entry_body_card_resize_handle {
+.entry_body_container {
     position: absolute;
-    right: 0;
-    bottom: 0;
-    width: 24px;
-    height: 24px;
-    cursor: ns-resize;
-    touch-action: none;
-    z-index: 20;
-}
-
-.entry_body_card_resize_handle::after {
-    content: "";
-    position: absolute;
-    right: 4px;
-    bottom: 4px;
-    width: 12px;
-    height: 12px;
-    background: repeating-linear-gradient(
-        135deg,
-        transparent 0 3px,
-        var(--border_color_primary) 3px 4px
-    );
-    clip-path: polygon(100% 0, 100% 100%, 0 100%);
-    pointer-events: none;
-}
-
-.entry_body_card_resize_handle:hover::after {
-    background: repeating-linear-gradient(
-        135deg,
-        transparent 0 3px,
-        var(--base_color_black) 3px 4px
-    );
-}
-
-
-.body_action_danger {
-    color: #cf222e;
-}
-
-.entry_card_container {
+    inset: 0;
     width: 100%;
     height: 100%;
+    padding: 16px;
+    box-sizing: border-box;
+    background-color: var(--notebook_body_background_color);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
 
-    /* Flex column (not grid): action bar (fixed 40px), optional status bar (its own height, or
-       absent entirely), then the tabs filling the rest. Flex handles the missing status-bar child
-       cleanly — a grid with a fixed row track would leave the tabs stuck at content height when the
-       bar isn't rendered. */
-    display: flex;
-    flex-direction: column;
+.entry_single {
+    width: 100%;
+    max-width: var(--notebook_entry_max_width);
+    height: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+    min-height: 0;
+}
+
+.entry_message_single {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    min-height: 0;
+}
+
+.entry_script_card,
+.entry_server_card {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    border: 1px solid var(--log_border_color);
+    border-radius: var(--border_radius);
     background-color: white;
-    min-height: 0;
+    overflow: hidden;
 }
 
-/* The Status tab hosts the full-card trace log: a fixed-height header over a viewer that fills the
-   rest. Column layout + min-height:0 so the viewer scrolls internally instead of overflowing. */
-.status_tab {
+.entry_script_card {
+    position: relative;
     display: flex;
     flex-direction: column;
-    width: 100%;
     height: 100%;
-    min-height: 0;
+}
+
+.entry_server_card {
+    position: relative;
+    --notebook_feed_entry_headerbar_background: white;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* The idle status bar fills the server card by itself, so its internal divider is redundant with
+   the card border. Output-bearing cards keep the divider between status and content. */
+.entry_server_card > :only-child {
+    border-bottom: none;
+}
+
+@media only screen and (max-width: 700px) {
+    .entry_body_container {
+        padding: 8px;
+    }
 }
 
 .entry_card_action_bar {
-    /* Fixed height (the flex column no longer supplies a 40px track). */
     height: 40px;
     flex-shrink: 0;
     background-color: var(--notebook_details_actionbar_background);
     border-bottom: 1px solid var(--log_border_color);
-    border-radius: var(--border_radius) var(--border_radius) 0 0;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -172,28 +113,57 @@
     overflow: hidden;
 }
 
+.entry_card_collapse_button {
+    flex-shrink: 0;
+}
+
+.script_body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    overflow: auto;
+}
+
+.script_preview {
+    width: 100%;
+    min-width: 0;
+}
+
+.script_preview :global(.cm-editor) {
+    min-height: 0;
+    font-size: 0.85rem;
+}
+
+.script_preview :global(.cm-gutters) {
+    box-sizing: border-box;
+    min-width: 49px;
+    padding: 0 4px;
+}
+
+.preview_diff_actions,
+.format_toggle {
+    position: absolute;
+    top: 12px;
+    right: 20px;
+    z-index: 10;
+}
+
 .editor_container {
     position: relative;
     width: 100%;
     height: 100%;
 }
 
-/* The Data tab stacks a fixed-height count header over the result table, which fills the rest and
-   scrolls internally. min-height:0 lets the body shrink within the flex column. */
-.result_tab {
-    display: flex;
-    flex-direction: column;
+.entry_card_tabs {
+    position: relative;
     width: 100%;
-    height: 100%;
-    min-height: 0;
-}
-
-.result_tab_body {
     flex: 1;
     min-height: 0;
-    width: 100%;
 }
 
+.status_tab,
+.result_tab,
 .visualization_container {
     display: flex;
     flex-direction: column;
@@ -202,35 +172,22 @@
     min-height: 0;
 }
 
+.result_tab_body,
 .visualization_body {
     position: relative;
-    flex: 1 1 auto;
-    min-height: 0;
-    width: 100%;
-}
-
-.format_toggle {
-    position: absolute;
-    top: 12px;
-    right: 20px;
-    z-index: 10;
-}
-
-.entry_card_collapse_button {
-    flex-shrink: 0;
-}
-
-.entry_card_tabs {
-    position: relative;
-    width: 100%;
-    /* Fill the rest of the flex column below the action/status bars. min-height:0 lets the tab body
-       shrink and scroll internally rather than growing the card past its bounds. */
     flex: 1;
     min-height: 0;
+    width: 100%;
 }
 
-.entry_card_tabs_body {
-    position: relative;
-    width: 100%;
-    height: 100%;
+/* Vega-Lite is configured to fit the available Details pane. Its shared host normally permits
+   scrolling for fixed-size charts, but fractional fit measurements can exceed this constrained
+   response card by a pixel and expose both scrollbars. Keep overflow clipped in this fit-to-pane
+   host; the feed and standalone visualization surfaces retain their existing scroll behavior. */
+.visualization_body {
+    overflow: hidden;
+}
+
+.visualization_body > div {
+    overflow: hidden;
 }

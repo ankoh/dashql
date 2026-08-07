@@ -1,4 +1,4 @@
-import { AgentRunState, agentRunIsActive } from '../../agent/agent_run_state.js';
+import { AgentRunPhase, AgentRunState, agentRunIsActive } from '../../agent/agent_run_state.js';
 import { QueryExecutionState, QueryExecutionStatus, queryIsDone } from '../../connection/query_execution_state.js';
 import { IndicatorStatus } from '../foundations/status_indicator.js';
 
@@ -7,11 +7,12 @@ import { IndicatorStatus } from '../foundations/status_indicator.js';
 export const enum EntryStatusKind {
     Agent = 0,
     Query = 1,
+    Idle = 2,
 }
 
 /// The presentation-ready status for one notebook entry, derived from whichever of its agent run /
-/// query execution is currently worth showing. `null` (see deriveEntryStatus) means "nothing to
-/// show" — the bar auto-hides on idle and on success.
+/// query execution is currently worth showing. Every entry has a status, including entries that
+/// have not run yet, so the server card always has a stable status header.
 export interface EntryStatus {
     kind: EntryStatusKind;
     /// The spinner/check/cross state.
@@ -48,28 +49,29 @@ export function getQueryStatusText(status: QueryExecutionStatus): string {
         case QueryExecutionStatus.PROCESSED_RESULTS:
             return 'Processed results';
         case QueryExecutionStatus.FAILED:
-            return 'Query execution failed';
+            return 'Statement execution failed';
         case QueryExecutionStatus.CANCELLED:
-            return 'Query was cancelled';
+            return 'Statement execution was cancelled';
         case QueryExecutionStatus.SUCCEEDED:
-            return 'Query executed successfully';
+            return 'Statement executed successfully';
     }
 }
 
 /// Derive the status bar contents for a notebook entry from its agent run and query execution.
 ///
-/// A single bar with a fixed priority (agent state wins while a run is active, otherwise the query):
+/// A single, persistent bar with a fixed priority (agent state wins while a run is active,
+/// otherwise the query):
 ///   1. An active agent run → spinner + latest agent log line.
 ///   2. A query that hasn't finished → spinner + query status text.
 ///   3. A failed/cancelled query → cross + the failure text.
-/// Everything else — idle, and (per the auto-hide choice) a succeeded query — returns null so the
-/// bar disappears once work lands (the result/data tab already conveys success). A staged agent
-/// rewrite doesn't feed the bar: its Accept/Reject controls live on the body overlay, leaving the
-/// bar free to show the normal execution status of the rewritten statement.
+///   4. A completed query/agent run → terminal indicator + completion text.
+///   5. No execution → neutral indicator + "Not run yet".
+/// A staged agent rewrite doesn't override the bar: its Accept/Reject controls live on the body
+/// overlay, leaving the bar free to show the execution status of the rewritten statement.
 export function deriveEntryStatus(
     agentRun: AgentRunState | null,
     query: QueryExecutionState | null,
-): EntryStatus | null {
+): EntryStatus {
     if (agentRun != null && agentRunIsActive(agentRun.phase)) {
         const latest = agentRun.log.length > 0 ? agentRun.log[agentRun.log.length - 1].message : null;
         return {
@@ -95,13 +97,60 @@ export function deriveEntryStatus(
         // in the overlay). Empty object → null so the bar skips the hover affordance.
         const keyValues = query.error?.keyValues ?? {};
         const errorDetail = Object.keys(keyValues).length > 0 ? keyValues : null;
+        const queryUpdatedAt = query.metrics?.lastUpdatedAt?.getTime() ?? 0;
+        const agentUpdatedAt = agentRun != null && agentRun.log.length > 0
+            ? agentRun.log[agentRun.log.length - 1].timestamp
+            : 0;
+        if (agentRun == null || agentUpdatedAt <= queryUpdatedAt) {
+            return {
+                kind: EntryStatusKind.Query,
+                indicator: IndicatorStatus.Failed,
+                message: query.error?.message ?? getQueryStatusText(query.status),
+                traceId: query.traceId,
+                errorDetail,
+            };
+        }
+    }
+    if (query != null) {
+        const queryUpdatedAt = query.metrics?.lastUpdatedAt?.getTime() ?? 0;
+        const agentUpdatedAt = agentRun != null && agentRun.log.length > 0
+            ? agentRun.log[agentRun.log.length - 1].timestamp
+            : 0;
+        if (agentRun == null || agentUpdatedAt <= queryUpdatedAt) {
+            return {
+                kind: EntryStatusKind.Query,
+                indicator: IndicatorStatus.Succeeded,
+                message: getQueryStatusText(query.status),
+                traceId: query.traceId,
+                errorDetail: null,
+            };
+        }
+    }
+    if (agentRun != null) {
+        const latest = agentRun.log.length > 0 ? agentRun.log[agentRun.log.length - 1].message : null;
+        if (agentRun.phase === AgentRunPhase.IDLE) {
+            return {
+                kind: EntryStatusKind.Idle,
+                indicator: IndicatorStatus.None,
+                message: 'Not run yet',
+                traceId: null,
+                errorDetail: null,
+            };
+        }
+        const failed = agentRun.phase === AgentRunPhase.FAILED || agentRun.phase === AgentRunPhase.CANCELLED;
         return {
-            kind: EntryStatusKind.Query,
-            indicator: IndicatorStatus.Failed,
-            message: query.error?.message ?? getQueryStatusText(query.status),
-            traceId: query.traceId,
-            errorDetail,
+            kind: EntryStatusKind.Agent,
+            indicator: failed ? IndicatorStatus.Failed : IndicatorStatus.Succeeded,
+            message: agentRun.error ?? latest ?? (failed ? 'Agent run failed' : 'Agent run completed'),
+            traceId: agentRun.traceId,
+            errorDetail: null,
         };
     }
-    return null;
+    return {
+        kind: EntryStatusKind.Idle,
+        indicator: IndicatorStatus.None,
+        message: 'Not run yet',
+        traceId: null,
+        errorDetail: null,
+    };
 }

@@ -22,7 +22,7 @@ import { deriveEntryStatus, EntryStatusKind } from './entry_status_model.js';
 import { TraceLogPanel } from './trace_log_panel.js';
 import { TabHeader, useResultRowCount, formatRowCountDetail } from './tab_header.js';
 import { QueryResultCacheLabel, QueryResultRerunButton } from './query_result_cache_controls.js';
-import { getSelectedEntry, getSelectedPage, NotebookState, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
+import { ACCEPT_PENDING_DIFF, getSelectedEntry, getSelectedPage, NotebookState, REJECT_PENDING_DIFF, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
 import { rerunEntry } from './rerun_query.js';
 import { useStorageReader } from '../../platform/storage/storage_provider.js';
 import { normalizePageName, scriptDisplayName } from '../../notebook/notebook_types.js';
@@ -39,19 +39,14 @@ import { IndicatorStatus } from '../foundations/status_indicator.js';
 import { ColumnAggregationBar } from '../visualization/column_aggregation_bar.js';
 import { createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../editor/dashql_processor.js';
-
-const AUTO_VSPLIT_MIN_HEIGHT = 720;
-const DETAILS_CARD_MIN_HEIGHT = 240;
+import { ScriptPreview } from './notebook_script_preview.js';
 
 export enum TabKey {
     Editor = 0,
     QueryStatusPanel = 1,
     QueryResultView = 2,
     Visualization = 3,
-}
-
-interface TabState {
-    enabledTabs: number;
+    AgentStatusPanel = 4,
 }
 
 export interface NotebookScriptDetailsProps {
@@ -59,97 +54,52 @@ export interface NotebookScriptDetailsProps {
     modifyNotebook: ModifyNotebook;
     connection: ConnectionState | null;
     hideDetails: () => void;
+    scriptId?: number;
     initialTab?: TabKey;
 }
 
 export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (props) => {
     const config = useAppConfig();
-    const [selectedTab, selectTab] = React.useState<TabKey>(props.initialTab ?? TabKey.Editor);
-    const [splitModeEnabled, setSplitModeEnabled] = React.useState<boolean>(false);
-    const [splitTab, setSplitTab] = React.useState<TabKey | null>(null);
+    const showServerDetails = props.initialTab != null && props.initialTab !== TabKey.Editor;
+    const [selectedTab, selectTab] = React.useState<TabKey>(() => {
+        if (props.initialTab != null && props.initialTab !== TabKey.Editor) return props.initialTab;
+        const initialPage = getSelectedPage(props.notebook);
+        const initialEntry = props.scriptId != null
+            ? Object.values(initialPage?.scripts ?? {}).find(entry => entry.scriptId === props.scriptId)
+            : getSelectedEntry(props.notebook);
+        const initialScript = initialEntry != null ? props.notebook.scripts[initialEntry.scriptId] : null;
+        const initialQuery = initialScript?.latestQueryId != null
+            ? props.connection?.queriesActive.get(initialScript.latestQueryId)
+                ?? props.connection?.queriesFinished.get(initialScript.latestQueryId)
+                ?? null
+            : null;
+        if (initialQuery?.status === QueryExecutionStatus.SUCCEEDED) {
+            return initialScript?.annotations.visualizeQuery != null
+                ? TabKey.Visualization
+                : TabKey.QueryResultView;
+        }
+        return initialScript?.latestAgentRunId != null ? TabKey.AgentStatusPanel : TabKey.QueryStatusPanel;
+    });
+    const [isEditingScript, setIsEditingScript] = React.useState(true);
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
-    const [hasAutoEnabledSplit, setHasAutoEnabledSplit] = React.useState<boolean>(false);
     const [formatPending, setFormatPending] = React.useState(false);
     const savedEditorStateRef = React.useRef<EditorState | null>(null);
     const formattedTextRef = React.useRef<string | null>(null);
     const formatPreviewBuffersRef = React.useRef<DashQLScriptBuffers | null>(null);
     const formatPreviewScriptRef = React.useRef<dashql.DashQLScript | null>(null);
-    const containerRef = React.useRef<HTMLDivElement>(null);
-    const stopDetailsResizeRef = React.useRef<(() => void) | null>(null);
-    const [detailsCardHeight, setDetailsCardHeight] = React.useState<number | null>(null);
 
-    const notebookEntry = getSelectedEntry(props.notebook);
+    const selectedPage = getSelectedPage(props.notebook);
+    const notebookEntry = props.scriptId != null
+        ? Object.values(selectedPage?.scripts ?? {}).find(entry => entry.scriptId === props.scriptId)
+        : getSelectedEntry(props.notebook);
     const scriptData = notebookEntry != null ? props.notebook.scripts[notebookEntry.scriptId] : null;
 
     // Get folder name and script file name (display-only: strip the on-disk ordering prefix). The
     // raw scriptFileName stays the rename identity; the label and draft use the clean display name
     // (no prefix, no ".sql").
-    const selectedPage = getSelectedPage(props.notebook);
     const folderName = normalizePageName(selectedPage?.folderName ?? '') || 'Untitled';
     const scriptFileName = notebookEntry?.fileName ?? '01-script.sql';
     const scriptDisplay = scriptDisplayName(scriptFileName);
-
-    const measureDetailsCardMaxHeight = React.useCallback(() => {
-        const card = containerRef.current;
-        const parent = card?.parentElement;
-        if (card == null || parent == null) return DETAILS_CARD_MIN_HEIGHT;
-
-        const parentStyle = window.getComputedStyle(parent);
-        const availableHeight = parent.clientHeight
-            - Number.parseFloat(parentStyle.paddingTop || '0')
-            - Number.parseFloat(parentStyle.paddingBottom || '0');
-        return Math.max(DETAILS_CARD_MIN_HEIGHT, Math.round(availableHeight));
-    }, []);
-
-    const handleDetailsResizeStart = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-        const card = containerRef.current;
-        if (card == null) return;
-
-        event.preventDefault();
-        event.stopPropagation();
-        stopDetailsResizeRef.current?.();
-
-        const pointerId = event.pointerId;
-        const startY = event.clientY;
-        const startHeight = card.getBoundingClientRect().height;
-        const maxHeight = measureDetailsCardMaxHeight();
-        const handlePointerMove = (moveEvent: PointerEvent) => {
-            if (moveEvent.pointerId !== pointerId) return;
-            moveEvent.preventDefault();
-            const height = Math.max(
-                DETAILS_CARD_MIN_HEIGHT,
-                Math.min(maxHeight, startHeight + moveEvent.clientY - startY),
-            );
-            setDetailsCardHeight(Math.round(height));
-        };
-        const stopResize = () => {
-            window.removeEventListener('pointermove', handlePointerMove);
-            window.removeEventListener('pointerup', handlePointerEnd);
-            window.removeEventListener('pointercancel', handlePointerEnd);
-            if (stopDetailsResizeRef.current === stopResize) stopDetailsResizeRef.current = null;
-        };
-        const handlePointerEnd = (endEvent: PointerEvent) => {
-            if (endEvent.pointerId === pointerId) stopResize();
-        };
-
-        window.addEventListener('pointermove', handlePointerMove);
-        window.addEventListener('pointerup', handlePointerEnd);
-        window.addEventListener('pointercancel', handlePointerEnd);
-        stopDetailsResizeRef.current = stopResize;
-    }, [measureDetailsCardMaxHeight]);
-
-    React.useEffect(() => {
-        setDetailsCardHeight(null);
-    }, [notebookEntry?.scriptId]);
-
-    React.useEffect(() => () => stopDetailsResizeRef.current?.(), []);
-
-    // Vega-Lite's responsive container signals listen for window resizes. The card itself is not a
-    // window, so forward its completed React layout change through the event Vega already handles.
-    React.useLayoutEffect(() => {
-        if (detailsCardHeight == null) return;
-        window.dispatchEvent(new Event('resize'));
-    }, [detailsCardHeight]);
 
     const PencilIcon: Icon = SymbolIcon('pencil_16');
     const PencilAIIcon: Icon = SymbolIcon('pencil_ai_16');
@@ -293,6 +243,20 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
         setFormatPending(false);
     }, [editorView]);
 
+    const stopEditingScript = React.useCallback(() => {
+        if (formatPending) handleFormatCancel();
+        setEditorView(null);
+        setIsEditingScript(false);
+    }, [formatPending, handleFormatCancel]);
+
+    const toggleEditingScript = React.useCallback(() => {
+        if (isEditingScript) {
+            stopEditingScript();
+        } else {
+            setIsEditingScript(true);
+        }
+    }, [isEditingScript, stopEditingScript]);
+
     React.useEffect(() => {
         return () => {
             formatPreviewBuffersRef.current?.destroy(formatPreviewBuffersRef.current);
@@ -306,11 +270,19 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     // round-trips through UPDATE_FROM_PROCESSOR to clear the pending diff.
     const hasPendingDiff = scriptData?.pendingDiff != null;
     const handleAcceptDiff = React.useCallback(() => {
-        if (editorView != null) acceptPendingDiff(editorView);
-    }, [editorView]);
+        if (editorView != null && isEditingScript) {
+            acceptPendingDiff(editorView);
+        } else if (scriptData != null) {
+            props.modifyNotebook({ type: ACCEPT_PENDING_DIFF, value: scriptData.scriptKey });
+        }
+    }, [editorView, isEditingScript, props.modifyNotebook, scriptData]);
     const handleRejectDiff = React.useCallback(() => {
-        if (editorView != null) rejectPendingDiff(editorView);
-    }, [editorView]);
+        if (editorView != null && isEditingScript) {
+            rejectPendingDiff(editorView);
+        } else if (scriptData != null) {
+            props.modifyNotebook({ type: REJECT_PENDING_DIFF, value: scriptData.scriptKey });
+        }
+    }, [editorView, isEditingScript, props.modifyNotebook, scriptData]);
 
     const activeQueryId = scriptData?.latestQueryId ?? null;
     const activeQueryState = useQueryState(props.notebook?.sessionId ?? null, activeQueryId);
@@ -337,8 +309,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     // The status bar above the tabs mirrors the feed's: while an agent run or query is in flight it's
     // a clickable strip (spinner + latest line) that reveals the trace on the Status tab. A staged
     // rewrite doesn't feed the bar — Accept/Reject stays on the editor overlay, tied to the diff
-    // decorations — so the bar stays free to show the rewritten statement's re-execution status. It
-    // auto-hides on idle and on query success.
+    // decorations — so the bar stays free to show the rewritten statement's re-execution status.
     const agentRunState = useAgentRunState(scriptData?.latestAgentRunId ?? null);
     const agentTraceId = agentRunState?.traceId ?? null;
     const queryTraceId = activeQueryState?.traceId ?? null;
@@ -351,19 +322,12 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
         }
     }, [activeQueryId, cancelAgentRun, cancelQuery, entryStatus?.kind, props.notebook.sessionId]);
 
-    // Clicking the status bar reveals the matching trace on the Status tab (bump a nonce the
-    // TraceLogPanel keys off, riding along the clicked source's trace id — same contract as the feed
-    // footer). In split mode the log opens in the right pane (matching the query-status auto-switch);
-    // otherwise it takes the single pane. The panel selects the right source off the nonce.
-    const [logRequest, setLogRequest] = React.useState<{ nonce: number; traceId: number | null }>({ nonce: 0, traceId: null });
+    // Clicking the status bar reveals the matching trace on the server card's Status tab.
     const showLog = React.useCallback((traceId: number | null) => {
-        setLogRequest(prev => ({ nonce: prev.nonce + 1, traceId }));
-        if (splitModeEnabled) {
-            setSplitTab(TabKey.QueryStatusPanel);
-        } else {
-            selectTab(TabKey.QueryStatusPanel);
-        }
-    }, [splitModeEnabled]);
+        selectTab(traceId != null && traceId === agentTraceId
+            ? TabKey.AgentStatusPanel
+            : TabKey.QueryStatusPanel);
+    }, [agentTraceId]);
 
     const visualizeQuery = scriptData?.annotations.visualizeQuery ?? null;
     const hasVisualizeStmt = visualizeQuery != null;
@@ -373,71 +337,47 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     const { totalRows } = useResultRowCount(activeQueryState);
     const rowCountDetail = formatRowCountDetail(totalRows);
 
-    const tabState = React.useRef<TabState>({
-        enabledTabs: 1,
-    });
-    let enabledTabs = 1;
-    enabledTabs += +(activeQueryState != null);
-    enabledTabs += +(activeQueryState?.status == QueryExecutionStatus.SUCCEEDED);
-    enabledTabs += +(hasVisualizeStmt && activeQueryState?.status == QueryExecutionStatus.SUCCEEDED);
-    tabState.current.enabledTabs = enabledTabs;
-
-    const toggleSplitMode = React.useCallback(() => {
-        setSplitModeEnabled(prev => {
-            if (!prev) {
-                // Enabling split mode: set primary tab as selected and choose split tab
-                selectTab(TabKey.Editor);
-                const defaultSplitTab = tabState.current.enabledTabs >= 4
-                    ? TabKey.Visualization
-                    : tabState.current.enabledTabs >= 3
-                        ? TabKey.QueryResultView
-                        : (tabState.current.enabledTabs >= 2 ? TabKey.QueryStatusPanel : null);
-                setSplitTab(defaultSplitTab);
-            } else {
-                // Disabling split mode
-                setSplitTab(null);
-            }
-            return !prev;
-        });
-    }, []);
-
-    const handleSelectTab = React.useCallback((tab: TabKey) => {
-        if (!splitModeEnabled) {
-            selectTab(tab);
+    const hasOutput = activeQueryState != null || agentTraceId != null;
+    const hasResult = activeQueryState?.status === QueryExecutionStatus.SUCCEEDED;
+    const hasVisualization = hasResult && hasVisualizeStmt;
+    const serverTabs = React.useMemo(() => {
+        const tabs: TabKey[] = [TabKey.QueryStatusPanel, TabKey.AgentStatusPanel];
+        if (hasResult) tabs.push(TabKey.QueryResultView);
+        if (hasVisualization) tabs.push(TabKey.Visualization);
+        return tabs;
+    }, [hasResult, hasVisualization]);
+    const enabledServerTabs = React.useMemo(() => serverTabs.filter(tab => {
+        switch (tab) {
+            case TabKey.QueryStatusPanel: return queryTraceId != null;
+            case TabKey.AgentStatusPanel: return agentTraceId != null;
+            case TabKey.QueryResultView: return hasResult;
+            case TabKey.Visualization: return hasVisualization;
+            default: return false;
         }
-        // In split mode, tab selection is handled by onSelectSplitTab
-    }, [splitModeEnabled]);
-
-    const handleSelectSplitTab = React.useCallback((tab: TabKey) => {
-        if (tab === TabKey.Editor) return; // Can't select Editor for split
-        setSplitTab(tab);
-    }, []);
+    }), [serverTabs, queryTraceId, agentTraceId, hasResult, hasVisualization]);
 
     const keyHandlers = React.useMemo<KeyEventHandler[]>(
         () => [
             {
+                // Details is pinned to a script identity, while the global command executes the
+                // notebook's mutable selection. Do not let Ctrl+E target a different hidden script.
+                key: 'e',
+                ctrlKey: true,
+                capture: true,
+                callback: (event) => {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                },
+            },
+            {
                 key: 'j',
                 ctrlKey: true,
                 callback: () => {
-                    if (splitModeEnabled) {
-                        // In split mode, cycle through available split tabs
-                        setSplitTab(currentSplitTab => {
-                            const availableTabs = [TabKey.QueryStatusPanel, TabKey.QueryResultView, TabKey.Visualization].filter((_, idx) =>
-                                tabState.current.enabledTabs >= idx + 2
-                            );
-                            if (availableTabs.length === 0) return currentSplitTab;
-
-                            const currentIndex = currentSplitTab ? availableTabs.indexOf(currentSplitTab) : -1;
-                            const nextIndex = (currentIndex + 1) % availableTabs.length;
-                            return availableTabs[nextIndex];
-                        });
-                    } else {
-                        // Normal mode: cycle through all tabs
-                        selectTab(key => {
-                            const tabs = [TabKey.Editor, TabKey.QueryStatusPanel, TabKey.QueryResultView, TabKey.Visualization];
-                            return tabs[((key as number) + 1) % tabState.current.enabledTabs];
-                        });
-                    }
+                    if (!showServerDetails || enabledServerTabs.length === 0) return;
+                    selectTab(current => {
+                        const currentIndex = enabledServerTabs.indexOf(current);
+                        return enabledServerTabs[(currentIndex + 1) % enabledServerTabs.length];
+                    });
                 },
             },
             {
@@ -463,18 +403,21 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                 },
             },
         ],
-        [props.hideDetails, tabState, selectTab, splitModeEnabled, isEditingName, cancelNameEdit, editorView],
+        [props.hideDetails, showServerDetails, enabledServerTabs, isEditingName, cancelNameEdit, editorView],
     );
     useKeyEvents(keyHandlers);
 
-    const prevStatus = React.useRef<[number | null, QueryExecutionStatus | null] | null>(null);
+    const prevStatus = React.useRef<[number | null, QueryExecutionStatus | null] | null>([
+        activeQueryId,
+        activeQueryState?.status ?? null,
+    ]);
     React.useEffect(() => {
         const status = activeQueryState?.status ?? null;
+        const previous = prevStatus.current;
+        const changed = previous == null || previous[0] !== activeQueryId || previous[1] !== status;
+        if (!changed) return;
         switch (status) {
             case null:
-                if (!splitModeEnabled) {
-                    selectTab(TabKey.Editor);
-                }
                 break;
             case QueryExecutionStatus.REQUESTED:
             case QueryExecutionStatus.PREPARING:
@@ -484,93 +427,43 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
             case QueryExecutionStatus.RECEIVED_FIRST_BATCH:
             case QueryExecutionStatus.RECEIVED_ALL_BATCHES:
             case QueryExecutionStatus.PROCESSING_RESULTS:
-                if (prevStatus.current == null || prevStatus.current[0] != activeQueryId || prevStatus.current[1] != status) {
-                    if (splitModeEnabled) {
-                        selectTab(TabKey.Editor);
-                        setSplitTab(TabKey.QueryStatusPanel);
-                    } else {
-                        selectTab(TabKey.QueryStatusPanel);
-                    }
-                }
+                if (showServerDetails) selectTab(TabKey.QueryStatusPanel);
                 break;
             case QueryExecutionStatus.FAILED:
-                if (prevStatus.current != null && prevStatus.current[1] != QueryExecutionStatus.FAILED) {
-                    if (splitModeEnabled) {
-                        selectTab(TabKey.Editor);
-                        setSplitTab(TabKey.QueryStatusPanel);
-                    } else {
-                        selectTab(TabKey.QueryStatusPanel);
-                    }
-                }
+                if (showServerDetails) selectTab(TabKey.QueryStatusPanel);
                 break;
             case QueryExecutionStatus.SUCCEEDED:
-                if (prevStatus.current != null && prevStatus.current[1] != QueryExecutionStatus.SUCCEEDED) {
+                if (showServerDetails) {
                     const successTab = hasVisualizeStmt ? TabKey.Visualization : TabKey.QueryResultView;
-                    if (splitModeEnabled) {
-                        selectTab(TabKey.Editor);
-                        setSplitTab(successTab);
-                    } else {
-                        selectTab(successTab);
-                    }
+                    selectTab(successTab);
                 }
                 break;
         }
         prevStatus.current = [activeQueryId, status];
-    }, [activeQueryId, activeQueryState?.status, splitModeEnabled, hasVisualizeStmt]);
-
-    // Auto-enable split mode the first time a second tab becomes active (if height > AUTO_VSPLIT_MIN_HEIGHT)
-    React.useEffect(() => {
-        if (!hasAutoEnabledSplit && !splitModeEnabled && tabState.current.enabledTabs >= 2) {
-            const container = containerRef.current;
-            if (container) {
-                const height = container.getBoundingClientRect().height;
-                if (height > AUTO_VSPLIT_MIN_HEIGHT) {
-                    selectTab(TabKey.Editor); // Ensure primary tab is selected
-                    setSplitModeEnabled(true);
-                    const defaultSplitTab = tabState.current.enabledTabs >= 3
-                        ? TabKey.QueryResultView
-                        : TabKey.QueryStatusPanel;
-                    setSplitTab(defaultSplitTab);
-                    setHasAutoEnabledSplit(true);
-                }
-            }
-        }
-    }, [hasAutoEnabledSplit, splitModeEnabled, tabState.current.enabledTabs]);
-
-    // Handle edge case: if split tab becomes disabled, switch to another tab or disable split mode
-    React.useEffect(() => {
-        if (splitModeEnabled && splitTab !== null && splitTab !== TabKey.Editor) {
-            // Check if the current split tab is disabled
-            const isSplitTabDisabled = (splitTab === TabKey.QueryStatusPanel && tabState.current.enabledTabs < 2) ||
-                (splitTab === TabKey.QueryResultView && tabState.current.enabledTabs < 3) ||
-                (splitTab === TabKey.Visualization && tabState.current.enabledTabs < 4);
-
-            if (isSplitTabDisabled) {
-                // Try to find another enabled tab, preferring richer views
-                if (tabState.current.enabledTabs >= 4 && splitTab !== TabKey.Visualization) {
-                    setSplitTab(TabKey.Visualization);
-                } else if (tabState.current.enabledTabs >= 3 && splitTab !== TabKey.QueryResultView) {
-                    setSplitTab(TabKey.QueryResultView);
-                } else if (tabState.current.enabledTabs >= 2 && splitTab !== TabKey.QueryStatusPanel) {
-                    setSplitTab(TabKey.QueryStatusPanel);
-                } else {
-                    // No other tabs available, disable split mode
-                    setSplitModeEnabled(false);
-                    setSplitTab(null);
-                }
-            }
-        }
-    }, [splitModeEnabled, splitTab, activeQueryState?.status]);
+    }, [activeQueryId, activeQueryState?.status, hasVisualizeStmt, showServerDetails]);
 
     React.useEffect(() => {
-        if (selectedTab !== TabKey.Editor || editorView == null) {
+        if (!isEditingScript || editorView == null) {
             return;
         }
         const handle = requestAnimationFrame(() => {
             editorView.focus();
         });
         return () => cancelAnimationFrame(handle);
-    }, [editorView, selectedTab]);
+    }, [editorView, isEditingScript]);
+
+    React.useEffect(() => {
+        setIsEditingScript(true);
+    }, [notebookEntry?.scriptId]);
+
+    React.useEffect(() => {
+        if (showServerDetails && enabledServerTabs.length > 0 && !enabledServerTabs.includes(selectedTab)) {
+            const fallback = queryTraceId != null
+                ? TabKey.QueryStatusPanel
+                : enabledServerTabs[0];
+            selectTab(fallback);
+        }
+    }, [selectedTab, showServerDetails, enabledServerTabs, queryTraceId]);
 
     if (notebookEntry == null || scriptData == null) {
         return <div className={styles.entry_body_container} />;
@@ -579,16 +472,18 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     const ScreenNormalIcon: Icon = SymbolIcon('screen_normal_16');
     const tableDebugMode = config?.settings?.tableDebugMode ?? false;
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
+    // Script-card activation opens the editor (no initial tab). Any explicit output tab comes from
+    // the server card and opens a response-only Details view.
     return (
         <div className={styles.entry_body_container}>
             <div
-                ref={containerRef}
                 key={notebookEntry?.scriptId}
-                className={styles.entry_body_card}
-                style={detailsCardHeight != null ? { height: detailsCardHeight } : undefined}
+                className={styles.entry_single}
             >
-                <div className={styles.entry_card_container}>
-                    <div className={styles.entry_card_action_bar}>
+                {!showServerDetails && (
+                <div className={styles.entry_message_single}>
+                    <div className={styles.entry_script_card}>
+                        <div className={styles.entry_card_action_bar}>
                         <div className={styles.entry_card_file_name}>
                             <NotebookScriptName
                                 folder={folderName}
@@ -622,53 +517,153 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                 <ScriptStatisticsBar stats={scriptData.statistics} />
                             </div>
                         )}
-                        <IconButton
-                            className={styles.entry_card_collapse_button}
-                            variant={ButtonVariant.Invisible}
-                            onClick={props.hideDetails}
-                            aria-label="Collapse"
-                            aria-labelledby="collapse-entry"
-                        >
-                            <ScreenNormalIcon size={16} />
-                        </IconButton>
+                            <IconButton
+                                variant={ButtonVariant.Invisible}
+                                onClick={toggleEditingScript}
+                                aria-label={isEditingScript ? 'Show script preview' : 'Edit script'}
+                            >
+                                {isEditingScript ? <FormatXIcon size={16} /> : <PencilIcon size={16} />}
+                            </IconButton>
+                            <IconButton
+                                className={styles.entry_card_collapse_button}
+                                variant={ButtonVariant.Invisible}
+                                onClick={props.hideDetails}
+                                aria-label="Collapse"
+                            >
+                                <ScreenNormalIcon size={16} />
+                            </IconButton>
+                        </div>
+                        <div className={styles.script_body}>
+                        {isEditingScript ? (
+                            <div className={styles.editor_container}>
+                                <ScriptEditor
+                                    sessionId={props.notebook.sessionId}
+                                    scriptKey={notebookEntry.scriptId}
+                                    setView={setEditorView}
+                                />
+                                <div className={styles.format_toggle}>
+                                    {hasPendingDiff ? (
+                                        <ButtonGroup>
+                                            <IconButton
+                                                variant={ButtonVariant.Default}
+                                                onClick={handleAcceptDiff}
+                                                aria-label="Accept rewrite"
+                                            >
+                                                <CheckIcon />
+                                            </IconButton>
+                                            <IconButton
+                                                variant={ButtonVariant.Default}
+                                                onClick={handleRejectDiff}
+                                                aria-label="Reject rewrite"
+                                            >
+                                                <FormatXIcon />
+                                            </IconButton>
+                                        </ButtonGroup>
+                                    ) : !formatPending ? (
+                                        <IconButton
+                                            variant={ButtonVariant.Invisible}
+                                            onClick={handleFormat}
+                                            aria-label="Pretty format"
+                                        >
+                                            <PencilAIIcon />
+                                        </IconButton>
+                                    ) : (
+                                        <ButtonGroup>
+                                            <IconButton
+                                                variant={ButtonVariant.Default}
+                                                onClick={handleFormatAccept}
+                                                aria-label="Accept format"
+                                            >
+                                                <CheckIcon />
+                                            </IconButton>
+                                            <IconButton
+                                                variant={ButtonVariant.Default}
+                                                onClick={handleFormatCancel}
+                                                aria-label="Cancel format"
+                                            >
+                                                <FormatXIcon />
+                                            </IconButton>
+                                        </ButtonGroup>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <ScriptPreview
+                                    className={styles.script_preview}
+                                    sessionId={props.notebook.sessionId}
+                                    scriptData={scriptData}
+                                />
+                                {hasPendingDiff && (
+                                    <div className={styles.preview_diff_actions}>
+                                        <ButtonGroup>
+                                            <IconButton
+                                                variant={ButtonVariant.Default}
+                                                onClick={handleAcceptDiff}
+                                                aria-label="Accept rewrite"
+                                            >
+                                                <CheckIcon />
+                                            </IconButton>
+                                            <IconButton
+                                                variant={ButtonVariant.Default}
+                                                onClick={handleRejectDiff}
+                                                aria-label="Reject rewrite"
+                                            >
+                                                <FormatXIcon />
+                                            </IconButton>
+                                        </ButtonGroup>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                        </div>
                     </div>
-                    {entryStatus != null && (
-                        // Same status bar as the feed. It only shows execution progress; Accept/Reject
-                        // for a staged rewrite lives on the editor overlay (spatially tied to the diff
-                        // decorations), so the bar is always the clickable trace strip here.
+                </div>
+                )}
+                {showServerDetails && (
+                <div className={styles.entry_message_single}>
+                    <div className={styles.entry_server_card}>
                         <EntryStatusBar
                             status={entryStatus}
-                            onClick={() => showLog(entryStatus.traceId)}
+                            onClick={entryStatus.traceId != null ? () => showLog(entryStatus.traceId) : undefined}
                             onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancelEntryOperation : undefined}
                             cancelLabel={entryStatus.kind === EntryStatusKind.Agent ? 'Cancel agent run' : 'Cancel query'}
+                            actions={
+                                <>
+                                    <QueryResultCacheLabel query={activeQueryState} />
+                                    <QueryResultRerunButton query={activeQueryState} onRerun={handleRerun} />
+                                    <IconButton
+                                        variant={ButtonVariant.Invisible}
+                                        onClick={props.hideDetails}
+                                        aria-label="Collapse"
+                                    >
+                                        <ScreenNormalIcon size={16} />
+                                    </IconButton>
+                                </>
+                            }
                         />
-                    )}
-                    <VerticalTabs
-                        className={styles.entry_card_tabs}
-                        variant={VerticalTabVariant.Stacked}
-                        selectedTab={selectedTab}
-                        selectTab={handleSelectTab}
-                        splitModeEnabled={splitModeEnabled}
-                        splitTab={splitTab}
-                        primaryTabKey={TabKey.Editor}
-                        onToggleSplitMode={toggleSplitMode}
-                        onSelectSplitTab={handleSelectSplitTab}
-                        tabProps={{
-                            [TabKey.Editor]: {
-                                tabId: TabKey.Editor,
-                                icon: `${icons}#file`,
-                                labelShort: 'Editor',
-                                ariaLabel: 'Script editor',
-                                description: 'Edit script',
-                                disabled: false
-                            },
+                        {hasOutput ? (
+                            <VerticalTabs
+                            className={styles.entry_card_tabs}
+                            variant={VerticalTabVariant.Stacked}
+                            selectedTab={selectedTab}
+                            selectTab={selectTab}
+                            tabProps={{
                             [TabKey.QueryStatusPanel]: {
                                 tabId: TabKey.QueryStatusPanel,
                                 icon: `${icons}#log_24`,
-                                labelShort: 'Status',
-                                ariaLabel: 'Query status',
-                                description: 'Query status',
-                                disabled: tabState.current.enabledTabs < 2,
+                                labelShort: 'Log',
+                                ariaLabel: 'Execution log',
+                                description: 'Execution log',
+                                disabled: queryTraceId == null,
+                            },
+                            [TabKey.AgentStatusPanel]: {
+                                tabId: TabKey.AgentStatusPanel,
+                                icon: `${icons}#sparkles_fill_24`,
+                                labelShort: 'Agent',
+                                ariaLabel: 'Agent log',
+                                description: 'Agent log',
+                                disabled: agentTraceId == null,
                             },
                             [TabKey.QueryResultView]: {
                                 tabId: TabKey.QueryResultView,
@@ -676,7 +671,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                 labelShort: 'Data',
                                 ariaLabel: 'Query results',
                                 description: 'Query results',
-                                disabled: tabState.current.enabledTabs < 3,
+                                disabled: !hasResult,
                             },
                             [TabKey.Visualization]: {
                                 tabId: TabKey.Visualization,
@@ -684,79 +679,24 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                 labelShort: 'Chart',
                                 ariaLabel: 'Visualization',
                                 description: 'Visualization',
-                                disabled: tabState.current.enabledTabs < 4,
+                                disabled: !hasVisualization,
                             },
                         }}
-                        tabKeys={[
-                            TabKey.Editor,
-                            TabKey.QueryStatusPanel,
-                            TabKey.QueryResultView,
-                            TabKey.Visualization,
-                        ]}
+                            tabKeys={serverTabs}
                         tabRenderers={{
-                            [TabKey.Editor]: _props => (
-                                <div className={styles.editor_container}>
-                                    <ScriptEditor
-                                        sessionId={props.notebook.sessionId}
-                                        scriptKey={notebookEntry.scriptId}
-                                        setView={setEditorView}
-                                    />
-                                    <div className={styles.format_toggle}>
-                                        {/* A staged agent rewrite takes priority over the format
-                                            affordance: show its Accept/Reject controls (the editor
-                                            renders the diff overlay + honors ⏎/⎋). */}
-                                        {hasPendingDiff ? (
-                                            <ButtonGroup>
-                                                <IconButton
-                                                    variant={ButtonVariant.Default}
-                                                    onClick={handleAcceptDiff}
-                                                    aria-label="Accept rewrite"
-                                                >
-                                                    <CheckIcon />
-                                                </IconButton>
-                                                <IconButton
-                                                    variant={ButtonVariant.Default}
-                                                    onClick={handleRejectDiff}
-                                                    aria-label="Reject rewrite"
-                                                >
-                                                    <FormatXIcon />
-                                                </IconButton>
-                                            </ButtonGroup>
-                                        ) : !formatPending ? (
-                                            <IconButton
-                                                variant={ButtonVariant.Invisible}
-                                                onClick={handleFormat}
-                                                aria-label="Pretty format"
-                                            >
-                                                <PencilAIIcon />
-                                            </IconButton>
-                                        ) : (
-                                            <ButtonGroup>
-                                                <IconButton
-                                                    variant={ButtonVariant.Default}
-                                                    onClick={handleFormatAccept}
-                                                    aria-label="Accept format"
-                                                >
-                                                    <CheckIcon />
-                                                </IconButton>
-                                                <IconButton
-                                                    variant={ButtonVariant.Default}
-                                                    onClick={handleFormatCancel}
-                                                    aria-label="Cancel format"
-                                                >
-                                                    <FormatXIcon />
-                                                </IconButton>
-                                            </ButtonGroup>
-                                        )}
-                                    </div>
-                                </div>
-                            ),
                             [TabKey.QueryStatusPanel]: _props => (
                                 <div className={styles.status_tab}>
                                     <TraceLogPanel
-                                        queryTraceId={queryTraceId}
-                                        agentTraceId={agentTraceId}
-                                        logRequest={logRequest}
+                                        traceId={queryTraceId}
+                                        title="Execution Logs"
+                                    />
+                                </div>
+                            ),
+                            [TabKey.AgentStatusPanel]: _props => (
+                                <div className={styles.status_tab}>
+                                    <TraceLogPanel
+                                        traceId={agentTraceId}
+                                        title="Agent Logs"
                                     />
                                 </div>
                             ),
@@ -769,12 +709,6 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                     <TabHeader
                                         title="Query Results"
                                         detail={rowCountDetail}
-                                        actions={
-                                            <>
-                                                <QueryResultCacheLabel query={activeQueryState} />
-                                                <QueryResultRerunButton query={activeQueryState} onRerun={handleRerun} />
-                                            </>
-                                        }
                                     />
                                     <div className={styles.result_tab_body}>
                                         <QueryResultView query={activeQueryState} debugMode={tableDebugMode} />
@@ -786,12 +720,6 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                     <TabHeader
                                         title="Visualization"
                                         detail={rowCountDetail}
-                                        actions={
-                                            <>
-                                                <QueryResultCacheLabel query={activeQueryState} />
-                                                <QueryResultRerunButton query={activeQueryState} onRerun={handleRerun} />
-                                            </>
-                                        }
                                     />
                                     <ColumnAggregationBar query={activeQueryState} debugMode={tableDebugMode} />
                                     <div className={styles.visualization_body}>
@@ -800,13 +728,11 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                 </div>
                             ),
                         }}
-                    />
+                            />
+                        ) : null}
+                    </div>
                 </div>
-                <div
-                    className={styles.entry_body_card_resize_handle}
-                    title="Drag to resize script details vertically"
-                    onPointerDown={handleDetailsResizeStart}
-                />
+                )}
             </div>
         </div>
     );

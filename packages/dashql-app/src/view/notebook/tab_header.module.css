@@ -45,8 +45,19 @@
 /* Greyish "N of M rows" count that sits right next to its header title (the header's gap spaces
    them). Shared so all tab count indicators are styled identically. */
 .tab_header_detail {
-    flex-shrink: 0;
+    min-width: 0;
+    margin-left: auto;
+    padding-right: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     color: hsl(210, 10%, 60%);
+}
+
+/* In the clickable feed header, the title/count live inside the inner button. Let the button span
+   the row so the count can align to the card's right edge just like the inert Details header. */
+.tab_header_clickable_inner .tab_header_detail {
+    margin-left: auto;
 }
 
 /* Right-aligned action slot (e.g. a "delete cached" button). The margin-left:auto pushes it to the
@@ -57,4 +68,10 @@
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
+}
+
+@media only screen and (max-width: 700px) {
+    .tab_header_actions {
+        gap: 2px;
+    }
 }

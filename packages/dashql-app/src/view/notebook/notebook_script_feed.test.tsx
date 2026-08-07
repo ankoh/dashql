@@ -120,6 +120,7 @@ import {
     DELETE_NOTEBOOK_ENTRY,
     PROMOTE_UNCOMMITTED_SCRIPT,
     REJECT_PENDING_DIFF,
+    REORDER_NOTEBOOK_SCRIPTS,
     SELECT_ENTRY,
     type NotebookState,
 } from '../../notebook/notebook_state.js';
@@ -295,18 +296,29 @@ describe('NotebookScriptFeed', () => {
             scrollTarget: null,
         });
 
-        const previews = container.querySelectorAll('[data-testid="script-preview"]');
-        expect(previews.length).toBe(2);
-
         act(() => {
-            previews[1].dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }));
+            container.querySelectorAll('[data-testid="script-preview"]')[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
         });
 
         expect(modifyNotebook).toHaveBeenCalledWith({
             type: SELECT_ENTRY,
             value: '02-script.sql',
         });
-        expect(showDetails).toHaveBeenCalledTimes(1);
+        expect(showDetails).toHaveBeenCalledWith('02-script.sql');
+    });
+
+    it('opens script details from the keyboard activation surface', () => {
+        const modifyNotebook = vi.fn();
+        const showDetails = vi.fn();
+        renderFeed({ notebook: createNotebookState(), modifyNotebook, showDetails });
+
+        const activation = container.querySelector('[aria-label="Open script script details"]') as HTMLButtonElement;
+        act(() => {
+            activation.click();
+        });
+
+        expect(modifyNotebook).toHaveBeenCalledWith({ type: SELECT_ENTRY, value: '01-script.sql' });
+        expect(showDetails).toHaveBeenCalledWith('01-script.sql');
     });
 
     it('does not open Details when a story SQL control is activated', () => {
@@ -314,9 +326,9 @@ describe('NotebookScriptFeed', () => {
         const modifyNotebook = vi.fn();
         const showDetails = vi.fn();
         renderFeed({ notebook, modifyNotebook, showDetails });
-        const control = container.querySelector('[data-dashql-story-control]')!;
+        const control = container.querySelector('[data-dashql-story-control]') as HTMLButtonElement;
         act(() => {
-            control.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }));
+            control.click();
         });
         expect(showDetails).not.toHaveBeenCalled();
         expect(modifyNotebook).not.toHaveBeenCalledWith(expect.objectContaining({ type: SELECT_ENTRY }));
@@ -349,16 +361,15 @@ describe('NotebookScriptFeed', () => {
 
         // Clicking a pending-diff card body now expands to Details (where the full normal-text diff
         // and its own Accept/Reject controls live) — the old expansion guard is gone.
-        const previews = container.querySelectorAll('[data-testid="script-preview"]');
         act(() => {
-            previews[0].dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }));
+            container.querySelectorAll('[data-testid="script-preview"]')[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
         });
 
         expect(modifyNotebook).toHaveBeenCalledWith({
             type: SELECT_ENTRY,
             value: '01-script.sql',
         });
-        expect(showDetails).toHaveBeenCalledTimes(1);
+        expect(showDetails).toHaveBeenCalledWith('01-script.sql');
     });
 
     it('dispatches DELETE_NOTEBOOK_ENTRY when delete is clicked', () => {
@@ -370,7 +381,7 @@ describe('NotebookScriptFeed', () => {
             scrollTarget: null,
         });
 
-        const deleteButtons = container.querySelectorAll('[aria-label="delete"]');
+        const deleteButtons = container.querySelectorAll('[aria-label="Delete script"]');
         expect(deleteButtons.length).toBe(2);
 
         act(() => {
@@ -380,6 +391,24 @@ describe('NotebookScriptFeed', () => {
         expect(modifyNotebook).toHaveBeenCalledWith({
             type: DELETE_NOTEBOOK_ENTRY,
             value: '01-script.sql',
+        });
+    });
+
+    it('reorders the complete script pair from the script-card arrows', () => {
+        const modifyNotebook = vi.fn();
+        renderFeed({
+            notebook: createNotebookState(),
+            modifyNotebook,
+            showDetails: vi.fn(),
+        });
+
+        const moveDownButtons = container.querySelectorAll('[aria-label="Move script down"]');
+        expect(moveDownButtons).toHaveLength(2);
+        act(() => (moveDownButtons[0] as HTMLButtonElement).click());
+
+        expect(modifyNotebook).toHaveBeenCalledWith({
+            type: REORDER_NOTEBOOK_SCRIPTS,
+            value: ['02-script.sql', '01-script.sql'],
         });
     });
 
@@ -396,7 +425,9 @@ describe('NotebookScriptFeed', () => {
         });
 
         expect(container.querySelector('[aria-label="Stop query"]')).toBeNull();
-        expect(container.querySelectorAll('[data-testid="status-indicator"]').length).toBe(1);
+        // Every server card now has a status indicator: one running query and one neutral
+        // "Not run yet" entry in this fixture.
+        expect(container.querySelectorAll('[data-testid="status-indicator"]').length).toBe(2);
         const send = Array.from(container.querySelectorAll('button')).find(button => {
             const label = button.getAttribute('aria-label');
             return label === 'Save' || label === 'Save & Execute';
@@ -617,6 +648,18 @@ describe('NotebookScriptFeed', () => {
         });
         const viewers = container.querySelectorAll('[data-testid="trace-log-viewer"]');
         expect(viewers.length).toBe(0);
+        expect(container.textContent).toContain('Not run yet');
+    });
+
+    it('renders a script and server card for every notebook entry', () => {
+        renderFeed({
+            notebook: createNotebookState(),
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+        });
+
+        expect(container.querySelectorAll('[data-testid="script-preview"]')).toHaveLength(2);
+        expect(container.textContent?.match(/Not run yet/g)).toHaveLength(2);
     });
 
     it('shows execution footer when a query is running', () => {
@@ -710,9 +753,7 @@ describe('NotebookScriptFeed', () => {
         expect(mockState.cancelQuery).toHaveBeenCalledWith(notebook.sessionId, 42);
     });
 
-    it('hides the status bar once a query succeeds', () => {
-        // Per the auto-hide behavior, a succeeded query shows no status bar (the Data tab conveys
-        // success); the footer still renders.
+    it('keeps the status bar once a query succeeds', () => {
         mockState.queryStates.set(42, { traceId: 100, status: 9 /* SUCCEEDED */ });
         const notebook = createNotebookState();
         notebook.scripts[101] = { ...notebook.scripts[101], latestQueryId: 42 };
@@ -722,13 +763,15 @@ describe('NotebookScriptFeed', () => {
             showDetails: vi.fn(),
             scrollTarget: null,
         });
-        expect(container.querySelector('[aria-label^="Show log"]')).toBeNull();
+        const statusBar = container.querySelector('[aria-label^="Show log"]');
+        expect(statusBar).not.toBeNull();
+        expect(statusBar!.textContent).toContain('Statement executed successfully');
     });
 
     it('shows Accept/Reject on the body once a rewrite is staged', () => {
         // A finished run that left a pending diff: the body gets the Accept/Reject overlay. The
-        // rewrite no longer feeds the status bar at all — with the run done and nothing executing,
-        // the bar auto-hides (leaving the body overlay as the only rewrite affordance).
+        // rewrite does not override the status bar; the completed agent state remains visible while
+        // Accept/Reject stays attached to the body diff.
         mockState.agentRuns.set(8, { traceId: 200, phase: 6 /* SUCCEEDED */, log: [{ message: 'Done' }] });
         let notebook = withPendingDiff(createNotebookState(), 101, 'select 0');
         notebook.scripts[101] = { ...notebook.scripts[101], latestAgentRunId: 8 };
@@ -742,8 +785,8 @@ describe('NotebookScriptFeed', () => {
         // identified by their aria-label rather than button text.
         expect(container.querySelector('[aria-label="Accept rewrite"]')).not.toBeNull();
         expect(container.querySelector('[aria-label="Reject rewrite"]')).not.toBeNull();
-        // The staged rewrite doesn't feed the bar, so nothing surfaces it here.
-        expect(container.querySelector('[aria-label^="Show log"]')).toBeNull();
+        // The completed agent run remains available as the server card status.
+        expect(container.querySelector('[aria-label^="Show log"]')).not.toBeNull();
     });
 
     it('shows the query status bar when a re-execution runs over a staged diff', () => {
@@ -869,7 +912,7 @@ describe('NotebookScriptFeed', () => {
         });
 
         expect(preventDefault).toHaveBeenCalledTimes(1);
-        expect(showDetails).toHaveBeenCalledTimes(1);
+        expect(showDetails).toHaveBeenCalledWith('01-script.sql');
         expect(modifyNotebook).not.toHaveBeenCalledWith(expect.objectContaining({ type: ACCEPT_PENDING_DIFF }));
     });
 

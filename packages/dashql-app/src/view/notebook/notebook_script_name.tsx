@@ -61,6 +61,7 @@ export function NotebookScriptName(props: Props) {
                     <input
                         ref={props.editing.inputRef}
                         type="text"
+                        aria-label="Script name"
                         className={styles.file_name_input}
                         value={props.editing.value}
                         onChange={(e) => props.editing!.onChange(e.target.value)}

@@ -4,6 +4,7 @@ import * as styles from './notebook_script_feed.module.css';
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '@primer/octicons-react';
 import { CodeIcon, PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon } from '@primer/octicons-react';
+import symbols from '@ankoh/dashql-svg-symbols';
 
 import { useAppConfig } from '../../app_config.js';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
@@ -40,6 +41,7 @@ import { FeedEntryFooter } from './feed_entry_footer.js';
 import { TabKey as DetailsTabKey } from './notebook_script_details.js';
 import { registerNotebookQuery, rerunEntry } from './rerun_query.js';
 import { useStorageReader } from '../../platform/storage/storage_provider.js';
+import { QueryResultCacheLabel, QueryResultRerunButton } from './query_result_cache_controls.js';
 
 interface FeedScrollTarget {
     fileName: string;
@@ -49,7 +51,7 @@ interface FeedScrollTarget {
 export interface NotebookScriptListProps {
     notebook: NotebookState;
     modifyNotebook: ModifyNotebook;
-    showDetails: (initialTab?: DetailsTabKey) => void;
+    showDetails: (fileName?: string, initialTab?: DetailsTabKey) => void;
     scrollTarget?: FeedScrollTarget | null;
     conn: ConnectionState | null;
     openConnectionOverlay: () => void;
@@ -84,6 +86,7 @@ function outputColumnsForScript(
 
 interface CollapsedScriptCardProps {
     sessionId: string;
+    connectorIcon: string;
     isFocused: boolean;
     scriptData: ScriptData | undefined;
     folderName: string;
@@ -99,6 +102,7 @@ interface CollapsedScriptCardProps {
     onMoveUp: (fileName: string) => void;
     onMoveDown: (fileName: string) => void;
     onShowStatus: (fileName: string) => void;
+    onShowAgentStatus: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
     onRerun: (fileName: string, cacheKey: string | null) => void;
@@ -109,10 +113,11 @@ interface CollapsedScriptCardProps {
     onVisible: (fileName: string) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, connectorIcon, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
     const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
+    const PersonIcon: Icon = SymbolIcon('person_16');
 
     // Both eye states are rendered at once and toggled via CSS visibility. SymbolIcon caches a
     // distinct component type per symbol, so swapping the bound icon on focus change would
@@ -142,8 +147,8 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
     // The status bar above the body generalizes the former "AI bar": while any work is in flight —
     // an agent run *or* a query execution — it's a compact strip (spinner + latest log line / query
     // status) instead of yanking the user to the raw trace. The body keeps rendering the current
-    // output; the user opts into the full trace by clicking the bar. It auto-hides on idle and on
-    // query success. A staged rewrite doesn't feed the bar — its Accept/Reject controls live on the
+    // output; the user opts into the full trace by clicking the bar. The bar persists across idle,
+    // running, and terminal states. A staged rewrite doesn't feed it — Accept/Reject controls live on the
     // body overlay — so the bar stays free to show the rewritten statement's re-execution status.
     const entryStatus = deriveEntryStatus(agentRunState, queryState);
     const cancelEntryOperation = React.useCallback(() => {
@@ -167,7 +172,6 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
         if (scriptKey != null) onRejectDiff(scriptKey);
     }, [scriptKey, onRejectDiff]);
 
-    const [isReady, setIsReady] = React.useState(false);
     const [isEditing, setIsEditing] = React.useState(false);
 
     // The label and the rename input show the clean display name (no ordering prefix, no ".sql");
@@ -201,6 +205,12 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
         }
     }, [isEditing]);
 
+    const handlePreviewClick = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+        if ((event.target as HTMLElement).closest('[data-diff-actions], [data-dashql-story-control]') != null) return;
+        if (!window.getSelection()?.isCollapsed) return;
+        onExpand(scriptFileName);
+    }, [scriptFileName, onExpand]);
+
     // Fire onVisible the first time the card intersects the viewport. This drives the cache-only
     // auto-run of visualizations: seeing the card is the trigger to render it if its data is cached.
     // The callback is idempotent per script on the feed side (it de-dupes by cache key), so we only
@@ -226,172 +236,161 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, isFocused, 
         return () => observer.disconnect();
     }, [scriptFileName]);
 
-    const handleHeaderPointerDown = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-        if (event.button !== 0 || event.defaultPrevented) {
-            return;
-        }
-        onFocus(scriptFileName);
-    }, [scriptFileName, onFocus]);
-
-    const handlePreviewPointerDown = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-        if (event.button !== 0 || event.defaultPrevented) {
-            return;
-        }
-        // The Accept/Reject overlay sits inside the body. This handler runs in the capture phase
-        // (ancestor before target), so a click on those buttons would otherwise expand to Details
-        // before their own onClick fires — bail when the pointer lands within the overlay.
-        if ((event.target as HTMLElement).closest('[data-diff-actions]') != null) {
-            return;
-        }
-        // Story SQL controls own their activation: in the feed they toggle the statement in place.
-        // This capture handler otherwise opens Details before the widget's click can run.
-        if ((event.target as HTMLElement).closest('[data-dashql-story-control]') != null) {
-            return;
-        }
-        // The body is a read-only preview (with a compact diff overlay while a rewrite is staged);
-        // clicking it always expands into Details, where the full normal-text diff and its own
-        // Accept/Reject controls live. Quick accept/reject stays on the feed via the body overlay / ⏎ ⎋.
-        onExpand(scriptFileName);
-    }, [scriptFileName, onExpand]);
-
     return (
         <div
             ref={cardRef}
-            className={styles.feed_entry_card}
+            className={styles.feed_entry_pair}
             onPointerEnter={() => onFocus(scriptFileName)}
         >
-            <div className={styles.feed_entry_action_bar} onPointerDown={handleHeaderPointerDown}>
-                <div className={isFocused ? styles.feed_entry_focus_focused : styles.feed_entry_focus_unfocused}>
-                    <EyeOpenIcon
-                        className={isFocused ? styles.feed_entry_focus_icon : styles.feed_entry_focus_icon_hidden}
-                        size={16}
-                    />
-                    <EyeClosedIcon
-                        className={isFocused ? styles.feed_entry_focus_icon_hidden : styles.feed_entry_focus_icon}
-                        size={16}
-                    />
+            <div className={styles.feed_entry_message_script}>
+                <div className={styles.feed_entry_card_script}>
+                    <div className={styles.feed_entry_action_bar}>
+                        <button
+                            type="button"
+                            className={isFocused ? styles.feed_entry_focus_focused : styles.feed_entry_focus_unfocused}
+                            aria-label={`Open ${displayName} script details`}
+                            onClick={() => onExpand(scriptFileName)}
+                        >
+                            <EyeOpenIcon
+                                className={isFocused ? styles.feed_entry_focus_icon : styles.feed_entry_focus_icon_hidden}
+                                size={16}
+                                aria-hidden="true"
+                            />
+                            <EyeClosedIcon
+                                className={isFocused ? styles.feed_entry_focus_icon_hidden : styles.feed_entry_focus_icon}
+                                size={16}
+                                aria-hidden="true"
+                            />
+                        </button>
+                        <div className={styles.feed_entry_file_name}>
+                            <NotebookScriptName
+                                folder={folderName}
+                                file={displayName}
+                                onFileClick={startEditing}
+                                editing={isEditing ? {
+                                    value: draftFileName,
+                                    onChange: setDraftFileName,
+                                    onCommit: saveEdit,
+                                    onCancel: cancelEdit,
+                                    inputRef: editInputRef,
+                                } : undefined}
+                                fileNameTrailing={
+                                    <span className={styles.feed_entry_actions}>
+                                        <PencilIcon size={12} />
+                                    </span>
+                                }
+                            />
+                        </div>
+                        {scriptDebugMode && scriptData != null && (
+                            <div className={styles.feed_entry_stats_bar}>
+                                <ScriptStatisticsBar stats={scriptData.statistics} />
+                            </div>
+                        )}
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            onClick={(event) => { event.stopPropagation(); onMoveUp(scriptFileName); }}
+                            aria-label="Move script up"
+                            disabled={!canMoveUp}
+                        >
+                            <MoveUpIcon size={16} />
+                        </IconButton>
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            onClick={(event) => { event.stopPropagation(); onMoveDown(scriptFileName); }}
+                            aria-label="Move script down"
+                            disabled={!canMoveDown}
+                        >
+                            <MoveDownIcon size={16} />
+                        </IconButton>
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            onClick={() => onDelete(scriptFileName)}
+                            aria-label="Delete script"
+                            disabled={!canDelete}
+                        >
+                            <TrashIcon size={16} />
+                        </IconButton>
+                    </div>
+                    <div className={styles.feed_body} onClick={handlePreviewClick}>
+                        {scriptData == null ? null : (
+                            <ScriptPreview
+                                className={styles.script_preview_editor}
+                                sessionId={sessionId}
+                                scriptData={scriptData}
+                            />
+                        )}
+                        {hasPendingDiff && (
+                            <div className={styles.feed_body_diff_actions} data-diff-actions>
+                                <ButtonGroup>
+                                    <IconButton
+                                        variant={ButtonVariant.Default}
+                                        size={ButtonSize.Small}
+                                        onClick={acceptDiff}
+                                        aria-label="Accept rewrite"
+                                    >
+                                        <CheckIcon size={14} />
+                                    </IconButton>
+                                    <IconButton
+                                        variant={ButtonVariant.Default}
+                                        size={ButtonSize.Small}
+                                        onClick={rejectDiff}
+                                        aria-label="Reject rewrite"
+                                    >
+                                        <CrossIcon size={14} />
+                                    </IconButton>
+                                </ButtonGroup>
+                            </div>
+                        )}
+                    </div>
                 </div>
-                <div className={styles.feed_entry_file_name}>
-                    <NotebookScriptName
-                        folder={folderName}
-                        file={displayName}
-                        onFileClick={startEditing}
-                        editing={isEditing ? {
-                            value: draftFileName,
-                            onChange: setDraftFileName,
-                            onCommit: saveEdit,
-                            onCancel: cancelEdit,
-                            inputRef: editInputRef,
-                        } : undefined}
-                        fileNameTrailing={
-                            <span className={styles.feed_entry_actions}>
-                                <PencilIcon size={12} />
-                            </span>
+                <div className={styles.feed_entry_avatar_script} aria-hidden="true">
+                    <PersonIcon size={16} />
+                </div>
+            </div>
+            <div className={styles.feed_entry_message_server}>
+                <div className={styles.feed_entry_avatar_server} aria-hidden="true">
+                    <svg width="16" height="16">
+                        <use xlinkHref={`${symbols}#${connectorIcon}`} />
+                    </svg>
+                </div>
+                <div className={styles.feed_entry_card_server}>
+                    <EntryStatusBar
+                        status={entryStatus}
+                        onClick={entryStatus.traceId != null ? () => showLog(entryStatus.traceId) : undefined}
+                        onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancelEntryOperation : undefined}
+                        cancelLabel={entryStatus.kind === EntryStatusKind.Agent ? 'Cancel agent run' : 'Cancel query'}
+                        actions={
+                            <>
+                                <QueryResultCacheLabel query={queryState} />
+                                <QueryResultRerunButton
+                                    query={queryState}
+                                    onRerun={(cacheKey) => onRerun(scriptFileName, cacheKey)}
+                                />
+                            </>
                         }
                     />
+                    {(queryState != null || agentTraceId != null) ? (
+                        <FeedEntryFooter
+                            sessionId={sessionId}
+                            queryState={queryState}
+                            agentTraceId={agentTraceId}
+                            visualizeQuery={scriptData?.annotations.visualizeQuery ?? null}
+                            logRequest={logRequest}
+                            onShowStatus={() => onShowStatus(scriptFileName)}
+                            onShowAgentStatus={() => onShowAgentStatus(scriptFileName)}
+                            onShowTable={() => onShowTable(scriptFileName)}
+                            onShowVisualization={() => onShowVisualization(scriptFileName)}
+                        />
+                    ) : null}
                 </div>
-                {scriptDebugMode && scriptData != null && (
-                    <div className={styles.feed_entry_stats_bar}>
-                        <ScriptStatisticsBar stats={scriptData.statistics} />
-                    </div>
-                )}
-                <IconButton
-                    variant={ButtonVariant.Invisible}
-                    onClick={(event) => { event.stopPropagation(); onMoveUp(scriptFileName); }}
-                    aria-label="Move script up"
-                    disabled={!canMoveUp}
-                >
-                    <MoveUpIcon size={16} />
-                </IconButton>
-                <IconButton
-                    variant={ButtonVariant.Invisible}
-                    onClick={(event) => { event.stopPropagation(); onMoveDown(scriptFileName); }}
-                    aria-label="Move script down"
-                    disabled={!canMoveDown}
-                >
-                    <MoveDownIcon size={16} />
-                </IconButton>
-                <IconButton
-                    variant={ButtonVariant.Invisible}
-                    onClick={() => onDelete(scriptFileName)}
-                    aria-label="delete"
-                    aria-labelledby="delete-entry"
-                    disabled={!canDelete}
-                >
-                    <TrashIcon size={16} />
-                </IconButton>
             </div>
-            {entryStatus != null && (
-                // The status bar. While work is in flight it's a single clickable strip: a spinner
-                // plus the latest log line / query status, and clicking it reveals the matching trace
-                // in the footer. It only ever shows execution progress now — a staged rewrite's
-                // Accept/Reject lives on the body overlay below (mirroring the Details editor), so a
-                // re-execution triggered by the agent's edit takes the bar and shows its progress.
-                <EntryStatusBar
-                    status={entryStatus}
-                    onClick={() => showLog(entryStatus.traceId)}
-                    onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancelEntryOperation : undefined}
-                    cancelLabel={entryStatus.kind === EntryStatusKind.Agent ? 'Cancel agent run' : 'Cancel query'}
-                />
-            )}
-            <div className={styles.feed_body} onPointerDownCapture={handlePreviewPointerDown}>
-                {scriptData == null ? null : (
-                    // The body is always the read-only compact preview. When the agent stages a
-                    // rewrite it overlays the rewrite as a compact in-place diff (so the feed no
-                    // longer jumps from compact to normal text); the Accept/Reject controls overlay
-                    // the body's top-right (spatially tied to the diff, matching the Details editor),
-                    // and ⏎/⎋ still accept/reject on the focused entry.
-                    <ScriptPreview
-                        className={styles.script_preview_editor}
-                        sessionId={sessionId}
-                        scriptData={scriptData}
-                        onReady={setIsReady}
-                    />
-                )}
-                {hasPendingDiff && (
-                    <div className={styles.feed_body_diff_actions} data-diff-actions>
-                        <ButtonGroup>
-                            <IconButton
-                                variant={ButtonVariant.Default}
-                                size={ButtonSize.Small}
-                                onClick={acceptDiff}
-                                aria-label="Accept rewrite"
-                            >
-                                <CheckIcon size={14} />
-                            </IconButton>
-                            <IconButton
-                                variant={ButtonVariant.Default}
-                                size={ButtonSize.Small}
-                                onClick={rejectDiff}
-                                aria-label="Reject rewrite"
-                            >
-                                <CrossIcon size={14} />
-                            </IconButton>
-                        </ButtonGroup>
-                    </div>
-                )}
-            </div>
-            {(queryState != null || agentTraceId != null) && (
-                <div className={styles.feed_entry_execution_footer}>
-                    <FeedEntryFooter
-                        sessionId={sessionId}
-                        queryState={queryState}
-                        agentTraceId={agentTraceId}
-                        visualizeQuery={scriptData?.annotations.visualizeQuery ?? null}
-                        logRequest={logRequest}
-                        onShowStatus={() => onShowStatus(scriptFileName)}
-                        onShowTable={() => onShowTable(scriptFileName)}
-                        onShowVisualization={() => onShowVisualization(scriptFileName)}
-                        onRerun={(cacheKey) => onRerun(scriptFileName, cacheKey)}
-                    />
-                </div>
-            )}
         </div>
     );
 };
 
 interface ScriptFeedRowProps {
     sessionId: string;
+    connectorIcon: string;
     entries: ReturnType<typeof getSelectedPageEntries>;
     scripts: NotebookState['scripts'];
     folderName: string;
@@ -405,6 +404,7 @@ interface ScriptFeedRowProps {
     onMoveUp: (fileName: string) => void;
     onMoveDown: (fileName: string) => void;
     onShowStatus: (fileName: string) => void;
+    onShowAgentStatus: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
     onRerun: (fileName: string, cacheKey: string | null) => void;
@@ -418,7 +418,7 @@ interface ScriptFeedRowProps {
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { sessionId, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible, onHeightMeasured, hasMeasuredHeight } = props;
+    const { sessionId, connectorIcon, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible, onHeightMeasured, hasMeasuredHeight } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -461,7 +461,9 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                 className={styles.feed_list_item}
             >
                 <ScriptCard
+                    key={entry?.scriptId}
                     sessionId={sessionId}
+                    connectorIcon={connectorIcon}
                     isFocused={scriptFileName === focusedFileName}
                     scriptData={scriptData}
                     folderName={folderName}
@@ -477,6 +479,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onMoveUp={onMoveUp}
                     onMoveDown={onMoveDown}
                     onShowStatus={onShowStatus}
+                    onShowAgentStatus={onShowAgentStatus}
                     onShowTable={onShowTable}
                     onShowVisualization={onShowVisualization}
                     onRerun={onRerun}
@@ -543,22 +546,27 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
 
     const handleExpand = React.useCallback((fileName: string) => {
         props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
-        props.showDetails();
+        props.showDetails(fileName);
     }, [props.modifyNotebook, props.showDetails]);
 
     const handleShowStatus = React.useCallback((fileName: string) => {
         props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
-        props.showDetails(DetailsTabKey.QueryStatusPanel);
+        props.showDetails(fileName, DetailsTabKey.QueryStatusPanel);
+    }, [props.modifyNotebook, props.showDetails]);
+
+    const handleShowAgentStatus = React.useCallback((fileName: string) => {
+        props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
+        props.showDetails(fileName, DetailsTabKey.AgentStatusPanel);
     }, [props.modifyNotebook, props.showDetails]);
 
     const handleShowTable = React.useCallback((fileName: string) => {
         props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
-        props.showDetails(DetailsTabKey.QueryResultView);
+        props.showDetails(fileName, DetailsTabKey.QueryResultView);
     }, [props.modifyNotebook, props.showDetails]);
 
     const handleShowVisualization = React.useCallback((fileName: string) => {
         props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
-        props.showDetails(DetailsTabKey.Visualization);
+        props.showDetails(fileName, DetailsTabKey.Visualization);
     }, [props.modifyNotebook, props.showDetails]);
 
     const isDisconnected = props.conn?.connectionHealth !== ConnectionHealth.ONLINE;
@@ -860,7 +868,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                     return;
                 }
                 event.preventDefault();
-                props.showDetails();
+                props.showDetails(focused?.fileName);
             },
         },
         {
@@ -1010,6 +1018,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const canDelete = pageCount > 1 || entries.length > 1;
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
         sessionId: props.notebook.sessionId,
+        connectorIcon: props.notebook.connectorInfo.icons?.outlines ?? 'database_16',
         entries,
         scripts: props.notebook.scripts,
         folderName,
@@ -1023,6 +1032,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onMoveUp: handleMoveUp,
         onMoveDown: handleMoveDown,
         onShowStatus: handleShowStatus,
+        onShowAgentStatus: handleShowAgentStatus,
         onShowTable: handleShowTable,
         onShowVisualization: handleShowVisualization,
         onRerun: handleRerunEntry,
@@ -1033,7 +1043,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         hasMeasuredHeight,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleShowStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, handleEntryVisible, handleHeightMeasured, hasMeasuredHeight, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, props.notebook.connectorInfo.icons?.outlines, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, handleEntryVisible, handleHeightMeasured, hasMeasuredHeight, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container} data-tauri-drag-region="deep">

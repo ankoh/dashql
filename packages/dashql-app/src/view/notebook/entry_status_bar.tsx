@@ -18,6 +18,9 @@ interface EntryStatusBarProps {
     /// rendered at the right edge without making the whole bar a nested button.
     onCancel?: () => void;
     cancelLabel?: string;
+    /// Result-level actions such as execution age and Refresh. Kept outside the clickable log strip
+    /// so the bar never nests interactive controls.
+    actions?: React.ReactNode;
 }
 
 /// The white-card contents of the error-detail overlay: the full error message plus a key/value
@@ -54,14 +57,20 @@ const ErrorDetailCard: React.FC<{
 /// work is in flight — an agent run or a query execution. Purely presentational; contents come from
 /// `deriveEntryStatus`. A failed query's key-values are revealed on hover over the message (see
 /// ErrorDetailOverlay).
-export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onClick, onCancel, cancelLabel = 'Cancel operation' }) => {
+export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onClick, onCancel, cancelLabel = 'Cancel operation', actions }) => {
     const [showDetail, setShowDetail] = React.useState(false);
     const hasErrorDetail = status.errorDetail != null;
     const CancelIcon = SymbolIcon('x_16');
+    const InfoIcon = SymbolIcon('info_circle_16');
 
-    // For a failed query the message becomes a click anchor that opens a white-card overlay with the
-    // full error text and its key-values, matching the app's other anchored overlays.
-    const message = hasErrorDetail ? (
+    const message = (
+        <span className={styles.status_bar_message}>
+            {status.message}
+        </span>
+    );
+    // Keep error details separate from the log button. Nesting the overlay's focusable anchor inside
+    // that button would create two interactive controls in one another.
+    const errorDetail = hasErrorDetail ? (
         <AnchoredOverlay
             open={showDetail}
             onOpen={() => setShowDetail(true)}
@@ -70,27 +79,22 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onClick,
             align={AnchorAlignment.Start}
             anchorOffset={4}
             renderAnchor={(p: object) => {
-                const anchorProps = p as React.HTMLAttributes<HTMLSpanElement>;
+                const anchorProps = p as React.ButtonHTMLAttributes<HTMLButtonElement>;
                 return (
-                    <span
+                    <button
+                        type="button"
                         {...anchorProps}
-                        className={styles.status_bar_message_clickable}
-                        onClick={(e: React.MouseEvent<HTMLSpanElement>) => {
-                            anchorProps.onClick?.(e);
-                        }}
+                        className={styles.error_detail_trigger}
+                        aria-label="Show error details"
                     >
-                        {status.message}
-                    </span>
+                        <InfoIcon size={16} />
+                    </button>
                 );
             }}
         >
             <ErrorDetailCard message={status.message} detail={status.errorDetail!} />
         </AnchoredOverlay>
-    ) : (
-        <span className={styles.status_bar_message}>
-            {status.message}
-        </span>
-    );
+    ) : null;
     const indicator = (
         <StatusIndicator
             className={styles.status_bar_spinner}
@@ -128,6 +132,10 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onClick,
                 >
                     <CancelIcon size={16} />
                 </IconButton>
+            )}
+            {errorDetail}
+            {actions != null && (
+                <div className={styles.status_bar_actions}>{actions}</div>
             )}
         </div>
     );

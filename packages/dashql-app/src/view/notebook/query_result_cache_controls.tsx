@@ -5,7 +5,7 @@ import { SyncIcon } from '@primer/octicons-react';
 
 import { QueryExecutionState, QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { useRelativeTime } from '../../utils/time_format.js';
-import { Button, ButtonSize, ButtonVariant } from '../foundations/button.js';
+import { ButtonVariant, IconButton } from '../foundations/button.js';
 
 interface QueryResultCacheControlsProps {
     query: QueryExecutionState | null;
@@ -26,10 +26,10 @@ function executedAtMs(query: QueryExecutionState | null): number | null {
     if (query.servedFromCache && query.cachedAt != null) {
         return query.cachedAt.getTime();
     }
-    return query.metrics.querySucceededAt?.getTime() ?? null;
+    return query.metrics?.querySucceededAt?.getTime() ?? null;
 }
 
-/// The execution age label shown in the Query Results header: "Executed <relative time>" (e.g.
+/// The execution age label shown in the entry status bar: "Executed <relative time>" (e.g.
 /// "Executed 8 minutes ago", "Executed just now"). Shown for any succeeded result regardless of
 /// cache hit/miss; a cache hit reports the original execution time, a fresh run reports "now". The
 /// relative time refreshes on an interval.
@@ -54,7 +54,7 @@ interface QueryResultRerunButtonProps {
     onRerun?: (cacheKey: string | null) => void;
 }
 
-/// The "Refresh" button shown in the Query Results header. Shown for any succeeded result; clicking
+/// The Refresh icon shown in the entry status bar. Shown for any succeeded result; clicking
 /// it drops the cached entry (if any) and re-executes the query against the backend.
 export const QueryResultRerunButton: React.FC<QueryResultRerunButtonProps> = ({ query, onRerun }) => {
     if (!hasResult(query)) {
@@ -62,16 +62,15 @@ export const QueryResultRerunButton: React.FC<QueryResultRerunButtonProps> = ({ 
     }
     const cacheKey = query?.cacheKey ?? null;
     return (
-        <Button
+        <IconButton
             className={styles.rerun_button}
-            variant={ButtonVariant.Default}
-            size={ButtonSize.Tiny}
-            leadingVisual={SyncIcon}
+            variant={ButtonVariant.Invisible}
             onClick={onRerun != null ? () => onRerun(cacheKey) : undefined}
             disabled={onRerun == null}
             aria-label="Refresh"
+            description="Refresh"
         >
-            Refresh
-        </Button>
+            <SyncIcon size={16} />
+        </IconButton>
     );
 };

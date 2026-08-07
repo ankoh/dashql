@@ -1,10 +1,10 @@
 import * as React from 'react';
 import symbols from '@ankoh/dashql-svg-symbols';
 import * as ActionList from '../foundations/action_list.js';
-import { LinkIcon, PaperAirplaneIcon, SparklesFillIcon, SyncIcon } from '@primer/octicons-react';
+import { DatabaseIcon, LinkIcon, PaperAirplaneIcon, SparklesFillIcon, SyncIcon } from '@primer/octicons-react';
 
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
-import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
+import { COMPOSE_INPUT_MODE_AI, COMPOSE_INPUT_MODE_SQL, NotebookCommandType, useComposeInputMode, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { getSelectedPageEntries, getSortedFolderNames, NotebookState } from '../../notebook/notebook_state.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
@@ -19,6 +19,7 @@ import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicato
 export const ConnectionCommandList: React.FC<{
     conn: ConnectionState | null;
     notebook: NotebookState | null;
+    navigationDisabled?: boolean;
     onOpenSettings?: () => void;
     settingsRef?: React.Ref<HTMLButtonElement>;
 }> = (props) => {
@@ -54,7 +55,7 @@ export const ConnectionCommandList: React.FC<{
                 ) : <></>}
             </ActionList.ListItem>
             <ActionList.ListItem
-                disabled={isDisconnected || !props.conn?.connectorInfo.features.executeQueryAction}
+                disabled={props.navigationDisabled || isDisconnected || !props.conn?.connectorInfo.features.executeQueryAction}
                 onClick={() => notebookCommand(NotebookCommandType.ExecuteEditorQuery)}
             >
                 <ActionList.Leading>
@@ -88,11 +89,13 @@ export const NotebookCommandList: React.FC<{
     conn: ConnectionState | null;
     notebook: NotebookState | null;
     modifyNotebook: ModifyNotebook | null;
+    navigationDisabled?: boolean;
 }> = (props) => {
     const [linkSharingIsOpen, openLinkSharing] = React.useState<boolean>(false);
     const [fileSaveIsOpen, openFileSave] = React.useState<boolean>(false);
     const notebookCommand = useNotebookCommandDispatch();
     const aiAvailable = useAIClient() != null;
+    const { mode: composeInputMode, setMode: setComposeInputMode } = useComposeInputMode();
 
     const ArrowDownIcon = SymbolIcon('arrow_down_16');
     const ArrowUpIcon = SymbolIcon('arrow_up_16');
@@ -110,20 +113,22 @@ export const NotebookCommandList: React.FC<{
     return (
         <>
             <ActionList.ListItem
-                onClick={() => notebookCommand(NotebookCommandType.ToggleComposeInputMode)}
+                onClick={() => setComposeInputMode(composeInputMode === COMPOSE_INPUT_MODE_SQL
+                    ? COMPOSE_INPUT_MODE_AI
+                    : COMPOSE_INPUT_MODE_SQL)}
                 disabled={!aiAvailable}
             >
                 <ActionList.Leading>
-                    <SparklesFillIcon />
+                    {composeInputMode === COMPOSE_INPUT_MODE_SQL ? <SparklesFillIcon /> : <DatabaseIcon />}
                 </ActionList.Leading>
                 <ActionList.ItemText>
-                    Switch Mode
+                    {composeInputMode === COMPOSE_INPUT_MODE_SQL ? 'Use AI Mode' : 'Use SQL Mode'}
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + M</ActionList.Trailing>
             </ActionList.ListItem>
             <ActionList.ListItem
                 onClick={() => notebookCommand(NotebookCommandType.SelectPreviousNotebookPage)}
-                disabled={folderIndex <= 0}
+                disabled={props.navigationDisabled || folderIndex <= 0}
             >
                 <ActionList.Leading>
                     <ArrowLeftIcon />
@@ -135,7 +140,7 @@ export const NotebookCommandList: React.FC<{
             </ActionList.ListItem>
             <ActionList.ListItem
                 onClick={() => notebookCommand(NotebookCommandType.SelectNextNotebookPage)}
-                disabled={props.notebook == null || folderIndex < 0 || (folderIndex + 1) >= folders.length}
+                disabled={props.navigationDisabled || props.notebook == null || folderIndex < 0 || (folderIndex + 1) >= folders.length}
             >
                 <ActionList.Leading>
                     <ArrowRightIcon />
@@ -147,7 +152,7 @@ export const NotebookCommandList: React.FC<{
             </ActionList.ListItem>
             <ActionList.ListItem
                 onClick={() => notebookCommand(NotebookCommandType.SelectPreviousNotebookScript)}
-                disabled={fileIndex <= 0}
+                disabled={props.navigationDisabled || fileIndex <= 0}
             >
                 <ActionList.Leading>
                     <ArrowUpIcon />
@@ -159,7 +164,7 @@ export const NotebookCommandList: React.FC<{
             </ActionList.ListItem>
             <ActionList.ListItem
                 onClick={() => notebookCommand(NotebookCommandType.SelectNextNotebookScript)}
-                disabled={props.notebook == null || fileIndex < 0 || (fileIndex + 1) >= entries.length}
+                disabled={props.navigationDisabled || props.notebook == null || fileIndex < 0 || (fileIndex + 1) >= entries.length}
             >
                 <ActionList.Leading>
                     <ArrowDownIcon />

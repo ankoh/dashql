@@ -42,6 +42,14 @@
     flex-shrink: 0;
 }
 
+.status_bar_actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
 .status_bar_spinner {
     flex-shrink: 0;
     color: hsl(210, 10%, 40%);
@@ -56,10 +64,22 @@
     white-space: nowrap;
 }
 
-/* A failed query's message is a click anchor that opens the white-card error-detail overlay. */
-.status_bar_message_clickable {
-    composes: status_bar_message;
+.error_detail_trigger {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: var(--border_radius);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    color: inherit;
+    background: transparent;
     cursor: pointer;
+}
+
+.error_detail_trigger:hover {
+    background-color: rgba(208, 215, 222, 0.32);
 }
 
 /* The white-card contents of the error-detail overlay. The card chrome (background, border,
@@ -68,7 +88,7 @@
 .error_detail_card {
     padding: 12px 16px;
     font-size: 0.85rem;
-    min-width: 480px;
+    width: min(480px, calc(100vw - 32px));
     max-width: 640px;
     display: flex;
     flex-direction: column;
