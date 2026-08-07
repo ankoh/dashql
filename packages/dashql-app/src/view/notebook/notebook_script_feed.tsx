@@ -65,7 +65,7 @@ export interface NotebookScriptListProps {
 
 const ESTIMATED_ROW_HEIGHT = 240;
 const HEIGHT_CHANGE_EPSILON = 0.5;
-const OVERSCAN_ROW_COUNT = 12;
+const OVERSCAN_ROW_COUNT = 16;
 const FEED_EDGE_PADDING = 8;
 const FEED_BOTTOM_FADE_HEIGHT = 24;
 
@@ -434,7 +434,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
 
     React.useLayoutEffect(() => {
         setPreviewReady(false);
-    }, [entry?.scriptId, scriptData?.scriptAnalysis.buffers, scriptData?.latestQueryId, scriptData?.latestAgentRunId, scriptData?.pendingDiff]);
+    }, [entry?.scriptId, scriptData?.scriptAnalysis.buffers, scriptData?.pendingDiff]);
     const handlePreviewReady = React.useCallback(() => setPreviewReady(true), []);
     const handleFormattedText = React.useCallback((scriptText: string) => {
         if (entry != null) onFormattedText(entry.scriptId, scriptText);

@@ -889,6 +889,39 @@ describe('NotebookScriptFeed', () => {
         expect(rows[1].getAttribute('data-row-height')).toBe('460');
     });
 
+    it('allows a row to shrink when rerunning unchanged SQL', () => {
+        const notebook = createNotebookState();
+        notebook.scripts[101] = { ...notebook.scripts[101], latestQueryId: 41 };
+        mockState.queryStates.set(41, { traceId: 100, status: 9 /* SUCCEEDED */ });
+        renderFeed({ notebook, modifyNotebook: vi.fn(), showDetails: vi.fn() });
+
+        const rows = container.querySelector('[data-testid="mock-list"]')!.children;
+        expect(rows[1].getAttribute('data-row-height')).toBe('200');
+
+        // A rerun replaces the result footer but does not change or remount the SQL preview.
+        // Therefore no new preview-ready notification is required before accepting the shrink.
+        mockState.previewReady = false;
+        mockState.queryStates.set(42, { traceId: 101, status: 4 /* RUNNING */ });
+        getBoundingClientRect.mockImplementation(function (this: HTMLElement) {
+            const scriptId = this.closest<HTMLElement>('[data-row-script-id]')?.dataset.rowScriptId;
+            return { height: scriptId === '101' ? 120 : 300 } as DOMRect;
+        });
+        renderFeed({
+            notebook: {
+                ...notebook,
+                scripts: {
+                    ...notebook.scripts,
+                    101: { ...notebook.scripts[101], latestQueryId: 42 },
+                },
+            },
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+        });
+        act(() => ResizeObserverMock.triggerAll());
+
+        expect(rows[1].getAttribute('data-row-height')).toBe('120');
+    });
+
     it('allows result growth while a remounted preview is still formatting', () => {
         const notebook = createNotebookState();
         renderFeed({ notebook, modifyNotebook: vi.fn(), showDetails: vi.fn() });
