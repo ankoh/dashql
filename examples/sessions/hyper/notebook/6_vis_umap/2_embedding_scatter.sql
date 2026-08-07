@@ -1,4 +1,4 @@
-VISUALIZE dashql.notebook."umap/vis_publications" USING umap (
+VISUALIZE dashql.notebook."vis_umap/vis_publications" USING umap (
     vector    => embedding,
     category  => "Conference",
     label     => "Title",
