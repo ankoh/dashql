@@ -46,18 +46,22 @@
         linear-gradient(
             var(--notebook_body_background_color),
             var(--notebook_body_background_color)
-        ) center / min(100%, calc(var(--notebook_list_entry_max_width) + 76px)) 100% no-repeat;
+        ) calc(50% - max(var(--feed-scrollbar-inset, 0px), 16px) / 2) center / min(
+            calc(100% - max(var(--feed-scrollbar-inset, 0px), 16px)),
+            calc(var(--notebook_list_entry_max_width) + 76px)
+        ) 100% no-repeat;
 }
 
 .compose_section::before {
     content: "";
     position: absolute;
-    left: 50%;
-    right: 0px;
+    left: 0;
+    right: max(var(--feed-scrollbar-inset, 0px), 16px);
     top: calc(100% - 16px);
     height: 32px;
-    width: min(100%, calc(var(--notebook_list_entry_max_width) + 76px));
-    transform: translateX(-50%);
+    width: auto;
+    max-width: calc(var(--notebook_list_entry_max_width) + 76px);
+    margin: 0 auto;
     z-index: 0;
     pointer-events: none;
     background-color: var(--notebook_body_background_color);
@@ -66,11 +70,13 @@
 .compose_section::after {
     content: "";
     position: absolute;
-    left: 50%;
+    left: 0;
+    right: max(var(--feed-scrollbar-inset, 0px), 16px);
     bottom: calc(100% - 24px);
-    width: min(100%, calc(var(--notebook_list_entry_max_width) + 108px));
+    width: auto;
+    max-width: calc(var(--notebook_list_entry_max_width) + 108px);
     height: 64px;
-    transform: translateX(-50%);
+    margin: 0 auto;
     z-index: 0;
     pointer-events: none;
     background:
@@ -291,11 +297,11 @@
 
 @media only screen and (max-width: 700px) {
     .compose_section::before {
-        width: 100%;
+        max-width: none;
     }
 
     .compose_section::after {
-        width: min(100%, calc(var(--notebook_list_entry_max_width) + 32px));
+        max-width: calc(var(--notebook_list_entry_max_width) + 32px);
     }
 
     .compose_card {

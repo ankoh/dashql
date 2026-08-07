@@ -42,7 +42,7 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
             anchorRef={props.anchorRef as React.RefObject<HTMLElement | null>}
             open={props.isOpen}
             onClose={props.onClose}
-            side={AnchorSide.OutsideLeft}
+            side={AnchorSide.OutsideRight}
             align={AnchorAlignment.Start}
             minWidth={OverlaySize.L}
             maxWidth={OverlaySize.XXL}

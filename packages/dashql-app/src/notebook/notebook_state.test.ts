@@ -17,14 +17,17 @@ import {
     REGISTER_SCRIPT_OUTPUT_SCHEMA,
     REGISTER_AGENT_RUN,
     SELECT_ENTRY,
+    SELECT_NOTEBOOK_PATH,
     SET_SCRIPT_TEXT,
     destroyState,
     getExecutableQueryText,
     getScriptKeysInFeedOrder,
     analyzeAllScriptsInNotebook,
     SELECT_NEXT_ENTRY,
+    SELECT_NEXT_PAGE,
     SELECT_PAGE,
     SELECT_PREV_ENTRY,
+    SELECT_PREV_PAGE,
     UPDATE_NOTEBOOK_ENTRY,
     UPDATE_PAGE_FOLDER_NAME,
     REORDER_PAGES,
@@ -236,6 +239,39 @@ describe('SELECT_PAGE', () => {
     });
 });
 
+describe('SELECT_NEXT_PAGE / SELECT_PREV_PAGE', () => {
+    it('selects the first script when navigating to another page', () => {
+        const state = buildMultiPageState(['alpha', 'beta']);
+        const beta = state.notebookPages.beta;
+        const [extraId, extraData] = createEmptyScriptData(state.instance, state.connectionCatalog);
+        const extraFile = '2_extra.sql';
+        const withExtra: NotebookState = {
+            ...state,
+            scripts: {
+                ...state.scripts,
+                [extraId]: { ...extraData, folderName: 'beta', fileName: extraFile },
+            },
+            notebookPages: {
+                ...state.notebookPages,
+                beta: {
+                    ...beta,
+                    scripts: { ...beta.scripts, [extraFile]: createPageScript(extraId, extraFile) },
+                },
+            },
+        };
+        const firstBetaFile = getSortedFileNames(withExtra.notebookPages.beta)[0];
+
+        const next = reduce(withExtra, { type: SELECT_NEXT_PAGE, value: null });
+        expect(next.notebookUserFocus).toMatchObject({ folderName: 'beta', fileName: firstBetaFile });
+
+        const previous = reduce({
+            ...next,
+            notebookUserFocus: { ...next.notebookUserFocus, fileName: extraFile },
+        }, { type: SELECT_PREV_PAGE, value: null });
+        expect(previous.notebookUserFocus.fileName).toBe(getSortedFileNames(previous.notebookPages.alpha)[0]);
+    });
+});
+
 // ---------------------------------------------------------------------------
 // SELECT_NEXT_ENTRY / SELECT_PREV_ENTRY / SELECT_ENTRY
 // ---------------------------------------------------------------------------
@@ -293,6 +329,26 @@ describe('SELECT_ENTRY', () => {
         const state = buildState();
         const next = reduce(state, { type: SELECT_ENTRY, value: 'nope.sql' });
         expect(next).toBe(state);
+    });
+});
+
+describe('SELECT_NOTEBOOK_PATH', () => {
+    it('selects an exact script path and requests a feed scroll', () => {
+        const s0 = buildState();
+        const s1 = reduce(s0, { type: CREATE_PAGE, value: null });
+        const folderName = folderNames(s1)[0];
+        const fileName = getSortedFileNames(s1.notebookPages[folderName])[0];
+        const next = reduce(s1, { type: SELECT_NOTEBOOK_PATH, value: { folderName, fileName } });
+        expect(next.notebookUserFocus).toEqual({ folderName, fileName, interactionCounter: s1.notebookUserFocus.interactionCounter + 1 });
+    });
+
+    it('is a no-op for a file outside the named folder', () => {
+        const s0 = buildState();
+        const s1 = reduce(s0, { type: CREATE_PAGE, value: null });
+        const [firstFolder, secondFolder] = folderNames(s1);
+        const secondFile = getSortedFileNames(s1.notebookPages[secondFolder])[0];
+        const next = reduce(s1, { type: SELECT_NOTEBOOK_PATH, value: { folderName: firstFolder, fileName: secondFile } });
+        expect(next).toBe(s1);
     });
 });
 
@@ -1042,9 +1098,42 @@ function buildScriptState(fileNames: string[]): NotebookState {
 }
 
 describe('REORDER_NOTEBOOK_SCRIPTS', () => {
+    it('is scoped to the named folder rather than the selected folder', () => {
+        const selected = buildScriptState(['1_a.sql', '2_b.sql']);
+        const otherFolder = 'Other';
+        const [firstId, firstData] = createEmptyScriptData(selected.instance, selected.connectionCatalog);
+        const [secondId, secondData] = createEmptyScriptData(selected.instance, selected.connectionCatalog);
+        const state: NotebookState = {
+            ...selected,
+            scripts: {
+                ...selected.scripts,
+                [firstId]: { ...firstData, folderName: otherFolder, fileName: '1_x.sql' },
+                [secondId]: { ...secondData, folderName: otherFolder, fileName: '2_y.sql' },
+            },
+            notebookPages: {
+                ...selected.notebookPages,
+                [otherFolder]: {
+                    folderName: otherFolder,
+                    scripts: {
+                        '1_x.sql': createPageScript(firstId, '1_x.sql'),
+                        '2_y.sql': createPageScript(secondId, '2_y.sql'),
+                    },
+                },
+            },
+        };
+
+        const next = reduce(state, {
+            type: REORDER_NOTEBOOK_SCRIPTS,
+            value: { folderName: otherFolder, fileNames: ['2_y.sql', '1_x.sql'] },
+        });
+        expect(getSortedFileNames(next.notebookPages[otherFolder]).map(scriptDisplayName)).toEqual(['y', 'x']);
+        expect(getSortedFileNames(next.notebookPages[MAIN_FOLDER])).toEqual(['1_a.sql', '2_b.sql']);
+        expect(next.notebookUserFocus).toEqual(state.notebookUserFocus);
+    });
+
     it('assigns dense ordering prefixes that sort to the requested order', () => {
         const state = buildScriptState(['1_a.sql', '2_b.sql', '3_c.sql']);
-        const next = reduce(state, { type: REORDER_NOTEBOOK_SCRIPTS, value: ['3_c.sql', '1_a.sql', '2_b.sql'] });
+        const next = reduce(state, { type: REORDER_NOTEBOOK_SCRIPTS, value: { folderName: MAIN_FOLDER, fileNames: ['3_c.sql', '1_a.sql', '2_b.sql'] } });
         const files = getSortedFileNames(getSelectedPage(next)!);
         expect(files).toEqual(['1_c.sql', '2_a.sql', '3_b.sql']);
         expect(files.map(scriptDisplayName)).toEqual(['c', 'a', 'b']);
@@ -1059,7 +1148,7 @@ describe('REORDER_NOTEBOOK_SCRIPTS', () => {
         expect(s1.scripts[bScriptId].annotations.tableDefs).toContain(`${MAIN_FOLDER}/b`);
 
         // Move b to the front: its prefix changes (2_ -> 1_) but its clean name stays "b".
-        const s2 = reduce(s1, { type: REORDER_NOTEBOOK_SCRIPTS, value: ['2_b.sql', '1_a.sql'] });
+        const s2 = reduce(s1, { type: REORDER_NOTEBOOK_SCRIPTS, value: { folderName: MAIN_FOLDER, fileNames: ['2_b.sql', '1_a.sql'] } });
         const movedFile = getSortedFileNames(getSelectedPage(s2)!)[0];
         expect(scriptDisplayName(movedFile)).toBe('b');
         expect(movedFile).not.toBe(bFile);
@@ -1070,13 +1159,13 @@ describe('REORDER_NOTEBOOK_SCRIPTS', () => {
 
     it('is a no-op when the requested order matches the current feed order', () => {
         const state = buildScriptState(['1_a.sql', '2_b.sql', '3_c.sql']);
-        const next = reduce(state, { type: REORDER_NOTEBOOK_SCRIPTS, value: ['1_a.sql', '2_b.sql', '3_c.sql'] });
+        const next = reduce(state, { type: REORDER_NOTEBOOK_SCRIPTS, value: { folderName: MAIN_FOLDER, fileNames: ['1_a.sql', '2_b.sql', '3_c.sql'] } });
         expect(next).toBe(state);
     });
 
     it('appends omitted files after the requested ones without dropping any', () => {
         const state = buildScriptState(['1_a.sql', '2_b.sql', '3_c.sql']);
-        const next = reduce(state, { type: REORDER_NOTEBOOK_SCRIPTS, value: ['3_c.sql'] });
+        const next = reduce(state, { type: REORDER_NOTEBOOK_SCRIPTS, value: { folderName: MAIN_FOLDER, fileNames: ['3_c.sql'] } });
         const files = getSortedFileNames(getSelectedPage(next)!);
         expect(files.map(scriptDisplayName)).toEqual(['c', 'a', 'b']);
     });
@@ -1085,14 +1174,14 @@ describe('REORDER_NOTEBOOK_SCRIPTS', () => {
         const state = buildScriptState(['1_a.sql', '2_b.sql', '3_c.sql']);
         const s1 = reduce(state, { type: SELECT_ENTRY, value: '3_c.sql' });
         expect(s1.notebookUserFocus.fileName).toBe('3_c.sql');
-        const s2 = reduce(s1, { type: REORDER_NOTEBOOK_SCRIPTS, value: ['3_c.sql', '1_a.sql', '2_b.sql'] });
+        const s2 = reduce(s1, { type: REORDER_NOTEBOOK_SCRIPTS, value: { folderName: MAIN_FOLDER, fileNames: ['3_c.sql', '1_a.sql', '2_b.sql'] } });
         expect(scriptDisplayName(s2.notebookUserFocus.fileName)).toBe('c');
         expect(getSelectedPage(s2)!.scripts[s2.notebookUserFocus.fileName]).toBeDefined();
     });
 
     it('normalises legacy hyphen-separated names to the "_" form on reorder', () => {
         const state = buildScriptState(['01-a.sql', '02-b.sql']);
-        const next = reduce(state, { type: REORDER_NOTEBOOK_SCRIPTS, value: ['02-b.sql', '01-a.sql'] });
+        const next = reduce(state, { type: REORDER_NOTEBOOK_SCRIPTS, value: { folderName: MAIN_FOLDER, fileNames: ['02-b.sql', '01-a.sql'] } });
         const files = getSortedFileNames(getSelectedPage(next)!);
         expect(files).toEqual(['1_b.sql', '2_a.sql']);
     });
@@ -1100,7 +1189,7 @@ describe('REORDER_NOTEBOOK_SCRIPTS', () => {
     it('is a no-op when there is no selected page', () => {
         const state = buildScriptState(['1_a.sql']);
         const headless: NotebookState = { ...state, notebookPages: {}, notebookUserFocus: { folderName: '', fileName: '', interactionCounter: 0 } };
-        const next = reduce(headless, { type: REORDER_NOTEBOOK_SCRIPTS, value: ['1_a.sql'] });
+        const next = reduce(headless, { type: REORDER_NOTEBOOK_SCRIPTS, value: { folderName: MAIN_FOLDER, fileNames: ['1_a.sql'] } });
         expect(next).toBe(headless);
     });
 
@@ -1114,7 +1203,7 @@ describe('REORDER_NOTEBOOK_SCRIPTS', () => {
         const state = buildScriptState(['1_script.sql', '2_script.sql']);
         const next = reduceNotebookState(
             state,
-            { type: REORDER_NOTEBOOK_SCRIPTS, value: ['2_script.sql', '1_script.sql'] },
+            { type: REORDER_NOTEBOOK_SCRIPTS, value: { folderName: MAIN_FOLDER, fileNames: ['2_script.sql', '1_script.sql'] } },
             recorder,
             logger,
             true,
@@ -1206,7 +1295,10 @@ describe('clean-name script references', () => {
 
         // Reorder so "a" moves to the bottom (its prefix changes), then re-analyze the vis script.
         const order = getSortedFileNames(getSelectedPage(s2)!).filter(f => scriptDisplayName(f) !== 'a');
-        const s3 = reduce(s2, { type: REORDER_NOTEBOOK_SCRIPTS, value: [...order, '1_a.sql'] });
+        const s3 = reduce(s2, {
+            type: REORDER_NOTEBOOK_SCRIPTS,
+            value: { folderName: MAIN_FOLDER, fileNames: [...order, '1_a.sql'] },
+        });
         const visFileAfter = getSortedFileNames(getSelectedPage(s3)!).find(f => getSelectedPage(s3)!.scripts[f].scriptId === visId)!;
         const s4 = reduce(s3, { type: SET_SCRIPT_TEXT, value: { scriptKey: visId, text: s3.scripts[visId].script.toString() } });
         // The reference still resolves because it points at the stable clean name "Main/a".

@@ -1,34 +1,27 @@
 import * as React from 'react';
 import * as styles from './notebook_page.module.css';
 
-import { DatabaseIcon, PaperAirplaneIcon, SparklesFillIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
+import { ThreeBarsIcon } from '@primer/octicons-react';
 
-import * as ActionList from '../foundations/action_list.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
-import { ConnectionStatus } from '../connection/connection_status.js';
 import { ConnectionSettingsOverlay } from '../connection/connection_settings_overlay.js';
-import { ButtonGroup } from '../foundations/button_group.js';
 import { ButtonVariant, IconButton } from '../foundations/button.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
-import { CREATE_PAGE, REORDER_PAGES, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE, UPDATE_PAGE_FOLDER_NAME, getSortedFolderNames } from '../../notebook/notebook_state.js';
-import { normalizePageName } from '../../notebook/notebook_types.js';
-import { COMPOSE_INPUT_MODE_SQL, NotebookCommandType, useComposeInputMode, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
-import { useAIClient } from '../../platform/ai_client_provider.js';
-import { DragEndEvent } from '@dnd-kit/core';
-import { arrayMove } from '@dnd-kit/sortable';
+import { CREATE_PAGE, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_NOTEBOOK_PATH, SELECT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE, getSortedFolderNames } from '../../notebook/notebook_state.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH, CHANGE_SESSION } from '../../router.js';
 
 import { CatalogSchemaView } from './catalog_schema_view.js';
 import { CatalogFunctionsView } from './catalog_functions_view.js';
-import { ConnectionCommandList, NotebookCommandList } from './notebook_command_lists.js';
 import { NotebookScriptDetails, TabKey as DetailsTabKey } from './notebook_script_details.js';
 import { NotebookScriptFeed } from './notebook_script_feed.js';
-import { isCatalogRefreshRunning } from '../../connection/catalog_update_state.js';
-import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
-import { CatalogTab, NotebookPageTabs } from './notebook_page_tabs.js';
+import { NotebookFileTree, type NotebookFileTreeCatalogTab as CatalogTab, type NotebookFileTreeNavigationLevel } from './notebook_file_tree.js';
+import { NotebookActionMenu } from './notebook_action_menu.js';
+import { NotebookNavigationDrawer } from './notebook_navigation_drawer.js';
+import { NotebookConnectionSection } from './notebook_connection_section.js';
+import { prepareForNotebookTreeNavigation } from './notebook_navigation_keyboard.js';
 
 const LOG_CTX = 'notebook_page';
 
@@ -52,79 +45,20 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const [detailsInitialTab, setDetailsInitialTab] = React.useState<DetailsTabKey | undefined>(undefined);
     const [feedScrollTarget, setFeedScrollTarget] = React.useState<FeedScrollTarget | null>(null);
     const [catalogTab, setCatalogTab] = React.useState<CatalogTab | null>(null);
-    const [editingFolder, setEditingFolder] = React.useState<string | null>(null);
-    const [editingPageTitle, setEditingPageTitle] = React.useState<string>("");
-    const editInputRef = React.useRef<HTMLInputElement>(null);
-    const connectionStatusRef = React.useRef<HTMLButtonElement>(null);
-
-    const sessionCommand = useNotebookCommandDispatch();
-    const { mode: composeInputMode } = useComposeInputMode();
-    const aiAvailable = useAIClient() != null;
+    const [navigationDrawerOpen, setNavigationDrawerOpen] = React.useState(false);
+    const [treeNavigationLevel, setTreeNavigationLevel] = React.useState<NotebookFileTreeNavigationLevel>('scripts');
+    const navigationDrawerTriggerRef = React.useRef<HTMLButtonElement>(null);
+    const connectionSettingsAnchorRef = React.useRef<HTMLButtonElement>(null);
     const requestFeedScroll = React.useCallback((fileName: string) => {
         setFeedScrollTarget(prev => ({
             fileName,
             version: (prev?.version ?? 0) + 1,
         }));
     }, []);
+    const lastScrolledFolderRef = React.useRef(notebook?.notebookUserFocus.folderName ?? '');
     const restoreSelectedFeedScroll = React.useCallback(() => {
         requestFeedScroll(notebook?.notebookUserFocus.fileName ?? '');
     }, [notebook?.notebookUserFocus.fileName, requestFeedScroll]);
-
-    const handlePageDragEnd = React.useCallback((event: DragEndEvent) => {
-        const { active, over } = event;
-        if (notebook == null || over == null || active.id === over.id) return;
-        const folders = getSortedFolderNames(notebook.notebookPages);
-        const fromIndex = folders.indexOf(String(active.id));
-        const toIndex = folders.indexOf(String(over.id));
-        if (fromIndex < 0 || toIndex < 0) return;
-        const reordered = arrayMove(folders, fromIndex, toIndex);
-        modifyNotebook({ type: REORDER_PAGES, value: reordered });
-    }, [notebook, modifyNotebook]);
-
-    const startEditingPage = React.useCallback((folderName: string, currentTitle: string, event: React.MouseEvent) => {
-        event.stopPropagation();
-        setEditingFolder(folderName);
-        setEditingPageTitle(currentTitle);
-    }, []);
-
-    const savePageEdit = React.useCallback(() => {
-        if (editingFolder === null) return;
-
-        const page = notebook?.notebookPages[editingFolder];
-        if (page) {
-            // Update the page's folder name
-            modifyNotebook({
-                type: UPDATE_PAGE_FOLDER_NAME,
-                value: { folderName: editingFolder, newFolderName: editingPageTitle.trim() || 'Untitled' }
-            });
-        }
-
-        setEditingFolder(null);
-        setEditingPageTitle("");
-    }, [editingFolder, editingPageTitle, notebook, modifyNotebook]);
-
-    const cancelPageEdit = React.useCallback(() => {
-        setEditingFolder(null);
-        setEditingPageTitle("");
-    }, []);
-
-    const handleEditKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            savePageEdit();
-        } else if (event.key === 'Escape') {
-            event.preventDefault();
-            cancelPageEdit();
-        }
-    }, [savePageEdit, cancelPageEdit]);
-
-    // Focus input when entering edit mode
-    React.useEffect(() => {
-        if (editingFolder !== null && editInputRef.current) {
-            editInputRef.current.focus();
-            editInputRef.current.select();
-        }
-    }, [editingFolder]);
 
     const keyHandlers = React.useMemo<KeyEventHandler[]>(
         () => [
@@ -132,7 +66,6 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 key: 'Escape',
                 ctrlKey: false,
                 callback: () => {
-                    if (editingFolder !== null) return;
                     if (catalogTab != null) {
                         setCatalogTab(null);
                         setShowDetails(false);
@@ -157,69 +90,50 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     navigate({ type: CHANGE_SESSION, value: null });
                 },
             },
-            // Tab navigation across the combined bar: [page tabs..., relations, functions].
-            // The meta tabs (relations/functions) only exist when a connection is present, so they
-            // are only reachable then. Stepping past the last page tab jumps to the first meta tab,
-            // and stepping left off the first meta tab returns to the last page tab.
             {
                 key: 'l',
                 ctrlKey: true,
-                callback: () => {
-                    if ((showDetails && catalogTab == null) || editingFolder !== null || notebook == null) return;
-                    if (catalogTab === 'functions') return; // already the right-most tab
-                    if (catalogTab === 'relations') { setCatalogTab('functions'); return; }
-                    // Currently on a page tab; step into the meta tabs only from the last page.
-                    const folders = getSortedFolderNames(notebook.notebookPages);
-                    const cur = folders.indexOf(notebook.notebookUserFocus.folderName);
-                    if (conn && folders.length > 0 && cur === folders.length - 1) {
-                        setCatalogTab('relations');
-                        setShowDetails(true);
-                        return;
-                    }
-                    modifyNotebook({ type: SELECT_NEXT_PAGE, value: null });
+                callback: (event) => {
+                    if (showDetails || catalogTab != null || notebook == null) return;
+                    prepareForNotebookTreeNavigation(event);
+                    setTreeNavigationLevel('scripts');
                 },
             },
             {
                 key: 'h',
                 ctrlKey: true,
-                callback: () => {
-                    if ((showDetails && catalogTab == null) || editingFolder !== null || notebook == null) return;
-                    if (catalogTab === 'functions') { setCatalogTab('relations'); return; }
-                    if (catalogTab === 'relations') {
-                        // Stepping left off the first meta tab lands on the last page tab.
-                        const folders = getSortedFolderNames(notebook.notebookPages);
-                        setCatalogTab(null);
-                        setShowDetails(false);
-                        const last = folders[folders.length - 1];
-                        if (last != null && last !== notebook.notebookUserFocus.folderName) {
-                            modifyNotebook({ type: SELECT_PAGE, value: last });
-                        }
-                        return;
-                    }
-                    modifyNotebook({ type: SELECT_PREV_PAGE, value: null });
+                callback: (event) => {
+                    if (showDetails || catalogTab != null || notebook == null) return;
+                    prepareForNotebookTreeNavigation(event);
+                    setTreeNavigationLevel('folders');
                 },
             },
-            // Feed navigation: step the selected entry within the current page. Only meaningful
-            // when the feed is showing, so it is a no-op while a meta tab is open or a page title
-            // is being edited (mirrors the page-bar handlers above).
             {
                 key: 'j',
                 ctrlKey: true,
-                callback: () => {
-                    if (showDetails || editingFolder !== null || catalogTab != null || notebook == null) return;
-                    modifyNotebook({ type: SELECT_NEXT_ENTRY, value: null });
+                callback: (event) => {
+                    if (showDetails || catalogTab != null || notebook == null) return;
+                    prepareForNotebookTreeNavigation(event);
+                    modifyNotebook({
+                        type: treeNavigationLevel === 'folders' ? SELECT_NEXT_PAGE : SELECT_NEXT_ENTRY,
+                        value: null,
+                    });
                 },
             },
             {
                 key: 'k',
                 ctrlKey: true,
-                callback: () => {
-                    if (showDetails || editingFolder !== null || catalogTab != null || notebook == null) return;
-                    modifyNotebook({ type: SELECT_PREV_ENTRY, value: null });
+                callback: (event) => {
+                    if (showDetails || catalogTab != null || notebook == null) return;
+                    prepareForNotebookTreeNavigation(event);
+                    modifyNotebook({
+                        type: treeNavigationLevel === 'folders' ? SELECT_PREV_PAGE : SELECT_PREV_ENTRY,
+                        value: null,
+                    });
                 },
             },
         ],
-        [catalogTab, showDetails, editingFolder, notebook, modifyNotebook, navigate, conn],
+        [catalogTab, showDetails, notebook, modifyNotebook, navigate, treeNavigationLevel],
     );
     useKeyEvents(keyHandlers);
 
@@ -241,7 +155,10 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
         if (showDetails || notebook == null) {
             return;
         }
-        requestFeedScroll(notebook.notebookUserFocus.fileName);
+        const folderName = notebook.notebookUserFocus.folderName;
+        const folderChanged = folderName !== lastScrolledFolderRef.current;
+        lastScrolledFolderRef.current = folderName;
+        requestFeedScroll(folderChanged ? '' : notebook.notebookUserFocus.fileName);
     }, [notebook?.notebookUserFocus.interactionCounter, requestFeedScroll, showDetails]);
 
     React.useEffect(() => {
@@ -263,105 +180,101 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     if (route.sessionId === null || notebook == null) {
         return <div />;
     }
-    const isDisconnected = conn?.connectionHealth !== ConnectionHealth.ONLINE;
-    const isRefreshing = isCatalogRefreshRunning(conn ?? null);
     // The feed sits below the catalog/details overlay and is the visible, interactive layer only
     // when neither a catalog tab nor the details view is open. While hidden it must not react to the
     // global feed key handlers (Enter/Escape/…), so this flag is threaded down to gate them.
     const feedActive = catalogTab == null && !showDetails;
-    const folders = getSortedFolderNames(notebook.notebookPages);
-    const selectedFolderIndex = Math.max(0, folders.indexOf(notebook.notebookUserFocus.folderName));
-    const activeTabId = catalogTab == null
-        ? `notebook-page-tab-${selectedFolderIndex}`
-        : `notebook-catalog-tab-${catalogTab}`;
+    const selectFolder = (folderName: string) => {
+        const isSelected = catalogTab == null && folderName === notebook.notebookUserFocus.folderName;
+        setCatalogTab(null);
+        if (!isSelected) modifyNotebook({ type: SELECT_PAGE, value: folderName });
+        setShowDetails(false);
+        setDetailsScriptId(undefined);
+        setDetailsInitialTab(undefined);
+    };
+    const selectScript = (folderName: string, fileName: string) => {
+        setCatalogTab(null);
+        setShowDetails(false);
+        setDetailsScriptId(undefined);
+        setDetailsInitialTab(undefined);
+        modifyNotebook({ type: SELECT_NOTEBOOK_PATH, value: { folderName, fileName } });
+    };
+    const selectCatalog = (tab: CatalogTab) => {
+        if (showDetails && catalogTab == null) return;
+        setCatalogTab(tab);
+        setShowDetails(true);
+    };
+    const selectPreviousTreeItem = () => modifyNotebook({
+        type: treeNavigationLevel === 'folders' ? SELECT_PREV_PAGE : SELECT_PREV_ENTRY,
+        value: null,
+    });
+    const selectNextTreeItem = () => modifyNotebook({
+        type: treeNavigationLevel === 'folders' ? SELECT_NEXT_PAGE : SELECT_NEXT_ENTRY,
+        value: null,
+    });
+    const fileTree = (closeAfterSelection: boolean) => (
+        <div className={styles.file_navigation}>
+            <NotebookConnectionSection
+                conn={conn ?? null}
+                notebook={notebook}
+                onOpenSettings={(anchor) => {
+                    connectionSettingsAnchorRef.current = anchor;
+                    setConnectionOverlayOpen(true);
+                }}
+                actions={(
+                    <NotebookActionMenu
+                        conn={conn ?? null}
+                        notebook={notebook}
+                        modifyNotebook={modifyNotebook}
+                        navigationDisabled={showDetails}
+                        navigationLevel={treeNavigationLevel}
+                        onSelectFolderLevel={() => setTreeNavigationLevel('folders')}
+                        onSelectScriptLevel={() => setTreeNavigationLevel('scripts')}
+                        onSelectPreviousTreeItem={selectPreviousTreeItem}
+                        onSelectNextTreeItem={selectNextTreeItem}
+                        listItem
+                    />
+                )}
+            />
+            <NotebookFileTree
+                notebook={notebook}
+                modifyNotebook={modifyNotebook}
+                catalogTab={catalogTab}
+                navigationLevel={treeNavigationLevel}
+                showCatalogEntries={conn != null}
+                onSelectFolder={(folderName) => {
+                    setTreeNavigationLevel('scripts');
+                    selectFolder(folderName);
+                    if (closeAfterSelection) setNavigationDrawerOpen(false);
+                }}
+                onSelectScript={(folderName, fileName) => {
+                    selectScript(folderName, fileName);
+                    if (closeAfterSelection) setNavigationDrawerOpen(false);
+                }}
+                onSelectCatalog={(tab) => {
+                    selectCatalog(tab);
+                    if (closeAfterSelection) setNavigationDrawerOpen(false);
+                }}
+                onAddFolder={() => {
+                    if (showDetails && catalogTab == null) return;
+                    modifyNotebook({ type: CREATE_PAGE, value: null });
+                    setCatalogTab(null);
+                    setShowDetails(false);
+                }}
+            />
+        </div>
+    );
     return (
         <div className={styles.page}>
-            <div className={styles.header_container} data-tauri-drag-region="deep">
-                <div className={styles.header_left_container}>
-                    <div className={styles.page_title}>Notebook</div>
-                </div>
-                <div className={styles.header_right_container}>
-                    {conn && <ConnectionStatus conn={conn} sessionId={route.sessionId} onClick={() => setConnectionOverlayOpen(true)} compact />}
-                </div>
-                <div className={styles.header_action_container}>
-                    <div>
-                        <ButtonGroup>
-                            {catalogTab == null && (
-                                <IconButton
-                                    className={styles.header_focus_action}
-                                    variant={ButtonVariant.Default}
-                                    aria-label="Execute Script"
-                                    disabled={showDetails || isDisconnected}
-                                    onClick={() => sessionCommand(NotebookCommandType.ExecuteEditorQuery)}
-                                >
-                                    <PaperAirplaneIcon />
-                                </IconButton>
-                            )}
-                            <IconButton
-                                className={styles.header_refresh_action}
-                                variant={ButtonVariant.Default}
-                                aria-label={isRefreshing ? 'Refreshing Schema' : 'Refresh Schema'}
-                                aria-busy={isRefreshing}
-                                disabled={isDisconnected || isRefreshing || !conn?.connectorInfo.features.refreshSchemaAction}
-                                onClick={() => sessionCommand(NotebookCommandType.RefreshCatalog)}
-                            >
-                                {isRefreshing
-                                    ? <StatusIndicator status={IndicatorStatus.Running} width="16px" height="16px" fill="currentColor" />
-                                    : <SyncIcon />}
-                            </IconButton>
-                            <IconButton
-                                className={styles.header_focus_action}
-                                variant={ButtonVariant.Default}
-                                aria-label={composeInputMode === COMPOSE_INPUT_MODE_SQL ? 'Switch to AI Mode' : 'Switch to SQL Mode'}
-                                disabled={!aiAvailable}
-                                onClick={() => sessionCommand(NotebookCommandType.ToggleComposeInputMode)}
-                            >
-                                {composeInputMode === COMPOSE_INPUT_MODE_SQL ? <DatabaseIcon /> : <SparklesFillIcon />}
-                            </IconButton>
-                        </ButtonGroup>
-                    </div>
-                    <IconButton variant={ButtonVariant.Default} aria-label="Open Notebook Actions">
-                        <ThreeBarsIcon />
-                    </IconButton>
-                </div>
-            </div>
-            <div className={styles.page_tabs_container}>
-                <NotebookPageTabs
-                    folders={folders}
-                    getLabel={(folderName) => normalizePageName(folderName) || 'Untitled'}
-                    selectedFolderName={notebook.notebookUserFocus.folderName}
-                    editingFolder={editingFolder}
-                    editingPageTitle={editingPageTitle}
-                    editInputRef={editInputRef}
-                    catalogTab={catalogTab}
-                    showCatalogTabs={conn != null}
-                    onSelectPage={(folderName) => {
-                        const isSelected = catalogTab == null && folderName === notebook.notebookUserFocus.folderName;
-                        setCatalogTab(null);
-                        if (!isSelected) modifyNotebook({ type: SELECT_PAGE, value: folderName });
-                        setShowDetails(false);
-                        setDetailsScriptId(undefined);
-                        setDetailsInitialTab(undefined);
-                    }}
-                    onAddPage={() => {
-                        if (showDetails) return;
-                        modifyNotebook({ type: CREATE_PAGE, value: null });
-                        setCatalogTab(null);
-                        setShowDetails(false);
-                    }}
-                    onSelectCatalog={(tab) => {
-                        if (showDetails && catalogTab == null) return;
-                        setCatalogTab(tab);
-                        setShowDetails(true);
-                    }}
-                    onReorderPages={handlePageDragEnd}
-                    onStartEditing={startEditingPage}
-                    onEditingTitleChange={setEditingPageTitle}
-                    onSavePageEdit={savePageEdit}
-                    onEditKeyDown={handleEditKeyDown}
-                />
-            </div>
-            <div className={styles.body_container} id="notebook-body" role="tabpanel" aria-labelledby={activeTabId}>
+            <header className={styles.mobile_header} data-tauri-drag-region="deep">
+                <IconButton ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open notebook navigation" onClick={() => setNavigationDrawerOpen(true)}>
+                    <ThreeBarsIcon />
+                </IconButton>
+            </header>
+            <aside className={styles.navigation_sidebar}>
+                {fileTree(false)}
+            </aside>
+            <main className={styles.body_container} id="notebook-body">
                 {/*
                     The feed stays permanently mounted underneath the catalog/details overlay rather
                     than being swapped out by the ternary below. Opening Details used to unmount it and
@@ -383,33 +296,17 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                                 ? <NotebookScriptDetails notebook={notebook} modifyNotebook={modifyNotebook} connection={conn} hideDetails={() => { setShowDetails(false); setDetailsScriptId(undefined); setDetailsInitialTab(undefined); }} scriptId={detailsScriptId} initialTab={detailsInitialTab} />
                                 : null
                 }
-            </div>
-            <div className={styles.action_sidebar} data-tauri-drag-region="deep">
-                <div className={styles.action_sidebar_body}>
-                    <ActionList.List aria-label="Actions">
-                        <ActionList.GroupHeading>Connection</ActionList.GroupHeading>
-                        <ConnectionCommandList
-                            conn={conn ?? null}
-                            notebook={notebook}
-                            navigationDisabled={showDetails}
-                            onOpenSettings={() => setConnectionOverlayOpen(true)}
-                            settingsRef={connectionStatusRef}
-                        />
-                        <ActionList.GroupHeading>Notebook</ActionList.GroupHeading>
-                        <NotebookCommandList
-                            conn={conn ?? null}
-                            notebook={notebook}
-                            modifyNotebook={modifyNotebook}
-                            navigationDisabled={showDetails}
-                        />
-                    </ActionList.List>
-                </div>
-            </div>
+            </main>
+            {navigationDrawerOpen && (
+                <NotebookNavigationDrawer open onClose={() => setNavigationDrawerOpen(false)} returnFocusRef={navigationDrawerTriggerRef}>
+                    {fileTree(true)}
+                </NotebookNavigationDrawer>
+            )}
             <ConnectionSettingsOverlay
                 sessionId={route.sessionId}
                 isOpen={connectionOverlayOpen}
                 onClose={() => setConnectionOverlayOpen(false)}
-                anchorRef={connectionStatusRef}
+                anchorRef={connectionSettingsAnchorRef}
             />
         </div>
     );

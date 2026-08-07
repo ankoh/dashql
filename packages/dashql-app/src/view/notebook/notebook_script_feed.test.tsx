@@ -344,6 +344,7 @@ describe('NotebookScriptFeed', () => {
         expect(list.style.scrollbarGutter).toBe('stable');
         expect(list.style.overflowX).toBe('hidden');
         expect(list.style.getPropertyValue('--feed-scrollbar-inset')).toBe('17px');
+        expect(list.parentElement?.parentElement?.style.getPropertyValue('--feed-scrollbar-inset')).toBe('17px');
         if (composer == null) throw new Error('missing draft composer');
         expect(composer.style.right).toBe('');
     });
@@ -634,7 +635,7 @@ describe('NotebookScriptFeed', () => {
 
         expect(modifyNotebook).toHaveBeenCalledWith({
             type: REORDER_NOTEBOOK_SCRIPTS,
-            value: ['02-script.sql', '01-script.sql'],
+            value: { folderName: 'Main', fileNames: ['02-script.sql', '01-script.sql'] },
         });
     });
 
@@ -825,6 +826,21 @@ describe('NotebookScriptFeed', () => {
             index: 2,
             align: 'start',
         });
+    });
+
+    it('scrolls to the top when a folder navigation requests page zero', () => {
+        const notebook = createNotebookState();
+        renderFeed({ notebook, modifyNotebook: vi.fn(), showDetails: vi.fn(), scrollTarget: null });
+        mockState.scrollToRowMock.mockClear();
+
+        renderFeed({
+            notebook,
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: { fileName: '', version: 1 },
+        });
+
+        expect(mockState.scrollToRowMock).toHaveBeenCalledWith({ index: 0, align: 'start' });
     });
 
     it('memoizes measured dynamic heights by script', () => {
@@ -1277,7 +1293,7 @@ describe('NotebookScriptFeed', () => {
         expect(modifyNotebook).toHaveBeenCalledWith({ type: REJECT_PENDING_DIFF, value: 101 });
     });
 
-    it('opens details on plain Enter when the focused entry has no pending rewrite', () => {
+    it('does nothing on plain Enter when the focused entry has no pending rewrite', () => {
         const modifyNotebook = vi.fn();
         const showDetails = vi.fn();
         renderFeed({
@@ -1295,8 +1311,8 @@ describe('NotebookScriptFeed', () => {
             handler!.callback({ preventDefault } as unknown as KeyboardEvent);
         });
 
-        expect(preventDefault).toHaveBeenCalledTimes(1);
-        expect(showDetails).toHaveBeenCalledWith('01-script.sql');
+        expect(preventDefault).not.toHaveBeenCalled();
+        expect(showDetails).not.toHaveBeenCalled();
         expect(modifyNotebook).not.toHaveBeenCalledWith(expect.objectContaining({ type: ACCEPT_PENDING_DIFF }));
     });
 

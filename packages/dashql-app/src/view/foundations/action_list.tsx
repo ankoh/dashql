@@ -3,48 +3,41 @@ import * as React from "react";
 import * as styles from "./action_list.module.css";
 import { classNames } from '../../utils/classnames.js';
 
-export interface ListProps {
+export interface ListProps extends React.HTMLAttributes<HTMLDivElement> {
     children?: React.ReactElement | React.ReactElement[];
     leading?: boolean;
     trailing?: boolean;
 }
 
 export function List(props: ListProps) {
+    const { children, className, leading: _leading, trailing: _trailing, ...rest } = props;
     return (
-        <div className={styles.list_container}>
-            {props.children}
+        <div {...rest} className={classNames(styles.list_container, className)}>
+            {children}
         </div>
     );
 }
 
-export interface ListItemProps {
-    className?: string;
+export interface ListItemProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     children?: React.ReactElement | React.ReactElement[];
-    onClick?: (ev: React.MouseEvent) => void;
-    disabled?: boolean;
     selected?: boolean;
     'data-item'?: string;
-    tabIndex?: number;
-    'aria-busy'?: boolean;
 }
 
 export const ListItem = React.forwardRef<HTMLButtonElement, ListItemProps>((props, ref) => {
+    const { children, className, selected, ...rest } = props;
     return (
         <button
+            {...rest}
             ref={ref}
             type="button"
-            className={classNames(styles.item_container, props.className, {
+            className={classNames(styles.item_container, className, {
                 [styles.disabled]: props.disabled,
-                [styles.selected]: props.selected
+                [styles.selected]: selected
             })}
-            disabled={props.disabled}
-            onClick={props.onClick}
-            data-item={props['data-item']}
-            tabIndex={props.tabIndex}
-            aria-selected={props.selected}
-            aria-busy={props['aria-busy']}
+            aria-selected={selected}
         >
-            {props.children}
+            {children}
         </button>
     );
 });

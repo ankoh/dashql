@@ -1,0 +1,172 @@
+import * as React from 'react';
+import { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+
+import { fakeButtonModule, fakeSymbolIconModule } from '../../test/view_mocks.js';
+
+vi.mock('../foundations/button.js', async () => fakeButtonModule(await import('react')));
+vi.mock('../foundations/symbol_icon.js', async () => fakeSymbolIconModule(await import('react')));
+
+import {
+    type NotebookStateAction,
+    type NotebookState,
+} from '../../notebook/notebook_state.js';
+import { NotebookFileTree } from './notebook_file_tree.js';
+
+function createNotebook(): NotebookState {
+    return {
+        notebookPages: {
+            '1_main': {
+                folderName: '1_main',
+                scripts: {
+                    '1_query.sql': { scriptId: 1, fileName: '1_query.sql' },
+                    '2_report.sql': { scriptId: 2, fileName: '2_report.sql' },
+                },
+            },
+            '2_archive': {
+                folderName: '2_archive',
+                scripts: {
+                    '1_old.sql': { scriptId: 3, fileName: '1_old.sql' },
+                },
+            },
+        },
+        scripts: {
+            1: { annotations: { visualizeQuery: null } },
+            2: { annotations: { visualizeQuery: {} } },
+            3: { annotations: { visualizeQuery: null } },
+        },
+        notebookUserFocus: {
+            folderName: '1_main',
+            fileName: '1_query.sql',
+            interactionCounter: 0,
+        },
+    } as unknown as NotebookState;
+}
+
+describe('NotebookFileTree', () => {
+    let container: HTMLDivElement;
+    let root: Root;
+    let modifyNotebook: ReturnType<typeof vi.fn<(action: NotebookStateAction) => void>>;
+    let onSelectFolder: ReturnType<typeof vi.fn<(folder: string) => void>>;
+    let onSelectScript: ReturnType<typeof vi.fn<(folder: string, file: string) => void>>;
+    let onSelectCatalog: ReturnType<typeof vi.fn<(tab: 'relations' | 'functions') => void>>;
+    let onAddFolder: ReturnType<typeof vi.fn<() => void>>;
+
+    beforeEach(() => {
+        container = document.createElement('div');
+        document.body.appendChild(container);
+        root = createRoot(container);
+        modifyNotebook = vi.fn();
+        onSelectFolder = vi.fn();
+        onSelectScript = vi.fn();
+        onSelectCatalog = vi.fn();
+        onAddFolder = vi.fn();
+    });
+
+    afterEach(() => {
+        act(() => root.unmount());
+        container.remove();
+    });
+
+    function render(catalogTab: 'relations' | 'functions' | null = null, navigationLevel: 'folders' | 'scripts' = 'scripts') {
+        act(() => {
+            root.render(
+                <NotebookFileTree
+                    notebook={createNotebook()}
+                    modifyNotebook={modifyNotebook}
+                    catalogTab={catalogTab}
+                    navigationLevel={navigationLevel}
+                    showCatalogEntries
+                    onSelectFolder={onSelectFolder}
+                    onSelectScript={onSelectScript}
+                    onSelectCatalog={onSelectCatalog}
+                    onAddFolder={onAddFolder}
+                />,
+            );
+        });
+    }
+
+    it('pins catalog entries below folders and shows only the selected folder scripts', () => {
+        render();
+
+        expect(container.querySelector('nav')?.getAttribute('aria-label')).toBe('Notebook files');
+        expect(container.textContent?.indexOf('Relations')).toBeGreaterThan(container.textContent!.indexOf('archive'));
+        expect(container.textContent).toContain('query');
+        expect(container.textContent).toContain('report');
+        expect(Array.from(container.querySelectorAll('button')).some(candidate => candidate.textContent === 'old')).toBe(false);
+        expect(container.querySelector('[aria-label="Reorder Relations"]')).toBeNull();
+
+        const folderButtons = Array.from(container.querySelectorAll('button'));
+        act(() => folderButtons.find(candidate => candidate.textContent === 'archive')?.click());
+        expect(onSelectFolder).toHaveBeenCalledWith('2_archive');
+
+        act(() => folderButtons.find(candidate => candidate.textContent === 'report')?.click());
+        expect(onSelectScript).toHaveBeenCalledWith('1_main', '2_report.sql');
+
+        act(() => folderButtons.find(candidate => candidate.textContent === 'Relations')?.click());
+        expect(onSelectCatalog).toHaveBeenCalledWith('relations');
+    });
+
+    it('collapses and expands the selected folder when clicked again', () => {
+        render();
+        const main = Array.from(container.querySelectorAll('button')).find(candidate => candidate.textContent === 'main')!;
+
+        act(() => main.click());
+        expect(Array.from(container.querySelectorAll('button')).some(candidate => candidate.textContent === 'query')).toBe(false);
+        expect(main.getAttribute('aria-expanded')).toBe('false');
+
+        act(() => main.click());
+        expect(Array.from(container.querySelectorAll('button')).some(candidate => candidate.textContent === 'query')).toBe(true);
+        expect(main.getAttribute('aria-expanded')).toBe('true');
+        expect(onSelectFolder).not.toHaveBeenCalled();
+    });
+
+    it('collapses at folder level and expands at script level', () => {
+        render(null, 'folders');
+        expect(Array.from(container.querySelectorAll('button')).some(candidate => candidate.textContent === 'query')).toBe(false);
+
+        render(null, 'scripts');
+        expect(Array.from(container.querySelectorAll('button')).some(candidate => candidate.textContent === 'query')).toBe(true);
+    });
+
+    it('uses shared draggable rows without separate item action controls', () => {
+        render();
+
+        expect(container.querySelector('[aria-label^="Rename "]')).toBeNull();
+        expect(container.querySelector('[aria-label^="Move "]')).toBeNull();
+        expect(container.querySelector('[aria-label^="Reorder "]')).toBeNull();
+    });
+
+    it('does not start or reorder a drag from the keyboard', () => {
+        render();
+        const main = Array.from(container.querySelectorAll('button')).find(candidate => candidate.textContent === 'main')!;
+
+        act(() => {
+            main.focus();
+            main.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+            main.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+            main.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+        });
+
+        expect(modifyNotebook).not.toHaveBeenCalled();
+    });
+
+    it('marks only the active catalog entry as current', () => {
+        render('relations');
+
+        const currentButtons = container.querySelectorAll('button[aria-current="page"]');
+        expect(currentButtons).toHaveLength(1);
+        expect(currentButtons[0].textContent).toBe('Relations');
+    });
+
+    it('includes Add Folder', () => {
+        render();
+
+        const addFolder = Array.from(container.querySelectorAll('button')).find(candidate => candidate.textContent === 'Add Folder')!;
+        act(() => addFolder.click());
+        expect(onAddFolder).toHaveBeenCalledOnce();
+    });
+});

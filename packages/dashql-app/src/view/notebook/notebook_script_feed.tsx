@@ -66,7 +66,8 @@ export interface NotebookScriptListProps {
 const ESTIMATED_ROW_HEIGHT = 240;
 const HEIGHT_CHANGE_EPSILON = 0.5;
 const OVERSCAN_ROW_COUNT = 16;
-const FEED_EDGE_PADDING = 8;
+const FEED_TOP_PADDING = 8;
+const FEED_BOTTOM_PADDING = 8;
 const FEED_BOTTOM_FADE_HEIGHT = 24;
 
 interface ScriptPreviewHint {
@@ -855,7 +856,10 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         const to = from + delta;
         if (from < 0 || to < 0 || to >= order.length) return;
         [order[from], order[to]] = [order[to], order[from]];
-        props.modifyNotebook({ type: REORDER_NOTEBOOK_SCRIPTS, value: order });
+        props.modifyNotebook({
+            type: REORDER_NOTEBOOK_SCRIPTS,
+            value: { folderName: page.folderName, fileNames: order },
+        });
     }, [props.notebook, props.modifyNotebook]);
     const handleMoveUp = React.useCallback((fileName: string) => moveScript(fileName, -1), [moveScript]);
     const handleMoveDown = React.useCallback((fileName: string) => moveScript(fileName, 1), [moveScript]);
@@ -887,10 +891,9 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             },
         },
         {
-            // Plain Enter, while browsing the feed with nothing focused. If the focused entry has a
-            // staged agent rewrite, Enter accepts it (matching the status bar's "Accept ⏎" hint);
-            // otherwise it opens the details of the focused entry. If the compose editor (SQL/AI), a
-            // rename input, or any other element holds focus, Enter belongs to it — bail out.
+            // Plain Enter, while browsing the feed with nothing focused, accepts a staged agent
+            // rewrite (matching the status bar's "Accept ⏎" hint). It intentionally does nothing for
+            // ordinary scripts; Details is opened only through an explicit pointer action.
             key: 'Enter',
             ctrlKey: false,
             capture: true,
@@ -909,11 +912,6 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                     handleAcceptDiff(focusedScript.scriptKey);
                     return;
                 }
-                if (entries.length === 0) {
-                    return;
-                }
-                event.preventDefault();
-                props.showDetails(focused?.fileName);
             },
         },
         {
@@ -954,7 +952,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                 event.stopPropagation();
             },
         },
-    ], [feedActive, composeEditorView, handleComposeSend, entries.length, props.showDetails, props.notebook, handleAcceptDiff, handleRejectDiff]);
+    ], [feedActive, composeEditorView, handleComposeSend, props.notebook, handleAcceptDiff, handleRejectDiff]);
     useKeyEvents(keyHandlers);
 
     const listContainerRef = React.useRef<HTMLDivElement>(null);
@@ -1018,6 +1016,10 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         if (currentEntries.length === 0) {
             return;
         }
+        if (props.scrollTarget.fileName === '') {
+            listRef.current.scrollToRow({ index: 0, align: 'start' });
+            return;
+        }
         const targetIdx = currentEntries.findIndex(e => e.fileName === props.scrollTarget!.fileName);
         if (targetIdx === -1) {
             return;
@@ -1077,7 +1079,11 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     }), [entries, props.notebook.scripts, props.notebook.connectorInfo.icons?.outlines, props.notebook.notebookUserFocus.fileName, folderName, scriptDebugMode, executableScriptKeys, aiAvailable, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleUseAIContext, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, cachedScriptKeys, handleHeightMeasured, handleFormattedText, heightsVersion]);
 
     return (
-        <div className={styles.feed_body_container} data-tauri-drag-region="deep">
+        <div
+            className={styles.feed_body_container}
+            data-tauri-drag-region="deep"
+            style={{ '--feed-scrollbar-inset': `${listScrollbarInset}px` } as React.CSSProperties}
+        >
             <div className={styles.feed_list_container} ref={listContainerRef}>
                 <List
                     key={props.notebook.notebookUserFocus.folderName}
@@ -1093,13 +1099,13 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                     overscanCount={OVERSCAN_ROW_COUNT}
                     rowHeight={(rowIndex) => {
                         if (rowIndex === 0) {
-                            return FEED_EDGE_PADDING;
+                            return FEED_TOP_PADDING;
                         }
                         if (rowIndex <= entries.length) {
                             const scriptId = entries[rowIndex - 1].scriptId;
                             return previewHintsRef.current.get(scriptId)?.height ?? ESTIMATED_ROW_HEIGHT;
                         }
-                        return fillerRowHeight + FEED_EDGE_PADDING;
+                        return fillerRowHeight + FEED_BOTTOM_PADDING;
                     }}
                     rowComponent={ScriptFeedRow}
                     rowProps={rowProps}

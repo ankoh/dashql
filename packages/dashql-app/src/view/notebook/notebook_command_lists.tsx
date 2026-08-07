@@ -6,7 +6,7 @@ import { LinkIcon, PaperAirplaneIcon, SyncIcon } from '@primer/octicons-react';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
-import { getSelectedPageEntries, getSortedFolderNames, NotebookState } from '../../notebook/notebook_state.js';
+import { NotebookState } from '../../notebook/notebook_state.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { NotebookFileSaveOverlay } from './notebook_file_save_overlay.js';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
@@ -14,11 +14,13 @@ import { ConnectionHealth, ConnectionState } from '../../connection/connection_s
 import { CONNECTION_HEALTH_COLORS } from '../connection/connection_status.js';
 import { isCatalogRefreshRunning } from '../../connection/catalog_update_state.js';
 import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
+import type { NotebookFileTreeNavigationLevel } from './notebook_file_tree.js';
 
 export const ConnectionCommandList: React.FC<{
     conn: ConnectionState | null;
     notebook: NotebookState | null;
     navigationDisabled?: boolean;
+    showExecute?: boolean;
     onOpenSettings?: () => void;
     settingsRef?: React.Ref<HTMLButtonElement>;
 }> = (props) => {
@@ -53,18 +55,20 @@ export const ConnectionCommandList: React.FC<{
                     </ActionList.Trailing>
                 ) : <></>}
             </ActionList.ListItem>
-            <ActionList.ListItem
-                disabled={props.navigationDisabled || isDisconnected || !props.conn?.connectorInfo.features.executeQueryAction}
-                onClick={() => notebookCommand(NotebookCommandType.ExecuteEditorQuery)}
-            >
-                <ActionList.Leading>
-                    <PaperAirplaneIcon />
-                </ActionList.Leading>
-                <ActionList.ItemText>
-                    Execute Script
-                </ActionList.ItemText>
-                <ActionList.Trailing>Ctrl + E</ActionList.Trailing>
-            </ActionList.ListItem>
+            {props.showExecute !== false && (
+                <ActionList.ListItem
+                    disabled={props.navigationDisabled || isDisconnected || !props.conn?.connectorInfo.features.executeQueryAction}
+                    onClick={() => notebookCommand(NotebookCommandType.ExecuteEditorQuery)}
+                >
+                    <ActionList.Leading>
+                        <PaperAirplaneIcon />
+                    </ActionList.Leading>
+                    <ActionList.ItemText>
+                        Execute Script
+                    </ActionList.ItemText>
+                    <ActionList.Trailing>Ctrl + E</ActionList.Trailing>
+                </ActionList.ListItem>
+            )}
             <ActionList.ListItem
                 disabled={isDisconnected || isRefreshing || !props.conn?.connectorInfo.features.refreshSchemaAction}
                 aria-busy={isRefreshing}
@@ -89,71 +93,67 @@ export const NotebookCommandList: React.FC<{
     notebook: NotebookState | null;
     modifyNotebook: ModifyNotebook | null;
     navigationDisabled?: boolean;
+    navigationLevel: NotebookFileTreeNavigationLevel;
+    onSelectFolderLevel: () => void;
+    onSelectScriptLevel: () => void;
+    onSelectPreviousTreeItem: () => void;
+    onSelectNextTreeItem: () => void;
 }> = (props) => {
     const [linkSharingIsOpen, openLinkSharing] = React.useState<boolean>(false);
     const [fileSaveIsOpen, openFileSave] = React.useState<boolean>(false);
-    const notebookCommand = useNotebookCommandDispatch();
-
     const ArrowDownIcon = SymbolIcon('arrow_down_16');
     const ArrowUpIcon = SymbolIcon('arrow_up_16');
     const ArrowLeftIcon = SymbolIcon('arrow_left_16');
     const ArrowRightIcon = SymbolIcon('arrow_right_16');
     const FileZipIcon = SymbolIcon('file_zip_16');
 
-    const folders = props.notebook ? getSortedFolderNames(props.notebook.notebookPages) : [];
-    const focusedFolder = props.notebook?.notebookUserFocus.folderName ?? '';
-    const folderIndex = folders.indexOf(focusedFolder);
-    const entries = props.notebook ? getSelectedPageEntries(props.notebook) : [];
-    const focusedFile = props.notebook?.notebookUserFocus.fileName ?? '';
-    const fileIndex = entries.findIndex(e => e.fileName === focusedFile);
-
     return (
         <>
             <ActionList.ListItem
-                onClick={() => notebookCommand(NotebookCommandType.SelectPreviousNotebookPage)}
-                disabled={props.navigationDisabled || folderIndex <= 0}
+                onClick={props.onSelectFolderLevel}
+                disabled={props.navigationDisabled || props.navigationLevel === 'folders'}
             >
                 <ActionList.Leading>
                     <ArrowLeftIcon />
                 </ActionList.Leading>
                 <ActionList.ItemText>
-                    Previous Page
+                    Folder Level
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + H</ActionList.Trailing>
             </ActionList.ListItem>
             <ActionList.ListItem
-                onClick={() => notebookCommand(NotebookCommandType.SelectNextNotebookPage)}
-                disabled={props.navigationDisabled || props.notebook == null || folderIndex < 0 || (folderIndex + 1) >= folders.length}
+                onClick={props.onSelectScriptLevel}
+                disabled={props.navigationDisabled || props.navigationLevel === 'scripts'}
             >
                 <ActionList.Leading>
                     <ArrowRightIcon />
                 </ActionList.Leading>
                 <ActionList.ItemText>
-                    Next Page
+                    Script Level
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + L</ActionList.Trailing>
             </ActionList.ListItem>
             <ActionList.ListItem
-                onClick={() => notebookCommand(NotebookCommandType.SelectPreviousNotebookScript)}
-                disabled={props.navigationDisabled || fileIndex <= 0}
+                onClick={props.onSelectPreviousTreeItem}
+                disabled={props.navigationDisabled || props.notebook == null}
             >
                 <ActionList.Leading>
                     <ArrowUpIcon />
                 </ActionList.Leading>
                 <ActionList.ItemText>
-                    Previous Script
+                    Previous {props.navigationLevel === 'folders' ? 'Folder' : 'Script'}
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + K</ActionList.Trailing>
             </ActionList.ListItem>
             <ActionList.ListItem
-                onClick={() => notebookCommand(NotebookCommandType.SelectNextNotebookScript)}
-                disabled={props.navigationDisabled || props.notebook == null || fileIndex < 0 || (fileIndex + 1) >= entries.length}
+                onClick={props.onSelectNextTreeItem}
+                disabled={props.navigationDisabled || props.notebook == null}
             >
                 <ActionList.Leading>
                     <ArrowDownIcon />
                 </ActionList.Leading>
                 <ActionList.ItemText>
-                    Next Script
+                    Next {props.navigationLevel === 'folders' ? 'Folder' : 'Script'}
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + J</ActionList.Trailing>
             </ActionList.ListItem>

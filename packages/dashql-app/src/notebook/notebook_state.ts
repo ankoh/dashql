@@ -149,6 +149,7 @@ export const SELECT_PREV_PAGE = Symbol('SELECT_PREV_PAGE');
 export const SELECT_NEXT_ENTRY = Symbol('SELECT_NEXT_ENTRY');
 export const SELECT_PREV_ENTRY = Symbol('SELECT_PREV_ENTRY');
 export const SELECT_ENTRY = Symbol('SELECT_ENTRY');
+export const SELECT_NOTEBOOK_PATH = Symbol('SELECT_NOTEBOOK_PATH');
 export const ANALYZE_OUTDATED_SCRIPT = Symbol('ANALYZE_OUTDATED_SCRIPT');
 export const UPDATE_FROM_PROCESSOR = Symbol('UPDATE_FROM_PROCESSOR');
 export const CATALOG_DID_UPDATE = Symbol('CATALOG_DID_UPDATE');
@@ -176,6 +177,7 @@ export type NotebookStateAction =
     | VariantKind<typeof SELECT_NEXT_ENTRY, null>
     | VariantKind<typeof SELECT_PREV_ENTRY, null>
     | VariantKind<typeof SELECT_ENTRY, string>
+    | VariantKind<typeof SELECT_NOTEBOOK_PATH, { folderName: string; fileName: string }>
     | VariantKind<typeof ANALYZE_OUTDATED_SCRIPT, ScriptKey>
     | VariantKind<typeof UPDATE_FROM_PROCESSOR, DashQLProcessorUpdateOut>
     | VariantKind<typeof CATALOG_DID_UPDATE, null>
@@ -192,7 +194,7 @@ export type NotebookStateAction =
     | VariantKind<typeof UPDATE_NOTEBOOK_ENTRY, { fileName: string, newFileName: string }>
     | VariantKind<typeof UPDATE_PAGE_FOLDER_NAME, { folderName: string, newFolderName: string }>
     | VariantKind<typeof REORDER_PAGES, string[]>  // folder names in the desired new view order
-    | VariantKind<typeof REORDER_NOTEBOOK_SCRIPTS, string[]>  // file names of the selected page in the desired new feed order
+    | VariantKind<typeof REORDER_NOTEBOOK_SCRIPTS, { folderName: string; fileNames: string[] }>
     | VariantKind<typeof PROMOTE_UNCOMMITTED_SCRIPT, null>
     | VariantKind<typeof SET_SCRIPT_TEXT, { scriptKey: ScriptKey, text: string, withDiff?: boolean }>
     | VariantKind<typeof CREATE_NOTEBOOK_ENTRY_WITH_TEXT, { text: string }>
@@ -588,9 +590,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const folderName = folders[nextIdx] ?? state.notebookUserFocus.folderName;
             const page = state.notebookPages[folderName];
             const files = page ? getSortedFileNames(page) : [];
-            const fileName = files.includes(state.notebookUserFocus.fileName)
-                ? state.notebookUserFocus.fileName
-                : (files[0] ?? '');
+            const fileName = files[0] ?? '';
             return {
                 ...clearSemanticUserFocus(state),
                 notebookUserFocus: { folderName, fileName, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
@@ -603,9 +603,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const folderName = folders[prevIdx] ?? state.notebookUserFocus.folderName;
             const page = state.notebookPages[folderName];
             const files = page ? getSortedFileNames(page) : [];
-            const fileName = files.includes(state.notebookUserFocus.fileName)
-                ? state.notebookUserFocus.fileName
-                : (files[0] ?? '');
+            const fileName = files[0] ?? '';
             return {
                 ...clearSemanticUserFocus(state),
                 notebookUserFocus: { folderName, fileName, interactionCounter: state.notebookUserFocus.interactionCounter + 1 },
@@ -640,6 +638,19 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             return {
                 ...clearSemanticUserFocus(state),
                 notebookUserFocus: { ...state.notebookUserFocus, fileName },
+            };
+        }
+        case SELECT_NOTEBOOK_PATH: {
+            const { folderName, fileName } = action.value;
+            const page = state.notebookPages[folderName];
+            if (!page || !page.scripts[fileName]) return state;
+            return {
+                ...clearSemanticUserFocus(state),
+                notebookUserFocus: {
+                    folderName,
+                    fileName,
+                    interactionCounter: state.notebookUserFocus.interactionCounter + 1,
+                },
             };
         }
 
@@ -1237,14 +1248,14 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
         }
 
         case REORDER_NOTEBOOK_SCRIPTS: {
-            // Reorder the scripts within the *selected* page. Mirrors REORDER_PAGES but at file level:
+            // Reorder scripts within an explicitly named page. Mirrors REORDER_PAGES but at file level:
             // dense "<n>_clean.sql" prefixes assigned in the new order, with the clean (SQL-visible)
             // file name held stable so cross-script references survive the reorder.
-            const page = getSelectedPage(state);
+            const page = state.notebookPages[action.value.folderName];
             if (!page) {
                 return state;
             }
-            const requestedOrder = action.value;
+            const requestedOrder = action.value.fileNames;
 
             // Build the target order: the requested files (that still exist, de-duplicated), then any
             // files the caller omitted, appended in their current feed order so none are dropped.
@@ -1301,7 +1312,10 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             };
 
             // Follow the focused file across its rename.
-            const renamedFocus = renames.find(r => r.oldFile === state.notebookUserFocus.fileName)?.newFile;
+            const focusIsInPage = state.notebookUserFocus.folderName === page.folderName;
+            const renamedFocus = focusIsInPage
+                ? renames.find(r => r.oldFile === state.notebookUserFocus.fileName)?.newFile
+                : undefined;
             const newFocusFile = renamedFocus ?? state.notebookUserFocus.fileName;
 
             const next: NotebookState = {
