@@ -1,6 +1,6 @@
 {
   "sessionId": "81428ffe-ebdd-46d4-a990-be2bed3fbdaa",
-  "name": "scratch",
+  "name": "Hyper Docker",
   "connectionParams": {
     "hyper": {
       "protocol": "V3_DOCKER",
