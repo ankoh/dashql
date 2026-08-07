@@ -2,7 +2,7 @@
 -- This file is auto-generated and can only be updated through a catalog refresh.
 --
 -- Catalog Source: SQL pg_proc
--- Last Refresh: 2026-07-23T17:34:25.430Z
+-- Last Refresh: 2026-08-07T09:13:49.715Z
 
 CREATE FUNCTION "default"."pg_catalog"."abs"() RETURNS any;
 CREATE FUNCTION "default"."pg_catalog"."acos"() RETURNS any;

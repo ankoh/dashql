@@ -234,12 +234,15 @@ export function VegaLiteView(props: Props): React.ReactElement {
 
     // When scaling, the chart container is laid out at the enlarged logical size and shrunk with a
     // CSS transform anchored top-left, so the whole plot renders smaller within the requested box.
-    const chartStyle: React.CSSProperties | undefined = scale !== 1
+    // Reserve explicit dimensions before the async vega-embed import finishes. This is important in
+    // the virtualized feed: a remounted chart otherwise collapses temporarily, causing its row's
+    // ResizeObserver to publish a smaller height before the canvas restores the final height.
+    const chartStyle: React.CSSProperties | undefined = width != null || height != null || scale !== 1
         ? {
             width: width ?? undefined,
             height: height ?? undefined,
-            transform: `scale(${scale})`,
-            transformOrigin: 'top left',
+            transform: scale !== 1 ? `scale(${scale})` : undefined,
+            transformOrigin: scale !== 1 ? 'top left' : undefined,
         }
         : undefined;
 
