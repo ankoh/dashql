@@ -9,7 +9,7 @@ import { compareReleaseVersions, detectReleaseChannel, loadReleaseManifest, Rele
 import { DASHQL_CANARY_RELEASE_MANIFEST, DASHQL_STABLE_RELEASE_MANIFEST, DASHQL_VERSION } from '../../globals.js';
 import { STABLE_RELEASE_MANIFEST_CTX, STABLE_UPDATE_MANIFEST_CTX, CANARY_RELEASE_MANIFEST_CTX, CANARY_UPDATE_MANIFEST_CTX, VERSION_CHECK_CTX, VERSION_CHECK_REFRESH_CTX, VersionCheckStatusCode, InstallableUpdate, InstallationStatusSetter, InstallationStatusCode, InstallationState, INSTALLATION_STATUS_CTX } from './version_check.js';
 
-class InstallableTauriUpdate implements InstallableUpdate {
+export class InstallableTauriUpdate implements InstallableUpdate {
     /// The logger
     logger: Logger;
     /// Update the installation status
@@ -52,7 +52,9 @@ class InstallableTauriUpdate implements InstallableUpdate {
                             const totalBytes = s?.totalBytes ?? 0;
                             return {
                                 update: this,
-                                statusCode: InstallationStatusCode.RestartPending,
+                                // Tauri emits Finished after the download, before signature
+                                // verification and installation complete.
+                                statusCode: InstallationStatusCode.InProgress,
                                 totalBytes: totalBytes,
                                 loadedBytes: (totalBytes > 0) ? totalBytes : (s?.loadedBytes ?? (s?.inProgressBytes ?? 0)),
                                 inProgressBytes: 0,
@@ -63,6 +65,14 @@ class InstallableTauriUpdate implements InstallableUpdate {
                     }
                 }
             });
+            this.setInstallationState(s => ({
+                update: this,
+                statusCode: InstallationStatusCode.RestartPending,
+                totalBytes: s?.totalBytes ?? 0,
+                loadedBytes: s?.loadedBytes ?? 0,
+                inProgressBytes: 0,
+                error: null,
+            }));
         } catch (e: unknown) {
             const err = e instanceof Error ? e : new Error(stringifyError(e));
             this.setInstallationState(s => {

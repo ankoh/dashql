@@ -139,6 +139,7 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
     const versionCheck = useVersionCheck();
     const refreshVersionCheck = useVersionCheckRefresh();
     const process = useProcess();
+    const [relaunching, setRelaunching] = React.useState(false);
 
     // The channel the app currently tracks. It is fully dictated by the installed version scheme.
     const activeChannel: ReleaseChannel = detectReleaseChannel(DASHQL_VERSION);
@@ -157,6 +158,17 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
             console.error(e);
         });
     }, []);
+
+    const onRelaunch = React.useCallback(() => {
+        if (relaunching) {
+            return;
+        }
+        setRelaunching(true);
+        process.relaunch().catch((e: unknown) => {
+            setRelaunching(false);
+            console.error(e);
+        });
+    }, [process, relaunching]);
 
     if (versionCheck == VersionCheckStatusCode.RestartPending) {
         return (
@@ -182,9 +194,10 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
                     <Button
                         variant={ButtonVariant.Primary}
                         block
-                        onClick={() => process.relaunch()}
+                        disabled={relaunching}
+                        onClick={onRelaunch}
                     >
-                        Relaunch
+                        {relaunching ? 'Relaunching...' : 'Relaunch'}
                     </Button>
                 </div>
             </div>
