@@ -65,21 +65,8 @@
 }
 
 .error_detail_trigger {
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border: none;
-    border-radius: var(--border_radius);
-    display: grid;
-    place-items: center;
     flex-shrink: 0;
     color: inherit;
-    background: transparent;
-    cursor: pointer;
-}
-
-.error_detail_trigger:hover {
-    background-color: rgba(208, 215, 222, 0.32);
 }
 
 /* The white-card contents of the error-detail overlay. The card chrome (background, border,

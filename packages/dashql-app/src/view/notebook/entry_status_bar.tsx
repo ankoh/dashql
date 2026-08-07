@@ -81,14 +81,14 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onClick,
             renderAnchor={(p: object) => {
                 const anchorProps = p as React.ButtonHTMLAttributes<HTMLButtonElement>;
                 return (
-                    <button
-                        type="button"
+                    <IconButton
                         {...anchorProps}
+                        variant={ButtonVariant.Invisible}
                         className={styles.error_detail_trigger}
                         aria-label="Show error details"
                     >
                         <InfoIcon size={16} />
-                    </button>
+                    </IconButton>
                 );
             }}
         >
