@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as styles from './json_view.module.css';
 
 import { JsonViewerState, JsonViewerStateProvider } from './json_view_state.js';
 import { JsonValue } from './json_value.js';
@@ -66,33 +67,58 @@ export const AlwaysExpand: ShouldExpandNodeInitially = () => true;
 export const AlwaysCollapse = () => false;
 
 export const JsonView: JsonViewComponent = React.forwardRef<HTMLDivElement, JsonViewProps>((props, ref) => {
+    const {
+        value,
+        keyName: _keyName,
+        objectSortKeys,
+        indentWidth,
+        displayObjectSize,
+        enableClipboard,
+        collapsed,
+        shouldExpandNodeInitially,
+        highlightUpdates: _highlightUpdates,
+        shortenTextAfterLength,
+        stringEllipsis,
+        onExpand,
+        onCopied,
+        beforeCopy,
+        children,
+        className,
+        ...containerProps
+    } = props;
     const initialState: JsonViewerState = {
-        value: props.value,
-        objectSortKeys: props.objectSortKeys,
-        indentWidth: props.indentWidth ?? 15,
-        shouldExpandNodeInitially: props.collapsed === true
+        value,
+        objectSortKeys,
+        indentWidth: indentWidth ?? 15,
+        shouldExpandNodeInitially: collapsed === true
             ? AlwaysCollapse
-            : (props.shouldExpandNodeInitially ?? AlwaysExpand),
-        displayObjectSize: props.displayObjectSize ?? true,
-        collapsed: props.collapsed ?? false,
-        enableClipboard: props.enableClipboard,
-        shortenTextAfterLength: props.shortenTextAfterLength ?? 30,
-        stringEllipsis: props.stringEllipsis,
-        onCopied: props.onCopied,
-        onExpand: props.onExpand,
-        beforeCopy: props.beforeCopy,
+            : (shouldExpandNodeInitially ?? AlwaysExpand),
+        displayObjectSize: displayObjectSize ?? true,
+        collapsed: collapsed ?? false,
+        enableClipboard,
+        shortenTextAfterLength: shortenTextAfterLength ?? 30,
+        stringEllipsis,
+        onCopied,
+        onExpand,
+        beforeCopy,
     };
     return (
         <JsonViewerStateProvider initialState={initialState}>
-            <JsonValue
+            <div
+                {...containerProps}
                 ref={ref}
-                value={props.value}
-                initialValue={props.value}
-                level={0}
-                keyName={undefined}
-                keyPath={[]}
-            />
-            {props.children}
+                className={`${styles.viewer}${className ? ` ${className}` : ''}`}
+                tabIndex={props.tabIndex ?? 0}
+            >
+                <JsonValue
+                    value={value}
+                    initialValue={value}
+                    level={0}
+                    keyName={undefined}
+                    keyPath={[]}
+                />
+                {children}
+            </div>
         </JsonViewerStateProvider>
     );
 }) as unknown as JsonViewComponent;

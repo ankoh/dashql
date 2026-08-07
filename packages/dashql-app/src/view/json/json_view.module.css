@@ -93,6 +93,14 @@
     color: #28a745;
 }
 
+.viewer {
+    box-sizing: border-box;
+    max-height: var(--json-view-max-height, 400px);
+    min-height: 0;
+    overflow: auto;
+    padding: 8px;
+}
+
 .value_container {
     line-height: 1.4;
     font-family: Menlo, monospace;
@@ -100,4 +108,3 @@
     background-color: #00000000;
     font-size: 13px;
 }
-

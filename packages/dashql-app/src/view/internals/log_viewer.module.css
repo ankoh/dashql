@@ -196,7 +196,7 @@
 }
 
 .json_modal_content {
-    padding: 16px;
+    padding: 0;
     overflow: auto;
     min-height: 0;
     max-height: 400px;

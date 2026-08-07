@@ -199,7 +199,7 @@ function SqlTextView(props: SqlTextViewProps) {
 
     return (
         <div className={styles.codemirror_container}>
-            <CodeMirror ref={setView} extensions={readonlyExtensions} style={{ height: 'auto' }} />
+            <CodeMirror ref={setView} extensions={readonlyExtensions} />
             {props.formattedText != null && (
                 <div className={styles.pretty_toggle}>
                     <IconButton
