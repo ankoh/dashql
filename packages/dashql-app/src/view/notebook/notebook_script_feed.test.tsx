@@ -289,6 +289,21 @@ describe('NotebookScriptFeed', () => {
         });
     }
 
+    it('keeps the list and draft composer centered with symmetric scrollbar gutters', () => {
+        renderFeed({
+            notebook: createNotebookState(),
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+        });
+
+        const list = container.querySelector('[data-testid="mock-list"]') as HTMLDivElement;
+        const composer = container.querySelector('[class^="compose_section"]') as HTMLDivElement;
+
+        expect(list.style.scrollbarGutter).toBe('stable both-edges');
+        expect(composer).not.toBeNull();
+        expect(composer.style.right).toBe('');
+    });
+
     it('dispatches SELECT_ENTRY and shows details when a preview is activated', () => {
         const modifyNotebook = vi.fn();
         const showDetails = vi.fn();

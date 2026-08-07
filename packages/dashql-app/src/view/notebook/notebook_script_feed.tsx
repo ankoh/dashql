@@ -984,23 +984,6 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         });
     }, [listRef, props.scrollTarget]);
 
-    const [composeScrollbarInset, setComposeScrollbarInset] = React.useState(0);
-    React.useEffect(() => {
-        const listContainer = listContainerRef.current;
-        if (!listContainer) {
-            return;
-        }
-        const scroller = listContainer.firstElementChild as HTMLElement | null;
-        if (!scroller) {
-            return;
-        }
-        const measure = () => setComposeScrollbarInset(scroller.offsetWidth - scroller.clientWidth);
-        measure();
-        const observer = new ResizeObserver(measure);
-        observer.observe(scroller);
-        return () => observer.disconnect();
-    }, [listHeight, fillerRowHeight, entries.length, heightsVersion]);
-
     // Get folder name from current page (display-only: strip the on-disk ordering prefix)
     const selectedPage = getSelectedPage(props.notebook);
     const folderName = normalizePageName(selectedPage?.folderName ?? '') || 'Untitled';
@@ -1044,7 +1027,9 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                 <List
                     key={props.notebook.notebookUserFocus.folderName}
                     listRef={listRef}
-                    style={{ width: listWidth, height: listHeight, scrollbarGutter: 'stable' }}
+                    // Reserve matching gutters on both sides. A one-sided scrollbar gutter changes
+                    // the visual center between overflowing and non-overflowing pages.
+                    style={{ width: listWidth, height: listHeight, scrollbarGutter: 'stable both-edges' }}
                     rowCount={entries.length + 2}
                     overscanCount={OVERSCAN_ROW_COUNT}
                     rowHeight={(rowIndex) => {
@@ -1060,7 +1045,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                     rowProps={rowProps}
                 />
             </div>
-            <div className={styles.compose_section} ref={composeSectionRef} style={{ right: composeScrollbarInset }}>
+            <div className={styles.compose_section} ref={composeSectionRef}>
                 <div className={styles.compose_card}>
                     {inputMode === 1 ? (
                         // AI mode: an isolated, plugin-free prompt editor (no SQL parsing,
