@@ -125,23 +125,6 @@
     overflow: auto;
 }
 
-.script_preview {
-    width: 100%;
-    min-width: 0;
-}
-
-.script_preview :global(.cm-editor) {
-    min-height: 0;
-    font-size: 0.85rem;
-}
-
-.script_preview :global(.cm-gutters) {
-    box-sizing: border-box;
-    min-width: 49px;
-    padding: 0 4px;
-}
-
-.preview_diff_actions,
 .format_toggle {
     position: absolute;
     top: 12px;

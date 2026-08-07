@@ -39,7 +39,6 @@ import { IndicatorStatus } from '../foundations/status_indicator.js';
 import { ColumnAggregationBar } from '../visualization/column_aggregation_bar.js';
 import { createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../editor/dashql_processor.js';
-import { ScriptPreview } from './notebook_script_preview.js';
 
 export enum TabKey {
     Editor = 0,
@@ -80,7 +79,6 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
         }
         return initialScript?.latestAgentRunId != null ? TabKey.AgentStatusPanel : TabKey.QueryStatusPanel;
     });
-    const [isEditingScript, setIsEditingScript] = React.useState(true);
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
     const [formatPending, setFormatPending] = React.useState(false);
     const savedEditorStateRef = React.useRef<EditorState | null>(null);
@@ -243,20 +241,6 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
         setFormatPending(false);
     }, [editorView]);
 
-    const stopEditingScript = React.useCallback(() => {
-        if (formatPending) handleFormatCancel();
-        setEditorView(null);
-        setIsEditingScript(false);
-    }, [formatPending, handleFormatCancel]);
-
-    const toggleEditingScript = React.useCallback(() => {
-        if (isEditingScript) {
-            stopEditingScript();
-        } else {
-            setIsEditingScript(true);
-        }
-    }, [isEditingScript, stopEditingScript]);
-
     React.useEffect(() => {
         return () => {
             formatPreviewBuffersRef.current?.destroy(formatPreviewBuffersRef.current);
@@ -270,19 +254,19 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     // round-trips through UPDATE_FROM_PROCESSOR to clear the pending diff.
     const hasPendingDiff = scriptData?.pendingDiff != null;
     const handleAcceptDiff = React.useCallback(() => {
-        if (editorView != null && isEditingScript) {
+        if (editorView != null) {
             acceptPendingDiff(editorView);
         } else if (scriptData != null) {
             props.modifyNotebook({ type: ACCEPT_PENDING_DIFF, value: scriptData.scriptKey });
         }
-    }, [editorView, isEditingScript, props.modifyNotebook, scriptData]);
+    }, [editorView, props.modifyNotebook, scriptData]);
     const handleRejectDiff = React.useCallback(() => {
-        if (editorView != null && isEditingScript) {
+        if (editorView != null) {
             rejectPendingDiff(editorView);
         } else if (scriptData != null) {
             props.modifyNotebook({ type: REJECT_PENDING_DIFF, value: scriptData.scriptKey });
         }
-    }, [editorView, isEditingScript, props.modifyNotebook, scriptData]);
+    }, [editorView, props.modifyNotebook, scriptData]);
 
     const activeQueryId = scriptData?.latestQueryId ?? null;
     const activeQueryState = useQueryState(props.notebook?.sessionId ?? null, activeQueryId);
@@ -443,18 +427,14 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     }, [activeQueryId, activeQueryState?.status, hasVisualizeStmt, showServerDetails]);
 
     React.useEffect(() => {
-        if (!isEditingScript || editorView == null) {
+        if (editorView == null) {
             return;
         }
         const handle = requestAnimationFrame(() => {
             editorView.focus();
         });
         return () => cancelAnimationFrame(handle);
-    }, [editorView, isEditingScript]);
-
-    React.useEffect(() => {
-        setIsEditingScript(true);
-    }, [notebookEntry?.scriptId]);
+    }, [editorView]);
 
     React.useEffect(() => {
         if (showServerDetails && enabledServerTabs.length > 0 && !enabledServerTabs.includes(selectedTab)) {
@@ -518,13 +498,6 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                             </div>
                         )}
                             <IconButton
-                                variant={ButtonVariant.Invisible}
-                                onClick={toggleEditingScript}
-                                aria-label={isEditingScript ? 'Show script preview' : 'Edit script'}
-                            >
-                                {isEditingScript ? <FormatXIcon size={16} /> : <PencilIcon size={16} />}
-                            </IconButton>
-                            <IconButton
                                 className={styles.entry_card_collapse_button}
                                 variant={ButtonVariant.Invisible}
                                 onClick={props.hideDetails}
@@ -534,7 +507,6 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                             </IconButton>
                         </div>
                         <div className={styles.script_body}>
-                        {isEditingScript ? (
                             <div className={styles.editor_container}>
                                 <ScriptEditor
                                     sessionId={props.notebook.sessionId}
@@ -587,35 +559,6 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                     )}
                                 </div>
                             </div>
-                        ) : (
-                            <>
-                                <ScriptPreview
-                                    className={styles.script_preview}
-                                    sessionId={props.notebook.sessionId}
-                                    scriptData={scriptData}
-                                />
-                                {hasPendingDiff && (
-                                    <div className={styles.preview_diff_actions}>
-                                        <ButtonGroup>
-                                            <IconButton
-                                                variant={ButtonVariant.Default}
-                                                onClick={handleAcceptDiff}
-                                                aria-label="Accept rewrite"
-                                            >
-                                                <CheckIcon />
-                                            </IconButton>
-                                            <IconButton
-                                                variant={ButtonVariant.Default}
-                                                onClick={handleRejectDiff}
-                                                aria-label="Reject rewrite"
-                                            >
-                                                <FormatXIcon />
-                                            </IconButton>
-                                        </ButtonGroup>
-                                    </div>
-                                )}
-                            </>
-                        )}
                         </div>
                     </div>
                 </div>
