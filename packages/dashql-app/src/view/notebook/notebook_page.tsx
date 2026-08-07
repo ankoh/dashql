@@ -185,9 +185,13 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     // global feed key handlers (Enter/Escape/…), so this flag is threaded down to gate them.
     const feedActive = catalogTab == null && !showDetails;
     const selectFolder = (folderName: string) => {
-        const isSelected = catalogTab == null && folderName === notebook.notebookUserFocus.folderName;
+        const folderChanged = folderName !== notebook.notebookUserFocus.folderName;
+        const isSelected = catalogTab == null && !folderChanged;
         setCatalogTab(null);
-        if (!isSelected) modifyNotebook({ type: SELECT_PAGE, value: folderName });
+        if (!isSelected) {
+            if (folderChanged) requestFeedScroll('');
+            modifyNotebook({ type: SELECT_PAGE, value: folderName });
+        }
         setShowDetails(false);
         setDetailsScriptId(undefined);
         setDetailsInitialTab(undefined);

@@ -848,7 +848,7 @@ describe('NotebookScriptFeed', () => {
         renderFeed({ notebook, modifyNotebook: vi.fn(), showDetails: vi.fn() });
 
         const rows = container.querySelector('[data-testid="mock-list"]')!.children;
-        expect(rows[0].getAttribute('data-row-height')).toBe('8');
+        expect(rows[0].getAttribute('data-row-height')).toBe('24');
         expect(rows[1].getAttribute('data-row-height')).toBe('200');
         expect(rows[2].getAttribute('data-row-height')).toBe('300');
 
@@ -858,6 +858,14 @@ describe('NotebookScriptFeed', () => {
         expect(rows[1].getAttribute('data-row-height')).toBe('200');
         expect(rows[2].getAttribute('data-row-height')).toBe('300');
         expect(getBoundingClientRect).not.toHaveBeenCalled();
+    });
+
+    it('uses smaller padding before the first feed entry on mobile', () => {
+        mockState.observedWidth = 700;
+        renderFeed({ notebook: createNotebookState(), modifyNotebook: vi.fn(), showDetails: vi.fn() });
+
+        const rows = container.querySelector('[data-testid="mock-list"]')!.children;
+        expect(rows[0].getAttribute('data-row-height')).toBe('8');
     });
 
     it('retains a cached row height while its preview remounts', () => {

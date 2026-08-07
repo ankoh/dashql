@@ -66,7 +66,8 @@ export interface NotebookScriptListProps {
 const ESTIMATED_ROW_HEIGHT = 240;
 const HEIGHT_CHANGE_EPSILON = 0.5;
 const OVERSCAN_ROW_COUNT = 16;
-const FEED_TOP_PADDING = 8;
+const FEED_TOP_PADDING = 24;
+const FEED_MOBILE_TOP_PADDING = 8;
 const FEED_BOTTOM_PADDING = 8;
 const FEED_BOTTOM_FADE_HEIGHT = 24;
 
@@ -978,6 +979,9 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const listWidth = listContainerSize?.width ?? 0;
     const listHeight = listContainerSize?.height ?? 0;
     const listScrollbarInset = useScrollbarWidth();
+    const feedTopPadding = listWidth > 0 && listWidth <= 700
+        ? FEED_MOBILE_TOP_PADDING
+        : FEED_TOP_PADDING;
 
     // Track the height of the composer for the filler row
     const composeSectionRef = React.useRef<HTMLDivElement>(null);
@@ -1099,7 +1103,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                     overscanCount={OVERSCAN_ROW_COUNT}
                     rowHeight={(rowIndex) => {
                         if (rowIndex === 0) {
-                            return FEED_TOP_PADDING;
+                            return feedTopPadding;
                         }
                         if (rowIndex <= entries.length) {
                             const scriptId = entries[rowIndex - 1].scriptId;
