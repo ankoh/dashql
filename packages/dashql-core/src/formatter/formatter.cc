@@ -93,25 +93,16 @@ void AppendWrappedCommentParagraph(std::string& output, const std::vector<std::s
     if (!line.empty()) AppendCommentLine(output, line, max_width);
 }
 
-void AppendCommentBlock(std::string& output, std::string_view input,
-                        std::span<const buffers::parser::TextSpan> comments, size_t max_width) {
+void AppendLineCommentBlock(std::string& output, std::string_view input,
+                            std::span<const buffers::parser::TextSpan> comments, size_t max_width) {
     std::vector<std::string_view> normalized_lines;
     for (const auto& comment : comments) {
         auto text = input.substr(comment.offset(), comment.length());
-        bool is_block = text.starts_with("/*");
-        if (is_block) {
-            text.remove_prefix(2);
-            if (text.ends_with("*/")) text.remove_suffix(2);
-        } else if (text.starts_with("--")) {
-            text.remove_prefix(2);
-        }
+        if (text.starts_with("--")) text.remove_prefix(2);
 
         while (true) {
             auto line_end = text.find_first_of("\r\n");
             auto line = TrimWhitespace(text.substr(0, line_end));
-            if (is_block && line.starts_with('*')) {
-                line = TrimWhitespace(line.substr(1));
-            }
             normalized_lines.push_back(line);
 
             if (line_end == std::string_view::npos) break;
@@ -160,16 +151,29 @@ void AppendCommentBlock(std::string& output, std::string_view input,
 void AppendComments(std::string& output, std::string_view input,
                     std::span<const buffers::parser::TextSpan> comments, size_t max_width) {
     size_t block_begin = 0;
-    for (size_t i = 1; i <= comments.size(); ++i) {
+    for (size_t i = 0; i <= comments.size(); ++i) {
         bool end_block = i == comments.size();
+        bool is_block_comment = false;
         if (!end_block) {
+            auto text = input.substr(comments[i].offset(), comments[i].length());
+            is_block_comment = text.starts_with("/*");
+            end_block = is_block_comment;
+        }
+        if (!end_block && !is_block_comment && i > block_begin) {
             size_t previous_end = comments[i - 1].offset() + comments[i - 1].length();
             auto gap = input.substr(previous_end, comments[i].offset() - previous_end);
             end_block = !IsWhitespace(gap) || std::count(gap.begin(), gap.end(), '\n') > 1;
         }
         if (end_block) {
-            AppendCommentBlock(output, input, comments.subspan(block_begin, i - block_begin), max_width);
+            if (i > block_begin) {
+                AppendLineCommentBlock(output, input, comments.subspan(block_begin, i - block_begin), max_width);
+            }
             block_begin = i;
+        }
+        if (is_block_comment) {
+            if (!output.empty() && output.back() != '\n') output += '\n';
+            output.append(input.substr(comments[i].offset(), comments[i].length()));
+            block_begin = i + 1;
         }
     }
 }

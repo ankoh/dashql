@@ -13,16 +13,12 @@ formatter-snapshots:
           - mode: compact
             width: 32
             expected: |-
-              -- This block comment has enough
-              -- words to be wrapped at the
-              -- configured maximum width.
+              /* This block comment has enough words to be wrapped at the configured maximum width. */
               select 1;
           - mode: pretty
             width: 32
             expected: |-
-              -- This block comment has enough
-              -- words to be wrapped at the
-              -- configured maximum width.
+              /* This block comment has enough words to be wrapped at the configured maximum width. */
               select 1;
         validation:
           setup: |-
@@ -44,22 +40,20 @@ formatter-snapshots:
           - mode: compact
             width: 30
             expected: |-
-              -- First paragraph with
-              -- deliberately excessive
-              -- spacing.
-              --
-              -- Second paragraph stays
-              -- separate.
+              /**
+               * First paragraph with deliberately excessive spacing.
+               *
+               * Second paragraph stays separate.
+               */
               select a, b from t;
           - mode: pretty
             width: 30
             expected: |-
-              -- First paragraph with
-              -- deliberately excessive
-              -- spacing.
-              --
-              -- Second paragraph stays
-              -- separate.
+              /**
+               * First paragraph with deliberately excessive spacing.
+               *
+               * Second paragraph stays separate.
+               */
               select a, b
               from t;
         validation:
@@ -98,6 +92,49 @@ formatter-snapshots:
         validation:
           setup: |-
 
+  - name: mixed_comment_styles
+    input: |-
+      -- Line comments before a block comment are reflowed independently.
+      /*
+       * Keep this exact layout.
+       */
+      -- Line comments after it form another independently reflowed block.
+      select 1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+          - mode: compact
+            width: 30
+            expected: |-
+              -- Line comments before a
+              -- block comment are reflowed
+              -- independently.
+              /*
+               * Keep this exact layout.
+               */
+              -- Line comments after it form
+              -- another independently
+              -- reflowed block.
+              select 1;
+          - mode: pretty
+            width: 30
+            expected: |-
+              -- Line comments before a
+              -- block comment are reflowed
+              -- independently.
+              /*
+               * Keep this exact layout.
+               */
+              -- Line comments after it form
+              -- another independently
+              -- reflowed block.
+              select 1;
+        validation:
+          setup: |-
+
   - name: comments_between_statements
     input: |-
       select 1; /* trailing comment that wraps onto another line */
@@ -114,19 +151,15 @@ formatter-snapshots:
             width: 28
             expected: |-
               select 1;
-              -- trailing comment that
-              -- wraps onto another line
-              -- description for the next
-              -- statement
+              /* trailing comment that wraps onto another line */
+              /* description for the next statement */
               select 2;
           - mode: pretty
             width: 28
             expected: |-
               select 1;
-              -- trailing comment that
-              -- wraps onto another line
-              -- description for the next
-              -- statement
+              /* trailing comment that wraps onto another line */
+              /* description for the next statement */
               select 2;
         validation:
           setup: |-

@@ -47,6 +47,24 @@ formatter-snapshots:
         validation:
           setup: ""
 
+  - name: mixed_comment_styles
+    input: |-
+      -- Line comments before a block comment are reflowed independently.
+      /*
+       * Keep this exact layout.
+       */
+      -- Line comments after it form another independently reflowed block.
+      select 1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            width: 30
+          - mode: pretty
+            width: 30
+        validation:
+          setup: ""
+
   - name: comments_between_statements
     input: |-
       select 1; /* trailing comment that wraps onto another line */
