@@ -30,6 +30,8 @@ const mockState = vi.hoisted(() => ({
     agentRuns: new Map<number, { traceId: number; phase?: number; log?: Array<{ message: string }> }>(),
     latestAgentRunId: null as number | null,
     observedWidth: 1200,
+    promptText: '',
+    composeEditorFocus: vi.fn(),
     executeQuery: vi.fn(),
     startAgentRun: vi.fn(),
     cancelAgentRun: vi.fn(),
@@ -38,6 +40,27 @@ const mockState = vi.hoisted(() => ({
 vi.mock('../../platform/ai_client_provider.js', () => ({ useAIClient: () => ({}) }));
 vi.mock('react-window', async () => fakeReactWindowModule(await import('react'), mockState.scrollToRowMock));
 vi.mock('./script_editor.js', async () => fakeScriptEditorModule(await import('react'), mockState));
+vi.mock('./prompt_editor.js', async () => {
+    const React = await import('react');
+    return {
+        PromptEditor: (props: { setView?: (view: unknown) => void }) => {
+            React.useEffect(() => {
+                props.setView?.({
+                    hasFocus: mockState.composeEditorFocused,
+                    focus: mockState.composeEditorFocus,
+                    state: {
+                        doc: {
+                            length: mockState.promptText.length,
+                            toString: () => mockState.promptText,
+                        },
+                    },
+                    dispatch: vi.fn(),
+                });
+            }, [props.setView]);
+            return React.createElement('div', { 'data-testid': 'prompt-editor' }, 'prompt editor');
+        },
+    };
+});
 vi.mock('./notebook_script_preview.js', async () => fakeScriptPreviewModule(await import('react')));
 vi.mock('../foundations/button.js', async () => fakeButtonModule(await import('react')));
 vi.mock('../foundations/status_indicator.js', async () => fakeStatusIndicatorModule(await import('react')));
@@ -65,6 +88,7 @@ vi.mock('../../notebook/notebook_commands.js', async () => {
     const React = await import('react');
     return {
         NotebookCommandType: { ExecuteEditorQuery: 1 },
+        COMPOSE_INPUT_MODE_AI: 1,
         useNotebookCommandDispatch: () => () => { },
         // The feed consumes the compose input mode from the command context; back it with
         // local state so the SQL/AI toggle works in isolation.
@@ -121,6 +145,7 @@ import {
     DELETE_NOTEBOOK_ENTRY,
     PROMOTE_UNCOMMITTED_SCRIPT,
     REJECT_PENDING_DIFF,
+    REGISTER_QUERY,
     REORDER_NOTEBOOK_SCRIPTS,
     SELECT_ENTRY,
     type NotebookState,
@@ -252,6 +277,8 @@ describe('NotebookScriptFeed', () => {
         mockState.agentRuns.clear();
         mockState.latestAgentRunId = null;
         mockState.observedWidth = 1200;
+        mockState.promptText = '';
+        mockState.composeEditorFocus.mockReset();
         mockState.executeQuery.mockReset();
         mockState.executeQuery.mockReturnValue([42, Promise.resolve(null)]);
         mockState.startAgentRun.mockReset();
@@ -297,10 +324,10 @@ describe('NotebookScriptFeed', () => {
         });
 
         const list = container.querySelector('[data-testid="mock-list"]') as HTMLDivElement;
-        const composer = container.querySelector('[class^="compose_section"]') as HTMLDivElement;
+        const composer = list.parentElement?.nextElementSibling as HTMLDivElement | null;
 
         expect(list.style.scrollbarGutter).toBe('stable both-edges');
-        expect(composer).not.toBeNull();
+        if (composer == null) throw new Error('missing draft composer');
         expect(composer.style.right).toBe('');
     });
 
@@ -325,18 +352,164 @@ describe('NotebookScriptFeed', () => {
         expect(showDetails).toHaveBeenCalledWith('02-script.sql');
     });
 
-    it('opens script details from the keyboard activation surface', () => {
-        const modifyNotebook = vi.fn();
-        const showDetails = vi.fn();
-        renderFeed({ notebook: createNotebookState(), modifyNotebook, showDetails });
+    it('renders execute and AI context controls instead of the focus indicator', () => {
+        renderFeed({ notebook: createNotebookState(), modifyNotebook: vi.fn(), showDetails: vi.fn() });
 
-        const activation = container.querySelector('[aria-label="Open script script details"]') as HTMLButtonElement;
-        act(() => {
-            activation.click();
+        const executeButtons = container.querySelectorAll('[aria-label="Execute script query"]');
+        expect(executeButtons).toHaveLength(2);
+        expect(executeButtons[0].getAttribute('aria-current')).toBe('true');
+        expect(executeButtons[1].hasAttribute('aria-current')).toBe(false);
+        expect(container.querySelectorAll('[aria-label="Use script as AI context"]')).toHaveLength(2);
+        expect(container.querySelector('[aria-label^="Open script"]')).toBeNull();
+    });
+
+    it('moves the Ctrl+E indicator to the newly focused card', () => {
+        const notebook = createNotebookState();
+        renderFeed({ notebook, modifyNotebook: vi.fn(), showDetails: vi.fn() });
+
+        renderFeed({
+            notebook: {
+                ...notebook,
+                notebookUserFocus: { ...notebook.notebookUserFocus, fileName: '02-script.sql' },
+            },
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
         });
 
-        expect(modifyNotebook).toHaveBeenCalledWith({ type: SELECT_ENTRY, value: '01-script.sql' });
-        expect(showDetails).toHaveBeenCalledWith('01-script.sql');
+        const executeButtons = container.querySelectorAll('[aria-label="Execute script query"]');
+        expect(executeButtons[0].hasAttribute('aria-current')).toBe(false);
+        expect(executeButtons[1].getAttribute('aria-current')).toBe('true');
+    });
+
+    it('executes the clicked script without changing notebook focus', () => {
+        const notebook = createNotebookState();
+        const modifyNotebook = vi.fn();
+        renderFeed({ notebook, modifyNotebook, showDetails: vi.fn() });
+
+        const executeButtons = container.querySelectorAll('[aria-label="Execute script query"]');
+        act(() => (executeButtons[1] as HTMLButtonElement).click());
+
+        expect(mockState.executeQuery).toHaveBeenCalledWith(notebook.sessionId, expect.objectContaining({
+            query: 'select 2',
+            cacheable: true,
+        }));
+        expect(modifyNotebook).toHaveBeenCalledWith({ type: REGISTER_QUERY, value: [102, 42] });
+        expect(modifyNotebook).not.toHaveBeenCalledWith(expect.objectContaining({ type: SELECT_ENTRY }));
+    });
+
+    it('replaces execute with stop while that script query is active', () => {
+        const notebook = createNotebookState();
+        notebook.scripts[101] = { ...notebook.scripts[101], latestQueryId: 42 };
+        mockState.queryStates.set(42, { traceId: 100, status: 4 /* RUNNING */ });
+        renderFeed({ notebook, modifyNotebook: vi.fn(), showDetails: vi.fn() });
+
+        expect(container.querySelectorAll('[aria-label="Execute script query"]')).toHaveLength(1);
+        const stop = container.querySelector('[aria-label="Stop script query"]') as HTMLButtonElement;
+        expect(stop).not.toBeNull();
+        act(() => stop.click());
+        expect(mockState.cancelQuery).toHaveBeenCalledWith(notebook.sessionId, 42);
+        expect(mockState.executeQuery).not.toHaveBeenCalled();
+    });
+
+    it('disables card execution while disconnected', () => {
+        renderFeed({ notebook: createNotebookState(), modifyNotebook: vi.fn(), showDetails: vi.fn(), conn: null });
+
+        const executeButtons = container.querySelectorAll('[aria-label="Execute script query"]');
+        expect(executeButtons).toHaveLength(2);
+        expect(Array.from(executeButtons).every(button => (button as HTMLButtonElement).disabled)).toBe(true);
+    });
+
+    it('switches to AI, focuses the prompt, and shows the clicked script as context', () => {
+        renderFeed({ notebook: createNotebookState(), modifyNotebook: vi.fn(), showDetails: vi.fn() });
+
+        const contextButtons = container.querySelectorAll('[aria-label="Use script as AI context"]');
+        act(() => (contextButtons[1] as HTMLButtonElement).click());
+
+        expect(container.querySelector('[data-testid="prompt-editor"]')).not.toBeNull();
+        expect(container.textContent).toContain('script');
+        expect(container.querySelector('[aria-label="Remove script AI context"]')).not.toBeNull();
+        expect(mockState.composeEditorFocus).toHaveBeenCalledOnce();
+
+        const refreshedContextButtons = container.querySelectorAll('[aria-label="Use script as AI context"]');
+        act(() => (refreshedContextButtons[0] as HTMLButtonElement).click());
+        expect(mockState.composeEditorFocus).toHaveBeenCalledTimes(2);
+    });
+
+    it('runs the AI prompt against the explicit context despite later hover selection', () => {
+        const notebook = createNotebookState();
+        mockState.promptText = 'Improve this query';
+        const modifyNotebook = vi.fn();
+        renderFeed({ notebook, modifyNotebook, showDetails: vi.fn() });
+
+        const contextButtons = container.querySelectorAll('[aria-label="Use script as AI context"]');
+        act(() => (contextButtons[1] as HTMLButtonElement).click());
+        act(() => {
+            container.querySelectorAll('[data-testid="script-preview"]')[0].parentElement?.parentElement?.parentElement
+                ?.dispatchEvent(new MouseEvent('pointerenter', { bubbles: true }));
+        });
+        act(() => (container.querySelector('[aria-label="Send to AI"]') as HTMLButtonElement).click());
+
+        expect(mockState.startAgentRun).toHaveBeenCalledWith(expect.objectContaining({
+            prompt: 'Improve this query',
+            contextScriptKey: 102,
+        }));
+    });
+
+    it('uses a blank-draft context when AI mode has no context bean', () => {
+        mockState.promptText = 'Create a query';
+        renderFeed({ notebook: createNotebookState(), modifyNotebook: vi.fn(), showDetails: vi.fn() });
+
+        const aiModeButton = Array.from(container.querySelectorAll('button')).find(button => button.textContent?.trim() === 'AI');
+        expect(aiModeButton).toBeDefined();
+        act(() => (aiModeButton as HTMLButtonElement).click());
+        act(() => (container.querySelector('[aria-label="Send to AI"]') as HTMLButtonElement).click());
+
+        expect(mockState.startAgentRun).toHaveBeenCalledWith(expect.objectContaining({
+            prompt: 'Create a query',
+            contextScriptKey: null,
+        }));
+    });
+
+    it('removes the explicit AI context from the composer bean', () => {
+        renderFeed({ notebook: createNotebookState(), modifyNotebook: vi.fn(), showDetails: vi.fn() });
+        const contextButton = container.querySelector('[aria-label="Use script as AI context"]') as HTMLButtonElement;
+        act(() => contextButton.click());
+
+        const remove = container.querySelector('[aria-label="Remove script AI context"]') as HTMLButtonElement;
+        expect(remove).not.toBeNull();
+        act(() => remove.click());
+        expect(container.querySelector('[aria-label="Remove script AI context"]')).toBeNull();
+    });
+
+    it('keeps AI context across mode switches and clears it when the script is deleted', () => {
+        const notebook = createNotebookState();
+        renderFeed({ notebook, modifyNotebook: vi.fn(), showDetails: vi.fn() });
+        act(() => (container.querySelector('[aria-label="Use script as AI context"]') as HTMLButtonElement).click());
+
+        const sqlModeButton = Array.from(container.querySelectorAll('button')).find(button => button.textContent?.trim() === 'SQL');
+        act(() => (sqlModeButton as HTMLButtonElement).click());
+        const aiModeButton = Array.from(container.querySelectorAll('button')).find(button => button.textContent?.trim() === 'AI');
+        act(() => (aiModeButton as HTMLButtonElement).click());
+        expect(container.querySelector('[aria-label="Remove script AI context"]')).not.toBeNull();
+
+        const page = notebook.notebookPages.Main;
+        const scripts = { ...notebook.scripts };
+        delete scripts[101];
+        renderFeed({
+            notebook: {
+                ...notebook,
+                scripts,
+                notebookPages: {
+                    Main: {
+                        ...page,
+                        scripts: { '02-script.sql': page.scripts['02-script.sql'] },
+                    },
+                },
+            },
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+        });
+        expect(container.querySelector('[aria-label="Remove script AI context"]')).toBeNull();
     });
 
     it('does not open Details when a story SQL control is activated', () => {

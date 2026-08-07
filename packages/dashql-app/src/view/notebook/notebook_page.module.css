@@ -71,6 +71,10 @@
         color: black !important;
         font-weight: 400 !important;
     }
+    .header_focus_action,
+    .header_refresh_action {
+        display: none;
+    }
     .action_sidebar {
         display: none;
     }

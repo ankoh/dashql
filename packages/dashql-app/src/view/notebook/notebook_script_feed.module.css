@@ -117,6 +117,60 @@
     padding: 8px 8px;
 }
 
+.compose_mode_group {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.compose_context_bean {
+    min-width: 0;
+    max-width: 240px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-left: 10px;
+    border: 1px solid var(--border_color_primary);
+    border-radius: 999px;
+    color: var(--base_color_neutral_7);
+    background-color: var(--base_color_neutral_0);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.compose_context_name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.compose_context_remove {
+    appearance: none;
+    flex: 0 0 26px;
+    align-self: stretch;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    color: var(--base_color_neutral_5);
+    background: transparent;
+    cursor: pointer;
+}
+
+.compose_context_remove:hover {
+    color: var(--base_color_neutral_9);
+    background-color: rgba(208, 215, 222, 0.48);
+}
+
+.compose_context_remove:focus-visible {
+    outline: 2px solid var(--focus_outline_color, #0969da);
+    outline-offset: -2px;
+}
+
 .compose_send_group {
     display: flex;
     flex-direction: row;
@@ -184,7 +238,6 @@
     border-bottom: none;
 }
 
-.feed_entry_card_script::after,
 .feed_entry_card_server::before {
     content: "";
     position: absolute;
@@ -193,12 +246,6 @@
     height: 8px;
     background-color: white;
     transform: rotate(45deg);
-}
-
-.feed_entry_card_script::after {
-    right: -5px;
-    border-top: 1px solid var(--log_border_color);
-    border-right: 1px solid var(--log_border_color);
 }
 
 .feed_entry_card_server::before {
@@ -277,7 +324,6 @@
 
     .feed_entry_avatar_script,
     .feed_entry_avatar_server,
-    .feed_entry_card_script::after,
     .feed_entry_card_server::before {
         display: none;
     }
@@ -322,41 +368,8 @@
     opacity: 1;
 }
 
-.feed_entry_focus_focused,
-.feed_entry_focus_unfocused {
-    appearance: none;
-    border: 0;
-    padding: 0;
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-    flex-shrink: 0;
-    width: 32px;
-    height: 24px;
-    display: grid;
-    place-items: center;
-}
-
-.feed_entry_focus_focused {
-    border-radius: 6px;
-}
-.feed_entry_focus_unfocused {
-    color: hsl(210, 10%, 75%);
-}
-.feed_entry_focus_focused:focus-visible,
-.feed_entry_focus_unfocused:focus-visible {
-    outline: 2px solid var(--focus_outline_color, #0969da);
-    outline-offset: -2px;
-}
-
-.feed_entry_focus_icon,
-.feed_entry_focus_icon_hidden {
-    grid-area: 1 / 1;
-}
-
-/* Kept mounted to avoid unmount/remount flicker; just hidden from view. */
-.feed_entry_focus_icon_hidden {
-    visibility: hidden;
+.feed_entry_execute_unfocused {
+    color: var(--base_color_neutral_4);
 }
 
 .feed_entry_stats_bar {

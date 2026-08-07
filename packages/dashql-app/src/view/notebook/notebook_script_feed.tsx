@@ -3,7 +3,7 @@ import * as styles from './notebook_script_feed.module.css';
 
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '@primer/octicons-react';
-import { CodeIcon, ComposeIcon, PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon } from '@primer/octicons-react';
+import { CodeIcon, ComposeIcon, PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon, XIcon } from '@primer/octicons-react';
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import { useAppConfig } from '../../app_config.js';
@@ -17,12 +17,12 @@ import { ButtonGroup } from '../foundations/button_group.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
 import { getExecutableQueryText, getSelectedEntry, getSelectedPage, getSelectedPageEntries, getSortedFileNames, getUncommittedScriptData, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY, REORDER_NOTEBOOK_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../notebook/notebook_state.js';
 import { useAIClient } from '../../platform/ai_client_provider.js';
-import { useComposeInputMode } from '../../notebook/notebook_commands.js';
+import { COMPOSE_INPUT_MODE_AI, useComposeInputMode } from '../../notebook/notebook_commands.js';
 import { useLatestAgentRunState, useAgentRunState, useStartAgentRun, useCancelAgentRun } from '../../agent/agent_run_provider.js';
 import { AgentRunPhase, agentRunIsActive } from '../../agent/agent_run_state.js';
 import { OutputColumn } from '../../notebook/notebook_agent_context.js';
 import { createNotebookAgentHost } from '../../notebook/notebook_agent_host.js';
-import { QueryType } from '../../connection/query_execution_state.js';
+import { QueryType, queryIsDone } from '../../connection/query_execution_state.js';
 import { useCancelQuery, useQueryExecutor, useQueryState } from '../../connection/query_executor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { ScriptEditor } from './script_editor.js';
@@ -92,6 +92,8 @@ interface CollapsedScriptCardProps {
     folderName: string;
     scriptFileName: string;
     scriptDebugMode: boolean;
+    canExecute: boolean;
+    canUseAI: boolean;
     canDelete: boolean;
     canMoveUp: boolean;
     canMoveDown: boolean;
@@ -101,6 +103,8 @@ interface CollapsedScriptCardProps {
     onRename: (oldFileName: string, newFileName: string) => void;
     onMoveUp: (fileName: string) => void;
     onMoveDown: (fileName: string) => void;
+    onExecute: (fileName: string) => void;
+    onUseAIContext: (scriptKey: number) => void;
     onShowStatus: (fileName: string) => void;
     onShowAgentStatus: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
@@ -113,18 +117,12 @@ interface CollapsedScriptCardProps {
     onVisible: (fileName: string) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, connectorIcon, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, connectorIcon, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canExecute, canUseAI, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
     const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
     const PersonIcon: Icon = SymbolIcon('person_16');
 
-    // Both eye states are rendered at once and toggled via CSS visibility. SymbolIcon caches a
-    // distinct component type per symbol, so swapping the bound icon on focus change would
-    // unmount/remount the <svg><use> and force the external symbol reference to re-resolve —
-    // which shows up as a flicker when navigating quickly with Ctrl+H/J/K/L.
-    const EyeOpenIcon: Icon = SymbolIcon('eye_16');
-    const EyeClosedIcon: Icon = SymbolIcon('eye_closed_16');
     const PencilIcon: Icon = SymbolIcon('pencil_16');
 
     // Accept/Reject a staged rewrite — the same check/cross icon group as the Details editor.
@@ -133,6 +131,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, connectorIc
     const queryState = useQueryState(sessionId, scriptData?.latestQueryId ?? null);
     const cancelQuery = useCancelQuery();
     const cancelAgentRun = useCancelAgentRun();
+    const queryActive = queryState != null && !queryIsDone(queryState.status);
 
     // Resolve the agent run by its id (handle) just like the query above — the run carries its
     // own trace id, so the footer no longer needs a denormalized trace id on ScriptData.
@@ -245,23 +244,23 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, connectorIc
             <div className={styles.feed_entry_message_script}>
                 <div className={styles.feed_entry_card_script}>
                     <div className={styles.feed_entry_action_bar}>
-                        <button
-                            type="button"
-                            className={isFocused ? styles.feed_entry_focus_focused : styles.feed_entry_focus_unfocused}
-                            aria-label={`Open ${displayName} script details`}
-                            onClick={() => onExpand(scriptFileName)}
+                        <IconButton
+                            className={isFocused ? undefined : styles.feed_entry_execute_unfocused}
+                            variant={ButtonVariant.Invisible}
+                            size={ButtonSize.Small}
+                            aria-label={queryActive ? `Stop ${displayName} query` : `Execute ${displayName} query`}
+                            aria-current={isFocused ? 'true' : undefined}
+                            disabled={!queryActive && !canExecute}
+                            onClick={() => {
+                                if (queryActive && scriptData?.latestQueryId != null) {
+                                    cancelQuery(sessionId, scriptData.latestQueryId);
+                                } else {
+                                    onExecute(scriptFileName);
+                                }
+                            }}
                         >
-                            <EyeOpenIcon
-                                className={isFocused ? styles.feed_entry_focus_icon : styles.feed_entry_focus_icon_hidden}
-                                size={16}
-                                aria-hidden="true"
-                            />
-                            <EyeClosedIcon
-                                className={isFocused ? styles.feed_entry_focus_icon_hidden : styles.feed_entry_focus_icon}
-                                size={16}
-                                aria-hidden="true"
-                            />
-                        </button>
+                            {queryActive ? <SquareFillIcon size={14} /> : <PaperAirplaneIcon size={16} />}
+                        </IconButton>
                         <div className={styles.feed_entry_file_name}>
                             <NotebookScriptName
                                 folder={folderName}
@@ -286,6 +285,17 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, connectorIc
                                 <ScriptStatisticsBar stats={scriptData.statistics} />
                             </div>
                         )}
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            size={ButtonSize.Small}
+                            aria-label={`Use ${displayName} as AI context`}
+                            disabled={!canUseAI || scriptData == null}
+                            onClick={() => {
+                                if (scriptData != null) onUseAIContext(scriptData.scriptKey);
+                            }}
+                        >
+                            <SparklesFillIcon size={16} />
+                        </IconButton>
                         <IconButton
                             variant={ButtonVariant.Invisible}
                             onClick={(event) => { event.stopPropagation(); onMoveUp(scriptFileName); }}
@@ -396,6 +406,8 @@ interface ScriptFeedRowProps {
     folderName: string;
     scriptDebugMode: boolean;
     focusedFileName: string;
+    executableScriptKeys: ReadonlySet<number>;
+    canUseAI: boolean;
     canDelete: boolean;
     onFocus: (fileName: string) => void;
     onExpand: (fileName: string) => void;
@@ -403,6 +415,8 @@ interface ScriptFeedRowProps {
     onRename: (oldFileName: string, newFileName: string) => void;
     onMoveUp: (fileName: string) => void;
     onMoveDown: (fileName: string) => void;
+    onExecute: (fileName: string) => void;
+    onUseAIContext: (scriptKey: number) => void;
     onShowStatus: (fileName: string) => void;
     onShowAgentStatus: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
@@ -418,7 +432,7 @@ interface ScriptFeedRowProps {
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { sessionId, connectorIcon, entries, scripts, folderName, scriptDebugMode, focusedFileName, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible, onHeightMeasured, hasMeasuredHeight } = props;
+    const { sessionId, connectorIcon, entries, scripts, folderName, scriptDebugMode, focusedFileName, executableScriptKeys, canUseAI, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible, onHeightMeasured, hasMeasuredHeight } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -469,6 +483,8 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     folderName={folderName}
                     scriptFileName={scriptFileName}
                     scriptDebugMode={scriptDebugMode}
+                    canExecute={scriptData != null && executableScriptKeys.has(scriptData.scriptKey)}
+                    canUseAI={canUseAI}
                     canDelete={canDelete}
                     canMoveUp={canMoveUp}
                     canMoveDown={canMoveDown}
@@ -478,6 +494,8 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onRename={onRename}
                     onMoveUp={onMoveUp}
                     onMoveDown={onMoveDown}
+                    onExecute={onExecute}
+                    onUseAIContext={onUseAIContext}
                     onShowStatus={onShowStatus}
                     onShowAgentStatus={onShowAgentStatus}
                     onShowTable={onShowTable}
@@ -499,10 +517,39 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
 
     const pendingScrollToBottomRef = React.useRef(false);
     const [composeEditorView, setComposeEditorView] = React.useState<EditorView | null>(null);
+    const [aiContextScriptKey, setAIContextScriptKey] = React.useState<number | null>(null);
 
     // The SQL/AI input mode is hoisted into the command context so the "Switch Mode" command
     // and the Ctrl+M shortcut can drive it from outside the feed.
     const { mode: inputMode, setMode: setInputMode } = useComposeInputMode();
+
+    const aiContextScript = aiContextScriptKey != null
+        ? props.notebook.scripts[aiContextScriptKey] ?? null
+        : null;
+    const aiContextName = aiContextScript != null ? scriptDisplayName(aiContextScript.fileName) : null;
+
+    // Context is scoped to the current page/session. Within that scope it is stable by script key,
+    // so hover selection and renames cannot silently retarget a prompt.
+    const contextScopeRef = React.useRef({
+        sessionId: props.notebook.sessionId,
+        folderName: props.notebook.notebookUserFocus.folderName,
+    });
+    React.useEffect(() => {
+        const nextScope = {
+            sessionId: props.notebook.sessionId,
+            folderName: props.notebook.notebookUserFocus.folderName,
+        };
+        if (contextScopeRef.current.sessionId !== nextScope.sessionId
+            || contextScopeRef.current.folderName !== nextScope.folderName) {
+            contextScopeRef.current = nextScope;
+            setAIContextScriptKey(null);
+        }
+    }, [props.notebook.sessionId, props.notebook.notebookUserFocus.folderName]);
+    React.useEffect(() => {
+        if (aiContextScriptKey != null && aiContextScript == null) {
+            setAIContextScriptKey(null);
+        }
+    }, [aiContextScript, aiContextScriptKey]);
 
     // SQL and AI use two distinct editor instances. When a toggle swaps them, the freshly
     // mounted editor should inherit focus so the keyboard flow continues uninterrupted.
@@ -539,6 +586,15 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             view.focus();
         }
     }, []);
+
+    const handleUseAIContext = React.useCallback((scriptKey: number) => {
+        setAIContextScriptKey(scriptKey);
+        if (inputMode === COMPOSE_INPUT_MODE_AI) {
+            composeEditorView?.focus();
+        } else {
+            setInputMode(COMPOSE_INPUT_MODE_AI);
+        }
+    }, [composeEditorView, inputMode, setInputMode]);
 
     const handleFocus = React.useCallback((fileName: string) => {
         props.modifyNotebook({ type: SELECT_ENTRY, value: fileName });
@@ -676,6 +732,15 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         rerunEntry(notebook, scriptData, executeQuery, props.modifyNotebook);
     }, [props.notebook, props.modifyNotebook, isDisconnected, executeQuery, storageReader]);
 
+    const handleExecuteEntry = React.useCallback((fileName: string) => {
+        if (isDisconnected) return;
+        const notebook = props.notebook;
+        const entry = notebook.notebookPages[notebook.notebookUserFocus.folderName]?.scripts[fileName];
+        const scriptData = entry != null ? notebook.scripts[entry.scriptId] : undefined;
+        if (scriptData == null) return;
+        rerunEntry(notebook, scriptData, executeQuery, props.modifyNotebook);
+    }, [executeQuery, isDisconnected, props.modifyNotebook, props.notebook]);
+
     // Auto-run a visualization when its card scrolls into view — but only when the data is already
     // cached, so we never kick off a backend query the user didn't ask for.
     //
@@ -740,14 +805,13 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         registerNotebookQuery(scriptData, queryId, queryText, execution, props.modifyNotebook, true);
     }, [props.notebook, props.modifyNotebook, isDisconnected, executeQuery]);
 
-    // Send the compose editor's text to the agent run as a natural-language prompt.
-    // The focused feed entry is the context + default in-place target.
+    // Send the compose editor's text to the agent run as a natural-language prompt. Context is
+    // explicit: no bean means a blank-draft run rather than an implicit hover-selected target.
     const handleSendAI = React.useCallback(() => {
         if (!aiAvailable) return;
         const prompt = composeEditorView?.state.doc.toString().trim() ?? '';
         if (prompt.length === 0) return;
-        const focusedEntry = getSelectedEntry(props.notebook);
-        const contextScriptKey = focusedEntry?.scriptId ?? null;
+        const contextScriptKey = aiContextScript?.scriptKey ?? null;
 
         // Build the notebook adapter the run acts on. It closes over the focused script + the
         // notebook dispatch; for visualize runs it also exposes each script's last-execution output
@@ -775,7 +839,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                 changes: { from: 0, to: composeEditorView.state.doc.length, insert: '' },
             });
         }
-    }, [aiAvailable, composeEditorView, props.notebook, props.conn, props.modifyNotebook, startAgentRun]);
+    }, [aiAvailable, aiContextScript, composeEditorView, props.notebook, props.conn, props.modifyNotebook, startAgentRun]);
 
     const handleComposeSend = React.useCallback(() => {
         if (inputMode === 1) {
@@ -987,9 +1051,17 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     // Get folder name from current page (display-only: strip the on-disk ordering prefix)
     const selectedPage = getSelectedPage(props.notebook);
     const folderName = normalizePageName(selectedPage?.folderName ?? '') || 'Untitled';
+    const executableScriptKeys = React.useMemo(() => {
+        if (isDisconnected) return new Set<number>();
+        return new Set(entries.flatMap(entry => {
+            const scriptData = props.notebook.scripts[entry.scriptId];
+            return scriptData != null && getExecutableQueryText(props.notebook, scriptData).trim().length > 0
+                ? [scriptData.scriptKey]
+                : [];
+        }));
+    }, [entries, isDisconnected, props.notebook]);
 
     // Row props — heightsVersion is included so react-window re-evaluates row heights on change
-    const focusedFileName = props.notebook.notebookUserFocus.fileName;
     const pageCount = Object.keys(props.notebook.notebookPages).length;
     const canDelete = pageCount > 1 || entries.length > 1;
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
@@ -999,7 +1071,9 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         scripts: props.notebook.scripts,
         folderName,
         scriptDebugMode,
-        focusedFileName,
+        focusedFileName: props.notebook.notebookUserFocus.fileName,
+        executableScriptKeys,
+        canUseAI: aiAvailable,
         canDelete,
         onFocus: handleFocus,
         onExpand: handleExpand,
@@ -1007,6 +1081,8 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onRename: handleRename,
         onMoveUp: handleMoveUp,
         onMoveDown: handleMoveDown,
+        onExecute: handleExecuteEntry,
+        onUseAIContext: handleUseAIContext,
         onShowStatus: handleShowStatus,
         onShowAgentStatus: handleShowAgentStatus,
         onShowTable: handleShowTable,
@@ -1019,7 +1095,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         hasMeasuredHeight,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, props.notebook.connectorInfo.icons?.outlines, folderName, scriptDebugMode, focusedFileName, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, handleEntryVisible, handleHeightMeasured, hasMeasuredHeight, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, props.notebook.connectorInfo.icons?.outlines, props.notebook.notebookUserFocus.fileName, folderName, scriptDebugMode, executableScriptKeys, aiAvailable, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleUseAIContext, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, handleEntryVisible, handleHeightMeasured, hasMeasuredHeight, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container} data-tauri-drag-region="deep">
@@ -1068,26 +1144,41 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                         />
                     )}
                     <div className={styles.compose_action_bar}>
-                        <SegmentedControl
-                            aria-label="Input mode"
-                            size={SegmentedControlSize.Small}
-                            onChange={setInputMode}
-                        >
-                            <SegmentedControl.Button
-                                leadingVisual={CodeIcon}
-                                selected={inputMode === 0}
+                        <div className={styles.compose_mode_group}>
+                            <SegmentedControl
+                                aria-label="Input mode"
+                                size={SegmentedControlSize.Small}
+                                onChange={setInputMode}
                             >
-                                SQL
-                            </SegmentedControl.Button>
-                            <SegmentedControl.Button
-                                leadingVisual={SparklesFillIcon}
-                                selected={inputMode === 1}
-                                disabled={!aiAvailable}
-                                title={aiAvailable ? 'Ctrl + M to toggle' : 'Configure an AI provider in settings'}
-                            >
-                                AI
-                            </SegmentedControl.Button>
-                        </SegmentedControl>
+                                <SegmentedControl.Button
+                                    leadingVisual={CodeIcon}
+                                    selected={inputMode === 0}
+                                >
+                                    SQL
+                                </SegmentedControl.Button>
+                                <SegmentedControl.Button
+                                    leadingVisual={SparklesFillIcon}
+                                    selected={inputMode === 1}
+                                    disabled={!aiAvailable}
+                                    title={aiAvailable ? 'Ctrl + M to toggle' : 'Configure an AI provider in settings'}
+                                >
+                                    AI
+                                </SegmentedControl.Button>
+                            </SegmentedControl>
+                            {inputMode === COMPOSE_INPUT_MODE_AI && aiContextName != null && (
+                                <div className={styles.compose_context_bean} title={aiContextName}>
+                                    <span className={styles.compose_context_name}>{aiContextName}</span>
+                                    <button
+                                        type="button"
+                                        className={styles.compose_context_remove}
+                                        aria-label={`Remove ${aiContextName} AI context`}
+                                        onClick={() => setAIContextScriptKey(null)}
+                                    >
+                                        <XIcon size={12} />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                         <div className={styles.compose_send_group}>
                             {inputMode === 1 && agentActive ? (
                                 <>

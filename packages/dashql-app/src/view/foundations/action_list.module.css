@@ -48,7 +48,6 @@
     background-color: rgba(208,215,222,0.32);
     border: 1px solid var(--border_color_primary);
 }
-
 .leading_container {
     grid-column: 1;
     display: inline-flex;

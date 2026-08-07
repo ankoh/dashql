@@ -288,6 +288,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                         <ButtonGroup>
                             {catalogTab == null && (
                                 <IconButton
+                                    className={styles.header_focus_action}
                                     variant={ButtonVariant.Default}
                                     aria-label="Execute Script"
                                     disabled={showDetails || isDisconnected}
@@ -297,6 +298,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                                 </IconButton>
                             )}
                             <IconButton
+                                className={styles.header_refresh_action}
                                 variant={ButtonVariant.Default}
                                 aria-label={isRefreshing ? 'Refreshing Schema' : 'Refresh Schema'}
                                 aria-busy={isRefreshing}
@@ -308,6 +310,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                                     : <SyncIcon />}
                             </IconButton>
                             <IconButton
+                                className={styles.header_focus_action}
                                 variant={ButtonVariant.Default}
                                 aria-label={composeInputMode === COMPOSE_INPUT_MODE_SQL ? 'Switch to AI Mode' : 'Switch to SQL Mode'}
                                 disabled={!aiAvailable}

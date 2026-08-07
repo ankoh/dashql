@@ -78,6 +78,16 @@ describe('ConnectionCommandList', () => {
         expect(commandDispatch).toHaveBeenCalledWith(2);
     });
 
+    it('executes the script from the sidebar action', () => {
+        renderConnection(createConnection(null, []));
+
+        const executeButton = Array.from(container.querySelectorAll('button')).find(button => button.textContent?.includes('Execute Script'));
+        expect(executeButton).toBeDefined();
+        expect(executeButton?.textContent).toContain('Ctrl + E');
+        act(() => executeButton?.click());
+        expect(commandDispatch).toHaveBeenCalledWith(1);
+    });
+
     it('shows a disabled loading indicator without changing the label while refreshing', () => {
         const refresh = renderConnection(createConnection(7, [7]));
 
