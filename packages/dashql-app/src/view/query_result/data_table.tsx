@@ -598,7 +598,13 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     };
 
     return (
-        <div className={classNames(styles.root, props.className)} style={props.cellBackground ? { '--data_table_bg': props.cellBackground } as React.CSSProperties : undefined}>
+        // The grid can be rendered within the notebook feed's deep Tauri drag region. Opt out so
+        // native scrollbar thumbs receive pointer drags instead of moving the application window.
+        <div
+            className={classNames(styles.root, props.className)}
+            data-tauri-drag-region="false"
+            style={props.cellBackground ? { '--data_table_bg': props.cellBackground } as React.CSSProperties : undefined}
+        >
             <div className={styles.grid_container} ref={gridContainerElement}>
                 <Grid
                     gridRef={setGridApi}
