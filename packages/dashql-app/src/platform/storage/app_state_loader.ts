@@ -94,9 +94,8 @@ async function restoreNotebook(
             const script = core.createScript(connectionCatalog);
             const scriptKey = script.getCatalogEntryId();
 
-            // Set SQL content and analyze
+            // Set SQL content. The guarded Phase 4 pass analyzes and registers every script.
             script.replaceText(scriptFile.sql);
-            script.analyze();
 
             // Create script data
             scripts[scriptKey] = {
@@ -120,9 +119,6 @@ async function restoreNotebook(
                 fileName: scriptFile.name,
                 folderName: page.name,
             };
-
-            // Add to registry
-            scriptRegistry.addScript(script);
 
             // Create page script reference
             pageScripts[scriptFile.name] = {

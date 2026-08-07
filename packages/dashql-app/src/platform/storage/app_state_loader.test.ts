@@ -36,9 +36,11 @@ describe('restoreAppState', () => {
     let mockCore: DashQL;
     let logger: Logger;
     let progressUpdates: any[];
+    let scriptAnalysisError: Error | null;
 
     beforeEach(() => {
         progressUpdates = [];
+        scriptAnalysisError = null;
 
         mockBackend = {
             getBackendType: vi.fn(() => StorageBackendType.OPFS),
@@ -71,25 +73,36 @@ describe('restoreAppState', () => {
 
         // Mock DashQL WASM instance
         let scriptIdCounter = 0;
+        const analyzedScripts = new WeakSet<object>();
         mockCore = {
             createCatalog: vi.fn(() => ({
                 dropScript: vi.fn(),
                 loadScript: vi.fn(),
             })),
-            createScript: vi.fn(() => ({
-                getCatalogEntryId: vi.fn(() => ++scriptIdCounter),
-                replaceText: vi.fn(),
-                analyze: vi.fn(),
-                toString: vi.fn(() => ''),
-                // Methods exercised by Phase 4 eager analysis (analyzeNotebookScript):
-                setNotebookPath: vi.fn(),
-                getParsed: vi.fn(() => null),
-                getAnalyzed: vi.fn(() => null),
-                getStatistics: vi.fn(() => null),
-                moveCursor: vi.fn(() => null),
-            })),
+            createScript: vi.fn(() => {
+                const script = {
+                    getCatalogEntryId: vi.fn(() => ++scriptIdCounter),
+                    replaceText: vi.fn(),
+                    analyze: vi.fn(() => {
+                        if (scriptAnalysisError) throw scriptAnalysisError;
+                        analyzedScripts.add(script);
+                    }),
+                    toString: vi.fn(() => ''),
+                    // Methods exercised by Phase 4 eager analysis (analyzeNotebookScript):
+                    setNotebookPath: vi.fn(),
+                    getParsed: vi.fn(() => null),
+                    getAnalyzed: vi.fn(() => null),
+                    getStatistics: vi.fn(() => null),
+                    moveCursor: vi.fn(() => null),
+                };
+                return script;
+            }),
             createScriptRegistry: vi.fn(() => ({
-                addScript: vi.fn(),
+                addScript: vi.fn((script) => {
+                    if (!analyzedScripts.has(script)) {
+                        throw new Error('Script is not analyzed');
+                    }
+                }),
             })),
         } as any;
 
@@ -654,6 +667,38 @@ describe('restoreAppState', () => {
 
         // Verify draft script was loaded
         expect(notebook.scripts[notebook.uncommittedScriptId].script.replaceText).toHaveBeenCalledWith('-- my draft');
+    });
+
+    it('keeps a notebook when a persisted script cannot be analyzed', async () => {
+        const sessionEntry = { path: MULTI_PAGE_ID };
+        const sessionData: SessionData = {
+            sessionId: MULTI_PAGE_ID,
+            sessionPath: MULTI_PAGE_ID,
+            name: 'Invalid Script',
+            connectionParams: { dataless: {} },
+            notebook: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
+        };
+
+        vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
+        vi.mocked(mockBackend.loadSession).mockResolvedValue(sessionData);
+        vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadNotebookPages).mockResolvedValue([
+            { name: 'page-1', scripts: [{ name: '01-script.sql', sql: 'invalid sql' }] }
+        ]);
+        vi.mocked(mockBackend.loadNotebookScriptDraft).mockResolvedValue(null);
+        scriptAnalysisError = new Error('Aborted');
+
+        const result = await restoreAppState(
+            mockCore,
+            mockBackend,
+            logger,
+            (progress) => progressUpdates.push(progress)
+        );
+
+        expect(result.notebooks.has(MULTI_PAGE_ID)).toBe(true);
+        const finalProgress = progressUpdates[progressUpdates.length - 1];
+        expect(finalProgress.restoreNotebooks.succeeded).toBe(1);
+        expect(finalProgress.analyzeNotebooks.failed).toBe(2);
     });
 
     it('creates at least one empty page for notebooks with no pages', async () => {
