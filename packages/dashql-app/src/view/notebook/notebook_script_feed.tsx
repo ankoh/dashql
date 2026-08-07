@@ -65,7 +65,7 @@ export interface NotebookScriptListProps {
 
 const ESTIMATED_ROW_HEIGHT = 240;
 const HEIGHT_CHANGE_EPSILON = 0.5;
-const OVERSCAN_ROW_COUNT = 8;
+const OVERSCAN_ROW_COUNT = 12;
 const FEED_EDGE_PADDING = 8;
 const FEED_BOTTOM_FADE_HEIGHT = 24;
 
