@@ -129,3 +129,26 @@ formatter-snapshots:
               )
               select *
               from t;
+
+  - name: select_with_values
+    input: |-
+      with source(id, tag) as (values (1, 'test-order-1'), (2, 'test-order-2')) select * from source
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              with source (id, tag) as (values (1, 'test-order-1'), (2, 'test-order-2')) select * from source;
+          - mode: compact
+            expected: |-
+              with source (id, tag) as (values (1, 'test-order-1'), (2, 'test-order-2')) select * from source;
+          - mode: pretty
+            expected: |-
+              with source (id, tag) as (
+                values
+                  (1, 'test-order-1'),
+                  (2, 'test-order-2')
+              )
+              select *
+              from source;
+        validation:

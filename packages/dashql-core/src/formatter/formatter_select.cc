@@ -71,7 +71,7 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
         return fmt.Join(inputs, separator, break_separator, FormattingJoinPolicy::BreakAllOrNone);
     }
 
-    if (select_into || select_windows || select_row_locking || select_sample || select_values || select_limit_all) {
+    if (select_into || select_windows || select_row_locking || select_sample || select_limit_all) {
         return FormatUnimplemented(node);
     }
 
@@ -90,6 +90,15 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
             clauses.push_back(fmt.Concat({fmt.Text("with recursive "), ctes}));
         } else {
             clauses.push_back(fmt.Concat({fmt.Text("with "), ctes}));
+        }
+    }
+    if (select_values) {
+        auto values_reg = Reg(*select_values);
+        if (values_reg == 0) return FormatUnimplemented(node);
+        if (config.mode == buffers::formatting::FormattingMode::PRETTY) {
+            clauses.push_back(fmt.Concat({fmt.Text("values"), fmt.Indented(fmt.Concat({fmt.Break(), values_reg}))}));
+        } else {
+            clauses.push_back(fmt.Concat({fmt.Text("values "), values_reg}));
         }
     }
     if (select_targets) {

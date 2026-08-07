@@ -533,6 +533,13 @@ FmtReg Formatter::FormatQualifiedName(const buffers::parser::Node& node) {
 }
 
 FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
+    if (node.attribute_key() == AttributeKey::NONE) {
+        size_t parent_id = node.parent();
+        if (parent_id < ast.size() && ast[parent_id].attribute_key() == AttributeKey::SQL_SELECT_VALUES) {
+            return fmt.Parenthesized(FormatCommaList(node));
+        }
+    }
+
     switch (node.attribute_key()) {
         case AttributeKey::SQL_SELECT_TARGETS:
         case AttributeKey::SQL_SELECT_FROM:
@@ -544,6 +551,21 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_CREATE_TABLE_ELEMENTS:
         case AttributeKey::SQL_GROUP_BY_ITEM_ARG:
             return FormatCommaList(node);
+        case AttributeKey::SQL_SELECT_VALUES: {
+            auto rows = GetArrayStates(node);
+            std::vector<FmtReg> parts;
+            parts.reserve(rows.size());
+            for (auto& row : rows) {
+                if (row.reg == 0) return FormatUnimplemented(node);
+                parts.push_back(row.reg);
+            }
+            auto policy = config.mode == buffers::formatting::FormattingMode::PRETTY
+                              ? FormattingJoinPolicy::ForceBreak
+                              : FormattingJoinPolicy::BreakOnOverflow;
+            bool indent_after_breaks = config.mode != buffers::formatting::FormattingMode::PRETTY;
+            return fmt.Join(parts, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}), policy,
+                            indent_after_breaks);
+        }
         case AttributeKey::SQL_ROW_LOCKING_OF:
         case AttributeKey::SQL_TEMP_NAME:
         case AttributeKey::SQL_CREATE_TABLE_NAME:
