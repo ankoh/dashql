@@ -333,11 +333,12 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     catalogTab={catalogTab}
                     showCatalogTabs={conn != null}
                     onSelectPage={(folderName) => {
-                        if (showDetails) return;
                         const isSelected = catalogTab == null && folderName === notebook.notebookUserFocus.folderName;
                         setCatalogTab(null);
                         if (!isSelected) modifyNotebook({ type: SELECT_PAGE, value: folderName });
                         setShowDetails(false);
+                        setDetailsScriptId(undefined);
+                        setDetailsInitialTab(undefined);
                     }}
                     onAddPage={() => {
                         if (showDetails) return;
