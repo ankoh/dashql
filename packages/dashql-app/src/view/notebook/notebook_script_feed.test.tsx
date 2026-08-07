@@ -316,7 +316,7 @@ describe('NotebookScriptFeed', () => {
         });
     }
 
-    it('keeps the list and draft composer centered with symmetric scrollbar gutters', () => {
+    it('keeps the draft fixed and exposes the list scrollbar inset for card centering', () => {
         renderFeed({
             notebook: createNotebookState(),
             modifyNotebook: vi.fn(),
@@ -326,7 +326,9 @@ describe('NotebookScriptFeed', () => {
         const list = container.querySelector('[data-testid="mock-list"]') as HTMLDivElement;
         const composer = list.parentElement?.nextElementSibling as HTMLDivElement | null;
 
-        expect(list.style.scrollbarGutter).toBe('stable both-edges');
+        expect(list.style.scrollbarGutter).toBe('stable');
+        expect(list.style.overflowX).toBe('hidden');
+        expect(list.style.getPropertyValue('--feed-scrollbar-inset')).toBe('17px');
         if (composer == null) throw new Error('missing draft composer');
         expect(composer.style.right).toBe('');
     });
@@ -475,6 +477,7 @@ describe('NotebookScriptFeed', () => {
         const contextButton = container.querySelector('[aria-label="Use script as AI context"]') as HTMLButtonElement;
         act(() => contextButton.click());
 
+        expect(container.querySelector('[title="script"]')?.textContent).toContain('script');
         const remove = container.querySelector('[aria-label="Remove script AI context"]') as HTMLButtonElement;
         expect(remove).not.toBeNull();
         act(() => remove.click());

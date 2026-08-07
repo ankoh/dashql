@@ -32,6 +32,7 @@ import { observeSize } from '../foundations/size_observer.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { normalizePageName, projectionForVisualizeQuery, scriptDisplayName } from '../../notebook/notebook_types.js';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
+import { useScrollbarWidth } from '../../utils/scrollbar.js';
 import { SegmentedControl, SegmentedControlSize } from '../foundations/segmented_control.js';
 import { NotebookScriptName } from './notebook_script_name.js';
 import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
@@ -1000,6 +1001,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const listContainerSize = observeSize(listContainerRef);
     const listWidth = listContainerSize?.width ?? 0;
     const listHeight = listContainerSize?.height ?? 0;
+    const listScrollbarInset = useScrollbarWidth();
 
     // Track the height of the composer for the filler row
     const composeSectionRef = React.useRef<HTMLDivElement>(null);
@@ -1103,9 +1105,13 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                 <List
                     key={props.notebook.notebookUserFocus.folderName}
                     listRef={listRef}
-                    // Reserve matching gutters on both sides. A one-sided scrollbar gutter changes
-                    // the visual center between overflowing and non-overflowing pages.
-                    style={{ width: listWidth, height: listHeight, scrollbarGutter: 'stable both-edges' }}
+                    style={{
+                        width: listWidth,
+                        height: listHeight,
+                        overflowX: 'hidden',
+                        scrollbarGutter: 'stable',
+                        '--feed-scrollbar-inset': `${listScrollbarInset}px`,
+                    } as React.CSSProperties}
                     rowCount={entries.length + 2}
                     overscanCount={OVERSCAN_ROW_COUNT}
                     rowHeight={(rowIndex) => {

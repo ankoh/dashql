@@ -125,19 +125,19 @@
 }
 
 .compose_context_bean {
-    min-width: 0;
-    max-width: 240px;
+    max-width: min(680px, 65vw);
     height: 28px;
     display: flex;
     align-items: center;
     gap: 4px;
     padding-left: 10px;
     border: 1px solid var(--border_color_primary);
-    border-radius: 999px;
+    border-radius: 6px;
     color: var(--base_color_neutral_7);
     background-color: var(--base_color_neutral_0);
     font-size: 12px;
     font-weight: 500;
+    font-family: "Roboto Mono";
 }
 
 .compose_context_name {
@@ -145,6 +145,8 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    direction: rtl;
+    text-align: left;
 }
 
 .compose_context_remove {
@@ -155,7 +157,7 @@
     place-items: center;
     padding: 0;
     border: 0;
-    border-radius: 50%;
+    border-radius: 4px;
     color: var(--base_color_neutral_5);
     background: transparent;
     cursor: pointer;
@@ -196,6 +198,14 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+}
+
+@media only screen and (min-width: 700px) {
+    .feed_entry_pair {
+        /* Center the bounded card, not the full-width virtual row, against the notebook pane. A
+           row-level translation enlarges the scrollable area and creates a horizontal scrollbar. */
+        transform: translateX(calc(var(--feed-scrollbar-inset, 0px) / 2));
+    }
 }
 
 .feed_entry_message_script,
