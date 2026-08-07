@@ -51,7 +51,7 @@ let NEXT_QUERY_ID = 1;
 /// Compute the file-based cache key for a query against a connection, or null when the connection has
 /// no recoverable params/signature (e.g. before setup completes). This is the same derivation the
 /// executor uses on its cacheable path; it's exported so callers that want to *probe* the cache
-/// (e.g. auto-running a visualization only on a cache hit) key their lookup identically. Never
+/// (e.g. auto-loading a card result only on a cache hit) key their lookup identically. Never
 /// throws — a failure to derive the key is reported as null (treat as "not cacheable / a miss").
 export async function computeQueryCacheKeyForConnection(
     details: ConnectionStateDetailsVariant,
@@ -178,8 +178,8 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
 
         // Cache-only probe: before registering *any* query state, check whether the result is already
         // on disk. On a miss the whole execution is a no-op — no state is registered and the backend
-        // is never touched — so the returned promise just resolves to null. This backs auto-running a
-        // visualization when it scrolls into view: instant if cached, otherwise left un-run. The
+        // is never touched — so the returned promise just resolves to null. This backs auto-loading a
+        // card when it scrolls into view: instant if cached, otherwise left un-run. The
         // loaded entry is carried into the cache read path below so we never load the bytes twice.
         let preloaded: CachedQueryResult | null = null;
         if (args.cacheOnly) {
@@ -193,7 +193,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 preloaded = null;
             }
             if (preloaded == null) {
-                traced.info("Cache-only query missed; skipping execution", {
+                traced.info("Query cache miss", {
                     "session": sessionId,
                     "query": queryId.toString(),
                 }, LOG_CTX);

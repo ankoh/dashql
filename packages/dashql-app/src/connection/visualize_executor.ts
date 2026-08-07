@@ -117,7 +117,7 @@ export function resolveVisualizeQuery(
             if (!vegaLiteSpecRaw) return null;
             // Log the final Vega-Lite JSON so the generated spec can be inspected
             // (e.g. to check which field-def properties like `stack` survived transcoding).
-            logger?.info('generated Vega-Lite spec', { spec: vegaLiteSpecRaw }, LOG_CTX);
+            logger?.info('Generated Vega-Lite spec', { spec: vegaLiteSpecRaw }, LOG_CTX);
             let vegaLiteSpec: TopLevelSpec;
             try {
                 vegaLiteSpec = JSON.parse(vegaLiteSpecRaw) as TopLevelSpec;

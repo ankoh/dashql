@@ -40,7 +40,7 @@ import { EntryStatusBar } from './entry_status_bar.js';
 import { deriveEntryStatus, EntryStatusKind } from './entry_status_model.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
 import { TabKey as DetailsTabKey } from './notebook_script_details.js';
-import { registerNotebookQuery, rerunEntry } from './rerun_query.js';
+import { createCachedEntryExecutionArgs, registerNotebookQuery, rerunEntry } from './rerun_query.js';
 import { useStorageReader } from '../../platform/storage/storage_provider.js';
 import { QueryResultCacheLabel, QueryResultRerunButton } from './query_result_cache_controls.js';
 
@@ -113,8 +113,8 @@ interface CollapsedScriptCardProps {
     onRerun: (fileName: string, cacheKey: string | null) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
-    /// Called when the card first scrolls into view. Backs the cache-only auto-run of visualizations:
-    /// a VISUALISE entry whose result is already cached renders itself as soon as it's seen.
+    /// Called when the card first scrolls into view. If the entry has a cached result, it is loaded
+    /// and displayed without executing against the backend.
     onVisible: (fileName: string) => void;
 }
 
@@ -211,8 +211,8 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, connectorIc
         onExpand(scriptFileName);
     }, [scriptFileName, onExpand]);
 
-    // Fire onVisible the first time the card intersects the viewport. This drives the cache-only
-    // auto-run of visualizations: seeing the card is the trigger to render it if its data is cached.
+    // Fire onVisible the first time the card intersects the viewport. This drives cache-only result
+    // loading: seeing the card is the trigger to render its last result if it is cached.
     // The callback is idempotent per script on the feed side (it de-dupes by cache key), so we only
     // need to fire once per mount — disconnect after the first intersection.
     const cardRef = React.useRef<HTMLDivElement>(null);
@@ -742,69 +742,44 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         rerunEntry(notebook, scriptData, executeQuery, props.modifyNotebook);
     }, [executeQuery, isDisconnected, props.modifyNotebook, props.notebook]);
 
-    // Auto-run a visualization when its card scrolls into view — but only when the data is already
-    // cached, so we never kick off a backend query the user didn't ask for.
+    // Load a card's last result when it scrolls into view, but only when the data is already cached,
+    // so we never kick off a backend query the user didn't ask for.
     //
-    // Scope, deliberately narrow:
-    //   - Only VISUALISE entries whose renderer is `vegalite`. UMAP is never auto-run: its projection
-    //     is far too expensive to trigger on a scroll-past (and cache-only wouldn't recompute it
-    //     anyway — this just makes the exclusion explicit and cheap).
+    // Scope:
     //   - Only entries that haven't run yet this session (no `latestQueryId`); a manual run or a
     //     prior auto-run already owns the result, and we must not clobber it.
-    //   - Skipped while disconnected (the cache read itself doesn't need the backend, but staying
-    //     consistent with the other execute paths keeps the behaviour predictable).
     // The executor's `cacheOnly` mode does the actual "hit → serve, miss → no-op" decision; on a hit
     // its promise resolves to the table and we link the query to the entry, on a miss it resolves to
     // null and we leave the entry un-run. A per-(script, query-text) guard keeps react-window's
     // remounts (and the effect re-fires) from re-attempting the same probe.
-    const autoRunAttemptedRef = React.useRef<Set<string>>(new Set());
+    const autoLoadAttemptedRef = React.useRef<Set<string>>(new Set());
     const handleEntryVisible = React.useCallback((fileName: string) => {
-        if (isDisconnected) {
-            return;
-        }
         const notebook = props.notebook;
         const entry = notebook.notebookPages[notebook.notebookUserFocus.folderName]?.scripts[fileName];
         const scriptData = entry != null ? notebook.scripts[entry.scriptId] : undefined;
         if (scriptData == null) {
             return;
         }
-        // Only cache-backed auto-run for vega-lite visualizations; never UMAP, never plain SQL.
-        const vq = scriptData.annotations.visualizeQuery;
-        if (vq == null || vq.renderer !== 'vegalite') {
-            return;
-        }
         // Already has a result (manual run or earlier auto-run) — leave it be.
         if (scriptData.latestQueryId != null) {
             return;
         }
-        const queryText = tryGetExecutableQueryText(notebook, scriptData);
-        if (queryText == null || queryText.trim().length === 0) {
+        const args = createCachedEntryExecutionArgs(notebook, scriptData);
+        if (args == null) {
             return;
         }
         // De-dupe: one probe per (script, resolved query text). An edit changes the text and so is
         // re-probed; a bare remount is not.
-        const attemptKey = `${scriptData.scriptKey}:${queryText}`;
-        if (autoRunAttemptedRef.current.has(attemptKey)) {
+        const attemptKey = `${scriptData.scriptKey}:${args.query}`;
+        if (autoLoadAttemptedRef.current.has(attemptKey)) {
             return;
         }
-        autoRunAttemptedRef.current.add(attemptKey);
+        autoLoadAttemptedRef.current.add(attemptKey);
 
-        const scriptKey = scriptData.scriptKey;
-        const [queryId, execution] = executeQuery(notebook.sessionId, {
-            query: queryText,
-            analyzeResults: true,
-            cacheOnly: true,
-            metadata: {
-                queryType: QueryType.USER_PROVIDED,
-                title: 'Notebook Query',
-                description: null,
-                issuer: 'Visualization Auto-run',
-                userProvided: true,
-            },
-        });
+        const [queryId, execution] = executeQuery(notebook.sessionId, args);
         // Cache-only misses must not point the entry at a phantom query.
-        registerNotebookQuery(scriptData, queryId, queryText, execution, props.modifyNotebook, true);
-    }, [props.notebook, props.modifyNotebook, isDisconnected, executeQuery]);
+        registerNotebookQuery(scriptData, queryId, args.query, execution, props.modifyNotebook, true);
+    }, [props.notebook, props.modifyNotebook, executeQuery]);
 
     // Send the compose editor's text to the agent run as a natural-language prompt. Context is
     // explicit: no bean means a blank-draft run rather than an implicit hover-selected target.
