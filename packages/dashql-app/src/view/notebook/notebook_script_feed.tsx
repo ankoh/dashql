@@ -63,11 +63,16 @@ export interface NotebookScriptListProps {
     active: boolean;
 }
 
-const ESTIMATED_ROW_HEIGHT = 120;
+const ESTIMATED_ROW_HEIGHT = 240;
 const HEIGHT_CHANGE_EPSILON = 0.5;
 const OVERSCAN_ROW_COUNT = 8;
 const FEED_EDGE_PADDING = 8;
 const FEED_BOTTOM_FADE_HEIGHT = 24;
+
+interface ScriptPreviewHint {
+    height?: number;
+    formattedText?: string;
+}
 
 /// Resolve the output columns (result schema) a script produced on its most recent execution, for
 /// the agent's visualize context. Output columns only exist after execution, so this reads the
@@ -115,9 +120,12 @@ interface CollapsedScriptCardProps {
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
     hasCachedResult: boolean;
+    onPreviewReady: () => void;
+    initialPreviewText: string;
+    onFormattedText: (scriptText: string) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, connectorIcon, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canExecute, canUseAI, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, hasCachedResult }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, connectorIcon, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canExecute, canUseAI, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, hasCachedResult, onPreviewReady, initialPreviewText, onFormattedText }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
     const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
@@ -301,6 +309,9 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, connectorIc
                                 className={styles.script_preview_editor}
                                 sessionId={sessionId}
                                 scriptData={scriptData}
+                                onReady={onPreviewReady}
+                                initialTextHint={initialPreviewText}
+                                onFormattedText={onFormattedText}
                             />
                         )}
                         {hasPendingDiff && (
@@ -400,52 +411,73 @@ interface ScriptFeedRowProps {
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
     cachedScriptKeys: ReadonlySet<number>;
-    onHeightMeasured: (scriptId: number, entryIndex: number, height: number) => void;
-    hasMeasuredHeight: (scriptId: number) => boolean;
-    fillerRowHeight: number;
+    previewHints: ReadonlyMap<number, ScriptPreviewHint>;
+    onHeightMeasured: (scriptId: number, height: number) => void;
+    onFormattedText: (scriptId: number, scriptText: string) => void;
     heightsVersion: number;
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { sessionId, connectorIcon, entries, scripts, folderName, scriptDebugMode, focusedFileName, executableScriptKeys, canUseAI, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, cachedScriptKeys, onHeightMeasured, hasMeasuredHeight } = props;
+    const { sessionId, connectorIcon, entries, scripts, folderName, scriptDebugMode, focusedFileName, executableScriptKeys, canUseAI, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, cachedScriptKeys, previewHints, onHeightMeasured, onFormattedText } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
     const scriptData = entry != null ? scripts[entry.scriptId] : undefined;
     const scriptFileName = entry?.fileName ?? '01-script.sql';
+    const previewHint = entry != null ? previewHints.get(entry.scriptId) : undefined;
+    const cachedHeight = previewHint?.height;
     // entries are in feed order, so position bounds drive the move-button enablement.
     const canMoveUp = !isFillerRow && entryIndex > 0;
     const canMoveDown = !isFillerRow && entryIndex < entries.length - 1;
-
     const outerRef = React.useRef<HTMLDivElement>(null);
+    const [previewReady, setPreviewReady] = React.useState(false);
 
     React.useLayoutEffect(() => {
-        if (isFillerRow) {
-            return;
-        }
-        const el = outerRef.current;
-        if (!el) return;
+        setPreviewReady(false);
+    }, [entry?.scriptId, scriptData?.scriptAnalysis.buffers, scriptData?.latestQueryId, scriptData?.latestAgentRunId, scriptData?.pendingDiff]);
+    const handlePreviewReady = React.useCallback(() => setPreviewReady(true), []);
+    const handleFormattedText = React.useCallback((scriptText: string) => {
+        if (entry != null) onFormattedText(entry.scriptId, scriptText);
+    }, [entry, onFormattedText]);
+
+    React.useLayoutEffect(() => {
+        if (entry == null) return;
+        const element = outerRef.current;
+        if (element == null) return;
+
         const measure = () => {
-            const h = el.getBoundingClientRect().height;
-            if (h > 0 && entry != null) onHeightMeasured(entry.scriptId, entryIndex, h);
+            const height = element.getBoundingClientRect().height;
+            if (!(height > 0)) return;
+            if (!previewReady) {
+                // While a remounted preview is still empty, retain the cached height instead of
+                // recording a transient shrink. Result content may grow independently of the SQL
+                // preview, though, so immediately accept measurements above the cached hint.
+                if (cachedHeight == null || height <= cachedHeight + HEIGHT_CHANGE_EPSILON) return;
+            }
+            onHeightMeasured(entry.scriptId, height);
         };
-        // A virtual row is remounted whenever it returns to the overscan range. Its cached height
-        // is already valid, so avoid a synchronous layout read on every scroll frame. The observer
-        // still catches real height changes, while first-time rows measure immediately.
-        if (entry != null && !hasMeasuredHeight(entry.scriptId)) {
-            measure();
-        }
-        const ro = new ResizeObserver(measure);
-        ro.observe(el);
-        return () => ro.disconnect();
-    }, [entry, entryIndex, hasMeasuredHeight, isFillerRow, onHeightMeasured]);
+
+        // Observe immediately so result cards can grow even while SQL is being reformatted. The
+        // measure guard above is what prevents a remount's empty editor from shrinking the row.
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [cachedHeight, entry, onHeightMeasured, previewReady]);
 
     if (isFillerRow) {
         return <div className={styles.feed_list_filler} style={props.style} />;
     }
 
     return (
-        <div ref={outerRef} style={{ ...props.style, height: 'auto' }}>
+        <div
+            ref={outerRef}
+            style={{
+                ...props.style,
+                height: 'auto',
+                minHeight: !previewReady ? cachedHeight : undefined,
+            }}
+        >
             <div
                 className={styles.feed_list_item}
             >
@@ -479,6 +511,9 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onAcceptDiff={onAcceptDiff}
                     onRejectDiff={onRejectDiff}
                     hasCachedResult={scriptData != null && cachedScriptKeys.has(scriptData.scriptKey)}
+                    onPreviewReady={handlePreviewReady}
+                    initialPreviewText={previewHint?.formattedText ?? ''}
+                    onFormattedText={handleFormattedText}
                 />
             </div>
         </div>
@@ -925,28 +960,19 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const listContainerRef = React.useRef<HTMLDivElement>(null);
     const listRef = useListRef(null);
 
-    // Cache measurements by script identity rather than feed position. Feed order changes when a
-    // script is renamed, moved, deleted, or a different page is selected; a positional cache makes
-    // those operations temporarily assign a previous card's height to a different card.
-    const heightsRef = React.useRef<Map<number, number>>(new Map());
+    // A cached height is a layout hint, not a validity claim. Reuse it immediately whenever a row
+    // remounts, then replace it with the mounted row's current height once its preview is ready.
+    const previewHintsRef = React.useRef<Map<number, ScriptPreviewHint>>(new Map());
     const [heightsVersion, setHeightsVersion] = React.useState(0);
-
-    const handleHeightMeasured = React.useCallback((scriptId: number, _entryIndex: number, height: number) => {
-        const previousHeight = heightsRef.current.get(scriptId) ?? ESTIMATED_ROW_HEIGHT;
-        if (Math.abs(previousHeight - height) < HEIGHT_CHANGE_EPSILON) {
-            return;
-        }
-
-        heightsRef.current.set(scriptId, height);
-        setHeightsVersion(v => v + 1);
+    const handleHeightMeasured = React.useCallback((scriptId: number, height: number) => {
+        const previous = previewHintsRef.current.get(scriptId);
+        if (previous?.height != null && Math.abs(previous.height - height) < HEIGHT_CHANGE_EPSILON) return;
+        previewHintsRef.current.set(scriptId, { ...previous, height });
+        setHeightsVersion(version => version + 1);
     }, []);
-
-    const getRowHeight = React.useCallback((scriptId: number) => {
-        return heightsRef.current.get(scriptId) ?? ESTIMATED_ROW_HEIGHT;
-    }, []);
-
-    const hasMeasuredHeight = React.useCallback((scriptId: number) => {
-        return heightsRef.current.has(scriptId);
+    const handleFormattedText = React.useCallback((scriptId: number, scriptText: string) => {
+        const previous = previewHintsRef.current.get(scriptId);
+        previewHintsRef.current.set(scriptId, { ...previous, formattedText: scriptText });
     }, []);
 
     // Measure list container dimensions for react-window
@@ -1015,7 +1041,6 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         }));
     }, [entries, isDisconnected, props.notebook]);
 
-    // Row props — heightsVersion is included so react-window re-evaluates row heights on change
     const pageCount = Object.keys(props.notebook.notebookPages).length;
     const canDelete = pageCount > 1 || entries.length > 1;
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
@@ -1045,11 +1070,11 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onAcceptDiff: handleAcceptDiff,
         onRejectDiff: handleRejectDiff,
         cachedScriptKeys,
+        previewHints: previewHintsRef.current,
         onHeightMeasured: handleHeightMeasured,
-        hasMeasuredHeight,
-        fillerRowHeight,
+        onFormattedText: handleFormattedText,
         heightsVersion,
-    }), [entries, props.notebook.scripts, props.notebook.connectorInfo.icons?.outlines, props.notebook.notebookUserFocus.fileName, folderName, scriptDebugMode, executableScriptKeys, aiAvailable, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleUseAIContext, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, cachedScriptKeys, handleHeightMeasured, hasMeasuredHeight, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, props.notebook.connectorInfo.icons?.outlines, props.notebook.notebookUserFocus.fileName, folderName, scriptDebugMode, executableScriptKeys, aiAvailable, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleUseAIContext, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, cachedScriptKeys, handleHeightMeasured, handleFormattedText, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container} data-tauri-drag-region="deep">
@@ -1071,7 +1096,8 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                             return FEED_EDGE_PADDING;
                         }
                         if (rowIndex <= entries.length) {
-                            return getRowHeight(entries[rowIndex - 1].scriptId);
+                            const scriptId = entries[rowIndex - 1].scriptId;
+                            return previewHintsRef.current.get(scriptId)?.height ?? ESTIMATED_ROW_HEIGHT;
                         }
                         return fillerRowHeight + FEED_EDGE_PADDING;
                     }}

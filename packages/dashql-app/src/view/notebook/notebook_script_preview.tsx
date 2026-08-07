@@ -39,6 +39,9 @@ export interface ScriptPreviewProps {
     showStoryControls?: boolean;
     /// The feed always shows line numbers (and story fold arrows); compact grid cards do not.
     showStoryGutter?: boolean;
+    /// Last formatted text retained by the parent feed across virtual row unmounts.
+    initialTextHint?: string;
+    onFormattedText?: (scriptText: string) => void;
 }
 
 interface PreviewSnapshot {
@@ -194,7 +197,7 @@ function formatPreviewScript(
     }
 }
 
-export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, sessionId, scriptData, onReady, storyActivation = 'toggle', onStoryActivate, showStoryControls = true, showStoryGutter = true }) => {
+export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, sessionId, scriptData, onReady, storyActivation = 'toggle', onStoryActivate, showStoryControls = true, showStoryGutter = true, initialTextHint = '', onFormattedText }) => {
     const config = useAppConfig();
     const logger = useLogger();
     // Reach the core instance (mirrors ScriptEditor) so a staged rewrite can be diffed against its
@@ -202,15 +205,15 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, session
     const [notebook] = useNotebookState(sessionId);
     const instance = notebook?.instance ?? null;
     const [view, setView] = React.useState<EditorView | null>(null);
+    const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
     const [maxWidthChars, setMaxWidthChars] = React.useState<number | null>(null);
     const [previewSnapshot, setPreviewSnapshot] = React.useState<PreviewSnapshot>(() => ({
-        scriptText: '',
+        scriptText: initialTextHint,
         parsed: null,
         ownsParsed: false,
         diff: null,
     }));
     const appliedDescriptionParsedRef = React.useRef<core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null>(null);
-    const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
     const pendingDiff = scriptData.pendingDiff;
     const descriptionPreview = React.useMemo(
         () => showStoryControls && pendingDiff == null ? buildDescriptionPreview(scriptData) : null,
@@ -268,7 +271,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, session
         // Story previews retain raw source offsets and do not need width-dependent formatting.
         if (descriptionPreview != null) {
             setPreviewSnapshot(descriptionPreview);
-            onReady?.(true);
+            onFormattedText?.(descriptionPreview.scriptText);
             return;
         }
         // Don't format until we have measured the actual width and the core instance is available.
@@ -284,14 +287,15 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, session
             formattingDebugMode,
             logger,
         );
+        if (nextFormatted != null) {
+            onFormattedText?.(nextFormatted.scriptText);
+        }
         setPreviewSnapshot(nextFormatted ?? {
             scriptText: '',
             parsed: null,
             ownsParsed: false,
             diff: null,
         });
-        // Mark as ready after first format attempt (success or failure)
-        onReady?.(true);
     }, [
         instance,
         formattingDebugMode,
@@ -307,6 +311,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, session
         // changes recompute too (via maxWidthChars) since compact offsets shift with the layout.
         pendingDiff,
         onReady,
+        onFormattedText,
         descriptionPreview,
     ]);
 
@@ -343,13 +348,18 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, session
             },
             effects,
         });
-    }, [previewSnapshot, view]);
+        // The preview is ready only after the formatted document has reached CodeMirror. Reporting
+        // readiness when the snapshot is merely queued lets a remounted virtual row collapse to its
+        // empty-editor height for one frame.
+        onReady?.(true);
+    }, [onReady, previewSnapshot, view]);
 
     return (
         <div className={className}>
             <CodeMirror
                 key={descriptionPreview != null ? `description-${storyActivation}` : 'compact'}
                 extensions={previewExtensions}
+                initialDoc={initialTextHint}
                 ref={setView}
                 style={{ height: 'auto' }}
             />

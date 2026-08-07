@@ -19,6 +19,8 @@ export interface CodeMirrorProps {
     extraExtensions?: Extension[];
     /// Full extension set to use instead of defaults
     extensions?: Extension[];
+    /// Document used when constructing the EditorState. Later changes are owned by the caller.
+    initialDoc?: string;
 }
 
 export function createCodeMirrorExtensions(): Extension[] {
@@ -65,7 +67,7 @@ export const CodeMirror = React.forwardRef<EditorView, CodeMirrorProps>((props: 
         // The DOM node has changed, create a new view
         const extensions = props.extensions ?? [...createCodeMirrorExtensions(), ...(props.extraExtensions ?? [])];
         const view = new EditorView({
-            state: EditorState.create({ extensions }),
+            state: EditorState.create({ doc: props.initialDoc, extensions }),
             parent: node,
             root: props.root,
         });

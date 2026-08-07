@@ -9,11 +9,17 @@ export function fakeScriptEditorModule(React: typeof import('react'), state: { c
     };
 }
 
-export function fakeScriptPreviewModule(React: typeof import('react')) {
+export function fakeScriptPreviewModule(React: typeof import('react'), state?: { previewReady: boolean }) {
     return {
-        ScriptPreview: () => React.createElement(
+        ScriptPreview: (props: { onReady?: (ready: boolean) => void; onFormattedText?: (text: string) => void }) => React.createElement(
             'div',
-            { 'data-testid': 'script-preview' },
+            {
+                'data-testid': 'script-preview',
+                ref: () => {
+                    props.onFormattedText?.('formatted preview');
+                    if (state?.previewReady ?? true) props.onReady?.(true);
+                },
+            },
             'preview',
             React.createElement('button', { 'data-dashql-story-control': 'true' }, 'SQL'),
         ),
@@ -89,7 +95,24 @@ export function fakeReactWindowModule(
 }
 
 export class ResizeObserverMock {
-    observe() { }
+    static instances: ResizeObserverMock[] = [];
+    private callback: ResizeObserverCallback;
+    private elements = new Set<Element>();
+
+    constructor(callback: ResizeObserverCallback) {
+        this.callback = callback;
+        ResizeObserverMock.instances.push(this);
+    }
+
+    observe(element: Element) { this.elements.add(element); }
     disconnect() { }
-    unobserve() { }
+    unobserve(element: Element) { this.elements.delete(element); }
+
+    trigger() {
+        this.callback(Array.from(this.elements, target => ({ target }) as ResizeObserverEntry), this as unknown as ResizeObserver);
+    }
+
+    static reset() { ResizeObserverMock.instances = []; }
+
+    static triggerAll() { ResizeObserverMock.instances.forEach(instance => instance.trigger()); }
 }
