@@ -197,6 +197,10 @@ export function reduceComputationState(state: ComputationState, action: Computat
 
         case COMPUTATION_FROM_QUERY_RESULT: {
             const [tableId, table, tableColumns, tableLifetime] = action.value;
+            const previousTableState = state.tableComputations[tableId];
+            if (previousTableState !== undefined) {
+                destroyTableComputationState(previousTableState, memory);
+            }
             const tableState = createTableComputationState(tableId, table, tableColumns, tableLifetime);
             return {
                 ...state,
@@ -245,7 +249,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
 
             const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
-                orderingTable.dataFrame.destroy();
+                memory.release(orderingTable.dataFrame);
                 return state;
             }
             // Ordering depends on both data and filter, so check both
@@ -301,7 +305,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
 
             const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
-                tableAggregation.dataFrame.destroy();
+                memory.release(tableAggregation.dataFrame);
                 return state;
             }
             memory.release(tableState.tableAggregation?.dataFrame);

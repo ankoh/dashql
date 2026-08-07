@@ -1,10 +1,11 @@
 // @vitest-environment node
 import * as arrow from 'apache-arrow';
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { instantiateTestWebDB } from '../platform/duckdb/duckdb_test_worker.js';
 import { DuckDB } from '../platform/duckdb/duckdb_api.js';
-import { DataFrame, generateTableName } from './data_frame.js';
+import { TestLogger } from '../platform/logger/test_logger.js';
+import { DataFrame, DataFrameRegistry, generateTableName } from './data_frame.js';
 
 declare const WEBDB_PRECOMPILED: Promise<Uint8Array>;
 
@@ -72,5 +73,20 @@ describe('DataFrame', () => {
 
         await dataFrame.destroy();
         await expect(dataFrame.readTable()).rejects.toThrow();
+    });
+
+    it('drops a data frame when its last registry reference is released', async () => {
+        const tableName = generateTableName('__released');
+        const dataFrame = await DataFrame.fromArrowTable(webdb, arrow.tableFromArrays({ id: [1] }), tableName);
+        const registry = new DataFrameRegistry(new TestLogger());
+        const destroy = vi.spyOn(dataFrame, 'destroy');
+
+        registry.acquire(dataFrame);
+        registry.release(dataFrame);
+
+        expect(destroy).toHaveBeenCalledOnce();
+        await destroy.mock.results[0].value;
+        await expect(dataFrame.readTable()).rejects.toThrow();
+        expect(registry.getRegisteredDataFrames().size).toBe(0);
     });
 });

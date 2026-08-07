@@ -116,6 +116,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         const [queryId, execution] = executeQuery(notebook.sessionId, {
                             query: queryText,
                             analyzeResults: true,
+                            replaceComputationId: scriptData.latestQueryId,
                             cacheable: true,
                             projection: projectionForVisualizeQuery(scriptData.annotations.visualizeQuery),
                             metadata: {

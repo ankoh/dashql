@@ -27,6 +27,7 @@ import {
 } from './connection_state.js';
 import { useComputationRegistry } from '../compute/computation_registry.js';
 import { analyzeTable } from '../compute/computation_logic.js';
+import { DELETE_COMPUTATION } from '../compute/computation_state.js';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { useStorageReader } from '../platform/storage/storage_provider.js';
 import { type CachedQueryResult } from '../platform/storage/storage_backend.js';
@@ -385,6 +386,12 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         // Compute all table summaries of the result
         if (table && args.analyzeResults) {
             try {
+                if (args.replaceComputationId != null && args.replaceComputationId !== queryId) {
+                    computeDispatch({
+                        type: DELETE_COMPUTATION,
+                        value: [args.replaceComputationId],
+                    });
+                }
                 connDispatch(sessionId, {
                     type: QUERY_PROCESSING_RESULTS,
                     value: [queryId],

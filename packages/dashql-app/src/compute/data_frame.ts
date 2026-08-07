@@ -87,6 +87,12 @@ export class DataFrameRegistry {
             const count = this.registeredDataFrames.get(dataFrame)! - 1;
             if (count <= 0) {
                 this.registeredDataFrames.delete(dataFrame);
+                void dataFrame.destroy().catch(error => {
+                    this.logger.warn("Failed to destroy released data frame", {
+                        "tableName": dataFrame.tableName,
+                        "error": error instanceof Error ? error.message : String(error),
+                    }, LOG_CTX);
+                });
             } else {
                 this.registeredDataFrames.set(dataFrame, count);
             }

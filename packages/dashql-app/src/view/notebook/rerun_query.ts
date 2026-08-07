@@ -45,6 +45,7 @@ export function rerunEntry(
     const [queryId, execution] = executeQuery(notebook.sessionId, {
         query: queryText,
         analyzeResults: true,
+        replaceComputationId: scriptData.latestQueryId,
         cacheable: true,
         projection: projectionForVisualizeQuery(scriptData.annotations.visualizeQuery),
         metadata: {

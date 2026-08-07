@@ -1,10 +1,10 @@
 import * as arrow from 'apache-arrow';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
-import { COMPUTATION_FROM_QUERY_RESULT, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UMAP_COMPUTATION_SUCCEEDED, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
+import { COMPUTATION_FROM_QUERY_RESULT, CREATED_DATA_FRAME, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UMAP_COMPUTATION_SUCCEEDED, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
 import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, ComputationStateVersion, FilterTable, LIST_COLUMN, OrderingTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from './computation_types.js';
 import { LoggableException } from '../platform/logger/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from './computation_scheduler.js';
@@ -284,6 +284,31 @@ describe('ComputationState', () => {
         };
         const output = reduceComputationState(state, action, memory, logger);
         expect(Object.entries(output.tableComputations).length).toEqual(0);
+    });
+
+    it('releases the previous computation when replacing the same table id', () => {
+        const memory = new DataFrameRegistry(logger);
+        let state = createComputationState();
+        const previousFrame = createMockDataFrame('__previous');
+        const destroy = vi.spyOn(previousFrame, 'destroy').mockResolvedValue();
+
+        state = reduceComputationState(state, {
+            type: COMPUTATION_FROM_QUERY_RESULT,
+            value: [1, inputTable, inputTableColumns, new AbortController()],
+        }, memory, logger);
+        state = reduceComputationState(state, {
+            type: CREATED_DATA_FRAME,
+            value: [1, previousFrame],
+        }, memory, logger);
+
+        state = reduceComputationState(state, {
+            type: COMPUTATION_FROM_QUERY_RESULT,
+            value: [1, inputTable, inputTableColumns, new AbortController()],
+        }, memory, logger);
+
+        expect(state.tableComputations[1].dataFrame).toBeNull();
+        expect(memory.getRegisteredDataFrames().has(previousFrame)).toBe(false);
+        expect(destroy).toHaveBeenCalledOnce();
     });
 
     describe('task scheduling', () => {
