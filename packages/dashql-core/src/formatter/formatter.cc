@@ -438,10 +438,21 @@ void Formatter::PreparePrecedence() {
 
         auto [op_node, args_node] =
             GetAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
-        if (!op_node || op_node->node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR) continue;
+        if (!op_node) continue;
 
-        auto op = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
-        auto [precedence, associativity] = GetOperatorPrecedence(op);
+        size_t precedence = 0;
+        Associativity associativity = Associativity::NonAssoc;
+        if (op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR) {
+            auto op = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
+            auto op_precedence = GetOperatorPrecedence(op);
+            precedence = op_precedence.precedence;
+            associativity = op_precedence.associativity;
+        } else if (op_node->node_type() == NodeType::OPERATOR) {
+            precedence = 11;
+            associativity = Associativity::Left;
+        } else {
+            continue;
+        }
         auto& state = node_states[i];
         state.precedence = precedence;
         state.associativity = associativity;
@@ -602,7 +613,7 @@ FmtReg Formatter::FormatJoinedTable(const buffers::parser::Node& node) {
     std::string_view join_text;
     switch (jt) {
         case JoinType::NONE:
-            join_text = "join";
+            join_text = "cross join";
             break;
         case JoinType::INNER:
             join_text = "join";
@@ -661,9 +672,18 @@ FmtReg Formatter::FormatJoinedTable(const buffers::parser::Node& node) {
     parts.push_back(join_clause);
 
     auto clause_policy = config.mode == buffers::formatting::FormattingMode::PRETTY
-                             ? FormattingJoinPolicy::ForceBreak
-                             : FormattingJoinPolicy::BreakAllOrNone;
-    return fmt.Join(parts, fmt.Text(" "), fmt.Break(), clause_policy, true);
+                              ? FormattingJoinPolicy::ForceBreak
+                              : FormattingJoinPolicy::BreakAllOrNone;
+
+    bool is_left_nested_join = false;
+    size_t table_ref_id = node.parent();
+    if (table_ref_id < ast.size()) {
+        size_t parent_id = ast[table_ref_id].parent();
+        is_left_nested_join = parent_id < ast.size() && ast[parent_id].node_type() == NodeType::ARRAY &&
+                              ast[parent_id].attribute_key() == AttributeKey::SQL_JOIN_INPUT &&
+                              table_ref_id == ast[parent_id].children_begin_or_value();
+    }
+    return fmt.Join(parts, fmt.Text(" "), fmt.Break(), clause_policy, !is_left_nested_join);
 }
 
 FmtReg Formatter::FormatGroupByItem(const buffers::parser::Node& node) {
@@ -1780,6 +1800,9 @@ FmtReg Formatter::FormatTypecastExpression(const buffers::parser::Node& node) {
     auto value_reg = Reg(*value);
     auto type_reg = Reg(*type);
     if (value_reg == 0 || type_reg == 0) return FormatUnimplemented(node);
+    if (value->node_type() == NodeType::OBJECT_SQL_NARY_EXPRESSION) {
+        value_reg = fmt.Parenthesized(value_reg);
+    }
     return fmt.Concat({value_reg, fmt.Text("::"), type_reg});
 }
 
@@ -1911,12 +1934,16 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
 
     auto [op_node, args_node] =
         GetAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
-    if (!op_node || !args_node || op_node->node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR ||
+    if (!op_node || !args_node ||
+        (op_node->node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR &&
+         op_node->node_type() != NodeType::OPERATOR) ||
         args_node->node_type() != NodeType::ARRAY || args_node->children_count() == 0) {
         return FormatUnimplemented(node);
     }
 
-    auto op = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
+    bool known_operator = op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR;
+    auto op = known_operator ? static_cast<ExpressionOperator>(op_node->children_begin_or_value())
+                             : ExpressionOperator::DEFAULT;
     auto op_reg = Reg(*op_node);
     if (op_reg == 0) return FormatUnimplemented(node);
 
@@ -1926,10 +1953,11 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
     for (auto& child : children) {
         args.push_back(child.reg);
     }
+    if (!known_operator && args.size() != 2) return FormatUnimplemented(node);
 
     FmtReg reg = fmt.Empty();
 
-    if (args.size() == 1) {
+    if (args.size() == 1 && known_operator) {
         switch (op) {
             case ExpressionOperator::NEGATE:
                 reg = fmt.Concat({op_reg, args.front()});
@@ -1951,12 +1979,13 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
                 reg = fmt.Concat({op_reg, fmt.Text(" "), args.front()});
                 break;
         }
-    } else if (args.size() == 3 && (op == ExpressionOperator::BETWEEN_ASYMMETRIC ||
+    } else if (args.size() == 3 && known_operator && (op == ExpressionOperator::BETWEEN_ASYMMETRIC ||
                                      op == ExpressionOperator::NOT_BETWEEN_ASYMMETRIC ||
                                      op == ExpressionOperator::BETWEEN_SYMMETRIC ||
                                      op == ExpressionOperator::NOT_BETWEEN_SYMMETRIC)) {
         reg = fmt.Concat({args[0], fmt.Text(" "), op_reg, fmt.Text(" "), args[1], fmt.Text(" and "), args[2]});
-    } else if (args.size() == 2 && (op == ExpressionOperator::IN || op == ExpressionOperator::NOT_IN)) {
+    } else if (args.size() == 2 && known_operator &&
+               (op == ExpressionOperator::IN || op == ExpressionOperator::NOT_IN)) {
         auto rhs = args[1];
         auto& rhs_node = ast[args_node->children_begin_or_value() + 1];
         if (rhs_node.node_type() == NodeType::ARRAY) {
@@ -1964,7 +1993,7 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
             rhs = fmt.Parenthesized(list);
         }
         reg = fmt.Concat({args[0], fmt.Text(" "), op_reg, fmt.Text(" "), rhs});
-    } else if (args.size() == 2 && (op == ExpressionOperator::IS_DISTINCT_FROM ||
+    } else if (args.size() == 2 && known_operator && (op == ExpressionOperator::IS_DISTINCT_FROM ||
                                      op == ExpressionOperator::IS_NOT_DISTINCT_FROM)) {
         reg = fmt.Concat({args[0], fmt.Text(" "), op_reg, fmt.Text(" "), args[1]});
     } else {
@@ -1980,7 +2009,7 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
                 break_separator = fmt.Concat({fmt.Text(" "), op_reg, fmt.Break()});
                 break;
         }
-        bool is_boolean_chain = op == ExpressionOperator::AND || op == ExpressionOperator::OR;
+        bool is_boolean_chain = known_operator && (op == ExpressionOperator::AND || op == ExpressionOperator::OR);
         reg = is_boolean_chain
                   ? fmt.Join(args, inline_separator, break_separator, std::nullopt, true)
                   : fmt.Join(args, inline_separator, break_separator, FormattingJoinPolicy::BreakOnOverflow, true);

@@ -230,6 +230,32 @@ formatter-snapshots:
           setup: |-
             create table a(n int);
 
+  - name: tableref_lateral_json_arrays
+    input: |-
+      SELECT
+          payload_json ->> 'tag' AS tag,
+          order_json   ->> 'order_id' AS order_id,
+          item_json    ->> 'item_id' AS item_id,
+          (item_json   ->> 'price')::numeric AS price
+      FROM source AS s
+      CROSS JOIN LATERAL (
+        SELECT s.payload__c::json AS payload_json
+      ) AS parsed
+      CROSS JOIN LATERAL json_array_elements(
+          payload_json -> 'orders'
+      ) AS orders(order_json)
+      CROSS JOIN LATERAL json_array_elements(
+          order_json -> 'items'
+      ) AS items(item_json);
+    dialects:
+      duckdb:
+        validation:
+          setup: |-
+            create table source(payload__c varchar);
+            insert into source values ('{"tag":"new","orders":[{"order_id":"o1","items":[{"item_id":"i1","price":"12.50"}]}]}');
+            create macro json_array_elements(input) as table
+              select value from json_each(input);
+
   - name: tableref_long_database_1
     input: select 1 from memory.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     dialects:

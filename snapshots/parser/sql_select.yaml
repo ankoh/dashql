@@ -4864,6 +4864,424 @@ parser-snapshots:
       line-breaks: []
       comments: []
 
+  - name: select_lateral_json_arrays
+    input: |-
+      SELECT
+          payload_json ->> 'tag' AS tag,
+          order_json   ->> 'order_id' AS order_id,
+          item_json    ->> 'item_id' AS item_id,
+          (item_json   ->> 'price')::numeric AS price
+      FROM source AS s
+      CROSS JOIN LATERAL (
+        SELECT s.payload__c::json AS payload_json
+      ) AS parsed
+      CROSS JOIN LATERAL json_array_elements(
+          payload_json -> 'orders'
+      ) AS orders(order_json)
+      CROSS JOIN LATERAL json_array_elements(
+          order_json -> 'items'
+      ) AS items(item_json);
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 114
+          description:
+            text: "SELECT\n   ..tem_json);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT\n   ..item_json)"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "payload_js..c AS price"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "payload_js..ag' AS tag"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "payload_js.. ->> 'tag'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: OPERATOR
+                            text: "->>"
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "payload_js.. ->> 'tag'"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "payload_json"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "payload_json"
+                                    children:
+                                      - type: NAME
+                                        text: "payload_json"
+                              - type: LITERAL_STRING
+                                text: "'tag'"
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "tag"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "order_json..S order_id"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "order_json..'order_id'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: OPERATOR
+                            text: "->>"
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "order_json..'order_id'"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "order_json"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "order_json"
+                                    children:
+                                      - type: NAME
+                                        text: "order_json"
+                              - type: LITERAL_STRING
+                                text: "'order_id'"
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "order_id"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "item_json ..AS item_id"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "item_json .. 'item_id'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: OPERATOR
+                            text: "->>"
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "item_json .. 'item_id'"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "item_json"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "item_json"
+                                    children:
+                                      - type: NAME
+                                        text: "item_json"
+                              - type: LITERAL_STRING
+                                text: "'item_id'"
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "item_id"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "(item_json..c AS price"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_TYPECAST_EXPRESSION
+                        text: "(item_json..)::numeric"
+                        children:
+                          - key: SQL_TYPECAST_VALUE
+                            type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "item_json ..>> 'price'"
+                            children:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: OPERATOR
+                                text: "->>"
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "item_json ..>> 'price'"
+                                children:
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "item_json"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "item_json"
+                                        children:
+                                          - type: NAME
+                                            text: "item_json"
+                                  - type: LITERAL_STRING
+                                    text: "'price'"
+                          - key: SQL_TYPECAST_TYPE
+                            type: OBJECT_SQL_TYPENAME
+                            text: "numeric"
+                            children:
+                              - key: SQL_TYPENAME_TYPE
+                                type: OBJECT_SQL_NUMERIC_TYPE
+                                text: "numeric"
+                                children:
+                                  - key: SQL_NUMERIC_TYPE_BASE
+                                    type: ENUM_SQL_NUMERIC_TYPE
+                                    value: NUMERIC
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "price"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM sourc..item_json)"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "source AS ..item_json)"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: "source AS ..item_json)"
+                        children:
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: NONE
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: "source AS ..item_json)"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "source AS ..rder_json)"
+                                children:
+                                  - key: SQL_TABLEREF_TABLE
+                                    type: OBJECT_SQL_JOINED_TABLE
+                                    text: "source AS ..rder_json)"
+                                    children:
+                                      - key: SQL_JOIN_TYPE
+                                        type: ENUM_SQL_JOIN_TYPE
+                                        value: NONE
+                                      - key: SQL_JOIN_INPUT
+                                        type: ARRAY
+                                        text: "source AS ..rder_json)"
+                                        children:
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "source AS .. AS parsed"
+                                            children:
+                                              - key: SQL_TABLEREF_TABLE
+                                                type: OBJECT_SQL_JOINED_TABLE
+                                                text: "source AS .. AS parsed"
+                                                children:
+                                                  - key: SQL_JOIN_TYPE
+                                                    type: ENUM_SQL_JOIN_TYPE
+                                                    value: NONE
+                                                  - key: SQL_JOIN_INPUT
+                                                    type: ARRAY
+                                                    text: "source AS .. AS parsed"
+                                                    children:
+                                                      - type: OBJECT_SQL_TABLEREF
+                                                        text: "source AS s"
+                                                        children:
+                                                          - key: SQL_TABLEREF_NAME
+                                                            type: ARRAY
+                                                            text: "source"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "source"
+                                                          - key: SQL_TABLEREF_ALIAS
+                                                            type: NAME
+                                                            text: "s"
+                                                      - type: OBJECT_SQL_TABLEREF
+                                                        text: "LATERAL (\n.. AS parsed"
+                                                        children:
+                                                          - key: SQL_TABLEREF_LATERAL
+                                                            type: BOOL
+                                                            value: 1
+                                                          - key: SQL_TABLEREF_ALIAS
+                                                            type: NAME
+                                                            text: "parsed"
+                                                          - key: SQL_TABLEREF_TABLE
+                                                            type: OBJECT_SQL_SELECT
+                                                            text: "LATERAL"
+                                                            children:
+                                                              - key: SQL_SELECT_TARGETS
+                                                                type: ARRAY
+                                                                text: "s.payload_..yload_json"
+                                                                children:
+                                                                  - type: OBJECT_SQL_RESULT_TARGET
+                                                                    text: "s.payload_..yload_json"
+                                                                    children:
+                                                                      - key: SQL_RESULT_TARGET_VALUE
+                                                                        type: OBJECT_SQL_TYPECAST_EXPRESSION
+                                                                        text: "s.payload__c::json"
+                                                                        children:
+                                                                          - key: SQL_TYPECAST_VALUE
+                                                                            type: OBJECT_SQL_COLUMN_REF
+                                                                            text: "s.payload__c"
+                                                                            children:
+                                                                              - key: SQL_COLUMN_REF_PATH
+                                                                                type: ARRAY
+                                                                                text: "s.payload__c"
+                                                                                children:
+                                                                                  - type: NAME
+                                                                                    text: "s"
+                                                                                  - type: NAME
+                                                                                    text: "payload__c"
+                                                                          - key: SQL_TYPECAST_TYPE
+                                                                            type: OBJECT_SQL_TYPENAME
+                                                                            text: "json"
+                                                                            children:
+                                                                              - key: SQL_TYPENAME_TYPE
+                                                                                type: OBJECT_SQL_GENERIC_TYPE
+                                                                                text: "json"
+                                                                                children:
+                                                                                  - key: SQL_GENERIC_TYPE_NAME
+                                                                                    type: NAME
+                                                                                    text: "json"
+                                                                      - key: SQL_RESULT_TARGET_NAME
+                                                                        type: NAME
+                                                                        text: "payload_json"
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "LATERAL js..rder_json)"
+                                            children:
+                                              - key: SQL_TABLEREF_LATERAL
+                                                type: BOOL
+                                                value: 1
+                                              - key: SQL_TABLEREF_ALIAS
+                                                type: OBJECT_SQL_ALIAS
+                                                text: "AS orders(..rder_json)"
+                                                children:
+                                                  - key: SQL_ALIAS_NAME
+                                                    type: NAME
+                                                    text: "orders"
+                                                  - key: SQL_ALIAS_COLUMN_NAMES
+                                                    type: ARRAY
+                                                    text: "order_json"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "order_json"
+                                              - key: SQL_TABLEREF_TABLE
+                                                type: OBJECT_SQL_FUNCTION_TABLE
+                                                text: "json_array..'orders'\n)"
+                                                children:
+                                                  - key: SQL_FUNCTION_TABLE_FUNCTION
+                                                    type: OBJECT_SQL_FUNCTION_EXPRESSION
+                                                    text: "json_array..'orders'\n)"
+                                                    children:
+                                                      - key: SQL_FUNCTION_NAME
+                                                        type: ARRAY
+                                                        text: "json_array_elements"
+                                                        children:
+                                                          - type: NAME
+                                                            text: "json_array_elements"
+                                                      - key: SQL_FUNCTION_ARGUMENTS
+                                                        type: ARRAY
+                                                        text: "payload_js..> 'orders'"
+                                                        children:
+                                                          - type: OBJECT_SQL_FUNCTION_ARG
+                                                            text: "payload_js..> 'orders'"
+                                                            children:
+                                                              - key: SQL_FUNCTION_ARG_VALUE
+                                                                type: OBJECT_SQL_NARY_EXPRESSION
+                                                                text: "payload_js..> 'orders'"
+                                                                children:
+                                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                                    type: OPERATOR
+                                                                    text: "->"
+                                                                  - key: SQL_EXPRESSION_ARGS
+                                                                    type: ARRAY
+                                                                    text: "payload_js..> 'orders'"
+                                                                    children:
+                                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                                        text: "payload_json"
+                                                                        children:
+                                                                          - key: SQL_COLUMN_REF_PATH
+                                                                            type: ARRAY
+                                                                            text: "payload_json"
+                                                                            children:
+                                                                              - type: NAME
+                                                                                text: "payload_json"
+                                                                      - type: LITERAL_STRING
+                                                                        text: "'orders'"
+                                                  - key: SQL_FUNCTION_TABLE_WITH_ORDINALITY
+                                                    type: BOOL
+                                                    value: 0
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "LATERAL js..item_json)"
+                                children:
+                                  - key: SQL_TABLEREF_LATERAL
+                                    type: BOOL
+                                    value: 1
+                                  - key: SQL_TABLEREF_ALIAS
+                                    type: OBJECT_SQL_ALIAS
+                                    text: "AS items(item_json)"
+                                    children:
+                                      - key: SQL_ALIAS_NAME
+                                        type: NAME
+                                        text: "items"
+                                      - key: SQL_ALIAS_COLUMN_NAMES
+                                        type: ARRAY
+                                        text: "item_json"
+                                        children:
+                                          - type: NAME
+                                            text: "item_json"
+                                  - key: SQL_TABLEREF_TABLE
+                                    type: OBJECT_SQL_FUNCTION_TABLE
+                                    text: "json_array.. 'items'\n)"
+                                    children:
+                                      - key: SQL_FUNCTION_TABLE_FUNCTION
+                                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                                        text: "json_array.. 'items'\n)"
+                                        children:
+                                          - key: SQL_FUNCTION_NAME
+                                            type: ARRAY
+                                            text: "json_array_elements"
+                                            children:
+                                              - type: NAME
+                                                text: "json_array_elements"
+                                          - key: SQL_FUNCTION_ARGUMENTS
+                                            type: ARRAY
+                                            text: "order_json..-> 'items'"
+                                            children:
+                                              - type: OBJECT_SQL_FUNCTION_ARG
+                                                text: "order_json..-> 'items'"
+                                                children:
+                                                  - key: SQL_FUNCTION_ARG_VALUE
+                                                    type: OBJECT_SQL_NARY_EXPRESSION
+                                                    text: "order_json..-> 'items'"
+                                                    children:
+                                                      - key: SQL_EXPRESSION_OPERATOR
+                                                        type: OPERATOR
+                                                        text: "->"
+                                                      - key: SQL_EXPRESSION_ARGS
+                                                        type: ARRAY
+                                                        text: "order_json..-> 'items'"
+                                                        children:
+                                                          - type: OBJECT_SQL_COLUMN_REF
+                                                            text: "order_json"
+                                                            children:
+                                                              - key: SQL_COLUMN_REF_PATH
+                                                                type: ARRAY
+                                                                text: "order_json"
+                                                                children:
+                                                                  - type: NAME
+                                                                    text: "order_json"
+                                                          - type: LITERAL_STRING
+                                                            text: "'items'"
+                                      - key: SQL_FUNCTION_TABLE_WITH_ORDINALITY
+                                        type: BOOL
+                                        value: 0
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [6,7]
+        - text: [41,42]
+        - text: [86,87]
+        - text: [129,130]
+        - text: [177,178]
+        - text: [194,195]
+        - text: [215,216]
+        - text: [259,260]
+        - text: [271,272]
+        - text: [311,312]
+        - text: [340,341]
+        - text: [364,365]
+        - text: [404,405]
+        - text: [430,431]
+      comments: []
+
   - name: select_collate_1
     input: |-
       select 1 collate foo;

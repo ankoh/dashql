@@ -491,9 +491,9 @@ formatter-snapshots:
                 "c"."RecordId__c" as "RecordId", "c"."DataSource__c" as "DataSource",
                 "c"."DataSourceObject__c" as "DataSourceObject"
               from hybrid_search(
-                    table("KnowledgeArticle_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION", /*Integer(EED3)*/
-                  ) "v"
-                  join "KnowledgeArticle_chunk__dlm" "c" on "c"."RecordId__c" = "v"."RecordId__c"
+                  table("KnowledgeArticle_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION", /*Integer(EED3)*/
+                ) "v"
+                join "KnowledgeArticle_chunk__dlm" "c" on "c"."RecordId__c" = "v"."RecordId__c"
                 join "ssot__KnowledgeArticleVersion__dlm" "kav"
                   on "c"."SourceRecordId__c" = "kav"."ssot__Id__c"
                     and "c"."SourceRecordId__c" in (
@@ -512,9 +512,9 @@ formatter-snapshots:
                 "c"."DataSource__c" as "DataSource",
                 "c"."DataSourceObject__c" as "DataSourceObject"
               from hybrid_search(
-                    table("KnowledgeArticle_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION", /*Integer(EED3)*/
-                  ) "v"
-                  join "KnowledgeArticle_chunk__dlm" "c" on "c"."RecordId__c" = "v"."RecordId__c"
+                  table("KnowledgeArticle_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION", /*Integer(EED3)*/
+                ) "v"
+                join "KnowledgeArticle_chunk__dlm" "c" on "c"."RecordId__c" = "v"."RecordId__c"
                 join "ssot__KnowledgeArticleVersion__dlm" "kav"
                   on "c"."SourceRecordId__c" = "kav"."ssot__Id__c"
                     and "c"."SourceRecordId__c" in (
@@ -561,6 +561,53 @@ formatter-snapshots:
         validation:
           setup: |-
             create table a(n int);
+
+  - name: tableref_lateral_json_arrays
+    input: |-
+      SELECT
+          payload_json ->> 'tag' AS tag,
+          order_json   ->> 'order_id' AS order_id,
+          item_json    ->> 'item_id' AS item_id,
+          (item_json   ->> 'price')::numeric AS price
+      FROM source AS s
+      CROSS JOIN LATERAL (
+        SELECT s.payload__c::json AS payload_json
+      ) AS parsed
+      CROSS JOIN LATERAL json_array_elements(
+          payload_json -> 'orders'
+      ) AS orders(order_json)
+      CROSS JOIN LATERAL json_array_elements(
+          order_json -> 'items'
+      ) AS items(item_json);
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select payload_json ->> 'tag' as tag, order_json ->> 'order_id' as order_id, item_json ->> 'item_id' as item_id, (item_json ->> 'price')::numeric as price from source s cross join lateral (select s.payload__c::json as payload_json) parsed cross join lateral json_array_elements(payload_json -> 'orders') orders(order_json) cross join lateral json_array_elements(order_json -> 'items') items(item_json);
+          - mode: compact
+            expected: |-
+              select payload_json ->> 'tag' as tag, order_json ->> 'order_id' as order_id, item_json ->> 'item_id' as item_id,
+                (item_json ->> 'price')::numeric as price
+              from source s cross join lateral (select s.payload__c::json as payload_json) parsed
+                cross join lateral json_array_elements(payload_json -> 'orders') orders(order_json)
+                cross join lateral json_array_elements(order_json -> 'items') items(item_json);
+          - mode: pretty
+            expected: |-
+              select payload_json ->> 'tag' as tag,
+                order_json ->> 'order_id' as order_id,
+                item_json ->> 'item_id' as item_id,
+                (item_json ->> 'price')::numeric as price
+              from source s
+                cross join lateral (select s.payload__c::json as payload_json) parsed
+                cross join lateral json_array_elements(payload_json -> 'orders') orders(order_json)
+                cross join lateral json_array_elements(order_json -> 'items') items(item_json);
+        validation:
+          setup: |-
+            create table source(payload__c varchar);
+            insert into source values ('{"tag":"new","orders":[{"order_id":"o1","items":[{"item_id":"i1","price":"12.50"}]}]}');
+            create macro json_array_elements(input) as table
+              select value from json_each(input);
 
   - name: tableref_long_database_1
     input: |-
