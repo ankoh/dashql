@@ -514,6 +514,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
 export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => {
     const config = useAppConfig();
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
+    const autoExecuteCachedStatements = config?.settings?.autoExecuteCachedStatements ?? true;
     const entries = getSelectedPageEntries(props.notebook);
 
     const pendingScrollToBottomRef = React.useRef(false);
@@ -754,6 +755,9 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     // remounts (and the effect re-fires) from re-attempting the same probe.
     const autoLoadAttemptedRef = React.useRef<Set<string>>(new Set());
     const handleEntryVisible = React.useCallback((fileName: string) => {
+        if (!autoExecuteCachedStatements) {
+            return;
+        }
         const notebook = props.notebook;
         const entry = notebook.notebookPages[notebook.notebookUserFocus.folderName]?.scripts[fileName];
         const scriptData = entry != null ? notebook.scripts[entry.scriptId] : undefined;
@@ -779,7 +783,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         const [queryId, execution] = executeQuery(notebook.sessionId, args);
         // Cache-only misses must not point the entry at a phantom query.
         registerNotebookQuery(scriptData, queryId, args.query, execution, props.modifyNotebook, true);
-    }, [props.notebook, props.modifyNotebook, executeQuery]);
+    }, [autoExecuteCachedStatements, props.notebook, props.modifyNotebook, executeQuery]);
 
     // Send the compose editor's text to the agent run as a natural-language prompt. Context is
     // explicit: no bean means a blank-draft run rather than an implicit hover-selected target.

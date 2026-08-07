@@ -99,9 +99,11 @@ export class ResizeObserverMock {
 /// test that wants to simulate a card scrolling into view can capture the instance and invoke its
 /// callback directly with a synthetic `[{ isIntersecting: true }]` entry.
 export class IntersectionObserverMock {
+    static instances: IntersectionObserverMock[] = [];
     callback: IntersectionObserverCallback;
     constructor(callback: IntersectionObserverCallback) {
         this.callback = callback;
+        IntersectionObserverMock.instances.push(this);
     }
     observe() { }
     disconnect() { }

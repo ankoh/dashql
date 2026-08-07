@@ -36,7 +36,9 @@ const mockState = vi.hoisted(() => ({
     startAgentRun: vi.fn(),
     cancelAgentRun: vi.fn(),
     cancelQuery: vi.fn(),
+    appSettings: {} as { autoExecuteCachedStatements?: boolean },
 }));
+vi.mock('../../app_config.js', () => ({ useAppConfig: () => ({ settings: mockState.appSettings }) }));
 vi.mock('../../platform/ai_client_provider.js', () => ({ useAIClient: () => ({}) }));
 vi.mock('react-window', async () => fakeReactWindowModule(await import('react'), mockState.scrollToRowMock));
 vi.mock('./script_editor.js', async () => fakeScriptEditorModule(await import('react'), mockState));
@@ -284,6 +286,8 @@ describe('NotebookScriptFeed', () => {
         mockState.startAgentRun.mockReset();
         mockState.cancelAgentRun.mockReset();
         mockState.cancelQuery.mockReset();
+        mockState.appSettings = {};
+        IntersectionObserverMock.instances = [];
         getBoundingClientRect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
             const scriptId = this.closest<HTMLElement>('[data-row-script-id]')?.dataset.rowScriptId;
             const height = scriptId === '101' ? 200 : scriptId === '102' ? 300 : 0;
@@ -895,6 +899,30 @@ describe('NotebookScriptFeed', () => {
 
         expect(container.querySelectorAll('[data-testid="script-preview"]')).toHaveLength(2);
         expect(container.textContent?.match(/Not run yet/g)).toHaveLength(2);
+    });
+
+    it('auto-executes cached statements when a card becomes visible by default', () => {
+        renderFeed({ notebook: createNotebookState(), modifyNotebook: vi.fn(), showDetails: vi.fn() });
+
+        const observer = IntersectionObserverMock.instances[0];
+        if (observer == null) throw new Error('missing intersection observer');
+        act(() => observer.callback([{ isIntersecting: true } as IntersectionObserverEntry], observer as unknown as IntersectionObserver));
+
+        expect(mockState.executeQuery).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+            query: 'select 1',
+            cacheOnly: true,
+        }));
+    });
+
+    it('does not auto-execute cached statements when disabled', () => {
+        mockState.appSettings = { autoExecuteCachedStatements: false };
+        renderFeed({ notebook: createNotebookState(), modifyNotebook: vi.fn(), showDetails: vi.fn() });
+
+        const observer = IntersectionObserverMock.instances[0];
+        if (observer == null) throw new Error('missing intersection observer');
+        act(() => observer.callback([{ isIntersecting: true } as IntersectionObserverEntry], observer as unknown as IntersectionObserver));
+
+        expect(mockState.executeQuery).not.toHaveBeenCalled();
     });
 
     it('shows execution footer when a query is running', () => {
