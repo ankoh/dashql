@@ -588,6 +588,72 @@ completion-snapshots:
     completions:
       limit: 3
 
+  # Inline SELECT output aliases are source-local column candidates.
+  - name: vis_inline_select_alias_field
+    catalog: {}
+    editor:
+      input: |-
+        visualize (
+          select
+            raw_category as chart_category,
+            sum(raw_amount) as chart_total
+          from sales
+          group by raw_category
+        ) using vegalite (
+          encoding => (
+            x => (field => chart_c, type => nominal),
+            y => (field => chart_total, type => quantitative)
+          )
+        )
+    cursor:
+      search:
+        text: '=> chart_c'
+        index: 10
+    completions:
+      limit: 3
+
+  # Shorthand encoding values complete aggregate aliases from the inline source.
+  - name: vis_inline_select_alias_shorthand
+    catalog: {}
+    editor:
+      input: |-
+        visualize (
+          select
+            raw_category as chart_category,
+            sum(raw_amount) as chart_total
+          from sales
+          group by raw_category
+        ) using vegalite (
+          encoding => (
+            x => chart_category,
+            y => chart_t
+          )
+        )
+    cursor:
+      search:
+        text: '=> chart_t'
+        index: 10
+    completions:
+      limit: 3
+
+  # Generic Vega-Lite values use the inline source output schema as well.
+  - name: vis_inline_select_alias_generic_value
+    catalog: {}
+    editor:
+      input: |-
+        visualize (
+          select raw_category as chart_category from sales
+        ) using vegalite (
+          title => chart_c,
+          encoding => (x => chart_category)
+        )
+    cursor:
+      search:
+        text: '=> chart_c'
+        index: 10
+    completions:
+      limit: 3
+
   # ---------------------------------------------------------------------------
   # Axis and legend keys
 

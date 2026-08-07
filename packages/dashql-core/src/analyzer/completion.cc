@@ -893,6 +893,86 @@ void Completion::FindCandidatesInIndexes() {
     }
 }
 
+void Completion::FindCandidatesInInlineVisualizeSource() {
+    if (!target_scanner_symbol.has_value() || !cursor.script.parsed_script || !cursor.script.analyzed_script) {
+        return;
+    }
+
+    auto& nodes = cursor.script.parsed_script->nodes;
+    const AnalyzedScript::NameScope* source_scope = nullptr;
+    for (auto node_id : cursor.ast_path_to_root) {
+        auto& node = nodes[node_id];
+        if (node.node_type() != buffers::parser::NodeType::OBJECT_VIS_VISUALISE) continue;
+
+        for (size_t i = 0; i < node.children_count(); ++i) {
+            auto child_id = node.children_begin_or_value() + i;
+            auto& child = nodes[child_id];
+            if (child.attribute_key() != buffers::parser::AttributeKey::VIS_VISUALISE_SELECT ||
+                child.node_type() != buffers::parser::NodeType::OBJECT_SQL_SELECT) {
+                continue;
+            }
+            auto scope_it = cursor.script.analyzed_script->name_scopes_by_root_node.find(child_id);
+            if (scope_it != cursor.script.analyzed_script->name_scopes_by_root_node.end()) {
+                source_scope = &scope_it->second.get();
+            }
+            break;
+        }
+        break;
+    }
+    if (!source_scope) return;
+
+    auto& target = target_scanner_symbol.value();
+    auto symbol_ofs = target.symbol.location.offset();
+    auto safe_cursor_offset =
+        std::min(std::max<uint32_t>(symbol_ofs, cursor.text_offset), symbol_ofs + target.symbol.location.length());
+    auto symbol_text = cursor.script.scanned_script->ReadTextAtTextSpan(
+        sx::parser::TextSpan(target.symbol.location.offset(), target.symbol.location.length()));
+    auto symbol_prefix = std::min<uint32_t>(std::max<uint32_t>(safe_cursor_offset, symbol_ofs) - symbol_ofs,
+                                            symbol_text.size());
+    auto prefix = trim_view({symbol_text.data(), symbol_prefix}, is_no_double_quote);
+    fuzzy_ci_string_view ci_prefix{prefix.data(), prefix.size()};
+
+    for (auto& output : source_scope->output_columns) {
+        auto& name = output.column_name.get();
+        fuzzy_ci_string_view ci_name{name.text.data(), name.text.size()};
+        if (!ci_prefix.empty() && ci_name.find(ci_prefix) == fuzzy_ci_string_view::npos) continue;
+
+        CandidateTags tags{buffers::completion::CandidateTag::NAME_INDEX,
+                           buffers::completion::CandidateTag::IN_NAME_SCOPE};
+        switch (target.relative_pos) {
+            case ScannedScript::LocationInfo::RelativePosition::BEGIN_OF_SYMBOL:
+            case ScannedScript::LocationInfo::RelativePosition::MID_OF_SYMBOL:
+            case ScannedScript::LocationInfo::RelativePosition::END_OF_SYMBOL:
+                tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
+                if (ci_name.starts_with(ci_prefix)) {
+                    tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
+                    if (ci_name.size() == ci_prefix.size()) {
+                        tags |= buffers::completion::CandidateTag::EXACT_MATCH;
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+
+        if (auto candidate_it = candidates_by_name.find(name.text); candidate_it != candidates_by_name.end()) {
+            auto& candidate = candidate_it->second.get();
+            candidate.coarse_name_tags |= buffers::analyzer::NameTag::COLUMN_NAME;
+            candidate.candidate_tags |= tags;
+        } else {
+            auto& candidate = candidates.PushBack(Candidate{
+                .completion_text = name.text,
+                .coarse_name_tags = {buffers::analyzer::NameTag::COLUMN_NAME},
+                .candidate_tags = tags,
+                .target_location = target.symbol.location,
+                .target_location_qualified = target.symbol.location,
+                .catalog_objects = {},
+            });
+            candidates_by_name.insert({name.text, candidate});
+        }
+    }
+}
+
 void Completion::PromoteIdentifiersInScope() {
     // We can be a bit more involved here since the number of entities in a scope should be small(ish)
 
@@ -1605,6 +1685,7 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
             completion->strategy != sx::completion::CompletionStrategy::TABLE_REF_ALIAS) {
             // Just find all candidates in the name index
             completion->FindCandidatesInIndexes();
+            completion->FindCandidatesInInlineVisualizeSource();
             // Promote names of all tables that could resolve an unresolved column
             completion->PromoteTablesAndPeersForUnresolvedColumns();
         }

@@ -418,6 +418,36 @@ TEST(CompletionTest, NotebookOutputSchema_FromExecution) {
     EXPECT_TRUE(found_name);
 }
 
+TEST(CompletionTest, InlineVisualizeSourceOutputAlias) {
+    const std::string_view text = R"SQL(
+VISUALIZE (
+    SELECT category AS chart_category, SUM(amount) AS chart_total
+    FROM sales
+    GROUP BY category
+) USING vegalite (
+    encoding => (y => (field => chart_t, type => quantitative))
+)
+)SQL";
+
+    Catalog catalog;
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    ASSERT_NO_THROW(script.Analyze());
+
+    script.MoveCursor(text.rfind("chart_t") + std::string_view{"chart_t"}.size());
+    auto completion = script.CompleteAtCursor();
+
+    bool found = false;
+    for (auto& candidate : completion->GetResultCandidates()) {
+        if (candidate.completion_text != "chart_total") continue;
+        found = true;
+        EXPECT_TRUE(candidate.coarse_name_tags.contains(buffers::analyzer::NameTag::COLUMN_NAME));
+        EXPECT_TRUE(candidate.candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE));
+        EXPECT_GT(candidate.score, 59u);
+    }
+    EXPECT_TRUE(found);
+}
+
 TEST(CompletionTest, NotebookOutputSchema_ReplacesPreviousExecutionAndClearsOnEdit) {
     Catalog catalog;
     Script source{catalog};

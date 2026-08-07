@@ -171,6 +171,8 @@ struct Completion {
     void FindCandidatesForNamePath();
     /// Find the candidates in completion indexes
     void FindCandidatesInIndexes();
+    /// Add output columns from the inline SELECT source of the surrounding VISUALIZE statement.
+    void FindCandidatesInInlineVisualizeSource();
     /// Promote identifiers that are in the current name scope of in the same statement
     void PromoteIdentifiersInScope();
     /// Promote identifiers that were used before

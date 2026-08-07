@@ -1617,6 +1617,351 @@ completion-snapshots:
           objects: []
       text: "rev"
 
+  - name: vis_inline_select_alias_field
+    catalog: {}
+    editor:
+      input: |-
+        visualize (
+          select
+            raw_category as chart_category,
+            sum(raw_amount) as chart_total
+          from sales
+          group by raw_category
+        ) using vegalite (
+          encoding => (
+            x => (field => chart_c, type => nominal),
+            y => (field => chart_total, type => quantitative)
+          )
+        )
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "raw_category"
+        - expression-idx: 1
+          type: colref/unresolved
+          statement-id: 0
+          text: "raw_amount"
+        - expression-idx: 2
+          type: colref/unresolved
+          statement-id: 0
+          text: "raw_category"
+        - expression-idx: 3
+          type: colref/unresolved
+          statement-id: 0
+          text: "chart_c"
+        - expression-idx: 4
+          type: colref/local
+          statement-id: 0
+          text: "chart_total"
+        - expression-idx: 5
+          type: function
+          name: sum
+          computation: 1
+          statement-id: 0
+          text: "sum(raw_amount)"
+      column-computations:
+        - expression: 5
+          snippet:
+            signature-template: 7459937480860943044
+            signature-raw: 9311430213574171797
+            text: sum(raw_amount)
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
+              ast:
+                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                text: "sum(raw_amount)"
+                children:
+                  - key: SQL_FUNCTION_NAME
+                    type: ARRAY
+                    text: "sum"
+                    children:
+                      - type: NAME
+                        text: "sum"
+                  - key: SQL_FUNCTION_ARGUMENTS
+                    type: ARRAY
+                    text: "raw_amount"
+                    children:
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "raw_amount"
+                        children:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "raw_amount"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "raw_amount"
+                                children:
+                                  - type: NAME
+                                    text: "raw_amount"
+      visualizations:
+        - statement-id: 0
+          source: "(\n  select..category\n)"
+          renderer: vegalite
+          vegalite:
+            encodings:
+              - channel: VIS_ENCODING_X
+                field-expr: 3
+                field-type: NOMINAL
+              - channel: VIS_ENCODING_Y
+                field-expr: 4
+                field-type: QUANTITATIVE
+      inferred-tables:
+        - name: sales
+          confidence: confident
+          columns:
+            - name: raw_category
+              confidence: confident
+            - name: raw_amount
+              confidence: confident
+    cursor:
+      search:
+        text: '=> chart_c'
+        index: 10
+    completions:
+      limit: 3
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 65
+          value: chart_category
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,IN_NAME_SCOPE]
+          location: "chart_c"
+          location-qualified: "chart_c"
+          objects: []
+        - score: 59
+          value: chart_c
+          candidate-tags: [IDENTITY]
+          location: "chart_c"
+          location-qualified: "chart_c"
+          objects: []
+        - score: 3
+          value: by
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "chart_c"
+          location-qualified: "chart_c"
+          objects: []
+      text: "chart_c"
+
+  - name: vis_inline_select_alias_shorthand
+    catalog: {}
+    editor:
+      input: |-
+        visualize (
+          select
+            raw_category as chart_category,
+            sum(raw_amount) as chart_total
+          from sales
+          group by raw_category
+        ) using vegalite (
+          encoding => (
+            x => chart_category,
+            y => chart_t
+          )
+        )
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "raw_category"
+        - expression-idx: 1
+          type: colref/unresolved
+          statement-id: 0
+          text: "raw_amount"
+        - expression-idx: 2
+          type: colref/unresolved
+          statement-id: 0
+          text: "raw_category"
+        - expression-idx: 3
+          type: colref/local
+          statement-id: 0
+          text: "chart_category"
+        - expression-idx: 4
+          type: colref/unresolved
+          statement-id: 0
+          text: "chart_t"
+        - expression-idx: 5
+          type: function
+          name: sum
+          computation: 1
+          statement-id: 0
+          text: "sum(raw_amount)"
+      column-computations:
+        - expression: 5
+          snippet:
+            signature-template: 7459937480860943044
+            signature-raw: 9311430213574171797
+            text: sum(raw_amount)
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
+              ast:
+                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                text: "sum(raw_amount)"
+                children:
+                  - key: SQL_FUNCTION_NAME
+                    type: ARRAY
+                    text: "sum"
+                    children:
+                      - type: NAME
+                        text: "sum"
+                  - key: SQL_FUNCTION_ARGUMENTS
+                    type: ARRAY
+                    text: "raw_amount"
+                    children:
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "raw_amount"
+                        children:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "raw_amount"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "raw_amount"
+                                children:
+                                  - type: NAME
+                                    text: "raw_amount"
+      visualizations:
+        - statement-id: 0
+          source: "(\n  select..category\n)"
+          renderer: vegalite
+          vegalite:
+            encodings:
+              - channel: VIS_ENCODING_X
+                field-expr: 3
+              - channel: VIS_ENCODING_Y
+                field-expr: 4
+      inferred-tables:
+        - name: sales
+          confidence: confident
+          columns:
+            - name: raw_category
+              confidence: confident
+            - name: raw_amount
+              confidence: confident
+    cursor:
+      search:
+        text: '=> chart_t'
+        index: 10
+    completions:
+      limit: 3
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 65
+          value: chart_total
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,IN_NAME_SCOPE]
+          location: "chart_t"
+          location-qualified: "chart_t"
+          objects: []
+        - score: 59
+          value: chart_t
+          candidate-tags: [IDENTITY]
+          location: "chart_t"
+          location-qualified: "chart_t"
+          objects: []
+        - score: 3
+          value: by
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "chart_t"
+          location-qualified: "chart_t"
+          objects: []
+      text: "chart_t"
+
+  - name: vis_inline_select_alias_generic_value
+    catalog: {}
+    editor:
+      input: |-
+        visualize (
+          select raw_category as chart_category from sales
+        ) using vegalite (
+          title => chart_c,
+          encoding => (x => chart_category)
+        )
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "raw_category"
+        - expression-idx: 1
+          type: colref/local
+          statement-id: 0
+          text: "chart_category"
+        - expression-idx: 2
+          type: colref/unresolved
+          statement-id: 0
+          text: "chart_c"
+      visualizations:
+        - statement-id: 0
+          source: "(\n  select..om sales\n)"
+          renderer: vegalite
+          vegalite:
+            title: chart_c
+            encodings:
+              - channel: VIS_ENCODING_X
+                field-expr: 1
+      inferred-tables:
+        - name: sales
+          confidence: confident
+          columns:
+            - name: raw_category
+              confidence: confident
+    cursor:
+      search:
+        text: '=> chart_c'
+        index: 10
+    completions:
+      limit: 3
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 65
+          value: chart_category
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,IN_NAME_SCOPE]
+          location: "chart_c"
+          location-qualified: "chart_c"
+          objects: []
+        - score: 59
+          value: chart_c
+          candidate-tags: [IDENTITY]
+          location: "chart_c"
+          location-qualified: "chart_c"
+          objects: []
+        - score: 3
+          value: by
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "chart_c"
+          location-qualified: "chart_c"
+          objects: []
+      text: "chart_c"
+
   - name: vis_axis_key_fo
     catalog: {}
     editor:
