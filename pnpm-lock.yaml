@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  d3-brush@3.0.0:
+    hash: m4sdhjacgh4rot4d6xo6hdse5y
+    path: bazel/patches/d3-brush@3.0.0.patch
+
 importers:
 
   .:
@@ -3419,7 +3424,7 @@ snapshots:
 
   d3-axis@3.0.0: {}
 
-  d3-brush@3.0.0:
+  d3-brush@3.0.0(patch_hash=m4sdhjacgh4rot4d6xo6hdse5y):
     dependencies:
       d3-dispatch: 3.0.1
       d3-drag: 3.0.0
@@ -3542,7 +3547,7 @@ snapshots:
     dependencies:
       d3-array: 3.2.4
       d3-axis: 3.0.0
-      d3-brush: 3.0.0
+      d3-brush: 3.0.0(patch_hash=m4sdhjacgh4rot4d6xo6hdse5y)
       d3-chord: 3.0.1
       d3-color: 3.1.0
       d3-contour: 4.0.2

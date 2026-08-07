@@ -1,0 +1,19 @@
+diff --git a/src/brush.js b/src/brush.js
+index 4ca42e3..7f6067f 100644
+--- a/src/brush.js
++++ b/src/brush.js
+@@ -276,10 +276,10 @@ function brush(dim) {
+     else {
+       group.selectAll(".selection,.handle")
+           .style("display", "none")
+-          .attr("x", null)
+-          .attr("y", null)
+-          .attr("width", null)
+-          .attr("height", null);
++          .attr("x", 0)
++          .attr("y", 0)
++          .attr("width", 0)
++          .attr("height", 0);
+     }
+   }
+ 

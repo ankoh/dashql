@@ -75,7 +75,10 @@
     "onlyBuiltDependencies": [
       "@bufbuild/buf",
       "@parcel/watcher"
-    ]
+    ],
+    "patchedDependencies": {
+      "d3-brush@3.0.0": "bazel/patches/d3-brush@3.0.0.patch"
+    }
   },
   "browserslist": [
     "last 1 version",
