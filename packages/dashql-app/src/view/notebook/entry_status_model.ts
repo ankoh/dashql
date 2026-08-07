@@ -120,7 +120,9 @@ export function deriveEntryStatus(
             return {
                 kind: EntryStatusKind.Query,
                 indicator: IndicatorStatus.Succeeded,
-                message: getQueryStatusText(query.status),
+                message: query.status === QueryExecutionStatus.SUCCEEDED && query.servedFromCache
+                    ? 'Result loaded from cache'
+                    : getQueryStatusText(query.status),
                 traceId: query.traceId,
                 errorDetail: null,
             };

@@ -26,7 +26,7 @@ const mockState = vi.hoisted(() => ({
         capture?: boolean;
         callback: (event: KeyboardEvent) => void;
     }>,
-    queryStates: new Map<number, { traceId: number; status: number }>(),
+    queryStates: new Map<number, { traceId: number; status: number; servedFromCache?: boolean }>(),
     agentRuns: new Map<number, { traceId: number; phase?: number; log?: Array<{ message: string }> }>(),
     latestAgentRunId: null as number | null,
     observedWidth: 1200,
@@ -766,6 +766,21 @@ describe('NotebookScriptFeed', () => {
         const statusBar = container.querySelector('[aria-label^="Show log"]');
         expect(statusBar).not.toBeNull();
         expect(statusBar!.textContent).toContain('Statement executed successfully');
+    });
+
+    it('shows that a successful query result was loaded from cache', () => {
+        mockState.queryStates.set(42, { traceId: 100, status: 9 /* SUCCEEDED */, servedFromCache: true });
+        const notebook = createNotebookState();
+        notebook.scripts[101] = { ...notebook.scripts[101], latestQueryId: 42 };
+        renderFeed({
+            notebook,
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+        const statusBar = container.querySelector('[aria-label^="Show log"]');
+        expect(statusBar).not.toBeNull();
+        expect(statusBar!.textContent).toContain('Result loaded from cache');
     });
 
     it('shows Accept/Reject on the body once a rewrite is staged', () => {
