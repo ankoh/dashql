@@ -4,11 +4,9 @@ DashQL caches successful user-query results in session-local files. A repeat of 
 
 ## Scope
 
-The cache stores an Arrow IPC stream for a result table. It applies only when the caller opts in through `QueryExecutionArgs.cacheable` or `QueryExecutionArgs.cacheOnly`.
+The cache stores an Arrow IPC stream for a result table. It applies only when the caller opts in through `QueryExecutionArgs.cacheable`.
 
-Notebook user queries opt in, including explicit execution, execute-on-send, agent-triggered visualization re-execution, and reruns. Internal catalog, setup, and health-check queries do not set either flag and therefore never read or write the cache.
-
-`cacheOnly` is a stricter opt-in used by visible Vega-Lite visualization cards. It loads a cached result when available, but on a miss it neither registers query state nor executes against the connection. UMAP visualizations and ordinary SQL cards are not auto-run this way.
+Notebook user queries opt in, including explicit execution, execute-on-send, agent-triggered visualization re-execution, and reruns. Internal catalog, setup, and health-check queries do not set the flag and therefore never read or write the cache. Merely loading or viewing a notebook does not execute queries or read cached results; a user-triggered execution is required.
 
 The cache is deliberately not a general consistency mechanism. It assumes that a result is a pure function of its connection signature and query text. Callers must not mark a query cacheable when that assumption does not hold.
 
@@ -53,14 +51,13 @@ Session archives and storage migration copy the persisted session metadata, sche
 
 ```mermaid
 flowchart TD
-    A[Execute user query] --> B{cacheable or cacheOnly?}
+    A[Execute user query] --> B{cacheable?}
     B -- no --> F[Execute connector]
     B -- yes --> C[Derive connection signature and SHA-256 key]
     C -- key unavailable --> F
     C -- key available --> D[Load hash.arrow]
     D -- hit --> E[Decode Arrow IPC and touch access marker]
-    D -- miss, cacheOnly --> X[Return null without query state or backend call]
-    D -- miss, cacheable --> F
+    D -- miss --> F
     E --> G[Dispatch result state and run post-processing]
     F --> H[Stream connector batches into Arrow table]
     H --> G
@@ -71,7 +68,7 @@ flowchart TD
     K --> L
 ```
 
-The normal cacheable path computes the key before query state is registered. A cache-only request performs its lookup before registering state, which makes a miss a true no-op. It passes a successful preload to the later read path so a hit is only read once.
+The cacheable path computes the key before query state is registered.
 
 On a cache hit, the executor decodes the stored bytes with `arrow.tableFromIPC`, dispatches the same completed-result state used by a streamed query with empty metadata and zeroed stream metrics, then enters the shared analysis and success path. It records the cache key, cached-at timestamp, and `servedFromCache` state for the UI. A cache hit also asynchronously rewrites the empty access marker; it never rewrites the potentially large Arrow payload.
 
@@ -108,7 +105,7 @@ The internals overlay includes a session-scoped **Query Cache** tab. It lists pa
 - The cache may return stale data after a backend changes. Use Refresh to invalidate a visible result, or change the SQL/signature to create a new key.
 - Corrupt or incompatible Arrow bytes are not self-healed by automatic deletion. Decode errors follow the executor's normal failure path; the entry can be removed from Refresh or the cache inspector.
 - A duplicate write for the same hash is safe because both writers represent the same key; last writer wins.
-- The cache preserves raw results only. Analyses and projections run again after cache load, and cache-only UMAP auto-run is intentionally disabled because projection work is too expensive to trigger on visibility.
+- The cache preserves raw results only. Analyses and projections run again after cache load.
 
 ## Implementation References
 

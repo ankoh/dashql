@@ -23,7 +23,7 @@ import { AgentRunPhase, agentRunIsActive } from '../../agent/agent_run_state.js'
 import { OutputColumn } from '../../notebook/notebook_agent_context.js';
 import { createNotebookAgentHost } from '../../notebook/notebook_agent_host.js';
 import { QueryType, queryIsDone } from '../../connection/query_execution_state.js';
-import { useCancelQuery, useQueryExecutor, useQueryState } from '../../connection/query_executor.js';
+import { computeQueryCacheKeyForConnection, useCancelQuery, useQueryExecutor, useQueryState } from '../../connection/query_executor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { ScriptEditor } from './script_editor.js';
 import { PromptEditor } from './prompt_editor.js';
@@ -40,9 +40,10 @@ import { EntryStatusBar } from './entry_status_bar.js';
 import { deriveEntryStatus, EntryStatusKind } from './entry_status_model.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
 import { TabKey as DetailsTabKey } from './notebook_script_details.js';
-import { createCachedEntryExecutionArgs, registerNotebookQuery, rerunEntry } from './rerun_query.js';
+import { registerNotebookQuery, rerunEntry } from './rerun_query.js';
 import { useStorageReader } from '../../platform/storage/storage_provider.js';
-import { QueryResultCacheLabel, QueryResultRerunButton } from './query_result_cache_controls.js';
+import { STORAGE_CACHE_EXTENSION } from '../../platform/storage/storage_backend.js';
+import { CachedResultBean, QueryResultCacheLabel, QueryResultRerunButton } from './query_result_cache_controls.js';
 
 interface FeedScrollTarget {
     fileName: string;
@@ -113,12 +114,10 @@ interface CollapsedScriptCardProps {
     onRerun: (fileName: string, cacheKey: string | null) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
-    /// Called when the card first scrolls into view. If the entry has a cached result, it is loaded
-    /// and displayed without executing against the backend.
-    onVisible: (fileName: string) => void;
+    hasCachedResult: boolean;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, connectorIcon, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canExecute, canUseAI, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, connectorIcon, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canExecute, canUseAI, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, hasCachedResult }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
     const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
@@ -211,34 +210,8 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, connectorIc
         onExpand(scriptFileName);
     }, [scriptFileName, onExpand]);
 
-    // Fire onVisible the first time the card intersects the viewport. This drives cache-only result
-    // loading: seeing the card is the trigger to render its last result if it is cached.
-    // The callback is idempotent per script on the feed side (it de-dupes by cache key), so we only
-    // need to fire once per mount — disconnect after the first intersection.
-    const cardRef = React.useRef<HTMLDivElement>(null);
-    const onVisibleRef = React.useRef(onVisible);
-    onVisibleRef.current = onVisible;
-    React.useEffect(() => {
-        const el = cardRef.current;
-        if (el == null) {
-            return;
-        }
-        const observer = new IntersectionObserver((entries) => {
-            for (const entry of entries) {
-                if (entry.isIntersecting) {
-                    onVisibleRef.current(scriptFileName);
-                    observer.disconnect();
-                    break;
-                }
-            }
-        });
-        observer.observe(el);
-        return () => observer.disconnect();
-    }, [scriptFileName]);
-
     return (
         <div
-            ref={cardRef}
             className={styles.feed_entry_pair}
             onPointerEnter={() => onFocus(scriptFileName)}
         >
@@ -372,6 +345,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ sessionId, connectorIc
                         cancelLabel={entryStatus.kind === EntryStatusKind.Agent ? 'Cancel agent run' : 'Cancel query'}
                         actions={
                             <>
+                                {hasCachedResult && <CachedResultBean />}
                                 <QueryResultCacheLabel query={queryState} />
                                 <QueryResultRerunButton
                                     query={queryState}
@@ -425,7 +399,7 @@ interface ScriptFeedRowProps {
     onRerun: (fileName: string, cacheKey: string | null) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
-    onVisible: (fileName: string) => void;
+    cachedScriptKeys: ReadonlySet<number>;
     onHeightMeasured: (scriptId: number, entryIndex: number, height: number) => void;
     hasMeasuredHeight: (scriptId: number) => boolean;
     fillerRowHeight: number;
@@ -433,7 +407,7 @@ interface ScriptFeedRowProps {
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { sessionId, connectorIcon, entries, scripts, folderName, scriptDebugMode, focusedFileName, executableScriptKeys, canUseAI, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, onVisible, onHeightMeasured, hasMeasuredHeight } = props;
+    const { sessionId, connectorIcon, entries, scripts, folderName, scriptDebugMode, focusedFileName, executableScriptKeys, canUseAI, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, cachedScriptKeys, onHeightMeasured, hasMeasuredHeight } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -504,7 +478,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onRerun={onRerun}
                     onAcceptDiff={onAcceptDiff}
                     onRejectDiff={onRejectDiff}
-                    onVisible={onVisible}
+                    hasCachedResult={scriptData != null && cachedScriptKeys.has(scriptData.scriptKey)}
                 />
             </div>
         </div>
@@ -514,8 +488,50 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
 export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => {
     const config = useAppConfig();
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
-    const autoExecuteCachedStatements = config?.settings?.autoExecuteCachedStatements ?? true;
     const entries = getSelectedPageEntries(props.notebook);
+    const storageReader = useStorageReader();
+    const [cachedScriptKeys, setCachedScriptKeys] = React.useState<ReadonlySet<number>>(() => new Set());
+    const cacheCandidates = entries.flatMap(entry => {
+        const scriptData = props.notebook.scripts[entry.scriptId];
+        if (scriptData == null || scriptData.latestQueryId != null) return [];
+        const queryText = tryGetExecutableQueryText(props.notebook, scriptData);
+        return queryText != null && queryText.trim().length > 0
+            ? [{ scriptKey: scriptData.scriptKey, queryText }]
+            : [];
+    });
+    const cacheCandidateSignature = cacheCandidates
+        .map(candidate => `${candidate.scriptKey}:${candidate.queryText}`)
+        .join('\n');
+
+    // Inspect cache metadata only. This identifies cached cards without loading Arrow payloads or
+    // creating query executions during notebook navigation.
+    React.useEffect(() => {
+        let cancelled = false;
+        const findCachedScripts = async () => {
+            if (props.conn == null) {
+                setCachedScriptKeys(new Set());
+                return;
+            }
+            const files = await storageReader.backend.listQueryResultCache(props.notebook.sessionId).catch(() => []);
+            if (cancelled) return;
+            const cacheKeys = new Set(files.map(file => file.name.endsWith(STORAGE_CACHE_EXTENSION)
+                ? file.name.slice(0, -STORAGE_CACHE_EXTENSION.length)
+                : file.name));
+            if (cacheKeys.size === 0) {
+                setCachedScriptKeys(new Set());
+                return;
+            }
+            const matches = await Promise.all(cacheCandidates.map(async candidate => {
+                const key = await computeQueryCacheKeyForConnection(props.conn!.details, candidate.queryText);
+                return key != null && cacheKeys.has(key) ? candidate.scriptKey : null;
+            }));
+            if (!cancelled) {
+                setCachedScriptKeys(new Set(matches.filter((key): key is number => key != null)));
+            }
+        };
+        void findCachedScripts();
+        return () => { cancelled = true; };
+    }, [props.conn?.details, props.notebook.sessionId, cacheCandidateSignature, storageReader.backend]);
 
     const pendingScrollToBottomRef = React.useRef(false);
     const [composeEditorView, setComposeEditorView] = React.useState<EditorView | null>(null);
@@ -629,7 +645,6 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
 
     const isDisconnected = props.conn?.connectionHealth !== ConnectionHealth.ONLINE;
     const openConnectionOverlay = props.openConnectionOverlay;
-    const storageReader = useStorageReader();
     const executeQuery = useQueryExecutor();
 
     // Re-execute the visualization after the agent finishes editing it.
@@ -742,48 +757,6 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         if (scriptData == null) return;
         rerunEntry(notebook, scriptData, executeQuery, props.modifyNotebook);
     }, [executeQuery, isDisconnected, props.modifyNotebook, props.notebook]);
-
-    // Load a card's last result when it scrolls into view, but only when the data is already cached,
-    // so we never kick off a backend query the user didn't ask for.
-    //
-    // Scope:
-    //   - Only entries that haven't run yet this session (no `latestQueryId`); a manual run or a
-    //     prior auto-run already owns the result, and we must not clobber it.
-    // The executor's `cacheOnly` mode does the actual "hit → serve, miss → no-op" decision; on a hit
-    // its promise resolves to the table and we link the query to the entry, on a miss it resolves to
-    // null and we leave the entry un-run. A per-(script, query-text) guard keeps react-window's
-    // remounts (and the effect re-fires) from re-attempting the same probe.
-    const autoLoadAttemptedRef = React.useRef<Set<string>>(new Set());
-    const handleEntryVisible = React.useCallback((fileName: string) => {
-        if (!autoExecuteCachedStatements) {
-            return;
-        }
-        const notebook = props.notebook;
-        const entry = notebook.notebookPages[notebook.notebookUserFocus.folderName]?.scripts[fileName];
-        const scriptData = entry != null ? notebook.scripts[entry.scriptId] : undefined;
-        if (scriptData == null) {
-            return;
-        }
-        // Already has a result (manual run or earlier auto-run) — leave it be.
-        if (scriptData.latestQueryId != null) {
-            return;
-        }
-        const args = createCachedEntryExecutionArgs(notebook, scriptData);
-        if (args == null) {
-            return;
-        }
-        // De-dupe: one probe per (script, resolved query text). An edit changes the text and so is
-        // re-probed; a bare remount is not.
-        const attemptKey = `${scriptData.scriptKey}:${args.query}`;
-        if (autoLoadAttemptedRef.current.has(attemptKey)) {
-            return;
-        }
-        autoLoadAttemptedRef.current.add(attemptKey);
-
-        const [queryId, execution] = executeQuery(notebook.sessionId, args);
-        // Cache-only misses must not point the entry at a phantom query.
-        registerNotebookQuery(scriptData, queryId, args.query, execution, props.modifyNotebook, true);
-    }, [autoExecuteCachedStatements, props.notebook, props.modifyNotebook, executeQuery]);
 
     // Send the compose editor's text to the agent run as a natural-language prompt. Context is
     // explicit: no bean means a blank-draft run rather than an implicit hover-selected target.
@@ -1071,12 +1044,12 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onRerun: handleRerunEntry,
         onAcceptDiff: handleAcceptDiff,
         onRejectDiff: handleRejectDiff,
-        onVisible: handleEntryVisible,
+        cachedScriptKeys,
         onHeightMeasured: handleHeightMeasured,
         hasMeasuredHeight,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, props.notebook.connectorInfo.icons?.outlines, props.notebook.notebookUserFocus.fileName, folderName, scriptDebugMode, executableScriptKeys, aiAvailable, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleUseAIContext, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, handleEntryVisible, handleHeightMeasured, hasMeasuredHeight, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, props.notebook.connectorInfo.icons?.outlines, props.notebook.notebookUserFocus.fileName, folderName, scriptDebugMode, executableScriptKeys, aiAvailable, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleUseAIContext, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, cachedScriptKeys, handleHeightMeasured, hasMeasuredHeight, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container} data-tauri-drag-region="deep">

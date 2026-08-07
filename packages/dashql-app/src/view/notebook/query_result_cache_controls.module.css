@@ -12,3 +12,19 @@
 .rerun_button {
     flex-shrink: 0;
 }
+
+.cached_result_bean {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 8px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: hsl(210, 10%, 46%);
+    background-color: hsl(210, 15%, 91%);
+    font-size: 0.65rem;
+    font-weight: 500;
+    line-height: 1.4;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}

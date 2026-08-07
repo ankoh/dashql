@@ -49,15 +49,6 @@ export function AppSettings(props: { onClose: () => void; }) {
             }
         }));
     }, [reconfigure]);
-    const toggleAutoExecuteCachedStatements = React.useCallback(() => {
-        reconfigure((value: AppConfig | null) => (value == null ? null : {
-            ...value,
-            settings: {
-                ...(value.settings ?? {}),
-                autoExecuteCachedStatements: !(value.settings?.autoExecuteCachedStatements ?? true),
-            }
-        }));
-    }, [reconfigure]);
     const toggleForceReLogin = React.useCallback(() => {
         reconfigure((value: AppConfig | null) => (value == null ? null : {
             ...value,
@@ -210,18 +201,6 @@ export function AppSettings(props: { onClose: () => void; }) {
                             onClick={toggleFormattingDebugMode}
                             disabled={config == null}
                             aria-labelledby="app-setting-formatting-debug-mode"
-                        />
-                    </div>
-                    <div id="app-setting-auto-execute-cached-statements" className={styles.setting_name}>
-                        Auto-Execute Cached Statements
-                    </div>
-                    <div className={styles.setting_switch}>
-                        <ToggleSwitch
-                            size="medium"
-                            checked={config?.settings?.autoExecuteCachedStatements ?? true}
-                            onClick={toggleAutoExecuteCachedStatements}
-                            disabled={config == null}
-                            aria-labelledby="app-setting-auto-execute-cached-statements"
                         />
                     </div>
                     <div id="app-setting-force-relogin" className={styles.setting_name}>

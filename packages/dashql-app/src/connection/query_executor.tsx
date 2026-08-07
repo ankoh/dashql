@@ -50,9 +50,8 @@ let NEXT_QUERY_ID = 1;
 
 /// Compute the file-based cache key for a query against a connection, or null when the connection has
 /// no recoverable params/signature (e.g. before setup completes). This is the same derivation the
-/// executor uses on its cacheable path; it's exported so callers that want to *probe* the cache
-/// (e.g. auto-loading a card result only on a cache hit) key their lookup identically. Never
-/// throws — a failure to derive the key is reported as null (treat as "not cacheable / a miss").
+/// executor uses on its cacheable path. Never throws — a failure to derive the key is reported as
+/// null (treat as "not cacheable / a miss").
 export async function computeQueryCacheKeyForConnection(
     details: ConnectionStateDetailsVariant,
     queryText: string,
@@ -170,35 +169,9 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         // Compute the cache key up front for cacheable queries. This is best-effort: if the
         // connection has no recoverable params/signature (e.g. before setup completes) we simply skip
         // caching and execute normally. Never let a cache concern surface into the query path.
-        // `cacheOnly` implies caching, so it participates in the key computation too.
         let cacheHash: string | null = null;
-        if (args.cacheable || args.cacheOnly) {
+        if (args.cacheable) {
             cacheHash = await computeQueryCacheKeyForConnection(conn.details, args.query);
-        }
-
-        // Cache-only probe: before registering *any* query state, check whether the result is already
-        // on disk. On a miss the whole execution is a no-op — no state is registered and the backend
-        // is never touched — so the returned promise just resolves to null. This backs auto-loading a
-        // card when it scrolls into view: instant if cached, otherwise left un-run. The
-        // loaded entry is carried into the cache read path below so we never load the bytes twice.
-        let preloaded: CachedQueryResult | null = null;
-        if (args.cacheOnly) {
-            if (cacheHash == null) {
-                return null;
-            }
-            try {
-                preloaded = await storageReader.backend.loadQueryResultCache(sessionId, cacheHash);
-            } catch (e: any) {
-                traced.warn("Failed to read query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
-                preloaded = null;
-            }
-            if (preloaded == null) {
-                traced.info("Query cache miss", {
-                    "session": sessionId,
-                    "query": queryId.toString(),
-                }, LOG_CTX);
-                return null;
-            }
         }
 
         connDispatch(sessionId, {
@@ -216,15 +189,11 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             // Cache read path: on a hit, load the Arrow IPC bytes and drive the state machine as if
             // the result had just streamed in, skipping the backend entirely.
             if (cacheHash != null) {
-                // Reuse the cache-only preload when present, so its bytes are read exactly once.
-                let cached: CachedQueryResult | null = preloaded;
-                if (cached == null) {
-                    try {
-                        cached = await storageReader.backend.loadQueryResultCache(sessionId, cacheHash);
-                    } catch (e: any) {
-                        traced.warn("Failed to read query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
-                        cached = null;
-                    }
+                let cached: CachedQueryResult | null = null;
+                try {
+                    cached = await storageReader.backend.loadQueryResultCache(sessionId, cacheHash);
+                } catch (e: any) {
+                    traced.warn("Failed to read query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
                 }
                 // A user cancel during the async cache read should behave like any other cancel:
                 // let the catch below route it to QUERY_CANCELLED.

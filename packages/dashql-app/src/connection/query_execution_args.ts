@@ -17,12 +17,6 @@ export interface QueryExecutionArgs {
     /// Only user-provided queries should set this; catalog/health-check queries leave it unset so
     /// they never touch the cache. Cache failures are always non-fatal (fall back to execution).
     cacheable?: boolean;
-    /// When true, the query runs *only* if its result is already cached: it's served from the cache
-    /// exactly like `cacheable`, but a cache miss is a no-op — the backend is never hit and no query
-    /// state is registered (the returned promise resolves to `null`). This backs loading a card's
-    /// last result when the user scrolls to it: show it instantly if the data is on disk, otherwise
-    /// leave it un-run. Implies `cacheable` for the purpose of key computation.
-    cacheOnly?: boolean;
     /// Optional UMAP projection request. When present (a resolved `'umap'` visualize
     /// spec), the result post-processing step computes per-row 2D coordinates, appends
     /// them to the analyzed table, and records their field names on the embedding

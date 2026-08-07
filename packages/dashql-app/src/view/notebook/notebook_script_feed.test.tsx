@@ -13,7 +13,6 @@ import {
     fakeScriptPreviewModule,
     fakeStatusIndicatorModule,
     fakeSymbolIconModule,
-    IntersectionObserverMock,
     ResizeObserverMock,
 } from '../../test/view_mocks.js';
 
@@ -36,9 +35,14 @@ const mockState = vi.hoisted(() => ({
     startAgentRun: vi.fn(),
     cancelAgentRun: vi.fn(),
     cancelQuery: vi.fn(),
-    appSettings: {} as { autoExecuteCachedStatements?: boolean },
+    storageBackend: {
+        deleteQueryResultCache: vi.fn(),
+        listQueryResultCache: vi.fn(async () => [] as Array<{ name: string }>),
+    },
+    cacheKey: null as string | null,
+    cachedFiles: [] as Array<{ name: string }>,
 }));
-vi.mock('../../app_config.js', () => ({ useAppConfig: () => ({ settings: mockState.appSettings }) }));
+vi.mock('../../app_config.js', () => ({ useAppConfig: () => ({ settings: {} }) }));
 vi.mock('../../platform/ai_client_provider.js', () => ({ useAIClient: () => ({}) }));
 vi.mock('react-window', async () => fakeReactWindowModule(await import('react'), mockState.scrollToRowMock));
 vi.mock('./script_editor.js', async () => fakeScriptEditorModule(await import('react'), mockState));
@@ -107,9 +111,11 @@ vi.mock('../../connection/query_executor.js', () => ({
     },
     useQueryExecutor: () => mockState.executeQuery,
     useCancelQuery: () => mockState.cancelQuery,
+    computeQueryCacheKeyForConnection: vi.fn(async (_details, queryText: string) =>
+        queryText === 'select 1' ? mockState.cacheKey : null),
 }));
 vi.mock('../../platform/storage/storage_provider.js', () => ({
-    useStorageReader: () => ({ backend: { deleteQueryResultCache: vi.fn() } }),
+    useStorageReader: () => ({ backend: mockState.storageBackend }),
 }));
 vi.mock('../../agent/agent_run_provider.js', () => ({
     // Resolve an agent run by its id from the backing map, mirroring useQueryState.
@@ -139,7 +145,6 @@ vi.mock('./feed_entry_footer.js', async () => {
     };
 });
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
-vi.stubGlobal('IntersectionObserver', IntersectionObserverMock);
 
 
 import {
@@ -286,8 +291,11 @@ describe('NotebookScriptFeed', () => {
         mockState.startAgentRun.mockReset();
         mockState.cancelAgentRun.mockReset();
         mockState.cancelQuery.mockReset();
-        mockState.appSettings = {};
-        IntersectionObserverMock.instances = [];
+        mockState.storageBackend.deleteQueryResultCache.mockReset();
+        mockState.storageBackend.listQueryResultCache.mockReset();
+        mockState.storageBackend.listQueryResultCache.mockImplementation(async () => mockState.cachedFiles);
+        mockState.cacheKey = null;
+        mockState.cachedFiles = [];
         getBoundingClientRect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
             const scriptId = this.closest<HTMLElement>('[data-row-script-id]')?.dataset.rowScriptId;
             const height = scriptId === '101' ? 200 : scriptId === '102' ? 300 : 0;
@@ -888,6 +896,7 @@ describe('NotebookScriptFeed', () => {
         const viewers = container.querySelectorAll('[data-testid="trace-log-viewer"]');
         expect(viewers.length).toBe(0);
         expect(container.textContent).toContain('Not run yet');
+        expect(container.textContent).not.toContain('Result is cached');
     });
 
     it('renders a script and server card for every notebook entry', () => {
@@ -901,27 +910,22 @@ describe('NotebookScriptFeed', () => {
         expect(container.textContent?.match(/Not run yet/g)).toHaveLength(2);
     });
 
-    it('auto-executes cached statements when a card becomes visible by default', () => {
+    it('does not execute statements when cards render', () => {
         renderFeed({ notebook: createNotebookState(), modifyNotebook: vi.fn(), showDetails: vi.fn() });
 
-        const observer = IntersectionObserverMock.instances[0];
-        if (observer == null) throw new Error('missing intersection observer');
-        act(() => observer.callback([{ isIntersecting: true } as IntersectionObserverEntry], observer as unknown as IntersectionObserver));
-
-        expect(mockState.executeQuery).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
-            query: 'select 1',
-            cacheOnly: true,
-        }));
+        expect(mockState.executeQuery).not.toHaveBeenCalled();
     });
 
-    it('does not auto-execute cached statements when disabled', () => {
-        mockState.appSettings = { autoExecuteCachedStatements: false };
+    it('marks only cards whose query result is cached', async () => {
+        mockState.cacheKey = 'cached-query';
+        mockState.cachedFiles = [{ name: 'cached-query.arrow' }];
         renderFeed({ notebook: createNotebookState(), modifyNotebook: vi.fn(), showDetails: vi.fn() });
 
-        const observer = IntersectionObserverMock.instances[0];
-        if (observer == null) throw new Error('missing intersection observer');
-        act(() => observer.callback([{ isIntersecting: true } as IntersectionObserverEntry], observer as unknown as IntersectionObserver));
+        await act(async () => { await Promise.resolve(); });
 
+        expect(container.textContent?.match(/Cached/g)).toHaveLength(1);
+        expect(container.textContent?.match(/Not run yet/g)).toHaveLength(2);
+        expect(container.textContent).not.toContain('Result is cached');
         expect(mockState.executeQuery).not.toHaveBeenCalled();
     });
 

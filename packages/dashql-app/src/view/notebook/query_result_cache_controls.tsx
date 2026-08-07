@@ -11,6 +11,10 @@ interface QueryResultCacheControlsProps {
     query: QueryExecutionState | null;
 }
 
+export const CachedResultBean: React.FC = () => (
+    <span className={styles.cached_result_bean}>Cached</span>
+);
+
 /// Whether the query has a result to describe (succeeded, not since cache-deleted).
 function hasResult(query: QueryExecutionState | null): boolean {
     return query?.status === QueryExecutionStatus.SUCCEEDED && query?.cacheDeleted !== true;
