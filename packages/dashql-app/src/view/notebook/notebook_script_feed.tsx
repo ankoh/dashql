@@ -15,7 +15,7 @@ import type { RowComponentProps } from 'react-window';
 import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { ButtonGroup } from '../foundations/button_group.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
-import { getExecutableQueryText, getSelectedEntry, getSelectedPage, getSelectedPageEntries, getSortedFileNames, getUncommittedScriptData, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY, REORDER_NOTEBOOK_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../notebook/notebook_state.js';
+import { getExecutableQueryText, getSelectedEntry, getSelectedPage, getSelectedPageEntries, getSortedFileNames, getUncommittedScriptData, tryGetExecutableQueryText, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY, UPDATE_NOTEBOOK_ENTRY, REORDER_NOTEBOOK_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../notebook/notebook_state.js';
 import { useAIClient } from '../../platform/ai_client_provider.js';
 import { COMPOSE_INPUT_MODE_AI, useComposeInputMode } from '../../notebook/notebook_commands.js';
 import { useLatestAgentRunState, useAgentRunState, useStartAgentRun, useCancelAgentRun } from '../../agent/agent_run_provider.js';
@@ -777,8 +777,8 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         if (scriptData.latestQueryId != null) {
             return;
         }
-        const queryText = getExecutableQueryText(notebook, scriptData);
-        if (queryText.trim().length === 0) {
+        const queryText = tryGetExecutableQueryText(notebook, scriptData);
+        if (queryText == null || queryText.trim().length === 0) {
             return;
         }
         // De-dupe: one probe per (script, resolved query text). An edit changes the text and so is
@@ -1057,7 +1057,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         if (isDisconnected) return new Set<number>();
         return new Set(entries.flatMap(entry => {
             const scriptData = props.notebook.scripts[entry.scriptId];
-            return scriptData != null && getExecutableQueryText(props.notebook, scriptData).trim().length > 0
+            return scriptData != null && (tryGetExecutableQueryText(props.notebook, scriptData)?.trim().length ?? 0) > 0
                 ? [scriptData.scriptKey]
                 : [];
         }));
@@ -1172,17 +1172,20 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                                 </SegmentedControl.Button>
                             </SegmentedControl>
                             {inputMode === COMPOSE_INPUT_MODE_AI && aiContextName != null && (
-                                <div className={styles.compose_context_bean} title={aiContextName}>
-                                    <span className={styles.compose_context_name}>{aiContextName}</span>
-                                    <button
-                                        type="button"
-                                        className={styles.compose_context_remove}
-                                        aria-label={`Remove ${aiContextName} AI context`}
-                                        onClick={() => setAIContextScriptKey(null)}
-                                    >
+                                <button
+                                    type="button"
+                                    className={styles.compose_context_bean}
+                                    title={aiContextName}
+                                    aria-label={`Remove ${aiContextName} AI context`}
+                                    onClick={() => setAIContextScriptKey(null)}
+                                >
+                                    <span className={styles.compose_context_name}>
+                                        <span className={styles.compose_context_name_text}>{aiContextName}</span>
+                                    </span>
+                                    <span className={styles.compose_context_remove} aria-hidden="true">
                                         <XIcon size={12} />
-                                    </button>
-                                </div>
+                                    </span>
+                                </button>
                             )}
                         </div>
                         <div className={styles.compose_send_group}>

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import * as d3 from 'd3';
 
 import { SettledBrushUpdates } from './histogram_cell.js';
 
@@ -47,5 +48,21 @@ describe('SettledBrushUpdates', () => {
         vi.runAllTimers();
 
         expect(callback).not.toHaveBeenCalled();
+    });
+});
+
+describe('d3 brush geometry', () => {
+    it('keeps hidden brush rectangles valid for WebKit', () => {
+        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        const brush = d3.brushX().extent([[0, 0], [100, 20]]);
+
+        d3.select(group).call(brush).call(brush.move, null);
+
+        for (const rect of group.querySelectorAll<SVGRectElement>('.selection, .handle')) {
+            expect(rect.getAttribute('x')).toBe('0');
+            expect(rect.getAttribute('y')).toBe('0');
+            expect(rect.getAttribute('width')).toBe('0');
+            expect(rect.getAttribute('height')).toBe('0');
+        }
     });
 });

@@ -125,12 +125,14 @@
 }
 
 .compose_context_bean {
+    appearance: none;
+    flex-shrink: 0;
     max-width: min(680px, 65vw);
     height: 28px;
     display: flex;
     align-items: center;
     gap: 4px;
-    padding-left: 10px;
+    padding: 0 8px 0 10px;
     border: 1px solid var(--border_color_primary);
     border-radius: 6px;
     color: var(--base_color_neutral_7);
@@ -138,10 +140,22 @@
     font-size: 12px;
     font-weight: 500;
     font-family: "Roboto Mono";
+    cursor: pointer;
+}
+
+.compose_context_bean:hover {
+    color: var(--base_color_neutral_9);
+    background-color: rgba(208, 215, 222, 0.48);
+}
+
+.compose_context_bean:focus-visible {
+    outline: 2px solid var(--focus_outline_color, #0969da);
+    outline-offset: 2px;
 }
 
 .compose_context_name {
-    min-width: 0;
+    flex: none;
+    max-width: calc(min(680px, 65vw) - 36px);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -149,28 +163,16 @@
     text-align: left;
 }
 
+.compose_context_name_text {
+    direction: ltr;
+    unicode-bidi: isolate;
+}
+
 .compose_context_remove {
-    appearance: none;
-    flex: 0 0 26px;
-    align-self: stretch;
-    display: grid;
-    place-items: center;
-    padding: 0;
-    border: 0;
-    border-radius: 4px;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
     color: var(--base_color_neutral_5);
-    background: transparent;
-    cursor: pointer;
-}
-
-.compose_context_remove:hover {
-    color: var(--base_color_neutral_9);
-    background-color: rgba(208, 215, 222, 0.48);
-}
-
-.compose_context_remove:focus-visible {
-    outline: 2px solid var(--focus_outline_color, #0969da);
-    outline-offset: -2px;
 }
 
 .compose_send_group {

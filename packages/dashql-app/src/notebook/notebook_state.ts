@@ -1928,6 +1928,19 @@ export function getExecutableQueryText(notebook: NotebookState, scriptData: Scri
     }
 }
 
+/// Resolve executable text for passive UI checks without turning an unresolved VISUALIZE reference
+/// into a render error. Explicit execution paths still use getExecutableQueryText and report it.
+export function tryGetExecutableQueryText(notebook: NotebookState, scriptData: ScriptData): string | null {
+    try {
+        return getExecutableQueryText(notebook, scriptData);
+    } catch (error) {
+        if (error instanceof UnresolvedVisualizeQueryError) {
+            return null;
+        }
+        throw error;
+    }
+}
+
 function isVisualizeScript(buffers: DashQLScriptBuffers, scriptText: string): boolean {
     if (buffers.parsed) {
         const parsed = buffers.parsed.read();
@@ -1942,8 +1955,10 @@ function isVisualizeScript(buffers: DashQLScriptBuffers, scriptText: string): bo
     return /^\s*visualize\b/i.test(scriptText);
 }
 
-function unresolvedVisualizeQuery(scriptData: ScriptData, scriptText: string): LoggableException {
-    return new LoggableException('Could not resolve VISUALIZE source query', {
+class UnresolvedVisualizeQueryError extends LoggableException { }
+
+function unresolvedVisualizeQuery(scriptData: ScriptData, scriptText: string): UnresolvedVisualizeQueryError {
+    return new UnresolvedVisualizeQueryError('Could not resolve VISUALIZE source query', {
         scriptKey: scriptData.scriptKey.toString(),
         folderName: scriptData.folderName,
         fileName: scriptData.fileName,
