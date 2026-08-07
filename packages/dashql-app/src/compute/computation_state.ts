@@ -139,6 +139,7 @@ export const SCHEDULE_TASK = Symbol('SCHEDULE_TASK');
 export const UPDATE_SCHEDULER_TASK = Symbol('UPDATE_SCHEDULER_TASK');
 export const UNREGISTER_SCHEDULER_TASK = Symbol('UNREGISTER_SCHEDULER_TASK');
 export const TABLE_ORDERING_SUCCEDED = Symbol('TABLE_ORDERING_SUCCEDED');
+export const CLEAR_TABLE_ORDERING = Symbol('CLEAR_TABLE_ORDERING');
 export const TABLE_FILTERING_SUCCEEDED = Symbol('TABLE_FILTERING_SUCCEEDED');
 export const TABLE_AGGREGATION_SUCCEEDED = Symbol('TABLE_AGGREGATION_SUCCEEDED');
 export const SYSTEM_COLUMN_COMPUTATION_SUCCEEDED = Symbol('SYSTEM_COLUMN_COMPUTATION_SUCCEEDED');
@@ -157,6 +158,7 @@ export type ComputationAction =
     | VariantKind<typeof CREATED_DATA_FRAME, [number, DataFrame]>
 
     | VariantKind<typeof TABLE_ORDERING_SUCCEDED, [number, OrderingTable]>
+    | VariantKind<typeof CLEAR_TABLE_ORDERING, number>
     | VariantKind<typeof TABLE_FILTERING_SUCCEEDED, [number, ComputationStateVersion, FilterTable | null]>
     | VariantKind<typeof TABLE_AGGREGATION_SUCCEEDED, [number, TableAggregation]>
     | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, [number, arrow.Table, DataFrame, ColumnGroup[]]>
@@ -257,6 +259,11 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 memory.release(orderingTable.dataFrame);
                 return state;
             }
+            const requestedOrdering = tableState.tasks.orderingTask?.orderingConstraints;
+            if (requestedOrdering == null || !areOrderingConstraintsEqual(requestedOrdering, orderingTable.orderingConstraints)) {
+                memory.release(orderingTable.dataFrame);
+                return state;
+            }
 
             const task = !tableState.tasks.orderingTask ? null : {
                 ...tableState.tasks.orderingTask,
@@ -281,6 +288,31 @@ export function reduceComputationState(state: ComputationState, action: Computat
                         }
                     }
                 }
+            };
+        }
+        case CLEAR_TABLE_ORDERING: {
+            const tableState = state.tableComputations[action.value];
+            if (tableState === undefined) {
+                return state;
+            }
+            memory.release(tableState.orderingTable?.dataFrame);
+            return {
+                ...state,
+                tableComputations: {
+                    ...state.tableComputations,
+                    [action.value]: {
+                        ...tableState,
+                        dataTableOrdering: [],
+                        orderingTable: null,
+                        tasks: {
+                            ...tableState.tasks,
+                            orderingTask: tableState.tasks.orderingTask == null ? null : {
+                                ...tableState.tasks.orderingTask,
+                                orderingConstraints: [],
+                            },
+                        },
+                    },
+                },
             };
         }
         case TABLE_FILTERING_SUCCEEDED: {
@@ -613,6 +645,13 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
             }
             registerTask = (tasks: TableComputationTasks) => {
                 const orderTask = task.value as TableOrderingTask;
+                if (
+                    !create
+                    && tasks.orderingTask != null
+                    && !areOrderingConstraintsEqual(tasks.orderingTask.orderingConstraints, orderTask.orderingConstraints)
+                ) {
+                    return tasks;
+                }
                 return ({
                     ...tasks,
                     orderingTask: {
@@ -754,6 +793,18 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
         }
     };
     return updatedState;
+}
+
+function areOrderingConstraintsEqual(left: OrderByConstraint[], right: OrderByConstraint[]): boolean {
+    if (left.length !== right.length) {
+        return false;
+    }
+    return left.every((constraint, index) => {
+        const other = right[index];
+        return constraint.field === other.field
+            && (constraint.ascending ?? true) === (other.ascending ?? true)
+            && (constraint.nullsFirst ?? false) === (other.nullsFirst ?? false);
+    });
 }
 
 function tableFilteringSucceded(state: ComputationState, tableId: number, filterTable: FilterTable | null, memory: DataFrameRegistry) {

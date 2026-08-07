@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
-import { COMPUTATION_FROM_QUERY_RESULT, CREATED_DATA_FRAME, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UMAP_COMPUTATION_SUCCEEDED, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
+import { CLEAR_TABLE_ORDERING, COMPUTATION_FROM_QUERY_RESULT, CREATED_DATA_FRAME, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UMAP_COMPUTATION_SUCCEEDED, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
 import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, ComputationStateVersion, FilterTable, LIST_COLUMN, OrderingTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from './computation_types.js';
 import { LoggableException } from '../platform/logger/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from './computation_scheduler.js';
@@ -758,6 +758,23 @@ describe('ComputationState', () => {
             state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
             state.tableComputations[1].version = new ComputationStateVersion(0, 10);
             state.tableComputations[1].dataFrame = inputDataFrame;
+            state.tableComputations[1].tasks.orderingTask = {
+                tableId: 1,
+                tableVersion: state.tableComputations[1].version,
+                inputDataTable: inputTable,
+                inputDataTableFieldIndex: inputTableFieldIndex,
+                inputDataFrame,
+                filterTable: null,
+                rowNumberColumnName: 'rowNumber',
+                orderingConstraints: [{ field: 'score', ascending: false, nullsFirst: false }],
+                progress: {
+                    status: TaskStatus.TASK_RUNNING,
+                    startedAt: new Date(),
+                    completedAt: null,
+                    failedAt: null,
+                    failedWithError: null,
+                },
+            };
             memory.acquire(inputDataFrame);
 
             const orderingSucceeded: ComputationAction = {
@@ -777,6 +794,75 @@ describe('ComputationState', () => {
             expect(state.tableComputations[1].dataTable).toBe(inputTable);
             expect(state.tableComputations[1].orderingTable?.dataFrame).toBe(orderingDataFrame);
             expect(state.tableComputations[1].dataTableOrdering).toEqual([{ field: 'score', ascending: false, nullsFirst: false }]);
+            releaseAllRegisteredDataFramesFromLatestState(state, memory);
+        });
+
+        it('clears the active table ordering', () => {
+            const memory = new DataFrameRegistry(logger);
+            const inputDataFrame = createMockDataFrame("__test_input_clear_ordering");
+            const orderingDataFrame = createMockDataFrame("__test_ordering_clear");
+
+            let state = createComputationState();
+            state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
+            state.tableComputations[1].dataFrame = inputDataFrame;
+            state.tableComputations[1].dataTableOrdering = [{ field: 'score', ascending: false }];
+            state.tableComputations[1].orderingTable = {
+                inputRowNumberColumnName: 'rowNumber',
+                orderingConstraints: [{ field: 'score', ascending: false }],
+                dataTable: filterTable,
+                dataFrame: orderingDataFrame,
+                version: state.tableComputations[1].version,
+            };
+            memory.acquire(orderingDataFrame);
+
+            state = reduceComputationState(state, { type: CLEAR_TABLE_ORDERING, value: 1 }, memory, logger);
+
+            expect(state.tableComputations[1].dataTableOrdering).toEqual([]);
+            expect(state.tableComputations[1].orderingTable).toBeNull();
+            expect(memory.getRegisteredDataFrames().has(orderingDataFrame)).toBe(false);
+            releaseAllRegisteredDataFramesFromLatestState(state, memory);
+        });
+
+        it('ignores an ordering result after ordering is cleared', () => {
+            const memory = new DataFrameRegistry(logger);
+            const inputDataFrame = createMockDataFrame("__test_input_stale_clear");
+            const orderingDataFrame = createMockDataFrame("__test_ordering_stale_clear");
+
+            let state = createComputationState();
+            state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
+            state.tableComputations[1].dataFrame = inputDataFrame;
+            state.tableComputations[1].tasks.orderingTask = {
+                tableId: 1,
+                tableVersion: state.tableComputations[1].version,
+                inputDataTable: inputTable,
+                inputDataTableFieldIndex: inputTableFieldIndex,
+                inputDataFrame,
+                filterTable: null,
+                rowNumberColumnName: 'rowNumber',
+                orderingConstraints: [],
+                progress: {
+                    status: TaskStatus.TASK_RUNNING,
+                    startedAt: new Date(),
+                    completedAt: null,
+                    failedAt: null,
+                    failedWithError: null,
+                },
+            };
+
+            state = reduceComputationState(state, {
+                type: TABLE_ORDERING_SUCCEDED,
+                value: [1, {
+                    inputRowNumberColumnName: 'rowNumber',
+                    orderingConstraints: [{ field: 'score', ascending: false }],
+                    dataTable: filterTable,
+                    dataFrame: orderingDataFrame,
+                    version: state.tableComputations[1].version,
+                }],
+            }, memory, logger);
+
+            expect(state.tableComputations[1].dataTableOrdering).toEqual([]);
+            expect(state.tableComputations[1].orderingTable).toBeNull();
+            expect(memory.getRegisteredDataFrames().has(orderingDataFrame)).toBe(false);
             releaseAllRegisteredDataFramesFromLatestState(state, memory);
         });
 

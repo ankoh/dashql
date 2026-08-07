@@ -6,7 +6,7 @@ import * as styles from './data_table.module.css';
 import { Grid, useGridCallbackRef } from 'react-window';
 
 import { ArrowTableFormatter } from './arrow_formatter.js';
-import { ComputationAction, TableComputationState } from '../../compute/computation_state.js';
+import { CLEAR_TABLE_ORDERING, ComputationAction, TableComputationState } from '../../compute/computation_state.js';
 import { Dispatch } from '../../utils/variant.js';
 import { OrderByConstraint } from '../../sql/sqlframe_builder.js';
 import { TableOrderingTask, TaskStatus } from '../../compute/computation_types.js';
@@ -20,6 +20,7 @@ import { CellDetailOverlay } from './cell_detail_overlay.js';
 import { useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useScrollbarHeight } from '../../utils/scrollbar.js';
+import { getColumnSortDirection, getNextColumnSortDirection } from './data_table_ordering.js';
 
 const LOG_CTX = 'data_table';
 
@@ -234,9 +235,14 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     // Order by a column
     const orderByColumn = React.useCallback((fieldId: number) => {
         const fieldName = dataTable.schema.fields[fieldId].name;
+        const nextSortDirection = getNextColumnSortDirection(fieldName, activeOrderingConstraints);
+        if (nextSortDirection == null) {
+            dispatchComputation({ type: CLEAR_TABLE_ORDERING, value: computationState.tableId });
+            return;
+        }
         const orderingConstraints: OrderByConstraint[] = [{
             field: fieldName,
-            ascending: true,
+            ascending: nextSortDirection,
             nullsFirst: false,
         }];
         if (computationState.dataFrame && computationState.rowNumberColumnName) {
@@ -252,7 +258,12 @@ export const DataTable: React.FC<Props> = (props: Props) => {
             };
             void sortTableDispatched(orderingTask, dispatchComputation);
         }
-    }, [computationState, dispatchComputation, logger]);
+    }, [activeOrderingConstraints, computationState, dataTable.schema.fields, dispatchComputation]);
+
+    const getSortDirection = React.useCallback((fieldId: number) => {
+        const fieldName = dataTable.schema.fields[fieldId].name;
+        return getColumnSortDirection(fieldName, activeOrderingConstraints);
+    }, [activeOrderingConstraints, dataTable.schema.fields]);
 
     // Maintain the focused cell - updates are stored in ref and read during next render
     const focusedCells = React.useRef<FocusedCells | null>(null);
@@ -434,6 +445,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                             gridLayout={gridLayout}
                             dataFrame={computationState.dataFrame}
                             rightmostVisibleColumn={gridLayout.columnCount - 1}
+                            sortAscending={getSortDirection(gridLayout.arrowFieldByColumnIndex[0])}
                             onOrderByColumn={orderByColumn}
                             onShowTable={props.onShowTable}
                         />
@@ -455,6 +467,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                                 gridLayout={gridLayout}
                                 dataFrame={computationState.dataFrame}
                                 rightmostVisibleColumn={gridLayout.columnCount - 1}
+                                sortAscending={getSortDirection(gridLayout.arrowFieldByColumnIndex[colIndex])}
                                 onOrderByColumn={orderByColumn}
                                 onShowTable={props.onShowTable}
                             />
