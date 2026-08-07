@@ -30,6 +30,7 @@ const mockState = vi.hoisted(() => ({
     agentRuns: new Map<number, { traceId: number; phase?: number; log?: Array<{ message: string }> }>(),
     latestAgentRunId: null as number | null,
     observedWidth: 1200,
+    executeQuery: vi.fn(),
     startAgentRun: vi.fn(),
     cancelAgentRun: vi.fn(),
     cancelQuery: vi.fn(),
@@ -78,7 +79,7 @@ vi.mock('../../connection/query_executor.js', () => ({
         if (queryId == null) return null;
         return mockState.queryStates.get(queryId) ?? null;
     },
-    useQueryExecutor: () => vi.fn(),
+    useQueryExecutor: () => mockState.executeQuery,
     useCancelQuery: () => mockState.cancelQuery,
 }));
 vi.mock('../../platform/storage/storage_provider.js', () => ({
@@ -251,6 +252,8 @@ describe('NotebookScriptFeed', () => {
         mockState.agentRuns.clear();
         mockState.latestAgentRunId = null;
         mockState.observedWidth = 1200;
+        mockState.executeQuery.mockReset();
+        mockState.executeQuery.mockReturnValue([42, Promise.resolve(null)]);
         mockState.startAgentRun.mockReset();
         mockState.cancelAgentRun.mockReset();
         mockState.cancelQuery.mockReset();
@@ -428,16 +431,13 @@ describe('NotebookScriptFeed', () => {
         // Every server card now has a status indicator: one running query and one neutral
         // "Not run yet" entry in this fixture.
         expect(container.querySelectorAll('[data-testid="status-indicator"]').length).toBe(2);
-        const send = Array.from(container.querySelectorAll('button')).find(button => {
-            const label = button.getAttribute('aria-label');
-            return label === 'Save' || label === 'Save & Execute';
-        });
-        expect(send).toBeDefined();
-        act(() => (send as HTMLButtonElement).click());
+        const execute = container.querySelector('[aria-label="Execute"]') as HTMLButtonElement;
+        expect(execute).not.toBeNull();
+        act(() => execute.click());
         expect(modifyNotebook).toHaveBeenCalledWith({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
     });
 
-    it('dispatches PROMOTE_UNCOMMITTED_SCRIPT when Send is clicked', () => {
+    it('saves the draft without executing it', () => {
         const modifyNotebook = vi.fn();
         renderFeed({
             notebook: createNotebookState(),
@@ -446,20 +446,47 @@ describe('NotebookScriptFeed', () => {
             scrollTarget: null,
         });
 
-        const sendButton = Array.from(container.querySelectorAll('button')).find(button => {
-            const label = button.getAttribute('aria-label');
-            return label === 'Save' || label === 'Save & Execute';
-        });
-        expect(sendButton).toBeDefined();
+        const saveButton = container.querySelector('[aria-label="Save"]') as HTMLButtonElement;
+        expect(saveButton).not.toBeNull();
 
         act(() => {
-            (sendButton as HTMLButtonElement).click();
+            saveButton.click();
         });
 
         expect(modifyNotebook).toHaveBeenCalledWith({
             type: PROMOTE_UNCOMMITTED_SCRIPT,
             value: null,
         });
+        expect(mockState.executeQuery).not.toHaveBeenCalled();
+    });
+
+    it('saves and executes the draft when Execute is clicked', () => {
+        const notebook = createNotebookState();
+        notebook.scripts[notebook.uncommittedScriptId] = makeScriptData(notebook.uncommittedScriptId, 'select 3');
+        const modifyNotebook = vi.fn();
+        renderFeed({ notebook, modifyNotebook, showDetails: vi.fn() });
+
+        const executeButton = container.querySelector('[aria-label="Execute"]') as HTMLButtonElement;
+        expect(executeButton).not.toBeNull();
+
+        act(() => executeButton.click());
+
+        expect(modifyNotebook).toHaveBeenCalledWith({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
+        expect(mockState.executeQuery).toHaveBeenCalledOnce();
+    });
+
+    it('keeps Save available and disables Execute while disconnected', () => {
+        renderFeed({
+            notebook: createNotebookState(),
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            conn: null,
+        });
+
+        const saveButton = container.querySelector('[aria-label="Save"]') as HTMLButtonElement;
+        const executeButton = container.querySelector('[aria-label="Execute"]') as HTMLButtonElement;
+        expect(saveButton.disabled).toBe(false);
+        expect(executeButton.disabled).toBe(true);
     });
 
     it('dispatches PROMOTE_UNCOMMITTED_SCRIPT on Ctrl+Enter when the compose editor is focused', () => {
@@ -973,14 +1000,11 @@ describe('NotebookScriptFeed', () => {
             scrollTarget: null,
         });
 
-        const sendButton = Array.from(container.querySelectorAll('button')).find(button => {
-            const label = button.getAttribute('aria-label');
-            return label === 'Save' || label === 'Save & Execute';
-        });
-        expect(sendButton).toBeDefined();
+        const executeButton = container.querySelector('[aria-label="Execute"]') as HTMLButtonElement;
+        expect(executeButton).not.toBeNull();
 
         act(() => {
-            (sendButton as HTMLButtonElement).click();
+            executeButton.click();
         });
 
         mockState.scrollToRowMock.mockClear();

@@ -3,7 +3,7 @@ import * as styles from './notebook_script_feed.module.css';
 
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '@primer/octicons-react';
-import { CodeIcon, PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon } from '@primer/octicons-react';
+import { CodeIcon, ComposeIcon, PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon } from '@primer/octicons-react';
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import { useAppConfig } from '../../app_config.js';
@@ -574,15 +574,6 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const storageReader = useStorageReader();
     const executeQuery = useQueryExecutor();
 
-    const [executeOnSend, setExecuteOnSend] = React.useState(false);
-    React.useEffect(() => {
-        if (isDisconnected) {
-            setExecuteOnSend(false);
-        } else {
-            setExecuteOnSend(true);
-        }
-    }, [isDisconnected]);
-
     // Re-execute the visualization after the agent finishes editing it.
     //
     // The reducer that applies the agent's result (SET_SCRIPT_TEXT) already *reevaluates* the
@@ -635,7 +626,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         registerNotebookQuery(scriptData, queryId, queryText, execution, props.modifyNotebook);
     }, [agentState, props.notebook, props.modifyNotebook, isDisconnected, executeQuery]);
 
-    const handleSend = React.useCallback(() => {
+    const handleSend = React.useCallback((execute: boolean) => {
         pendingScrollToBottomRef.current = true;
         const notebook = props.notebook;
         const scriptKey = notebook.uncommittedScriptId;
@@ -646,7 +637,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         // carried across promotion, which preserves the script key).
         const queryText = scriptData ? getExecutableQueryText(notebook, scriptData) : '';
         props.modifyNotebook({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
-        if (executeOnSend && !isDisconnected && queryText.trim().length > 0) {
+        if (execute && !isDisconnected && queryText.trim().length > 0) {
             const [queryId, execution] = executeQuery(notebook.sessionId, {
                 query: queryText,
                 analyzeResults: true,
@@ -663,7 +654,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             });
             registerNotebookQuery(scriptData, queryId, queryText, execution, props.modifyNotebook);
         }
-    }, [props.notebook, props.modifyNotebook, executeOnSend, isDisconnected, executeQuery]);
+    }, [props.notebook, props.modifyNotebook, isDisconnected, executeQuery]);
 
     // Refresh: drop the stale cache entry for a script's result, then re-execute — a plain cacheable
     // run then misses the cache and re-populates it. Resolves the script by feed file name.
@@ -790,7 +781,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         if (inputMode === 1) {
             handleSendAI();
         } else {
-            handleSend();
+            handleSend(true);
         }
     }, [inputMode, handleSendAI, handleSend]);
 
@@ -1113,20 +1104,6 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                             </SegmentedControl.Button>
                         </SegmentedControl>
                         <div className={styles.compose_send_group}>
-                            {inputMode === 0 && (
-                                <SegmentedControl
-                                    aria-label="Save mode"
-                                    size={SegmentedControlSize.Small}
-                                    onChange={(index) => setExecuteOnSend(index === 1)}
-                                >
-                                    <SegmentedControl.Button selected={!executeOnSend}>
-                                        Save
-                                    </SegmentedControl.Button>
-                                    <SegmentedControl.Button selected={executeOnSend} disabled={isDisconnected}>
-                                        Execute
-                                    </SegmentedControl.Button>
-                                </SegmentedControl>
-                            )}
                             {inputMode === 1 && agentActive ? (
                                 <>
                                     <StatusIndicator
@@ -1146,12 +1123,32 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                                         <SquareFillIcon />
                                     </IconButton>
                                 </>
+                            ) : inputMode === 0 ? (
+                                <ButtonGroup aria-label="Draft actions">
+                                    <IconButton
+                                        variant={ButtonVariant.Default}
+                                        size={ButtonSize.Small}
+                                        aria-label="Save"
+                                        onClick={() => handleSend(false)}
+                                    >
+                                        <ComposeIcon />
+                                    </IconButton>
+                                    <IconButton
+                                        variant={ButtonVariant.Default}
+                                        size={ButtonSize.Small}
+                                        aria-label="Execute"
+                                        disabled={isDisconnected}
+                                        onClick={handleComposeSend}
+                                    >
+                                        <PaperAirplaneIcon />
+                                    </IconButton>
+                                </ButtonGroup>
                             ) : (
                                 <IconButton
                                     variant={ButtonVariant.Default}
                                     size={ButtonSize.Small}
                                     className={styles.compose_send_button}
-                                    aria-label={inputMode === 1 ? 'Send to AI' : (executeOnSend ? 'Save & Execute' : 'Save')}
+                                    aria-label="Send to AI"
                                     onClick={handleComposeSend}
                                 >
                                     <PaperAirplaneIcon />
