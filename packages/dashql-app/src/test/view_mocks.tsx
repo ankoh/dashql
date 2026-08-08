@@ -79,8 +79,8 @@ export function fakeReactWindowModule(
                 {
                     key: index,
                     'data-row-height': props.rowHeight(index),
-                    'data-row-script-id': index > 0 && index <= props.rowProps.entries.length
-                        ? props.rowProps.entries[index - 1].scriptId
+                    'data-row-script-id': index < props.rowProps.entries.length
+                        ? props.rowProps.entries[index].scriptId
                         : undefined,
                 },
                 React.createElement(props.rowComponent, {

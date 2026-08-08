@@ -301,7 +301,8 @@ describe('NotebookScriptFeed', () => {
         ResizeObserverMock.reset();
         getBoundingClientRect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
             const scriptId = this.closest<HTMLElement>('[data-row-script-id]')?.dataset.rowScriptId;
-            const height = scriptId === '101' ? 200 : scriptId === '102' ? 300 : 0;
+            const paddingTop = Number.parseFloat(this.style.paddingTop) || 0;
+            const height = (scriptId === '101' ? 200 : scriptId === '102' ? 300 : 0) + paddingTop;
             return { height } as DOMRect;
         });
     });
@@ -823,9 +824,27 @@ describe('NotebookScriptFeed', () => {
         });
 
         expect(mockState.scrollToRowMock).toHaveBeenCalledWith({
-            index: 2,
+            index: 1,
             align: 'start',
         });
+    });
+
+    it('scrolls the first entry to its leading padding', () => {
+        const notebook = createNotebookState();
+        renderFeed({ notebook, modifyNotebook: vi.fn(), showDetails: vi.fn(), scrollTarget: null });
+        mockState.scrollToRowMock.mockClear();
+
+        renderFeed({
+            notebook,
+            modifyNotebook: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: { fileName: '01-script.sql', version: 1 },
+        });
+
+        expect(mockState.scrollToRowMock).toHaveBeenCalledWith({ index: 0, align: 'start' });
+        const rows = container.querySelector('[data-testid="mock-list"]')!.children;
+        expect(rows).toHaveLength(3);
+        expect((rows[0].firstElementChild as HTMLElement).style.paddingTop).toBe('24px');
     });
 
     it('scrolls to the top when a folder navigation requests page zero', () => {
@@ -848,15 +867,15 @@ describe('NotebookScriptFeed', () => {
         renderFeed({ notebook, modifyNotebook: vi.fn(), showDetails: vi.fn() });
 
         const rows = container.querySelector('[data-testid="mock-list"]')!.children;
-        expect(rows[0].getAttribute('data-row-height')).toBe('24');
-        expect(rows[1].getAttribute('data-row-height')).toBe('200');
-        expect(rows[2].getAttribute('data-row-height')).toBe('300');
+        expect(rows[0].getAttribute('data-row-height')).toBe('224');
+        expect(rows[1].getAttribute('data-row-height')).toBe('300');
+        expect((rows[0].firstElementChild as HTMLElement).style.paddingTop).toBe('24px');
 
         getBoundingClientRect.mockClear();
         renderFeed({ notebook, modifyNotebook: vi.fn(), showDetails: vi.fn() });
 
-        expect(rows[1].getAttribute('data-row-height')).toBe('200');
-        expect(rows[2].getAttribute('data-row-height')).toBe('300');
+        expect(rows[0].getAttribute('data-row-height')).toBe('224');
+        expect(rows[1].getAttribute('data-row-height')).toBe('300');
         expect(getBoundingClientRect).not.toHaveBeenCalled();
     });
 
@@ -865,7 +884,8 @@ describe('NotebookScriptFeed', () => {
         renderFeed({ notebook: createNotebookState(), modifyNotebook: vi.fn(), showDetails: vi.fn() });
 
         const rows = container.querySelector('[data-testid="mock-list"]')!.children;
-        expect(rows[0].getAttribute('data-row-height')).toBe('8');
+        expect(rows[0].getAttribute('data-row-height')).toBe('208');
+        expect((rows[0].firstElementChild as HTMLElement).style.paddingTop).toBe('8px');
     });
 
     it('retains a cached row height while its preview remounts', () => {
@@ -902,15 +922,16 @@ describe('NotebookScriptFeed', () => {
         renderFeed({ notebook, modifyNotebook: vi.fn(), showDetails: vi.fn() });
 
         const rows = container.querySelector('[data-testid="mock-list"]')!.children;
-        expect(rows[1].getAttribute('data-row-height')).toBe('200');
+        expect(rows[0].getAttribute('data-row-height')).toBe('224');
 
         getBoundingClientRect.mockImplementation(function (this: HTMLElement) {
             const scriptId = this.closest<HTMLElement>('[data-row-script-id]')?.dataset.rowScriptId;
-            return { height: scriptId === '101' ? 460 : 300 } as DOMRect;
+            const paddingTop = Number.parseFloat(this.style.paddingTop) || 0;
+            return { height: (scriptId === '101' ? 460 : 300) + paddingTop } as DOMRect;
         });
         act(() => ResizeObserverMock.triggerAll());
 
-        expect(rows[1].getAttribute('data-row-height')).toBe('460');
+        expect(rows[0].getAttribute('data-row-height')).toBe('484');
     });
 
     it('allows a row to shrink when rerunning unchanged SQL', () => {
@@ -920,7 +941,7 @@ describe('NotebookScriptFeed', () => {
         renderFeed({ notebook, modifyNotebook: vi.fn(), showDetails: vi.fn() });
 
         const rows = container.querySelector('[data-testid="mock-list"]')!.children;
-        expect(rows[1].getAttribute('data-row-height')).toBe('200');
+        expect(rows[0].getAttribute('data-row-height')).toBe('224');
 
         // A rerun replaces the result footer but does not change or remount the SQL preview.
         // Therefore no new preview-ready notification is required before accepting the shrink.
@@ -928,7 +949,8 @@ describe('NotebookScriptFeed', () => {
         mockState.queryStates.set(42, { traceId: 101, status: 4 /* RUNNING */ });
         getBoundingClientRect.mockImplementation(function (this: HTMLElement) {
             const scriptId = this.closest<HTMLElement>('[data-row-script-id]')?.dataset.rowScriptId;
-            return { height: scriptId === '101' ? 120 : 300 } as DOMRect;
+            const paddingTop = Number.parseFloat(this.style.paddingTop) || 0;
+            return { height: (scriptId === '101' ? 120 : 300) + paddingTop } as DOMRect;
         });
         renderFeed({
             notebook: {
@@ -943,7 +965,7 @@ describe('NotebookScriptFeed', () => {
         });
         act(() => ResizeObserverMock.triggerAll());
 
-        expect(rows[1].getAttribute('data-row-height')).toBe('120');
+        expect(rows[0].getAttribute('data-row-height')).toBe('144');
     });
 
     it('allows result growth while a remounted preview is still formatting', () => {
@@ -951,7 +973,7 @@ describe('NotebookScriptFeed', () => {
         renderFeed({ notebook, modifyNotebook: vi.fn(), showDetails: vi.fn() });
 
         const rows = container.querySelector('[data-testid="mock-list"]')!.children;
-        expect(rows[1].getAttribute('data-row-height')).toBe('200');
+        expect(rows[0].getAttribute('data-row-height')).toBe('224');
 
         mockState.previewReady = false;
         const main = notebook.notebookPages.Main;
@@ -974,11 +996,12 @@ describe('NotebookScriptFeed', () => {
 
         getBoundingClientRect.mockImplementation(function (this: HTMLElement) {
             const scriptId = this.closest<HTMLElement>('[data-row-script-id]')?.dataset.rowScriptId;
-            return { height: scriptId === '101' ? 520 : 300 } as DOMRect;
+            const paddingTop = Number.parseFloat(this.style.paddingTop) || 0;
+            return { height: (scriptId === '101' ? 520 : 300) + paddingTop } as DOMRect;
         });
         act(() => ResizeObserverMock.triggerAll());
 
-        expect(rows[2].getAttribute('data-row-height')).toBe('520');
+        expect(rows[1].getAttribute('data-row-height')).toBe('520');
     });
 
     it('does not scroll when only the focused entry changes (e.g. hover-driven SELECT_ENTRY)', () => {
@@ -1384,7 +1407,7 @@ describe('NotebookScriptFeed', () => {
         });
 
         expect(mockState.scrollToRowMock).toHaveBeenCalledWith({
-            index: 4,
+            index: 3,
             align: 'end',
         });
     });

@@ -416,13 +416,14 @@ interface ScriptFeedRowProps {
     previewHints: ReadonlyMap<number, ScriptPreviewHint>;
     onHeightMeasured: (scriptId: number, height: number) => void;
     onFormattedText: (scriptId: number, scriptText: string) => void;
+    topPadding: number;
     heightsVersion: number;
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { sessionId, connectorIcon, entries, scripts, folderName, scriptDebugMode, focusedFileName, executableScriptKeys, canUseAI, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, cachedScriptKeys, previewHints, onHeightMeasured, onFormattedText } = props;
-    const isFillerRow = props.index === 0 || props.index > entries.length;
-    const entryIndex = props.index - 1;
+    const { sessionId, connectorIcon, entries, scripts, folderName, scriptDebugMode, focusedFileName, executableScriptKeys, canUseAI, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, cachedScriptKeys, previewHints, onHeightMeasured, onFormattedText, topPadding } = props;
+    const isFillerRow = props.index >= entries.length;
+    const entryIndex = props.index;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
     const scriptData = entry != null ? scripts[entry.scriptId] : undefined;
     const scriptFileName = entry?.fileName ?? '01-script.sql';
@@ -446,9 +447,10 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         if (entry == null) return;
         const element = outerRef.current;
         if (element == null) return;
+        const rowPadding = entryIndex === 0 ? topPadding : 0;
 
         const measure = () => {
-            const height = element.getBoundingClientRect().height;
+            const height = element.getBoundingClientRect().height - rowPadding;
             if (!(height > 0)) return;
             if (!previewReady) {
                 // While a remounted preview is still empty, retain the cached height instead of
@@ -465,7 +467,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         const observer = new ResizeObserver(measure);
         observer.observe(element);
         return () => observer.disconnect();
-    }, [cachedHeight, entry, onHeightMeasured, previewReady]);
+    }, [cachedHeight, entry, entryIndex, onHeightMeasured, previewReady, topPadding]);
 
     if (isFillerRow) {
         return <div className={styles.feed_list_filler} style={props.style} />;
@@ -477,7 +479,10 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
             style={{
                 ...props.style,
                 height: 'auto',
-                minHeight: !previewReady ? cachedHeight : undefined,
+                minHeight: !previewReady && cachedHeight != null
+                    ? cachedHeight + (entryIndex === 0 ? topPadding : 0)
+                    : undefined,
+                paddingTop: entryIndex === 0 ? topPadding : undefined,
             }}
         >
             <div
@@ -996,7 +1001,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         }
         pendingScrollToBottomRef.current = false;
         listRef.current.scrollToRow({
-            index: entries.length + 1,
+            index: entries.length,
             align: 'end',
         });
     }, [entries.length, listRef]);
@@ -1029,7 +1034,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             return;
         }
         listRef.current.scrollToRow({
-            index: targetIdx + 1,
+            index: targetIdx,
             align: 'start',
         });
     }, [listRef, props.scrollTarget]);
@@ -1079,8 +1084,9 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         previewHints: previewHintsRef.current,
         onHeightMeasured: handleHeightMeasured,
         onFormattedText: handleFormattedText,
+        topPadding: feedTopPadding,
         heightsVersion,
-    }), [entries, props.notebook.scripts, props.notebook.connectorInfo.icons?.outlines, props.notebook.notebookUserFocus.fileName, folderName, scriptDebugMode, executableScriptKeys, aiAvailable, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleUseAIContext, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, cachedScriptKeys, handleHeightMeasured, handleFormattedText, heightsVersion]);
+    }), [entries, props.notebook.scripts, props.notebook.connectorInfo.icons?.outlines, props.notebook.notebookUserFocus.fileName, folderName, scriptDebugMode, executableScriptKeys, aiAvailable, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleUseAIContext, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, cachedScriptKeys, handleHeightMeasured, handleFormattedText, feedTopPadding, heightsVersion]);
 
     return (
         <div
@@ -1099,15 +1105,13 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                         scrollbarGutter: 'stable',
                         '--feed-scrollbar-inset': `${listScrollbarInset}px`,
                     } as React.CSSProperties}
-                    rowCount={entries.length + 2}
+                    rowCount={entries.length + 1}
                     overscanCount={OVERSCAN_ROW_COUNT}
                     rowHeight={(rowIndex) => {
-                        if (rowIndex === 0) {
-                            return feedTopPadding;
-                        }
-                        if (rowIndex <= entries.length) {
-                            const scriptId = entries[rowIndex - 1].scriptId;
-                            return previewHintsRef.current.get(scriptId)?.height ?? ESTIMATED_ROW_HEIGHT;
+                        if (rowIndex < entries.length) {
+                            const scriptId = entries[rowIndex].scriptId;
+                            const contentHeight = previewHintsRef.current.get(scriptId)?.height ?? ESTIMATED_ROW_HEIGHT;
+                            return contentHeight + (rowIndex === 0 ? feedTopPadding : 0);
                         }
                         return fillerRowHeight + FEED_BOTTOM_PADDING;
                     }}
