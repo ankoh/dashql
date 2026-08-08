@@ -5,6 +5,7 @@ import {
     generateQualifiedTableName,
     generateCreateTableSQL,
     generateSchemaSQL,
+    generateUnqualifiedSchemaSQL,
     generateCatalogSQL,
     type ColumnMetadata,
     type SchemaMetadata
@@ -199,6 +200,20 @@ describe('SQL Generator Utilities', () => {
             const tables = new Map<string, ColumnMetadata[]>();
             const sql = generateSchemaSQL('db', 'schema', tables);
             expect(sql).toBe('');
+        });
+    });
+
+    describe('generateUnqualifiedSchemaSQL', () => {
+        it('generates tables without database or schema qualifiers', () => {
+            const tables = new Map<string, ColumnMetadata[]>();
+            tables.set('Account__dll', [
+                { name: 'Id__c', ordinalPosition: 0, dataType: 'text' }
+            ]);
+
+            const sql = generateUnqualifiedSchemaSQL(tables);
+
+            expect(sql).toBe('CREATE TABLE "Account__dll" (\n    "Id__c" VARCHAR\n);');
+            expect(sql).not.toContain('"salesforce"."datacloud"');
         });
     });
 

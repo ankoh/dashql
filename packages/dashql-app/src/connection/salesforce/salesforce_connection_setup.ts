@@ -28,7 +28,7 @@ import { BASE64URL_CODEC } from '../../utils/base64.js';
 import { isDebugBuild } from '../../globals.js';
 import { PlatformType } from '../../platform/platform_type.js';
 import { SalesforceConnectorConfig } from '../connector_configs.js';
-import { collectSalesforceAuthInfo, SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
+import { collectSalesforceAuthInfo, getSalesforceLakehousePath, SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
 import { Dispatch } from '../../utils/variant.js';
 import { Logger, stringifyError } from '../../platform/logger/logger.js';
 import { PlatformEventListener } from '../../platform/events/event_listener.js';
@@ -282,7 +282,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         const connectionContext: HyperDatabaseConnectionContext = {
             getAttachedDatabases(): AttachedDatabase[] {
                 return [{
-                    path: "lakehouse:" + authInfo?.offcoreTenantId + ";default",
+                    path: getSalesforceLakehousePath(authInfo?.offcoreTenantId, authInfo?.dataspace ?? "default"),
                 }];
             },
             async getRequestMetadata(): Promise<Record<string, string>> {

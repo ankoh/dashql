@@ -48,7 +48,8 @@ export class SalesforceAPIClientMock implements SalesforceApiClientInterface {
     }
 
     public async getDataCloudMetadata(
-        _access: connection.SalesforceDataCloudAccessToken,
+        _access: connection.SalesforceCoreAccessToken,
+        _dataSpace: string,
         _cancel: AbortSignal,
     ): Promise<connection.SalesforceDataCloudMetadata> {
         console.log('mock(getDataCloudMetadata)');

@@ -34,7 +34,7 @@ export function generateFunctionScriptHeader(method: CatalogSource, updatedAt: D
     switch (method) {
         case CatalogSource.InformationSchema: methodStr = 'SQL information_schema'; break;
         case CatalogSource.PgClass: methodStr = 'SQL pg_proc'; break;
-        case CatalogSource.SalesforceMetadataApi: methodStr = 'Salesforce metadata api'; break;
+        case CatalogSource.SalesforceMetadataApi: methodStr = 'Salesforce Connect /ssot/metadata API'; break;
         case CatalogSource.DemoScript: methodStr = 'Demo script'; break;
         default: methodStr = '-'; break;
     }

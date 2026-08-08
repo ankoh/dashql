@@ -76,11 +76,13 @@ export function generateQualifiedTableName(
 /// Generates a CREATE TABLE SQL statement for a single table.
 export function generateCreateTableSQL(
     databaseName: string | null | undefined,
-    schemaName: string,
+    schemaName: string | null,
     tableName: string,
     columns: ColumnMetadata[]
 ): string {
-    const qualifiedName = generateQualifiedTableName(databaseName, schemaName, tableName);
+    const qualifiedName = schemaName == null
+        ? quoteIdentifier(tableName)
+        : generateQualifiedTableName(databaseName, schemaName, tableName);
 
     // Sort columns by ordinal position
     const sortedColumns = [...columns].sort((a, b) => a.ordinalPosition - b.ordinalPosition);
@@ -115,6 +117,14 @@ export function generateSchemaSQL(
     return sqlStatements.join('\n\n');
 }
 
+/// Generates unqualified CREATE TABLE statements for all supplied tables.
+export function generateUnqualifiedSchemaSQL(tables: Map<string, ColumnMetadata[]>): string {
+    return Array.from(tables.keys())
+        .sort()
+        .map(tableName => generateCreateTableSQL(null, null, tableName, tables.get(tableName)!))
+        .join('\n\n');
+}
+
 export enum CatalogSource {
     InformationSchema = 0,
     PgClass = 1,
@@ -129,7 +139,7 @@ export function generateCatalogScriptHeader(method: CatalogSource, updatedAt: Da
     switch (method) {
         case CatalogSource.InformationSchema: methodStr = 'SQL information_schema'; break;
         case CatalogSource.PgClass: methodStr = 'SQL pg_class'; break;
-        case CatalogSource.SalesforceMetadataApi: methodStr = 'Salesforce metadata api'; break;
+        case CatalogSource.SalesforceMetadataApi: methodStr = 'Salesforce Connect /ssot/metadata API'; break;
         case CatalogSource.DemoScript: methodStr = 'Demo script'; break;
         default: methodStr = '-'; break;
     }

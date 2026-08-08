@@ -8,6 +8,8 @@ import { BASE64_CODEC } from "../../utils/base64.js";
 import { dateToTimestamp } from "../../connection/proto_helper.js";
 
 const LOG_CTX = "salesforce_api";
+const SALESFORCE_API_VERSION = "v64.0";
+export const DEFAULT_SALESFORCE_DATA_SPACE = "default";
 
 /// The Data Cloud auth infos
 export interface SalesforceAuthInfo {
@@ -24,7 +26,26 @@ export interface SalesforceAuthInfo {
     /// The offcore access token
     offcoreAccessToken: string | null;
     /// The dataspace
-    dataspace: string | null;
+    dataspace: string;
+}
+
+export function getSalesforceDataSpace(access: connection.SalesforceDataCloudAccessToken): string {
+    const customAttributes = access.jwt?.payload?.customAttributes as unknown;
+    if (customAttributes && typeof customAttributes === "object") {
+        const attributes = customAttributes as Record<string, unknown>;
+        const nested = attributes.data;
+        const dataSpace = nested && typeof nested === "object"
+            ? (nested as Record<string, unknown>).dataspace
+            : attributes.dataspace;
+        if (typeof dataSpace === "string" && dataSpace.length > 0) {
+            return dataSpace;
+        }
+    }
+    return DEFAULT_SALESFORCE_DATA_SPACE;
+}
+
+export function getSalesforceLakehousePath(tenantId: string | null | undefined, dataSpace: string): string {
+    return `lakehouse:${tenantId ?? ""};${dataSpace}`;
 }
 
 /// Read the Salesforce auth tokens
@@ -38,7 +59,7 @@ export function collectSalesforceAuthInfo(coreToken: connection.SalesforceCoreAc
             offcoreAccessToken: null,
             coreTenantId: jwt.payload?.audienceTenantId ?? null,
             coreAccessToken: coreToken?.accessToken ?? null,
-            dataspace: (jwt.payload?.customAttributes as any)?.data?.["dataspace"] ?? null,
+            dataspace: getSalesforceDataSpace(offcoreToken),
         };
     } else {
         return null;
@@ -145,7 +166,8 @@ export interface SalesforceApiClientInterface {
         cancel: AbortSignal,
     ): Promise<connection.SalesforceDataCloudAccessToken>;
     getDataCloudMetadata(
-        access: connection.SalesforceDataCloudAccessToken,
+        access: connection.SalesforceCoreAccessToken,
+        dataSpace: string,
         cancel: AbortSignal,
     ): Promise<connection.SalesforceDataCloudMetadata>;
 }
@@ -303,30 +325,47 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
     }
 
     public async getDataCloudMetadata(
-        access: connection.SalesforceDataCloudAccessToken,
+        access: connection.SalesforceCoreAccessToken,
+        dataSpace: string,
         cancel: AbortSignal,
     ): Promise<connection.SalesforceDataCloudMetadata> {
         const base = (access.instanceUrl ?? "").replace(/\/+$/, '');
         const headers = new Headers({
-            authorization: `Bearer ${access.jwt?.raw}`,
+            authorization: `Bearer ${access.accessToken}`,
             accept: 'application/json',
         });
-        const url = new URL(`${base}/api/v1/metadata`);
+        const url = new URL(`${base}/services/data/${SALESFORCE_API_VERSION}/ssot/metadata`);
+        url.searchParams.set('dataspace', dataSpace);
+        this.logger.info("Requesting Salesforce metadata", {
+            method: "GET",
+            url: url.toString(),
+            apiVersion: SALESFORCE_API_VERSION,
+            dataSpace,
+        }, LOG_CTX);
+        const requestStartedAt = performance.now();
         const response = await this.httpClient.fetch(url, {
             headers,
             signal: cancel,
         });
+        this.logger.info("Received Salesforce metadata response", {
+            status: response.status.toString(),
+            statusText: response.statusText,
+            durationMs: (performance.now() - requestStartedAt).toFixed(2),
+            dataSpace,
+            requestId: response.headers.get('x-request-id') ?? response.headers.get('sfdc-request-id'),
+        }, LOG_CTX);
         if (response.status < 200 || response.status >= 300) {
             // Don't silently return empty metadata: that would overwrite the
             // existing catalog with nothing. Throw so the catalog loader
             // dispatches CATALOG_UPDATE_FAILED and preserves prior state.
             const bodyText = await response.text().catch(() => '');
-            throw new Error(`Data Cloud metadata request failed: ${response.status} ${response.statusText}${bodyText ? ` — ${bodyText.slice(0, 200)}` : ''}`);
+            throw new Error(`Salesforce metadata request failed: ${response.status} ${response.statusText}${bodyText ? ` — ${bodyText.slice(0, 200)}` : ''}`);
         }
         const responseJson = await response.json();
 
         // Parse the Data Cloud metadata
         const entities: connection.SalesforceDataCloudMetadataEntity[] = [];
+        let fieldCount = 0;
         const md = responseJson["metadata"];
         if (md && Array.isArray(md)) {
             for (const entityJson of md) {
@@ -339,6 +378,7 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
                             type: fieldJson.type ?? '',
                             businessType: fieldJson.businessType ?? '',
                         }));
+                        fieldCount += 1;
                     }
                 }
                 const primaryKeys: connection.SalesforceDataCloudMetadataPrimaryKey[] = [];
@@ -360,6 +400,11 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
                 }));
             }
         }
+        this.logger.info("Parsed Salesforce metadata", {
+            dataSpace,
+            entities: entities.length.toString(),
+            fields: fieldCount.toString(),
+        }, LOG_CTX);
         return ({
             metadata: entities
         });
