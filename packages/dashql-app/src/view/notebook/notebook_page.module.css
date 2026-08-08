@@ -47,9 +47,9 @@
 
         display: grid;
         grid-template-rows: minmax(0, 1fr);
-        grid-template-columns: var(--notebook_navigation_sidebar_width) minmax(0, 1fr);
+        grid-template-columns: calc(var(--notebook_navigation_sidebar_width) + 16px) minmax(0, 1fr);
 
-        background-color: white;
+        background-color: var(--notebook_body_background_color);
         border-radius: var(--border_radius);
         overflow: hidden;
     }
@@ -60,9 +60,11 @@
         grid-row: 1;
         grid-column: 1;
         min-width: 0;
+        margin: 8px;
         display: flex;
-        border-right: 1px solid var(--border_color_primary);
-        border-radius: 0 var(--border_radius) var(--border_radius) 0;
+        border: 1px solid var(--border_color_primary);
+        border-radius: var(--border_radius);
+        background-color: white;
         overflow: hidden;
     }
     .body_container {
