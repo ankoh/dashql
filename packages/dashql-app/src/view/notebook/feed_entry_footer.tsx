@@ -8,7 +8,7 @@ import { QueryResultView } from '../query_result/query_result_view.js';
 import { TableColumnHeader } from '../query_result/data_table_cell.js';
 import { VerticalTabs, VerticalTabVariant, type VerticalTabProps } from '../foundations/vertical_tabs.js';
 import { VisualizationDispatch } from '../visualization/visualization_dispatch.js';
-import { ResolvedVisualizeQuery } from '../../notebook/notebook_types.js';
+import { ResolvedVisualizeQuery } from '../../scripts/script_types.js';
 import { TraceLogPanel } from './trace_log_panel.js';
 import { TabHeader, useResultRowCount, formatRowCountDetail } from './tab_header.js';
 
@@ -28,7 +28,7 @@ const enum FooterTab {
 }
 
 interface FeedEntryFooterProps {
-    sessionId: string;
+    notebookId: string;
     /// The latest query execution for this script (null if only an agent run has happened).
     queryState: QueryExecutionState | null;
     /// The latest agent-run trace id for this script (null if no agent run has happened).
@@ -205,7 +205,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 )}
             </div>
         ),
-    }), [props.sessionId, queryTraceId, agentTraceId, props.queryState, props.visualizeQuery, rowCountDetail, pointCountDetail, props.onShowStatus, props.onShowAgentStatus, props.onShowTable, props.onShowVisualization]);
+    }), [queryTraceId, agentTraceId, props.queryState, props.visualizeQuery, rowCountDetail, pointCountDetail, props.onShowStatus, props.onShowAgentStatus, props.onShowTable, props.onShowVisualization]);
 
     return (
         <VerticalTabs

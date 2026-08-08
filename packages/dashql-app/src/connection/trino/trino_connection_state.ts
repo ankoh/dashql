@@ -162,7 +162,7 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                     type: TRINO_CONNECTOR,
                     value: newDetails,
                 },
-                connectionSignature: updateConnectionSignature(state.connectionSignature, sig, state.sessionId),
+                connectionSignature: updateConnectionSignature(state.connectionSignature, sig, state.notebookId),
             };
             break;
         }
@@ -393,7 +393,7 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                     type: TRINO_CONNECTOR,
                     value: newDetails,
                 },
-                connectionSignature: updateConnectionSignature(state.connectionSignature, sig, state.sessionId)
+                connectionSignature: updateConnectionSignature(state.connectionSignature, sig, state.notebookId)
             };
             break;
         }

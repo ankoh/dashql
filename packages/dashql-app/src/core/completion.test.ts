@@ -114,19 +114,19 @@ describe('DashQL Completion', () => {
         expect(name1).toEqual("\"attrA\"");
     });
 
-    describe('notebook qualified name', () => {
-        test('dot completion after dashql.notebook. in SELECT FROM', () => {
+    describe('script qualified name', () => {
+        test('dot completion after dashql.script. in SELECT FROM', () => {
             const catalog = dql!.createCatalog();
 
-            // Script A: produces a synthetic table via notebook_path
+            // Script A: produces a synthetic table via script_path
             const scriptA = dql!.createScript(catalog);
-            scriptA.setNotebookPath('main/01-script.sql');
+            scriptA.setScriptPath('main/01-script.sql');
             scriptA.insertTextAt(0, 'SELECT 1 as x, 2 as y');
             scriptA.analyze();
             catalog.loadScript(scriptA, 0);
 
-            // Script B: references the notebook table via dot completion
-            const text = 'SELECT * FROM dashql.notebook.';
+            // Script B: references the synthetic script table via dot completion
+            const text = 'SELECT * FROM dashql.script.';
             const scriptB = dql!.createScript(catalog);
             scriptB.insertTextAt(0, text);
             scriptB.analyze();
@@ -139,20 +139,20 @@ describe('DashQL Completion', () => {
             for (let i = 0; i < reader.candidatesLength(); ++i) {
                 candidates.push(reader.candidates(i)!.completionText()!);
             }
-            // The notebook path is not a valid bare identifier, so it is quoted for insertion.
+            // The script path is not a valid bare identifier, so it is quoted for insertion.
             expect(candidates).toContain('"main/01-script.sql"');
         });
 
-        test('dot completion after dashql.notebook. in VISUALIZE', () => {
+        test('dot completion after dashql.script. in VISUALIZE', () => {
             const catalog = dql!.createCatalog();
 
             const scriptA = dql!.createScript(catalog);
-            scriptA.setNotebookPath('main/01-script.sql');
+            scriptA.setScriptPath('main/01-script.sql');
             scriptA.insertTextAt(0, 'SELECT 1 as x, 2 as y');
             scriptA.analyze();
             catalog.loadScript(scriptA, 0);
 
-            const text = 'VISUALIZE dashql.notebook.';
+            const text = 'VISUALIZE dashql.script.';
             const scriptB = dql!.createScript(catalog);
             scriptB.insertTextAt(0, text);
             scriptB.analyze();
@@ -165,7 +165,7 @@ describe('DashQL Completion', () => {
             for (let i = 0; i < reader.candidatesLength(); ++i) {
                 candidates.push(reader.candidates(i)!.completionText()!);
             }
-            // The notebook path is not a valid bare identifier, so it is quoted for insertion.
+            // The script path is not a valid bare identifier, so it is quoted for insertion.
             expect(candidates).toContain('"main/01-script.sql"');
         });
 
@@ -174,18 +174,18 @@ describe('DashQL Completion', () => {
 
             // First registration with old path
             const scriptA = dql!.createScript(catalog);
-            scriptA.setNotebookPath('main/01-old.sql');
+            scriptA.setScriptPath('main/01-old.sql');
             scriptA.insertTextAt(0, 'SELECT 1 as x');
             scriptA.analyze();
             catalog.loadScript(scriptA, 0);
 
             // Rename: re-set path and re-analyze
-            scriptA.setNotebookPath('main/02-renamed.sql');
+            scriptA.setScriptPath('main/02-renamed.sql');
             scriptA.analyze();
             catalog.loadScript(scriptA, 0);
 
             // Dot-complete should show new name, not old
-            const text = 'SELECT * FROM dashql.notebook.';
+            const text = 'SELECT * FROM dashql.script.';
             const scriptB = dql!.createScript(catalog);
             scriptB.insertTextAt(0, text);
             scriptB.analyze();
@@ -198,7 +198,7 @@ describe('DashQL Completion', () => {
             for (let i = 0; i < reader.candidatesLength(); ++i) {
                 candidates.push(reader.candidates(i)!.completionText()!);
             }
-            // The notebook path is not a valid bare identifier, so it is quoted for insertion.
+            // The script path is not a valid bare identifier, so it is quoted for insertion.
             expect(candidates).toContain('"main/02-renamed.sql"');
             expect(candidates).not.toContain('"main/01-old.sql"');
         });
@@ -206,7 +206,7 @@ describe('DashQL Completion', () => {
         test('execution output schema updates qualified column completion', () => {
             const catalog = dql!.createCatalog();
             const source = dql!.createScript(catalog);
-            source.setNotebookPath('main/source');
+            source.setScriptPath('main/source');
             source.insertTextAt(0, 'SELECT * FROM remote_table');
             source.analyze();
             catalog.loadScript(source, 0);
@@ -216,7 +216,7 @@ describe('DashQL Completion', () => {
             source.analyze();
             catalog.loadScript(source, 0);
 
-            const text = 'SELECT * FROM dashql.notebook."main/source" AS s WHERE s.customer_';
+            const text = 'SELECT * FROM dashql.script."main/source" AS s WHERE s.customer_';
             const consumer = dql!.createScript(catalog);
             consumer.insertTextAt(0, text);
             consumer.analyze();

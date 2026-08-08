@@ -125,13 +125,13 @@ async fn dashql_is_debug_build() -> bool {
 ///
 /// Tauri's runtime fs scope is in-memory only and is lost on reload/restart. The OPFS root manifest
 /// is the single source of truth for which native directories belong to dashql, so on boot the
-/// frontend re-grants scope for each relocated session's directory via this command before reading
-/// it. Granting recursively covers nested notebook/… paths. `allow_directory` is idempotent.
+/// frontend re-grants scope for each relocated notebook's directory via this command before reading
+/// it. Granting recursively covers nested scripts/… paths. `allow_directory` is idempotent.
 ///
 /// `allow_directory` registers the glob `dir/**`, but on unix the plugin's runtime scope is built
 /// with `require_literal_leading_dot = true` (the `cfg!(unix)` default — the plugin never forwards
 /// the `requireLiteralLeadingDot` config to this scope). With that option, `*`/`**` deliberately do
-/// not match dotfiles, so the recursive grant would exclude the session's `.gitignore`. We therefore
+/// not match dotfiles, so the recursive grant would exclude the notebook's `.gitignore`. We therefore
 /// also `allow_file` it explicitly: a literal (non-glob) pattern matches regardless of that option.
 #[tauri::command]
 async fn grant_fs_scope(app: tauri::AppHandle, path: String) -> Result<(), String> {

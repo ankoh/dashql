@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "dashql/app_notebook.json",
+  "title": "NotebookData",
+  "description": "Notebook data structure (dashql-notebook.json) - includes connection params and notebook metadata",
+  "type": "object",
+  "properties": {
+    "notebookId": {
+      "type": "string",
+      "description": "Unique notebook identifier (UUID v4). This is the authoritative identity; the storage location prefix is display-only."
+    },
+    "notebookPath": {
+      "type": "string",
+      "description": "Display-only path (e.g., \"opfs://notebooks/<uuid>\" or \"fs://<dir>\"). Not authoritative and may be absent on newly written notebooks."
+    },
+    "storageType": {
+      "type": "string",
+      "enum": ["opfs", "native"],
+      "description": "Where this notebook's files live. Defaults to \"opfs\" when omitted."
+    },
+    "nativePath": {
+      "type": "string",
+      "description": "Absolute directory holding this notebook's files when storageType is \"native\"."
+    },
+    "name": {
+      "type": "string",
+      "description": "User-supplied notebook name shown as the primary label in the notebook bar and selector. Absent (or empty) means the user never named the notebook, and the UI falls back to the display path."
+    },
+    "connectionParams": {
+      "$ref": "connection.json#/definitions/ConnectionParams",
+      "description": "The connection params"
+    },
+    "metadata": {
+      "$ref": "#/definitions/NotebookMetadata",
+      "description": "The notebook metadata"
+    },
+    "lastModified": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When was last modified"
+    },
+    "lastAccessed": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When was last accessed"
+    }
+  },
+  "required": ["notebookId", "connectionParams", "metadata"],
+  "additionalProperties": false,
+  "definitions": {
+    "NotebookOriginType": {
+      "type": "string",
+      "enum": ["FILE", "LOCAL", "HTTP"],
+      "description": "The origin type of the notebook"
+    },
+    "NotebookMetadata": {
+      "type": "object",
+      "description": "Notebook metadata",
+      "properties": {
+        "originType": {
+          "$ref": "#/definitions/NotebookOriginType",
+          "description": "The origin type"
+        },
+        "originalFileName": {
+          "type": "string",
+          "description": "The original file name"
+        },
+        "originalHttpUrl": {
+          "type": "string",
+          "description": "The original HTTP URL"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When was created"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

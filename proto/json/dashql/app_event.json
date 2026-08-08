@@ -6,13 +6,13 @@
   "oneOf": [
     {
       "properties": {
-        "session": {
+        "notebook": {
           "type": "string",
           "contentEncoding": "base64",
-          "description": "Session ZIP (contains connection params, notebook scripts, etc.)"
+          "description": "Notebook ZIP (contains connection params, notebook scripts, etc.)"
         }
       },
-      "required": ["session"],
+      "required": ["notebook"],
       "additionalProperties": false
     },
     {

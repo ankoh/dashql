@@ -7,16 +7,16 @@ import { ConnectionHealth } from '../../connection/connection_state.js';
 import { ConnectionSettingsOverlay } from '../connection/connection_settings_overlay.js';
 import { ButtonVariant, IconButton } from '../foundations/button.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
-import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
-import { CREATE_PAGE, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_NOTEBOOK_PATH, SELECT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE, getSortedFolderNames } from '../../notebook/notebook_state.js';
+import { useNotebookScriptsRegistry, useNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
+import { CREATE_SCRIPT_FOLDER, SELECT_NEXT_SCRIPT, SELECT_NEXT_SCRIPT_FOLDER, SELECT_SCRIPT_PATH, SELECT_SCRIPT_FOLDER, SELECT_PREV_SCRIPT, SELECT_PREV_SCRIPT_FOLDER, getSortedScriptFolderNames } from '../../scripts/notebook_scripts.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH, CHANGE_SESSION } from '../../router.js';
+import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH, CHANGE_NOTEBOOK } from '../../router.js';
 
 import { CatalogSchemaView } from './catalog_schema_view.js';
 import { CatalogFunctionsView } from './catalog_functions_view.js';
-import { NotebookScriptDetails, TabKey as DetailsTabKey } from './notebook_script_details.js';
-import { NotebookScriptFeed } from './notebook_script_feed.js';
+import { ScriptDetails, TabKey as DetailsTabKey } from './script_details.js';
+import { NotebookFeed } from './notebook_feed.js';
 import { NotebookFileTree, type NotebookFileTreeCatalogTab as CatalogTab, type NotebookFileTreeNavigationLevel } from './notebook_file_tree.js';
 import { NotebookActionMenu } from './notebook_action_menu.js';
 import { NotebookNavigationDrawer } from './notebook_navigation_drawer.js';
@@ -36,9 +36,9 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const route = useRouteContext();
     const navigate = useRouterNavigate();
     const logger = useLogger();
-    const notebookRegistry = useNotebookRegistry()[0];
-    const [notebook, modifyNotebook] = useNotebookState(route.sessionId ?? null);
-    const [conn, _modifyConn] = useConnectionState(notebook?.sessionId ?? null);
+    const notebookScriptsRegistry = useNotebookScriptsRegistry()[0];
+    const [notebookScripts, modifyNotebookScripts] = useNotebookScripts(route.notebookId ?? null);
+    const [conn, _modifyConn] = useConnectionState(notebookScripts?.notebookId ?? null);
     const [connectionOverlayOpen, setConnectionOverlayOpen] = React.useState<boolean>(false);
     const [showDetails, setShowDetails] = React.useState<boolean>(false);
     const [detailsScriptId, setDetailsScriptId] = React.useState<number | undefined>(undefined);
@@ -55,10 +55,10 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             version: (prev?.version ?? 0) + 1,
         }));
     }, []);
-    const lastScrolledFolderRef = React.useRef(notebook?.notebookUserFocus.folderName ?? '');
+    const lastScrolledFolderRef = React.useRef(notebookScripts?.scriptFocus.folderName ?? '');
     const restoreSelectedFeedScroll = React.useCallback(() => {
-        requestFeedScroll(notebook?.notebookUserFocus.fileName ?? '');
-    }, [notebook?.notebookUserFocus.fileName, requestFeedScroll]);
+        requestFeedScroll(notebookScripts?.scriptFocus.fileName ?? '');
+    }, [notebookScripts?.scriptFocus.fileName, requestFeedScroll]);
 
     const keyHandlers = React.useMemo<KeyEventHandler[]>(
         () => [
@@ -69,32 +69,32 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     if (catalogTab != null) {
                         setCatalogTab(null);
                         setShowDetails(false);
-                        if (notebook) {
-                            const folders = getSortedFolderNames(notebook.notebookPages);
-                            if (folders.length > 0 && notebook.notebookUserFocus.folderName !== folders[0]) {
-                                modifyNotebook({ type: SELECT_PAGE, value: folders[0] });
+                        if (notebookScripts) {
+                            const folders = getSortedScriptFolderNames(notebookScripts.scriptFolders);
+                            if (folders.length > 0 && notebookScripts.scriptFocus.folderName !== folders[0]) {
+                                modifyNotebookScripts({ type: SELECT_SCRIPT_FOLDER, value: folders[0] });
                             }
                         }
                         return;
                     }
                     if (showDetails) return;
-                    // Only leave for the session selector when nothing holds focus. If the user
+                    // Only leave for the notebook selector when nothing holds focus. If the user
                     // is in the compose editor (SQL/AI mode) or has tabbed onto a button, Escape
                     // should first surrender that focus; a second Escape — with nothing focused —
-                    // then navigates back to the session selector.
+                    // then navigates back to the notebook selector.
                     const active = document.activeElement as HTMLElement | null;
                     if (active && active !== document.body && active !== document.documentElement) {
                         active.blur();
                         return;
                     }
-                    navigate({ type: CHANGE_SESSION, value: null });
+                    navigate({ type: CHANGE_NOTEBOOK, value: null });
                 },
             },
             {
                 key: 'l',
                 ctrlKey: true,
                 callback: (event) => {
-                    if (showDetails || catalogTab != null || notebook == null) return;
+                    if (showDetails || catalogTab != null || notebookScripts == null) return;
                     prepareForNotebookTreeNavigation(event);
                     setTreeNavigationLevel('scripts');
                 },
@@ -103,7 +103,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 key: 'h',
                 ctrlKey: true,
                 callback: (event) => {
-                    if (showDetails || catalogTab != null || notebook == null) return;
+                    if (showDetails || catalogTab != null || notebookScripts == null) return;
                     prepareForNotebookTreeNavigation(event);
                     setTreeNavigationLevel('folders');
                 },
@@ -112,10 +112,10 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 key: 'j',
                 ctrlKey: true,
                 callback: (event) => {
-                    if (showDetails || catalogTab != null || notebook == null) return;
+                    if (showDetails || catalogTab != null || notebookScripts == null) return;
                     prepareForNotebookTreeNavigation(event);
-                    modifyNotebook({
-                        type: treeNavigationLevel === 'folders' ? SELECT_NEXT_PAGE : SELECT_NEXT_ENTRY,
+                    modifyNotebookScripts({
+                        type: treeNavigationLevel === 'folders' ? SELECT_NEXT_SCRIPT_FOLDER : SELECT_NEXT_SCRIPT,
                         value: null,
                     });
                 },
@@ -124,16 +124,16 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 key: 'k',
                 ctrlKey: true,
                 callback: (event) => {
-                    if (showDetails || catalogTab != null || notebook == null) return;
+                    if (showDetails || catalogTab != null || notebookScripts == null) return;
                     prepareForNotebookTreeNavigation(event);
-                    modifyNotebook({
-                        type: treeNavigationLevel === 'folders' ? SELECT_PREV_PAGE : SELECT_PREV_ENTRY,
+                    modifyNotebookScripts({
+                        type: treeNavigationLevel === 'folders' ? SELECT_PREV_SCRIPT_FOLDER : SELECT_PREV_SCRIPT,
                         value: null,
                     });
                 },
             },
         ],
-        [catalogTab, showDetails, notebook, modifyNotebook, navigate, treeNavigationLevel],
+        [catalogTab, showDetails, notebookScripts, modifyNotebookScripts, navigate, treeNavigationLevel],
     );
     useKeyEvents(keyHandlers);
 
@@ -152,32 +152,32 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     }, [conn?.connectionHealth, connectionOverlayOpen]);
 
     React.useEffect(() => {
-        if (showDetails || notebook == null) {
+        if (showDetails || notebookScripts == null) {
             return;
         }
-        const folderName = notebook.notebookUserFocus.folderName;
+        const folderName = notebookScripts.scriptFocus.folderName;
         const folderChanged = folderName !== lastScrolledFolderRef.current;
         lastScrolledFolderRef.current = folderName;
-        requestFeedScroll(folderChanged ? '' : notebook.notebookUserFocus.fileName);
-    }, [notebook?.notebookUserFocus.interactionCounter, requestFeedScroll, showDetails]);
+        requestFeedScroll(folderChanged ? '' : notebookScripts.scriptFocus.fileName);
+    }, [notebookScripts?.scriptFocus.interactionCounter, requestFeedScroll, showDetails]);
 
     React.useEffect(() => {
-        if (route.sessionId === null) {
-            if (route.sessionId !== null) {
-                const sessionId = notebookRegistry.notebooksByConnection.get(route.sessionId);
-                if (sessionId) {
+        if (route.notebookId === null) {
+            if (route.notebookId !== null) {
+                const notebookId = notebookScriptsRegistry.notebookScriptsByConnection.get(route.notebookId);
+                if (notebookId) {
                     navigate({
                         type: NOTEBOOK_PATH,
-                        value: sessionId
+                        value: notebookId
                     });
                 }
             } else {
-                logger.warn('missing session id', {}, LOG_CTX);
+                logger.warn('missing notebook id', {}, LOG_CTX);
             }
         }
-    }, [route.sessionId]);
+    }, [route.notebookId]);
 
-    if (route.sessionId === null || notebook == null) {
+    if (route.notebookId === null || notebookScripts == null) {
         return <div />;
     }
     // The feed sits below the catalog/details overlay and is the visible, interactive layer only
@@ -185,12 +185,12 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     // global feed key handlers (Enter/Escape/…), so this flag is threaded down to gate them.
     const feedActive = catalogTab == null && !showDetails;
     const selectFolder = (folderName: string) => {
-        const folderChanged = folderName !== notebook.notebookUserFocus.folderName;
+        const folderChanged = folderName !== notebookScripts.scriptFocus.folderName;
         const isSelected = catalogTab == null && !folderChanged;
         setCatalogTab(null);
         if (!isSelected) {
             if (folderChanged) requestFeedScroll('');
-            modifyNotebook({ type: SELECT_PAGE, value: folderName });
+            modifyNotebookScripts({ type: SELECT_SCRIPT_FOLDER, value: folderName });
         }
         setShowDetails(false);
         setDetailsScriptId(undefined);
@@ -201,26 +201,26 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
         setShowDetails(false);
         setDetailsScriptId(undefined);
         setDetailsInitialTab(undefined);
-        modifyNotebook({ type: SELECT_NOTEBOOK_PATH, value: { folderName, fileName } });
+        modifyNotebookScripts({ type: SELECT_SCRIPT_PATH, value: { folderName, fileName } });
     };
     const selectCatalog = (tab: CatalogTab) => {
         if (showDetails && catalogTab == null) return;
         setCatalogTab(tab);
         setShowDetails(true);
     };
-    const selectPreviousTreeItem = () => modifyNotebook({
-        type: treeNavigationLevel === 'folders' ? SELECT_PREV_PAGE : SELECT_PREV_ENTRY,
+    const selectPreviousTreeItem = () => modifyNotebookScripts({
+        type: treeNavigationLevel === 'folders' ? SELECT_PREV_SCRIPT_FOLDER : SELECT_PREV_SCRIPT,
         value: null,
     });
-    const selectNextTreeItem = () => modifyNotebook({
-        type: treeNavigationLevel === 'folders' ? SELECT_NEXT_PAGE : SELECT_NEXT_ENTRY,
+    const selectNextTreeItem = () => modifyNotebookScripts({
+        type: treeNavigationLevel === 'folders' ? SELECT_NEXT_SCRIPT_FOLDER : SELECT_NEXT_SCRIPT,
         value: null,
     });
     const fileTree = (closeAfterSelection: boolean) => (
         <div className={styles.file_navigation}>
             <NotebookConnectionSection
                 conn={conn ?? null}
-                notebook={notebook}
+                notebookScripts={notebookScripts}
                 onOpenSettings={(anchor) => {
                     connectionSettingsAnchorRef.current = anchor;
                     setConnectionOverlayOpen(true);
@@ -228,8 +228,8 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 actions={(
                     <NotebookActionMenu
                         conn={conn ?? null}
-                        notebook={notebook}
-                        modifyNotebook={modifyNotebook}
+                        notebookScripts={notebookScripts}
+                        modifyNotebookScripts={modifyNotebookScripts}
                         navigationDisabled={showDetails}
                         navigationLevel={treeNavigationLevel}
                         onSelectFolderLevel={() => setTreeNavigationLevel('folders')}
@@ -241,8 +241,8 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 )}
             />
             <NotebookFileTree
-                notebook={notebook}
-                modifyNotebook={modifyNotebook}
+                notebookScripts={notebookScripts}
+                modifyNotebookScripts={modifyNotebookScripts}
                 catalogTab={catalogTab}
                 navigationLevel={treeNavigationLevel}
                 showCatalogEntries={conn != null}
@@ -261,7 +261,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 }}
                 onAddFolder={() => {
                     if (showDetails && catalogTab == null) return;
-                    modifyNotebook({ type: CREATE_PAGE, value: null });
+                    modifyNotebookScripts({ type: CREATE_SCRIPT_FOLDER, value: null });
                     setCatalogTab(null);
                     setShowDetails(false);
                 }}
@@ -289,7 +289,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     user returns exactly where they left, matching Ctrl+H/J/K/L precision.
                 */}
                 <div className={feedActive ? styles.feed_layer : styles.feed_layer_hidden}>
-                    <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} active={feedActive} showDetails={(fileName?: string, initialTab?: DetailsTabKey) => { const targetFileName = fileName ?? notebook.notebookUserFocus.fileName; setDetailsScriptId(notebook.notebookPages[notebook.notebookUserFocus.folderName]?.scripts[targetFileName]?.scriptId); setDetailsInitialTab(initialTab); setShowDetails(true); }} scrollTarget={feedScrollTarget} conn={conn ?? null} openConnectionOverlay={() => setConnectionOverlayOpen(true)} />
+                    <NotebookFeed notebookScripts={notebookScripts} modifyNotebookScripts={modifyNotebookScripts} active={feedActive} showDetails={(fileName?: string, initialTab?: DetailsTabKey) => { const targetFileName = fileName ?? notebookScripts.scriptFocus.fileName; setDetailsScriptId(notebookScripts.scriptFolders[notebookScripts.scriptFocus.folderName]?.scripts[targetFileName]?.scriptId); setDetailsInitialTab(initialTab); setShowDetails(true); }} scrollTarget={feedScrollTarget} conn={conn ?? null} openConnectionOverlay={() => setConnectionOverlayOpen(true)} />
                 </div>
                 {
                     catalogTab === 'relations' && conn
@@ -297,7 +297,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                         : catalogTab === 'functions' && conn
                             ? <CatalogFunctionsView connection={conn} />
                             : showDetails
-                                ? <NotebookScriptDetails notebook={notebook} modifyNotebook={modifyNotebook} connection={conn} hideDetails={() => { setShowDetails(false); setDetailsScriptId(undefined); setDetailsInitialTab(undefined); }} scriptId={detailsScriptId} initialTab={detailsInitialTab} />
+                                ? <ScriptDetails notebookScripts={notebookScripts} modifyNotebookScripts={modifyNotebookScripts} connection={conn} hideDetails={() => { setShowDetails(false); setDetailsScriptId(undefined); setDetailsInitialTab(undefined); }} scriptId={detailsScriptId} initialTab={detailsInitialTab} />
                                 : null
                 }
             </main>
@@ -307,7 +307,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 </NotebookNavigationDrawer>
             )}
             <ConnectionSettingsOverlay
-                sessionId={route.sessionId}
+                notebookId={route.notebookId}
                 isOpen={connectionOverlayOpen}
                 onClose={() => setConnectionOverlayOpen(false)}
                 anchorRef={connectionSettingsAnchorRef}

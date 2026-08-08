@@ -46,7 +46,7 @@ export interface AgentStep {
     timestamp: number;
 }
 
-/// The observable state of one agent run for one session.
+/// The observable state of one agent run for one notebook.
 export interface AgentRunState {
     /// A monotonically increasing run id (per provider) identifying this run.
     runId: number;

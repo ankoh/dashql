@@ -12,7 +12,7 @@ import { ConnectionSignatureMap, newConnectionSignature } from './connection_sig
 import { QueryExecutionState } from './query_execution_state.js';
 const LOG_CTX = "connection";
 
-export function decodeConnectionFromProto(conn: connection.Connection, sessionId: string): [ConnectorInfo, ConnectionStateDetailsVariant] {
+export function decodeConnectionFromProto(conn: connection.Connection, notebookId: string): [ConnectorInfo, ConnectionStateDetailsVariant] {
     if ('dataless' in conn) {
         const dl = conn.dataless as any;
         // Handle both ConnectionParams format ({ demoConnector }) and Connection/Details format ({ setupParams: { demoConnector } })
@@ -76,23 +76,37 @@ export function decodeConnectionFromProto(conn: connection.Connection, sessionId
         };
         return [info, details];
     } else {
-        throw new LoggableException("unsupported connection details", { session: sessionId }, LOG_CTX);
+        throw new LoggableException("unsupported connection details", { notebookId }, LOG_CTX);
     }
 }
 
-export function restoreConnectionState(instance: dashql.DashQL, sessionId: string, info: ConnectorInfo, details: ConnectionStateDetailsVariant, connSigs: ConnectionSignatureMap, name: string | null = null): ConnectionState {
+export function restoreConnectionState(instance: dashql.DashQL, notebookId: string, info: ConnectorInfo, details: ConnectionStateDetailsVariant, connSigs: ConnectionSignatureMap, name: string | null = null): ConnectionState {
     const hasher = new DefaultHasher();
     computeConnectionSignatureFromDetails(details, hasher);
     const sig = newConnectionSignature(hasher, connSigs, null);
 
-    const catalog = instance.createCatalog();
-    const catalogRelationScript = instance.createScript(catalog);
-    catalogRelationScript.replaceText(generateCatalogScriptHeader(CatalogSource.Unknown));
-    const catalogFunctionScript = instance.createScript(catalog);
-    catalogFunctionScript.replaceText(generateFunctionScriptHeader(CatalogSource.Unknown));
+    let catalog: ReturnType<dashql.DashQL['createCatalog']> | null = null;
+    let catalogRelationScript: ReturnType<dashql.DashQL['createScript']> | null = null;
+    let catalogFunctionScript: ReturnType<dashql.DashQL['createScript']> | null = null;
+    try {
+        catalog = instance.createCatalog();
+        catalogRelationScript = instance.createScript(catalog);
+        catalogRelationScript.replaceText(generateCatalogScriptHeader(CatalogSource.Unknown));
+        catalogFunctionScript = instance.createScript(catalog);
+        catalogFunctionScript.replaceText(generateFunctionScriptHeader(CatalogSource.Unknown));
+    } catch (error) {
+        catalogFunctionScript?.destroy();
+        catalogRelationScript?.destroy();
+        catalog?.destroy();
+        connSigs.delete(sig.signatureString);
+        throw error;
+    }
+    const restoredCatalog = catalog;
+    const restoredCatalogRelationScript = catalogRelationScript;
+    const restoredCatalogFunctionScript = catalogFunctionScript;
 
     const state: ConnectionState = {
-        sessionId: sessionId,
+        notebookId,
         name,
         instance,
         active: true,
@@ -102,7 +116,7 @@ export function restoreConnectionState(instance: dashql.DashQL, sessionId: strin
         connectionSignature: sig,
         details: details,
         metrics: createConnectionMetrics(),
-        catalog,
+        catalog: restoredCatalog,
         catalogUpdates: {
             tasksRunning: new Map(),
             tasksFinished: new Map(),
@@ -110,8 +124,8 @@ export function restoreConnectionState(instance: dashql.DashQL, sessionId: strin
             lastFullRefresh: null,
             restoredAt: null,
         },
-        catalogRelationScript,
-        catalogFunctionScript,
+        catalogRelationScript: restoredCatalogRelationScript,
+        catalogFunctionScript: restoredCatalogFunctionScript,
         queriesActive: new Map(),
         queriesActiveOrdered: [],
         queriesFinished: new Map<number, QueryExecutionState>(),

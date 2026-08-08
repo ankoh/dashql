@@ -2,12 +2,12 @@ import * as core from '../core/index.js';
 
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { createDefaultNotebook } from './default_notebook_setup.js';
+import { createDefaultNotebookScripts } from './default_notebook_setup.js';
 import { type ConnectionState } from './connection_state.js';
 import { createDatalessConnectionState } from './dataless/dataless_connection_state.js';
-import type { NotebookStateWithoutId } from '../notebook/notebook_state_registry.js';
-import type { NotebookState } from '../notebook/notebook_state.js';
-import { scriptDisplayName } from '../notebook/notebook_types.js';
+import type { NotebookScriptsInput } from '../scripts/notebook_scripts_registry.js';
+import type { NotebookScripts } from '../scripts/notebook_scripts.js';
+import { scriptDisplayName } from '../scripts/script_types.js';
 import { Logger } from '../platform/logger/logger.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -30,39 +30,39 @@ afterEach(() => {
     dql!.resetUnsafe();
 });
 
-describe('createDefaultNotebook', () => {
+describe('createDefaultNotebookScripts', () => {
     it('creates a query page with a notebook-level draft', () => {
-        const sessionId = crypto.randomUUID();
+        const notebookId = crypto.randomUUID();
         const conn: ConnectionState = {
             ...createDatalessConnectionState(dql!, new Map()),
-            sessionId,
+            notebookId,
         };
-        const allocateNotebookState = vi.fn((state: NotebookStateWithoutId): [string, NotebookState] => {
-            const sessionId = crypto.randomUUID();
-            return [sessionId, { ...state, sessionId }];
+        const allocateNotebookScripts = vi.fn((state: NotebookScriptsInput): [string, NotebookScripts] => {
+            const notebookId = crypto.randomUUID();
+            return [notebookId, { ...state, notebookId }];
         });
 
-        const notebook = createDefaultNotebook(
+        const notebookScripts = createDefaultNotebookScripts(
             conn,
-            allocateNotebookState,
+            allocateNotebookScripts,
             logger,
             'select 1;',
         );
 
-        expect(allocateNotebookState).toHaveBeenCalledTimes(1);
-        expect(Object.keys(notebook.notebookPages)).toHaveLength(1);
-        expect(notebook.notebookUserFocus.folderName).toBe('Main');
-        expect(scriptDisplayName(notebook.notebookUserFocus.fileName)).toBe('example_script');
-        expect(notebook.notebookUserFocus.interactionCounter).toBe(0);
+        expect(allocateNotebookScripts).toHaveBeenCalledTimes(1);
+        expect(Object.keys(notebookScripts.scriptFolders)).toHaveLength(1);
+        expect(notebookScripts.scriptFocus.folderName).toBe('Main');
+        expect(scriptDisplayName(notebookScripts.scriptFocus.fileName)).toBe('example_script');
+        expect(notebookScripts.scriptFocus.interactionCounter).toBe(0);
 
-        const queryPage = notebook.notebookPages['Main'];
+        const queryPage = notebookScripts.scriptFolders['Main'];
         expect(Object.keys(queryPage.scripts)).toHaveLength(1);
 
-        const fileName = notebook.notebookUserFocus.fileName;
+        const fileName = notebookScripts.scriptFocus.fileName;
         const queryScriptId = queryPage.scripts[fileName].scriptId;
-        expect(notebook.uncommittedScriptId).not.toBe(queryScriptId);
+        expect(notebookScripts.uncommittedScriptId).not.toBe(queryScriptId);
 
-        expect(notebook.scripts[queryScriptId]?.script.toString()).toBe('select 1;');
-        expect(notebook.scripts[notebook.uncommittedScriptId]).toBeDefined();
+        expect(notebookScripts.scripts[queryScriptId]?.script.toString()).toBe('select 1;');
+        expect(notebookScripts.scripts[notebookScripts.uncommittedScriptId]).toBeDefined();
     });
 });

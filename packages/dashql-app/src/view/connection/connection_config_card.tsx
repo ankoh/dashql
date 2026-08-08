@@ -14,15 +14,15 @@ import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js
 import { InternalsViewerOverlay } from '../internals/internals_overlay.js';
 
 interface Props {
-    sessionId: string;
+    notebookId: string;
     onBack: () => void;
-    onConnected: (sessionId: string) => void;
+    onConnected: (notebookId: string) => void;
     onSkip?: () => void;
     headerTitle?: string;
 }
 
 export const ConnectionConfigCard: React.FC<Props> = (props: Props) => {
-    const [conn, _modifyConn] = useConnectionState(props.sessionId);
+    const [conn, _modifyConn] = useConnectionState(props.notebookId);
     const [showInternals, setShowInternals] = React.useState<boolean>(false);
 
     // Default to TRINO or first available connector
@@ -54,9 +54,9 @@ export const ConnectionConfigCard: React.FC<Props> = (props: Props) => {
     // Monitor connection health and auto-navigate when ONLINE
     React.useEffect(() => {
         if (conn?.connectionHealth === ConnectionHealth.ONLINE) {
-            props.onConnected(props.sessionId);
+            props.onConnected(props.notebookId);
         }
-    }, [conn?.connectionHealth, props.sessionId, props.onConnected]);
+    }, [conn?.connectionHealth, props.notebookId, props.onConnected]);
 
     return (
         <div className={`${baseStyles.card} ${styles.card_wrapper}`}>
@@ -64,7 +64,7 @@ export const ConnectionConfigCard: React.FC<Props> = (props: Props) => {
                 <div className={baseStyles.card_header_left_container}>
                     <IconButton
                         variant={ButtonVariant.Invisible}
-                        aria-label="Back to session list"
+                        aria-label="Back to notebook list"
                         onClick={props.onBack}
                     >
                         <ChevronLeftIcon size={16} />
@@ -89,7 +89,7 @@ export const ConnectionConfigCard: React.FC<Props> = (props: Props) => {
             </div>
             <div className={`${baseStyles.card_section} ${styles.card_body}`}>
                 <ConnectorConfigTabs
-                    sessionId={props.sessionId}
+                    notebookId={props.notebookId}
                     selectedConnectorType={selectedConnectorType}
                     setSelectedConnectorType={setSelectedConnectorType}
                     lockConnectorType={!!props.onSkip}

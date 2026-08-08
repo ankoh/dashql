@@ -34,8 +34,8 @@ struct AnalysisState {
     const CatalogEntryID catalog_entry_id;
     /// The catalog
     Catalog& catalog;
-    /// The notebook path for catalog registration (e.g., "main/01-script.sql"). Empty means none.
-    std::string_view notebook_path;
+    /// The script path for catalog registration (e.g., "main/01-script.sql"). Empty means none.
+    std::string_view script_path;
     /// Output columns learned from the latest successful execution.
     std::span<const std::string> executed_output_schema;
 

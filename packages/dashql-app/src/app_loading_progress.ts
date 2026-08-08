@@ -8,10 +8,10 @@ export interface AppLoadingProgress {
     restoreConnections: ProgressCounter;
     /// Restore the catalogs
     restoreCatalogs: ProgressCounter;
-    /// Restore the notebooks
-    restoreNotebooks: ProgressCounter;
-    /// Analyze the restored notebook scripts
-    analyzeNotebooks: ProgressCounter;
+    /// Restore the notebook scripts
+    restoreNotebookScripts: ProgressCounter;
+    /// Analyze the restored scripts
+    analyzeScripts: ProgressCounter;
     /// Setup default connections
     setupDefaultConnections: ProgressCounter;
     /// Setup defualt notebooks

@@ -1,14 +1,14 @@
 import * as React from 'react';
 
 import type { ConnectionState } from '../../connection/connection_state.js';
-import type { NotebookState } from '../../notebook/notebook_state.js';
+import type { NotebookScripts } from '../../scripts/notebook_scripts.js';
 import * as ActionList from '../foundations/action_list.js';
 import { ConnectionCommandList } from './notebook_command_lists.js';
 import * as styles from './notebook_connection_section.module.css';
 
 interface Props {
     conn: ConnectionState | null;
-    notebook: NotebookState;
+    notebookScripts: NotebookScripts;
     onOpenSettings: (anchor: HTMLButtonElement | null) => void;
     actions: React.ReactElement;
 }
@@ -20,7 +20,7 @@ export const NotebookConnectionSection: React.FC<Props> = (props) => {
             <ActionList.List>
                 <ConnectionCommandList
                     conn={props.conn}
-                    notebook={props.notebook}
+                    notebookScripts={props.notebookScripts}
                     onOpenSettings={() => props.onOpenSettings(settingsRef.current)}
                     settingsRef={settingsRef}
                 />

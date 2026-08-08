@@ -294,10 +294,10 @@ TEST(CompletionTest, PassiveHint_AfterFromTable) {
     ASSERT_EQ(results[0].completion_text, "where");
 }
 
-TEST(CompletionTest, NotebookQualifiedName_SelectFrom) {
+TEST(CompletionTest, ScriptQualifiedName_SelectFrom) {
     Catalog catalog;
     Script script_a{catalog};
-    script_a.notebook_path = "main/01-script.sql";
+    script_a.script_path = "main/01-script.sql";
     script_a.InsertTextAt(0, "SELECT 1 as x, 2 as y");
     ASSERT_NO_THROW({
         script_a.Scan();
@@ -306,15 +306,15 @@ TEST(CompletionTest, NotebookQualifiedName_SelectFrom) {
     });
 
     // Verify synthetic table and schema were created
-    ASSERT_TRUE(script_a.analyzed_script->notebook_output_names.has_value());
+    ASSERT_TRUE(script_a.analyzed_script->script_output_names.has_value());
     ASSERT_GT(script_a.analyzed_script->GetTables().GetSize(), 0);
     auto& schemas = script_a.analyzed_script->GetSchemasByName();
-    ASSERT_NE(schemas.find({"dashql", "notebook"}), schemas.end());
+    ASSERT_NE(schemas.find({"dashql", "script"}), schemas.end());
 
     ASSERT_NO_THROW(catalog.LoadScript(script_a, 0));
 
     // Dot completion from SELECT context
-    const std::string_view text = "SELECT * FROM dashql.notebook.";
+    const std::string_view text = "SELECT * FROM dashql.script.";
     Script script_b{catalog};
     script_b.InsertTextAt(0, text);
     ASSERT_NO_THROW({
@@ -323,7 +323,7 @@ TEST(CompletionTest, NotebookQualifiedName_SelectFrom) {
         script_b.Analyze();
     });
 
-    auto cursor_ofs = text.find("notebook.") + std::string_view{"notebook."}.size();
+    auto cursor_ofs = text.find("script.") + std::string_view{"script."}.size();
     script_b.MoveCursor(cursor_ofs);
 
     auto completion = script_b.CompleteAtCursor();
@@ -336,15 +336,15 @@ TEST(CompletionTest, NotebookQualifiedName_SelectFrom) {
             break;
         }
     }
-    ASSERT_TRUE(found) << "Expected notebook path in SELECT FROM context, got "
+    ASSERT_TRUE(found) << "Expected script path in SELECT FROM context, got "
                        << results.size() << " candidates: "
                        << (results.empty() ? "(none)" : std::string(results[0].completion_text));
 }
 
-TEST(CompletionTest, NotebookQualifiedName_Visualize) {
+TEST(CompletionTest, ScriptQualifiedName_Visualize) {
     Catalog catalog;
     Script script_a{catalog};
-    script_a.notebook_path = "main/01-script.sql";
+    script_a.script_path = "main/01-script.sql";
     script_a.InsertTextAt(0, "SELECT 1 as x, 2 as y");
     ASSERT_NO_THROW({
         script_a.Scan();
@@ -354,7 +354,7 @@ TEST(CompletionTest, NotebookQualifiedName_Visualize) {
     ASSERT_NO_THROW(catalog.LoadScript(script_a, 0));
 
     // Dot completion from VISUALIZE context
-    const std::string_view text = "VISUALIZE dashql.notebook.";
+    const std::string_view text = "VISUALIZE dashql.script.";
     Script script_b{catalog};
     script_b.InsertTextAt(0, text);
     ASSERT_NO_THROW({
@@ -363,7 +363,7 @@ TEST(CompletionTest, NotebookQualifiedName_Visualize) {
         script_b.Analyze();
     });
 
-    auto cursor_ofs = text.find("notebook.") + std::string_view{"notebook."}.size();
+    auto cursor_ofs = text.find("script.") + std::string_view{"script."}.size();
     auto* cursor_ptr = script_b.MoveCursor(cursor_ofs);
     ASSERT_NE(cursor_ptr, nullptr);
     ASSERT_TRUE(cursor_ptr->scanner_location.has_value()) << "No scanner location";
@@ -378,7 +378,7 @@ TEST(CompletionTest, NotebookQualifiedName_Visualize) {
             break;
         }
     }
-    ASSERT_TRUE(found) << "Expected notebook path in VISUALIZE context, got "
+    ASSERT_TRUE(found) << "Expected script path in VISUALIZE context, got "
                        << results.size() << " candidates: "
                        << (results.empty() ? "(none)" : std::string(results[0].completion_text))
                        << ". Cursor has ast_node=" << (cursor_ptr->ast_node_id.has_value() ? (int)*cursor_ptr->ast_node_id : -1)
@@ -387,10 +387,10 @@ TEST(CompletionTest, NotebookQualifiedName_Visualize) {
                        << " context=" << cursor_ptr->context.index();
 }
 
-TEST(CompletionTest, NotebookOutputSchema_FromExecution) {
+TEST(CompletionTest, ScriptOutputSchema_FromExecution) {
     Catalog catalog;
     Script source{catalog};
-    source.notebook_path = "main/source";
+    source.script_path = "main/source";
     source.InsertTextAt(0, "SELECT * FROM remote_table");
     ASSERT_NO_THROW(source.Analyze());
     ASSERT_EQ(source.analyzed_script->GetTables().GetSize(), 1);
@@ -401,7 +401,7 @@ TEST(CompletionTest, NotebookOutputSchema_FromExecution) {
     ASSERT_NO_THROW(source.Analyze());
     ASSERT_NO_THROW(catalog.LoadScript(source, 0));
 
-    const std::string_view text = "SELECT * FROM dashql.notebook.\"main/source\" AS s WHERE s.cust";
+    const std::string_view text = "SELECT * FROM dashql.script.\"main/source\" AS s WHERE s.cust";
     Script consumer{catalog};
     consumer.InsertTextAt(0, text);
     ASSERT_NO_THROW(consumer.Analyze());
@@ -448,10 +448,10 @@ VISUALIZE (
     EXPECT_TRUE(found);
 }
 
-TEST(CompletionTest, NotebookOutputSchema_ReplacesPreviousExecutionAndClearsOnEdit) {
+TEST(CompletionTest, ScriptOutputSchema_ReplacesPreviousExecutionAndClearsOnEdit) {
     Catalog catalog;
     Script source{catalog};
-    source.notebook_path = "main/source";
+    source.script_path = "main/source";
     source.InsertTextAt(0, "SELECT * FROM remote_table");
     ASSERT_TRUE(source.SetExecutedOutputSchema({"old_column"}));
     ASSERT_NO_THROW(source.Analyze());
@@ -470,10 +470,10 @@ TEST(CompletionTest, NotebookOutputSchema_ReplacesPreviousExecutionAndClearsOnEd
     EXPECT_TRUE(source.analyzed_script->GetTables()[0].table_columns.empty());
 }
 
-TEST(CompletionTest, NotebookOutputSchema_PreservesDuplicateColumns) {
+TEST(CompletionTest, ScriptOutputSchema_PreservesDuplicateColumns) {
     Catalog catalog;
     Script source{catalog};
-    source.notebook_path = "main/source";
+    source.script_path = "main/source";
     source.InsertTextAt(0, "SELECT * FROM remote_table");
     ASSERT_TRUE(source.SetExecutedOutputSchema({"value", "value"}));
     ASSERT_NO_THROW(source.Analyze());

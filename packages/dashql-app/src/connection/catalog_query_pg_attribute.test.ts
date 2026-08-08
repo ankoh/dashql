@@ -10,7 +10,7 @@ describe('updatePgSchemaScript', () => {
 
         await expect(updatePgSchemaScript(
             { info: vi.fn() } as any,
-            'session',
+            'notebook',
             vi.fn(),
             7,
             '',

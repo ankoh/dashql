@@ -41,7 +41,7 @@ export function createDatalessConnectionState(dql: dashql.DashQL, connSigs: Conn
         value: details,
     });
     if (demoConnector) {
-        // Give the demo session a friendly default label so it reads as "Demo" in the session bar
+        // Give the demo notebook a friendly default label so it reads as "Demo" in the notebook bar
         // and selector rather than falling back to its opaque storage path.
         state.name = "Demo";
     } else {

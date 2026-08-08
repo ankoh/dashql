@@ -9,14 +9,14 @@ import { useConnectionState } from '../../connection/connection_registry.js';
 import { ConnectorConfigTabs } from './connector_config_tabs.js';
 
 interface Props {
-    sessionId: string | null;
+    notebookId: string | null;
     isOpen: boolean;
     onClose: () => void;
     anchorRef: React.RefObject<HTMLElement | null>;
 }
 
 export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
-    const [conn, _modifyConn] = useConnectionState(props.sessionId);
+    const [conn, _modifyConn] = useConnectionState(props.notebookId);
 
     // Default to current connector type, or DATALESS if none
     const currentConnectorType = conn?.connectorInfo.connectorType ?? ConnectorType.DATALESS;
@@ -49,7 +49,7 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
         >
             <div className={styles.overlay_container}>
                 <ConnectorConfigTabs
-                    sessionId={props.sessionId}
+                    notebookId={props.notebookId}
                     selectedConnectorType={selectedConnectorType}
                     setSelectedConnectorType={setSelectedConnectorType}
                     onClose={props.onClose}

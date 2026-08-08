@@ -8,7 +8,7 @@ A `VISUALIZE` statement can draw its data from three kinds of source, tracked by
 - `INLINE_SELECT` — a `(SELECT ...)` subquery written inline in the `VISUALIZE`.
 - `TABLE_REFERENCE` — a reference to a real catalog table (e.g. a Hyper/Salesforce table).
 - `SCRIPT_REFERENCE` — a reference to another notebook script's output, addressed as
-  `dashql.notebook."<folder>/<file>"`.
+  `dashql.script."<folder>/<file>"`.
 
 The last two both originate from the *same* AST case (`OBJECT_SQL_TABLEREF`). The analyzer splits
 them into two enum values purely by matching the qualified name prefix
@@ -16,7 +16,7 @@ them into two enum values purely by matching the qualified name prefix
 
 ```cpp
 bool is_script_ref = rel->table_name.database_name.get().text == "dashql" &&
-                     rel->table_name.schema_name.get().text == "notebook";
+                      rel->table_name.schema_name.get().text == "script";
 spec.resolved_source.kind =
     is_script_ref ? VisSourceKind::ScriptReference : VisSourceKind::TableReference;
 ```
@@ -24,7 +24,7 @@ spec.resolved_source.kind =
 TypeScript then dispatches on the enum in `visualize_executor.ts` to build the executable SQL:
 
 - `SCRIPT_REFERENCE` → look up the *producing script's text* and inline it, because the
-  `dashql.notebook.*` tables are synthetic — they exist only in dashql's catalog, so Hyper cannot
+  `dashql.script.*` tables are synthetic — they exist only in dashql's catalog, so Hyper cannot
   query them directly.
 - `TABLE_REFERENCE` → emit `SELECT * FROM db.schema.table`, because that table is real.
 
@@ -38,7 +38,7 @@ packed as `(catalog_entry_id << 32) | table_index`, so the upper 32 bits are the
 That means the two branches no longer need the enum to tell them apart. They can be distinguished at
 the point of use by the resolved id itself:
 
-- A `dashql.notebook` synthetic table resolves to a **notebook script's entry**, so its `scriptKey`
+- A `dashql.script` synthetic table resolves to a **notebook script's entry**, so its `scriptKey`
   is present in `state.scripts` → inline that script's text.
 - A real catalog table resolves to an entry that is **not** a notebook script, so its id is absent
   from `state.scripts` → `SELECT * FROM` the qualified name.

@@ -182,7 +182,7 @@ export function reduceHyperConnectorState(state: ConnectionState, action: HyperC
                     type: HYPER_CONNECTOR,
                     value: details,
                 },
-                connectionSignature: updateConnectionSignature(state.connectionSignature, sig, state.sessionId),
+                connectionSignature: updateConnectionSignature(state.connectionSignature, sig, state.notebookId),
             };
             break;
         }

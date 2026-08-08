@@ -20,7 +20,7 @@ class MemoryCacheStore implements QueryResultCacheStore {
     async listCacheFiles(): Promise<CacheFileStat[]> {
         return this.files.filter(f => !this.deleted.includes(f.name));
     }
-    async deleteCacheFile(_sessionId: string, name: string): Promise<void> {
+    async deleteCacheFile(_notebookId: string, name: string): Promise<void> {
         if (this.missing.has(name)) {
             // Tolerated: mark as gone without error, as the real backends do for NotFound.
             this.deleted.push(name);
@@ -30,7 +30,7 @@ class MemoryCacheStore implements QueryResultCacheStore {
     }
 }
 
-const SID = 'session';
+const SID = 'notebook';
 
 /// Shorthand for a stat whose access time equals its write time (the un-accessed / fresh-write case,
 /// where the marker mtime falls back to the payload's mtime).

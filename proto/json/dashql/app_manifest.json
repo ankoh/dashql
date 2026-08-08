@@ -2,40 +2,40 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "dashql/app_manifest.json",
   "title": "StorageManifest",
-  "description": "Manifest structure for DashQL sessions (dashql-manifest.json)",
+  "description": "Manifest structure for DashQL notebooks (dashql-manifest.json)",
   "type": "object",
   "properties": {
-    "sessions": {
+    "notebooks": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/SessionEntry"
+        "$ref": "#/definitions/NotebookEntry"
       },
-      "description": "List of sessions"
+      "description": "List of notebooks"
     },
     "appSettings": {
       "$ref": "#/definitions/AppSettings",
       "description": "Persisted app-level settings"
     }
   },
-  "required": ["sessions"],
+  "required": ["notebooks"],
   "additionalProperties": false,
   "definitions": {
-    "SessionEntry": {
+    "NotebookEntry": {
       "type": "object",
-      "description": "Manifest entry for a session",
+      "description": "Manifest entry for a notebook",
       "properties": {
         "path": {
           "type": "string",
-          "description": "The session identity. Going forward this is the bare session UUID; legacy manifests may carry an \"opfs://sessions/<uuid>\" prefix that is normalized to the UUID on read."
+          "description": "The notebook identity as a bare notebook UUID."
         },
         "storageType": {
           "type": "string",
           "enum": ["opfs", "native"],
-          "description": "Where this session's files live. Defaults to \"opfs\" when omitted (the OPFS root). \"native\" means the files live directly in `nativePath`. Mirrors the `storageType` field on the session itself."
+          "description": "Where this notebook's files live. Defaults to \"opfs\" when omitted (the OPFS root). \"native\" means the files live directly in `nativePath`. Mirrors the `storageType` field on the notebook itself."
         },
         "nativePath": {
           "type": "string",
-          "description": "Absolute directory holding this session's files. Required when storageType is \"native\"; one directory holds exactly one session."
+          "description": "Absolute directory holding this notebook's files. Required when storageType is \"native\"; one directory holds exactly one notebook."
         }
       },
       "required": ["path"],

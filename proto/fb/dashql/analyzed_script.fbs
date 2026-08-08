@@ -283,7 +283,7 @@ enum VisSourceKind: uint8 {
     UNRESOLVED = 0,
     /// `visualize <db>.<schema>.<table> using vegalite (...)` — bare table reference
     TABLE_REFERENCE = 1,
-    /// `visualize dashql.notebook."<folder>/<file>" using vegalite (...)` — qualified script path
+    /// `visualize dashql.script."<folder>/<file>" using vegalite (...)` — qualified script path
     SCRIPT_REFERENCE = 2,
     /// `visualize (select ...) using vegalite (...)` — inline parenthesised SELECT subquery
     INLINE_SELECT = 3,
@@ -301,7 +301,7 @@ table VisualizationSpec {
     source_qualified_name: QualifiedTableName;
     /// The resolved catalog table id of the source for SCRIPT_REFERENCE / TABLE_REFERENCE.
     /// Packed as (catalog_entry_id << 32) | table_index; the upper 32 bits are the producing
-    /// script's catalog entry id, which equals its notebook scriptKey. 0 when unresolved
+    /// script's catalog entry id, which equals its scriptKey. 0 when unresolved
     /// (entry ids start at 1, so a valid packed id is always >= 2^32).
     source_resolved_table_id: uint64;
     /// The AST node id of the inline SELECT subquery for INLINE_SELECT

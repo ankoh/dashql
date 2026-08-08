@@ -69,8 +69,8 @@ export async function computeQueryCacheKeyForConnection(
 }
 
 /// The query executor function
-export type QueryExecutor = (sessionId: string, args: QueryExecutionArgs) => [number, Promise<arrow.Table | null>];
-export type CancelQuery = (sessionId: string, queryId: number) => void;
+export type QueryExecutor = (notebookId: string, args: QueryExecutionArgs) => [number, Promise<arrow.Table | null>];
+export type CancelQuery = (notebookId: string, queryId: number) => void;
 interface QueryExecutionRuntime {
     cancellation: AbortController;
     resultStream: QueryExecutionResponseStream | null;
@@ -85,8 +85,8 @@ const EXECUTOR_CTX = React.createContext<QueryExecutorContextValue | null>(null)
 export const useQueryExecutor = () => React.useContext(EXECUTOR_CTX)!.execute;
 export const useCancelQuery = () => React.useContext(EXECUTOR_CTX)!.cancel;
 /// Use the query state
-export function useQueryState(sessionId: string | null, queryId: number | null) {
-    const [connReg, _connDispatch] = useConnectionState(sessionId);
+export function useQueryState(notebookId: string | null, queryId: number | null) {
+    const [connReg, _connDispatch] = useConnectionState(notebookId);
     if (queryId == null) return null;
     return connReg?.queriesActive.get(queryId) ?? connReg?.queriesFinished.get(queryId) ?? null;
 }
@@ -106,21 +106,21 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     const queryRuntimes = React.useRef(new Map<number, QueryExecutionRuntime>());
 
     // Execute a query with pre-allocated query id
-    const executeImpl = React.useCallback(async (sessionId: string, args: QueryExecutionArgs, queryId: number, runtime: QueryExecutionRuntime): Promise<arrow.Table | null> => {
+    const executeImpl = React.useCallback(async (notebookId: string, args: QueryExecutionArgs, queryId: number, runtime: QueryExecutionRuntime): Promise<arrow.Table | null> => {
         // Start a new trace for this query execution
         const trace = createTrace();
         const traced = logger.withTrace(trace);
         if (!computeDb) {
             throw new Error(`Compute database is not yet ready`);
         }
-        // Check if we know the session id.
-        const conn = connMap.get(sessionId);
+        // Check if we know the notebook id.
+        const conn = connMap.get(notebookId);
         if (!conn) {
-            traced.error("Connection not configured", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
-            throw new Error(`Couldn't find a connection with session id ${sessionId}`);
+            traced.error("Connection not configured", { notebookId, "query": queryId.toString() }, LOG_CTX);
+            throw new Error(`Couldn't find a connection with notebook id ${notebookId}`);
         }
         traced.info("Executing query", {
-            "session": sessionId,
+            notebookId,
             "query": queryId.toString(),
             "text": args.query
         }, LOG_CTX);
@@ -174,7 +174,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             cacheHash = await computeQueryCacheKeyForConnection(conn.details, args.query);
         }
 
-        connDispatch(sessionId, {
+        connDispatch(notebookId, {
             type: EXECUTE_QUERY,
             value: [queryId, initialState],
         });
@@ -191,7 +191,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             if (cacheHash != null) {
                 let cached: CachedQueryResult | null = null;
                 try {
-                    cached = await storageReader.backend.loadQueryResultCache(sessionId, cacheHash);
+                    cached = await storageReader.backend.loadQueryResultCache(notebookId, cacheHash);
                 } catch (e: any) {
                     traced.warn("Failed to read query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
                 }
@@ -208,24 +208,24 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     // leaves the payload's "cached at" write time intact. Best-effort: a failure here
                     // must never surface into the query path (it only means the entry looks colder to
                     // eviction than it is).
-                    void storageReader.backend.touchQueryResultCacheAccess(sessionId, cacheHash).catch((e: any) => {
+                    void storageReader.backend.touchQueryResultCacheAccess(notebookId, cacheHash).catch((e: any) => {
                         traced.warn("Failed to record query cache access", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
                     });
                     traced.info("Served query from cache", {
-                        "session": sessionId,
+                        notebookId,
                         "query": queryId.toString(),
                         "numRows": table.numRows.toString(),
                         "numCols": table.numCols.toString(),
                         "cachedAt": new Date(cached.cachedAtMs).toISOString(),
                     }, LOG_CTX);
                     // No live stream, so synthesize empty metadata and zeroed stream metrics.
-                    connDispatch(sessionId, {
+                    connDispatch(notebookId, {
                         type: QUERY_RECEIVED_ALL_BATCHES,
                         value: [queryId, table, new Map<string, string>(), createQueryResponseStreamMetrics()],
                     });
                     // Record the cache key and the entry's write time so the UI can show how old the
                     // cached result is and offer to delete it.
-                    connDispatch(sessionId, {
+                    connDispatch(notebookId, {
                         type: QUERY_CACHE_RECORDED,
                         value: [queryId, cacheHash, true, cached.cachedAtMs],
                     });
@@ -233,7 +233,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             }
 
             if (!servedFromCache) {
-                connDispatch(sessionId, {
+                connDispatch(notebookId, {
                     type: QUERY_SENDING,
                     value: [queryId],
                 });
@@ -254,13 +254,13 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         break;
                 }
                 traced.debug("Received query results", {
-                    "session": sessionId,
+                    notebookId,
                     "query": queryId.toString()
                 }, LOG_CTX);
 
                 if (resultStream != null) {
                     runtime.resultStream = resultStream;
-                    connDispatch(sessionId, {
+                    connDispatch(notebookId, {
                         type: QUERY_RUNNING,
                         value: [queryId, resultStream],
                     });
@@ -268,7 +268,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     // Helper to forward progress updates
                     const consumeProgress = new AsyncConsumerLambdas<QueryExecutionResponseStream, QueryExecutionProgress>(
                         (_: QueryExecutionResponseStream, progress: QueryExecutionProgress) => {
-                            connDispatch(sessionId, {
+                            connDispatch(notebookId, {
                                 type: QUERY_PROGRESS_UPDATED,
                                 value: [queryId, progress],
                             });
@@ -282,12 +282,12 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                             batches.push(batch);
 
                             traced.debug("Received result batch", {
-                                "session": sessionId,
+                                notebookId,
                                 "query": queryId.toString(),
                                 "batchColumns": batch.numCols.toString(),
                                 "batchRows": batch.numRows.toString(),
                             }, LOG_CTX);
-                            connDispatch(sessionId, {
+                            connDispatch(notebookId, {
                                 type: QUERY_RECEIVED_BATCH,
                                 value: [queryId, batch, ctx.getMetrics()],
                             });
@@ -302,7 +302,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     table = new arrow.Table(schema, batches);
 
                     traced.info("Executed query", {
-                        "session": sessionId,
+                        notebookId,
                         "query": queryId.toString(),
                         "numRows": table.numRows.toString(),
                         "numCols": table.numCols.toString(),
@@ -312,12 +312,12 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
 
                     // Is there any metadata?
                     const metadata = resultStream.getMetadata();
-                    connDispatch(sessionId, {
+                    connDispatch(notebookId, {
                         type: QUERY_RECEIVED_ALL_BATCHES,
                         value: [queryId, table!, metadata, resultStream!.getMetrics()],
                     });
                 } else {
-                    traced.warn("Query returned no results", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
+                    traced.warn("Query returned no results", { notebookId, "query": queryId.toString() }, LOG_CTX);
                 }
             }
         } catch (e: any) {
@@ -327,9 +327,9 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     : new LoggableException('Query was cancelled', {}, LOG_CTX);
                 traced.warn("Cancelled query", {
                     query: queryId.toString(),
-                    session: sessionId
+                    notebookId
                 }, LOG_CTX);
-                connDispatch(sessionId, {
+                connDispatch(notebookId, {
                     type: QUERY_CANCELLED,
                     value: [queryId, cancellationError, resultStream?.getMetrics() ?? null],
                 });
@@ -339,11 +339,11 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 } else {
                     traced.warn("Query failed with unknown error", {
                         query: queryId.toString(),
-                        session: sessionId,
+                        notebookId,
                         raw: stringifyError(e),
                     }, LOG_CTX);
                 }
-                connDispatch(sessionId, {
+                connDispatch(notebookId, {
                     type: QUERY_FAILED,
                     value: [queryId, e, resultStream?.getMetrics() ?? null],
                 });
@@ -361,7 +361,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         value: [args.replaceComputationId],
                     });
                 }
-                connDispatch(sessionId, {
+                connDispatch(notebookId, {
                     type: QUERY_PROCESSING_RESULTS,
                     value: [queryId],
                 });
@@ -369,7 +369,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 await analyzeTable(queryId, table!, computeDispatch, computeDb, traced, args.projection);
                 initialState.cancellation.signal.throwIfAborted();
 
-                connDispatch(sessionId, {
+                connDispatch(notebookId, {
                     type: QUERY_PROCESSED_RESULTS,
                     value: [queryId],
                 });
@@ -380,9 +380,9 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         : new LoggableException('Query was cancelled', {}, LOG_CTX);
                     traced.warn("Cancelled query during result processing", {
                         query: queryId.toString(),
-                        session: sessionId,
+                        notebookId,
                     }, LOG_CTX);
-                    connDispatch(sessionId, {
+                    connDispatch(notebookId, {
                         type: QUERY_CANCELLED,
                         value: [queryId, cancellationError, resultStream?.getMetrics() ?? null],
                     });
@@ -395,11 +395,11 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     }, LOG_CTX);
                 traced.warn("Query result processing failed", {
                     query: queryId.toString(),
-                    session: sessionId,
+                    notebookId,
                     error: processingError.message,
                     ...processingError.keyValues,
                 }, LOG_CTX);
-                connDispatch(sessionId, {
+                connDispatch(notebookId, {
                     type: QUERY_FAILED,
                     value: [queryId, processingError, null],
                 });
@@ -408,7 +408,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         }
 
         // Mark as succeeded
-        connDispatch(sessionId, {
+        connDispatch(notebookId, {
             type: QUERY_SUCCEEDED,
             value: [queryId],
         });
@@ -418,11 +418,11 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         // a quota/permission failure just logs.
         if (!servedFromCache && cacheHash != null && table != null) {
             const bytes = arrow.tableToIPC(table, 'stream');
-            void storageReader.backend.saveQueryResultCache(sessionId, cacheHash, bytes).then(() => {
+            void storageReader.backend.saveQueryResultCache(notebookId, cacheHash, bytes).then(() => {
                 // The write landed: record the key (but not servedFromCache — this run hit the
                 // backend) so the UI can offer to delete the freshly-cached entry. The "cached at"
                 // time is the write we just made; a later hit reads the precise mtime from disk.
-                connDispatch(sessionId, {
+                connDispatch(notebookId, {
                     type: QUERY_CACHE_RECORDED,
                     value: [queryId, cacheHash, false, null],
                 });
@@ -436,20 +436,20 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     }, [computeDb, connMap, computeDispatch, logger, sfApi, storageReader]);
 
     // Allocate the next query id and start the execution
-    const execute = React.useCallback<QueryExecutor>((sessionId: string, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] => {
+    const execute = React.useCallback<QueryExecutor>((notebookId: string, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] => {
         const queryId = NEXT_QUERY_ID++;
         const runtime: QueryExecutionRuntime = {
             cancellation: new AbortController(),
             resultStream: null,
         };
         queryRuntimes.current.set(queryId, runtime);
-        const execution = executeImpl(sessionId, args, queryId, runtime);
+        const execution = executeImpl(notebookId, args, queryId, runtime);
         const removeRuntime = () => queryRuntimes.current.delete(queryId);
         void execution.then(removeRuntime, removeRuntime);
         return [queryId, execution];
     }, [executeImpl]);
 
-    const cancel = React.useCallback<CancelQuery>((sessionId, queryId) => {
+    const cancel = React.useCallback<CancelQuery>((notebookId, queryId) => {
         const runtime = queryRuntimes.current.get(queryId);
         if (runtime == null) return;
         runtime.cancellation.abort();
@@ -457,7 +457,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         void cancellation?.catch((e: any) => {
             logger.warn('Failed to cancel query at the backend', {
                 query: queryId.toString(),
-                session: sessionId,
+                notebookId,
                 error: stringifyError(e),
             }, LOG_CTX);
         });

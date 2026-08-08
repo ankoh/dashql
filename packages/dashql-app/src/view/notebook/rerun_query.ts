@@ -1,20 +1,20 @@
 import type { QueryExecutor } from '../../connection/query_executor.js';
 import { QueryType } from '../../connection/query_execution_state.js';
-import { NotebookState, ScriptData, REGISTER_QUERY, REGISTER_SCRIPT_OUTPUT_SCHEMA, getExecutableQueryText } from '../../notebook/notebook_state.js';
-import { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
-import { projectionForVisualizeQuery } from '../../notebook/notebook_types.js';
+import { NotebookScripts, ScriptData, REGISTER_QUERY, REGISTER_SCRIPT_OUTPUT_SCHEMA, getExecutableQueryText } from '../../scripts/notebook_scripts.js';
+import { ModifyNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
+import { projectionForVisualizeQuery } from '../../scripts/script_types.js';
 
-export function registerNotebookQuery(
+export function registerNotebookScriptQuery(
     scriptData: ScriptData,
     queryId: number,
     queryText: string,
     execution: Promise<import('apache-arrow').Table | null>,
-    modifyNotebook: ModifyNotebook,
+    modifyNotebookScripts: ModifyNotebookScripts,
 ): void {
-    modifyNotebook({ type: REGISTER_QUERY, value: [scriptData.scriptKey, queryId] });
+    modifyNotebookScripts({ type: REGISTER_QUERY, value: [scriptData.scriptKey, queryId] });
     void execution.then(table => {
         if (table == null) return;
-        modifyNotebook({
+        modifyNotebookScripts({
             type: REGISTER_SCRIPT_OUTPUT_SCHEMA,
             value: {
                 scriptKey: scriptData.scriptKey,
@@ -27,16 +27,16 @@ export function registerNotebookQuery(
 }
 
 export function rerunEntry(
-    notebook: NotebookState,
+    notebookScripts: NotebookScripts,
     scriptData: ScriptData,
     executeQuery: QueryExecutor,
-    modifyNotebook: ModifyNotebook,
+    modifyNotebookScripts: ModifyNotebookScripts,
 ): void {
-    const queryText = getExecutableQueryText(notebook, scriptData);
+    const queryText = getExecutableQueryText(notebookScripts, scriptData);
     if (queryText.trim().length === 0) {
         return;
     }
-    const [queryId, execution] = executeQuery(notebook.sessionId, {
+    const [queryId, execution] = executeQuery(notebookScripts.notebookId, {
         query: queryText,
         analyzeResults: true,
         replaceComputationId: scriptData.latestQueryId,
@@ -50,5 +50,5 @@ export function rerunEntry(
             userProvided: true,
         },
     });
-    registerNotebookQuery(scriptData, queryId, queryText, execution, modifyNotebook);
+    registerNotebookScriptQuery(scriptData, queryId, queryText, execution, modifyNotebookScripts);
 }

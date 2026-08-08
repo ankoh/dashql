@@ -24,7 +24,7 @@ import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_
 import { isNativePlatform } from '../../platform/native_globals.js';
 import { ConnectionStateDetailsVariant } from '../../connection/connection_state_details.js';
 import type { DetailedError } from '../../connection/connection_types.js';
-import { useAnyConnectionNotebook } from './connection_notebook.js';
+import { useAnyConnectionNotebookScripts } from './connection_notebook_scripts.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { collectSalesforceAuthInfo } from '../../connection/salesforce/salesforce_api_client.js';
 
@@ -120,7 +120,7 @@ export function getConnectionError(status: ConnectionStateDetailsVariant | null)
 }
 
 interface Props {
-    sessionId: string | null;
+    notebookId: string | null;
     onClose?: () => void;
 }
 
@@ -132,13 +132,13 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
 
     // Resolve connection state
-    const [connectionState, dispatchConnectionState] = useConnectionState(props.sessionId);
-    const connectionNotebook = useAnyConnectionNotebook(props.sessionId);
+    const [connectionState, dispatchConnectionState] = useConnectionState(props.notebookId);
+    const connectionNotebookScripts = useAnyConnectionNotebookScripts(props.notebookId);
     const salesforceConnection = getSalesforceConnectionDetails(connectionState);
 
-    // Seed the form state from the restored connection params so a session
+    // Seed the form state from the restored connection params so a notebook
     // that was saved across an app restart displays its endpoint/key.
-    // Re-seeds whenever the stored setupParams reference changes (session
+    // Re-seeds whenever the stored setupParams reference changes (notebook
     // switch, async storage hydration, or an action like RESET that swaps
     // the wrapper state).
     const buildPageState = (params: connection.SalesforceConnectionParams | undefined): PageState => ({
@@ -222,7 +222,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
             setupAbortController.current = new AbortController();
             const sfChannel = await sfSetup.setup(dispatchConnectionState, setupParams, setupAbortController.current.signal);
             if (connectionState != null) {
-                await performHealthCheck(queryExecutor, connectionState.sessionId, { type: 'salesforce', channel: sfChannel }, dispatchConnectionState, setupAbortController.current.signal);
+                await performHealthCheck(queryExecutor, connectionState.notebookId, { type: 'salesforce', channel: sfChannel }, dispatchConnectionState, setupAbortController.current.signal);
             }
 
 
@@ -294,7 +294,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
                 setupConnection={setupConnection}
                 cancelSetup={cancelSetup}
                 resetSetup={resetSetup}
-                notebook={connectionNotebook}
+                notebookScripts={connectionNotebookScripts}
                 protocol={hyperProtocol}
                 protocols={["V3_GRPC", "V3_HTTP"]}
                 onProtocolChange={setHyperProtocol}

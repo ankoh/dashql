@@ -28,7 +28,7 @@ import { performHealthCheck } from '../../connection/health_check.js';
 import { useHyperSetup } from '../../connection/hyper/hyper_connection_setup.js';
 import { getHyperConnectionDetails } from '../../connection/hyper/hyper_connection_state.js';
 import { useQueryExecutor } from '../../connection/query_executor.js';
-import { useAnyConnectionNotebook } from './connection_notebook.js';
+import { useAnyConnectionNotebookScripts } from './connection_notebook_scripts.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
 import { isNativePlatform } from '../../platform/native_globals.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
@@ -65,7 +65,7 @@ function buildPageStateFromParams(params: connection.HyperConnectionParams | und
 }
 
 interface Props {
-    sessionId: string | null;
+    notebookId: string | null;
     onClose?: () => void;
 }
 
@@ -80,13 +80,13 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER];
 
     // Wire up the page state
-    const [connectionState, dispatchConnectionState] = useConnectionState(props.sessionId);
-    const connectionNotebook = useAnyConnectionNotebook(props.sessionId);
+    const [connectionState, dispatchConnectionState] = useConnectionState(props.notebookId);
+    const connectionNotebookScripts = useAnyConnectionNotebookScripts(props.notebookId);
     const hyperConnection = getHyperConnectionDetails(connectionState);
 
-    // Seed the form state from the restored connection params so a session
+    // Seed the form state from the restored connection params so a notebook
     // that was saved across an app restart displays its endpoint/etc.
-    // Re-seeds whenever the stored setupParams reference changes (session
+    // Re-seeds whenever the stored setupParams reference changes (notebook
     // switch, async storage hydration, or an action like RESET that swaps
     // the wrapper state).
     const [pageState, setPageState] = React.useState<PageState>(() =>
@@ -159,7 +159,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
             setupAbortController.current = new AbortController();
             const hyperChannel = await hyperSetup.setup(dispatchConnectionState, setupParams, setupAbortController.current.signal);
             if (hyperChannel != null) {
-                await performHealthCheck(queryExecutor, connectionState.sessionId, { type: 'hyper', channel: hyperChannel }, dispatchConnectionState, setupAbortController.current.signal);
+                await performHealthCheck(queryExecutor, connectionState.notebookId, { type: 'hyper', channel: hyperChannel }, dispatchConnectionState, setupAbortController.current.signal);
             }
 
             // Start the the inital catalog update
@@ -209,7 +209,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                 setupConnection={isDocker ? undefined : setupConnection}
                 cancelSetup={isDocker ? undefined : cancelSetup}
                 resetSetup={isDocker ? undefined : resetSetup}
-                notebook={connectionNotebook}
+                notebookScripts={connectionNotebookScripts}
                 protocol={protocol}
                 protocols={protocols}
                 onProtocolChange={setProtocol}
@@ -238,7 +238,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
             />
             {isDocker ? (
                 <HyperDockerSettingsPanel
-                    sessionId={props.sessionId}
+                    notebookId={props.notebookId}
                     freezeInput={freezeInput}
                     mode={dockerMode}
                     setMode={setDockerMode}
@@ -337,4 +337,3 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
         </ div>
     );
 };
-

@@ -5,7 +5,7 @@ export interface NotebookPageTabPlacement {
     side: 'left' | 'selected' | 'right';
 }
 
-export interface NotebookPageTabLayout {
+export interface ScriptFolderTabLayout {
     stacked: boolean;
     placements: NotebookPageTabPlacement[];
 }
@@ -19,7 +19,7 @@ export function layoutNotebookPageTabs(
     viewportWidth: number,
     naturalWidths: number[],
     selectedIndex: number,
-): NotebookPageTabLayout {
+): ScriptFolderTabLayout {
     if (naturalWidths.length === 0) return { stacked: false, placements: [] };
 
     const widths = naturalWidths.map(width => Math.max(1, width));

@@ -15,8 +15,8 @@ import { DockerManager } from './docker_manager.js';
 import { useDockerClient } from '../../platform/docker/docker_client_provider.js';
 
 interface InternalsViewerProps {
-    /// The active session UUID, used by session-scoped tabs (e.g. the query cache inspector).
-    sessionId: string | null;
+    /// The active notebook UUID, used by notebook-scoped tabs (e.g. the query cache inspector).
+    notebookId: string | null;
     onClose: () => void;
 }
 
@@ -117,10 +117,10 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     <QueryViewer onClose={props.onClose} />
                 ),
                 [TabKey.StorageWriter]: _props => (
-                    <StorageWriterView sessionId={props.sessionId} onClose={props.onClose} />
+                    <StorageWriterView notebookId={props.notebookId} onClose={props.onClose} />
                 ),
                 [TabKey.QueryCache]: _props => (
-                    <QueryCacheView sessionId={props.sessionId} onClose={props.onClose} />
+                    <QueryCacheView notebookId={props.notebookId} onClose={props.onClose} />
                 ),
                 [TabKey.Docker]: _props => (
                     <DockerManager onClose={props.onClose} />
@@ -137,10 +137,10 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
 }
 
 type InternalsViewerOverlayProps = {
-    /// The active session UUID, forwarded to session-scoped tabs (e.g. the query cache inspector).
-    /// Omitted on setup/loading pages that have no active session — the query cache tab then shows
-    /// an empty "no active session" state.
-    sessionId?: string | null;
+    /// The active notebook UUID, forwarded to notebook-scoped tabs (e.g. the query cache inspector).
+    /// Omitted on setup/loading pages that have no active notebook — the query cache tab then shows
+    /// an empty "no active notebook" state.
+    notebookId?: string | null;
     isOpen: boolean;
     onClose: () => void;
     renderAnchor: (p: object) => React.ReactElement;
@@ -162,7 +162,7 @@ export function InternalsViewerOverlay(props: InternalsViewerOverlayProps) {
                 height: OverlaySize.L,
             }}
         >
-            <InternalsViewer sessionId={props.sessionId ?? null} onClose={props.onClose} />
+            <InternalsViewer notebookId={props.notebookId ?? null} onClose={props.onClose} />
         </AnchoredOverlay>
     );
 }

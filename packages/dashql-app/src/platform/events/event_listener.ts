@@ -3,7 +3,7 @@ import * as buf from "@bufbuild/protobuf";
 
 import { BASE64URL_CODEC } from '../../utils/base64.js';
 import { Logger, stringifyError } from '../logger/logger.js';
-import { PlatformDragDropEventVariant, SETUP_SESSION, SetupEventVariant } from './event.js';
+import { PlatformDragDropEventVariant, SETUP_NOTEBOOK, SetupEventVariant } from './event.js';
 
 const LOG_CTX = "event_listener";
 export const EVENT_QUERY_PARAMETER = "data";
@@ -60,13 +60,13 @@ export abstract class PlatformEventListener {
     public dispatchAppEvent(event: app_event.AppEventData) {
         if ('oauthRedirect' in event) {
             this.dispatchOAuthRedirect(event.oauthRedirect);
-        } else if ('session' in event) {
-            // Decode base64url session data to Uint8Array
-            const sessionBuffer = BASE64URL_CODEC.decode(event.session);
-            const sessionBytes = new Uint8Array(sessionBuffer);
+        } else if ('notebook' in event) {
+            // Decode base64url notebook data to Uint8Array
+            const notebookBuffer = BASE64URL_CODEC.decode(event.notebook);
+            const notebookBytes = new Uint8Array(notebookBuffer);
             const setupEvent: SetupEventVariant = {
-                type: SETUP_SESSION,
-                value: sessionBytes
+                type: SETUP_NOTEBOOK,
+                value: notebookBytes
             };
             this.dispatchSetup(setupEvent);
         }

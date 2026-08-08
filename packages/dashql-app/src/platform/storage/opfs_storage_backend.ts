@@ -1,15 +1,15 @@
-import { type SessionRegistryBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type StorageManifest, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_SESSIONS_FOLDER, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION, STORAGE_CACHE_ACCESS_SUFFIX } from './storage_backend.js';
+import { type NotebookRegistryBackend, type NotebookData, type ScriptFolderData, type ScriptData, type NotebookEntry, type StorageManifest, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_NOTEBOOKS_FOLDER, STORAGE_NOTEBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION, STORAGE_CACHE_ACCESS_SUFFIX } from './storage_backend.js';
 import { type CacheFileStat, type QueryResultCacheStore, evictToFit } from './query_result_cache_eviction.js';
 
 /// Origin Private File System storage backend.
 ///
-/// This backend owns the session registry (the root manifest), which lists *every* session
-/// regardless of where its files physically live. Sessions stored in OPFS keep their files under
-/// `sessions/<uuid>/…`; sessions relocated to a native directory keep only a registry entry here
+/// This backend owns the notebook registry (the root manifest), which lists *every* notebook
+/// regardless of where its files physically live. Notebooks stored in OPFS keep their files under
+/// `notebooks/<uuid>/…`; notebooks relocated to a native directory keep only a registry entry here
 /// (their files live on disk, managed by `NativeStorageBackend`).
 ///
-/// Every per-session method is keyed by the bare session UUID.
-export class OPFSStorageBackend implements SessionRegistryBackend {
+/// Every per-notebook method is keyed by the bare notebook UUID.
+export class OPFSStorageBackend implements NotebookRegistryBackend {
     private rootHandle: FileSystemDirectoryHandle | null = null;
 
     getBackendType(): StorageBackendType {
@@ -18,6 +18,30 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
 
     async initialize(): Promise<void> {
         this.rootHandle = await navigator.storage.getDirectory();
+        await this.resetObsoleteManifest(this.rootHandle);
+    }
+
+    /// The Session -> Notebook rename intentionally has no data migration. Since both versions use
+    /// the same root manifest filename, replace the obsolete registry shape with an empty notebook
+    /// registry so an existing installation can start cleanly. Keep app settings, but do not import
+    /// or delete any old session data.
+    private async resetObsoleteManifest(root: FileSystemDirectoryHandle): Promise<void> {
+        try {
+            const indexFile = await root.getFileHandle(STORAGE_MANIFEST_FILE, { create: false });
+            const file = await indexFile.getFile();
+            const manifest = JSON.parse(await file.text());
+            if (!Array.isArray(manifest?.notebooks) && Array.isArray(manifest?.sessions)) {
+                const reset: StorageManifest = { notebooks: [] };
+                if (manifest.appSettings != null) {
+                    reset.appSettings = manifest.appSettings;
+                }
+                await this.writeManifest(root, reset);
+            }
+        } catch (error) {
+            if ((error as any).name !== 'NotFoundError') {
+                throw error;
+            }
+        }
     }
 
     private ensureInitialized(): FileSystemDirectoryHandle {
@@ -27,9 +51,9 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         return this.rootHandle;
     }
 
-    /// The relative folder that holds a session's files, e.g. "sessions/<uuid>"
-    private sessionRelPath(sessionId: string): string {
-        return `${STORAGE_SESSIONS_FOLDER}/${sessionId}`;
+    /// The relative folder that holds a notebook's files, e.g. "notebooks/<uuid>"
+    private notebookRelPath(notebookId: string): string {
+        return `${STORAGE_NOTEBOOKS_FOLDER}/${notebookId}`;
     }
 
     /// Natural sort for strings with numeric components (e.g., "page-1" < "page-2" < "page-10")
@@ -37,7 +61,7 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
     }
 
-    async listSessions(manifestPath: string): Promise<SessionEntry[]> {
+    async listNotebooks(manifestPath: string): Promise<NotebookEntry[]> {
         const root = this.ensureInitialized();
         try {
             const indexFile = await root.getFileHandle(manifestPath, { create: false });
@@ -45,18 +69,18 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
             const text = await file.text();
             const manifest: StorageManifest = JSON.parse(text);
 
-            if (!manifest.sessions || !Array.isArray(manifest.sessions)) {
-                throw new Error('Invalid manifest format: sessions must be an array');
+            if (!manifest.notebooks || !Array.isArray(manifest.notebooks)) {
+                throw new Error('Invalid manifest format: notebooks must be an array');
             }
 
             // Validate entries
-            for (const entry of manifest.sessions) {
+            for (const entry of manifest.notebooks) {
                 if (!entry.path) {
-                    throw new Error('Invalid manifest format: each session must have path');
+                    throw new Error('Invalid manifest format: each notebook must have path');
                 }
             }
 
-            return manifest.sessions;
+            return manifest.notebooks;
         } catch (error) {
             // If file doesn't exist, return empty array
             if ((error as any).name === 'NotFoundError') {
@@ -67,45 +91,45 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         }
     }
 
-    async loadSession(sessionId: string): Promise<SessionData> {
-        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), false);
-        const metaFile = await sessionDir.getFileHandle(STORAGE_SESSION_FILE);
+    async loadNotebook(notebookId: string): Promise<NotebookData> {
+        const notebookDir = await this.getNotebookDir(this.notebookRelPath(notebookId), false);
+        const metaFile = await notebookDir.getFileHandle(STORAGE_NOTEBOOK_FILE);
         const file = await metaFile.getFile();
         const text = await file.text();
-        const data: SessionData = JSON.parse(text);
+        const data: NotebookData = JSON.parse(text);
 
-        // sessionId is required - will throw if missing
-        if (!data.sessionId) {
-            throw new Error(`Session ${sessionId} is missing required sessionId field. Please migrate the session or regenerate it.`);
+        // notebookId is required - will throw if missing
+        if (!data.notebookId) {
+            throw new Error(`Notebook ${notebookId} is missing required notebookId field. Please migrate the notebook or regenerate it.`);
         }
 
         return data;
     }
 
-    async saveSessionManifest(sessionId: string, data: SessionData): Promise<void> {
-        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), true);
-        const metaFile = await sessionDir.getFileHandle(STORAGE_SESSION_FILE, { create: true });
+    async saveNotebookManifest(notebookId: string, data: NotebookData): Promise<void> {
+        const notebookDir = await this.getNotebookDir(this.notebookRelPath(notebookId), true);
+        const metaFile = await notebookDir.getFileHandle(STORAGE_NOTEBOOK_FILE, { create: true });
         const writable = await metaFile.createWritable();
         await writable.write(JSON.stringify(data, null, 2));
         await writable.close();
 
-        await this.upsertSessionEntry({ path: sessionId, storageType: StorageBackendType.OPFS });
+        await this.upsertNotebookEntry({ path: notebookId, storageType: StorageBackendType.OPFS });
     }
 
-    async deleteSession(sessionId: string): Promise<void> {
-        await this.deleteSessionFiles(sessionId);
-        // Always try to update the manifest even if the session files weren't found
+    async deleteNotebook(notebookId: string): Promise<void> {
+        await this.deleteNotebookFiles(notebookId);
+        // Always try to update the manifest even if the notebook files weren't found
         // (in case the manifest still has a stale reference).
-        await this.removeSessionEntry(sessionId);
+        await this.removeNotebookEntry(notebookId);
     }
 
-    /// Delete a session's files only, leaving the registry entry intact.
-    async deleteSessionFiles(sessionId: string): Promise<void> {
-        const relativePath = this.sessionRelPath(sessionId);
+    /// Delete a notebook's files only, leaving the registry entry intact.
+    async deleteNotebookFiles(notebookId: string): Promise<void> {
+        const relativePath = this.notebookRelPath(notebookId);
         const root = this.ensureInitialized();
 
         try {
-            // Navigate to the parent directory, then remove the session entry
+            // Navigate to the parent directory, then remove the notebook entry
             const parts = relativePath.split('/').filter(p => p);
             if (parts.length > 0) {
                 let parentDir: FileSystemDirectoryHandle = root;
@@ -115,17 +139,17 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
                 await parentDir.removeEntry(parts[parts.length - 1], { recursive: true });
             }
         } catch (error) {
-            // If sessions folder or session doesn't exist, that's fine - it's already deleted
+            // If notebooks folder or notebook doesn't exist, that's fine - it's already deleted
             if ((error as any).name !== 'NotFoundError') {
                 throw error;
             }
         }
     }
 
-    async loadSessionSchema(sessionId: string): Promise<string | null> {
+    async loadNotebookSchema(notebookId: string): Promise<string | null> {
         try {
-            const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), false);
-            const schemaFile = await sessionDir.getFileHandle(STORAGE_SCRIPT_SCHEMA, { create: false });
+            const notebookDir = await this.getNotebookDir(this.notebookRelPath(notebookId), false);
+            const schemaFile = await notebookDir.getFileHandle(STORAGE_SCRIPT_SCHEMA, { create: false });
             const file = await schemaFile.getFile();
             return await file.text();
         } catch {
@@ -133,18 +157,18 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         }
     }
 
-    async saveSessionSchema(sessionId: string, sql: string): Promise<void> {
-        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), true);
-        const schemaFile = await sessionDir.getFileHandle(STORAGE_SCRIPT_SCHEMA, { create: true });
+    async saveNotebookSchema(notebookId: string, sql: string): Promise<void> {
+        const notebookDir = await this.getNotebookDir(this.notebookRelPath(notebookId), true);
+        const schemaFile = await notebookDir.getFileHandle(STORAGE_SCRIPT_SCHEMA, { create: true });
         const writable = await schemaFile.createWritable();
         await writable.write(sql);
         await writable.close();
     }
 
-    async loadSessionFunctions(sessionId: string): Promise<string | null> {
+    async loadNotebookFunctions(notebookId: string): Promise<string | null> {
         try {
-            const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), false);
-            const functionsFile = await sessionDir.getFileHandle(STORAGE_SCRIPT_FUNCTIONS, { create: false });
+            const notebookDir = await this.getNotebookDir(this.notebookRelPath(notebookId), false);
+            const functionsFile = await notebookDir.getFileHandle(STORAGE_SCRIPT_FUNCTIONS, { create: false });
             const file = await functionsFile.getFile();
             return await file.text();
         } catch {
@@ -152,47 +176,47 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         }
     }
 
-    async saveSessionFunctions(sessionId: string, sql: string): Promise<void> {
-        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), true);
-        const functionsFile = await sessionDir.getFileHandle(STORAGE_SCRIPT_FUNCTIONS, { create: true });
+    async saveNotebookFunctions(notebookId: string, sql: string): Promise<void> {
+        const notebookDir = await this.getNotebookDir(this.notebookRelPath(notebookId), true);
+        const functionsFile = await notebookDir.getFileHandle(STORAGE_SCRIPT_FUNCTIONS, { create: true });
         const writable = await functionsFile.createWritable();
         await writable.write(sql);
         await writable.close();
     }
 
-    async loadNotebookPages(sessionId: string): Promise<PageData[]> {
-        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), false).catch((error) => {
+    async loadScriptFolders(notebookId: string): Promise<ScriptFolderData[]> {
+        const notebookDir = await this.getNotebookDir(this.notebookRelPath(notebookId), false).catch((error) => {
             if ((error as any).name === 'NotFoundError') return null;
             throw error;
         });
-        if (!sessionDir) {
+        if (!notebookDir) {
             return [];
         }
-        let notebookDir: FileSystemDirectoryHandle;
+        let scriptsDir: FileSystemDirectoryHandle;
         try {
-            notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: false });
+            scriptsDir = await notebookDir.getDirectoryHandle(STORAGE_SCRIPTS_FOLDER, { create: false });
         } catch (error) {
             if ((error as any).name === 'NotFoundError') {
                 return [];
             }
             throw error;
         }
-        const pages: PageData[] = [];
+        const folders: ScriptFolderData[] = [];
 
-        for await (const [name, handle] of notebookDir.entries()) {
+        for await (const [name, handle] of scriptsDir.entries()) {
             if (handle.kind === 'directory') {
-                const scripts = await this.loadScriptsInPage(handle as FileSystemDirectoryHandle);
-                pages.push({ name, scripts });
+                const scripts = await this.loadScriptsInFolder(handle as FileSystemDirectoryHandle);
+                folders.push({ name, scripts });
             }
         }
-        pages.sort((a, b) => this.naturalSort(a.name, b.name));
-        return pages;
+        folders.sort((a, b) => this.naturalSort(a.name, b.name));
+        return folders;
     }
 
-    private async loadScriptsInPage(pageDir: FileSystemDirectoryHandle): Promise<ScriptData[]> {
+    private async loadScriptsInFolder(folderDir: FileSystemDirectoryHandle): Promise<ScriptData[]> {
         const scripts: ScriptData[] = [];
 
-        for await (const [name, handle] of pageDir.entries()) {
+        for await (const [name, handle] of folderDir.entries()) {
             if (handle.kind === 'file' && name.endsWith('.sql') && name !== STORAGE_SCRIPT_DRAFT) {
                 const file = await (handle as FileSystemFileHandle).getFile();
                 const sql = await file.text();
@@ -203,30 +227,30 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         return scripts;
     }
 
-    async createNotebookPage(sessionId: string, pageName: string): Promise<void> {
-        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), true);
-        const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: true });
-        await notebookDir.getDirectoryHandle(pageName, { create: true });
+    async createScriptFolder(notebookId: string, folderName: string): Promise<void> {
+        const notebookDir = await this.getNotebookDir(this.notebookRelPath(notebookId), true);
+        const scriptsDir = await notebookDir.getDirectoryHandle(STORAGE_SCRIPTS_FOLDER, { create: true });
+        await scriptsDir.getDirectoryHandle(folderName, { create: true });
     }
 
-    async deleteNotebookPage(sessionId: string, pageName: string): Promise<void> {
-        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), false);
-        const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER);
-        await notebookDir.removeEntry(pageName, { recursive: true });
+    async deleteScriptFolder(notebookId: string, folderName: string): Promise<void> {
+        const notebookDir = await this.getNotebookDir(this.notebookRelPath(notebookId), false);
+        const scriptsDir = await notebookDir.getDirectoryHandle(STORAGE_SCRIPTS_FOLDER);
+        await scriptsDir.removeEntry(folderName, { recursive: true });
     }
 
-    async renameNotebookPage(sessionId: string, oldPageName: string, newPageName: string): Promise<void> {
-        if (oldPageName === newPageName) {
+    async renameScriptFolder(notebookId: string, oldFolderName: string, newFolderName: string): Promise<void> {
+        if (oldFolderName === newFolderName) {
             return;
         }
-        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), true);
-        const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: true });
+        const notebookDir = await this.getNotebookDir(this.notebookRelPath(notebookId), true);
+        const scriptsDir = await notebookDir.getDirectoryHandle(STORAGE_SCRIPTS_FOLDER, { create: true });
 
-        // The source folder may not exist yet (the page was created and renamed before its first
+        // The source folder may not exist yet (the folder was created and renamed before its first
         // flush); there is then nothing on disk to move, so leave it for the pending write.
         let oldDir: FileSystemDirectoryHandle;
         try {
-            oldDir = await notebookDir.getDirectoryHandle(oldPageName, { create: false });
+            oldDir = await scriptsDir.getDirectoryHandle(oldFolderName, { create: false });
         } catch (error) {
             if ((error as any).name === 'NotFoundError') {
                 return;
@@ -237,7 +261,7 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         // OPFS has no atomic directory rename, so create the target folder and move every file into
         // it. Collect names up front: moving (or copy+delete) mutates the source dir, and mutating it
         // mid-iteration is unsafe. Pages only ever contain files (scripts), so nested dirs are ignored.
-        const newDir = await notebookDir.getDirectoryHandle(newPageName, { create: true });
+        const newDir = await scriptsDir.getDirectoryHandle(newFolderName, { create: true });
         const fileNames: string[] = [];
         for await (const [name, handle] of oldDir.entries()) {
             if (handle.kind === 'file') {
@@ -247,7 +271,7 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         for (const name of fileNames) {
             await this.moveFile(oldDir, name, newDir, name);
         }
-        await notebookDir.removeEntry(oldPageName, { recursive: true });
+        await scriptsDir.removeEntry(oldFolderName, { recursive: true });
     }
 
     /// Move a single file between (or within) OPFS directories, preserving its contents byte-for-byte.
@@ -282,65 +306,65 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
     }
 
 
-    async loadNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<ScriptData> {
-        const pageDir = await this.getPageDir(this.sessionRelPath(sessionId), pageName, false);
+    async loadScript(notebookId: string, folderName: string, scriptName: string): Promise<ScriptData> {
+        const folderDir = await this.getFolderDir(this.notebookRelPath(notebookId), folderName, false);
 
         try {
-            const fileHandle = await pageDir.getFileHandle(scriptName);
+            const fileHandle = await folderDir.getFileHandle(scriptName);
             const file = await fileHandle.getFile();
             const sql = await file.text();
             return { name: scriptName, sql };
         } catch {
-            throw new Error(`Script not found: session ${sessionId}, page ${pageName}, script ${scriptName}`);
+            throw new Error(`Script not found: notebook ${notebookId}, folder ${folderName}, script ${scriptName}`);
         }
     }
 
-    async saveNotebookScript(
-        sessionId: string,
-        pageName: string,
+    async saveScript(
+        notebookId: string,
+        folderName: string,
         scriptName: string,
         sql: string
     ): Promise<void> {
-        const pageDir = await this.getPageDir(this.sessionRelPath(sessionId), pageName, true);
-        const fileHandle = await pageDir.getFileHandle(scriptName, { create: true });
+        const folderDir = await this.getFolderDir(this.notebookRelPath(notebookId), folderName, true);
+        const fileHandle = await folderDir.getFileHandle(scriptName, { create: true });
         const writable = await fileHandle.createWritable();
         await writable.write(sql);
         await writable.close();
     }
 
-    async deleteNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<void> {
-        const pageDir = await this.getPageDir(this.sessionRelPath(sessionId), pageName, false);
-        await pageDir.removeEntry(scriptName);
+    async deleteScript(notebookId: string, folderName: string, scriptName: string): Promise<void> {
+        const folderDir = await this.getFolderDir(this.notebookRelPath(notebookId), folderName, false);
+        await folderDir.removeEntry(scriptName);
     }
 
-    async renameNotebookScript(sessionId: string, pageName: string, oldScriptName: string, newScriptName: string): Promise<void> {
+    async renameScript(notebookId: string, folderName: string, oldScriptName: string, newScriptName: string): Promise<void> {
         if (oldScriptName === newScriptName) {
             return;
         }
-        // Navigate without creating anything: if the session, page, or source file isn't flushed yet,
+        // Navigate without creating anything: if the notebook, page, or source file isn't flushed yet,
         // the pending write under the new name creates them, so there is nothing to move. The
-        // notebook/page/file handles surface a raw OPFS NotFoundError, but getSessionDir re-wraps that
+        // scripts/folder/file handles surface a raw OPFS NotFoundError, but getNotebookDir re-wraps that
         // into a generic "Directory not found" Error, so the no-op guard has to recognise both forms.
-        let pageDir: FileSystemDirectoryHandle;
+        let folderDir: FileSystemDirectoryHandle;
         try {
-            const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), false);
-            const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: false });
-            pageDir = await notebookDir.getDirectoryHandle(pageName, { create: false });
-            await pageDir.getFileHandle(oldScriptName, { create: false });
+            const notebookDir = await this.getNotebookDir(this.notebookRelPath(notebookId), false);
+            const scriptsDir = await notebookDir.getDirectoryHandle(STORAGE_SCRIPTS_FOLDER, { create: false });
+            folderDir = await scriptsDir.getDirectoryHandle(folderName, { create: false });
+            await folderDir.getFileHandle(oldScriptName, { create: false });
         } catch (error) {
             if ((error as any).name === 'NotFoundError' || ((error as any).message ?? '').startsWith('Directory not found')) {
                 return;
             }
             throw error;
         }
-        await this.moveFile(pageDir, oldScriptName, pageDir, newScriptName);
+        await this.moveFile(folderDir, oldScriptName, folderDir, newScriptName);
     }
 
-    async loadNotebookScriptDraft(sessionId: string): Promise<string | null> {
+    async loadScriptDraft(notebookId: string): Promise<string | null> {
         try {
-            const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), false);
-            const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: false });
-            const draftFile = await notebookDir.getFileHandle(STORAGE_SCRIPT_DRAFT, { create: false });
+            const notebookDir = await this.getNotebookDir(this.notebookRelPath(notebookId), false);
+            const scriptsDir = await notebookDir.getDirectoryHandle(STORAGE_SCRIPTS_FOLDER, { create: false });
+            const draftFile = await scriptsDir.getFileHandle(STORAGE_SCRIPT_DRAFT, { create: false });
             const file = await draftFile.getFile();
             return await file.text();
         } catch {
@@ -348,23 +372,23 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         }
     }
 
-    async saveNotebookScriptDraft(sessionId: string, sql: string): Promise<void> {
-        const sessionDir = await this.getSessionDir(this.sessionRelPath(sessionId), true);
-        const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: true });
-        const draftFile = await notebookDir.getFileHandle(STORAGE_SCRIPT_DRAFT, { create: true });
+    async saveScriptDraft(notebookId: string, sql: string): Promise<void> {
+        const notebookDir = await this.getNotebookDir(this.notebookRelPath(notebookId), true);
+        const scriptsDir = await notebookDir.getDirectoryHandle(STORAGE_SCRIPTS_FOLDER, { create: true });
+        const draftFile = await scriptsDir.getFileHandle(STORAGE_SCRIPT_DRAFT, { create: true });
         const writable = await draftFile.createWritable();
         await writable.write(sql);
         await writable.close();
     }
 
-    /// The relative folder that holds a session's cached query results, e.g. "sessions/<uuid>/cache"
-    private cacheRelPath(sessionId: string): string {
-        return `${this.sessionRelPath(sessionId)}/${STORAGE_CACHE_FOLDER}`;
+    /// The relative folder that holds a notebook's cached query results, e.g. "notebooks/<uuid>/cache"
+    private cacheRelPath(notebookId: string): string {
+        return `${this.notebookRelPath(notebookId)}/${STORAGE_CACHE_FOLDER}`;
     }
 
-    async loadQueryResultCache(sessionId: string, hash: string): Promise<CachedQueryResult | null> {
+    async loadQueryResultCache(notebookId: string, hash: string): Promise<CachedQueryResult | null> {
         try {
-            const cacheDir = await this.getSessionDir(this.cacheRelPath(sessionId), false);
+            const cacheDir = await this.getNotebookDir(this.cacheRelPath(notebookId), false);
             const fileHandle = await cacheDir.getFileHandle(`${hash}${STORAGE_CACHE_EXTENSION}`, { create: false });
             const file = await fileHandle.getFile();
             return {
@@ -422,7 +446,7 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
                     lastAccessMs: accessMs.get(p.name) ?? p.mtimeMs,
                 }));
             },
-            deleteCacheFile: async (_sessionId: string, name: string): Promise<void> => {
+            deleteCacheFile: async (_notebookId: string, name: string): Promise<void> => {
                 // Drop the payload and its access marker together; tolerate either being gone.
                 for (const entry of [name, `${name}${STORAGE_CACHE_ACCESS_SUFFIX}`]) {
                     try {
@@ -445,11 +469,11 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         await writable.close();
     }
 
-    async saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void> {
-        const cacheDir = await this.getSessionDir(this.cacheRelPath(sessionId), true);
+    async saveQueryResultCache(notebookId: string, hash: string, bytes: Uint8Array): Promise<void> {
+        const cacheDir = await this.getNotebookDir(this.cacheRelPath(notebookId), true);
 
         // Evict least-recently-used entries first so the new file fits under the thresholds.
-        await evictToFit(this.cacheStoreForDir(cacheDir), sessionId, bytes.byteLength);
+        await evictToFit(this.cacheStoreForDir(cacheDir), notebookId, bytes.byteLength);
 
         const fileHandle = await cacheDir.getFileHandle(`${hash}${STORAGE_CACHE_EXTENSION}`, { create: true });
         const writable = await fileHandle.createWritable();
@@ -464,28 +488,28 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         await this.writeEmptyFile(cacheDir, `${hash}${STORAGE_CACHE_EXTENSION}${STORAGE_CACHE_ACCESS_SUFFIX}`);
     }
 
-    async listQueryResultCache(sessionId: string): Promise<CacheFileStat[]> {
+    async listQueryResultCache(notebookId: string): Promise<CacheFileStat[]> {
         let cacheDir: FileSystemDirectoryHandle;
         try {
-            cacheDir = await this.getSessionDir(this.cacheRelPath(sessionId), false);
+            cacheDir = await this.getNotebookDir(this.cacheRelPath(notebookId), false);
         } catch {
             // No cache folder yet — nothing cached.
             return [];
         }
-        return this.cacheStoreForDir(cacheDir).listCacheFiles(sessionId);
+        return this.cacheStoreForDir(cacheDir).listCacheFiles(notebookId);
     }
 
-    async touchQueryResultCacheAccess(sessionId: string, hash: string): Promise<void> {
+    async touchQueryResultCacheAccess(notebookId: string, hash: string): Promise<void> {
         // Bump only the empty marker's mtime — never the payload — so this stays cheap regardless of
         // result size and leaves the payload's "cached at" write time intact.
-        const cacheDir = await this.getSessionDir(this.cacheRelPath(sessionId), false);
+        const cacheDir = await this.getNotebookDir(this.cacheRelPath(notebookId), false);
         await this.writeEmptyFile(cacheDir, `${hash}${STORAGE_CACHE_EXTENSION}${STORAGE_CACHE_ACCESS_SUFFIX}`);
     }
 
-    async deleteQueryResultCache(sessionId: string, hash: string): Promise<void> {
+    async deleteQueryResultCache(notebookId: string, hash: string): Promise<void> {
         let cacheDir: FileSystemDirectoryHandle;
         try {
-            cacheDir = await this.getSessionDir(this.cacheRelPath(sessionId), false);
+            cacheDir = await this.getNotebookDir(this.cacheRelPath(notebookId), false);
         } catch (error) {
             // Missing cache folder — nothing to delete.
             if ((error as any).name === 'NotFoundError' || ((error as any).message ?? '').startsWith('Directory not found')) {
@@ -508,10 +532,10 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
     async clearAllStorage(): Promise<void> {
         const root = this.ensureInitialized();
 
-        // Step 1: Clear the manifest (reset sessions to empty array) FIRST.
-        // This ensures the app won't try to restore sessions even if directory cleanup fails.
+        // Step 1: Clear the manifest (reset notebooks to empty array) FIRST.
+        // This ensures the app won't try to restore notebooks even if directory cleanup fails.
         try {
-            const emptyManifest: StorageManifest = { sessions: [] };
+            const emptyManifest: StorageManifest = { notebooks: [] };
             const manifestFile = await root.getFileHandle(STORAGE_MANIFEST_FILE, { create: true });
             const writable = await manifestFile.createWritable();
             await writable.write(JSON.stringify(emptyManifest, null, 2));
@@ -520,11 +544,11 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
             console.warn('Failed to clear manifest:', error);
         }
 
-        // Step 2: Delete the entire sessions folder
+        // Step 2: Delete the entire notebooks folder
         try {
-            await root.removeEntry(STORAGE_SESSIONS_FOLDER, { recursive: true });
+            await root.removeEntry(STORAGE_NOTEBOOKS_FOLDER, { recursive: true });
         } catch (error) {
-            console.warn('Failed to delete sessions folder:', error);
+            console.warn('Failed to delete notebooks folder:', error);
         }
     }
 
@@ -557,13 +581,13 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
             const file = await indexFile.getFile();
             const text = await file.text();
             const manifest: StorageManifest = JSON.parse(text);
-            if (!manifest.sessions || !Array.isArray(manifest.sessions)) {
-                throw new Error('Invalid manifest format: sessions must be an array');
+            if (!manifest.notebooks || !Array.isArray(manifest.notebooks)) {
+                throw new Error('Invalid manifest format: notebooks must be an array');
             }
             return manifest;
         } catch (error) {
             if ((error as any).name === 'NotFoundError') {
-                return { sessions: [] };
+                return { notebooks: [] };
             }
             throw error;
         }
@@ -576,43 +600,43 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         await writable.close();
     }
 
-    /// Insert or replace a session's registry entry (matched by UUID), without touching files.
+    /// Insert or replace a notebook's registry entry (matched by UUID), without touching files.
     ///
-    /// The array order is the user-facing session order (surfaced in the selector, reorderable by
-    /// drag-and-drop via `reorderSessions`), so we deliberately preserve it: a new session appends to
+    /// The array order is the user-facing notebook order (surfaced in the selector, reorderable by
+    /// drag-and-drop via `reorderNotebooks`), so we deliberately preserve it: a new notebook appends to
     /// the end and an existing one is updated in place. We never re-sort.
-    async upsertSessionEntry(entry: SessionEntry): Promise<void> {
+    async upsertNotebookEntry(entry: NotebookEntry): Promise<void> {
         const root = this.ensureInitialized();
         const manifest = await this.readManifest(root);
 
-        const existingIndex = manifest.sessions.findIndex(s => s.path === entry.path);
+        const existingIndex = manifest.notebooks.findIndex(s => s.path === entry.path);
         if (existingIndex < 0) {
-            manifest.sessions.push(entry);
+            manifest.notebooks.push(entry);
         } else {
-            manifest.sessions[existingIndex] = entry;
+            manifest.notebooks[existingIndex] = entry;
         }
 
         await this.writeManifest(root, manifest);
     }
 
-    /// Remove a session's registry entry (matched by UUID), without touching files.
-    async removeSessionEntry(sessionId: string): Promise<void> {
+    /// Remove a notebook's registry entry (matched by UUID), without touching files.
+    async removeNotebookEntry(notebookId: string): Promise<void> {
         const root = this.ensureInitialized();
         const manifest = await this.readManifest(root);
-        manifest.sessions = manifest.sessions.filter(s => s.path !== sessionId);
+        manifest.notebooks = manifest.notebooks.filter(s => s.path !== notebookId);
         await this.writeManifest(root, manifest);
     }
 
-    /// Reorder the registry entries to match `orderedIds` (a permutation of the existing session
+    /// Reorder the registry entries to match `orderedIds` (a permutation of the existing notebook
     /// UUIDs), without touching files. Entries are re-emitted in the given order; any UUID not present
     /// in the manifest is ignored, and any manifest entry missing from `orderedIds` is appended at the
-    /// end in its current relative order (so a stale/racing id list can never drop a session).
-    async reorderSessions(orderedIds: string[]): Promise<void> {
+    /// end in its current relative order (so a stale/racing id list can never drop a notebook).
+    async reorderNotebooks(orderedIds: string[]): Promise<void> {
         const root = this.ensureInitialized();
         const manifest = await this.readManifest(root);
 
-        const byId = new Map(manifest.sessions.map(s => [s.path, s]));
-        const reordered: SessionEntry[] = [];
+        const byId = new Map(manifest.notebooks.map(s => [s.path, s]));
+        const reordered: NotebookEntry[] = [];
         const taken = new Set<string>();
         for (const id of orderedIds) {
             const entry = byId.get(id);
@@ -622,17 +646,17 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
             }
         }
         // Preserve any entries the caller didn't mention, keeping their existing relative order.
-        for (const entry of manifest.sessions) {
+        for (const entry of manifest.notebooks) {
             if (!taken.has(entry.path)) {
                 reordered.push(entry);
             }
         }
 
-        manifest.sessions = reordered;
+        manifest.notebooks = reordered;
         await this.writeManifest(root, manifest);
     }
 
-    private async getSessionDir(
+    private async getNotebookDir(
         relativePath: string,
         create: boolean
     ): Promise<FileSystemDirectoryHandle> {
@@ -656,18 +680,18 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         return currentDir;
     }
 
-    private async getPageDir(
-        sessionPath: string,
-        pageName: string,
+    private async getFolderDir(
+        notebookId: string,
+        folderName: string,
         create: boolean
     ): Promise<FileSystemDirectoryHandle> {
-        const sessionDir = await this.getSessionDir(sessionPath, create);
+        const notebookDir = await this.getNotebookDir(notebookId, create);
         try {
-            const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create });
-            return await notebookDir.getDirectoryHandle(pageName, { create });
+            const scriptsDir = await notebookDir.getDirectoryHandle(STORAGE_SCRIPTS_FOLDER, { create });
+            return await scriptsDir.getDirectoryHandle(folderName, { create });
         } catch (error) {
             if ((error as any).name === 'NotFoundError') {
-                throw new Error(`Directory not found: opfs://${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${pageName}`);
+                throw new Error(`Directory not found: opfs://${notebookId}/${STORAGE_SCRIPTS_FOLDER}/${folderName}`);
             }
             throw error;
         }

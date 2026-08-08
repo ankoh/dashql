@@ -1,13 +1,13 @@
 import type * as app_manifest from '@ankoh/dashql-jsonschema/app_manifest.js';
-import type * as app_session from '@ankoh/dashql-jsonschema/app_session.js';
+import type * as app_notebook from '@ankoh/dashql-jsonschema/app_notebook.js';
 
 import type { CacheFileStat } from './query_result_cache_eviction.js';
 
 // Storage file and folder naming conventions
 export const STORAGE_MANIFEST_FILE = 'dashql-manifest.json';
-export const STORAGE_SESSIONS_FOLDER = 'sessions';
-export const STORAGE_SESSION_FILE = 'dashql-session.json';
-export const STORAGE_NOTEBOOK_FOLDER = 'notebook';
+export const STORAGE_NOTEBOOKS_FOLDER = 'notebooks';
+export const STORAGE_NOTEBOOK_FILE = 'dashql-notebook.json';
+export const STORAGE_SCRIPTS_FOLDER = 'scripts';
 export const STORAGE_CACHE_FOLDER = 'cache';
 export const STORAGE_CACHE_EXTENSION = '.arrow';
 /// Suffix of the empty "last access" marker that sits beside each cached `.arrow` file, e.g.
@@ -31,12 +31,12 @@ export const STORAGE_SCRIPT_DRAFT = 'dashql-draft.sql';
 export const STORAGE_SCRIPT_EXTENSION = '.sql';
 
 // Re-export JSON Schema types
-export type SessionEntry = app_manifest.SessionEntry;
+export type NotebookEntry = app_manifest.NotebookEntry;
 export type StorageManifest = app_manifest.StorageManifest;
 export type AppSettings = app_manifest.AppSettings;
-export type SessionData = app_session.SessionData;
-export type NotebookMetadata = app_session.NotebookMetadata;
-export type ConnectionParams = app_session.ConnectionParams;
+export type NotebookData = app_notebook.NotebookData;
+export type NotebookMetadata = app_notebook.NotebookMetadata;
+export type ConnectionParams = NotebookData['connectionParams'];
 
 /// The kind of filesystem backend
 export enum StorageBackendType {
@@ -48,13 +48,13 @@ export enum StorageBackendType {
 
 /// Storage interface for DashQL.
 ///
-/// Identity model: the session UUID is authoritative. Every per-session method is keyed by the bare
-/// `sessionId` (the UUID). Backends translate that UUID into their own physical layout:
-///   - OPFS writes `sessions/<uuid>/…` under the OPFS root.
-///   - The native backend is constructed for a single directory and writes that session's files
+/// Identity model: the notebook UUID is authoritative. Every per-notebook method is keyed by the bare
+/// `notebookId` (the UUID). Backends translate that UUID into their own physical layout:
+///   - OPFS writes `notebooks/<uuid>/…` under the OPFS root.
+///   - The native backend is constructed for a single directory and writes that notebook's files
 ///     directly into it.
 /// There is no storage-prefix concept on this interface anymore; any prefix is purely for display
-/// and lives in `session_locator.ts`.
+/// and lives in `notebook_locator.ts`.
 export interface StorageBackend {
     /// Get the backend type
     getBackendType(): StorageBackendType;
@@ -62,113 +62,113 @@ export interface StorageBackend {
     /// Initialize the storage backend (optional)
     initialize?(): Promise<void>;
 
-    /// List all sessions (registry-level)
-    listSessions(manifestPath: string): Promise<SessionEntry[]>;
+    /// List all notebooks (registry-level)
+    listNotebooks(manifestPath: string): Promise<NotebookEntry[]>;
 
     /// Load persisted app settings from the manifest (registry-level)
     loadAppSettings(): Promise<AppSettings | null>;
     /// Persist app settings to the manifest (registry-level)
     saveAppSettings(settings: AppSettings): Promise<void>;
-    /// Load a session by UUID
-    loadSession(sessionId: string): Promise<SessionData>;
-    /// Save a session
-    saveSessionManifest(sessionId: string, data: SessionData): Promise<void>;
-    /// Delete a session
-    deleteSession(sessionId: string): Promise<void>;
+    /// Load a notebook by UUID
+    loadNotebook(notebookId: string): Promise<NotebookData>;
+    /// Save a notebook
+    saveNotebookManifest(notebookId: string, data: NotebookData): Promise<void>;
+    /// Delete a notebook
+    deleteNotebook(notebookId: string): Promise<void>;
 
-    /// Load session catalog schema SQL
-    loadSessionSchema(sessionId: string): Promise<string | null>;
-    /// Save session catalog schema SQL
-    saveSessionSchema(sessionId: string, sql: string): Promise<void>;
+    /// Load notebook catalog schema SQL
+    loadNotebookSchema(notebookId: string): Promise<string | null>;
+    /// Save notebook catalog schema SQL
+    saveNotebookSchema(notebookId: string, sql: string): Promise<void>;
 
-    /// Load session catalog functions SQL
-    loadSessionFunctions(sessionId: string): Promise<string | null>;
-    /// Save session catalog functions SQL
-    saveSessionFunctions(sessionId: string, sql: string): Promise<void>;
+    /// Load notebook catalog functions SQL
+    loadNotebookFunctions(notebookId: string): Promise<string | null>;
+    /// Save notebook catalog functions SQL
+    saveNotebookFunctions(notebookId: string, sql: string): Promise<void>;
 
-    /// Load notebook pages
-    loadNotebookPages(sessionId: string): Promise<PageData[]>;
-    /// Create a notebook page
-    createNotebookPage(sessionId: string, pageName: string): Promise<void>;
-    /// Delete a notebook page
-    deleteNotebookPage(sessionId: string, pageName: string): Promise<void>;
-    /// Rename a notebook page (folder), moving its contents with it.
+    /// Load script folders
+    loadScriptFolders(notebookId: string): Promise<ScriptFolderData[]>;
+    /// Create a script folder
+    createScriptFolder(notebookId: string, folderName: string): Promise<void>;
+    /// Delete a script folder
+    deleteScriptFolder(notebookId: string, folderName: string): Promise<void>;
+    /// Rename a script folder, moving its contents with it.
     ///
     /// This is the in-place alternative to delete-old + recreate-new: it keeps the scripts inside the
-    /// page exactly as they are on disk (no per-script rewrite). Native does an atomic directory
+    /// folder exactly as they are on disk (no per-script rewrite). Native does an atomic directory
     /// rename; OPFS, which has no atomic directory rename, moves each file into a fresh folder and
-    /// removes the old one. Callers must guarantee `oldPageName` exists and `newPageName` does not.
-    renameNotebookPage(sessionId: string, oldPageName: string, newPageName: string): Promise<void>;
+    /// removes the old one. Callers must guarantee `oldFolderName` exists and `newFolderName` does not.
+    renameScriptFolder(notebookId: string, oldFolderName: string, newFolderName: string): Promise<void>;
 
     /// Load a notebook script
-    loadNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<ScriptData>;
+    loadScript(notebookId: string, folderName: string, scriptName: string): Promise<ScriptData>;
     /// Save a notebook script
-    saveNotebookScript(sessionId: string, pageName: string, scriptName: string, sql: string): Promise<void>;
+    saveScript(notebookId: string, folderName: string, scriptName: string, sql: string): Promise<void>;
     /// Delete a notebook script
-    deleteNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<void>;
-    /// Rename a notebook script (file) within a page, preserving its contents (no rewrite from
+    deleteScript(notebookId: string, folderName: string, scriptName: string): Promise<void>;
+    /// Rename a script file within a folder, preserving its contents (no rewrite from
     /// memory). Native renames the file; OPFS moves it (with a copy+delete fallback). Callers must
     /// guarantee `oldScriptName` exists and `newScriptName` does not.
-    renameNotebookScript(sessionId: string, pageName: string, oldScriptName: string, newScriptName: string): Promise<void>;
+    renameScript(notebookId: string, folderName: string, oldScriptName: string, newScriptName: string): Promise<void>;
 
     /// Load a notebook script draft
-    loadNotebookScriptDraft(sessionId: string): Promise<string | null>;
+    loadScriptDraft(notebookId: string): Promise<string | null>;
     /// Save a notebook script draft
-    saveNotebookScriptDraft(sessionId: string, sql: string): Promise<void>;
+    saveScriptDraft(notebookId: string, sql: string): Promise<void>;
 
     /// Load a cached query result by content hash, or null on a cache miss.
     ///
-    /// The cache lives in a `cache/` folder inside the session's storage; entries are named
+    /// The cache lives in a `cache/` folder inside the notebook's storage; entries are named
     /// `<hash>.arrow`. This is a best-effort cache: callers must treat any failure as a miss and fall
     /// back to normal execution (the executor never lets a cache error surface into the query path).
     /// On a hit the returned entry carries both the Arrow IPC bytes and the file's write time
     /// (`cachedAt`), so the UI can show how old the cached result is.
-    loadQueryResultCache(sessionId: string, hash: string): Promise<CachedQueryResult | null>;
+    loadQueryResultCache(notebookId: string, hash: string): Promise<CachedQueryResult | null>;
     /// Record a cache access by bumping the entry's `<hash>.arrow.last_access` marker's mtime (an
     /// empty file, rewritten so its mtime advances). This is the LRU signal consumed by eviction; it
     /// deliberately does *not* re-touch the payload `.arrow`, so the payload's mtime stays meaningful
     /// as the "cached at" timestamp. Best-effort: callers invoke this on a cache hit and ignore
     /// failures (a missing marker degrades eviction to write-time/FIFO for that entry).
-    touchQueryResultCacheAccess(sessionId: string, hash: string): Promise<void>;
-    /// Store a query result (Arrow IPC bytes) under `<hash>.arrow` in the session's `cache/` folder,
+    touchQueryResultCacheAccess(notebookId: string, hash: string): Promise<void>;
+    /// Store a query result (Arrow IPC bytes) under `<hash>.arrow` in the notebook's `cache/` folder,
     /// evicting least-recently-used entries first to stay under the size and count thresholds.
-    saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void>;
-    /// List the session's cached query results with their size and recency metadata (one entry per
+    saveQueryResultCache(notebookId: string, hash: string, bytes: Uint8Array): Promise<void>;
+    /// List the notebook's cached query results with their size and recency metadata (one entry per
     /// `<hash>.arrow` payload; the `.last_access` markers are folded in as `lastAccessMs`). Returns an
-    /// empty array when the session has no cache folder yet. This is the read side of the same
+    /// empty array when the notebook has no cache folder yet. This is the read side of the same
     /// listing the eviction policy walks, exposed for the internals cache inspector.
-    listQueryResultCache(sessionId: string): Promise<CacheFileStat[]>;
+    listQueryResultCache(notebookId: string): Promise<CacheFileStat[]>;
     /// Delete a single cached query result by content hash. A no-op when the entry is already gone.
-    deleteQueryResultCache(sessionId: string, hash: string): Promise<void>;
+    deleteQueryResultCache(notebookId: string, hash: string): Promise<void>;
 
-    /// Clear all storage (delete all sessions and reset manifest)
+    /// Clear all storage (delete all notebooks and reset manifest)
     clearAllStorage?(): Promise<void>;
 }
 
-/// A backend that also owns the session registry (the root manifest).
+/// A backend that also owns the notebook registry (the root manifest).
 ///
 /// Only the OPFS backend implements this: the OPFS root manifest is the single registry of every
-/// session, regardless of where each session's files physically live. The composite backend uses
-/// these methods to keep the manifest in sync when a session is relocated to a native directory
+/// notebook, regardless of where each notebook's files physically live. The composite backend uses
+/// these methods to keep the manifest in sync when a notebook is relocated to a native directory
 /// (the manifest entry stays in OPFS; only the files move).
-export interface SessionRegistryBackend extends StorageBackend {
-    /// Insert or replace a session's registry entry (matched by UUID), without touching files.
-    upsertSessionEntry(entry: SessionEntry): Promise<void>;
-    /// Remove a session's registry entry (matched by UUID), without touching files.
-    removeSessionEntry(sessionId: string): Promise<void>;
-    /// Reorder the registry entries to match the given UUID order (the user-facing session order),
+export interface NotebookRegistryBackend extends StorageBackend {
+    /// Insert or replace a notebook's registry entry (matched by UUID), without touching files.
+    upsertNotebookEntry(entry: NotebookEntry): Promise<void>;
+    /// Remove a notebook's registry entry (matched by UUID), without touching files.
+    removeNotebookEntry(notebookId: string): Promise<void>;
+    /// Reorder the registry entries to match the given UUID order (the user-facing notebook order),
     /// without touching files. Ids not in the manifest are ignored; manifest entries not listed are
     /// kept at the end in their current relative order.
-    reorderSessions(orderedIds: string[]): Promise<void>;
-    /// Delete a session's files only, leaving the registry entry intact.
-    deleteSessionFiles(sessionId: string): Promise<void>;
+    reorderNotebooks(orderedIds: string[]): Promise<void>;
+    /// Delete a notebook's files only, leaving the registry entry intact.
+    deleteNotebookFiles(notebookId: string): Promise<void>;
 }
 
-// Page data contains all scripts in a page
-export interface PageData {
-    /// The page name (matches folder name: "page-1", "page-2", "my-analysis", etc.)
+// Script folder data contains all scripts in a folder
+export interface ScriptFolderData {
+    /// The folder name
     name: string;
-    /// The scripts in this page
+    /// The scripts in this folder
     scripts: ScriptData[];
 }
 

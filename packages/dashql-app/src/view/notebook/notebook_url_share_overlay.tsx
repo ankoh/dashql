@@ -10,12 +10,12 @@ import { IconButton } from '../../view/foundations/button.js';
 import { TextInput } from '../foundations/text_input.js';
 import { NotebookExportSettings, NotebookExportSettingsView } from './notebook_export_settings_view.js';
 import { classNames } from '../../utils/classnames.js';
-import { exportSessionAsUrl, SessionLinkTarget } from '../../platform/storage/session_export.js';
+import { exportNotebookAsUrl, NotebookLinkTarget } from '../../platform/storage/notebook_export.js';
 import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { sleep } from '../../utils/sleep.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useRouteContext } from '../../router.js';
-import { useNotebookState } from '../../notebook/notebook_state_registry.js';
+import { useNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
 import { useStorageReader } from '../../platform/storage/storage_provider.js';
 
 const COPY_CHECKMARK_DURATION_MS = 1000;
@@ -39,8 +39,8 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
     const anchorRef = React.createRef<HTMLDivElement>();
     const buttonRef = React.createRef<HTMLButtonElement>();
 
-    const [notebook, _modifyNotebook] = useNotebookState(route.sessionId ?? null);
-    const [connection, _modifyConnection] = useConnectionState(notebook?.sessionId ?? null);
+    const [notebookScripts] = useNotebookScripts(route.notebookId ?? null);
+    const [connection, _modifyConnection] = useConnectionState(notebookScripts?.notebookId ?? null);
     const storage = useStorageReader();
     const [state, setState] = React.useState<State>(() => ({
         publicURLText: null,
@@ -64,10 +64,10 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
 
         async function generateURL() {
             let setupUrl: URL | null = null;
-            if (notebook != null && connection != null) {
+            if (notebookScripts != null && connection != null) {
                 const conn = getConnectionParamsFromStateDetails(connection.details);
                 if (conn) {
-                    setupUrl = await exportSessionAsUrl(storage.backend, notebook.sessionId, conn, SessionLinkTarget.WEB, settings.withConnectionInfo, settings.withLoginHint);
+                    setupUrl = await exportNotebookAsUrl(storage.backend, notebookScripts.notebookId, conn, NotebookLinkTarget.WEB, settings.withConnectionInfo, settings.withLoginHint);
                 }
             }
 
@@ -87,7 +87,7 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
         return () => {
             cancelled = true;
         };
-    }, [settings, notebook, connection, props.isOpen]);
+    }, [settings, notebookScripts, connection, props.isOpen]);
 
     // Copy the url to the clipboard
     const copyURL = React.useCallback(

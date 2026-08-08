@@ -3,7 +3,7 @@ import { StorageWriter } from './storage_writer.js';
 import { type StorageBackend, StorageBackendType } from './storage_backend.js';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
-import { type SessionLocation } from './session_locator.js';
+import { type NotebookLocation } from './notebook_locator.js';
 import { useLogger } from '../logger/logger_provider.js';
 import type { DashQL } from '../../core/api.js';
 import { restoreAppState, type RestoredAppState, type AppStateRestorationProgress } from './app_state_loader.js';
@@ -16,11 +16,11 @@ export interface StorageReader {
     backend: StorageBackend;
     restoreAppState(core: DashQL, progressConsumer: (progress: AppStateRestorationProgress) => void): Promise<RestoredAppState>;
     waitForInitialRestore(): Promise<void>;
-    /// The physical location of a session's files (used by the UI for a display path).
-    getSessionLocation(sessionId: string): SessionLocation;
-    /// The user-facing session order (manifest array order), as session UUIDs. Empty for a bare
-    /// backend without per-session routing.
-    getSessionOrder(): string[];
+    /// The physical location of a notebook's files (used by the UI for a display path).
+    getNotebookLocation(notebookId: string): NotebookLocation;
+    /// The user-facing notebook order (manifest array order), as notebook UUIDs. Empty for a bare
+    /// backend without per-notebook routing.
+    getNotebookOrder(): string[];
 }
 const StorageReaderContext = React.createContext<StorageReader | null>(null);
 
@@ -44,8 +44,8 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
         const initBackend = async () => {
             const initStartTime = performance.now();
 
-            // The OPFS root manifest is the single registry of every session. The composite backend
-            // serves registry ops from OPFS and routes per-session ops by uuid -> location, building
+            // The OPFS root manifest is the single registry of every notebook. The composite backend
+            // serves registry ops from OPFS and routes per-notebook ops by uuid -> location, building
             // the location map (and re-granting native fs scopes) from the manifest during init.
             logger.info("Initializing storage backend", {}, "storage_provider");
             const opfsBackend = new OPFSStorageBackend();
@@ -84,16 +84,16 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
                 // Nothing to wait for in current implementation
                 return Promise.resolve();
             },
-            getSessionLocation(sessionId: string): SessionLocation {
+            getNotebookLocation(notebookId: string): NotebookLocation {
                 if (backend instanceof CompositeStorageBackend) {
-                    return backend.getSessionLocation(sessionId);
+                    return backend.getNotebookLocation(notebookId);
                 }
-                // A bare backend (e.g. an injected test backend) has no per-session routing.
+                // A bare backend (e.g. an injected test backend) has no per-notebook routing.
                 return { type: backend.getBackendType() === StorageBackendType.Native ? StorageBackendType.Native : StorageBackendType.OPFS };
             },
-            getSessionOrder(): string[] {
+            getNotebookOrder(): string[] {
                 if (backend instanceof CompositeStorageBackend) {
-                    return backend.getSessionOrder();
+                    return backend.getNotebookOrder();
                 }
                 // A bare backend has no manifest-order registry; the caller falls back to its own order.
                 return [];

@@ -9,7 +9,7 @@ describe('updateInformationSchemaCatalog', () => {
         const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(arrow.tableFromArrays({}))]);
 
         await expect(updateInformationSchemaCatalog(
-            'session',
+            'notebook',
             vi.fn(),
             7,
             'catalog',

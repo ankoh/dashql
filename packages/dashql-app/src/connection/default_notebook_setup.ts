@@ -3,9 +3,9 @@ import * as core from '../core/index.js';
 
 import { ConnectionState } from './connection_state.js';
 import { Logger } from '../platform/logger/logger.js';
-import { analyzeNotebookScript, makeScriptLookup, ScriptData, NotebookState, createEmptyScriptData } from '../notebook/notebook_state.js';
-import { NotebookAllocator, NotebookStateWithoutId } from '../notebook/notebook_state_registry.js';
-import { createEmptyAnnotations, createPageScript, generateScriptFileName } from '../notebook/notebook_types.js';
+import { analyzeScriptData, makeScriptLookup, ScriptData, NotebookScripts, createEmptyScriptData } from '../scripts/notebook_scripts.js';
+import { NotebookScriptsAllocator, NotebookScriptsInput } from '../scripts/notebook_scripts_registry.js';
+import { createEmptyAnnotations, createScriptRef, generateScriptFileName } from '../scripts/script_types.js';
 
 function createScriptData(script: core.DashQLScript, fileName: string, folderName: string): ScriptData {
     return {
@@ -31,12 +31,12 @@ function createScriptData(script: core.DashQLScript, fileName: string, folderNam
     };
 }
 
-export function createDefaultNotebook(
+export function createDefaultNotebookScripts(
     conn: ConnectionState,
-    allocateNotebookState: NotebookAllocator,
+    allocateNotebookScripts: NotebookScriptsAllocator,
     logger: Logger,
     mainScriptText: string,
-): NotebookState {
+): NotebookScripts {
     const registry = conn.instance.createScriptRegistry();
     const mainScript = conn.instance.createScript(conn.catalog);
 
@@ -47,7 +47,7 @@ export function createDefaultNotebook(
 
     let mainScriptData = createScriptData(mainScript, mainFileName, mainFolderName);
     // Initial analyze: only the main script exists, so cross-script references can't resolve yet.
-    mainScriptData = analyzeNotebookScript(
+    mainScriptData = analyzeScriptData(
         mainScriptData,
         registry,
         conn.catalog,
@@ -57,9 +57,9 @@ export function createDefaultNotebook(
 
     const [uncommittedKey, uncommittedData] = createEmptyScriptData(conn.instance, conn.catalog);
 
-    const state: NotebookStateWithoutId = {
+    const state: NotebookScriptsInput = {
         instance: conn.instance,
-        sessionId: conn.sessionId,
+        notebookId: conn.notebookId,
         notebookMetadata: {
             originType: 'LOCAL',
             originalFileName: '',
@@ -72,19 +72,19 @@ export function createDefaultNotebook(
             [mainScriptData.scriptKey]: mainScriptData,
             [uncommittedKey]: uncommittedData,
         },
-        notebookPages: {
+        scriptFolders: {
             [mainFolderName]: {
                 folderName: mainFolderName,
                 scripts: {
-                    [mainFileName]: createPageScript(mainScriptData.scriptKey, mainFileName),
+                    [mainFileName]: createScriptRef(mainScriptData.scriptKey, mainFileName),
                 },
             },
         },
         uncommittedScriptId: uncommittedKey,
-        notebookUserFocus: { folderName: mainFolderName, fileName: mainFileName, interactionCounter: 0 },
+        scriptFocus: { folderName: mainFolderName, fileName: mainFileName, interactionCounter: 0 },
         semanticUserFocus: null,
     };
 
-    const [_notebookId, notebook] = allocateNotebookState(state);
-    return notebook;
+    const [_notebookId, notebookScripts] = allocateNotebookScripts(state);
+    return notebookScripts;
 }

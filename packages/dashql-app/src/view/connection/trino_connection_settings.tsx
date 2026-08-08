@@ -27,7 +27,7 @@ import { performHealthCheck } from '../../connection/health_check.js';
 import { useTrinoSetup } from '../../connection/trino/trino_connector.js';
 import { CONNECTOR_INFOS, ConnectorType, requiresSwitchingToNative, TRINO_CONNECTOR } from '../../connection/connector_info.js';
 import { UpdateValueList, ValueListBuilder } from '../../view/foundations/value_list.js';
-import { useAnyConnectionNotebook } from './connection_notebook.js';
+import { useAnyConnectionNotebookScripts } from './connection_notebook_scripts.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { SegmentedControl } from '../foundations/segmented_control.js';
 import { LoggableException, stringifyError } from '../../platform/logger/logger.js';
@@ -68,7 +68,7 @@ function buildPageStateFromParams(params: connection.TrinoConnectionParams | nul
 }
 
 interface Props {
-    sessionId: string | null;
+    notebookId: string | null;
     onClose?: () => void;
 }
 
@@ -82,10 +82,10 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     const wrongPlatform = requiresSwitchingToNative(connectorInfo);
 
     // Resolve connection state
-    const [connectionState, dispatchConnectionState] = useConnectionState(props.sessionId);
-    const connectionNotebook = useAnyConnectionNotebook(props.sessionId);
+    const [connectionState, dispatchConnectionState] = useConnectionState(props.notebookId);
+    const connectionNotebookScripts = useAnyConnectionNotebookScripts(props.notebookId);
 
-    // Seed the form state from the restored connection params so a session
+    // Seed the form state from the restored connection params so a notebook
     // that was saved across an app restart displays its endpoint/auth/etc.
     // The effect below keeps it in sync with later param changes.
     const [pageState, setPageState] = React.useState<PageState>(() => {
@@ -270,7 +270,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     });
 
     // Re-seed the form when the underlying connection params change
-    // (e.g. on session switch or after a successful setup).
+    // (e.g. on notebook switch or after a successful setup).
     React.useEffect(() => {
         if (connectionState?.details.type != TRINO_CONNECTOR) {
             return;
@@ -301,7 +301,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
             const connectionParams: connection.TrinoConnectionParams = pageState.newParams;
             const trinoChannel = await trinoSetup.setup(dispatchConnectionState, connectionParams, setupAbortController.current.signal);
             if (trinoChannel != null) {
-                await performHealthCheck(queryExecutor, connectionState.sessionId, { type: 'trino', channel: trinoChannel }, dispatchConnectionState, setupAbortController.current.signal);
+                await performHealthCheck(queryExecutor, connectionState.notebookId, { type: 'trino', channel: trinoChannel }, dispatchConnectionState, setupAbortController.current.signal);
             }
 
         } catch (error: any) {
@@ -357,7 +357,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                 setupConnection={setupConnection}
                 cancelSetup={cancelSetup}
                 resetSetup={resetSetup}
-                notebook={connectionNotebook}
+                notebookScripts={connectionNotebookScripts}
                 onClose={props.onClose}
             />
             <div className={style.body_container}>

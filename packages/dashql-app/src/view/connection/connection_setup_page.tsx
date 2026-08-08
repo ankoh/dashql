@@ -27,7 +27,7 @@ import { useConnectionState } from '../../connection/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useQueryExecutor } from '../../connection/query_executor.js';
 import { performHealthCheck } from '../../connection/health_check.js';
-import { SELECT_SESSION, SKIP_SETUP, useRouteContext, useRouterNavigate } from '../../router.js';
+import { SELECT_NOTEBOOK, SKIP_SETUP, useRouterNavigate } from '../../router.js';
 import { useSalesforceSetup } from '../../connection/salesforce/salesforce_connector.js';
 import { useTrinoSetup } from '../../connection/trino/trino_connector.js';
 
@@ -218,8 +218,8 @@ const ConnectionParamsSection: React.FC<ConnectorParamsSectionProps> = (props: C
 };
 
 interface Props {
-    /// The session id
-    sessionId: string;
+    /// The notebook id
+    notebookId: string;
     /// The connection params
     connectionParams: connection.ConnectionParams;
 }
@@ -236,7 +236,7 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
     const [showVersionOverlay, setShowVersionOverlay] = React.useState<boolean>(false);
 
     // Resolve a connection id for the notebook
-    const [maybeConn, dispatchConnection] = useConnectionState(props.sessionId);
+    const [maybeConn, dispatchConnection] = useConnectionState(props.notebookId);
     const conn = maybeConn!;
     const [connectionParams, setConnectionParams] = React.useState<connection.ConnectionParams | null>(() => props.connectionParams ?? null);
 
@@ -256,7 +256,7 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
         setupInProgressOrDone.current = true;
 
         // Cannot execute here? Then redirect the user
-        // TODO: Implement new deep link generation with JSON schema-based session export
+        // TODO: Implement new deep link generation with JSON schema-based notebook export
         if (!canExecuteHere) {
             logger.warn(`connector requires native app but deep link generation is not yet implemented`, {});
             return;
@@ -275,7 +275,7 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                 const params = connectionParams.salesforce;
                 const sfChannel = await salesforceSetup.setup(dispatchConnection, params, setupAbortController.current.signal);
                 setupAbortController.current.signal.throwIfAborted();
-                await performHealthCheck(queryExecutor, conn.sessionId, { type: 'salesforce', channel: sfChannel }, dispatchConnection, setupAbortController.current.signal);
+                await performHealthCheck(queryExecutor, conn.notebookId, { type: 'salesforce', channel: sfChannel }, dispatchConnection, setupAbortController.current.signal);
                 setupAbortController.current = null;
             } else if (connectionParams && "trino" in connectionParams) {
                 if (!trinoSetup) {
@@ -286,15 +286,15 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                 const trinoChannel = await trinoSetup.setup(dispatchConnection, params, setupAbortController.current.signal);
                 setupAbortController.current.signal.throwIfAborted();
                 if (trinoChannel != null) {
-                    await performHealthCheck(queryExecutor, conn.sessionId, { type: 'trino', channel: trinoChannel }, dispatchConnection, setupAbortController.current.signal);
+                    await performHealthCheck(queryExecutor, conn.notebookId, { type: 'trino', channel: trinoChannel }, dispatchConnection, setupAbortController.current.signal);
                 }
                 setupAbortController.current = null;
             }
 
-            // We're done, select this session
+            // We're done, select this notebook
             navigate({
-                type: SELECT_SESSION,
-                value: conn.sessionId
+                type: SELECT_NOTEBOOK,
+                value: conn.notebookId
             });
 
         } catch (e: any) {
@@ -367,7 +367,7 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
     }
 
     // Get the notebook url
-    // TODO: Implement deep link generation with JSON schema-based session export
+    // TODO: Implement deep link generation with JSON schema-based notebook export
     const getNotebookUrl = () => {
         return "#";
     }
@@ -458,7 +458,7 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                 break;
         }
 
-        // TODO: Implement deep link generation with JSON schema-based session export
+        // TODO: Implement deep link generation with JSON schema-based notebook export
         const notebookURL = "#";
 
         sections.push(

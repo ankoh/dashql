@@ -1,20 +1,21 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import * as appSession from '@ankoh/dashql-jsonschema/app_session.js';
+import * as app_notebook from '@ankoh/dashql-jsonschema/app_notebook.js';
 import * as dashql from './core/index.js';
 
 import { Logger } from './platform/logger/logger.js';
-import { SETUP_SESSION, SetupEventVariant } from './platform/events/event.js';
-import { importSessionFromZip } from './platform/storage/session_import.js';
-import { restoreSingleSession, RestoredSession } from './platform/storage/app_state_loader.js';
+import { SETUP_NOTEBOOK, SetupEventVariant } from './platform/events/event.js';
+import { importNotebookFromZip } from './platform/storage/notebook_import.js';
+import { restoreSingleNotebook, type RestoredNotebook } from './platform/storage/app_state_loader.js';
 import type { StorageBackend } from './platform/storage/storage_backend.js';
 import { VariantKind } from './utils/variant.js';
+import type { ConnectionSignatureMap } from './connection/connection_signature.js';
 
 const LOG_CTX = 'app_setup';
 
 export interface InteractiveAppSetupArgs {
-    sessionId: string;
+    notebookId: string;
     connectionParams: connection.ConnectionParams;
-    notebookProto: appSession.NotebookMetadata;
+    notebookProto: app_notebook.NotebookMetadata;
 }
 
 export const REQUIRES_INTERACTIVE_SETUP = Symbol("REQUIRES_INTERACTIVE_SETUP");
@@ -22,7 +23,27 @@ export const FINISHED_LINK_SETUP = Symbol("FINISH_SETUP");
 
 export type AppLinkSetupResult =
     | VariantKind<typeof REQUIRES_INTERACTIVE_SETUP, InteractiveAppSetupArgs>
-    | VariantKind<typeof FINISHED_LINK_SETUP, { session: RestoredSession }>
+    | VariantKind<typeof FINISHED_LINK_SETUP, { restoredNotebook: RestoredNotebook }>
+
+export async function importAndRestoreNotebook(
+    zipBlob: Blob,
+    logger: Logger,
+    core: dashql.DashQL,
+    backend: StorageBackend,
+    connectionSignatures: ConnectionSignatureMap,
+): Promise<RestoredNotebook> {
+    const notebookId = await importNotebookFromZip(zipBlob, backend, () => crypto.randomUUID());
+    try {
+        return await restoreSingleNotebook(core, backend, logger, notebookId, connectionSignatures);
+    } catch (error) {
+        try {
+            await backend.deleteNotebook(notebookId);
+        } catch {
+            // Preserve the restoration error when cleanup fails.
+        }
+        throw error;
+    }
+}
 
 
 /// Logic to configure the application with a setup event.
@@ -32,31 +53,31 @@ export async function configureAppWithSetupEvent(
     logger: Logger,
     core: dashql.DashQL,
     backend: StorageBackend,
+    connectionSignatures: ConnectionSignatureMap,
 ): Promise<AppLinkSetupResult | null> {
     switch (data.type) {
-        case SETUP_SESSION: {
-            logger.info("Starting app setup from session", { setup: "SETUP_SESSION" }, LOG_CTX);
+        case SETUP_NOTEBOOK: {
+            logger.info("Starting app setup from notebook", { setup: "SETUP_NOTEBOOK" }, LOG_CTX);
 
             // Create blob from zip bytes
             const zipBlob = new Blob([data.value.buffer as ArrayBuffer], { type: 'application/zip' });
 
-            // Import the session into storage. This allocates a fresh session UUID (the authoritative
-            // identity) and persists the connection params + notebook to the session's folder.
-            const sessionId = await importSessionFromZip(
-                zipBlob,
-                backend,
-                () => crypto.randomUUID()
-            );
-            logger.info("Session imported", { sessionId }, LOG_CTX);
-
+            // Import the notebook into storage. This allocates a fresh notebook UUID (the authoritative
+            // identity) and persists the connection params + notebook to the notebook's folder.
             // The initial app load already ran and populated the registries, so the just-written
-            // session is not in them yet. Restore it from storage the same way the boot loader does,
+            // notebook is not in them yet. Restore it from storage the same way the boot loader does,
             // so the caller can merge it into the live registries and open its connection setup
             // screen without a full reload.
-            const session = await restoreSingleSession(core, backend, logger, sessionId);
-            logger.info("Imported session restored", { sessionId }, LOG_CTX);
+            const restoredNotebook = await importAndRestoreNotebook(
+                zipBlob,
+                logger,
+                core,
+                backend,
+                connectionSignatures,
+            );
+            logger.info("Imported notebook restored", { notebookId: restoredNotebook.notebookId }, LOG_CTX);
 
-            return { type: FINISHED_LINK_SETUP, value: { session } };
+            return { type: FINISHED_LINK_SETUP, value: { restoredNotebook } };
         }
     }
 

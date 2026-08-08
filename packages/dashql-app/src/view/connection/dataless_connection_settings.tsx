@@ -5,7 +5,7 @@ import * as settingsStyle from './dataless_connection_settings.module.css';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { CONNECTOR_INFOS, ConnectorType, DATALESS_CONNECTOR, requiresSwitchingToNative } from '../../connection/connector_info.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
-import { useAnyConnectionNotebook } from './connection_notebook.js';
+import { useAnyConnectionNotebookScripts } from './connection_notebook_scripts.js';
 import { DemoDatabaseChannel } from '../../connection/dataless/dataless_demo_channel.js';
 import { setupDatalessDemoConnection } from '../../connection/dataless/dataless_demo_setup.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
@@ -15,7 +15,7 @@ import { ToggleSwitch } from '../foundations/toggle_switch.js';
 import { classNames } from '../../utils/classnames.js';
 
 interface Props {
-    sessionId: string | null;
+    notebookId: string | null;
     onClose?: () => void;
 }
 
@@ -23,8 +23,8 @@ export const DatalessConnectorSettings: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.DATALESS];
     const wrongPlatform = requiresSwitchingToNative(connectorInfo);
-    const [connectionState, modifyConnection] = useConnectionState(props.sessionId);
-    const connectionNotebook = useAnyConnectionNotebook(props.sessionId);
+    const [connectionState, modifyConnection] = useConnectionState(props.notebookId);
+    const connectionNotebookScripts = useAnyConnectionNotebookScripts(props.notebookId);
 
     // Extract dataless-specific state
     const details = connectionState?.details.type === DATALESS_CONNECTOR
@@ -73,7 +73,7 @@ export const DatalessConnectorSettings: React.FC<Props> = (props: Props) => {
                 setupConnection={setupConnection}
                 cancelSetup={cancelSetup}
                 resetSetup={resetSetup}
-                notebook={connectionNotebook}
+                notebookScripts={connectionNotebookScripts}
                 onClose={props.onClose}
             />
             <div className={style.body_container}>

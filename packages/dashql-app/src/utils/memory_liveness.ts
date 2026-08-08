@@ -1,16 +1,16 @@
 import * as dashql from '../core/index.js';
 
 import { ConnectionRegistry } from '../connection/connection_registry.js';
-import { NotebookRegistry } from '../notebook/notebook_state_registry.js';
+import { NotebookScriptsRegistry } from '../scripts/notebook_scripts_registry.js';
 
-export function checkMemoryLiveness(core: dashql.DashQL, connections: ConnectionRegistry, notebooks: NotebookRegistry) {
+export function checkMemoryLiveness(core: dashql.DashQL, connections: ConnectionRegistry, notebookScripts: NotebookScriptsRegistry) {
     const epoch = core.acquireLivenessEpoch();
 
     for (const v of connections.connectionMap.values()) {
         v.catalog.ptr?.markAliveInEpoch(epoch);
         v.catalog.snapshot?.ptr?.markAliveInEpoch(epoch);
     }
-    for (const v of notebooks.notebookMap.values()) {
+    for (const v of notebookScripts.notebookScriptsMap.values()) {
         v.scriptRegistry?.ptr?.markAliveInEpoch(epoch);
         v.semanticUserFocus?.registryColumnInfo?.markAliveInEpoch(epoch);
 

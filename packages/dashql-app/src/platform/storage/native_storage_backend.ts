@@ -1,25 +1,25 @@
-import { type StorageBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION, STORAGE_CACHE_ACCESS_SUFFIX } from './storage_backend.js';
+import { type StorageBackend, type NotebookData, type ScriptFolderData, type ScriptData, type NotebookEntry, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_NOTEBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION, STORAGE_CACHE_ACCESS_SUFFIX } from './storage_backend.js';
 import { type CacheFileStat, type QueryResultCacheStore, evictToFit } from './query_result_cache_eviction.js';
 
 import { exists, mkdir, readDir, readFile, readTextFile, remove, rename, stat, writeFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { join } from '@tauri-apps/api/path';
 
-/// The name of the session-level .gitignore that excludes the cache folder from version control.
+/// The name of the notebook-level .gitignore that excludes the cache folder from version control.
 const GITIGNORE_FILE = '.gitignore';
 
-/// Native filesystem storage backend for a single session (Tauri only).
+/// Native filesystem storage backend for a single notebook (Tauri only).
 ///
-/// One directory holds exactly one session. Unlike OPFS, there is no `sessions/<uuid>` nesting and
-/// no manifest file in the directory: the session's files (`dashql-session.json`,
-/// `dashql-relations.sql`, `dashql-functions.sql`, `notebook/…`) are written *directly* under the
-/// configured directory. The session UUID passed to each method identifies the session for the
-/// caller's routing, but does not affect the on-disk layout (the directory already is the session).
+/// One directory holds exactly one notebook. Unlike OPFS, there is no `notebooks/<uuid>` nesting and
+/// no manifest file in the directory: the notebook's files (`dashql-notebook.json`,
+/// `dashql-relations.sql`, `dashql-functions.sql`, `scripts/…`) are written *directly* under the
+/// configured directory. The notebook UUID passed to each method identifies the notebook for the
+/// caller's routing, but does not affect the on-disk layout (the directory already is the notebook).
 ///
-/// The session *registry* (which sessions exist, and where each lives) is owned by the OPFS root
+/// The notebook *registry* (which notebooks exist, and where each lives) is owned by the OPFS root
 /// manifest, not here. The registry-level methods on this backend are therefore inert; the
 /// composite backend always routes those to OPFS.
 export class NativeStorageBackend implements StorageBackend {
-    /// The absolute directory on disk that holds this session's files
+    /// The absolute directory on disk that holds this notebook's files
     private readonly dir: string;
 
     constructor(dir: string) {
@@ -30,7 +30,7 @@ export class NativeStorageBackend implements StorageBackend {
         return StorageBackendType.Native;
     }
 
-    /// The absolute directory backing this session
+    /// The absolute directory backing this notebook
     getDir(): string {
         return this.dir;
     }
@@ -62,8 +62,8 @@ export class NativeStorageBackend implements StorageBackend {
 
     // ---- Registry-level operations (owned by OPFS; inert here) -------------------------------
 
-    async listSessions(_manifestPath: string): Promise<SessionEntry[]> {
-        // The registry lives in the OPFS root manifest, never in a native session directory.
+    async listNotebooks(_manifestPath: string): Promise<NotebookEntry[]> {
+        // The registry lives in the OPFS root manifest, never in a native notebook directory.
         return [];
     }
 
@@ -75,35 +75,28 @@ export class NativeStorageBackend implements StorageBackend {
         // No-op: app settings live on the OPFS root manifest.
     }
 
-    // ---- Per-session operations ---------------------------------------------------------------
+    // ---- Per-notebook operations ---------------------------------------------------------------
 
-    async loadSession(sessionId: string): Promise<SessionData> {
-        const metaFile = await this.abs(STORAGE_SESSION_FILE);
+    async loadNotebook(notebookId: string): Promise<NotebookData> {
+        const metaFile = await this.abs(STORAGE_NOTEBOOK_FILE);
         const text = await readTextFile(metaFile);
-        const data: SessionData = JSON.parse(text);
-
-        // sessionId is required - will throw if missing
-        if (!data.sessionId) {
-            throw new Error(`Session ${sessionId} is missing required sessionId field. Please migrate the session or regenerate it.`);
-        }
-
-        return data;
+        return JSON.parse(text) as NotebookData;
     }
 
-    async saveSessionManifest(_sessionId: string, data: SessionData): Promise<void> {
+    async saveNotebookManifest(_notebookId: string, data: NotebookData): Promise<void> {
         await this.ensureDir('');
-        const metaFile = await this.abs(STORAGE_SESSION_FILE);
+        const metaFile = await this.abs(STORAGE_NOTEBOOK_FILE);
         await writeTextFile(metaFile, JSON.stringify(data, null, 2));
     }
 
-    async deleteSession(_sessionId: string): Promise<void> {
-        // No-op: a native session lives in a user-owned folder on disk. Deleting the session in
+    async deleteNotebook(_notebookId: string): Promise<void> {
+        // No-op: a native notebook lives in a user-owned folder on disk. Deleting the notebook in
         // dashql only unregisters it — the registry entry lives in the OPFS root manifest and is
         // dropped by the composite backend. The files on disk are deliberately left intact so the
         // folder can be re-loaded later (and so we never destroy data the user put there).
     }
 
-    async loadSessionSchema(_sessionId: string): Promise<string | null> {
+    async loadNotebookSchema(_notebookId: string): Promise<string | null> {
         const schemaFile = await this.abs(STORAGE_SCRIPT_SCHEMA);
         if (!(await exists(schemaFile))) {
             return null;
@@ -111,13 +104,13 @@ export class NativeStorageBackend implements StorageBackend {
         return await readTextFile(schemaFile);
     }
 
-    async saveSessionSchema(_sessionId: string, sql: string): Promise<void> {
+    async saveNotebookSchema(_notebookId: string, sql: string): Promise<void> {
         await this.ensureDir('');
         const schemaFile = await this.abs(STORAGE_SCRIPT_SCHEMA);
         await writeTextFile(schemaFile, sql);
     }
 
-    async loadSessionFunctions(_sessionId: string): Promise<string | null> {
+    async loadNotebookFunctions(_notebookId: string): Promise<string | null> {
         const functionsFile = await this.abs(STORAGE_SCRIPT_FUNCTIONS);
         if (!(await exists(functionsFile))) {
             return null;
@@ -125,41 +118,41 @@ export class NativeStorageBackend implements StorageBackend {
         return await readTextFile(functionsFile);
     }
 
-    async saveSessionFunctions(_sessionId: string, sql: string): Promise<void> {
+    async saveNotebookFunctions(_notebookId: string, sql: string): Promise<void> {
         await this.ensureDir('');
         const functionsFile = await this.abs(STORAGE_SCRIPT_FUNCTIONS);
         await writeTextFile(functionsFile, sql);
     }
 
-    async loadNotebookPages(_sessionId: string): Promise<PageData[]> {
-        const notebookDir = await this.abs(STORAGE_NOTEBOOK_FOLDER);
-        if (!(await exists(notebookDir))) {
+    async loadScriptFolders(_notebookId: string): Promise<ScriptFolderData[]> {
+        const scriptsDir = await this.abs(STORAGE_SCRIPTS_FOLDER);
+        if (!(await exists(scriptsDir))) {
             return [];
         }
 
-        const entries = await readDir(notebookDir);
-        const pages: PageData[] = [];
+        const entries = await readDir(scriptsDir);
+        const folders: ScriptFolderData[] = [];
         for (const entry of entries) {
             if (entry.isDirectory) {
-                const scripts = await this.loadScriptsInPage(`${STORAGE_NOTEBOOK_FOLDER}/${entry.name}`);
-                pages.push({ name: entry.name, scripts });
+                const scripts = await this.loadScriptsInFolder(`${STORAGE_SCRIPTS_FOLDER}/${entry.name}`);
+                folders.push({ name: entry.name, scripts });
             }
         }
-        pages.sort((a, b) => this.naturalSort(a.name, b.name));
-        return pages;
+        folders.sort((a, b) => this.naturalSort(a.name, b.name));
+        return folders;
     }
 
-    private async loadScriptsInPage(pageRel: string): Promise<ScriptData[]> {
-        const pageDir = await this.abs(pageRel);
+    private async loadScriptsInFolder(folderRel: string): Promise<ScriptData[]> {
+        const folderDir = await this.abs(folderRel);
         const scripts: ScriptData[] = [];
-        if (!(await exists(pageDir))) {
+        if (!(await exists(folderDir))) {
             return scripts;
         }
 
-        const entries = await readDir(pageDir);
+        const entries = await readDir(folderDir);
         for (const entry of entries) {
             if (entry.isFile && entry.name.endsWith('.sql') && entry.name !== STORAGE_SCRIPT_DRAFT) {
-                const sql = await readTextFile(await this.abs(`${pageRel}/${entry.name}`));
+                const sql = await readTextFile(await this.abs(`${folderRel}/${entry.name}`));
                 scripts.push({ name: entry.name, sql });
             }
         }
@@ -167,24 +160,24 @@ export class NativeStorageBackend implements StorageBackend {
         return scripts;
     }
 
-    async createNotebookPage(_sessionId: string, pageName: string): Promise<void> {
-        await this.ensureDir(`${STORAGE_NOTEBOOK_FOLDER}/${pageName}`);
+    async createScriptFolder(_notebookId: string, folderName: string): Promise<void> {
+        await this.ensureDir(`${STORAGE_SCRIPTS_FOLDER}/${folderName}`);
     }
 
-    async deleteNotebookPage(_sessionId: string, pageName: string): Promise<void> {
-        const pageDir = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${pageName}`);
-        if (await exists(pageDir)) {
-            await remove(pageDir, { recursive: true });
+    async deleteScriptFolder(_notebookId: string, folderName: string): Promise<void> {
+        const folderDir = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${folderName}`);
+        if (await exists(folderDir)) {
+            await remove(folderDir, { recursive: true });
         }
     }
 
-    async renameNotebookPage(_sessionId: string, oldPageName: string, newPageName: string): Promise<void> {
-        if (oldPageName === newPageName) {
+    async renameScriptFolder(_notebookId: string, oldFolderName: string, newFolderName: string): Promise<void> {
+        if (oldFolderName === newFolderName) {
             return;
         }
-        const oldDir = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${oldPageName}`);
-        const newDir = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${newPageName}`);
-        // If the source is missing there is nothing on disk to move yet (e.g. the page was created and
+        const oldDir = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${oldFolderName}`);
+        const newDir = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${newFolderName}`);
+        // If the source is missing there is nothing on disk to move yet (e.g. the folder was created and
         // renamed before its first flush); leave it to the pending write of the new name.
         if (!(await exists(oldDir))) {
             return;
@@ -192,70 +185,70 @@ export class NativeStorageBackend implements StorageBackend {
         // Atomic directory rename onto a destination the caller guarantees is free. Callers schedule
         // these so the destination is always free at flush time: within one reprefix pass the
         // destination "<n>_<clean>" carries a globally-unique clean name, so it can equal no other
-        // page's current name; across passes the writer flushes renames in insertion order, and each
+        // folder's current name; across passes the writer flushes renames in insertion order, and each
         // pass's destinations are the next pass's sources, so every destination has already been
         // vacated by the time its rename runs.
         await rename(oldDir, newDir);
     }
 
-    async loadNotebookScript(sessionId: string, pageName: string, scriptName: string): Promise<ScriptData> {
-        const scriptFile = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${scriptName}`);
+    async loadScript(notebookId: string, folderName: string, scriptName: string): Promise<ScriptData> {
+        const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${folderName}/${scriptName}`);
         if (!(await exists(scriptFile))) {
-            throw new Error(`Script not found: session ${sessionId}, page ${pageName}, script ${scriptName}`);
+            throw new Error(`Script not found: notebook ${notebookId}, folder ${folderName}, script ${scriptName}`);
         }
         const sql = await readTextFile(scriptFile);
         return { name: scriptName, sql };
     }
 
-    async saveNotebookScript(
-        _sessionId: string,
-        pageName: string,
+    async saveScript(
+        _notebookId: string,
+        folderName: string,
         scriptName: string,
         sql: string
     ): Promise<void> {
-        await this.ensureDir(`${STORAGE_NOTEBOOK_FOLDER}/${pageName}`);
-        const scriptFile = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${scriptName}`);
+        await this.ensureDir(`${STORAGE_SCRIPTS_FOLDER}/${folderName}`);
+        const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${folderName}/${scriptName}`);
         await writeTextFile(scriptFile, sql);
     }
 
-    async deleteNotebookScript(_sessionId: string, pageName: string, scriptName: string): Promise<void> {
-        const scriptFile = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${scriptName}`);
+    async deleteScript(_notebookId: string, folderName: string, scriptName: string): Promise<void> {
+        const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${folderName}/${scriptName}`);
         if (await exists(scriptFile)) {
             await remove(scriptFile);
         }
     }
 
-    async renameNotebookScript(_sessionId: string, pageName: string, oldScriptName: string, newScriptName: string): Promise<void> {
+    async renameScript(_notebookId: string, folderName: string, oldScriptName: string, newScriptName: string): Promise<void> {
         if (oldScriptName === newScriptName) {
             return;
         }
-        const oldFile = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${oldScriptName}`);
-        const newFile = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${pageName}/${newScriptName}`);
+        const oldFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${folderName}/${oldScriptName}`);
+        const newFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${folderName}/${newScriptName}`);
         // A missing source means the script hasn't been flushed yet; the pending write under the new
         // name will create it, so there is nothing to move here.
         if (!(await exists(oldFile))) {
             return;
         }
-        // Atomic file rename. The new clean base is disambiguated unique within the page, so the
+        // Atomic file rename. The new clean base is disambiguated unique within the folder, so the
         // destination is free.
         await rename(oldFile, newFile);
     }
 
-    async loadNotebookScriptDraft(_sessionId: string): Promise<string | null> {
-        const draftFile = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${STORAGE_SCRIPT_DRAFT}`);
+    async loadScriptDraft(_notebookId: string): Promise<string | null> {
+        const draftFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${STORAGE_SCRIPT_DRAFT}`);
         if (!(await exists(draftFile))) {
             return null;
         }
         return await readTextFile(draftFile);
     }
 
-    async saveNotebookScriptDraft(_sessionId: string, sql: string): Promise<void> {
-        await this.ensureDir(STORAGE_NOTEBOOK_FOLDER);
-        const draftFile = await this.abs(`${STORAGE_NOTEBOOK_FOLDER}/${STORAGE_SCRIPT_DRAFT}`);
+    async saveScriptDraft(_notebookId: string, sql: string): Promise<void> {
+        await this.ensureDir(STORAGE_SCRIPTS_FOLDER);
+        const draftFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${STORAGE_SCRIPT_DRAFT}`);
         await writeTextFile(draftFile, sql);
     }
 
-    async loadQueryResultCache(_sessionId: string, hash: string): Promise<CachedQueryResult | null> {
+    async loadQueryResultCache(_notebookId: string, hash: string): Promise<CachedQueryResult | null> {
         const file = await this.abs(`${STORAGE_CACHE_FOLDER}/${hash}${STORAGE_CACHE_EXTENSION}`);
         if (!(await exists(file))) {
             return null;
@@ -269,17 +262,17 @@ export class NativeStorageBackend implements StorageBackend {
         };
     }
 
-    async saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void> {
+    async saveQueryResultCache(notebookId: string, hash: string, bytes: Uint8Array): Promise<void> {
         await this.ensureDir(STORAGE_CACHE_FOLDER);
         // Keep the cache out of version control. Write the ignore file lazily and only when absent so
-        // we never clobber a user-authored .gitignore in their session folder.
+        // we never clobber a user-authored .gitignore in their notebook folder.
         const gitignore = await this.abs(GITIGNORE_FILE);
         if (!(await exists(gitignore))) {
             await writeTextFile(gitignore, `${STORAGE_CACHE_FOLDER}/\n`);
         }
 
         const cacheDir = await this.abs(STORAGE_CACHE_FOLDER);
-        await evictToFit(this.cacheStoreForDir(cacheDir), sessionId, bytes.byteLength);
+        await evictToFit(this.cacheStoreForDir(cacheDir), notebookId, bytes.byteLength);
 
         const file = await this.abs(`${STORAGE_CACHE_FOLDER}/${hash}${STORAGE_CACHE_EXTENSION}`);
         await writeFile(file, bytes);
@@ -333,7 +326,7 @@ export class NativeStorageBackend implements StorageBackend {
                     lastAccessMs: accessMs.get(p.name) ?? p.mtimeMs,
                 }));
             },
-            deleteCacheFile: async (_sessionId: string, name: string): Promise<void> => {
+            deleteCacheFile: async (_notebookId: string, name: string): Promise<void> => {
                 // Drop the payload and its access marker together; tolerate either being gone.
                 for (const entry of [name, `${name}${STORAGE_CACHE_ACCESS_SUFFIX}`]) {
                     const path = await join(cacheDir, entry);
@@ -345,23 +338,23 @@ export class NativeStorageBackend implements StorageBackend {
         };
     }
 
-    async listQueryResultCache(sessionId: string): Promise<CacheFileStat[]> {
+    async listQueryResultCache(notebookId: string): Promise<CacheFileStat[]> {
         const cacheDir = await this.abs(STORAGE_CACHE_FOLDER);
         if (!(await exists(cacheDir))) {
             // No cache folder yet — nothing cached.
             return [];
         }
-        return this.cacheStoreForDir(cacheDir).listCacheFiles(sessionId);
+        return this.cacheStoreForDir(cacheDir).listCacheFiles(notebookId);
     }
 
-    async touchQueryResultCacheAccess(_sessionId: string, hash: string): Promise<void> {
+    async touchQueryResultCacheAccess(_notebookId: string, hash: string): Promise<void> {
         // Bump only the empty marker's mtime — never the payload — so this stays cheap regardless of
         // result size and leaves the payload's "cached at" write time intact.
         const marker = await this.abs(`${STORAGE_CACHE_FOLDER}/${hash}${STORAGE_CACHE_EXTENSION}${STORAGE_CACHE_ACCESS_SUFFIX}`);
         await writeFile(marker, new Uint8Array(0));
     }
 
-    async deleteQueryResultCache(_sessionId: string, hash: string): Promise<void> {
+    async deleteQueryResultCache(_notebookId: string, hash: string): Promise<void> {
         // Remove the payload and its access marker together.
         for (const suffix of ['', STORAGE_CACHE_ACCESS_SUFFIX]) {
             const file = await this.abs(`${STORAGE_CACHE_FOLDER}/${hash}${STORAGE_CACHE_EXTENSION}${suffix}`);
@@ -372,8 +365,8 @@ export class NativeStorageBackend implements StorageBackend {
     }
 
     async clearAllStorage(): Promise<void> {
-        // No-op: like deleteSession, this never touches the user-owned folder on disk. "Clear all
-        // storage" only resets the OPFS root (registry + OPFS-backed sessions); native sessions are
+        // No-op: like deleteNotebook, this never touches the user-owned folder on disk. "Clear all
+        // storage" only resets the OPFS root (registry + OPFS-backed notebooks); native notebooks are
         // simply unregistered when the manifest is wiped, and their files stay put on disk.
     }
 }

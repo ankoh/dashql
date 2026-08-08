@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
-import type { SessionData } from './storage_backend.js';
-import { STORAGE_MANIFEST_FILE, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT } from './storage_backend.js';
+import type { NotebookData } from './storage_backend.js';
+import { STORAGE_MANIFEST_FILE, STORAGE_NOTEBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT } from './storage_backend.js';
 
 /// When true, mock file handles expose a `move()` method (as Chromium does); when false they don't,
 /// so the OPFS backend takes its copy+delete fallback (the WKWebView/Firefox path). Default false so
@@ -201,240 +201,285 @@ describe('OPFSStorageBackend', () => {
         await backend.initialize();
     });
 
-    describe('Session Management', () => {
-        it('lists sessions from manifest file', async () => {
+    describe('Notebook Management', () => {
+        it('writes notebook metadata and scripts to the UUID-based notebook layout only', async () => {
+            const notebookId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const notebookData: NotebookData = {
+                notebookId,
+                name: 'Layout Contract',
+                connectionParams: { dataless: {} },
+                metadata: {},
+            };
+
+            await backend.saveNotebookManifest(notebookId, notebookData);
+            await backend.saveScript(notebookId, '1_main', '1_query.sql', 'SELECT 1;');
+
+            expect(storage.get('notebooks/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/dashql-notebook.json'))
+                .toBe(JSON.stringify(notebookData, null, 2));
+            expect(storage.get('notebooks/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/scripts/1_main/1_query.sql'))
+                .toBe('SELECT 1;');
+            expect(storage.has('sessions/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/dashql-session.json')).toBe(false);
+            expect(storage.has('sessions/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/notebook/1_main/1_query.sql')).toBe(false);
+        });
+
+        it('lists notebooks from manifest file', async () => {
             const manifest = {
-                sessions: [
-                    { title: 'Session 1', path: 'session-1' },
-                    { title: 'Session 2', path: 'session-2' }
+                notebooks: [
+                    { title: 'Notebook 1', path: 'notebook-1' },
+                    { title: 'Notebook 2', path: 'notebook-2' }
                 ]
             };
             storage.set(STORAGE_MANIFEST_FILE, JSON.stringify(manifest));
             structure.set('', new Set([STORAGE_MANIFEST_FILE]));
 
-            const sessions = await backend.listSessions(STORAGE_MANIFEST_FILE);
-            expect(sessions).toEqual([
-                { title: 'Session 1', path: 'session-1' },
-                { title: 'Session 2', path: 'session-2' }
+            const notebooks = await backend.listNotebooks(STORAGE_MANIFEST_FILE);
+            expect(notebooks).toEqual([
+                { title: 'Notebook 1', path: 'notebook-1' },
+                { title: 'Notebook 2', path: 'notebook-2' }
             ]);
         });
 
         it('returns empty array when manifest does not exist', async () => {
-            const sessions = await backend.listSessions(STORAGE_MANIFEST_FILE);
-            expect(sessions).toEqual([]);
+            const notebooks = await backend.listNotebooks(STORAGE_MANIFEST_FILE);
+            expect(notebooks).toEqual([]);
         });
 
-        it('saves and loads a session', async () => {
-            const sessionData: SessionData = {
-                sessionId: crypto.randomUUID(),
-                sessionPath: 'test-session',
-                name: 'Test Session',
+        it('resets the obsolete session manifest without importing its entries', async () => {
+            storage.set(STORAGE_MANIFEST_FILE, JSON.stringify({
+                sessions: [{ path: 'old-session' }],
+                appSettings: { aiProvider: { model: 'test-model' } },
+            }));
+            structure.set('', new Set([STORAGE_MANIFEST_FILE]));
+
+            await backend.initialize();
+
+            expect(await backend.listNotebooks(STORAGE_MANIFEST_FILE)).toEqual([]);
+            expect(await backend.loadAppSettings()).toEqual({ aiProvider: { model: 'test-model' } });
+            expect(JSON.parse(storage.get(STORAGE_MANIFEST_FILE)!)).toEqual({
+                notebooks: [],
+                appSettings: { aiProvider: { model: 'test-model' } },
+            });
+        });
+
+        it('still rejects unrelated malformed manifests', async () => {
+            storage.set(STORAGE_MANIFEST_FILE, JSON.stringify({ unexpected: [] }));
+            structure.set('', new Set([STORAGE_MANIFEST_FILE]));
+
+            await expect(backend.listNotebooks(STORAGE_MANIFEST_FILE))
+                .rejects.toThrow('Invalid manifest format: notebooks must be an array');
+        });
+
+        it('saves and loads a notebook', async () => {
+            const notebookData: NotebookData = {
+                notebookId: crypto.randomUUID(),
+                notebookPath: 'test-notebook',
+                name: 'Test Notebook',
                 connectionParams: { dataless: {} },
-                notebook: {
+                metadata: {
                     originalFileName: 'test.sql',
                     createdAt: '2024-01-01T00:00:00Z',
                 },
             };
 
-            await backend.saveSessionManifest('test-session', sessionData);
+            await backend.saveNotebookManifest('test-notebook', notebookData);
 
-            const loaded = await backend.loadSession('test-session');
-            expect(loaded).toEqual(sessionData);
+            const loaded = await backend.loadNotebook('test-notebook');
+            expect(loaded).toEqual(notebookData);
         });
 
-        it('updates manifest when saving session', async () => {
-            const sessionData: SessionData = {
-                sessionId: crypto.randomUUID(),
-                sessionPath: 'test-session',
-                name: 'Test Session',
+        it('updates manifest when saving notebook', async () => {
+            const notebookData: NotebookData = {
+                notebookId: crypto.randomUUID(),
+                notebookPath: 'test-notebook',
+                name: 'Test Notebook',
                 connectionParams: { dataless: {} },
-                notebook: {},
+                metadata: {},
             };
 
-            await backend.saveSessionManifest('test-session', sessionData);
+            await backend.saveNotebookManifest('test-notebook', notebookData);
 
-            const sessions = await backend.listSessions(STORAGE_MANIFEST_FILE);
-            expect(sessions.some(s => s.path === 'test-session')).toBe(true);
+            const notebooks = await backend.listNotebooks(STORAGE_MANIFEST_FILE);
+            expect(notebooks.some(s => s.path === 'test-notebook')).toBe(true);
         });
 
-        it('deletes a session and updates manifest', async () => {
-            const sessionData: SessionData = {
-                sessionId: crypto.randomUUID(),
-                sessionPath: 'test-session',
-                name: 'Test Session',
+        it('deletes a notebook and updates manifest', async () => {
+            const notebookData: NotebookData = {
+                notebookId: crypto.randomUUID(),
+                notebookPath: 'test-notebook',
+                name: 'Test Notebook',
                 connectionParams: { dataless: {} },
-                notebook: {},
+                metadata: {},
             };
 
-            await backend.saveSessionManifest('test-session', sessionData);
-            const sessionsAfterSave = await backend.listSessions(STORAGE_MANIFEST_FILE);
-            expect(sessionsAfterSave.some(s => s.path === 'test-session')).toBe(true);
+            await backend.saveNotebookManifest('test-notebook', notebookData);
+            const notebooksAfterSave = await backend.listNotebooks(STORAGE_MANIFEST_FILE);
+            expect(notebooksAfterSave.some(s => s.path === 'test-notebook')).toBe(true);
 
-            await backend.deleteSession('test-session');
-            const sessionsAfterDelete = await backend.listSessions(STORAGE_MANIFEST_FILE);
-            expect(sessionsAfterDelete.some(s => s.path === 'test-session')).toBe(false);
+            await backend.deleteNotebook('test-notebook');
+            const notebooksAfterDelete = await backend.listNotebooks(STORAGE_MANIFEST_FILE);
+            expect(notebooksAfterDelete.some(s => s.path === 'test-notebook')).toBe(false);
         });
 
-        it('does not duplicate sessions in manifest', async () => {
-            const sessionData: SessionData = {
-                sessionId: crypto.randomUUID(),
-                sessionPath: 'test-session',
-                name: 'Test Session',
+        it('does not duplicate notebooks in manifest', async () => {
+            const notebookData: NotebookData = {
+                notebookId: crypto.randomUUID(),
+                notebookPath: 'test-notebook',
+                name: 'Test Notebook',
                 connectionParams: { dataless: {} },
-                notebook: {},
+                metadata: {},
             };
 
-            await backend.saveSessionManifest('test-session', sessionData);
-            await backend.saveSessionManifest('test-session', sessionData);
+            await backend.saveNotebookManifest('test-notebook', notebookData);
+            await backend.saveNotebookManifest('test-notebook', notebookData);
 
-            const sessions = await backend.listSessions(STORAGE_MANIFEST_FILE);
-            const count = sessions.filter(s => s.path === 'test-session').length;
+            const notebooks = await backend.listNotebooks(STORAGE_MANIFEST_FILE);
+            const count = notebooks.filter(s => s.path === 'test-notebook').length;
             expect(count).toBe(1);
         });
     });
 
-    describe('Notebook Pages', () => {
+    describe('Script Folders', () => {
         beforeEach(async () => {
-            const sessionData: SessionData = {
-                sessionId: crypto.randomUUID(),
-                sessionPath: 'test-session',
-                name: 'Test Session',
+            const notebookData: NotebookData = {
+                notebookId: crypto.randomUUID(),
+                notebookPath: 'test-notebook',
+                name: 'Test Notebook',
                 connectionParams: { dataless: {} },
-                notebook: {},
+                metadata: {},
             };
-            await backend.saveSessionManifest('test-session', sessionData);
+            await backend.saveNotebookManifest('test-notebook', notebookData);
         });
 
-        it('creates notebook pages', async () => {
-            await backend.createNotebookPage('test-session', 'page-1');
-            await backend.createNotebookPage('test-session', 'page-2');
+        it('creates script folders', async () => {
+            await backend.createScriptFolder('test-notebook', 'page-1');
+            await backend.createScriptFolder('test-notebook', 'page-2');
 
-            const pages = await backend.loadNotebookPages('test-session');
+            const pages = await backend.loadScriptFolders('test-notebook');
             expect(pages).toHaveLength(2);
             expect(pages[0].name).toBe('page-1');
             expect(pages[1].name).toBe('page-2');
         });
 
-        it('deletes notebook page', async () => {
-            await backend.createNotebookPage('test-session', 'page-1');
-            await backend.createNotebookPage('test-session', 'page-2');
+        it('deletes script folder', async () => {
+            await backend.createScriptFolder('test-notebook', 'page-1');
+            await backend.createScriptFolder('test-notebook', 'page-2');
 
-            await backend.deleteNotebookPage('test-session', 'page-1');
+            await backend.deleteScriptFolder('test-notebook', 'page-1');
 
-            const pages = await backend.loadNotebookPages('test-session');
+            const pages = await backend.loadScriptFolders('test-notebook');
             expect(pages).toHaveLength(1);
             expect(pages[0].name).toBe('page-2');
         });
 
         it('returns pages sorted by name', async () => {
-            await backend.createNotebookPage('test-session', 'page-3');
-            await backend.createNotebookPage('test-session', 'page-1');
-            await backend.createNotebookPage('test-session', 'page-2');
+            await backend.createScriptFolder('test-notebook', 'page-3');
+            await backend.createScriptFolder('test-notebook', 'page-1');
+            await backend.createScriptFolder('test-notebook', 'page-2');
 
-            const pages = await backend.loadNotebookPages('test-session');
+            const pages = await backend.loadScriptFolders('test-notebook');
             expect(pages.map(p => p.name)).toEqual(['page-1', 'page-2', 'page-3']);
         });
 
         // The mock file handle has no move(), so these renames exercise the copy+delete fallback —
         // the same path dashql takes in WKWebView, where FileSystemFileHandle.move() is unavailable.
         it('renames a page, carrying its scripts across unchanged', async () => {
-            await backend.createNotebookPage('test-session', '1_old');
-            await backend.saveNotebookScript('test-session', '1_old', '1_a.sql', 'SELECT 1;');
-            await backend.saveNotebookScript('test-session', '1_old', '2_b.sql', 'SELECT 2;');
+            await backend.createScriptFolder('test-notebook', '1_old');
+            await backend.saveScript('test-notebook', '1_old', '1_a.sql', 'SELECT 1;');
+            await backend.saveScript('test-notebook', '1_old', '2_b.sql', 'SELECT 2;');
 
-            await backend.renameNotebookPage('test-session', '1_old', '1_new');
+            await backend.renameScriptFolder('test-notebook', '1_old', '1_new');
 
-            const pages = await backend.loadNotebookPages('test-session');
+            const pages = await backend.loadScriptFolders('test-notebook');
             expect(pages.map(p => p.name)).toEqual(['1_new']);
             expect(pages[0].scripts.map(s => s.name)).toEqual(['1_a.sql', '2_b.sql']);
             expect(pages[0].scripts.map(s => s.sql)).toEqual(['SELECT 1;', 'SELECT 2;']);
         });
 
         it('renaming a never-flushed page is a no-op (nothing on disk to move)', async () => {
-            await backend.renameNotebookPage('test-session', '1_ghost', '1_new');
-            expect(await backend.loadNotebookPages('test-session')).toEqual([]);
+            await backend.renameScriptFolder('test-notebook', '1_ghost', '1_new');
+            expect(await backend.loadScriptFolders('test-notebook')).toEqual([]);
         });
     });
 
-    describe('Notebook Scripts', () => {
+    describe('Scripts', () => {
         beforeEach(async () => {
-            const sessionData: SessionData = {
-                sessionId: crypto.randomUUID(),
-                sessionPath: 'test-session',
-                name: 'Test Session',
+            const notebookData: NotebookData = {
+                notebookId: crypto.randomUUID(),
+                notebookPath: 'test-notebook',
+                name: 'Test Notebook',
                 connectionParams: { dataless: {} },
-                notebook: {},
+                metadata: {},
             };
-            await backend.saveSessionManifest('test-session', sessionData);
-            await backend.createNotebookPage('test-session', 'page-1');
+            await backend.saveNotebookManifest('test-notebook', notebookData);
+            await backend.createScriptFolder('test-notebook', 'page-1');
         });
 
         it('saves and loads a script', async () => {
             const sql = 'SELECT * FROM users;';
-            await backend.saveNotebookScript('test-session', 'page-1', '01-script.sql', sql);
+            await backend.saveScript('test-notebook', 'page-1', '01-script.sql', sql);
 
-            const script = await backend.loadNotebookScript('test-session', 'page-1', '01-script.sql');
+            const script = await backend.loadScript('test-notebook', 'page-1', '01-script.sql');
             expect(script.name).toBe('01-script.sql');
             expect(script.sql).toBe(sql);
         });
 
         it('throws error when loading non-existent script', async () => {
             await expect(
-                backend.loadNotebookScript('test-session', 'page-1', '99-nonexistent.sql')
+                backend.loadScript('test-notebook', 'page-1', '99-nonexistent.sql')
             ).rejects.toThrow('Script not found');
         });
 
         it('deletes a script', async () => {
-            await backend.saveNotebookScript('test-session', 'page-1', '01-script.sql', 'SELECT 1;');
-            await backend.deleteNotebookScript('test-session', 'page-1', '01-script.sql');
+            await backend.saveScript('test-notebook', 'page-1', '01-script.sql', 'SELECT 1;');
+            await backend.deleteScript('test-notebook', 'page-1', '01-script.sql');
 
             await expect(
-                backend.loadNotebookScript('test-session', 'page-1', '01-script.sql')
+                backend.loadScript('test-notebook', 'page-1', '01-script.sql')
             ).rejects.toThrow('Script not found');
         });
 
         it('loads scripts with page', async () => {
-            await backend.saveNotebookScript('test-session', 'page-1', '01-script.sql', 'SELECT 1;');
-            await backend.saveNotebookScript('test-session', 'page-1', '02-script.sql', 'SELECT 2;');
+            await backend.saveScript('test-notebook', 'page-1', '01-script.sql', 'SELECT 1;');
+            await backend.saveScript('test-notebook', 'page-1', '02-script.sql', 'SELECT 2;');
 
-            const pages = await backend.loadNotebookPages('test-session');
+            const pages = await backend.loadScriptFolders('test-notebook');
             expect(pages[0].scripts).toHaveLength(2);
             expect(pages[0].scripts[0].sql).toBe('SELECT 1;');
             expect(pages[0].scripts[1].sql).toBe('SELECT 2;');
         });
 
         it('returns scripts sorted by name', async () => {
-            await backend.saveNotebookScript('test-session', 'page-1', '03-script.sql', 'SELECT 3;');
-            await backend.saveNotebookScript('test-session', 'page-1', '01-script.sql', 'SELECT 1;');
-            await backend.saveNotebookScript('test-session', 'page-1', '02-script.sql', 'SELECT 2;');
+            await backend.saveScript('test-notebook', 'page-1', '03-script.sql', 'SELECT 3;');
+            await backend.saveScript('test-notebook', 'page-1', '01-script.sql', 'SELECT 1;');
+            await backend.saveScript('test-notebook', 'page-1', '02-script.sql', 'SELECT 2;');
 
-            const pages = await backend.loadNotebookPages('test-session');
+            const pages = await backend.loadScriptFolders('test-notebook');
             expect(pages[0].scripts.map(s => s.name)).toEqual(['01-script.sql', '02-script.sql', '03-script.sql']);
         });
 
         it('renames a script in place, preserving its contents (copy+delete fallback)', async () => {
-            await backend.saveNotebookScript('test-session', 'page-1', '1_old.sql', 'SELECT 42;');
+            await backend.saveScript('test-notebook', 'page-1', '1_old.sql', 'SELECT 42;');
 
-            await backend.renameNotebookScript('test-session', 'page-1', '1_old.sql', '1_new.sql');
+            await backend.renameScript('test-notebook', 'page-1', '1_old.sql', '1_new.sql');
 
             await expect(
-                backend.loadNotebookScript('test-session', 'page-1', '1_old.sql')
+                backend.loadScript('test-notebook', 'page-1', '1_old.sql')
             ).rejects.toThrow('Script not found');
-            const moved = await backend.loadNotebookScript('test-session', 'page-1', '1_new.sql');
+            const moved = await backend.loadScript('test-notebook', 'page-1', '1_new.sql');
             expect(moved.sql).toBe('SELECT 42;');
         });
 
         it('renaming a never-flushed script is a no-op', async () => {
-            await backend.renameNotebookScript('test-session', 'page-1', '1_ghost.sql', '1_new.sql');
-            const pages = await backend.loadNotebookPages('test-session');
+            await backend.renameScript('test-notebook', 'page-1', '1_ghost.sql', '1_new.sql');
+            const pages = await backend.loadScriptFolders('test-notebook');
             expect(pages[0].scripts).toEqual([]);
         });
 
-        it('renaming a script in a never-flushed session is a no-op', async () => {
-            // A session whose folder was never written to disk (e.g. a fresh session renamed before its
-            // first flush). getSessionDir re-wraps the OPFS NotFoundError into a generic "Directory not
+        it('renaming a script in a never-flushed notebook is a no-op', async () => {
+            // A notebook whose folder was never written to disk (e.g. a fresh notebook renamed before its
+            // first flush). getNotebookDir re-wraps the OPFS NotFoundError into a generic "Directory not
             // found" Error, so the no-op guard must recognise that too — otherwise this throws.
-            await backend.renameNotebookScript('never-flushed-session', 'page-1', '1_old.sql', '1_new.sql');
+            await backend.renameScript('never-flushed-notebook', 'page-1', '1_old.sql', '1_new.sql');
         });
 
         // Covers the primary (Chromium) path where FileSystemFileHandle.move() exists, rather than the
@@ -444,27 +489,27 @@ describe('OPFSStorageBackend', () => {
             afterEach(() => { MOCK_SUPPORTS_MOVE = false; });
 
             it('renames a script via move() (no copy+delete)', async () => {
-                await backend.saveNotebookScript('test-session', 'page-1', '1_old.sql', 'SELECT 42;');
+                await backend.saveScript('test-notebook', 'page-1', '1_old.sql', 'SELECT 42;');
 
-                await backend.renameNotebookScript('test-session', 'page-1', '1_old.sql', '1_new.sql');
+                await backend.renameScript('test-notebook', 'page-1', '1_old.sql', '1_new.sql');
 
                 expect(mockMoveCalls).toBe(1);
                 await expect(
-                    backend.loadNotebookScript('test-session', 'page-1', '1_old.sql')
+                    backend.loadScript('test-notebook', 'page-1', '1_old.sql')
                 ).rejects.toThrow('Script not found');
-                expect((await backend.loadNotebookScript('test-session', 'page-1', '1_new.sql')).sql).toBe('SELECT 42;');
+                expect((await backend.loadScript('test-notebook', 'page-1', '1_new.sql')).sql).toBe('SELECT 42;');
             });
 
             it('renames a page by moving each file across directories via move()', async () => {
-                await backend.saveNotebookScript('test-session', '1_old', '1_a.sql', 'SELECT 1;');
-                await backend.saveNotebookScript('test-session', '1_old', '2_b.sql', 'SELECT 2;');
+                await backend.saveScript('test-notebook', '1_old', '1_a.sql', 'SELECT 1;');
+                await backend.saveScript('test-notebook', '1_old', '2_b.sql', 'SELECT 2;');
 
-                await backend.renameNotebookPage('test-session', '1_old', '1_new');
+                await backend.renameScriptFolder('test-notebook', '1_old', '1_new');
 
                 expect(mockMoveCalls).toBe(2); // one cross-directory move per file
                 // The describe's beforeEach seeds an empty `page-1`, so target the renamed page rather
                 // than asserting the whole list: the old folder is gone and the new one holds both files.
-                const pages = await backend.loadNotebookPages('test-session');
+                const pages = await backend.loadScriptFolders('test-notebook');
                 expect(pages.map(p => p.name)).not.toContain('1_old');
                 const moved = pages.find(p => p.name === '1_new');
                 expect(moved).toBeDefined();
@@ -476,64 +521,64 @@ describe('OPFSStorageBackend', () => {
 
     describe('Script Draft', () => {
         beforeEach(async () => {
-            const sessionData: SessionData = {
-                sessionId: crypto.randomUUID(),
-                sessionPath: 'test-session',
-                name: 'Test Session',
+            const notebookData: NotebookData = {
+                notebookId: crypto.randomUUID(),
+                notebookPath: 'test-notebook',
+                name: 'Test Notebook',
                 connectionParams: { dataless: {} },
-                notebook: {},
+                metadata: {},
             };
-            await backend.saveSessionManifest('test-session', sessionData);
+            await backend.saveNotebookManifest('test-notebook', notebookData);
         });
 
         it('saves and loads draft script', async () => {
             const sql = 'SELECT * FROM draft;';
-            await backend.saveNotebookScriptDraft('test-session', sql);
+            await backend.saveScriptDraft('test-notebook', sql);
 
-            const loaded = await backend.loadNotebookScriptDraft('test-session');
+            const loaded = await backend.loadScriptDraft('test-notebook');
             expect(loaded).toBe(sql);
         });
 
         it('returns null when draft does not exist', async () => {
-            const loaded = await backend.loadNotebookScriptDraft('test-session');
+            const loaded = await backend.loadScriptDraft('test-notebook');
             expect(loaded).toBeNull();
         });
 
         it('overwrites existing draft', async () => {
-            await backend.saveNotebookScriptDraft('test-session', 'SELECT 1;');
-            await backend.saveNotebookScriptDraft('test-session', 'SELECT 2;');
+            await backend.saveScriptDraft('test-notebook', 'SELECT 1;');
+            await backend.saveScriptDraft('test-notebook', 'SELECT 2;');
 
-            const loaded = await backend.loadNotebookScriptDraft('test-session');
+            const loaded = await backend.loadScriptDraft('test-notebook');
             expect(loaded).toBe('SELECT 2;');
         });
     });
 
     describe('Page Reordering', () => {
         beforeEach(async () => {
-            const sessionData: SessionData = {
-                sessionId: crypto.randomUUID(),
-                sessionPath: 'test-session',
-                name: 'Test Session',
+            const notebookData: NotebookData = {
+                notebookId: crypto.randomUUID(),
+                notebookPath: 'test-notebook',
+                name: 'Test Notebook',
                 connectionParams: { dataless: {} },
-                notebook: {},
+                metadata: {},
             };
-            await backend.saveSessionManifest('test-session', sessionData);
+            await backend.saveNotebookManifest('test-notebook', notebookData);
         });
 
         it.skip('reorders pages', async () => {
             // TODO: This test requires updating to use lexicographic page ordering
             // Pages are now sorted by name, not by numeric ID
-            await backend.createNotebookPage('test-session', 'page-1');
-            await backend.saveNotebookScript('test-session', 'page-1', '01-script.sql', 'Page 1 Script');
+            await backend.createScriptFolder('test-notebook', 'page-1');
+            await backend.saveScript('test-notebook', 'page-1', '01-script.sql', 'Page 1 Script');
 
-            await backend.createNotebookPage('test-session', 'page-2');
-            await backend.saveNotebookScript('test-session', 'page-2', '01-script.sql', 'Page 2 Script');
+            await backend.createScriptFolder('test-notebook', 'page-2');
+            await backend.saveScript('test-notebook', 'page-2', '01-script.sql', 'Page 2 Script');
 
-            await backend.createNotebookPage('test-session', 'page-3');
-            await backend.saveNotebookScript('test-session', 'page-3', '01-script.sql', 'Page 3 Script');
+            await backend.createScriptFolder('test-notebook', 'page-3');
+            await backend.saveScript('test-notebook', 'page-3', '01-script.sql', 'Page 3 Script');
 
             // Pages are ordered lexicographically now - no reorder API needed
-            const pages = await backend.loadNotebookPages('test-session');
+            const pages = await backend.loadScriptFolders('test-notebook');
             expect(pages).toHaveLength(3);
             expect(pages[0].scripts).toHaveLength(1);
             expect(pages[1].scripts).toHaveLength(1);
@@ -550,20 +595,20 @@ describe('OPFSStorageBackend', () => {
         it('throws error when not initialized', async () => {
             const uninitializedBackend = new OPFSStorageBackend();
             await expect(
-                uninitializedBackend.listSessions(STORAGE_MANIFEST_FILE)
+                uninitializedBackend.listNotebooks(STORAGE_MANIFEST_FILE)
             ).rejects.toThrow('not initialized');
         });
 
-        it('throws error when loading non-existent session', async () => {
+        it('throws error when loading non-existent notebook', async () => {
             await expect(
-                backend.loadSession('non-existent')
+                backend.loadNotebook('non-existent')
             ).rejects.toThrow();
         });
 
-        it('throws error when loading pages from non-existent session', async () => {
-            // loadNotebookPages will throw when trying to get the session directory that doesn't exist
+        it('throws error when loading pages from non-existent notebook', async () => {
+            // loadScriptFolders will throw when trying to get the notebook directory that doesn't exist
             await expect(
-                backend.loadNotebookPages('non-existent')
+                backend.loadScriptFolders('non-existent')
             ).rejects.toThrow();
         });
     });

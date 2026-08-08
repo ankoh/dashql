@@ -7,20 +7,20 @@ import { XIcon } from '@primer/octicons-react';
 import { AnchorAlignment, AnchorSide } from './foundations/anchored_position.js';
 import { HoverMode, NavBarButtonWithRef, NavBarLink } from './navbar_button.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
-import { SessionStorageOverlay } from './storage/session_storage_overlay.js';
+import { NotebookStorageOverlay } from './storage/notebook_storage_overlay.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
 import { DASHQL_VERSION } from '../globals.js';
 import { VersionCheckIndicator } from './version_viewer.js';
 import { VersionInfoOverlay } from './version_viewer.js';
-import { exportSessionAsUrl, SessionLinkTarget } from '../platform/storage/session_export.js';
+import { exportNotebookAsUrl, NotebookLinkTarget } from '../platform/storage/notebook_export.js';
 import { getConnectionParamsFromStateDetails } from '../connection/connection_params.js';
 import { useConnectionState } from '../connection/connection_registry.js';
 import { useStorageReader } from '../platform/storage/storage_provider.js';
-import { displayPath } from '../platform/storage/session_locator.js';
+import { displayPath } from '../platform/storage/notebook_locator.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { RouteContext, useRouteContext, useRouterNavigate, CHANGE_SESSION } from '../router.js';
+import { RouteContext, useRouteContext, useRouterNavigate, CHANGE_NOTEBOOK } from '../router.js';
 import { useVersionCheck } from '../platform/version/version_check.js';
-import { useNotebookState } from '../notebook/notebook_state_registry.js';
+import { useNotebookScripts } from '../scripts/notebook_scripts_registry.js';
 import { useLocation } from 'react-router-dom';
 
 const LOG_CTX = "navbar";
@@ -46,13 +46,13 @@ const OpenIn = (props: { url?: string | null; alt?: string; icon?: string; label
     </div>
 );
 
-const InternalsButton = (props: { sessionId: string | null }) => {
+const InternalsButton = (props: { notebookId: string | null }) => {
     const [showInternalsViewerOverlay, setInternalsViewerOverlay] = React.useState<boolean>(false);
 
     return (
         <div className={styles.tab}>
             <InternalsViewerOverlay
-                sessionId={props.sessionId}
+                notebookId={props.notebookId}
                 isOpen={showInternalsViewerOverlay}
                 onClose={() => setInternalsViewerOverlay(false)}
                 renderAnchor={(p: object) => (
@@ -76,53 +76,53 @@ const InternalsButton = (props: { sessionId: string | null }) => {
     );
 };
 
-/// The clickable session path bar. Forwards a ref + anchor props so it can anchor the overlay
+/// The clickable notebook path bar. Forwards a ref + anchor props so it can anchor the overlay
 /// while keeping the bar's flex layout (ellipsized path).
-const SessionBarButton = React.forwardRef<HTMLButtonElement, {
-    sessionName: string | null;
-    sessionPath: string;
+const NotebookBarButton = React.forwardRef<HTMLButtonElement, {
+    notebookName: string | null;
+    notebookPath: string;
     onClick?: (event: React.MouseEvent) => void;
 } & object>((props, ref) => {
-    const { sessionName, sessionPath, ...anchorProps } = props;
-    // When the user has named the session, the name leads (crisp, primary) and the path follows
+    const { notebookName, notebookPath, ...anchorProps } = props;
+    // When the user has named the notebook, the name leads (crisp, primary) and the path follows
     // dimmed — the name is what a human recognises, the path stays visible as the address. With no
     // name, the path is the sole, primary label (unchanged from before).
-    const hasName = sessionName != null && sessionName.length > 0;
+    const hasName = notebookName != null && notebookName.length > 0;
     return (
         <button
             ref={ref}
             type="button"
-            className={styles.session_bar_button}
-            title={hasName ? `${sessionName} · ${sessionPath}` : sessionPath}
+            className={styles.notebook_bar_button}
+            title={hasName ? `${notebookName} · ${notebookPath}` : notebookPath}
             {...anchorProps}
         >
             {hasName && (
-                <div className={styles.session_bar_name}>
-                    {sessionName}
+                <div className={styles.notebook_bar_name}>
+                    {notebookName}
                 </div>
             )}
-            <div className={hasName ? styles.session_bar_path_secondary : styles.session_bar_path}>
-                {sessionPath}
+            <div className={hasName ? styles.notebook_bar_path_secondary : styles.notebook_bar_path}>
+                {notebookPath}
             </div>
         </button>
     );
 });
 
-const SessionBar = (props: { sessionId: string | null; sessionName: string | null; sessionPath: string; onClose: () => void }) => {
+const NotebookBar = (props: { notebookId: string | null; notebookName: string | null; notebookPath: string; onClose: () => void }) => {
     const [showStorageOverlay, setShowStorageOverlay] = React.useState<boolean>(false);
 
     return (
-        <div className={styles.session_bar_container}>
-            <div className={styles.session_bar}>
-                <SessionStorageOverlay
-                    sessionId={props.sessionId}
+        <div className={styles.notebook_bar_container}>
+            <div className={styles.notebook_bar}>
+                <NotebookStorageOverlay
+                    notebookId={props.notebookId}
                     isOpen={showStorageOverlay}
                     onClose={() => setShowStorageOverlay(false)}
                     renderAnchor={(p: object) => (
-                        <SessionBarButton
+                        <NotebookBarButton
                             {...p}
-                            sessionName={props.sessionName}
-                            sessionPath={props.sessionPath}
+                            notebookName={props.notebookName}
+                            notebookPath={props.notebookPath}
                             onClick={() => setShowStorageOverlay(true)}
                         />
                     )}
@@ -132,7 +132,7 @@ const SessionBar = (props: { sessionId: string | null; sessionName: string | nul
                 />
                 <button
                     type="button"
-                    className={styles.session_bar_close}
+                    className={styles.notebook_bar_close}
                     title="Close Notebook"
                     aria-label="Close Notebook"
                     onClick={props.onClose}
@@ -188,26 +188,26 @@ export const NavBar = (): React.ReactElement => {
     const location = useLocation();
     const storageReader = useStorageReader();
 
-    const [notebook, _modifyNotebook] = useNotebookState(route.sessionId ?? null);
-    const [connection, _modifyConnection] = useConnectionState(route.sessionId ?? notebook?.sessionId ?? null);
+    const [notebookScripts] = useNotebookScripts(route.notebookId ?? null);
+    const [connection, _modifyConnection] = useConnectionState(route.notebookId ?? notebookScripts?.notebookId ?? null);
 
     const handleCloseNotebook = React.useCallback(() => {
         navigate({
-            type: CHANGE_SESSION,
+            type: CHANGE_NOTEBOOK,
             value: null,
         });
     }, [navigate]);
 
     const isBrowser = platform === PlatformType.WEB;
     const isMac = platform === PlatformType.MACOS;
-    const setupLinkTarget = isBrowser ? SessionLinkTarget.NATIVE : SessionLinkTarget.WEB;
+    const setupLinkTarget = isBrowser ? NotebookLinkTarget.NATIVE : NotebookLinkTarget.WEB;
 
     const [setupUrl, setSetupUrl] = React.useState<URL | null>(null);
     React.useEffect(() => {
         let cancelled = false;
 
         async function generateUrl() {
-            if (connection == null || notebook == null || !connection.details) {
+            if (connection == null || notebookScripts == null || !connection.details) {
                 setSetupUrl(null);
                 return;
             }
@@ -218,7 +218,7 @@ export const NavBar = (): React.ReactElement => {
                 return;
             }
 
-            const url = await exportSessionAsUrl(storageReader.backend, notebook.sessionId, connParams, setupLinkTarget);
+            const url = await exportNotebookAsUrl(storageReader.backend, notebookScripts.notebookId, connParams, setupLinkTarget);
             if (!cancelled) {
                 setSetupUrl(url);
             }
@@ -229,31 +229,31 @@ export const NavBar = (): React.ReactElement => {
         return () => {
             cancelled = true;
         };
-    }, [notebook, connection, setupLinkTarget, storageReader.backend]);
+    }, [notebookScripts, connection, setupLinkTarget, storageReader.backend]);
 
     React.useEffect(() => {
         logger.debug("Navigated to path", { "path": location.pathname }, LOG_CTX);
     }, [location.pathname]);
 
-    const sessionId = connection?.sessionId ?? null;
-    // The session bar shows a display path (opfs://… or fs://…) reconstructed from the uuid +
+    const notebookId = connection?.notebookId ?? null;
+    // The notebook bar shows a display path (opfs://… or fs://…) reconstructed from the uuid +
     // its recorded physical location; the uuid stays the authoritative identity.
-    const sessionPath = sessionId ? displayPath(sessionId, storageReader.getSessionLocation(sessionId)) : "";
+    const notebookPath = notebookId ? displayPath(notebookId, storageReader.getNotebookLocation(notebookId)) : "";
     return (
         // `deep` makes the whole toolbar a native window-drag surface: clicks anywhere drag the
-        // window except on genuinely interactive elements (the session bar button, version buttons,
+        // window except on genuinely interactive elements (the notebook bar button, version buttons,
         // …), which Tauri's drag.js still treats as clickable and lets through. A bare/`true` value
-        // would only drag on direct clicks on this exact element — which the session bar button now
+        // would only drag on direct clicks on this exact element — which the notebook bar button now
         // fully covers, so dragging would never trigger.
         <div className={isMac ? styles.navbar_mac : styles.navbar_default}
             data-tauri-drag-region="deep"
         >
             {isBrowser && <BrandLogo onClose={handleCloseNotebook} />}
             <div className={styles.tabs}>
-                <SessionBar sessionId={sessionId} sessionName={connection?.name ?? null} sessionPath={sessionPath} onClose={handleCloseNotebook} />
+                <NotebookBar notebookId={notebookId} notebookName={connection?.name ?? null} notebookPath={notebookPath} onClose={handleCloseNotebook} />
             </div>
             <div className={styles.version_container}>
-                <InternalsButton sessionId={sessionId} />
+                <InternalsButton notebookId={notebookId} />
                 <VersionButton />
                 {isBrowser &&
                     <OpenIn label="Open in App" url={setupUrl?.toString()} icon={`${symbols}#download_desktop`} newWindow={false} state={route} />

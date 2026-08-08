@@ -49,7 +49,7 @@ export function generateCatalogSQLFromPgProc(result: PgProcTable, databaseName: 
 }
 
 export async function queryPgProc(
-    sessionId: string,
+    notebookId: string,
     connectionDispatch: DynamicConnectionDispatch,
     updateId: number,
     executor: QueryExecutor
@@ -77,8 +77,8 @@ export async function queryPgProc(
             userProvided: false
         }
     };
-    const [queryId, queryExecution] = executor(sessionId, args);
-    connectionDispatch(sessionId, {
+    const [queryId, queryExecution] = executor(notebookId, args);
+    connectionDispatch(notebookId, {
         type: CATALOG_UPDATE_REGISTER_QUERY,
         value: [updateId, queryId]
     });

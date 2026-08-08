@@ -30,7 +30,7 @@ import { DatalessConnectorAction, reduceDatalessConnectorState } from './datales
 import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
-import { DEBOUNCE_DURATION_SESSION_WRITE, DELETE_SESSION, groupSessionWrites, StorageWriter, WRITE_SESSION_MANIFEST } from '../platform/storage/storage_writer.js';
+import { DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK, groupNotebookManifestWrites, StorageWriter, WRITE_NOTEBOOK_MANIFEST } from '../platform/storage/storage_writer.js';
 import { LoggableException, Logger } from '../platform/logger/logger.js';
 
 export interface CatalogUpdates {
@@ -51,10 +51,10 @@ export interface CatalogUpdates {
 }
 
 export interface ConnectionState {
-    /// The session identifier - fully qualified path (e.g., "opfs://sessions/<uuid>")
-    sessionId: string;
-    /// The user-supplied session name, or null if the user never named this session. Persisted as
-    /// `name` in the session manifest; surfaced as the primary label in the session bar and selector
+    /// The authoritative bare notebook UUID.
+    notebookId: string;
+    /// The user-supplied notebook name, or null if the user never named this notebook. Persisted as
+    /// `name` in the notebook manifest; surfaced as the primary label in the notebook bar and selector
     /// (the display path is the fallback). Distinct from the connector-derived `title` in the manifest.
     name: string | null;
 
@@ -185,13 +185,13 @@ export function printConnectionHealth(health: ConnectionHealth) {
     }
 }
 
-export type ConnectionStateWithoutId = Omit<ConnectionState, "sessionId">;
+export type ConnectionStateWithoutId = Omit<ConnectionState, "notebookId">;
 
 export const DELETE_CONNECTION = Symbol('DELETE_CONNECTION');
 export const RESET_CONNECTION = Symbol('RESET_CONNECTION');
 export const SWITCH_CONNECTOR_TYPE = Symbol('SWITCH_CONNECTOR_TYPE');
 export const SET_CONNECTION_ACTIVE = Symbol('SET_CONNECTION_ACTIVE');
-export const RENAME_SESSION = Symbol('RENAME_SESSION');
+export const RENAME_NOTEBOOK = Symbol('RENAME_NOTEBOOK');
 export const SET_CATALOG_SCRIPT = Symbol('SET_CATALOG_SCRIPT');
 export const UPDATE_CATALOG = Symbol('UPDATE_CATALOG');
 export const CATALOG_UPDATE_STARTED = Symbol('CATALOG_UPDATE_STARTED');
@@ -253,7 +253,7 @@ export type ConnectionStateAction =
     | VariantKind<typeof RESET_CONNECTION, null>
     | VariantKind<typeof SWITCH_CONNECTOR_TYPE, ConnectorType>
     | VariantKind<typeof SET_CONNECTION_ACTIVE, null>
-    | VariantKind<typeof RENAME_SESSION, string | null>
+    | VariantKind<typeof RENAME_NOTEBOOK, string | null>
     | CatalogAction
     | QueryExecutionAction
     | HyperConnectorAction
@@ -339,7 +339,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
             // Persist the resetted connection (only if it was previously activated)
             if (newState.active) {
-                storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION_MANIFEST, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
+                storage.write(groupNotebookManifestWrites(newState.notebookId), { type: WRITE_NOTEBOOK_MANIFEST, value: [newState.notebookId, newState] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return newState;
         }
@@ -360,25 +360,25 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             return {
                 ...state,
                 connectorInfo: newInfo,
-                connectionSignature: newConnectionSignature(newSig, state.connectionSignature.signatures, state.sessionId),
+                connectionSignature: newConnectionSignature(newSig, state.connectionSignature.signatures, state.notebookId),
                 details: newDetails,
             };
         }
 
         // SET_CONNECTION_ACTIVE marks the connection as active.
-        // Once active, storage writes are enabled for both connection and notebook state.
+        // Once active, storage writes are enabled for both connection and notebook scripts state.
         case SET_CONNECTION_ACTIVE: {
             if (state.active) {
                 return state;
             }
             const newState = { ...state, active: true };
-            storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION_MANIFEST, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
+            storage.write(groupNotebookManifestWrites(newState.notebookId), { type: WRITE_NOTEBOOK_MANIFEST, value: [newState.notebookId, newState] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             return newState;
         }
 
-        // RENAME_SESSION sets (or clears) the user-supplied session name. A blank/whitespace-only
+        // RENAME_NOTEBOOK sets (or clears) the user-supplied notebook name. A blank/whitespace-only
         // value normalises to null so clearing the name falls back to the display path everywhere.
-        case RENAME_SESSION: {
+        case RENAME_NOTEBOOK: {
             const trimmed = action.value?.trim() ?? '';
             const newName = trimmed.length > 0 ? trimmed : null;
             if (newName === state.name) {
@@ -386,9 +386,9 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             }
             const newState = { ...state, name: newName };
             // Persist through the shared manifest write. Suppressed until the connection is active,
-            // matching the other manifest writes (a not-yet-configured session isn't persisted).
+            // matching the other manifest writes (a not-yet-configured notebook isn't persisted).
             if (newState.active) {
-                storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION_MANIFEST, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
+                storage.write(groupNotebookManifestWrites(newState.notebookId), { type: WRITE_NOTEBOOK_MANIFEST, value: [newState.notebookId, newState] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return newState;
         }
@@ -454,7 +454,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             state.catalog.destroy();
 
             // Delete from storage
-            storage.write(groupSessionWrites(state.sessionId), { type: DELETE_SESSION, value: state.sessionId }, DEBOUNCE_DURATION_SESSION_WRITE);
+            storage.write(groupNotebookManifestWrites(state.notebookId), { type: DELETE_NOTEBOOK, value: state.notebookId }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             return newState;
         }
 
@@ -486,7 +486,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
             // Only persist active connections
             if (newState.active) {
-                storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION_MANIFEST, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
+                storage.write(groupNotebookManifestWrites(newState.notebookId), { type: WRITE_NOTEBOOK_MANIFEST, value: [newState.notebookId, newState] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return newState;
         }

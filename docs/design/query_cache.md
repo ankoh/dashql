@@ -1,6 +1,6 @@
 # Query Result Cache
 
-DashQL caches successful user-query results in session-local files. A repeat of the same executable SQL against the same connection can load the cached Arrow result without contacting the backend. The cache is an optimization: cache lookup, eviction, and write failures do not make a query fail. Arrow IPC decode failures follow the normal query failure path and can be corrected by deleting the entry.
+DashQL caches successful user-query results in notebook-local files. A repeat of the same executable SQL against the same connection can load the cached Arrow result without contacting the backend. The cache is an optimization: cache lookup, eviction, and write failures do not make a query fail. Arrow IPC decode failures follow the normal query failure path and can be corrected by deleting the entry.
 
 ## Scope
 
@@ -30,8 +30,8 @@ The `StorageBackend` interface owns all cache operations, so the executor does n
 
 | Backend | Cache location |
 | --- | --- |
-| OPFS | `sessions/<session-uuid>/cache/` |
-| Native | `<session-directory>/cache/` |
+| OPFS | `notebooks/<notebook-uuid>/cache/` |
+| Native | `<notebook-directory>/cache/` |
 
 For a key `<hash>`, the cache contains:
 
@@ -41,11 +41,11 @@ cache/
   <hash>.arrow.last_access
 ```
 
-`<hash>.arrow` is the authoritative Arrow IPC stream. Its modification time is the entry's cached-at time. `<hash>.arrow.last_access` is an empty companion file whose modification time records the most recent cache access. Native sessions create a top-level `.gitignore` containing `cache/` when the first entry is written, but only if the user has not already created that file.
+`<hash>.arrow` is the authoritative Arrow IPC stream. Its modification time is the entry's cached-at time. `<hash>.arrow.last_access` is an empty companion file whose modification time records the most recent cache access. Native notebooks create a top-level `.gitignore` containing `cache/` when the first entry is written, but only if the user has not already created that file.
 
-The storage interface exposes load, save, touch, list, and delete operations. `CompositeStorageBackend` routes those methods by session UUID to the session's OPFS or native backend.
+The storage interface exposes load, save, touch, list, and delete operations. `CompositeStorageBackend` routes those methods by notebook UUID to the notebook's OPFS or native backend.
 
-Session archives and storage migration copy the persisted session metadata, schema, notebook scripts, and draft; they do not copy cache files. Deleting an OPFS session removes its complete session directory and cache. Deleting or clearing a native session unregisters it but intentionally retains its user-owned directory, including the cache.
+Notebook archives and storage migration copy the persisted notebook metadata, schema, scripts, and draft; they do not copy cache files. Deleting an OPFS notebook removes its complete notebook directory and cache. Deleting or clearing a native notebook unregisters it but intentionally retains its user-owned directory, including the cache.
 
 ## Execution Flow
 
@@ -78,7 +78,7 @@ Cancellation during an asynchronous cache read is treated like any other cancell
 
 ## Capacity and Eviction
 
-Each session cache has independent defaults:
+Each notebook cache has independent defaults:
 
 | Limit | Default |
 | --- | ---: |
@@ -97,7 +97,7 @@ For a succeeded result, the query result header shows its execution age. When th
 
 The **Refresh** action deletes the current query's cache entry when a key is available, then re-executes the resolved notebook query. This forces a backend result on the next execution and repopulates the entry after success. Deletion is best-effort; a failed deletion may permit the old entry to be reused.
 
-The internals overlay includes a session-scoped **Query Cache** tab. It lists payload key, size, cached-at time, and last-access time; provides manual refresh of the listing; and allows individual entry deletion. The list omits `.last_access` markers.
+The internals overlay includes a notebook-scoped **Query Cache** tab. It lists payload key, size, cached-at time, and last-access time; provides manual refresh of the listing; and allows individual entry deletion. The list omits `.last_access` markers.
 
 ## Limits and Correctness
 

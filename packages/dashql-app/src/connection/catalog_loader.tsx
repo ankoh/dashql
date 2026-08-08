@@ -18,8 +18,8 @@ import { createTrace } from '../platform/logger/trace_context.js';
 import { updateInformationSchemaCatalog } from './catalog_query_information_schema.js';
 import { updatePgCatalog } from './catalog_query_pg_attribute.js';
 import { updateDemoSchemaCatalog } from './dataless/dataless_demo_catalog.js';
-import { useConnectionNotebookDispatch } from '../notebook/notebook_state_registry.js';
-import { CATALOG_DID_UPDATE } from '../notebook/notebook_state.js';
+import { useConnectionScriptsDispatch } from '../scripts/notebook_scripts_registry.js';
+import { CATALOG_DID_UPDATE } from '../scripts/notebook_scripts.js';
 
 const LOG_CTX = 'catalog_loader';
 
@@ -29,9 +29,9 @@ let NEXT_CATALOG_UPDATE_ID = 1;
 /// The catalog update args
 interface CatalogLoaderArgs { }
 /// The catalog updater function
-export type CatalogLoader = (sessionId: string, args: CatalogLoaderArgs) => [number, Promise<void>];
-/// A function to add a session id to a catalog loader queue
-type RefreshCatalogFn = (sessionId: string, force: boolean) => void;
+export type CatalogLoader = (notebookId: string, args: CatalogLoaderArgs) => [number, Promise<void>];
+/// A function to add a notebook id to a catalog loader queue
+type RefreshCatalogFn = (notebookId: string, force: boolean) => void;
 /// A catalog loader queue
 interface CatalogLoaderQueue { queue: Map<string, boolean>; }
 
@@ -50,26 +50,26 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
     // This executor will depend on the map directly since it can resolve everything ad-hoc.
     const [connReg, connDispatch] = useDynamicConnectionDispatch();
     const connMap = connReg.connectionMap;
-    const connNotebookDispatch = useConnectionNotebookDispatch();
+    const connScriptsDispatch = useConnectionScriptsDispatch();
 
     // Execute a query with pre-allocated query id
-    const updateImpl = React.useCallback(async (sessionId: string, _args: CatalogLoaderArgs, updateId: number): Promise<void> => {
+    const updateImpl = React.useCallback(async (notebookId: string, _args: CatalogLoaderArgs, updateId: number): Promise<void> => {
         // Each catalog update gets its own trace so failures don't borrow
         // whatever trace happens to be on a shared stack.
         const traced = logger.withTrace(createTrace());
 
-        // Check if we know the session id.
-        const conn = connMap.get(sessionId);
+        // Check if we know the notebook id.
+        const conn = connMap.get(notebookId);
         if (!conn) {
-            traced.warn("Failed to resolve connection", { "session": sessionId }, LOG_CTX);
-            throw new Error(`couldn't find a connection with session id ${sessionId}`);
+            traced.warn("Failed to resolve connection", { notebookId }, LOG_CTX);
+            throw new Error(`couldn't find a connection with notebook id ${notebookId}`);
         }
         if (!executor) {
-            traced.warn("Query executor not configured", { "session": sessionId }, LOG_CTX);
+            traced.warn("Query executor not configured", { notebookId }, LOG_CTX);
             throw new Error(`couldn't find trino executor`);
         }
 
-        traced.debug("Updating catalog", { "session": sessionId }, LOG_CTX);
+        traced.debug("Updating catalog", { notebookId }, LOG_CTX);
 
         // Accept the query and clear the request
         const abortController = new AbortController();
@@ -85,7 +85,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
             finishedAt: null,
             lastUpdateAt: now,
         };
-        connDispatch(sessionId, {
+        connDispatch(notebookId, {
             type: UPDATE_CATALOG,
             value: [updateId, initialState],
         });
@@ -96,7 +96,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
         const heartbeat = setInterval(() => {
             const elapsedMs = performance.now() - updateStartMs;
             traced.info("Catalog update in progress", {
-                "session": sessionId,
+                notebookId,
                 "updateId": updateId.toString(),
                 "elapsedMs": elapsedMs.toFixed(0),
             }, LOG_CTX);
@@ -111,11 +111,11 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                         case TRINO_CONNECTOR: {
                             const catalog = conn.details.value.proto.setupParams?.catalogName ?? "";
                             const schemas = conn.details.value.proto.setupParams?.schemaNames ?? [];
-                            await updateInformationSchemaCatalog(sessionId, connDispatch, updateId, catalog, schemas, executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
+                            await updateInformationSchemaCatalog(notebookId, connDispatch, updateId, catalog, schemas, executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
                             break;
                         }
                         case DATALESS_CONNECTOR: {
-                            await updateDemoSchemaCatalog(sessionId, connDispatch, updateId, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
+                            await updateDemoSchemaCatalog(notebookId, connDispatch, updateId, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
                             break;
                         }
                         default:
@@ -130,7 +130,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                     if (conn.details.type == HYPER_CONNECTOR) {
                         const databaseName = ""; // XXX: Get from Hyper connection details
                         const schemas: string[] = []; // XXX
-                        await updatePgCatalog(traced, sessionId, connDispatch, updateId, databaseName, schemas, executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
+                        await updatePgCatalog(traced, notebookId, connDispatch, updateId, databaseName, schemas, executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
                     } else {
                         throw new Error(
                             `cannot load pg_attribute catalog for ${conn.connectorInfo.names.displayShort} connections`,
@@ -143,7 +143,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                     if (conn.details.type == SALESFORCE_DATA_CLOUD_CONNECTOR) {
                         const script = await updateSalesforceCatalog(conn.details.value, conn.catalog, conn.instance, conn.catalogRelationScript, sfapi, abortController);
                         if (conn.catalogRelationScript !== script) {
-                            connDispatch(sessionId, {
+                            connDispatch(notebookId, {
                                 type: SET_CATALOG_SCRIPT,
                                 value: script
                             });
@@ -158,29 +158,29 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                 case CatalogResolver.SQL_SCRIPT:
                     break;
             }
-            traced.debug("Updated catalog", { "session": sessionId }, LOG_CTX);
+            traced.debug("Updated catalog", { notebookId }, LOG_CTX);
 
             // Mark the update successful
-            connDispatch(sessionId, {
+            connDispatch(notebookId, {
                 type: CATALOG_UPDATE_SUCCEEDED,
                 value: [updateId],
             });
             // Mark all connection notebooks outdated
-            connNotebookDispatch(sessionId, {
+            connScriptsDispatch(notebookId, {
                 type: CATALOG_DID_UPDATE,
                 value: null,
             });
 
         } catch (e: any) {
             if (e?.name === 'AbortError') {
-                traced.info("Cancelled catalog update", { "session": sessionId, "error": e?.message ?? String(e) }, LOG_CTX);
-                connDispatch(sessionId, {
+                traced.info("Cancelled catalog update", { notebookId, "error": e?.message ?? String(e) }, LOG_CTX);
+                connDispatch(notebookId, {
                     type: CATALOG_UPDATE_CANCELLED,
                     value: [updateId, e],
                 });
             } else {
-                traced.error("Failed to update catalog", { "session": sessionId, "error": e?.message ?? String(e) }, LOG_CTX);
-                connDispatch(sessionId, {
+                traced.error("Failed to update catalog", { notebookId, "error": e?.message ?? String(e) }, LOG_CTX);
+                connDispatch(notebookId, {
                     type: CATALOG_UPDATE_FAILED,
                     value: [updateId, e],
                 });
@@ -189,7 +189,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
             clearInterval(heartbeat);
             const totalMs = performance.now() - updateStartMs;
             traced.info("Finished catalog update", {
-                "session": sessionId,
+                notebookId,
                 "updateId": updateId.toString(),
                 "durationMs": totalMs.toFixed(0),
             }, LOG_CTX);
@@ -197,16 +197,16 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
     }, [connMap, sfapi, executor]);
 
     // Allocate the next query id and start the execution
-    const update = React.useCallback<CatalogLoader>((sessionId: string, args: CatalogLoaderArgs): [number, Promise<void>] => {
+    const update = React.useCallback<CatalogLoader>((notebookId: string, args: CatalogLoaderArgs): [number, Promise<void>] => {
         const updateId = NEXT_CATALOG_UPDATE_ID++;
-        const execution = updateImpl(sessionId, args, updateId);
+        const execution = updateImpl(notebookId, args, updateId);
         return [updateId, execution];
     }, [updateImpl]);
 
     // Maintain a queue
     const [queueState, setQueueState] = React.useState<CatalogLoaderQueue>(() => ({ queue: new Map() }));
-    const enqueue = React.useCallback<RefreshCatalogFn>((sid: string, force: boolean) => {
-        setQueueState(s => ({ queue: s.queue.set(sid, force) }));
+    const enqueue = React.useCallback<RefreshCatalogFn>((notebookId: string, force: boolean) => {
+        setQueueState(s => ({ queue: s.queue.set(notebookId, force) }));
     }, []);
 
     // Subscribe the queue
@@ -215,32 +215,32 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
         const inProgress = updatesInProgress.current ?? new Set();
 
         // Helper to perform the catalog update
-        const doUpdate = async (sessionId: string) => {
-            inProgress.add(sessionId);
+        const doUpdate = async (notebookId: string) => {
+            inProgress.add(notebookId);
             try {
-                logger.info("Starting catalog update", { "session": sessionId }, LOG_CTX);
+                logger.info("Starting catalog update", { notebookId }, LOG_CTX);
                 // Otherwise start the catalog update
-                const [_updateId, updatePromise] = update(sessionId, {});
+                const [_updateId, updatePromise] = update(notebookId, {});
                 // Await the update
                 await updatePromise;
             } catch (e: any) {
-                logger.warn("Catalog update failed", { "session": sessionId, "error": e?.message ?? String(e) }, LOG_CTX);
+                logger.warn("Catalog update failed", { notebookId, "error": e?.message ?? String(e) }, LOG_CTX);
             }
-            inProgress.delete(sessionId);
+            inProgress.delete(notebookId);
         };
 
         const processed: string[] = [];
-        for (const [sessionId, force] of queueState.queue) {
+        for (const [notebookId, force] of queueState.queue) {
             // Already updating?
-            if (inProgress.has(sessionId)) {
+            if (inProgress.has(notebookId)) {
                 continue;
             }
-            logger.debug("Received catalog update request", { "session": sessionId }, LOG_CTX);
+            logger.debug("Received catalog update request", { notebookId }, LOG_CTX);
 
             // Find the connection
-            const connState = connReg.connectionMap.get(sessionId);
+            const connState = connReg.connectionMap.get(notebookId);
             if (!connState) {
-                logger.warn("Failed to resolve connection", { "session": sessionId }, LOG_CTX);
+                logger.warn("Failed to resolve connection", { notebookId }, LOG_CTX);
                 continue;
             }
 
@@ -249,7 +249,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
             // the in-flight ones by aborting them first.
             if (connState.catalogUpdates.tasksRunning.size > 0) {
                 if (!force) {
-                    logger.info("Skipping redundant catalog update", { "session": sessionId }, LOG_CTX);
+                    logger.info("Skipping redundant catalog update", { notebookId }, LOG_CTX);
                     continue;
                 }
                 for (const task of connState.catalogUpdates.tasksRunning.values()) {
@@ -257,16 +257,16 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                 }
             }
 
-            // Was the catalog restored from disk on session open?
+            // Was the catalog restored from disk on notebook open?
             // Skip auto-refreshes so a saved catalog script isn't wiped by
-            // an empty/erroring query right after opening the session.
+            // an empty/erroring query right after opening the notebook.
             // Only an explicit (forced) refresh can replace a restored catalog.
             if (!force && connState.catalogUpdates.restoredAt != null) {
                 logger.info("Skipping catalog update, catalog was restored from disk", {
-                    "session": sessionId,
+                    notebookId,
                     "restoredAt": connState.catalogUpdates.restoredAt.toISOString(),
                 }, LOG_CTX);
-                processed.push(sessionId);
+                processed.push(notebookId);
                 continue;
             }
 
@@ -289,9 +289,9 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
             }
 
             // Perform the catalog update
-            doUpdate(sessionId);
-            // Remember that we processed the session id
-            processed.push(sessionId);
+            doUpdate(notebookId);
+            // Remember that we processed the notebook id
+            processed.push(notebookId);
         }
 
         // No processed?
@@ -302,8 +302,8 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
         // Remove all processed ids from the queue
         setQueueState(s => {
             // Remove
-            for (const sessionId of processed) {
-                s.queue.delete(sessionId)
+            for (const notebookId of processed) {
+                s.queue.delete(notebookId)
             }
             return { ...s, queue: s.queue };
         });

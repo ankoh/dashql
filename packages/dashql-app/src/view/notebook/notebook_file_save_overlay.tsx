@@ -7,9 +7,9 @@ import { AnchorAlignment } from '../foundations/anchored_position.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { NotebookExportSettings, NotebookExportSettingsView } from './notebook_export_settings_view.js';
-import { NotebookState } from '../../notebook/notebook_state.js';
+import { NotebookScripts } from '../../scripts/notebook_scripts.js';
 import { classNames } from '../../utils/classnames.js';
-import { exportSessionAsSharedZip } from '../../platform/storage/session_export.js';
+import { exportNotebookAsSharedZip } from '../../platform/storage/notebook_export.js';
 import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { formatBytes } from '../../utils/format.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_provider.js';
@@ -18,11 +18,11 @@ import { StorageBackend } from '../../platform/storage/storage_backend.js';
 import { IconButton } from '../../view/foundations/button.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 
-async function packAndCompressFile(backend: StorageBackend, conn: ConnectionState, notebook: NotebookState, withConnectionInfo: boolean, withLoginHint: boolean): Promise<Uint8Array> {
+async function packAndCompressFile(backend: StorageBackend, conn: ConnectionState, notebookScripts: NotebookScripts, withConnectionInfo: boolean, withLoginHint: boolean): Promise<Uint8Array> {
     const connectionParams = await import('../../connection/connection_params.js').then(m =>
         m.getConnectionParamsFromStateDetails(conn.details)
     );
-    const zipBlob = await exportSessionAsSharedZip(backend, notebook.sessionId, connectionParams, withConnectionInfo, withLoginHint);
+    const zipBlob = await exportNotebookAsSharedZip(backend, notebookScripts.notebookId, connectionParams, withConnectionInfo, withLoginHint);
     const arrayBuffer = await zipBlob.arrayBuffer();
     return new Uint8Array(arrayBuffer);
 }
@@ -31,7 +31,7 @@ interface Props {
     className?: string;
     isOpen: boolean;
     setIsOpen: (v: boolean) => void;
-    notebook: NotebookState | null;
+    notebookScripts: NotebookScripts | null;
     conn: ConnectionState | null;
 }
 
@@ -40,7 +40,7 @@ export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     const buttonRef = React.createRef<HTMLButtonElement>();
     const fileDownloader = useFileDownloader();
     const storage = useStorageReader();
-    const fileName = `${props.notebook?.notebookMetadata.originalFileName ?? "notebook"}.${DASHQL_ARCHIVE_FILENAME_EXT}`;
+    const fileName = `${props.notebookScripts?.notebookMetadata.originalFileName ?? "notebook"}.${DASHQL_ARCHIVE_FILENAME_EXT}`;
 
     const [settings, setSettings] = React.useState<NotebookExportSettings>({
         withCatalog: true,
@@ -54,20 +54,20 @@ export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
             return;
         }
         const conn = props.conn;
-        const notebook = props.notebook;
-        if (conn == null || notebook == null) {
+        const notebookScripts = props.notebookScripts;
+        if (conn == null || notebookScripts == null) {
             return;
         }
         const cancellation = new AbortController();
         const pack = async () => {
-            const fileBytes = await packAndCompressFile(storage.backend, conn, notebook, settings.withConnectionInfo, settings.withLoginHint);
+            const fileBytes = await packAndCompressFile(storage.backend, conn, notebookScripts, settings.withConnectionInfo, settings.withLoginHint);
             if (!cancellation.signal.aborted) {
                 setFileBytes(fileBytes);
             }
         };
         pack();
         return () => cancellation.abort();
-    }, [settings, props.conn, props.notebook, props.isOpen, storage.backend]);
+    }, [settings, props.conn, props.notebookScripts, props.isOpen, storage.backend]);
 
     const hasLoginHint = React.useMemo(
         () => props.conn != null && connectionParamsHaveLoginHint(getConnectionParamsFromStateDetails(props.conn.details)),

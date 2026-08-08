@@ -39,7 +39,7 @@ interface LogState {
 export type HyperDockerPanelMode = 'list' | 'create';
 
 interface Props {
-    sessionId: string | null;
+    notebookId: string | null;
     freezeInput?: boolean;
     mode: HyperDockerPanelMode;
     setMode: (mode: HyperDockerPanelMode) => void;
@@ -57,7 +57,7 @@ export const HyperDockerSettingsPanel: React.FC<Props> = (props: Props) => {
     const grpcClient = useHyperGrpcClient();
     const hyperSetup = useHyperSetup();
     const queryExecutor = useQueryExecutor();
-    const [connectionState, dispatchConnectionState] = useConnectionState(props.sessionId);
+    const [connectionState, dispatchConnectionState] = useConnectionState(props.notebookId);
     const hyperConnection = getHyperConnectionDetails(connectionState);
 
     const [containers, setContainers] = React.useState<DockerContainerSummary[]>([]);
@@ -193,7 +193,7 @@ export const HyperDockerSettingsPanel: React.FC<Props> = (props: Props) => {
             };
             const channel = await hyperSetup.setup(dispatchConnectionState, params, setupAbort.current.signal);
             if (channel != null) {
-                await performHealthCheck(queryExecutor, connectionState.sessionId, { type: 'hyper', channel }, dispatchConnectionState, setupAbort.current.signal);
+                await performHealthCheck(queryExecutor, connectionState.notebookId, { type: 'hyper', channel }, dispatchConnectionState, setupAbort.current.signal);
             }
         } catch (_error: any) {
             // Errors are surfaced through the connection state; nothing to do here.

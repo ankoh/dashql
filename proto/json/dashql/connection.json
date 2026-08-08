@@ -995,7 +995,7 @@
           "properties": {
             "dataless": {
               "$ref": "#/definitions/DatalessParams",
-              "description": "Parameters for dataless sessions"
+              "description": "Parameters for dataless connections"
             }
           },
           "required": ["dataless"],

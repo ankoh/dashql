@@ -1,0 +1,89 @@
+:root {
+    --script_name_background: hsl(210deg 28.57% 95.25%);
+}
+
+.container {
+    font-family: "Roboto Mono";
+    font-size: 0.8rem;
+}
+
+.folder_name {
+    display: inline-block;
+    box-sizing: border-box;
+    border-radius: 8px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.folder_name_clickable {
+    composes: folder_name;
+    cursor: pointer;
+}
+
+.separator {
+    padding: 0px 8px 0px 8px;
+    color: hsl(210deg 17.5% 64.31%);
+}
+
+.file_icon {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 4px;
+    opacity: 0.6;
+}
+
+.file_name {
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 2px 8px;
+    font-weight: 500;
+    text-transform: uppercase;
+    gap: 4px;
+    height: 24px;
+}
+
+.file_name:has(.file_name_trailing) {
+    padding: 1px 2px 1px 4px;
+    gap: 2px;
+}
+
+.file_name_trailing {
+    display: inline-flex;
+    align-items: center;
+}
+
+.file_name:hover {
+    border-color: var(--color-border-default, var(--border_color_primary));
+    background-color: rgba(0, 0, 0, 0.04);
+    cursor: text;
+}
+
+.file_name_editing {
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    background-color: var(--script_name_background);
+    border: 1px solid var(--border_color_primary);
+    border-radius: 8px;
+    padding: 1px 4px;
+    font-weight: 500;
+    text-transform: uppercase;
+    gap: 4px;
+}
+
+.file_name_input {
+    border: none;
+    outline: none;
+    padding: 1px 4px;
+    margin: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 500;
+    text-transform: uppercase;
+    min-width: 0;
+    width: 18ch;
+}

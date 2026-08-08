@@ -92,7 +92,7 @@ function generateCatalogSQLFromInformationSchema(result: InformationSchemaColumn
     return sqlStatements.join('\n\n');
 }
 
-export async function queryInformationSchema(sessionId: string, connectionDispatch: DynamicConnectionDispatch, updateId: number, catalogName: string, schemaNames: string[], executor: QueryExecutor): Promise<InformationSchemaColumnsTable | null> {
+export async function queryInformationSchema(notebookId: string, connectionDispatch: DynamicConnectionDispatch, updateId: number, catalogName: string, schemaNames: string[], executor: QueryExecutor): Promise<InformationSchemaColumnsTable | null> {
     const query = `
         SELECT
             table_catalog,
@@ -117,8 +117,8 @@ export async function queryInformationSchema(sessionId: string, connectionDispat
             userProvided: false
         }
     };
-    const [queryId, queryExecution] = executor(sessionId, args);
-    connectionDispatch(sessionId, {
+    const [queryId, queryExecution] = executor(notebookId, args);
+    connectionDispatch(notebookId, {
         type: CATALOG_UPDATE_REGISTER_QUERY,
         value: [updateId, queryId]
     });
@@ -128,7 +128,7 @@ export async function queryInformationSchema(sessionId: string, connectionDispat
 }
 
 export async function updateInformationSchemaCatalog(
-    sessionId: string,
+    notebookId: string,
     connectionDispatch: DynamicConnectionDispatch,
     updateId: number,
     catalogName: string,
@@ -141,7 +141,7 @@ export async function updateInformationSchemaCatalog(
 ): Promise<void> {
     // Query the information schema. If the query errors it throws and propagates
     // to the caller so we never overwrite the existing catalog script with partial data.
-    const queryResult = await queryInformationSchema(sessionId, connectionDispatch, updateId, catalogName, schemaNames, executor);
+    const queryResult = await queryInformationSchema(notebookId, connectionDispatch, updateId, catalogName, schemaNames, executor);
     if (queryResult == null || queryResult.numRows === 0) {
         throw new Error('information_schema returned no catalog relations');
     }
@@ -155,7 +155,7 @@ export async function updateInformationSchemaCatalog(
     }
 
     // Mark loading started
-    connectionDispatch(sessionId, {
+    connectionDispatch(notebookId, {
         type: CATALOG_UPDATE_SCHEMA_SCRIPT,
         value: [updateId]
     });

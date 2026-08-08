@@ -11,23 +11,23 @@ import { DemoDatabaseChannel } from './connection/dataless/dataless_demo_channel
 import { setupDatalessDemoConnection } from './connection/dataless/dataless_demo_setup.js';
 import { ConnectorType, DATALESS_CONNECTOR } from './connection/connector_info.js';
 import { Dispatch } from './utils/variant.js';
-import { SetNotebookRegistryAction } from './notebook/notebook_state_registry.js';
-import { NotebookSetupFn } from './connection/dataless/dataless_notebook.js';
+import { SetNotebookScriptsRegistryAction } from './scripts/notebook_scripts_registry.js';
+import { NotebookScriptsSetupFn } from './connection/dataless/dataless_notebook.js';
 import { ProgressCounter } from './utils/progress.js';
-import { NotebookState } from './notebook/notebook_state.js';
+import { NotebookScripts } from './scripts/notebook_scripts.js';
 import { isDemoConnector } from './connection/dataless/dataless_connection_state.js';
 import { DatalessConnectionStateDetails } from './connection/dataless/dataless_connection_state.js';
-import { InvalidSession } from './platform/storage/session_validation.js';
+import { InvalidNotebook } from './platform/storage/notebook_validation.js';
 
 export interface AppLoadingResult {
-    /// The demo notebook
-    demo: NotebookState;
-    /// Sessions whose metadata failed validation and were refused a load (keyed by bare UUID).
-    invalidSessions: Map<string, InvalidSession>;
+    /// The demo notebook scripts
+    demo: NotebookScripts;
+    /// Notebooks whose metadata failed validation and were refused a load (keyed by bare UUID).
+    invalidNotebooks: Map<string, InvalidNotebook>;
 }
 
 /// Main logic to setup the application
-export async function loadApp(config: AppConfig, logger: TracedLogger, core: dashql.DashQL, storage: StorageReader, resetConnections: Dispatch<SetConnectionRegistryAction>, allocateConnection: ConnectionAllocator, modifyConnection: DynamicConnectionDispatch, resetNotebooks: Dispatch<SetNotebookRegistryAction>, setupDemoNotebook: NotebookSetupFn, consumer: AppLoadingProgressConsumer, abortSignal: AbortSignal) {
+export async function loadApp(config: AppConfig, logger: TracedLogger, core: dashql.DashQL, storage: StorageReader, resetConnections: Dispatch<SetConnectionRegistryAction>, allocateConnection: ConnectionAllocator, modifyConnection: DynamicConnectionDispatch, resetNotebookScripts: Dispatch<SetNotebookScriptsRegistryAction>, setupDemoNotebookScripts: NotebookScriptsSetupFn, consumer: AppLoadingProgressConsumer, abortSignal: AbortSignal) {
     const traced = logger.childSpan();
     traced.info("Loading application", {}, "app_loading");
     const appLoadStartTime = performance.now();
@@ -35,8 +35,8 @@ export async function loadApp(config: AppConfig, logger: TracedLogger, core: das
     let progress: AppLoadingProgress = {
         restoreConnections: new ProgressCounter(),
         restoreCatalogs: new ProgressCounter(),
-        restoreNotebooks: new ProgressCounter(),
-        analyzeNotebooks: new ProgressCounter(),
+        restoreNotebookScripts: new ProgressCounter(),
+        analyzeScripts: new ProgressCounter(),
         setupDefaultConnections: new ProgressCounter(1),
         setupDefaultNotebooks: new ProgressCounter(1),
     };
@@ -57,7 +57,7 @@ export async function loadApp(config: AppConfig, logger: TracedLogger, core: das
     const restoreDuration = performance.now() - restoreStartTime;
     traced.info("Restored application state", {
         connections: state.connectionStates.size.toString(),
-        notebooks: state.notebooks.size.toString(),
+        notebooks: state.notebookScripts.size.toString(),
         durationMs: restoreDuration.toFixed(2)
     }, "app_loading");
 
@@ -71,14 +71,14 @@ export async function loadApp(config: AppConfig, logger: TracedLogger, core: das
         connectionsBySignature: state.connectionSignatures,
     });
 
-    // Reset the notebook registry
-    traced.info("Updating notebook registry", {
-        notebookCount: state.notebooks.size.toString()
+    // Reset the notebook scripts registry
+    traced.info("Updating notebook scripts registry", {
+        notebookCount: state.notebookScripts.size.toString()
     }, "app_loading");
-    resetNotebooks({
-        notebookMap: state.notebooks,
-        notebooksByConnection: state.notebooksByConnection,
-        notebooksByConnectionType: state.notebooksByConnectionType,
+    resetNotebookScripts({
+        notebookScriptsMap: state.notebookScripts,
+        notebookScriptsByConnection: state.notebookScriptsByConnection,
+        notebookScriptsByConnectionType: state.notebookScriptsByConnectionType,
     });
 
     progress = {
@@ -98,21 +98,21 @@ export async function loadApp(config: AppConfig, logger: TracedLogger, core: das
         const demoSetupStartTime = performance.now();
 
         // Find an existing dataless connection with demoConnector enabled
-        const existingDemoSessionId = findDemoConnection(state.connectionStatesByType, state.connectionStates);
+        const existingDemoNotebookId = findDemoConnection(state.connectionStatesByType, state.connectionStates);
 
-        if (!existingDemoSessionId) {
+        if (!existingDemoNotebookId) {
             traced.info("Creating demo connection", {}, "app_loading");
             demoConn = allocateConnection(createDatalessConnectionState(core, state.connectionSignatures, { demoConnector: true }));
         } else {
-            demoConn = state.connectionStates.get(existingDemoSessionId)!;
-            traced.info("Using existing demo connection", { sessionId: existingDemoSessionId }, "app_loading");
+            demoConn = state.connectionStates.get(existingDemoNotebookId)!;
+            traced.info("Using existing demo connection", { notebookId: existingDemoNotebookId }, "app_loading");
         }
 
         // Create the default demo params
         traced.info("Creating demo database channel", {}, "app_loading");
         const demoChannel = new DemoDatabaseChannel();
         // Curry the dispatch
-        const dispatch = (action: ConnectionStateAction) => modifyConnection(demoConn!.sessionId, action);
+        const dispatch = (action: ConnectionStateAction) => modifyConnection(demoConn!.notebookId, action);
         // Setup the demo connection
         traced.info("Setting up demo connection", {}, "app_loading");
         await setupDatalessDemoConnection(dispatch, traced, demoChannel, abortSignal);
@@ -141,16 +141,16 @@ export async function loadApp(config: AppConfig, logger: TracedLogger, core: das
     traced.info("Setting up default notebooks", {}, "app_loading");
     const notebookSetupStartTime = performance.now();
 
-    let demoNotebook: NotebookState;
-    const existingDemoNotebookId = findDemoNotebook(state.notebooksByConnectionType, state.connectionStatesByType, state.connectionStates, state.notebooks);
+    let demoNotebookScripts: NotebookScripts;
+    const existingDemoNotebookId = findDemoNotebook(state.notebookScriptsByConnectionType, state.connectionStatesByType, state.connectionStates, state.notebookScripts);
     if (!existingDemoNotebookId) {
         traced.info("Creating demo notebook", {}, "app_loading");
-        demoNotebook = await setupDemoNotebook(demoConn, abortSignal);
+        demoNotebookScripts = await setupDemoNotebookScripts(demoConn, abortSignal);
         traced.info("Created demo notebook", {
-            sessionId: demoNotebook.sessionId
+            notebookId: demoNotebookScripts.notebookId
         }, "app_loading");
     } else {
-        demoNotebook = state.notebooks.get(existingDemoNotebookId)!;
+        demoNotebookScripts = state.notebookScripts.get(existingDemoNotebookId)!;
         traced.info("Using existing demo notebook", {
             notebookId: existingDemoNotebookId.toString()
         }, "app_loading");
@@ -175,20 +175,20 @@ export async function loadApp(config: AppConfig, logger: TracedLogger, core: das
     }, "app_loading");
 
     return {
-        demo: demoNotebook,
-        invalidSessions: state.invalidSessions,
+        demo: demoNotebookScripts,
+        invalidNotebooks: state.invalidNotebooks,
     };
 }
 
 /// Find an existing dataless connection with demoConnector enabled
 function findDemoConnection(connectionStatesByType: string[][], connectionStates: Map<string, ConnectionState>): string | null {
     const datalessIds = connectionStatesByType[ConnectorType.DATALESS] ?? [];
-    for (const sessionId of datalessIds) {
-        const conn = connectionStates.get(sessionId);
+    for (const notebookId of datalessIds) {
+        const conn = connectionStates.get(notebookId);
         if (conn) {
             const details = conn.details.value as DatalessConnectionStateDetails;
             if (isDemoConnector(details)) {
-                return sessionId;
+                return notebookId;
             }
         }
     }
@@ -197,18 +197,18 @@ function findDemoConnection(connectionStatesByType: string[][], connectionStates
 
 /// Find an existing notebook connected to a demo connection
 function findDemoNotebook(
-    notebooksByConnectionType: string[][],
+    notebookScriptsByConnectionType: string[][],
     connectionStatesByType: string[][],
     connectionStates: Map<string, ConnectionState>,
-    notebooks: Map<string, NotebookState>,
+    notebookScripts: Map<string, NotebookScripts>,
 ): string | null {
     // Look through dataless notebooks to find one connected to a demo-mode connection
-    const datalessNotebookIds = notebooksByConnectionType[ConnectorType.DATALESS] ?? [];
+    const datalessNotebookIds = notebookScriptsByConnectionType[ConnectorType.DATALESS] ?? [];
     for (const nbId of datalessNotebookIds) {
-        const nb = notebooks.get(nbId);
+        const nb = notebookScripts.get(nbId);
         if (!nb) continue;
         // Check the associated connection for demoConnector
-        const conn = connectionStates.get(nb.sessionId);
+        const conn = connectionStates.get(nb.notebookId);
         if (conn && conn.details.type === DATALESS_CONNECTOR) {
             const details = conn.details.value as DatalessConnectionStateDetails;
             if (isDemoConnector(details)) {

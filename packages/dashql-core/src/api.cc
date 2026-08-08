@@ -90,10 +90,10 @@ extern "C" bool dashql_script_set_output_schema(Script* script, const char* sche
     }
     return script->SetExecutedOutputSchema(std::move(columns));
 }
-/// Set the notebook path for catalog registration
-extern "C" void dashql_script_set_notebook_path(Script* script, const char* path_ptr, size_t path_length) {
+/// Set the script path for catalog registration
+extern "C" void dashql_script_set_script_path(Script* script, const char* path_ptr, size_t path_length) {
     std::unique_ptr<const char[]> path_buffer{path_ptr};
-    script->notebook_path = (path_ptr && path_length > 0) ? std::string(path_ptr, path_length) : std::string{};
+    script->script_path = (path_ptr && path_length > 0) ? std::string(path_ptr, path_length) : std::string{};
 }
 /// Insert char at a position
 extern "C" void dashql_script_insert_char_at(Script* script, size_t offset, uint32_t unicode) {

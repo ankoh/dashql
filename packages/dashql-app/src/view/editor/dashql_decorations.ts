@@ -4,7 +4,7 @@ import { EditorState, Transaction, StateField, RangeSetBuilder } from '@codemirr
 
 import { DashQLProcessorPlugin, DashQLScriptBuffers, DashQLScriptKey } from './dashql_processor.js';
 import { createScannerHighlightPlugin } from './dashql_decorations_standalone.js';
-import { FocusType, SemanticUserFocus } from '../../notebook/focus.js';
+import { FocusType, SemanticUserFocus } from '../../scripts/focus.js';
 
 import './dashql_decorations.css';
 

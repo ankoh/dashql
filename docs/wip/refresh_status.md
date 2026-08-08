@@ -16,7 +16,7 @@ Both controls dispatch the same notebook command:
 - The header button is defined in `packages/dashql-app/src/view/notebook/notebook_page.tsx`.
 - The sidebar action is defined in `packages/dashql-app/src/view/notebook/notebook_command_lists.tsx`.
 - Both dispatch `NotebookCommandType.RefreshCatalog`.
-- `NotebookCommands` handles that command in `packages/dashql-app/src/notebook/notebook_commands.tsx` and enqueues a forced catalog refresh through `CatalogLoaderProvider`.
+- `NotebookCommands` handles that command in `packages/dashql-app/src/scripts/notebook_commands.tsx` and enqueues a forced catalog refresh through `CatalogLoaderProvider`.
 
 The refresh lifecycle is already tracked in connection state:
 

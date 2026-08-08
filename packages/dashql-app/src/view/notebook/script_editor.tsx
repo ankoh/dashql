@@ -6,16 +6,16 @@ import { ChangeSpec, EditorSelection, StateEffect, EditorState } from '@codemirr
 
 import { CodeMirror, createCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from '../editor/dashql_processor.js';
-import { ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, NotebookState } from '../../notebook/notebook_state.js';
+import { ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, NotebookScripts } from '../../scripts/notebook_scripts.js';
 import { AppConfig, useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { ModifyNotebook, useNotebookState } from '../../notebook/notebook_state_registry.js';
+import { ModifyNotebookScripts, useNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
 import { Logger } from '../../platform/logger/logger.js';
 
 const LOG_CTX = "notebook_editor";
 
 export interface ScriptEditorProps {
-    sessionId: string;
+    notebookId: string;
     scriptKey: number;
     className?: string;
     autoHeight?: boolean;
@@ -25,14 +25,14 @@ export interface ScriptEditorProps {
 export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     const logger = useLogger();
     const config = useAppConfig();
-    const [notebook, modifyNotebook] = useNotebookState(props.sessionId);
+    const [scripts, modifyScripts] = useNotebookScripts(props.notebookId);
 
-    const scriptData = notebook?.scripts[props.scriptKey] ?? null;
+    const scriptData = scripts?.scripts[props.scriptKey] ?? null;
 
     // Update outdated scripts that are displayed in the editor
     React.useEffect(() => {
         if (scriptData?.scriptAnalysis.outdated) {
-            modifyNotebook({ type: ANALYZE_OUTDATED_SCRIPT, value: scriptData.scriptKey });
+            modifyScripts({ type: ANALYZE_OUTDATED_SCRIPT, value: scriptData.scriptKey });
         }
     }, [scriptData]);
 
@@ -40,16 +40,16 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     const [view, setViewState] = React.useState<EditorView | null>(null);
     // Effect to update the editor script whenever the script changes
     React.useEffect(() => {
-        if (config == null || view == null || scriptData == null || notebook == null) return;
-        updateEditor(view, notebook, scriptData, modifyNotebook, logger, config);
+        if (config == null || view == null || scriptData == null || scripts == null) return;
+        updateEditor(view, scripts, scriptData, modifyScripts, logger, config);
     }, [
         config,
         view,
         scriptData?.script,
         scriptData?.scriptAnalysis.buffers,
         scriptData?.pendingDiff,
-        notebook?.semanticUserFocus,
-        notebook?.connectionCatalog,
+        scripts?.semanticUserFocus,
+        scripts?.connectionCatalog,
     ]);
     // Forward the view ref, if requested
     React.useEffect(() => {
@@ -70,7 +70,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     );
 };
 
-function updateEditor(view: EditorView, notebook: NotebookState, scriptData: ScriptData, modifyNotebook: ModifyNotebook, logger: Logger, _config: AppConfig) {
+function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: ScriptData, modifyScripts: ModifyNotebookScripts, logger: Logger, _config: AppConfig) {
     const state = view.state.field(DashQLProcessorPlugin);
     const changes: ChangeSpec[] = [];
     const effects: StateEffect<any>[] = [];
@@ -125,7 +125,7 @@ function updateEditor(view: EditorView, notebook: NotebookState, scriptData: Scr
     // Called when the script gets updated by the CodeMirror extension.
     // Note that this is also called when the state is set up initially.
     const updateScript = (update: DashQLProcessorUpdateOut) => {
-        modifyNotebook({
+        modifyScripts({
             type: UPDATE_FROM_PROCESSOR,
             value: update,
         });
@@ -138,7 +138,7 @@ function updateEditor(view: EditorView, notebook: NotebookState, scriptData: Scr
             config: {
             },
 
-            scriptRegistry: notebook.scriptRegistry,
+            scriptRegistry: scripts.scriptRegistry,
             scriptKey: scriptData.scriptKey,
             script: scriptData.script,
             scriptBuffers: scriptData.scriptAnalysis.buffers,
@@ -146,7 +146,7 @@ function updateEditor(view: EditorView, notebook: NotebookState, scriptData: Scr
             scriptCompletion: scriptData.completion,
             scriptPendingDiff: scriptData.pendingDiff,
 
-            derivedFocus: notebook?.semanticUserFocus ?? null,
+            derivedFocus: scripts.semanticUserFocus,
 
             onUpdate: updateScript,
         }),

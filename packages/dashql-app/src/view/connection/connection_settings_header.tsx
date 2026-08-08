@@ -15,16 +15,16 @@ import { ConnectorInfo } from '../../connection/connector_info.js';
 import { CopyToClipboardButton } from '../../utils/clipboard.js';
 import { IndicatorStatus, StatusIndicator } from '../../view/foundations/status_indicator.js';
 import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
-import { NotebookState } from '../../notebook/notebook_state.js';
-import { exportSessionAsUrl, SessionLinkTarget } from '../../platform/storage/session_export.js';
+import { NotebookScripts } from '../../scripts/notebook_scripts.js';
+import { exportNotebookAsUrl, NotebookLinkTarget } from '../../platform/storage/notebook_export.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useStorageReader } from '../../platform/storage/storage_provider.js';
 import { useRouterNavigate, NOTEBOOK_PATH } from '../../router.js';
-import { useNotebookSetup } from '../../notebook/notebook_setup.js';
+import { useNotebookScriptsSetup } from '../../scripts/notebook_scripts_setup.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
-import { useNotebookRegistry } from '../../notebook/notebook_state_registry.js';
+import { useNotebookScriptsRegistry } from '../../scripts/notebook_scripts_registry.js';
 import { useDynamicConnectionDispatch } from '../../connection/connection_registry.js';
 
 const LOG_CTX = "conn_header";
@@ -36,7 +36,7 @@ interface Props {
     setupConnection?: () => void;
     cancelSetup?: () => void;
     resetSetup?: () => void;
-    notebook: NotebookState | null;
+    notebookScripts: NotebookScripts | null;
     onClose?: () => void;
 }
 
@@ -49,9 +49,9 @@ export function ConnectionHeader(props: Props): React.ReactElement {
     const logger = useLogger();
     const navigate = useRouterNavigate();
     const storage = useStorageReader();
-    const setupNotebook = useNotebookSetup();
+    const setupNotebookScripts = useNotebookScriptsSetup();
     const modifyConnection = useDynamicConnectionDispatch()[1];
-    const notebookRegistry = useNotebookRegistry()[0];
+    const notebookScriptsRegistry = useNotebookScriptsRegistry()[0];
 
     // Get the action button
     let connectButton: React.ReactElement = <div />;
@@ -103,24 +103,24 @@ export function ConnectionHeader(props: Props): React.ReactElement {
         if (props.connection == null) {
             return;
         }
-        const notebook = setupNotebook(props.connection);
+        const notebookScripts = setupNotebookScripts(props.connection);
         props.onClose?.();
         navigate({
             type: NOTEBOOK_PATH,
-            value: notebook.sessionId
+            value: notebookScripts.notebookId
         });
     }, [props.onClose]);
 
     // Check if we can delete the connection
     let connectionNotebooks = (props.connection == null)
         ? []
-        : notebookRegistry.notebooksByConnection.get(props.connection.sessionId);;
+        : notebookScriptsRegistry.notebookScriptsByConnection.get(props.connection.notebookId);;
     const cannotDeleteWithStatus = props.connection != null && !canDeleteConnectionWithStatus(props.connection.connectionStatus);
     const cannotDeleteWithNotebooks = (connectionNotebooks?.length ?? 0) > 0
     const canDeleteConnection = !cannotDeleteWithStatus && !cannotDeleteWithNotebooks;
     let deleteTooltip: string = "Delete";
     if (cannotDeleteWithNotebooks) {
-        deleteTooltip = `Cannot delete with notebook`;
+        deleteTooltip = "Cannot delete connection with notebooks";
     } else if (cannotDeleteWithStatus) {
         deleteTooltip = "Cannot be online";
     }
@@ -132,21 +132,21 @@ export function ConnectionHeader(props: Props): React.ReactElement {
         }
         if (!canDeleteConnectionWithStatus(props.connection.connectionStatus)) {
             logger.warn("Refusing to delete connection due to status", {
-                connection: props.connection.sessionId,
+                connection: props.connection.notebookId,
                 status: props.connection.connectionStatus.toString()
             });
             return;
         }
         if ((connectionNotebooks?.length ?? 0) > 0) {
             logger.warn("Refusing to delete connection with notebooks", {
-                connection: props.connection.sessionId,
+                connection: props.connection.notebookId,
                 status: props.connection.connectionStatus.toString(),
                 notebooks: connectionNotebooks!.length.toString()
             });
             return;
         }
         props.onClose?.();
-        modifyConnection(props.connection.sessionId, {
+        modifyConnection(props.connection.notebookId, {
             type: DELETE_CONNECTION,
             value: null
         });
@@ -158,7 +158,7 @@ export function ConnectionHeader(props: Props): React.ReactElement {
         let cancelled = false;
 
         async function generateURLs() {
-            if (props.connection == null || props.notebook == null) {
+            if (props.connection == null || props.notebookScripts == null) {
                 setSetupURLs(null);
                 return;
             }
@@ -170,8 +170,8 @@ export function ConnectionHeader(props: Props): React.ReactElement {
             }
 
             const [urlWeb, urlNative] = await Promise.all([
-                exportSessionAsUrl(storage.backend, props.notebook.sessionId, connParams, SessionLinkTarget.WEB),
-                exportSessionAsUrl(storage.backend, props.notebook.sessionId, connParams, SessionLinkTarget.NATIVE)
+                exportNotebookAsUrl(storage.backend, props.notebookScripts.notebookId, connParams, NotebookLinkTarget.WEB),
+                exportNotebookAsUrl(storage.backend, props.notebookScripts.notebookId, connParams, NotebookLinkTarget.NATIVE)
             ]);
 
             if (!cancelled) {
@@ -187,7 +187,7 @@ export function ConnectionHeader(props: Props): React.ReactElement {
         return () => {
             cancelled = true;
         };
-    }, [props.notebook, props.connection, storage.backend]);
+    }, [props.notebookScripts, props.connection, storage.backend]);
 
     // Determine platform type
     const platformType = usePlatformType();

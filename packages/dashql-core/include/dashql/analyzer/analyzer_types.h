@@ -743,7 +743,7 @@ enum class VisSourceKind : uint8_t {
     Unresolved = 0,
     /// `visualize <db>.<schema>.<table> using vegalite (...)` — bare table reference
     TableReference = 1,
-    /// `visualize dashql.notebook."<folder>/<file>" using vegalite (...)` — qualified script path
+    /// `visualize dashql.script."<folder>/<file>" using vegalite (...)` — qualified script path
     ScriptReference = 2,
     /// `visualize (select ...) using vegalite (...)` — inline parenthesised SELECT subquery
     InlineSelect = 3,
@@ -758,8 +758,8 @@ struct ResolvedVisSource {
     std::optional<QualifiedTableName> qualified_name;
     /// For ScriptReference / TableReference: the resolved catalog table id (copied from the table
     /// reference's resolved_table). Its packed form is (catalog_entry_id << 32) | table_index, so the
-    /// upper 32 bits identify the producing script's catalog entry — which is exactly its notebook
-    /// scriptKey. TypeScript uses this to inline the producing script's text without any name lookup.
+    /// upper 32 bits identify the producing script's catalog entry — which is exactly its scriptKey.
+    /// TypeScript uses this to inline the producing script's text without any name lookup.
     /// Absent when the reference did not resolve (e.g. the source script has an error).
     std::optional<QualifiedCatalogObjectID> resolved_table_id;
     /// For InlineSelect: the AST node id of the OBJECT_SQL_SELECT subquery

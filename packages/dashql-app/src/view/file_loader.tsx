@@ -9,7 +9,12 @@ import { classNames } from '../utils/classnames.js';
 import { formatBytes } from '../utils/format.js';
 import { useRouterNavigate, NOTEBOOK_PATH } from '../router.js';
 import { useStorageReader } from '../platform/storage/storage_provider.js';
-import { importSessionFromZip } from '../platform/storage/session_import.js';
+import { importAndRestoreNotebook } from '../app_setup_events.js';
+import { destroyRestoredNotebook, type RestoredNotebook } from '../platform/storage/app_state_loader.js';
+import { useDashQLCoreSetup } from '../core_provider.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
+import { useConnectionRegistry } from '../connection/connection_registry.js';
+import { useNotebookScriptsRegistry } from '../scripts/notebook_scripts_registry.js';
 
 interface ProgressState {
     // The file size
@@ -28,18 +33,17 @@ interface ProgressState {
     // The time when the import failed
     importFailedAt: Date | null;
 
-    // The imported session path
-    sessionPath: string | null;
+    // The imported notebook id
+    notebookId: string | null;
 }
 
 type UpdateProgressFn = (state: ProgressState) => void;
 
-async function loadSessionFromFile(
+async function loadNotebookFromFile(
     file: PlatformFile,
-    backend: any,
     updateProgress: UpdateProgressFn,
     signal: AbortSignal
-): Promise<string> {
+): Promise<Blob> {
     const progress: ProgressState = {
         fileByteCount: null,
         fileReadingStartedAt: null,
@@ -48,7 +52,7 @@ async function loadSessionFromFile(
         importStartedAt: null,
         importFinishedAt: null,
         importFailedAt: null,
-        sessionPath: null,
+        notebookId: null,
     };
 
     // Read the file
@@ -70,22 +74,12 @@ async function loadSessionFromFile(
 
     signal.throwIfAborted();
 
-    // Import the session from ZIP
+    // Import the notebook from ZIP
     progress.importStartedAt = new Date();
     updateProgress({ ...progress });
 
     try {
-        const zipBlob = new Blob([fileBuffer], { type: 'application/zip' });
-        const sessionId = await importSessionFromZip(
-            zipBlob,
-            backend,
-            () => crypto.randomUUID()
-        );
-
-        progress.importFinishedAt = new Date();
-        updateProgress({ ...progress });
-
-        return sessionId;
+        return new Blob([fileBuffer], { type: 'application/zip' });
     } catch (e: any) {
         progress.importFailedAt = new Date();
         updateProgress({ ...progress });
@@ -99,8 +93,14 @@ interface Props {
 }
 
 export function FileLoader(props: Props) {
+    const { file, onDone } = props;
     const navigate = useRouterNavigate();
     const storageReader = useStorageReader();
+    const setupCore = useDashQLCoreSetup();
+    const logger = useLogger();
+    const [connectionRegistry, setConnectionRegistry] = useConnectionRegistry();
+    const connectionSignatures = connectionRegistry.connectionsBySignature;
+    const [, setNotebookScriptsRegistry] = useNotebookScriptsRegistry();
     const abortController = React.useMemo(() => new AbortController(), []);
 
     const [error, setError] = React.useState<Error | null>(null);
@@ -112,34 +112,76 @@ export function FileLoader(props: Props) {
         importStartedAt: null,
         importFinishedAt: null,
         importFailedAt: null,
-        sessionPath: null,
+        notebookId: null,
     });
 
     // Load the file
     React.useEffect(() => {
         (async () => {
+            let restoredNotebook: RestoredNotebook | null = null;
+            let registered = false;
             try {
-                const sessionPath = await loadSessionFromFile(
-                    props.file,
-                    storageReader.backend,
+                const zipBlob = await loadNotebookFromFile(
+                    file,
                     setProgress,
                     abortController.signal
                 );
-                // Navigate to the imported session
-                navigate({ type: NOTEBOOK_PATH, value: sessionPath });
-                props.onDone();
+                abortController.signal.throwIfAborted();
+
+                // Imports happen after startup restoration, so load the persisted notebook into the
+                // live registries before navigating to it.
+                const core = await setupCore('file_import');
+                const restored = await importAndRestoreNotebook(
+                    zipBlob,
+                    logger,
+                    core,
+                    storageReader.backend,
+                    connectionSignatures,
+                );
+                restoredNotebook = restored;
+                const notebookId = restored.notebookId;
+                abortController.signal.throwIfAborted();
+                setConnectionRegistry(registry => {
+                    registry.connectionMap.set(notebookId, restored.connection);
+                    registry.connectionsByType[restored.connectorType].push(notebookId);
+                    registry.connectionsBySignature.set(
+                        restored.connection.connectionSignature.signatureString,
+                        notebookId,
+                    );
+                    return { ...registry };
+                });
+                setNotebookScriptsRegistry(registry => {
+                    registry.notebookScriptsMap.set(notebookId, restored.notebookScripts);
+                    registry.notebookScriptsByConnection.set(notebookId, notebookId);
+                    registry.notebookScriptsByConnectionType[restored.connectorType].push(notebookId);
+                    return { ...registry };
+                });
+                registered = true;
+                setProgress(current => ({ ...current, importFinishedAt: new Date(), notebookId }));
+                // Navigate to the imported notebook
+                navigate({ type: NOTEBOOK_PATH, value: notebookId });
+                onDone();
             } catch (e: any) {
+                if (restoredNotebook && !registered) {
+                    destroyRestoredNotebook(restoredNotebook);
+                    try {
+                        await storageReader.backend.deleteNotebook(restoredNotebook.notebookId);
+                    } catch {
+                        // Preserve the cancellation/restoration error when cleanup fails.
+                    }
+                }
+                setProgress(current => ({ ...current, importFailedAt: new Date() }));
                 setError(e);
             }
         })();
         return () => abortController.abort();
-    }, [props.file, storageReader, abortController, navigate, props]);
+    }, [file, onDone, storageReader, setupCore, logger, connectionSignatures, setConnectionRegistry, setNotebookScriptsRegistry, abortController, navigate]);
 
     // Close button
     const close = React.useCallback(() => {
         abortController.abort();
-        props.onDone();
-    }, [abortController, props.onDone]);
+        onDone();
+    }, [abortController, onDone]);
 
     // Determine the status
     let status = IndicatorStatus.Running;
@@ -161,7 +203,7 @@ export function FileLoader(props: Props) {
                     <use xlinkHref={`${symbols}#dashql`} />
                 </svg>
             </div>
-            <div className={baseStyles.banner_page_title}>Loading Session</div>
+            <div className={baseStyles.banner_page_title}>Loading Notebook</div>
             <div className={classNames(baseStyles.banner_page_body, styles.loader_status)}>
                 <div className={styles.status_row}>
                     <div className={styles.status_icon}>
@@ -174,11 +216,11 @@ export function FileLoader(props: Props) {
                             </span>
                         ) : progress.importFinishedAt ? (
                             <span>
-                                Session imported successfully
+                                Notebook imported successfully
                                 {durationMs && ` in ${(durationMs / 1000).toFixed(2)}s`}
                             </span>
                         ) : progress.importStartedAt ? (
-                            <span>Importing session...</span>
+                            <span>Importing notebook...</span>
                         ) : progress.fileReadingFinishedAt ? (
                             <span>
                                 File read ({progress.fileByteCount ? formatBytes(progress.fileByteCount) : 'unknown size'})

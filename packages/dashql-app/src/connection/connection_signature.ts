@@ -17,7 +17,7 @@ export interface ConnectionSignatureState {
 const SIGNATURE_DEFAULT_LENGTH = 6;
 const HEX_TABLE = "0123456789abcdef";
 
-export function updateConnectionSignature(prev: ConnectionSignatureState, next: Hasher, sessionId: string | null): ConnectionSignatureState {
+export function updateConnectionSignature(prev: ConnectionSignatureState, next: Hasher, notebookId: string | null): ConnectionSignatureState {
     const rng = next.asPrng();
 
     // Remove the old one
@@ -34,7 +34,7 @@ export function updateConnectionSignature(prev: ConnectionSignatureState, next: 
     // Fill more characters
     while (true) {
         if (!prev.signatures.has(sig)) {
-            prev.signatures.set(sig, sessionId);
+            prev.signatures.set(sig, notebookId);
             return {
                 hash: next,
                 signatureString: sig,
@@ -46,11 +46,11 @@ export function updateConnectionSignature(prev: ConnectionSignatureState, next: 
     }
 }
 
-export function newConnectionSignature(seed: Hasher, sigs: ConnectionSignatureMap, sessionId: string | null) {
+export function newConnectionSignature(seed: Hasher, sigs: ConnectionSignatureMap, notebookId: string | null) {
     const state: ConnectionSignatureState = {
         hash: seed,
         signatureString: "",
         signatures: sigs
     };
-    return updateConnectionSignature(state, seed, sessionId);
+    return updateConnectionSignature(state, seed, notebookId);
 }

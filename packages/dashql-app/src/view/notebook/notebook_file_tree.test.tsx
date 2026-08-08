@@ -11,16 +11,16 @@ vi.mock('../foundations/button.js', async () => fakeButtonModule(await import('r
 vi.mock('../foundations/symbol_icon.js', async () => fakeSymbolIconModule(await import('react')));
 
 import {
-    type NotebookStateAction,
-    type NotebookState,
-    UPDATE_NOTEBOOK_ENTRY,
-    UPDATE_PAGE_FOLDER_NAME,
-} from '../../notebook/notebook_state.js';
+    type NotebookScriptsAction,
+    type NotebookScripts,
+    RENAME_SCRIPT,
+    RENAME_SCRIPT_FOLDER,
+} from '../../scripts/notebook_scripts.js';
 import { NotebookFileTree } from './notebook_file_tree.js';
 
-function createNotebook(): NotebookState {
+function createNotebookScripts(): NotebookScripts {
     return {
-        notebookPages: {
+        scriptFolders: {
             '1_main': {
                 folderName: '1_main',
                 scripts: {
@@ -40,12 +40,12 @@ function createNotebook(): NotebookState {
             2: { annotations: { visualizeQuery: {} } },
             3: { annotations: { visualizeQuery: null } },
         },
-        notebookUserFocus: {
+        scriptFocus: {
             folderName: '1_main',
             fileName: '1_query.sql',
             interactionCounter: 0,
         },
-    } as unknown as NotebookState;
+    } as unknown as NotebookScripts;
 }
 
 function setInputValue(input: HTMLInputElement, value: string) {
@@ -65,7 +65,7 @@ function dispatchPointerEvent(target: EventTarget, type: string, clientY: number
 describe('NotebookFileTree', () => {
     let container: HTMLDivElement;
     let root: Root;
-    let modifyNotebook: ReturnType<typeof vi.fn<(action: NotebookStateAction) => void>>;
+    let modifyNotebookScripts: ReturnType<typeof vi.fn<(action: NotebookScriptsAction) => void>>;
     let onSelectFolder: ReturnType<typeof vi.fn<(folder: string) => void>>;
     let onSelectScript: ReturnType<typeof vi.fn<(folder: string, file: string) => void>>;
     let onSelectCatalog: ReturnType<typeof vi.fn<(tab: 'relations' | 'functions') => void>>;
@@ -75,7 +75,7 @@ describe('NotebookFileTree', () => {
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
-        modifyNotebook = vi.fn();
+        modifyNotebookScripts = vi.fn();
         onSelectFolder = vi.fn();
         onSelectScript = vi.fn();
         onSelectCatalog = vi.fn();
@@ -91,8 +91,8 @@ describe('NotebookFileTree', () => {
         act(() => {
             root.render(
                 <NotebookFileTree
-                    notebook={createNotebook()}
-                    modifyNotebook={modifyNotebook}
+                    notebookScripts={createNotebookScripts()}
+                    modifyNotebookScripts={modifyNotebookScripts}
                     catalogTab={catalogTab}
                     navigationLevel={navigationLevel}
                     showCatalogEntries
@@ -185,8 +185,8 @@ describe('NotebookFileTree', () => {
         act(() => setInputValue(input, 'Analytics'));
         act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
 
-        expect(modifyNotebook).toHaveBeenCalledWith({
-            type: UPDATE_PAGE_FOLDER_NAME,
+        expect(modifyNotebookScripts).toHaveBeenCalledWith({
+            type: RENAME_SCRIPT_FOLDER,
             value: { folderName: '1_main', newFolderName: 'Analytics' },
         });
     });
@@ -201,7 +201,7 @@ describe('NotebookFileTree', () => {
             input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
         });
 
-        expect(modifyNotebook).not.toHaveBeenCalled();
+        expect(modifyNotebookScripts).not.toHaveBeenCalled();
         expect(container.querySelector('input[aria-label="Rename main folder"]')).toBeNull();
     });
 
@@ -217,8 +217,8 @@ describe('NotebookFileTree', () => {
         act(() => setInputValue(input, 'customers'));
         act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
 
-        expect(modifyNotebook).toHaveBeenCalledWith({
-            type: UPDATE_NOTEBOOK_ENTRY,
+        expect(modifyNotebookScripts).toHaveBeenCalledWith({
+            type: RENAME_SCRIPT,
             value: { fileName: '1_query.sql', newFileName: 'customers' },
         });
     });
@@ -234,7 +234,7 @@ describe('NotebookFileTree', () => {
             main.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
         });
 
-        expect(modifyNotebook).not.toHaveBeenCalled();
+        expect(modifyNotebookScripts).not.toHaveBeenCalled();
     });
 
     it('marks only the active catalog entry as current', () => {

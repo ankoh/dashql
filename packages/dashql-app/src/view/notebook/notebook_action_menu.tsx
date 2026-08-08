@@ -2,8 +2,8 @@ import * as React from 'react';
 import { ThreeBarsIcon } from '@primer/octicons-react';
 
 import type { ConnectionState } from '../../connection/connection_state.js';
-import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
-import type { NotebookState } from '../../notebook/notebook_state.js';
+import type { ModifyNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
+import type { NotebookScripts } from '../../scripts/notebook_scripts.js';
 import * as ActionList from '../foundations/action_list.js';
 import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
@@ -16,8 +16,8 @@ import * as styles from './notebook_action_menu.module.css';
 
 export interface NotebookActionMenuProps {
     conn: ConnectionState | null;
-    notebook: NotebookState;
-    modifyNotebook: ModifyNotebook;
+    notebookScripts: NotebookScripts;
+    modifyNotebookScripts: ModifyNotebookScripts;
     navigationDisabled: boolean;
     navigationLevel: NotebookFileTreeNavigationLevel;
     onSelectFolderLevel: () => void;
@@ -84,8 +84,8 @@ export const NotebookActionMenu: React.FC<NotebookActionMenuProps> = (props) => 
                     <ActionList.GroupHeading>Notebook</ActionList.GroupHeading>
                     <NotebookCommandList
                         conn={props.conn}
-                        notebook={props.notebook}
-                        modifyNotebook={props.modifyNotebook}
+                        notebookScripts={props.notebookScripts}
+                        modifyNotebookScripts={props.modifyNotebookScripts}
                         navigationDisabled={props.navigationDisabled}
                         navigationLevel={props.navigationLevel}
                         onSelectFolderLevel={props.onSelectFolderLevel}

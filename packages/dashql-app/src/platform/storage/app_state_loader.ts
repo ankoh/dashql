@@ -3,16 +3,16 @@ import type { Logger } from '../logger/logger.js';
 import { stringifyError } from '../logger/logger.js';
 import { ProgressCounter } from '../../utils/progress.js';
 import type { ConnectionState } from '../../connection/connection_state.js';
-import type { NotebookState, ScriptData as NotebookScriptData } from '../../notebook/notebook_state.js';
-import { analyzeAllScriptsInNotebook, createEmptyScriptData, sortFolderNamesNumerically } from '../../notebook/notebook_state.js';
-import type { AnalyzeAllScriptsProgress } from '../../notebook/notebook_state.js';
+import type { NotebookScripts, ScriptData } from '../../scripts/notebook_scripts.js';
+import { analyzeAllScripts, createEmptyScriptData, destroyNotebookScripts, sortScriptFolderNamesNumerically } from '../../scripts/notebook_scripts.js';
+import type { AnalyzeAllScriptsProgress } from '../../scripts/notebook_scripts.js';
 import { decodeConnectionFromProto, restoreConnectionState } from '../../connection/connection_import.js';
 import { ConnectorType, type ConnectorInfo } from '../../connection/connector_info.js';
-import type { StorageBackend, SessionEntry, SessionData, PageData } from './storage_backend.js';
+import type { StorageBackend, NotebookEntry, NotebookData, ScriptFolderData } from './storage_backend.js';
 import { StorageBackendType } from './storage_backend.js';
-import { validateSessionData, describeInvalidSession, isValidUuid, SessionValidationError, type InvalidSession } from './session_validation.js';
+import { validateNotebookData, describeInvalidNotebook, isValidUuid, NotebookValidationError, type InvalidNotebook } from './notebook_validation.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../../connection/catalog_update_state.js';
-import { createEmptyAnnotations } from '../../notebook/notebook_types.js';
+import { createEmptyAnnotations } from '../../scripts/script_types.js';
 import * as Immutable from 'immutable';
 
 const LOG_CTX = "app_state_loader";
@@ -21,278 +21,283 @@ export interface RestoredAppState {
     connectionStates: Map<string, ConnectionState>;
     connectionStatesByType: string[][];
     connectionSignatures: Map<string, string | null>;
-    notebooks: Map<string, NotebookState>;
-    notebooksByConnection: Map<string, string>;
-    notebooksByConnectionType: string[][];
-    /// Sessions whose metadata failed validation and were refused a load (keyed by bare UUID).
-    /// These never enter the connection/notebook maps; the session selector surfaces them as
+    notebookScripts: Map<string, NotebookScripts>;
+    notebookScriptsByConnection: Map<string, string>;
+    notebookScriptsByConnectionType: string[][];
+    /// Notebooks whose metadata failed validation and were refused a load (keyed by bare UUID).
+    /// These never enter the connection/notebook maps; the notebook selector surfaces them as
     /// invalid (blocked from opening, still deletable).
-    invalidSessions: Map<string, InvalidSession>;
+    invalidNotebooks: Map<string, InvalidNotebook>;
 }
 
-/// Thrown by `restoreSession` when a session's metadata fails the up-front validation gate.
+/// Thrown by `restoreNotebookEntry` when a notebook's metadata fails the up-front validation gate.
 ///
 /// Distinguished from an arbitrary restore error so the loader can record it as a (skipped)
-/// invalid session and surface it in the UI, rather than counting it as a hard failure.
-class InvalidSessionError extends Error {
-    constructor(public readonly invalid: InvalidSession) {
-        super(`invalid session ${invalid.sessionId}: ${invalid.error}`);
-        this.name = 'InvalidSessionError';
+/// invalid notebook and surface it in the UI, rather than counting it as a hard failure.
+class InvalidNotebookError extends Error {
+    constructor(public readonly invalid: InvalidNotebook) {
+        super(`invalid notebook ${invalid.notebookId}: ${invalid.error}`);
+        this.name = 'InvalidNotebookError';
     }
 }
 
 export interface AppStateRestorationProgress {
     restoreConnections: ProgressCounter;
     restoreCatalogs: ProgressCounter;
-    restoreNotebooks: ProgressCounter;
-    analyzeNotebooks: ProgressCounter;
+    restoreNotebookScripts: ProgressCounter;
+    analyzeScripts: ProgressCounter;
 }
 
-/// Restores notebook state from storage
-async function restoreNotebook(
+/// Restores notebook scripts from storage
+async function restoreNotebookScripts(
     core: DashQL,
     backend: StorageBackend,
-    sessionPath: string,
-    sessionId: string,
+    notebookId: string,
     connectorInfo: ConnectorInfo,
     connectionCatalog: any,
     notebookMetadata: any,
     logger: Logger
-): Promise<NotebookState> {
-    logger.info("Creating script registry", { sessionId }, LOG_CTX);
+): Promise<NotebookScripts> {
+    logger.info("Creating script registry", { notebookId }, LOG_CTX);
     const scriptRegistry = core.createScriptRegistry();
+    const scripts: Record<number, ScriptData> = {};
 
-    // Load notebook pages from storage
-    logger.info("Loading notebook pages", { sessionId }, LOG_CTX);
-    const pages: PageData[] = await backend.loadNotebookPages(sessionPath);
-    logger.info("Notebook pages loaded", {
-        sessionId,
-        pageCount: pages.length.toString()
-    }, LOG_CTX);
-
-    // Reconstruct scripts and pages
-    const scripts: Record<number, NotebookScriptData> = {};
-    const notebookPages: { [folderName: string]: { folderName: string; scripts: { [fileName: string]: { scriptId: number; fileName: string } } } } = {};
-
-    logger.info("Reconstructing scripts and pages", {
-        sessionId,
-        pageCount: pages.length.toString()
-    }, LOG_CTX);
-
-    for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
-        const page = pages[pageIndex];
-        const pageScripts: { [fileName: string]: { scriptId: number; fileName: string } } = {};
-
-        logger.info("Processing page", {
-            sessionId,
-            pageIndex: `${pageIndex + 1}/${pages.length}`,
-            scriptCount: page.scripts.length.toString()
+    try {
+        // Load script folders from storage
+        logger.info("Loading script folders", { notebookId }, LOG_CTX);
+        const pages: ScriptFolderData[] = await backend.loadScriptFolders(notebookId);
+        logger.info("Script folders loaded", {
+            notebookId,
+            pageCount: pages.length.toString()
         }, LOG_CTX);
 
-        for (const scriptFile of page.scripts) {
-            // Create WASM script
-            const script = core.createScript(connectionCatalog);
-            const scriptKey = script.getCatalogEntryId();
+        // Reconstruct scripts and pages
+        const scriptFolders: { [folderName: string]: { folderName: string; scripts: { [fileName: string]: { scriptId: number; fileName: string } } } } = {};
 
-            // Set SQL content. The guarded Phase 4 pass analyzes and registers every script.
-            script.replaceText(scriptFile.sql);
+        logger.info("Reconstructing scripts and pages", {
+            notebookId,
+            pageCount: pages.length.toString()
+        }, LOG_CTX);
 
-            // Create script data
-            scripts[scriptKey] = {
-                scriptKey,
-                script,
-                scriptAnalysis: {
-                    buffers: {
-                        parsed: null,
-                        analyzed: null,
-                        destroy: () => { },
+        for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+            const page = pages[pageIndex];
+            const pageScripts: { [fileName: string]: { scriptId: number; fileName: string } } = {};
+
+            logger.info("Processing page", {
+                notebookId,
+                pageIndex: `${pageIndex + 1}/${pages.length}`,
+                scriptCount: page.scripts.length.toString()
+            }, LOG_CTX);
+
+            for (const scriptFile of page.scripts) {
+                // Create WASM script
+                const script = core.createScript(connectionCatalog);
+                const scriptKey = script.getCatalogEntryId();
+
+                // Register ownership before hydrating text so the outer rollback also frees a script
+                // whose replaceText call fails.
+                scripts[scriptKey] = {
+                    scriptKey,
+                    script,
+                    scriptAnalysis: {
+                        buffers: {
+                            parsed: null,
+                            analyzed: null,
+                            destroy: () => { },
+                        },
+                        outdated: true,
                     },
-                    outdated: true,
-                },
-                annotations: createEmptyAnnotations(),
-                statistics: Immutable.List(),
-                cursor: null,
-                completion: null,
-                pendingDiff: null,
-                latestQueryId: null,
-                latestAgentRunId: null,
-                fileName: scriptFile.name,
-                folderName: page.name,
-            };
+                    annotations: createEmptyAnnotations(),
+                    statistics: Immutable.List(),
+                    cursor: null,
+                    completion: null,
+                    pendingDiff: null,
+                    latestQueryId: null,
+                    latestAgentRunId: null,
+                    fileName: scriptFile.name,
+                    folderName: page.name,
+                };
 
-            // Create page script reference
-            pageScripts[scriptFile.name] = {
-                scriptId: scriptKey,
-                fileName: scriptFile.name,
+                // Set SQL content. The guarded Phase 4 pass analyzes and registers every script.
+                script.replaceText(scriptFile.sql);
+
+                // Create page script reference
+                pageScripts[scriptFile.name] = {
+                    scriptId: scriptKey,
+                    fileName: scriptFile.name,
+                };
+            }
+
+            scriptFolders[page.name] = {
+                folderName: page.name,
+                scripts: pageScripts,
             };
         }
 
-        notebookPages[page.name] = {
-            folderName: page.name,
-            scripts: pageScripts,
+        // Ensure at least one page exists
+        if (Object.keys(scriptFolders).length === 0) {
+            logger.info("No pages found, creating empty page", { notebookId }, LOG_CTX);
+            scriptFolders['Untitled'] = { folderName: 'Untitled', scripts: {} };
+        }
+
+        // Create uncommitted script
+        logger.info("Creating uncommitted script", { notebookId }, LOG_CTX);
+        const [uncommittedKey, uncommittedData] = createEmptyScriptData(core, connectionCatalog);
+        scripts[uncommittedKey] = uncommittedData;
+
+        // Load draft script if exists
+        logger.info("Loading draft script", { notebookId }, LOG_CTX);
+        const draftSql = await backend.loadScriptDraft(notebookId);
+        if (draftSql) {
+            logger.info("Draft script loaded", {
+                notebookId,
+                draftLength: draftSql.length.toString()
+            }, LOG_CTX);
+            uncommittedData.script.replaceText(draftSql);
+            uncommittedData.scriptAnalysis.outdated = true;
+        } else {
+            logger.info("No draft script found", { notebookId }, LOG_CTX);
+        }
+
+        // Pick the first sorted page as the initial focus. Use the same numeric-aware ordering the
+        // tab bar renders with, so the focused page matches the first tab even with ordering prefixes.
+        const sortedFolders = sortScriptFolderNamesNumerically(Object.keys(scriptFolders));
+        const initialFolder = sortedFolders[0] ?? '';
+        const initialPage = initialFolder ? scriptFolders[initialFolder] : null;
+        const initialFile = initialPage
+            ? (Object.keys(initialPage.scripts).sort((a, b) => a.localeCompare(b))[0] ?? '')
+            : '';
+
+        const notebookScripts: NotebookScripts = {
+            instance: core,
+            notebookId,
+            notebookMetadata,
+            connectorInfo,
+            connectionCatalog,
+            scriptRegistry,
+            scripts,
+            scriptFolders,
+            uncommittedScriptId: uncommittedKey,
+            scriptFocus: { folderName: initialFolder, fileName: initialFile, interactionCounter: 0 },
+            semanticUserFocus: null,
         };
+
+        return notebookScripts;
+    } catch (error) {
+        for (const scriptData of Object.values(scripts)) {
+            scriptData.scriptAnalysis.buffers.destroy(scriptData.scriptAnalysis.buffers);
+            scriptData.script.destroy();
+        }
+        scriptRegistry.destroy();
+        throw error;
     }
-
-    // Ensure at least one page exists
-    if (Object.keys(notebookPages).length === 0) {
-        logger.info("No pages found, creating empty page", { sessionId }, LOG_CTX);
-        notebookPages['Untitled'] = { folderName: 'Untitled', scripts: {} };
-    }
-
-    // Create uncommitted script
-    logger.info("Creating uncommitted script", { sessionId }, LOG_CTX);
-    const [uncommittedKey, uncommittedData] = createEmptyScriptData(core, connectionCatalog);
-    scripts[uncommittedKey] = uncommittedData;
-
-    // Load draft script if exists
-    logger.info("Loading draft script", { sessionId }, LOG_CTX);
-    const draftSql = await backend.loadNotebookScriptDraft(sessionPath);
-    if (draftSql) {
-        logger.info("Draft script loaded", {
-            sessionId,
-            draftLength: draftSql.length.toString()
-        }, LOG_CTX);
-        uncommittedData.script.replaceText(draftSql);
-        uncommittedData.scriptAnalysis.outdated = true;
-    } else {
-        logger.info("No draft script found", { sessionId }, LOG_CTX);
-    }
-
-    // Pick the first sorted page as the initial focus. Use the same numeric-aware ordering the
-    // tab bar renders with, so the focused page matches the first tab even with ordering prefixes.
-    const sortedFolders = sortFolderNamesNumerically(Object.keys(notebookPages));
-    const initialFolder = sortedFolders[0] ?? '';
-    const initialPage = initialFolder ? notebookPages[initialFolder] : null;
-    const initialFile = initialPage
-        ? (Object.keys(initialPage.scripts).sort((a, b) => a.localeCompare(b))[0] ?? '')
-        : '';
-
-    const notebookState: NotebookState = {
-        instance: core,
-        sessionId,
-        notebookMetadata,
-        connectorInfo,
-        connectionCatalog,
-        scriptRegistry,
-        scripts,
-        notebookPages,
-        uncommittedScriptId: uncommittedKey,
-        notebookUserFocus: { folderName: initialFolder, fileName: initialFile, interactionCounter: 0 },
-        semanticUserFocus: null,
-    };
-
-    return notebookState;
 }
 
-/// Restores a single session (connection + catalog + notebook)
-async function restoreSession(
+/// Restores a single notebook (connection + catalog + notebook)
+async function restoreNotebookEntry(
     core: DashQL,
     backend: StorageBackend,
     logger: Logger,
-    sessionEntry: SessionEntry,
+    notebookEntry: NotebookEntry,
     connectionStates: Map<string, ConnectionState>,
     connectionSignatures: Map<string, string | null>,
     connectionStatesByType: string[][],
-    notebooks: Map<string, NotebookState>,
-    notebooksByConnection: Map<string, string>,
-    notebooksByConnectionType: string[][],
+    notebookScripts: Map<string, NotebookScripts>,
+    notebookScriptsByConnection: Map<string, string>,
+    notebookScriptsByConnectionType: string[][],
     restoreConnections: ProgressCounter,
     restoreCatalogs: ProgressCounter,
-    restoreNotebooks: ProgressCounter,
-    analyzeNotebooks: ProgressCounter,
+    restoreNotebookScriptsProgress: ProgressCounter,
+    analyzeScripts: ProgressCounter,
     progressConsumer: (progress: AppStateRestorationProgress) => void
 ): Promise<void> {
-    // The session UUID is the authoritative identity and the key the backend routes on. Gate it up
+    // The notebook UUID is the authoritative identity and the key the backend routes on. Gate it up
     // front: a manifest entry whose path is not a valid UUID can't be loaded (the backend would
-    // build a bogus path and throw), so surface it as an invalid session rather than a hard failure.
-    const sessionPath = sessionEntry.path;
-    if (!isValidUuid(sessionPath)) {
-        const invalid = describeInvalidSession(sessionEntry, SessionValidationError.InvalidSessionId, null);
-        logger.warn("Refusing to load session with an invalid id", {
-            sessionPath,
+    // build a bogus path and throw), so surface it as an invalid notebook rather than a hard failure.
+    const notebookId = notebookEntry.path;
+    if (!isValidUuid(notebookId)) {
+        const invalid = describeInvalidNotebook(notebookEntry, NotebookValidationError.InvalidNotebookId, null);
+        logger.warn("Refusing to load notebook with an invalid id", {
+            notebookId,
             reason: invalid.error,
         }, LOG_CTX);
-        throw new InvalidSessionError(invalid);
+        throw new InvalidNotebookError(invalid);
     }
 
     // Phase 1: Restore connection
-    logger.info("Restoring connection", { sessionPath }, LOG_CTX);
+    logger.info("Restoring connection", { notebookId }, LOG_CTX);
     const connectionStartTime = performance.now();
     restoreConnections.addStarted();
     progressConsumer({
         restoreConnections: restoreConnections.clone(),
         restoreCatalogs: restoreCatalogs.clone(),
-        restoreNotebooks: restoreNotebooks.clone(),
-        analyzeNotebooks: analyzeNotebooks.clone(),
+        restoreNotebookScripts: restoreNotebookScriptsProgress.clone(),
+        analyzeScripts: analyzeScripts.clone(),
     });
 
-    logger.info("Loading session data", { sessionPath }, LOG_CTX);
-    // The manifest registers this session, but its files may be gone (a native session whose folder
-    // the user moved/deleted, or a corrupt/absent OPFS session). Treat a load failure the same as a
-    // metadata rejection: surface it as an invalid session so the selector shows it blocked and
+    logger.info("Loading notebook data", { notebookId }, LOG_CTX);
+    // The manifest registers this notebook, but its files may be gone (a native notebook whose folder
+    // the user moved/deleted, or a corrupt/absent OPFS notebook). Treat a load failure the same as a
+    // metadata rejection: surface it as an invalid notebook so the selector shows it blocked and
     // deletable, rather than letting it fall through to the loader's generic "failed to restore"
     // path — which logs an error on every launch and leaves the stale entry with no way to remove it.
-    let sessionData: SessionData;
+    let notebookData: NotebookData;
     try {
-        sessionData = await backend.loadSession(sessionPath);
+        notebookData = await backend.loadNotebook(notebookId);
     } catch (loadError) {
-        const invalid = describeInvalidSession(sessionEntry, SessionValidationError.SessionUnreadable, null);
-        logger.warn("Refusing to load session with unreadable files", {
-            sessionPath,
+        const invalid = describeInvalidNotebook(notebookEntry, NotebookValidationError.NotebookUnreadable, null);
+        logger.warn("Refusing to load notebook with unreadable files", {
+            notebookId,
             reason: invalid.error,
             error: stringifyError(loadError),
         }, LOG_CTX);
-        throw new InvalidSessionError(invalid);
+        throw new InvalidNotebookError(invalid);
     }
 
-    // Fail-fast metadata validation: refuse to load a session whose metadata is structurally
+    // Fail-fast metadata validation: refuse to load a notebook whose metadata is structurally
     // unusable (no id, no connection params, or params that map to no known connector). This runs
-    // before any heavy restore work and surfaces the session as invalid in the selector rather than
+    // before any heavy restore work and surfaces the notebook as invalid in the selector rather than
     // letting it blow up mid-restore. Runtime hiccups (catalog/notebook) remain non-fatal below.
-    const validation = validateSessionData(sessionData);
+    const validation = validateNotebookData(notebookData);
     if (!validation.ok) {
-        const invalid = describeInvalidSession(sessionEntry, validation.error, sessionData);
-        logger.warn("Refusing to load invalid session", {
-            sessionPath,
-            sessionId: invalid.sessionId,
+        const invalid = describeInvalidNotebook(notebookEntry, validation.error, notebookData);
+        logger.warn("Refusing to load invalid notebook", {
+            notebookId,
             reason: invalid.error,
         }, LOG_CTX);
-        throw new InvalidSessionError(invalid);
+        throw new InvalidNotebookError(invalid);
     }
 
-    const { connectionParams } = sessionData;
-    // Validation above guarantees a syntactically valid UUID, so the persisted id is the
-    // authoritative identity for the in-memory maps, router, and backend routing as-is.
-    const sessionId = sessionData.sessionId;
-    logger.info("Session data loaded", { sessionId }, LOG_CTX);
+    const { connectionParams } = notebookData;
+    logger.info("Notebook data loaded", { notebookId }, LOG_CTX);
 
     // Decode connection details (validation above guarantees the params map to a known connector)
     const [connectorInfo, details] = decodeConnectionFromProto(
         connectionParams as any,
-        sessionId
+        notebookId
     );
 
     // Restore connection state
     logger.info("Restoring connection state", {
-        sessionId,
+        notebookId,
         connectorType: ConnectorType[connectorInfo.connectorType]
     }, LOG_CTX);
     const connectionState = restoreConnectionState(
         core,
-        sessionId,
+        notebookId,
         connectorInfo,
         details,
         connectionSignatures,
         // The optional user-supplied `name` becomes the primary label; blank means unnamed.
-        sessionData.name?.trim() || null
+        notebookData.name?.trim() || null
     );
 
-    connectionStates.set(sessionId, connectionState);
-    connectionStatesByType[connectorInfo.connectorType].push(sessionId);
+    connectionStates.set(notebookId, connectionState);
+    connectionStatesByType[connectorInfo.connectorType].push(notebookId);
 
     const connectionDuration = performance.now() - connectionStartTime;
     logger.info("Connection restored", {
-        sessionId,
+        notebookId,
         connectorType: ConnectorType[connectorInfo.connectorType],
         durationMs: connectionDuration.toFixed(2)
     }, LOG_CTX);
@@ -300,35 +305,35 @@ async function restoreSession(
     restoreConnections.addSucceeded();
 
     // Phase 2: Restore catalog
-    logger.info("Restoring catalog", { sessionId }, LOG_CTX);
+    logger.info("Restoring catalog", { notebookId }, LOG_CTX);
     const catalogStartTime = performance.now();
     restoreCatalogs.addStarted();
     progressConsumer({
         restoreConnections: restoreConnections.clone(),
         restoreCatalogs: restoreCatalogs.clone(),
-        restoreNotebooks: restoreNotebooks.clone(),
-        analyzeNotebooks: analyzeNotebooks.clone(),
+        restoreNotebookScripts: restoreNotebookScriptsProgress.clone(),
+        analyzeScripts: analyzeScripts.clone(),
     });
 
     try {
         // Load catalog schema SQL from storage
-        logger.info("Loading catalog schema", { sessionId }, LOG_CTX);
-        const schemaSQL = await backend.loadSessionSchema(sessionPath);
+        logger.info("Loading catalog schema", { notebookId }, LOG_CTX);
+        const schemaSQL = await backend.loadNotebookSchema(notebookId);
         if (schemaSQL && schemaSQL.trim().length > 0) {
             logger.info("Catalog schema loaded", {
-                sessionId,
+                notebookId,
                 schemaLength: schemaSQL.length.toString()
             }, LOG_CTX);
 
             const { catalog, catalogRelationScript } = connectionState;
 
             // Apply schema to catalog script
-            logger.info("Analyzing catalog schema", { sessionId }, LOG_CTX);
+            logger.info("Analyzing catalog schema", { notebookId }, LOG_CTX);
             catalogRelationScript.replaceText(schemaSQL);
             catalogRelationScript.analyze();
 
             // Load into catalog (drop old first if exists)
-            logger.info("Loading catalog schema into catalog", { sessionId }, LOG_CTX);
+            logger.info("Loading catalog schema into catalog", { notebookId }, LOG_CTX);
             try {
                 catalog.dropScript(catalogRelationScript);
             } catch (e) {
@@ -341,19 +346,19 @@ async function restoreSession(
 
             const catalogDuration = performance.now() - catalogStartTime;
             logger.info("Catalog schema restored", {
-                sessionId,
+                notebookId,
                 schemaLength: schemaSQL.length.toString(),
                 durationMs: catalogDuration.toFixed(2)
             }, LOG_CTX);
         } else {
-            logger.info("No catalog schema found for session", { sessionId }, LOG_CTX);
+            logger.info("No catalog schema found for notebook", { notebookId }, LOG_CTX);
         }
 
         // Load function catalog SQL from storage
-        const functionsSQL = await backend.loadSessionFunctions(sessionPath);
+        const functionsSQL = await backend.loadNotebookFunctions(notebookId);
         if (functionsSQL && functionsSQL.trim().length > 0) {
             logger.info("Catalog functions loaded", {
-                sessionId,
+                notebookId,
                 functionsLength: functionsSQL.length.toString()
             }, LOG_CTX);
 
@@ -369,7 +374,7 @@ async function restoreSession(
             }
             catalog.loadScript(catalogFunctionScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
 
-            logger.info("Catalog functions restored", { sessionId }, LOG_CTX);
+            logger.info("Catalog functions restored", { notebookId }, LOG_CTX);
         }
 
         restoreCatalogs.addSucceeded();
@@ -377,7 +382,7 @@ async function restoreSession(
         const catalogDuration = performance.now() - catalogStartTime;
 
         logger.warn("Failed to restore catalog, will refresh on connect", {
-            sessionId,
+            notebookId,
             durationMs: catalogDuration.toFixed(2),
             error: stringifyError(catalogError)
         }, LOG_CTX);
@@ -386,50 +391,49 @@ async function restoreSession(
         restoreCatalogs.addFailed();
     }
 
-    // Phase 3: Restore notebook
-    logger.info("Restoring notebook", { sessionId }, LOG_CTX);
-    const notebookStartTime = performance.now();
-    restoreNotebooks.addStarted();
+    // Phase 3: Restore notebook scripts
+    logger.info("Restoring notebook scripts", { notebookId }, LOG_CTX);
+    const notebookScriptsStartTime = performance.now();
+    restoreNotebookScriptsProgress.addStarted();
     progressConsumer({
         restoreConnections: restoreConnections.clone(),
         restoreCatalogs: restoreCatalogs.clone(),
-        restoreNotebooks: restoreNotebooks.clone(),
-        analyzeNotebooks: analyzeNotebooks.clone(),
+        restoreNotebookScripts: restoreNotebookScriptsProgress.clone(),
+        analyzeScripts: analyzeScripts.clone(),
     });
 
-    let restoredNotebook: NotebookState | null = null;
+    let restoredNotebookScripts: NotebookScripts | null = null;
     try {
-        restoredNotebook = await restoreNotebook(
+        restoredNotebookScripts = await restoreNotebookScripts(
             core,
             backend,
-            sessionPath,
-            sessionId,
+            notebookId,
             connectorInfo,
             connectionState.catalog,
-            sessionData.notebook,
+            notebookData.metadata,
             logger
         );
 
-        const notebookDuration = performance.now() - notebookStartTime;
-        logger.info("Notebook restored", {
-            sessionId,
-            pageCount: Object.keys(restoredNotebook.notebookPages).length.toString(),
-            scriptCount: Object.keys(restoredNotebook.scripts).length.toString(),
-            durationMs: notebookDuration.toFixed(2)
+        const notebookScriptsDuration = performance.now() - notebookScriptsStartTime;
+        logger.info("Notebook scripts restored", {
+            notebookId,
+            pageCount: Object.keys(restoredNotebookScripts.scriptFolders).length.toString(),
+            scriptCount: Object.keys(restoredNotebookScripts.scripts).length.toString(),
+            durationMs: notebookScriptsDuration.toFixed(2)
         }, LOG_CTX);
 
-        restoreNotebooks.addSucceeded();
-    } catch (notebookError) {
-        const notebookDuration = performance.now() - notebookStartTime;
+        restoreNotebookScriptsProgress.addSucceeded();
+    } catch (notebookScriptsError) {
+        const notebookScriptsDuration = performance.now() - notebookScriptsStartTime;
 
-        logger.warn("Failed to restore notebook", {
-            sessionId,
-            durationMs: notebookDuration.toFixed(2),
-            error: stringifyError(notebookError),
-            stack: (notebookError instanceof Error ? notebookError.stack : (notebookError as any)?.stack)?.substring(0, 500)
+        logger.warn("Failed to restore notebook scripts", {
+            notebookId,
+            durationMs: notebookScriptsDuration.toFixed(2),
+            error: stringifyError(notebookScriptsError),
+            stack: (notebookScriptsError instanceof Error ? notebookScriptsError.stack : (notebookScriptsError as any)?.stack)?.substring(0, 500)
         }, LOG_CTX);
 
-        restoreNotebooks.addFailed();
+        restoreNotebookScriptsProgress.addFailed();
     }
 
     // Phase 4: Analyze the restored notebook scripts eagerly.
@@ -439,9 +443,9 @@ async function restoreSession(
     // VISUALIZE query) before the user can interact with it. Without this, the
     // first execution of a freshly restored VISUALIZE script would send the raw
     // `visualize (...)` text to the backend.
-    if (restoredNotebook != null) {
+    if (restoredNotebookScripts != null) {
         const analyzeStartTime = performance.now();
-        // Account per script: analyzeAllScriptsInNotebook reports the notebook's
+        // Account per script: analyzeAllScripts reports the notebook's
         // script count up front and the outcome of each script as it finishes.
         // The work is synchronous, so we only need the totals to be correct once
         // it returns — the progressConsumer below reports the accumulated state.
@@ -450,43 +454,43 @@ async function restoreSession(
         const analyzeProgress: AnalyzeAllScriptsProgress = {
             onScriptCount: (count) => {
                 scriptCount = count;
-                analyzeNotebooks.addTotal(count).addStarted(count);
+                analyzeScripts.addTotal(count).addStarted(count);
             },
             onScriptDone: (ok) => {
                 scriptsReported++;
                 if (ok) {
-                    analyzeNotebooks.addSucceeded();
+                    analyzeScripts.addSucceeded();
                 } else {
-                    analyzeNotebooks.addFailed();
+                    analyzeScripts.addFailed();
                 }
             },
         };
         try {
-            restoredNotebook = analyzeAllScriptsInNotebook(restoredNotebook, logger, analyzeProgress);
+            restoredNotebookScripts = analyzeAllScripts(restoredNotebookScripts, logger, analyzeProgress);
             logger.info("Notebook scripts analyzed", {
-                sessionId,
+                notebookId,
                 scriptCount: scriptCount.toString(),
                 durationMs: (performance.now() - analyzeStartTime).toFixed(2)
             }, LOG_CTX);
         } catch (analyzeError) {
-            // Per-script failures are isolated inside analyzeAllScriptsInNotebook,
+            // Per-script failures are isolated inside analyzeAllScripts,
             // so reaching here is an unexpected wholesale failure. Lazy analysis
             // (editor/execute) still covers these scripts, so it must not abort the
-            // session restore. Reconcile any scripts that never reported so the
+            // notebook restore. Reconcile any scripts that never reported so the
             // counter can still complete.
             logger.warn("Failed to analyze notebook scripts, will analyze lazily", {
-                sessionId,
+                notebookId,
                 durationMs: (performance.now() - analyzeStartTime).toFixed(2),
                 error: stringifyError(analyzeError)
             }, LOG_CTX);
             for (let i: number = scriptsReported; i < scriptCount; ++i) {
-                analyzeNotebooks.addFailed();
+                analyzeScripts.addFailed();
             }
         }
 
-        notebooks.set(sessionId, restoredNotebook);
-        notebooksByConnection.set(sessionId, sessionId);
-        notebooksByConnectionType[connectorInfo.connectorType].push(sessionId);
+        notebookScripts.set(notebookId, restoredNotebookScripts);
+        notebookScriptsByConnection.set(notebookId, notebookId);
+        notebookScriptsByConnectionType[connectorInfo.connectorType].push(notebookId);
     }
     // A notebook that failed to restore contributes no scripts to analyze, so the
     // analyze counter is left untouched in that case.
@@ -494,56 +498,70 @@ async function restoreSession(
     progressConsumer({
         restoreConnections: restoreConnections.clone(),
         restoreCatalogs: restoreCatalogs.clone(),
-        restoreNotebooks: restoreNotebooks.clone(),
-        analyzeNotebooks: analyzeNotebooks.clone(),
+        restoreNotebookScripts: restoreNotebookScriptsProgress.clone(),
+        analyzeScripts: analyzeScripts.clone(),
     });
 }
 
-/// The connection + notebook a single session restored into.
-export interface RestoredSession {
-    sessionId: string;
+/// The connection + notebook a single notebook restored into.
+export interface RestoredNotebook {
+    notebookId: string;
     connectorType: ConnectorType;
     connection: ConnectionState;
-    notebook: NotebookState | null;
+    notebookScripts: NotebookScripts;
 }
 
-/// Restore a single, already-persisted session (connection + catalog + notebook) into fresh scratch
-/// maps and return just that session's pieces.
+export function destroyRestoredNotebook(restored: RestoredNotebook): void {
+    destroyNotebookScripts(restored.notebookScripts);
+    destroyRestoredConnection(restored.connection);
+}
+
+function destroyRestoredConnection(connection: ConnectionState): void {
+    connection.connectionSignature.signatures.delete(
+        connection.connectionSignature.signatureString,
+    );
+    connection.catalogRelationScript.destroy();
+    connection.catalogFunctionScript.destroy();
+    connection.catalog.destroy();
+}
+
+/// Restore a single, already-persisted notebook (connection + catalog + notebook) into fresh scratch
+/// maps and return just that notebook's pieces.
 ///
-/// This is the incremental counterpart to `restoreAppState`, used after a session is written to
+/// This is the incremental counterpart to `restoreAppState`, used after a notebook is written to
 /// storage at runtime (e.g. imported from a shared URL) so it can be merged into the already-live
-/// registries without a full app reload. It reuses the exact same `restoreSession` path the boot
-/// loader runs, so a URL-imported session is decoded, cataloged and analyzed identically to one
+/// registries without a full app reload. It reuses the exact same `restoreNotebookEntry` path the boot
+/// loader runs, so a URL-imported notebook is decoded, cataloged and analyzed identically to one
 /// loaded at startup.
-export async function restoreSingleSession(
+export async function restoreSingleNotebook(
     core: DashQL,
     backend: StorageBackend,
     logger: Logger,
-    sessionId: string,
-): Promise<RestoredSession> {
-    // A freshly imported session is implicitly OPFS-backed and keyed by its UUID; that's all the
-    // manifest entry `restoreSession` needs to route the load.
-    const sessionEntry: SessionEntry = { path: sessionId, storageType: StorageBackendType.OPFS };
+    notebookId: string,
+    connectionSignatures: Map<string, string | null>,
+): Promise<RestoredNotebook> {
+    // A freshly imported notebook is implicitly OPFS-backed and keyed by its UUID; that's all the
+    // manifest entry `restoreNotebookEntry` needs to route the load.
+    const notebookEntry: NotebookEntry = { path: notebookId, storageType: StorageBackendType.OPFS };
 
     const connectionStates = new Map<string, ConnectionState>();
-    const connectionSignatures = new Map<string, string | null>();
-    const notebooks = new Map<string, NotebookState>();
-    const notebooksByConnection = new Map<string, string>();
+    const notebookScripts = new Map<string, NotebookScripts>();
+    const notebookScriptsByConnection = new Map<string, string>();
     const connectionStatesByType: string[][] = [[], [], [], []];
-    const notebooksByConnectionType: string[][] = [[], [], [], []];
+    const notebookScriptsByConnectionType: string[][] = [[], [], [], []];
 
     const noopConsumer = () => { };
-    await restoreSession(
+    await restoreNotebookEntry(
         core,
         backend,
         logger,
-        sessionEntry,
+        notebookEntry,
         connectionStates,
         connectionSignatures,
         connectionStatesByType,
-        notebooks,
-        notebooksByConnection,
-        notebooksByConnectionType,
+        notebookScripts,
+        notebookScriptsByConnection,
+        notebookScriptsByConnectionType,
         new ProgressCounter(),
         new ProgressCounter(),
         new ProgressCounter(),
@@ -551,18 +569,23 @@ export async function restoreSingleSession(
         noopConsumer,
     );
 
-    const connection = connectionStates.get(sessionId);
+    const connection = connectionStates.get(notebookId);
     if (!connection) {
-        // restoreSession only fails to register a connection by throwing (invalid/unreadable), which
+        // restoreNotebookEntry only fails to register a connection by throwing (invalid/unreadable), which
         // would have propagated above. Reaching here means the persisted id didn't match — treat it
-        // as a hard restore failure rather than silently returning a half-loaded session.
-        throw new Error(`imported session ${sessionId} did not restore a connection`);
+        // as a hard restore failure rather than silently returning a half-loaded notebook.
+        throw new Error(`imported notebook ${notebookId} did not restore a connection`);
+    }
+    const scripts = notebookScripts.get(notebookId) ?? null;
+    if (!scripts) {
+        destroyRestoredConnection(connection);
+        throw new Error(`imported notebook ${notebookId} did not restore its scripts`);
     }
     return {
-        sessionId,
+        notebookId,
         connectorType: connection.connectorInfo.connectorType,
         connection,
-        notebook: notebooks.get(sessionId) ?? null,
+        notebookScripts: scripts,
     };
 }
 
@@ -580,125 +603,125 @@ export async function restoreAppState(
 
     const connectionStates = new Map<string, ConnectionState>();
     const connectionSignatures = new Map<string, string | null>();
-    const notebooks = new Map<string, NotebookState>();
-    const notebooksByConnection = new Map<string, string>();
-    const invalidSessions = new Map<string, InvalidSession>();
+    const notebookScripts = new Map<string, NotebookScripts>();
+    const notebookScriptsByConnection = new Map<string, string>();
+    const invalidNotebooks = new Map<string, InvalidNotebook>();
 
     // Initialize indices (sized for all ConnectorType values: 0-3)
     const connectionStatesByType: string[][] = [[], [], [], []];
-    const notebooksByConnectionType: string[][] = [[], [], [], []];
+    const notebookScriptsByConnectionType: string[][] = [[], [], [], []];
 
     // Initialize progress counters
     const restoreConnections = new ProgressCounter();
     const restoreCatalogs = new ProgressCounter();
-    const restoreNotebooks = new ProgressCounter();
-    const analyzeNotebooks = new ProgressCounter();
+    const restoreNotebookScriptsProgress = new ProgressCounter();
+    const analyzeScripts = new ProgressCounter();
 
     try {
         // Load manifest
         logger.info("Loading app manifest", {}, LOG_CTX);
         const manifestStartTime = performance.now();
-        const sessions = await backend.listSessions('dashql-manifest.json');
+        const notebookEntries = await backend.listNotebooks('dashql-manifest.json');
         const manifestDuration = performance.now() - manifestStartTime;
 
         logger.info("Loaded app manifest", {
-            sessionCount: sessions.length.toString(),
+            notebookCount: notebookEntries.length.toString(),
             durationMs: manifestDuration.toFixed(2)
         }, LOG_CTX);
 
         // Set totals.
         //
-        // analyzeNotebooks is counted per script, not per session, so its total
+        // analyzeScripts is counted per script, not per notebook, so its total
         // is accumulated as each notebook reports its script count in Phase 4
         // (see onScriptCount) rather than seeded here.
-        restoreConnections.addTotal(sessions.length);
-        restoreCatalogs.addTotal(sessions.length);
-        restoreNotebooks.addTotal(sessions.length);
+        restoreConnections.addTotal(notebookEntries.length);
+        restoreCatalogs.addTotal(notebookEntries.length);
+        restoreNotebookScriptsProgress.addTotal(notebookEntries.length);
 
         progressConsumer({
             restoreConnections: restoreConnections.clone(),
             restoreCatalogs: restoreCatalogs.clone(),
-            restoreNotebooks: restoreNotebooks.clone(),
-            analyzeNotebooks: analyzeNotebooks.clone(),
+            restoreNotebookScripts: restoreNotebookScriptsProgress.clone(),
+            analyzeScripts: analyzeScripts.clone(),
         });
 
-        // Process each session
-        logger.info("Restoring sessions", { count: sessions.length.toString() }, LOG_CTX);
-        for (let i = 0; i < sessions.length; i++) {
-            const sessionEntry = sessions[i];
-            const sessionStartTime = performance.now();
+        // Process each notebook
+        logger.info("Restoring notebooks", { count: notebookEntries.length.toString() }, LOG_CTX);
+        for (let i = 0; i < notebookEntries.length; i++) {
+            const notebookEntry = notebookEntries[i];
+            const notebookStartTime = performance.now();
 
             try {
-                logger.info("Restoring session", {
-                    index: `${i + 1}/${sessions.length}`,
-                    sessionPath: sessionEntry.path
+                logger.info("Restoring notebook", {
+                    index: `${i + 1}/${notebookEntries.length}`,
+                    notebookId: notebookEntry.path
                 }, LOG_CTX);
 
-                await restoreSession(
+                await restoreNotebookEntry(
                     core,
                     backend,
                     logger,
-                    sessionEntry,
+                    notebookEntry,
                     connectionStates,
                     connectionSignatures,
                     connectionStatesByType,
-                    notebooks,
-                    notebooksByConnection,
-                    notebooksByConnectionType,
+                    notebookScripts,
+                    notebookScriptsByConnection,
+                    notebookScriptsByConnectionType,
                     restoreConnections,
                     restoreCatalogs,
-                    restoreNotebooks,
-                    analyzeNotebooks,
+                    restoreNotebookScriptsProgress,
+                    analyzeScripts,
                     progressConsumer
                 );
 
-                const sessionDuration = performance.now() - sessionStartTime;
-                logger.info("Session restored", {
-                    index: `${i + 1}/${sessions.length}`,
-                    sessionPath: sessionEntry.path,
-                    durationMs: sessionDuration.toFixed(2)
+                const notebookDuration = performance.now() - notebookStartTime;
+                logger.info("Notebook restored", {
+                    index: `${i + 1}/${notebookEntries.length}`,
+                    notebookId: notebookEntry.path,
+                    durationMs: notebookDuration.toFixed(2)
                 }, LOG_CTX);
             } catch (error) {
-                const sessionDuration = performance.now() - sessionStartTime;
+                const notebookDuration = performance.now() - notebookStartTime;
 
-                if (error instanceof InvalidSessionError) {
-                    // Metadata validation refused this session up front. Record it so the selector
+                if (error instanceof InvalidNotebookError) {
+                    // Metadata validation refused this notebook up front. Record it so the selector
                     // can show it as invalid (blocked, deletable), and account it as *skipped*
                     // rather than *failed* — nothing was attempted, the metadata was simply
-                    // unusable. The session contributed no connection/catalog/notebook/scripts.
-                    invalidSessions.set(error.invalid.sessionId, error.invalid);
+                    // unusable. The notebook contributed no connection/catalog/scripts/scripts.
+                    invalidNotebooks.set(error.invalid.notebookId, error.invalid);
                     restoreConnections.addSkipped();
                     restoreCatalogs.addSkipped();
-                    restoreNotebooks.addSkipped();
+                    restoreNotebookScriptsProgress.addSkipped();
 
                     progressConsumer({
                         restoreConnections: restoreConnections.clone(),
                         restoreCatalogs: restoreCatalogs.clone(),
-                        restoreNotebooks: restoreNotebooks.clone(),
-                        analyzeNotebooks: analyzeNotebooks.clone(),
+                        restoreNotebookScripts: restoreNotebookScriptsProgress.clone(),
+                        analyzeScripts: analyzeScripts.clone(),
                     });
                     continue;
                 }
 
-                logger.warn("Failed to restore session", {
-                    index: `${i + 1}/${sessions.length}`,
-                    sessionPath: sessionEntry.path,
-                    durationMs: sessionDuration.toFixed(2),
+                logger.warn("Failed to restore notebook", {
+                    index: `${i + 1}/${notebookEntries.length}`,
+                    notebookId: notebookEntry.path,
+                    durationMs: notebookDuration.toFixed(2),
                     error: stringifyError(error)
                 }, LOG_CTX);
 
                 restoreConnections.addFailed();
                 restoreCatalogs.addFailed();
-                restoreNotebooks.addFailed();
-                // analyzeNotebooks is counted per script: a session that fails
+                restoreNotebookScriptsProgress.addFailed();
+                // analyzeScripts is counted per script: a notebook that fails
                 // here failed before Phase 4 ran, so it contributed no scripts and
                 // must not register a failure against the per-script counter.
 
                 progressConsumer({
                     restoreConnections: restoreConnections.clone(),
                     restoreCatalogs: restoreCatalogs.clone(),
-                    restoreNotebooks: restoreNotebooks.clone(),
-                    analyzeNotebooks: analyzeNotebooks.clone(),
+                    restoreNotebookScripts: restoreNotebookScriptsProgress.clone(),
+                    analyzeScripts: analyzeScripts.clone(),
                 });
             }
         }
@@ -709,24 +732,24 @@ export async function restoreAppState(
     }
 
     // The analyze counter's total is accumulated per script during Phase 4. If no
-    // notebook reached Phase 4 (empty manifest, or every session failed earlier),
+    // notebook reached Phase 4 (empty manifest, or every notebook failed earlier),
     // it was never seeded — pin it to 0 so the indicator resolves to "nothing to
     // do" instead of an indefinite blank state.
-    if (analyzeNotebooks.total == null) {
-        analyzeNotebooks.addTotal(0);
+    if (analyzeScripts.total == null) {
+        analyzeScripts.addTotal(0);
     }
     progressConsumer({
         restoreConnections: restoreConnections.clone(),
         restoreCatalogs: restoreCatalogs.clone(),
-        restoreNotebooks: restoreNotebooks.clone(),
-        analyzeNotebooks: analyzeNotebooks.clone(),
+        restoreNotebookScripts: restoreNotebookScriptsProgress.clone(),
+        analyzeScripts: analyzeScripts.clone(),
     });
 
     const totalDuration = performance.now() - startTime;
     logger.info("Finished loading app state", {
         connections: connectionStates.size.toString(),
-        notebooks: notebooks.size.toString(),
-        invalidSessions: invalidSessions.size.toString(),
+        notebookScripts: notebookScripts.size.toString(),
+        invalidNotebooks: invalidNotebooks.size.toString(),
         connectionsSucceeded: restoreConnections.succeeded.toString(),
         connectionsFailed: restoreConnections.failed.toString(),
         connectionsSkipped: restoreConnections.skipped.toString(),
@@ -737,9 +760,9 @@ export async function restoreAppState(
         connectionStates,
         connectionStatesByType,
         connectionSignatures,
-        notebooks,
-        notebooksByConnection,
-        notebooksByConnectionType,
-        invalidSessions,
+        notebookScripts,
+        notebookScriptsByConnection,
+        notebookScriptsByConnectionType,
+        invalidNotebooks,
     };
 }

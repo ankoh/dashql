@@ -618,7 +618,7 @@ void AnalyzeVisualizationPass::Finish() {
                     spec.resolved_source.resolved_table_id = rel->resolved_table->catalog_table_id;
                 }
                 bool is_script_ref = rel->table_name.database_name.get().text == "dashql" &&
-                                     rel->table_name.schema_name.get().text == "notebook";
+                                      rel->table_name.schema_name.get().text == "script";
                 spec.resolved_source.kind =
                     is_script_ref ? VisSourceKind::ScriptReference : VisSourceKind::TableReference;
                 break;

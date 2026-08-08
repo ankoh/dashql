@@ -72,44 +72,44 @@ function sortEntries(entries: CacheFileStat[]): CacheFileStat[] {
     return [...entries].sort((a, b) => b.mtimeMs - a.mtimeMs);
 }
 
-export function QueryCacheView(props: { sessionId: string | null; onClose: () => void; }) {
+export function QueryCacheView(props: { notebookId: string | null; onClose: () => void; }) {
     const logger = useLogger();
     const storageReader = useStorageReader();
-    const { sessionId } = props;
+    const { notebookId } = props;
 
     const [entries, setEntries] = React.useState<CacheFileStat[]>([]);
 
-    // Load (and reload) the session's cache listing. Best-effort: a failure leaves the list empty and
+    // Load (and reload) the notebook's cache listing. Best-effort: a failure leaves the list empty and
     // is logged, mirroring how the cache itself treats every access as best-effort.
     const refresh = React.useCallback(async () => {
-        if (sessionId == null) {
+        if (notebookId == null) {
             setEntries([]);
             return;
         }
         try {
-            const files = await storageReader.backend.listQueryResultCache(sessionId);
+            const files = await storageReader.backend.listQueryResultCache(notebookId);
             setEntries(sortEntries(files));
         } catch (e: any) {
             logger.warn('failed to list query result cache', { error: String(e?.message ?? e) }, LOG_CTX);
             setEntries([]);
         }
-    }, [sessionId, storageReader, logger]);
+    }, [notebookId, storageReader, logger]);
 
     React.useEffect(() => {
         void refresh();
     }, [refresh]);
 
     const deleteEntry = React.useCallback(async (name: string) => {
-        if (sessionId == null) {
+        if (notebookId == null) {
             return;
         }
         try {
-            await storageReader.backend.deleteQueryResultCache(sessionId, hashOf(name));
+            await storageReader.backend.deleteQueryResultCache(notebookId, hashOf(name));
         } catch (e: any) {
             logger.warn('failed to delete query result cache entry', { error: String(e?.message ?? e) }, LOG_CTX);
         }
         await refresh();
-    }, [sessionId, storageReader, logger, refresh]);
+    }, [notebookId, storageReader, logger, refresh]);
 
     // Aggregate totals for the header summary.
     const totalBytes = React.useMemo(() => entries.reduce((sum, e) => sum + e.size, 0), [entries]);
@@ -166,7 +166,7 @@ export function QueryCacheView(props: { sessionId: string | null; onClose: () =>
             <div className={styles.stat_grid_container} ref={containerRef}>
                 {entries.length === 0 ? (
                     <div className={styles.empty_state}>
-                        {sessionId == null ? 'Select a session to see its cached results' : 'Nothing to see here'}
+                        {notebookId == null ? 'Select a notebook to see its cached results' : 'Nothing to see here'}
                     </div>
                 ) : (
                     <List

@@ -11,7 +11,7 @@ import { useConnectionState } from '../../connection/connection_registry.js';
 import { ConnectionHealth, ConnectionStatus, SWITCH_CONNECTOR_TYPE } from '../../connection/connection_state.js';
 
 interface Props {
-    sessionId: string | null;
+    notebookId: string | null;
     selectedConnectorType: ConnectorType;
     setSelectedConnectorType: (type: ConnectorType) => void;
     onClose?: () => void;
@@ -19,7 +19,7 @@ interface Props {
 }
 
 export const ConnectorConfigTabs: React.FC<Props> = (props: Props) => {
-    const [conn, modifyConn] = useConnectionState(props.sessionId);
+    const [conn, modifyConn] = useConnectionState(props.notebookId);
 
     // Check if connection is online or configured
     const isOnline = conn?.connectionHealth === ConnectionHealth.ONLINE;
@@ -52,20 +52,20 @@ export const ConnectorConfigTabs: React.FC<Props> = (props: Props) => {
         };
 
         tabRenderers[connectorType] = () => {
-            // Pass session to matching tab, or to all tabs when unconfigured
+            // Pass the notebook connection to the matching tab, or to all tabs when unconfigured
             // (since SWITCH_CONNECTOR_TYPE ensures the type matches the selected tab)
-            const sessionId = (isCurrentConnection || isUnconfigured) ? props.sessionId : null;
+            const notebookId = (isCurrentConnection || isUnconfigured) ? props.notebookId : null;
 
             switch (connectorType) {
                 case ConnectorType.TRINO:
-                    return <TrinoConnectorSettings sessionId={sessionId} onClose={props.onClose} />;
+                    return <TrinoConnectorSettings notebookId={notebookId} onClose={props.onClose} />;
                 case ConnectorType.SALESFORCE_DATA_CLOUD:
-                    return <SalesforceConnectorSettings sessionId={sessionId} onClose={props.onClose} />;
+                    return <SalesforceConnectorSettings notebookId={notebookId} onClose={props.onClose} />;
                 case ConnectorType.HYPER:
-                    return <HyperConnectorSettings sessionId={sessionId} onClose={props.onClose} />;
+                    return <HyperConnectorSettings notebookId={notebookId} onClose={props.onClose} />;
                 case ConnectorType.DATALESS:
                 default:
-                    return <DatalessConnectorSettings sessionId={sessionId} onClose={props.onClose} />;
+                    return <DatalessConnectorSettings notebookId={notebookId} onClose={props.onClose} />;
             }
         };
     });

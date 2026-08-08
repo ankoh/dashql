@@ -864,8 +864,8 @@ void NameResolutionPass::Finish() {
     // Resolve all names
     ResolveNames();
 
-    // Generate synthetic output table declaration for notebook script registration
-    if (!state.notebook_path.empty() && !state.parsed.statements.empty()) {
+    // Generate a synthetic output table declaration for script registration.
+    if (!state.script_path.empty() && !state.parsed.statements.empty()) {
         // Find the last statement's root scope to get output columns
         auto& last_stmt = state.parsed.statements.back();
         NameScope* last_scope = nullptr;
@@ -875,11 +875,11 @@ void NameResolutionPass::Finish() {
         }
 
         // Initialize owned name storage on AnalyzedScript (avoids polluting ScannedScript's name registry)
-        state.analyzed->notebook_output_names.emplace();
-        auto& names = *state.analyzed->notebook_output_names;
-        names.path_buffer = std::string(state.notebook_path);
+        state.analyzed->script_output_names.emplace();
+        auto& names = *state.analyzed->script_output_names;
+        names.path_buffer = std::string(state.script_path);
         names.db_name.text = "dashql";
-        names.schema_name.text = "notebook";
+        names.schema_name.text = "script";
         names.table_name.text = names.path_buffer;
         names.db_name.coarse_analyzer_tags |= buffers::analyzer::NameTag::DATABASE_NAME;
         names.schema_name.coarse_analyzer_tags |= buffers::analyzer::NameTag::SCHEMA_NAME;

@@ -7,7 +7,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 const commandDispatch = vi.hoisted(() => vi.fn());
 
-vi.mock('../../notebook/notebook_commands.js', () => ({
+vi.mock('../../scripts/notebook_commands.js', () => ({
     NotebookCommandType: {
         ExecuteEditorQuery: 1,
         RefreshCatalog: 2,
@@ -61,7 +61,7 @@ describe('ConnectionCommandList', () => {
 
     function renderConnection(connection: ConnectionState) {
         act(() => {
-            root.render(<ConnectionCommandList conn={connection} notebook={null} />);
+            root.render(<ConnectionCommandList conn={connection} notebookScripts={null} />);
         });
         return Array.from(container.querySelectorAll('button')).find(button => button.textContent?.includes('Catalog'))!;
     }

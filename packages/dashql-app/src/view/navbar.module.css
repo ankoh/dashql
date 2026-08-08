@@ -20,14 +20,14 @@
     height: 100%;
 }
 
-.session_bar_container {
+.notebook_bar_container {
     display: flex;
     flex: 1 1 auto;
     min-width: 0;
     padding: 0 8px 0 8px;
 }
 
-.session_bar {
+.notebook_bar {
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -43,12 +43,12 @@
     overflow: hidden;
 }
 
-.session_bar:focus-within {
+.notebook_bar:focus-within {
     border: var(--nav_border_active);
 }
 
 /* The clickable path region: grows to fill the pill, opening the storage overlay. */
-.session_bar_button {
+.notebook_bar_button {
     -webkit-appearance: none;
     appearance: none;
     border: none;
@@ -68,12 +68,12 @@
     transition: background-color 0.1s ease-in-out;
 }
 
-.session_bar_button:focus-visible {
+.notebook_bar_button:focus-visible {
     outline: none;
 }
 
 /* The close button, right-aligned within the pill. */
-.session_bar_close {
+.notebook_bar_close {
     -webkit-appearance: none;
     appearance: none;
     border: none;
@@ -94,16 +94,16 @@
     transition: background-color 0.1s ease-in-out;
 }
 
-.session_bar_close:hover {
+.notebook_bar_close:hover {
     background-color: rgba(0, 0, 0, 0.45);
 }
 
-.session_bar_close:focus-visible {
+.notebook_bar_close:focus-visible {
     outline: none;
     border: var(--nav_border_active);
 }
 
-.session_bar_path {
+.notebook_bar_path {
     flex: 1 1 auto;
     min-width: 0;
     font-family: 'Roboto Mono';
@@ -116,10 +116,10 @@
     color: inherit;
 }
 
-/* The user-supplied session name: crisp sans, leads the bar, never shrinks below its content so
+/* The user-supplied notebook name: crisp sans, leads the bar, never shrinks below its content so
    the path (which follows, dimmed) is what yields when space is tight. Capped so a very long name
    can't crowd the path out entirely. */
-.session_bar_name {
+.notebook_bar_name {
     flex: 0 1 auto;
     min-width: 0;
     max-width: 55%;
@@ -134,9 +134,9 @@
     color: inherit;
 }
 
-/* The path when a name is present: same mono treatment as .session_bar_path but dimmed, so it reads
+/* The path when a name is present: same mono treatment as .notebook_bar_path but dimmed, so it reads
    as the secondary/technical address behind the name. */
-.session_bar_path_secondary {
+.notebook_bar_path_secondary {
     flex: 1 1 auto;
     min-width: 0;
     font-family: 'Roboto Mono';

@@ -169,7 +169,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                         />
                                     </div>
                                     <div className={pageStyles.detail_entry_key}>
-                                        Discover Sessions
+                                        Discover Notebooks
                                     </div>
                                     <div className={pageStyles.detail_entry_value}>
                                         <StatusIndicator
@@ -181,7 +181,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                         />
                                     </div>
                                     <div className={pageStyles.detail_entry_key}>
-                                        Load Session Metadata
+                                        Load Notebook Scripts
                                     </div>
                                     <div className={pageStyles.detail_entry_value}>
                                         <StatusIndicator
@@ -189,7 +189,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                             fill="black"
                                             width={"14px"}
                                             height={"14px"}
-                                            status={getStatusFromProgressCounter(props.progress.restoreNotebooks)}
+                                            status={getStatusFromProgressCounter(props.progress.restoreNotebookScripts)}
                                         />
                                     </div>
                                     <div className={pageStyles.detail_entry_key}>
@@ -201,7 +201,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                             fill="black"
                                             width={"14px"}
                                             height={"14px"}
-                                            status={getStatusFromProgressCounter(props.progress.analyzeNotebooks)}
+                                            status={getStatusFromProgressCounter(props.progress.analyzeScripts)}
                                         />
                                     </div>
                                 </div>

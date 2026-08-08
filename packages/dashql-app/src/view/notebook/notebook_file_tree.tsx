@@ -24,16 +24,16 @@ import {
 } from '@primer/octicons-react';
 
 import {
-    REORDER_NOTEBOOK_SCRIPTS,
-    REORDER_PAGES,
-    UPDATE_NOTEBOOK_ENTRY,
-    UPDATE_PAGE_FOLDER_NAME,
-    getSortedFileNames,
-    getSortedFolderNames,
-    type NotebookState,
-} from '../../notebook/notebook_state.js';
-import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
-import { normalizePageName, scriptDisplayName } from '../../notebook/notebook_types.js';
+    REORDER_SCRIPTS,
+    REORDER_SCRIPT_FOLDERS,
+    RENAME_SCRIPT,
+    RENAME_SCRIPT_FOLDER,
+    getSortedScriptFileNames,
+    getSortedScriptFolderNames,
+    type NotebookScripts,
+} from '../../scripts/notebook_scripts.js';
+import type { ModifyNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
+import { normalizeScriptFolderName, scriptDisplayName } from '../../scripts/script_types.js';
 import { classNames } from '../../utils/classnames.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
@@ -42,8 +42,8 @@ export type NotebookFileTreeCatalogTab = 'relations' | 'functions';
 export type NotebookFileTreeNavigationLevel = 'folders' | 'scripts';
 
 export interface NotebookFileTreeProps {
-    notebook: NotebookState;
-    modifyNotebook: ModifyNotebook;
+    notebookScripts: NotebookScripts;
+    modifyNotebookScripts: ModifyNotebookScripts;
     catalogTab: NotebookFileTreeCatalogTab | null;
     navigationLevel: NotebookFileTreeNavigationLevel;
     showCatalogEntries: boolean;
@@ -176,7 +176,7 @@ interface SortableFolderProps {
 }
 
 const SortableFolder: React.FC<SortableFolderProps> = (props) => {
-    const label = normalizePageName(props.folderName) || 'Untitled';
+    const label = normalizeScriptFolderName(props.folderName) || 'Untitled';
     const PencilIcon = SymbolIcon('pencil_16');
     const [editing, setEditing] = React.useState(false);
     const [draftName, setDraftName] = React.useState(label);
@@ -308,14 +308,14 @@ const SortableFolder: React.FC<SortableFolderProps> = (props) => {
 export const NotebookFileTree: React.FC<NotebookFileTreeProps> = (props) => {
     const PlusIcon = SymbolIcon('plus_16');
     const FunctionIcon = SymbolIcon('workflow_16');
-    const folders = getSortedFolderNames(props.notebook.notebookPages);
-    const selectedFolderName = props.notebook.notebookUserFocus.folderName;
-    const selectedPage = props.notebook.notebookPages[selectedFolderName];
-    const selectedFileNames = selectedPage ? getSortedFileNames(selectedPage) : [];
+    const folders = getSortedScriptFolderNames(props.notebookScripts.scriptFolders);
+    const selectedFolderName = props.notebookScripts.scriptFocus.folderName;
+    const selectedPage = props.notebookScripts.scriptFolders[selectedFolderName];
+    const selectedFileNames = selectedPage ? getSortedScriptFileNames(selectedPage) : [];
     const [collapsedFolderName, setCollapsedFolderName] = React.useState<string | null>(null);
     const visualizationFileNames = new Set(selectedFileNames.filter((fileName) => {
         const scriptId = selectedPage?.scripts[fileName]?.scriptId;
-        return scriptId != null && props.notebook.scripts?.[scriptId]?.annotations.visualizeQuery != null;
+        return scriptId != null && props.notebookScripts.scripts?.[scriptId]?.annotations.visualizeQuery != null;
     }));
     const noVisualizationFiles = new Set<string>();
     const sensors = useSensors(
@@ -329,19 +329,19 @@ export const NotebookFileTree: React.FC<NotebookFileTreeProps> = (props) => {
     }, [props.navigationLevel]);
     const reorderFolders = React.useCallback((fromIndex: number, toIndex: number) => {
         if (fromIndex === toIndex || toIndex < 0 || toIndex >= folders.length) return;
-        props.modifyNotebook({ type: REORDER_PAGES, value: arrayMove(folders, fromIndex, toIndex) });
-    }, [folders, props.modifyNotebook]);
+        props.modifyNotebookScripts({ type: REORDER_SCRIPT_FOLDERS, value: arrayMove(folders, fromIndex, toIndex) });
+    }, [folders, props.modifyNotebookScripts]);
 
     const reorderScripts = React.useCallback((fromIndex: number, toIndex: number) => {
         if (fromIndex === toIndex || toIndex < 0 || toIndex >= selectedFileNames.length || !selectedPage) return;
-        props.modifyNotebook({
-            type: REORDER_NOTEBOOK_SCRIPTS,
+        props.modifyNotebookScripts({
+            type: REORDER_SCRIPTS,
             value: {
                 folderName: selectedFolderName,
                 fileNames: arrayMove(selectedFileNames, fromIndex, toIndex),
             },
         });
-    }, [selectedFileNames, selectedFolderName, selectedPage, props.modifyNotebook]);
+    }, [selectedFileNames, selectedFolderName, selectedPage, props.modifyNotebookScripts]);
 
     const handleFolderDragEnd = React.useCallback((event: DragEndEvent) => {
         if (event.over == null) return;
@@ -352,7 +352,7 @@ export const NotebookFileTree: React.FC<NotebookFileTreeProps> = (props) => {
     }, [selectedFolderName]);
 
     return (
-        <nav className={classNames(styles.file_tree, props.className)} aria-label="Notebook files" data-notebook-file-tree>
+        <nav className={classNames(styles.file_tree, props.className)} aria-label="Notebook files" data-notebookScripts-file-tree>
             <div className={styles.pages_container}>
                 <DndContext
                     sensors={sensors}
@@ -373,16 +373,16 @@ export const NotebookFileTree: React.FC<NotebookFileTreeProps> = (props) => {
                                         folderName={folderName}
                                         active={props.catalogTab == null && selected}
                                         expanded={expanded}
-                                        selectedFileName={props.catalogTab == null ? props.notebook.notebookUserFocus.fileName : ''}
+                                        selectedFileName={props.catalogTab == null ? props.notebookScripts.scriptFocus.fileName : ''}
                                         fileNames={expanded ? selectedFileNames : []}
                                         visualizationFileNames={expanded ? visualizationFileNames : noVisualizationFiles}
                                         navigationLevel={props.navigationLevel}
-                                        onRename={(newFolderName) => props.modifyNotebook({
-                                            type: UPDATE_PAGE_FOLDER_NAME,
+                                        onRename={(newFolderName) => props.modifyNotebookScripts({
+                                            type: RENAME_SCRIPT_FOLDER,
                                             value: { folderName, newFolderName },
                                         })}
-                                        onRenameScript={(fileName, newFileName) => props.modifyNotebook({
-                                            type: UPDATE_NOTEBOOK_ENTRY,
+                                        onRenameScript={(fileName, newFileName) => props.modifyNotebookScripts({
+                                            type: RENAME_SCRIPT,
                                             value: { fileName, newFileName },
                                         })}
                                         onSelect={() => {

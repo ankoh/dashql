@@ -5,7 +5,7 @@ import { isNativePlatform } from '../native_globals.js';
 ///
 /// Tauri's runtime fs scope is in-memory only and is lost on reload/restart. The OPFS root manifest
 /// is the single source of truth for which native directories belong to dashql, so on every boot we
-/// re-grant the scope for each relocated session's directory *before* reading it. The grant is
+/// re-grant the scope for each relocated notebook's directory *before* reading it. The grant is
 /// performed by the custom `grant_fs_scope` Rust command (`app.fs_scope().allow_directory(dir,
 /// true)`), which is idempotent.
 ///

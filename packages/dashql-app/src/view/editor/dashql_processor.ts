@@ -2,7 +2,7 @@ import * as dashql from '../../core/index.js';
 
 import { StateField, StateEffect, StateEffectType, Text, Transaction } from '@codemirror/state';
 
-import { SemanticUserFocus } from '../../notebook/focus.js';
+import { SemanticUserFocus } from '../../scripts/focus.js';
 import { CompletionPatch, computePatches, UpdatePatchStartingFrom } from './dashql_completion_patches.js';
 
 export const DASHQL_COMPLETION_LIMIT = 10;

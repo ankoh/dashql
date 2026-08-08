@@ -144,7 +144,7 @@ and the substitution site so they can't drift.)
   pushdown emitted (regression guard); (e) top-N with sort+limit. Run via the Bazel test
   target (per project convention — not `npx`/raw ctest directly).
 - **TS transcode test** — extend
-  `packages/dashql-app/src/notebook/vegalite_transcode.test.ts` to assert the `{{SOURCE}}`
+  `packages/dashql-app/src/scripts/vegalite_transcode.test.ts` to assert the `{{SOURCE}}`
   substitution produces valid SQL for each of the three source kinds
   (table / inline / script reference).
 - **End-to-end in the app** — run a notebook with a `VISUALIZE ... USING vegalite` bar

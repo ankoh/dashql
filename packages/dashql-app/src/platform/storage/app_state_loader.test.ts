@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { restoreAppState } from './app_state_loader.js';
-import { type StorageBackend, type SessionData, type PageData, StorageBackendType } from './storage_backend.js';
+import { destroyRestoredNotebook, restoreAppState, restoreSingleNotebook } from './app_state_loader.js';
+import { type StorageBackend, type NotebookData, type ScriptFolderData, StorageBackendType } from './storage_backend.js';
 import type { DashQL } from '../../core/api.js';
 import { Logger } from '../logger/logger.js';
 import { ConnectorType } from '../../connection/connector_info.js';
 
-// Session identity is the bare UUID, used as both the manifest entry path and the session's own
-// `sessionId`. The loader gates on UUID validity, so fixtures must use real UUIDs.
+// Notebook identity is the bare UUID, used as both the manifest entry path and the notebook's own
+// `notebookId`. The loader gates on UUID validity, so fixtures must use real UUIDs.
 const HYPER_ID = 'a0000000-0000-4000-8000-000000000001';
 const DEMO_ID = 'a0000000-0000-4000-8000-000000000002';
 const DATALESS_ID = 'a0000000-0000-4000-8000-000000000003';
@@ -44,24 +44,24 @@ describe('restoreAppState', () => {
 
         mockBackend = {
             getBackendType: vi.fn(() => StorageBackendType.OPFS),
-            listSessions: vi.fn(),
-            loadSession: vi.fn(),
-            saveSessionManifest: vi.fn(),
-            deleteSession: vi.fn(),
-            loadSessionSchema: vi.fn(),
-            saveSessionSchema: vi.fn(),
-            loadSessionFunctions: vi.fn().mockResolvedValue(null),
-            saveSessionFunctions: vi.fn(),
-            loadNotebookPages: vi.fn(),
-            createNotebookPage: vi.fn(),
-            deleteNotebookPage: vi.fn(),
-            renameNotebookPage: vi.fn(),
-            loadNotebookScript: vi.fn(),
-            saveNotebookScript: vi.fn(),
-            deleteNotebookScript: vi.fn(),
-            renameNotebookScript: vi.fn(),
-            loadNotebookScriptDraft: vi.fn(),
-            saveNotebookScriptDraft: vi.fn(),
+            listNotebooks: vi.fn(),
+            loadNotebook: vi.fn(),
+            saveNotebookManifest: vi.fn(),
+            deleteNotebook: vi.fn(),
+            loadNotebookSchema: vi.fn(),
+            saveNotebookSchema: vi.fn(),
+            loadNotebookFunctions: vi.fn().mockResolvedValue(null),
+            saveNotebookFunctions: vi.fn(),
+            loadScriptFolders: vi.fn(),
+            createScriptFolder: vi.fn(),
+            deleteScriptFolder: vi.fn(),
+            renameScriptFolder: vi.fn(),
+            loadScript: vi.fn(),
+            saveScript: vi.fn(),
+            deleteScript: vi.fn(),
+            renameScript: vi.fn(),
+            loadScriptDraft: vi.fn(),
+            saveScriptDraft: vi.fn(),
             loadQueryResultCache: vi.fn().mockResolvedValue(null),
             saveQueryResultCache: vi.fn(),
             listQueryResultCache: vi.fn(async () => []),
@@ -78,6 +78,7 @@ describe('restoreAppState', () => {
             createCatalog: vi.fn(() => ({
                 dropScript: vi.fn(),
                 loadScript: vi.fn(),
+                destroy: vi.fn(),
             })),
             createScript: vi.fn(() => {
                 const script = {
@@ -89,11 +90,12 @@ describe('restoreAppState', () => {
                     }),
                     toString: vi.fn(() => ''),
                     // Methods exercised by Phase 4 eager analysis (analyzeNotebookScript):
-                    setNotebookPath: vi.fn(),
+                    setScriptPath: vi.fn(),
                     getParsed: vi.fn(() => null),
                     getAnalyzed: vi.fn(() => null),
                     getStatistics: vi.fn(() => null),
                     moveCursor: vi.fn(() => null),
+                    destroy: vi.fn(),
                 };
                 return script;
             }),
@@ -103,6 +105,7 @@ describe('restoreAppState', () => {
                         throw new Error('Script is not analyzed');
                     }
                 }),
+                destroy: vi.fn(),
             })),
         } as any;
 
@@ -110,7 +113,7 @@ describe('restoreAppState', () => {
     });
 
     it('returns empty state when manifest is empty', async () => {
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([]);
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([]);
 
         const result = await restoreAppState(
             mockCore,
@@ -120,21 +123,21 @@ describe('restoreAppState', () => {
         );
 
         expect(result.connectionStates.size).toBe(0);
-        expect(result.notebooks.size).toBe(0);
+        expect(result.notebookScripts.size).toBe(0);
         expect(progressUpdates.length).toBeGreaterThan(0);
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.total).toBe(0);
         expect(finalProgress.restoreCatalogs.total).toBe(0);
-        expect(finalProgress.restoreNotebooks.total).toBe(0);
+        expect(finalProgress.restoreNotebookScripts.total).toBe(0);
     });
 
-    it('restores a single HYPER session correctly', async () => {
-        const sessionEntry = { path: HYPER_ID };
-        const sessionData: SessionData = {
-            sessionId: HYPER_ID,
-            sessionPath: HYPER_ID,
-            name: 'Test Session',
+    it('restores a single HYPER notebook correctly', async () => {
+        const notebookEntry = { path: HYPER_ID };
+        const notebookData: NotebookData = {
+            notebookId: HYPER_ID,
+            notebookPath: HYPER_ID,
+            name: 'Test Notebook',
             connectionParams: {
                 hyper: {
                     setupTimings: {},
@@ -144,13 +147,13 @@ describe('restoreAppState', () => {
                     }
                 } as any
             },
-            notebook: {
+            metadata: {
                 originalFileName: 'test.sql',
                 createdAt: '2024-01-01T00:00:00Z',
             }
         };
 
-        const pages: PageData[] = [
+        const pages: ScriptFolderData[] = [
             {
                 name: 'page-1',
                 scripts: [
@@ -160,11 +163,11 @@ describe('restoreAppState', () => {
             }
         ];
 
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
-        vi.mocked(mockBackend.loadSession).mockResolvedValue(sessionData);
-        vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue('CREATE TABLE test (id INT);');
-        vi.mocked(mockBackend.loadNotebookPages).mockResolvedValue(pages);
-        vi.mocked(mockBackend.loadNotebookScriptDraft).mockResolvedValue('-- draft');
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([notebookEntry]);
+        vi.mocked(mockBackend.loadNotebook).mockResolvedValue(notebookData);
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue('CREATE TABLE test (id INT);');
+        vi.mocked(mockBackend.loadScriptFolders).mockResolvedValue(pages);
+        vi.mocked(mockBackend.loadScriptDraft).mockResolvedValue('-- draft');
 
         const result = await restoreAppState(
             mockCore,
@@ -175,57 +178,57 @@ describe('restoreAppState', () => {
 
         expect(result.connectionStates.size).toBe(1);
         expect(result.connectionStates.has(HYPER_ID)).toBe(true);
-        expect(result.notebooks.size).toBe(1);
-        expect(result.notebooks.has(HYPER_ID)).toBe(true);
+        expect(result.notebookScripts.size).toBe(1);
+        expect(result.notebookScripts.has(HYPER_ID)).toBe(true);
 
         const connection = result.connectionStates.get(HYPER_ID)!;
-        expect(connection.sessionId).toBe(HYPER_ID);
+        expect(connection.notebookId).toBe(HYPER_ID);
         expect(connection.connectorInfo.connectorType).toBe(ConnectorType.HYPER);
 
         // Verify connection is in correct type index
         expect(result.connectionStatesByType[ConnectorType.HYPER]).toContain(HYPER_ID);
 
-        const notebook = result.notebooks.get(HYPER_ID)!;
-        expect(notebook.sessionId).toBe(HYPER_ID);
-        expect(Object.keys(notebook.notebookPages).length).toBe(1);
+        const notebookScripts = result.notebookScripts.get(HYPER_ID)!;
+        expect(notebookScripts.notebookId).toBe(HYPER_ID);
+        expect(Object.keys(notebookScripts.scriptFolders).length).toBe(1);
 
         // Verify progress tracking
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.succeeded).toBe(1);
         expect(finalProgress.restoreCatalogs.succeeded).toBe(1);
-        expect(finalProgress.restoreNotebooks.succeeded).toBe(1);
+        expect(finalProgress.restoreNotebookScripts.succeeded).toBe(1);
         expect(finalProgress.restoreConnections.failed).toBe(0);
     });
 
-    it('restores both demo and regular DATALESS sessions', async () => {
-        const demoSession = { path: DEMO_ID };
-        const datalessSession = { path: DATALESS_ID };
+    it('restores both demo and regular DATALESS notebooks', async () => {
+        const demoNotebook = { path: DEMO_ID };
+        const datalessNotebook = { path: DATALESS_ID };
 
-        const demoData: SessionData = {
-            sessionId: DEMO_ID,
-            sessionPath: DEMO_ID,
+        const demoData: NotebookData = {
+            notebookId: DEMO_ID,
+            notebookPath: DEMO_ID,
             name: 'Demo',
             connectionParams: { dataless: { demoConnector: true } },
-            notebook: { originalFileName: 'demo.sql', createdAt: '2024-01-01T00:00:00Z' }
+            metadata: { originalFileName: 'demo.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
-        const datalessData: SessionData = {
-            sessionId: DATALESS_ID,
-            sessionPath: DATALESS_ID,
+        const datalessData: NotebookData = {
+            notebookId: DATALESS_ID,
+            notebookPath: DATALESS_ID,
             name: 'Dataless',
             connectionParams: { dataless: {} },
-            notebook: { originalFileName: 'dataless.sql', createdAt: '2024-01-01T00:00:00Z' }
+            metadata: { originalFileName: 'dataless.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([demoSession, datalessSession]);
-        vi.mocked(mockBackend.loadSession).mockImplementation(async (path) => {
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([demoNotebook, datalessNotebook]);
+        vi.mocked(mockBackend.loadNotebook).mockImplementation(async (path) => {
             if (path === DEMO_ID) return demoData;
             if (path === DATALESS_ID) return datalessData;
-            throw new Error('Unknown session');
+            throw new Error('Unknown notebook');
         });
-        vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null);
-        vi.mocked(mockBackend.loadNotebookPages).mockResolvedValue([]);
-        vi.mocked(mockBackend.loadNotebookScriptDraft).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadScriptFolders).mockResolvedValue([]);
+        vi.mocked(mockBackend.loadScriptDraft).mockResolvedValue(null);
 
         const result = await restoreAppState(
             mockCore,
@@ -234,11 +237,11 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        // Both sessions should be restored
+        // Both notebooks should be restored
         expect(result.connectionStates.size).toBe(2);
         expect(result.connectionStates.has(DEMO_ID)).toBe(true);
         expect(result.connectionStates.has(DATALESS_ID)).toBe(true);
-        expect(result.notebooks.size).toBe(2);
+        expect(result.notebookScripts.size).toBe(2);
 
         // Verify both DATALESS connections are in correct type index
         expect(result.connectionStatesByType[ConnectorType.DATALESS]).toContain(DEMO_ID);
@@ -247,29 +250,29 @@ describe('restoreAppState', () => {
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.succeeded).toBe(2);
         expect(finalProgress.restoreCatalogs.succeeded).toBe(2);
-        expect(finalProgress.restoreNotebooks.succeeded).toBe(2);
+        expect(finalProgress.restoreNotebookScripts.succeeded).toBe(2);
     });
 
-    it('handles corrupted session gracefully', async () => {
-        const goodSession = { path: GOOD_ID };
-        const badSession = { path: BAD_ID };
+    it('handles corrupted notebook gracefully', async () => {
+        const goodNotebook = { path: GOOD_ID };
+        const badNotebook = { path: BAD_ID };
 
-        const goodData: SessionData = {
-            sessionId: GOOD_ID,
-            sessionPath: GOOD_ID,
+        const goodData: NotebookData = {
+            notebookId: GOOD_ID,
+            notebookPath: GOOD_ID,
             name: 'Good',
             connectionParams: { dataless: {} },
-            notebook: { originalFileName: 'good.sql', createdAt: '2024-01-01T00:00:00Z' }
+            metadata: { originalFileName: 'good.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([goodSession, badSession]);
-        vi.mocked(mockBackend.loadSession).mockImplementation(async (path) => {
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([goodNotebook, badNotebook]);
+        vi.mocked(mockBackend.loadNotebook).mockImplementation(async (path) => {
             if (path === GOOD_ID) return goodData;
-            throw new Error('Session corrupted');
+            throw new Error('Notebook corrupted');
         });
-        vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null);
-        vi.mocked(mockBackend.loadNotebookPages).mockResolvedValue([]);
-        vi.mocked(mockBackend.loadNotebookScriptDraft).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadScriptFolders).mockResolvedValue([]);
+        vi.mocked(mockBackend.loadScriptDraft).mockResolvedValue(null);
 
         const result = await restoreAppState(
             mockCore,
@@ -278,23 +281,23 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        // Good DATALESS session should be restored; a session whose files can't be read is surfaced
+        // Good DATALESS notebook should be restored; a notebook whose files can't be read is surfaced
         // as invalid (blocked + deletable in the selector), not left as a silent restore failure.
         expect(result.connectionStates.size).toBe(1);
         expect(result.connectionStates.has(GOOD_ID)).toBe(true);
-        expect(result.invalidSessions.get(BAD_ID)?.error).toBe('session_unreadable');
+        expect(result.invalidNotebooks.get(BAD_ID)?.error).toBe('notebook_unreadable');
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.failed).toBe(0);
-        expect(finalProgress.restoreConnections.skipped).toBe(1); // unreadable session
-        expect(finalProgress.restoreConnections.succeeded).toBe(1); // good DATALESS session restored
+        expect(finalProgress.restoreConnections.skipped).toBe(1); // unreadable notebook
+        expect(finalProgress.restoreConnections.succeeded).toBe(1); // good DATALESS notebook restored
     });
 
-    it('restores sessions without setupParams (inactive connections are never written, but handle gracefully)', async () => {
-        const sessionEntry = { path: UNCONFIGURED_ID };
-        const sessionData: SessionData = {
-            sessionId: UNCONFIGURED_ID,
-            sessionPath: UNCONFIGURED_ID,
+    it('restores notebooks without setupParams (inactive connections are never written, but handle gracefully)', async () => {
+        const notebookEntry = { path: UNCONFIGURED_ID };
+        const notebookData: NotebookData = {
+            notebookId: UNCONFIGURED_ID,
+            notebookPath: UNCONFIGURED_ID,
             name: 'Unconfigured',
             connectionParams: {
                 hyper: {
@@ -303,14 +306,14 @@ describe('restoreAppState', () => {
                     // written to storage, but if one is found it should restore fine
                 } as any
             },
-            notebook: { originalFileName: 'unconfigured.sql', createdAt: '2024-01-01T00:00:00Z' }
+            metadata: { originalFileName: 'unconfigured.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
-        vi.mocked(mockBackend.loadSession).mockResolvedValue(sessionData);
-        vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null);
-        vi.mocked(mockBackend.loadNotebookPages).mockResolvedValue([]);
-        vi.mocked(mockBackend.loadNotebookScriptDraft).mockResolvedValue(null);
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([notebookEntry]);
+        vi.mocked(mockBackend.loadNotebook).mockResolvedValue(notebookData);
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadScriptFolders).mockResolvedValue([]);
+        vi.mocked(mockBackend.loadScriptDraft).mockResolvedValue(null);
 
         const result = await restoreAppState(
             mockCore,
@@ -328,11 +331,11 @@ describe('restoreAppState', () => {
         expect(finalProgress.restoreConnections.failed).toBe(0);
     });
 
-    it('marks a session whose manifest entry path is not a valid UUID as invalid (skipped, not failed)', async () => {
-        // The first gate rejects a bad routing key before any loadSession call.
-        const sessionEntry = { path: 'imported-1700000000000' };
+    it('marks a notebook whose manifest entry path is not a valid UUID as invalid (skipped, not failed)', async () => {
+        // The first gate rejects a bad routing key before any loadNotebook call.
+        const notebookEntry = { path: 'imported-1700000000000' };
 
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([notebookEntry]);
 
         const result = await restoreAppState(
             mockCore,
@@ -342,29 +345,29 @@ describe('restoreAppState', () => {
         );
 
         // Never attempted a load — surfaced as invalid, keyed by the raw manifest path.
-        expect(mockBackend.loadSession).not.toHaveBeenCalled();
+        expect(mockBackend.loadNotebook).not.toHaveBeenCalled();
         expect(result.connectionStates.size).toBe(0);
-        const invalid = result.invalidSessions.get('imported-1700000000000')!;
-        expect(invalid.error).toBe('invalid_session_id');
+        const invalid = result.invalidNotebooks.get('imported-1700000000000')!;
+        expect(invalid.error).toBe('invalid_notebook_id');
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.failed).toBe(0);
         expect(finalProgress.restoreConnections.skipped).toBe(1);
     });
 
-    it('marks a session with an unknown connector as invalid (skipped, not failed)', async () => {
-        const sessionEntry = { path: UNKNOWN_CONNECTOR_ID };
-        const sessionData: SessionData = {
-            sessionId: UNKNOWN_CONNECTOR_ID,
-            sessionPath: UNKNOWN_CONNECTOR_ID,
+    it('marks a notebook with an unknown connector as invalid (skipped, not failed)', async () => {
+        const notebookEntry = { path: UNKNOWN_CONNECTOR_ID };
+        const notebookData: NotebookData = {
+            notebookId: UNKNOWN_CONNECTOR_ID,
+            notebookPath: UNKNOWN_CONNECTOR_ID,
             name: 'Invalid',
             // Completely invalid format — matches no known connector
             connectionParams: { garbage: 'data' } as any,
-            notebook: { originalFileName: 'invalid.sql', createdAt: '2024-01-01T00:00:00Z' }
+            metadata: { originalFileName: 'invalid.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
-        vi.mocked(mockBackend.loadSession).mockResolvedValue(sessionData);
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([notebookEntry]);
+        vi.mocked(mockBackend.loadNotebook).mockResolvedValue(notebookData);
 
         const result = await restoreAppState(
             mockCore,
@@ -375,9 +378,9 @@ describe('restoreAppState', () => {
 
         // Refused a load: not in the connection map, surfaced as invalid instead.
         expect(result.connectionStates.size).toBe(0);
-        expect(result.invalidSessions.size).toBe(1);
-        const invalid = result.invalidSessions.get(UNKNOWN_CONNECTOR_ID)!;
-        expect(invalid.sessionId).toBe(UNKNOWN_CONNECTOR_ID);
+        expect(result.invalidNotebooks.size).toBe(1);
+        const invalid = result.invalidNotebooks.get(UNKNOWN_CONNECTOR_ID)!;
+        expect(invalid.notebookId).toBe(UNKNOWN_CONNECTOR_ID);
         expect(invalid.error).toBe('unknown_connector');
 
         // Accounted as skipped, not failed — nothing was attempted.
@@ -386,18 +389,18 @@ describe('restoreAppState', () => {
         expect(finalProgress.restoreConnections.skipped).toBe(1);
     });
 
-    it('marks a session with no connectionParams as invalid', async () => {
-        const sessionEntry = { path: NO_PARAMS_ID };
-        const sessionData = {
-            sessionId: NO_PARAMS_ID,
-            sessionPath: NO_PARAMS_ID,
+    it('marks a notebook with no connectionParams as invalid', async () => {
+        const notebookEntry = { path: NO_PARAMS_ID };
+        const notebookData = {
+            notebookId: NO_PARAMS_ID,
+            notebookPath: NO_PARAMS_ID,
             name: 'No Params',
             // connectionParams deliberately omitted
-            notebook: { originalFileName: 'x.sql', createdAt: '2024-01-01T00:00:00Z' }
-        } as any as SessionData;
+            metadata: { originalFileName: 'x.sql', createdAt: '2024-01-01T00:00:00Z' }
+        } as any as NotebookData;
 
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
-        vi.mocked(mockBackend.loadSession).mockResolvedValue(sessionData);
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([notebookEntry]);
+        vi.mocked(mockBackend.loadNotebook).mockResolvedValue(notebookData);
 
         const result = await restoreAppState(
             mockCore,
@@ -407,27 +410,27 @@ describe('restoreAppState', () => {
         );
 
         expect(result.connectionStates.size).toBe(0);
-        expect(result.invalidSessions.get(NO_PARAMS_ID)?.error).toBe('missing_connection_params');
+        expect(result.invalidNotebooks.get(NO_PARAMS_ID)?.error).toBe('missing_connection_params');
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.failed).toBe(0);
         expect(finalProgress.restoreConnections.skipped).toBe(1);
     });
 
-    it('marks a session with an empty sessionId as invalid (keyed by manifest path)', async () => {
-        // The manifest entry path is a valid UUID (passes the first gate), but the loaded session
-        // data has an empty sessionId, so validateSessionData rejects it.
-        const sessionEntry = { path: NO_ID_PATH };
-        const sessionData = {
-            sessionId: '',
-            sessionPath: NO_ID_PATH,
+    it('marks a notebook with an empty notebookId as invalid (keyed by manifest path)', async () => {
+        // The manifest entry path is a valid UUID (passes the first gate), but the loaded notebook
+        // data has an empty notebookId, so validateNotebookData rejects it.
+        const notebookEntry = { path: NO_ID_PATH };
+        const notebookData = {
+            notebookId: '',
+            notebookPath: NO_ID_PATH,
             name: 'No Id',
             connectionParams: { dataless: {} },
-            notebook: { originalFileName: 'x.sql', createdAt: '2024-01-01T00:00:00Z' }
-        } as any as SessionData;
+            metadata: { originalFileName: 'x.sql', createdAt: '2024-01-01T00:00:00Z' }
+        } as any as NotebookData;
 
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
-        vi.mocked(mockBackend.loadSession).mockResolvedValue(sessionData);
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([notebookEntry]);
+        vi.mocked(mockBackend.loadNotebook).mockResolvedValue(notebookData);
 
         const result = await restoreAppState(
             mockCore,
@@ -438,32 +441,32 @@ describe('restoreAppState', () => {
 
         expect(result.connectionStates.size).toBe(0);
         // Keyed by the manifest entry path (the authoritative registry/delete key).
-        expect(result.invalidSessions.get(NO_ID_PATH)?.error).toBe('missing_session_id');
+        expect(result.invalidNotebooks.get(NO_ID_PATH)?.error).toBe('missing_notebook_id');
     });
 
-    it('surfaces a session whose load throws as invalid (unreadable), keyed by manifest path', async () => {
-        // A native session folder that was moved/deleted (or a corrupt OPFS session) makes loadSession
+    it('surfaces a notebook whose load throws as invalid (unreadable), keyed by manifest path', async () => {
+        // A native notebook folder that was moved/deleted (or a corrupt OPFS notebook) makes loadNotebook
         // throw. Rather than a silent restore failure that logs on every launch with no way to remove
-        // the stale entry, it must land in invalidSessions so the selector can show it deletable.
-        const goodSession = { path: GOOD_ID };
-        const throwingSession = { path: THROWING_ID };
+        // the stale entry, it must land in invalidNotebooks so the selector can show it deletable.
+        const goodNotebook = { path: GOOD_ID };
+        const throwingNotebook = { path: THROWING_ID };
 
-        const goodData: SessionData = {
-            sessionId: GOOD_ID,
-            sessionPath: GOOD_ID,
+        const goodData: NotebookData = {
+            notebookId: GOOD_ID,
+            notebookPath: GOOD_ID,
             name: 'Good',
             connectionParams: { dataless: {} },
-            notebook: { originalFileName: 'good.sql', createdAt: '2024-01-01T00:00:00Z' }
+            metadata: { originalFileName: 'good.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([goodSession, throwingSession]);
-        vi.mocked(mockBackend.loadSession).mockImplementation(async (path) => {
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([goodNotebook, throwingNotebook]);
+        vi.mocked(mockBackend.loadNotebook).mockImplementation(async (path) => {
             if (path === GOOD_ID) return goodData;
-            throw new Error('I/O error reading session');
+            throw new Error('I/O error reading notebook');
         });
-        vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null);
-        vi.mocked(mockBackend.loadNotebookPages).mockResolvedValue([]);
-        vi.mocked(mockBackend.loadNotebookScriptDraft).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadScriptFolders).mockResolvedValue([]);
+        vi.mocked(mockBackend.loadScriptDraft).mockResolvedValue(null);
 
         const result = await restoreAppState(
             mockCore,
@@ -472,14 +475,14 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        // The throwing session is surfaced as invalid (skipped), not counted as a hard failure.
+        // The throwing notebook is surfaced as invalid (skipped), not counted as a hard failure.
         expect(result.connectionStates.size).toBe(1);
-        expect(result.invalidSessions.size).toBe(1);
-        const invalid = result.invalidSessions.get(THROWING_ID)!;
-        expect(invalid.error).toBe('session_unreadable');
-        // Keyed by the manifest entry path — that is the registry/delete key, and the session data
+        expect(result.invalidNotebooks.size).toBe(1);
+        const invalid = result.invalidNotebooks.get(THROWING_ID)!;
+        expect(invalid.error).toBe('notebook_unreadable');
+        // Keyed by the manifest entry path — that is the registry/delete key, and the notebook data
         // was never readable to provide any other identity.
-        expect(invalid.sessionId).toBe(THROWING_ID);
+        expect(invalid.notebookId).toBe(THROWING_ID);
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.failed).toBe(0);
@@ -488,10 +491,10 @@ describe('restoreAppState', () => {
     });
 
     it('handles missing catalog schema gracefully', async () => {
-        const sessionEntry = { path: NO_SCHEMA_ID };
-        const sessionData: SessionData = {
-            sessionId: NO_SCHEMA_ID,
-            sessionPath: NO_SCHEMA_ID,
+        const notebookEntry = { path: NO_SCHEMA_ID };
+        const notebookData: NotebookData = {
+            notebookId: NO_SCHEMA_ID,
+            notebookPath: NO_SCHEMA_ID,
             name: 'No Schema',
             connectionParams: {
                 hyper: {
@@ -502,14 +505,14 @@ describe('restoreAppState', () => {
                     }
                 } as any
             },
-            notebook: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
+            metadata: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
-        vi.mocked(mockBackend.loadSession).mockResolvedValue(sessionData);
-        vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null); // No schema
-        vi.mocked(mockBackend.loadNotebookPages).mockResolvedValue([]);
-        vi.mocked(mockBackend.loadNotebookScriptDraft).mockResolvedValue(null);
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([notebookEntry]);
+        vi.mocked(mockBackend.loadNotebook).mockResolvedValue(notebookData);
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null); // No schema
+        vi.mocked(mockBackend.loadScriptFolders).mockResolvedValue([]);
+        vi.mocked(mockBackend.loadScriptDraft).mockResolvedValue(null);
 
         const result = await restoreAppState(
             mockCore,
@@ -519,17 +522,17 @@ describe('restoreAppState', () => {
         );
 
         expect(result.connectionStates.size).toBe(1);
-        expect(result.notebooks.size).toBe(1);
+        expect(result.notebookScripts.size).toBe(1);
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreCatalogs.succeeded).toBe(1); // Should succeed even without schema
     });
 
     it('restores catalog schema correctly', async () => {
-        const sessionEntry = { path: SCHEMA_ID };
-        const sessionData: SessionData = {
-            sessionId: SCHEMA_ID,
-            sessionPath: SCHEMA_ID,
+        const notebookEntry = { path: SCHEMA_ID };
+        const notebookData: NotebookData = {
+            notebookId: SCHEMA_ID,
+            notebookPath: SCHEMA_ID,
             name: 'Schema Test',
             connectionParams: {
                 hyper: {
@@ -540,16 +543,16 @@ describe('restoreAppState', () => {
                     }
                 } as any
             },
-            notebook: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
+            metadata: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
         const schemaSQL = 'CREATE TABLE users (id INT, name VARCHAR);';
 
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
-        vi.mocked(mockBackend.loadSession).mockResolvedValue(sessionData);
-        vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(schemaSQL);
-        vi.mocked(mockBackend.loadNotebookPages).mockResolvedValue([]);
-        vi.mocked(mockBackend.loadNotebookScriptDraft).mockResolvedValue(null);
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([notebookEntry]);
+        vi.mocked(mockBackend.loadNotebook).mockResolvedValue(notebookData);
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(schemaSQL);
+        vi.mocked(mockBackend.loadScriptFolders).mockResolvedValue([]);
+        vi.mocked(mockBackend.loadScriptDraft).mockResolvedValue(null);
 
         const result = await restoreAppState(
             mockCore,
@@ -568,10 +571,10 @@ describe('restoreAppState', () => {
     });
 
     it('handles catalog restoration failure gracefully', async () => {
-        const sessionEntry = { path: CATALOG_FAIL_ID };
-        const sessionData: SessionData = {
-            sessionId: CATALOG_FAIL_ID,
-            sessionPath: CATALOG_FAIL_ID,
+        const notebookEntry = { path: CATALOG_FAIL_ID };
+        const notebookData: NotebookData = {
+            notebookId: CATALOG_FAIL_ID,
+            notebookPath: CATALOG_FAIL_ID,
             name: 'Catalog Fail',
             connectionParams: {
                 hyper: {
@@ -582,14 +585,14 @@ describe('restoreAppState', () => {
                     }
                 } as any
             },
-            notebook: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
+            metadata: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
-        vi.mocked(mockBackend.loadSession).mockResolvedValue(sessionData);
-        vi.mocked(mockBackend.loadSessionSchema).mockRejectedValue(new Error('Catalog error'));
-        vi.mocked(mockBackend.loadNotebookPages).mockResolvedValue([]);
-        vi.mocked(mockBackend.loadNotebookScriptDraft).mockResolvedValue(null);
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([notebookEntry]);
+        vi.mocked(mockBackend.loadNotebook).mockResolvedValue(notebookData);
+        vi.mocked(mockBackend.loadNotebookSchema).mockRejectedValue(new Error('Catalog error'));
+        vi.mocked(mockBackend.loadScriptFolders).mockResolvedValue([]);
+        vi.mocked(mockBackend.loadScriptDraft).mockResolvedValue(null);
 
         const result = await restoreAppState(
             mockCore,
@@ -600,19 +603,19 @@ describe('restoreAppState', () => {
 
         // Connection should still be restored even if catalog fails
         expect(result.connectionStates.size).toBe(1);
-        expect(result.notebooks.size).toBe(1);
+        expect(result.notebookScripts.size).toBe(1);
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.succeeded).toBe(1);
         expect(finalProgress.restoreCatalogs.failed).toBe(1); // Catalog failed
-        expect(finalProgress.restoreNotebooks.succeeded).toBe(1); // Notebook still succeeded
+        expect(finalProgress.restoreNotebookScripts.succeeded).toBe(1); // Notebook scripts still succeeded
     });
 
     it('restores notebooks with multiple pages and scripts', async () => {
-        const sessionEntry = { path: MULTI_PAGE_ID };
-        const sessionData: SessionData = {
-            sessionId: MULTI_PAGE_ID,
-            sessionPath: MULTI_PAGE_ID,
+        const notebookEntry = { path: MULTI_PAGE_ID };
+        const notebookData: NotebookData = {
+            notebookId: MULTI_PAGE_ID,
+            notebookPath: MULTI_PAGE_ID,
             name: 'Multi Page',
             connectionParams: {
                 hyper: {
@@ -623,10 +626,10 @@ describe('restoreAppState', () => {
                     }
                 } as any
             },
-            notebook: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
+            metadata: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
-        const pages: PageData[] = [
+        const pages: ScriptFolderData[] = [
             {
                 name: 'page-1',
                 scripts: [
@@ -646,11 +649,11 @@ describe('restoreAppState', () => {
             }
         ];
 
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
-        vi.mocked(mockBackend.loadSession).mockResolvedValue(sessionData);
-        vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null);
-        vi.mocked(mockBackend.loadNotebookPages).mockResolvedValue(pages);
-        vi.mocked(mockBackend.loadNotebookScriptDraft).mockResolvedValue('-- my draft');
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([notebookEntry]);
+        vi.mocked(mockBackend.loadNotebook).mockResolvedValue(notebookData);
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadScriptFolders).mockResolvedValue(pages);
+        vi.mocked(mockBackend.loadScriptDraft).mockResolvedValue('-- my draft');
 
         const result = await restoreAppState(
             mockCore,
@@ -659,33 +662,33 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        const notebook = result.notebooks.get(MULTI_PAGE_ID)!;
-        expect(Object.keys(notebook.notebookPages).length).toBe(3);
-        expect(Object.keys(notebook.notebookPages['page-1'].scripts).length).toBe(2);
-        expect(Object.keys(notebook.notebookPages['page-2'].scripts).length).toBe(1);
-        expect(Object.keys(notebook.notebookPages['page-3'].scripts).length).toBe(0);
+        const notebookScripts = result.notebookScripts.get(MULTI_PAGE_ID)!;
+        expect(Object.keys(notebookScripts.scriptFolders).length).toBe(3);
+        expect(Object.keys(notebookScripts.scriptFolders['page-1'].scripts).length).toBe(2);
+        expect(Object.keys(notebookScripts.scriptFolders['page-2'].scripts).length).toBe(1);
+        expect(Object.keys(notebookScripts.scriptFolders['page-3'].scripts).length).toBe(0);
 
         // Verify draft script was loaded
-        expect(notebook.scripts[notebook.uncommittedScriptId].script.replaceText).toHaveBeenCalledWith('-- my draft');
+        expect(notebookScripts.scripts[notebookScripts.uncommittedScriptId].script.replaceText).toHaveBeenCalledWith('-- my draft');
     });
 
     it('keeps a notebook when a persisted script cannot be analyzed', async () => {
-        const sessionEntry = { path: MULTI_PAGE_ID };
-        const sessionData: SessionData = {
-            sessionId: MULTI_PAGE_ID,
-            sessionPath: MULTI_PAGE_ID,
+        const notebookEntry = { path: MULTI_PAGE_ID };
+        const notebookData: NotebookData = {
+            notebookId: MULTI_PAGE_ID,
+            notebookPath: MULTI_PAGE_ID,
             name: 'Invalid Script',
             connectionParams: { dataless: {} },
-            notebook: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
+            metadata: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
-        vi.mocked(mockBackend.loadSession).mockResolvedValue(sessionData);
-        vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null);
-        vi.mocked(mockBackend.loadNotebookPages).mockResolvedValue([
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([notebookEntry]);
+        vi.mocked(mockBackend.loadNotebook).mockResolvedValue(notebookData);
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadScriptFolders).mockResolvedValue([
             { name: 'page-1', scripts: [{ name: '01-script.sql', sql: 'invalid sql' }] }
         ]);
-        vi.mocked(mockBackend.loadNotebookScriptDraft).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadScriptDraft).mockResolvedValue(null);
         scriptAnalysisError = new Error('Aborted');
 
         const result = await restoreAppState(
@@ -695,17 +698,17 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        expect(result.notebooks.has(MULTI_PAGE_ID)).toBe(true);
+        expect(result.notebookScripts.has(MULTI_PAGE_ID)).toBe(true);
         const finalProgress = progressUpdates[progressUpdates.length - 1];
-        expect(finalProgress.restoreNotebooks.succeeded).toBe(1);
-        expect(finalProgress.analyzeNotebooks.failed).toBe(2);
+        expect(finalProgress.restoreNotebookScripts.succeeded).toBe(1);
+        expect(finalProgress.analyzeScripts.failed).toBe(2);
     });
 
     it('creates at least one empty page for notebooks with no pages', async () => {
-        const sessionEntry = { path: EMPTY_NOTEBOOK_ID };
-        const sessionData: SessionData = {
-            sessionId: EMPTY_NOTEBOOK_ID,
-            sessionPath: EMPTY_NOTEBOOK_ID,
+        const notebookEntry = { path: EMPTY_NOTEBOOK_ID };
+        const notebookData: NotebookData = {
+            notebookId: EMPTY_NOTEBOOK_ID,
+            notebookPath: EMPTY_NOTEBOOK_ID,
             name: 'Empty Notebook',
             connectionParams: {
                 hyper: {
@@ -716,14 +719,14 @@ describe('restoreAppState', () => {
                     }
                 } as any
             },
-            notebook: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
+            metadata: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
-        vi.mocked(mockBackend.loadSession).mockResolvedValue(sessionData);
-        vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null);
-        vi.mocked(mockBackend.loadNotebookPages).mockResolvedValue([]); // No pages
-        vi.mocked(mockBackend.loadNotebookScriptDraft).mockResolvedValue(null);
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([notebookEntry]);
+        vi.mocked(mockBackend.loadNotebook).mockResolvedValue(notebookData);
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadScriptFolders).mockResolvedValue([]); // No pages
+        vi.mocked(mockBackend.loadScriptDraft).mockResolvedValue(null);
 
         const result = await restoreAppState(
             mockCore,
@@ -732,17 +735,17 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        const notebook = result.notebooks.get(EMPTY_NOTEBOOK_ID)!;
-        const folders = Object.keys(notebook.notebookPages);
+        const notebookScripts = result.notebookScripts.get(EMPTY_NOTEBOOK_ID)!;
+        const folders = Object.keys(notebookScripts.scriptFolders);
         expect(folders.length).toBe(1);
-        expect(Object.keys(notebook.notebookPages[folders[0]].scripts).length).toBe(0);
+        expect(Object.keys(notebookScripts.scriptFolders[folders[0]].scripts).length).toBe(0);
     });
 
     it('handles notebook restoration failure without affecting connection', async () => {
-        const sessionEntry = { path: NOTEBOOK_FAIL_ID };
-        const sessionData: SessionData = {
-            sessionId: NOTEBOOK_FAIL_ID,
-            sessionPath: NOTEBOOK_FAIL_ID,
+        const notebookEntry = { path: NOTEBOOK_FAIL_ID };
+        const notebookData: NotebookData = {
+            notebookId: NOTEBOOK_FAIL_ID,
+            notebookPath: NOTEBOOK_FAIL_ID,
             name: 'Notebook Fail',
             connectionParams: {
                 hyper: {
@@ -753,13 +756,13 @@ describe('restoreAppState', () => {
                     }
                 } as any
             },
-            notebook: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
+            metadata: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([sessionEntry]);
-        vi.mocked(mockBackend.loadSession).mockResolvedValue(sessionData);
-        vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null);
-        vi.mocked(mockBackend.loadNotebookPages).mockRejectedValue(new Error('Notebook error'));
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([notebookEntry]);
+        vi.mocked(mockBackend.loadNotebook).mockResolvedValue(notebookData);
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadScriptFolders).mockRejectedValue(new Error('Notebook error'));
 
         const result = await restoreAppState(
             mockCore,
@@ -770,21 +773,97 @@ describe('restoreAppState', () => {
 
         // Connection should be restored even if notebook fails
         expect(result.connectionStates.size).toBe(1);
-        expect(result.notebooks.size).toBe(0); // Notebook failed
+        expect(result.notebookScripts.size).toBe(0); // Notebook failed
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.succeeded).toBe(1);
-        expect(finalProgress.restoreNotebooks.failed).toBe(1);
+        expect(finalProgress.restoreNotebookScripts.failed).toBe(1);
     });
 
-    it('restores multiple sessions of different types', async () => {
-        const hyperSession = { path: HYPER_ID };
-        const salesforceSession = { path: SF_ID };
-        const trinoSession = { path: TRINO_ID };
+    it('allocates incremental restores against the live signature map', async () => {
+        const secondId = 'a0000000-0000-4000-8000-000000000013';
+        vi.mocked(mockBackend.loadNotebook).mockImplementation(async (notebookId) => ({
+            notebookId,
+            name: 'Imported Notebook',
+            connectionParams: { dataless: {} },
+            metadata: {},
+        }));
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadScriptFolders).mockResolvedValue([]);
+        vi.mocked(mockBackend.loadScriptDraft).mockResolvedValue(null);
 
-        const hyperData: SessionData = {
-            sessionId: HYPER_ID,
-            sessionPath: HYPER_ID,
+        const liveSignatures = new Map<string, string | null>();
+        const first = await restoreSingleNotebook(mockCore, mockBackend, logger, DATALESS_ID, liveSignatures);
+        const second = await restoreSingleNotebook(mockCore, mockBackend, logger, secondId, liveSignatures);
+
+        expect(first.connection.connectionSignature.signatures).toBe(liveSignatures);
+        expect(second.connection.connectionSignature.signatures).toBe(liveSignatures);
+        expect(second.connection.connectionSignature.signatureString)
+            .not.toBe(first.connection.connectionSignature.signatureString);
+        expect(liveSignatures.size).toBe(2);
+
+        destroyRestoredNotebook(second);
+        destroyRestoredNotebook(first);
+        expect(liveSignatures.size).toBe(0);
+    });
+
+    it('rejects incremental restore when scripts cannot be loaded and frees runtime state', async () => {
+        vi.mocked(mockBackend.loadNotebook).mockResolvedValue({
+            notebookId: NOTEBOOK_FAIL_ID,
+            name: 'Notebook Fail',
+            connectionParams: { dataless: {} },
+            metadata: {},
+        });
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadScriptFolders).mockRejectedValue(new Error('Notebook error'));
+
+        const liveSignatures = new Map<string, string | null>();
+        await expect(restoreSingleNotebook(
+            mockCore,
+            mockBackend,
+            logger,
+            NOTEBOOK_FAIL_ID,
+            liveSignatures,
+        )).rejects.toThrow(`imported notebook ${NOTEBOOK_FAIL_ID} did not restore its scripts`);
+
+        expect(liveSignatures.size).toBe(0);
+        const catalog = vi.mocked(mockCore.createCatalog).mock.results[0].value as any;
+        expect(catalog.destroy).toHaveBeenCalledOnce();
+        const scriptRegistry = vi.mocked(mockCore.createScriptRegistry).mock.results[0].value as any;
+        expect(scriptRegistry.destroy).toHaveBeenCalledOnce();
+    });
+
+    it('releases the signature when connection construction fails', async () => {
+        vi.mocked(mockBackend.loadNotebook).mockResolvedValue({
+            notebookId: DATALESS_ID,
+            name: 'Broken Connection',
+            connectionParams: { dataless: {} },
+            metadata: {},
+        });
+        vi.mocked(mockCore.createCatalog).mockImplementationOnce(() => {
+            throw new Error('catalog allocation failed');
+        });
+
+        const liveSignatures = new Map<string, string | null>();
+        await expect(restoreSingleNotebook(
+            mockCore,
+            mockBackend,
+            logger,
+            DATALESS_ID,
+            liveSignatures,
+        )).rejects.toThrow('catalog allocation failed');
+
+        expect(liveSignatures.size).toBe(0);
+    });
+
+    it('restores multiple notebooks of different types', async () => {
+        const hyperNotebook = { path: HYPER_ID };
+        const salesforceNotebook = { path: SF_ID };
+        const trinoNotebook = { path: TRINO_ID };
+
+        const hyperData: NotebookData = {
+            notebookId: HYPER_ID,
+            notebookPath: HYPER_ID,
             name: 'Hyper',
             connectionParams: {
                 hyper: {
@@ -795,12 +874,12 @@ describe('restoreAppState', () => {
                     }
                 } as any
             },
-            notebook: { originalFileName: 'hyper.sql', createdAt: '2024-01-01T00:00:00Z' }
+            metadata: { originalFileName: 'hyper.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
-        const salesforceData: SessionData = {
-            sessionId: SF_ID,
-            sessionPath: SF_ID,
+        const salesforceData: NotebookData = {
+            notebookId: SF_ID,
+            notebookPath: SF_ID,
             name: 'Salesforce',
             connectionParams: {
                 salesforce: {
@@ -813,12 +892,12 @@ describe('restoreAppState', () => {
                     }
                 } as any
             },
-            notebook: { originalFileName: 'sf.sql', createdAt: '2024-01-01T00:00:00Z' }
+            metadata: { originalFileName: 'sf.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
-        const trinoData: SessionData = {
-            sessionId: TRINO_ID,
-            sessionPath: TRINO_ID,
+        const trinoData: NotebookData = {
+            notebookId: TRINO_ID,
+            notebookPath: TRINO_ID,
             name: 'Trino',
             connectionParams: {
                 trino: {
@@ -830,19 +909,19 @@ describe('restoreAppState', () => {
                     }
                 } as any
             },
-            notebook: { originalFileName: 'trino.sql', createdAt: '2024-01-01T00:00:00Z' }
+            metadata: { originalFileName: 'trino.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
-        vi.mocked(mockBackend.listSessions).mockResolvedValue([hyperSession, salesforceSession, trinoSession]);
-        vi.mocked(mockBackend.loadSession).mockImplementation(async (path) => {
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([hyperNotebook, salesforceNotebook, trinoNotebook]);
+        vi.mocked(mockBackend.loadNotebook).mockImplementation(async (path) => {
             if (path === HYPER_ID) return hyperData;
             if (path === SF_ID) return salesforceData;
             if (path === TRINO_ID) return trinoData;
-            throw new Error('Unknown session');
+            throw new Error('Unknown notebook');
         });
-        vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null);
-        vi.mocked(mockBackend.loadNotebookPages).mockResolvedValue([]);
-        vi.mocked(mockBackend.loadNotebookScriptDraft).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadScriptFolders).mockResolvedValue([]);
+        vi.mocked(mockBackend.loadScriptDraft).mockResolvedValue(null);
 
         const result = await restoreAppState(
             mockCore,
@@ -852,7 +931,7 @@ describe('restoreAppState', () => {
         );
 
         expect(result.connectionStates.size).toBe(3);
-        expect(result.notebooks.size).toBe(3);
+        expect(result.notebookScripts.size).toBe(3);
 
         // Verify type indices are populated correctly
         expect(result.connectionStatesByType[ConnectorType.HYPER]).toContain(HYPER_ID);
@@ -862,6 +941,6 @@ describe('restoreAppState', () => {
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.succeeded).toBe(3);
         expect(finalProgress.restoreCatalogs.succeeded).toBe(3);
-        expect(finalProgress.restoreNotebooks.succeeded).toBe(3);
+        expect(finalProgress.restoreNotebookScripts.succeeded).toBe(3);
     });
 });

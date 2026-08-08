@@ -46,8 +46,8 @@ export function isAppEventPostMessage(msg: any): msg is AppEventPostMessage {
         && typeof msg.data === "string";
 }
 
-export const SETUP_SESSION = Symbol("SETUP_SESSION");
+export const SETUP_NOTEBOOK = Symbol("SETUP_NOTEBOOK");
 
 export type SetupEventVariant =
-    | VariantKind<typeof SETUP_SESSION, Uint8Array>  // Session ZIP bytes
+    | VariantKind<typeof SETUP_NOTEBOOK, Uint8Array>  // Notebook ZIP bytes
     ;

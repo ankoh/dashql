@@ -2,13 +2,13 @@
 
 ## Context
 
-We recently added qualified-name targets for visualize statements (e.g. `visualize dashql.notebook."main/01-script.sql" using vegalite (...)`). Today everything stops at *analysis*: the analyzer collects a `VisualizationSpec`, the C++ side can already lift it into a Vega-Lite JSON via `dashql::visualize::GenerateVegaLiteSpec`, but:
+We recently added qualified-name targets for visualize statements (e.g. `visualize dashql.script."main/01-script.sql" using vegalite (...)`). Today everything stops at *analysis*: the analyzer collects a `VisualizationSpec`, the C++ side can already lift it into a Vega-Lite JSON via `dashql::visualize::GenerateVegaLiteSpec`, but:
 
 1. The visualization specs are **not serialized** into `AnalyzedScript` (`analyzed_script.fbs`), so the app can't see them.
 2. There is no execution path: when a user "sends" a script whose only statement is `VISUALIZE`, its raw text is shipped to the backend, which doesn't speak the dialect.
 3. There is no Vega-Lite renderer on the frontend.
 
-We want a user to write `visualize dashql.notebook."main/01-script.sql" using vegalite (...)` (or `visualize <table> using vegalite (...)` or `visualize (select ...) using vegalite (...)`), click run, see the underlying query result in the existing data table, and toggle a new third tab to see the rendered chart.
+We want a user to write `visualize dashql.script."main/01-script.sql" using vegalite (...)` (or `visualize <table> using vegalite (...)` or `visualize (select ...) using vegalite (...)`), click run, see the underlying query result in the existing data table, and toggle a new third tab to see the rendered chart.
 
 Key decisions:
 
@@ -31,7 +31,7 @@ Key decisions:
       // For ScriptReference / TableReference: the qualified table name as resolved
       // by NameResolutionPass (Name IDs into the script's name registry, exactly
       // like other AnalyzedScript::TableReference entries). The script-path case
-      // is just a TableReference under the dashql.notebook schema — same shape.
+      // is just a TableReference under the dashql.script schema — same shape.
       std::optional<AnalyzedScript::QualifiedTableName> qualified_name;
       // For InlineSelect: the AST root node of the parenthesised SELECT (the
       // OBJECT_SQL_SELECT subtree we'd hand to the executor verbatim).
@@ -53,21 +53,24 @@ Key decisions:
      - `TableReference` → reconstruct `<db>.<schema>.<table>` from the qualified name IDs (same registry lookup) and emit `SELECT * FROM <db>.<schema>.<table>` (quoted).
      - `InlineSelect` → look up the source AST node's text range in the parsed buffer (AST nodes carry `location_offset`/`location_length`) and slice that span from the visualize script's text.
   3. Call the existing `executeQuery` with that SQL, return the new `queryId` and a handle to the Vega-Lite JSON.
-- `packages/dashql-app/src/view/notebook/notebook_script_feed.tsx` (around `handleSend`, line 303–330) — before calling `executeQuery`, detect VIS_VISUALISE via the analyzed buffer; if present, dispatch through `visualize_executor.ts` instead. Either way, wrap the resulting `queryId` into the script's `latestQueryId` via `REGISTER_QUERY` (unchanged action shape — visualize execution still produces one `QueryExecutionState`, just sourced from the resolved SQL).
-- `packages/dashql-app/src/view/visualization/visualization_view.tsx` *(new)* — props: `{ queryState: QueryExecutionState, vegaLiteJson: string }`. Parses the JSON, attaches the result `arrow.Table` via `vega-loader-arrow`, and mounts `vega-embed`. Handles resize and errors. Disabled state when result is missing or not yet `SUCCEEDED`.
-- `packages/dashql-app/src/view/notebook/notebook_script_details.tsx`:
+- `packages/dashql-app/src/view/notebook/notebook_feed.tsx` (in `handleSend`) — before calling `executeQuery`, detect VIS_VISUALISE via the analyzed buffer; if present, dispatch through `visualize_executor.ts` instead. Either way, wrap the resulting `queryId` into the script's `latestQueryId` via `REGISTER_QUERY` (unchanged action shape — visualize execution still produces one `QueryExecutionState`, just sourced from the resolved SQL).
+- `packages/dashql-app/src/view/visualization/visualization_dispatch.tsx` and
+  `packages/dashql-app/src/view/visualization/vegalite_view.tsx` — dispatch the resolved renderer,
+  attach the result data to the Vega-Lite spec, and mount `vega-embed`. They handle resize and
+  rendering errors; callers disable visualization tabs until the result is available.
+- `packages/dashql-app/src/view/notebook/script_details.tsx`:
   - Add `TabKey.Visualization = 3` to the enum (line 38).
   - Compute `hasVisualizeStmt` from `scriptData.scriptAnalysis.buffers.analyzed` (visualization-specs length > 0).
   - Update the `enabledTabs` counter (lines 233–236) to include the visualization tab only when `activeQueryState.status === SUCCEEDED && hasVisualizeStmt`.
   - Add the tab in `tabProps` (chart icon — pick an appropriate symbol from `@ankoh/dashql-svg-symbols`; reuse `#table_24` style as a placeholder if no chart icon exists yet) and the renderer in `tabRenderers`.
   - Update the keyboard cycle list (line 288) and split-tab fallback logic (lines 392–410) to include the new tab.
-- `packages/dashql-app/src/notebook/notebook_state.ts` `deriveScriptAnnotations` (line 920) — also lift `hasVisualizeStmt` and the Vega-Lite JSON out of the analyzed buffer into `NotebookScriptAnnotations`, so consumers don't re-decode the flatbuffer per render.
-- `packages/dashql-app/src/notebook/notebook_types.ts` — extend `NotebookScriptAnnotations` with `hasVisualizeStmt: boolean` and `vegaLiteSpec: string | null`.
+- `packages/dashql-app/src/scripts/notebook_scripts.ts` `deriveScriptAnnotations` — also lift the resolved visualization query out of the analyzed buffer into `ScriptAnnotations`, so consumers don't re-decode the flatbuffer per render.
+- `packages/dashql-app/src/scripts/script_types.ts` — extend `ScriptAnnotations` with the resolved visualization data.
 
 ## Reuse, not duplicate
 
 - C++ Vega-Lite generation: `visualize::GenerateVegaLiteSpec` already exists and is exercised by snapshot tests. We just call it from the analyzer's `Pack` path.
-- Query plumbing: `executeQuery` (`query_executor.tsx:281`) plus `REGISTER_QUERY` (`notebook_state.ts:108`, dispatched from `notebook_script_feed.tsx:325`) already covers ID allocation, dispatch, lifecycle, computation registry. Visualize execution piggy-backs on this — we don't add a parallel state machine.
+- Query plumbing: `executeQuery` in `connection/query_executor.tsx` plus `REGISTER_QUERY` in `scripts/notebook_scripts.ts`, dispatched from `view/notebook/notebook_feed.tsx`, already covers ID allocation, dispatch, lifecycle, and the computation registry. Visualize execution piggy-backs on this — we don't add a parallel state machine.
 - Catalog name resolution: `NameResolutionPass` already populates resolved table references; the new `ResolvedVisSource` reads from the same data rather than re-resolving.
 
 ## Out of scope (intentional)
@@ -85,7 +88,7 @@ Key decisions:
 2. **Snapshot test** (new): write a fixture script that visualizes a qualified script ref and assert that the analyzed flatbuffer contains a `VisualizationSpec` with non-empty `vegalite_json` matching the existing snapshot generator's output.
 3. **Manual end-to-end** (DashQL app dev server):
    - Page `main/`, script `01-script.sql` with `select i, i*2 as v from generate_series(0, 10) as t(i);`. Run it; result table populates.
-   - Second script `02-vis.sql` with `visualize dashql.notebook."main/01-script.sql" using vegalite (mark => line, x => i, y => v);`. Run it.
+   - Second script `02-vis.sql` with `visualize dashql.script."main/01-script.sql" using vegalite (mark => line, x => i, y => v);`. Run it.
    - Verify: data tab shows the same 11-row result; the new Visualization tab is enabled and renders a line chart via vega-embed.
    - Repeat with `visualize (select 1 as a, 2 as b) using vegalite (...)` (inline select) and `visualize my_table using vegalite (...)` (bare table ref) to cover all three source kinds.
 4. **Regression check**: a script with no `VISUALIZE` statement keeps the same two-then-three tab progression (Editor / Status / Data) — the Visualization tab stays disabled and absent from cycling.

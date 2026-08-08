@@ -41,14 +41,14 @@ struct Analyzer {
 
    public:
     /// Constructor
-    Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog, std::string_view notebook_path = "",
+    Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog, std::string_view script_path = "",
              std::span<const std::string> executed_output_schema = {});
     /// Run the analyzer (throws Exception on error)
     std::shared_ptr<AnalyzedScript> Execute();
 
     /// Analyze a program (throws Exception on error)
     static std::shared_ptr<AnalyzedScript> Analyze(std::shared_ptr<ParsedScript> parsed, Catalog& catalog,
-                                                   std::string_view notebook_path = "",
+                                                    std::string_view script_path = "",
                                                    std::span<const std::string> executed_output_schema = {});
 };
 

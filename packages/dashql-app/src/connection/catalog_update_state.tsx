@@ -1,10 +1,10 @@
 import {
-    DEBOUNCE_DURATION_SESSION_WRITE,
-    groupSessionSchemaWrites,
-    groupSessionFunctionWrites,
+    DEBOUNCE_DURATION_NOTEBOOK_WRITE,
+    groupNotebookSchemaWrites,
+    groupNotebookFunctionWrites,
     StorageWriter,
-    WRITE_SESSION_CATALOG_SCRIPT,
-    WRITE_SESSION_FUNCTION_SCRIPT,
+    WRITE_NOTEBOOK_CATALOG_SCRIPT,
+    WRITE_NOTEBOOK_FUNCTION_SCRIPT,
 } from '../platform/storage/storage_writer.js';
 import {
     CATALOG_UPDATE_CANCELLED,
@@ -191,14 +191,14 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
             // Debounced on the schema path so bursts of updates collapse to a single write.
             if (newState.active) {
                 storage.write(
-                    groupSessionSchemaWrites(newState.sessionId),
-                    { type: WRITE_SESSION_CATALOG_SCRIPT, value: [newState.sessionId, newState.catalogRelationScript] },
-                    DEBOUNCE_DURATION_SESSION_WRITE,
+                    groupNotebookSchemaWrites(newState.notebookId),
+                    { type: WRITE_NOTEBOOK_CATALOG_SCRIPT, value: [newState.notebookId, newState.catalogRelationScript] },
+                    DEBOUNCE_DURATION_NOTEBOOK_WRITE,
                 );
                 storage.write(
-                    groupSessionFunctionWrites(newState.sessionId),
-                    { type: WRITE_SESSION_FUNCTION_SCRIPT, value: [newState.sessionId, newState.catalogFunctionScript] },
-                    DEBOUNCE_DURATION_SESSION_WRITE,
+                    groupNotebookFunctionWrites(newState.notebookId),
+                    { type: WRITE_NOTEBOOK_FUNCTION_SCRIPT, value: [newState.notebookId, newState.catalogFunctionScript] },
+                    DEBOUNCE_DURATION_NOTEBOOK_WRITE,
                 );
             }
             return newState;

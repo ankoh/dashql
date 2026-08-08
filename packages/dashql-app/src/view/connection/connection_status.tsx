@@ -7,7 +7,7 @@ import { DatalessConnectionStateDetails, isDemoConnector } from '../../connectio
 import { Button, ButtonVariant } from '../../view/foundations/button.js';
 
 interface ButtonProps {
-    sessionId?: string;
+    notebookId?: string;
     conn: ConnectionState;
     onClick?: () => void;
     compact?: boolean;

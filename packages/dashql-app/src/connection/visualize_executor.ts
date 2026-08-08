@@ -2,14 +2,14 @@ import type { TopLevelSpec } from 'vega-lite';
 
 import * as buffers from '../core/buffers.js';
 import { resolveSymbolSpan } from '../core/tokens.js';
-import { ResolvedVisualizeQuery } from '../notebook/notebook_types.js';
+import { ResolvedVisualizeQuery } from '../scripts/script_types.js';
 import { parseUmapSpec } from '../view/visualization/umap/umap_spec.js';
 import { DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
 import { type LoggerLike } from '../platform/logger/logger.js';
 
 const LOG_CTX = 'visualize_executor';
 
-/// Looks up a script's text by its notebook scriptKey (its catalog entry id).
+/// Looks up a script's text by its scriptKey (its catalog entry id).
 /// Returns null if no such script exists in the notebook.
 export type ScriptTextByKey = (scriptKey: number) => string | null;
 
@@ -21,7 +21,7 @@ function quoteIdent(name: string): string {
 ///
 /// A script reference resolves through the catalog to the producing script's synthetic output table.
 /// The resolved table id is packed as `(catalog_entry_id << 32) | table_index`, and the catalog
-/// entry id equals the producing script's notebook scriptKey. Returns null when the reference did
+/// entry id equals the producing script's scriptKey. Returns null when the reference did
 /// not resolve (packed id 0 — entry ids start at 1, so a valid id is always >= 2^32).
 function readScriptReferenceKey(spec: buffers.analyzer.VisualizationSpec): number | null {
     const packed = spec.sourceResolvedTableId();

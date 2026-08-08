@@ -14,7 +14,7 @@ import { Button, ButtonVariant, IconButton } from '../foundations/button.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
 import { ConnectorInfo } from '../../connection/connector_info.js';
 import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
-import { NotebookState } from '../../notebook/notebook_state.js';
+import { NotebookScripts } from '../../scripts/notebook_scripts.js';
 import { SegmentedControl } from '../foundations/segmented_control.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
@@ -28,7 +28,7 @@ interface Props {
     setupConnection?: () => void;
     cancelSetup?: () => void;
     resetSetup?: () => void;
-    notebook: NotebookState | null;
+    notebookScripts: NotebookScripts | null;
     protocol?: connection.HyperProtocol;
     protocols?: connection.HyperProtocol[];
     onProtocolChange?: (protocol: connection.HyperProtocol) => void;

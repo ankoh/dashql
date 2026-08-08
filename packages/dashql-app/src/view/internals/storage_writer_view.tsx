@@ -11,7 +11,7 @@ import { OverlaySize } from '../foundations/overlay.js';
 import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
 import { JsonView } from '../json/json_view.js';
 import { useStorageWriter } from '../../platform/storage/storage_provider.js';
-import { StorageWriteKey, StorageWriterStatistics, StorageWriteStatisticsMap, storageWriteKeyBelongsToSession, storageWriteKeyWithinSession } from '../../platform/storage/storage_writer.js';
+import { StorageWriteKey, StorageWriterStatistics, StorageWriteStatisticsMap, storageWriteKeyBelongsToNotebook, storageWriteKeyWithinNotebook } from '../../platform/storage/storage_writer.js';
 import { formatBytes, formatMilliseconds } from '../../utils/format.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { useKeyEvents } from '../../utils/key_events.js';
@@ -20,7 +20,7 @@ export const ROW_HEIGHT = 32;
 
 export interface StorageWriterEntry {
     key: StorageWriteKey;
-    /// The key with the active session's id prefix stripped, shown in the Key column (the full key
+    /// The key with the active notebook's id prefix stripped, shown in the Key column (the full key
     /// stays in the row tooltip and the detail modal).
     label: string;
     stats: StorageWriterStatistics;
@@ -69,10 +69,10 @@ export const StorageWriterRow = (props: RowComponentProps<StorageWriterRowProps>
     );
 };
 
-function buildEntries(statsMap: StorageWriteStatisticsMap, sessionId: string): StorageWriterEntry[] {
+function buildEntries(statsMap: StorageWriteStatisticsMap, notebookId: string): StorageWriterEntry[] {
     const entries: StorageWriterEntry[] = [...statsMap.entries()]
-        .filter(([key]) => storageWriteKeyBelongsToSession(key, sessionId))
-        .map(([key, stats]) => ({ key, label: storageWriteKeyWithinSession(key, sessionId), stats }));
+        .filter(([key]) => storageWriteKeyBelongsToNotebook(key, notebookId))
+        .map(([key, stats]) => ({ key, label: storageWriteKeyWithinNotebook(key, notebookId), stats }));
     // Sort by last write descending (most recent first), entries with no write go last
     entries.sort((a, b) => {
         const at = a.stats.lastWrite?.getTime() ?? -1;
@@ -93,8 +93,8 @@ function entryToObject(entry: StorageWriterEntry): object {
     };
 }
 
-export function StorageWriterView(props: { sessionId: string | null; onClose: () => void; }) {
-    const { sessionId } = props;
+export function StorageWriterView(props: { notebookId: string | null; onClose: () => void; }) {
+    const { notebookId } = props;
 
     // Subscribe for storage write statistics
     const storageWriter = useStorageWriter();
@@ -105,11 +105,11 @@ export function StorageWriterView(props: { sessionId: string | null; onClose: ()
         return () => storageWriter.unsubscribeStatisticsListener(listener);
     }, []);
 
-    // Build sorted entries from the stats map, scoped to the active session.
+    // Build sorted entries from the stats map, scoped to the active notebook.
     const entries = React.useMemo<StorageWriterEntry[]>(() => {
-        if (!statsMap || sessionId == null) return [];
-        return buildEntries(statsMap, sessionId);
-    }, [statsMap, sessionId]);
+        if (!statsMap || notebookId == null) return [];
+        return buildEntries(statsMap, notebookId);
+    }, [statsMap, notebookId]);
 
     // Container size for the virtual list
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -218,7 +218,7 @@ export function StorageWriterView(props: { sessionId: string | null; onClose: ()
                 <div className={styles.stat_grid_container} ref={containerRef}>
                     {entries.length === 0 ? (
                         <div className={styles.empty_state}>
-                            {sessionId == null ? 'Select a session to see its storage writes' : 'Nothing to see here'}
+                            {notebookId == null ? 'Select a notebook to see its storage writes' : 'Nothing to see here'}
                         </div>
                     ) : (
                         <List

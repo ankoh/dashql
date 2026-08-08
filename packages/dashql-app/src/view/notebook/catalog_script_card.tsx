@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as detailStyles from './notebook_script_details.module.css';
+import * as detailStyles from './script_details.module.css';
 import * as styles from './catalog_schema_view.module.css';
 
 import { EditorView } from '@codemirror/view';
@@ -7,7 +7,7 @@ import { LockIcon } from '@primer/octicons-react';
 
 import { CodeMirror, createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, analyzeScript, DashQLScriptBuffers } from '../editor/dashql_processor.js';
-import { NotebookScriptName } from './notebook_script_name.js';
+import { ScriptName } from './script_name.js';
 import type { DashQLScript } from '../../core/api.js';
 
 export interface CatalogScriptCardProps {
@@ -67,7 +67,7 @@ export const CatalogScriptCard: React.FC<CatalogScriptCardProps> = (props) => {
             <div className={detailStyles.entry_script_card}>
                 <div className={detailStyles.entry_card_action_bar}>
                     <div className={detailStyles.entry_card_file_name}>
-                        <NotebookScriptName file={props.fileName} icon={<LockIcon size={12} />} />
+                        <ScriptName file={props.fileName} icon={<LockIcon size={12} />} />
                     </div>
                 </div>
                 <div className={styles.entry_card_editor}>

@@ -35,15 +35,15 @@ import { TrinoConnector } from './connection/trino/trino_connector.js';
 import { ToolsPage } from './view/tools/tools_page.js';
 import { UIExperimentPage } from './view/demos/ui_demo.js';
 import { VersionCheck } from './platform/version/version_check.js';
-import { NotebookCommands } from './notebook/notebook_commands.js';
+import { NotebookCommands } from './scripts/notebook_commands.js';
 import { NotebookPage } from './view/notebook/notebook_page.js';
-import { NotebookStateRegistry } from './notebook/notebook_state_registry.js';
+import { NotebookScriptsRegistryProvider } from './scripts/notebook_scripts_registry.js';
 import { AgentRunProvider } from './agent/agent_run_provider.js';
 import { getGlobalLogger, LoggerProvider } from './platform/logger/logger_provider.js';
 import { stringifyError } from './platform/logger/logger.js';
 import { DuckDBProvider } from './platform/duckdb/duckdb_provider.js';
 import { isDebugBuild } from './globals.js';
-import { NativeSessionSync } from './platform/storage/native_session_sync_react.js';
+import { NativeNotebookSync } from './platform/storage/native_notebook_sync_react.js';
 
 import './../static/fonts/fonts.css';
 import './colors.css';
@@ -53,7 +53,7 @@ const LOG_CTX = 'app';
 
 // Note that the order among connection providers is important and non-obvious.
 // For example:
-// - CatalogLoaderProvider requires the NotebookStateRegistry to mark connection notebooks as outdated.
+// - CatalogLoaderProvider requires NotebookScriptsRegistryProvider to mark connection scripts as outdated.
 const NotebookProviders = (props: { children: React.ReactElement }) => (
     <ConnectionRegistry>
         <SalesforceConnector>
@@ -62,8 +62,8 @@ const NotebookProviders = (props: { children: React.ReactElement }) => (
                     <ComputationRegistry>
                         <ComputationScheduler />
                         <QueryExecutorProvider>
-                            <NotebookStateRegistry>
-                                <NativeSessionSync />
+                            <NotebookScriptsRegistryProvider>
+                                <NativeNotebookSync />
                                 <CatalogLoaderProvider>
                                     <AgentRunProvider>
                                         <NotebookCommands>
@@ -73,7 +73,7 @@ const NotebookProviders = (props: { children: React.ReactElement }) => (
                                         </NotebookCommands>
                                     </AgentRunProvider>
                                 </CatalogLoaderProvider>
-                            </NotebookStateRegistry>
+                            </NotebookScriptsRegistryProvider>
                         </QueryExecutorProvider>
                     </ComputationRegistry>
                 </TrinoConnector>

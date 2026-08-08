@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as detailStyles from './notebook_script_details.module.css';
+import * as detailStyles from './script_details.module.css';
 
 import { ConnectionState } from '../../connection/connection_state.js';
 import { CatalogScriptCard } from './catalog_script_card.js';

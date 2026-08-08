@@ -4,9 +4,9 @@ import * as ActionList from '../foundations/action_list.js';
 import { LinkIcon, PaperAirplaneIcon, SyncIcon } from '@primer/octicons-react';
 
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
-import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
-import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
-import { NotebookState } from '../../notebook/notebook_state.js';
+import { NotebookCommandType, useNotebookCommandDispatch } from '../../scripts/notebook_commands.js';
+import type { ModifyNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
+import { NotebookScripts } from '../../scripts/notebook_scripts.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { NotebookFileSaveOverlay } from './notebook_file_save_overlay.js';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
@@ -18,7 +18,7 @@ import type { NotebookFileTreeNavigationLevel } from './notebook_file_tree.js';
 
 export const ConnectionCommandList: React.FC<{
     conn: ConnectionState | null;
-    notebook: NotebookState | null;
+    notebookScripts: NotebookScripts | null;
     navigationDisabled?: boolean;
     showExecute?: boolean;
     onOpenSettings?: () => void;
@@ -90,8 +90,8 @@ export const ConnectionCommandList: React.FC<{
 
 export const NotebookCommandList: React.FC<{
     conn: ConnectionState | null;
-    notebook: NotebookState | null;
-    modifyNotebook: ModifyNotebook | null;
+    notebookScripts: NotebookScripts | null;
+    modifyNotebookScripts: ModifyNotebookScripts | null;
     navigationDisabled?: boolean;
     navigationLevel: NotebookFileTreeNavigationLevel;
     onSelectFolderLevel: () => void;
@@ -135,7 +135,7 @@ export const NotebookCommandList: React.FC<{
             </ActionList.ListItem>
             <ActionList.ListItem
                 onClick={props.onSelectPreviousTreeItem}
-                disabled={props.navigationDisabled || props.notebook == null}
+                disabled={props.navigationDisabled || props.notebookScripts == null}
             >
                 <ActionList.Leading>
                     <ArrowUpIcon />
@@ -147,7 +147,7 @@ export const NotebookCommandList: React.FC<{
             </ActionList.ListItem>
             <ActionList.ListItem
                 onClick={props.onSelectNextTreeItem}
-                disabled={props.navigationDisabled || props.notebook == null}
+                disabled={props.navigationDisabled || props.notebookScripts == null}
             >
                 <ActionList.Leading>
                     <ArrowDownIcon />
@@ -176,7 +176,7 @@ export const NotebookCommandList: React.FC<{
                         isOpen={fileSaveIsOpen}
                         setIsOpen={openFileSave}
                         conn={props.conn}
-                        notebook={props.notebook}
+                        notebookScripts={props.notebookScripts}
                     />
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + S</ActionList.Trailing>

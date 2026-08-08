@@ -1,5 +1,5 @@
 import * as dashql from '../core/index.js';
-import type * as app_session from '@ankoh/dashql-jsonschema/app_session.js';
+import type * as app_notebook from '@ankoh/dashql-jsonschema/app_notebook.js';
 
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR, ConnectorInfo, createDatalessConnectorInfo } from './connector_info.js';
 import { ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus, createConnectionMetrics } from './connection_state.js';
@@ -18,11 +18,11 @@ import { generateFunctionScriptHeader } from './catalog_function_sql_generator.j
 import { isNativePlatform } from '../platform/native_globals.js';
 
 // Re-export connection param types from JSON Schema
-export type ConnectionParams = app_session.ConnectionParams;
-export type HyperConnectionParams = app_session.HyperConnectionParams;
-export type SalesforceConnectionParams = app_session.SalesforceConnectionParams;
-export type TrinoConnectionParams = app_session.TrinoConnectionParams;
-export type DatalessParams = app_session.DatalessParams;
+export type ConnectionParams = app_notebook.ConnectionParams;
+export type HyperConnectionParams = app_notebook.HyperConnectionParams;
+export type SalesforceConnectionParams = app_notebook.SalesforceConnectionParams;
+export type TrinoConnectionParams = app_notebook.TrinoConnectionParams;
+export type DatalessParams = app_notebook.DatalessParams;
 
 export function getConnectionInfoFromParams(params: ConnectionParams) {
     if ('dataless' in params) {

@@ -1,6 +1,6 @@
 /// Backend-agnostic eviction policy for the file-based query result cache.
 ///
-/// The cache stores query results as `<hash>.arrow` files in a `cache/` folder inside each session's
+/// The cache stores query results as `<hash>.arrow` files in a `cache/` folder inside each notebook's
 /// storage. Only *listing* and *deleting* those files differs between backends (OPFS reads size and
 /// `lastModified` from a `File`; the native backend has to `stat()` each entry), so those primitives
 /// live behind `QueryResultCacheStore` while the policy below is shared and unit-testable.
@@ -34,16 +34,16 @@ export interface CacheFileStat {
 
 /// The per-backend primitives the eviction policy operates over.
 export interface QueryResultCacheStore {
-    /// List every `*.arrow` entry in the session's cache folder with its size and mtime. Returns an
+    /// List every `*.arrow` entry in the notebook's cache folder with its size and mtime. Returns an
     /// empty array when the folder does not exist yet.
-    listCacheFiles(sessionId: string): Promise<CacheFileStat[]>;
+    listCacheFiles(notebookId: string): Promise<CacheFileStat[]>;
     /// Delete a single cache file by name. Must tolerate a missing file (treat NotFound as success).
-    deleteCacheFile(sessionId: string, name: string): Promise<void>;
+    deleteCacheFile(notebookId: string, name: string): Promise<void>;
 }
 
-/// Default cap on the total size of a session's query result cache.
+/// Default cap on the total size of a notebook's query result cache.
 export const DEFAULT_CACHE_MAX_BYTES = 512 * 1024 * 1024;
-/// Default cap on the number of cached query results per session.
+/// Default cap on the number of cached query results per notebook.
 export const DEFAULT_CACHE_MAX_FILES = 200;
 
 /// Evict least-recently-accessed cache files until a new entry of `incomingBytes` fits under both the
@@ -57,12 +57,12 @@ export const DEFAULT_CACHE_MAX_FILES = 200;
 /// writes it, and the next write will evict it in turn.
 export async function evictToFit(
     store: QueryResultCacheStore,
-    sessionId: string,
+    notebookId: string,
     incomingBytes: number,
     maxBytes: number = DEFAULT_CACHE_MAX_BYTES,
     maxFiles: number = DEFAULT_CACHE_MAX_FILES,
 ): Promise<void> {
-    const files = await store.listCacheFiles(sessionId);
+    const files = await store.listCacheFiles(notebookId);
 
     let totalBytes = 0;
     for (const f of files) {
@@ -82,7 +82,7 @@ export async function evictToFit(
         if (totalBytes + incomingBytes <= maxBytes && count + 1 <= maxFiles) {
             break;
         }
-        await store.deleteCacheFile(sessionId, f.name);
+        await store.deleteCacheFile(notebookId, f.name);
         totalBytes -= f.size;
         count -= 1;
     }
