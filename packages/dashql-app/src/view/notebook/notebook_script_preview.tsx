@@ -44,7 +44,7 @@ export interface ScriptPreviewProps {
     onFormattedText?: (scriptText: string) => void;
 }
 
-interface PreviewSnapshot {
+export interface PreviewSnapshot {
     scriptText: string;
     parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null;
     ownsParsed: boolean;
@@ -53,6 +53,24 @@ interface PreviewSnapshot {
     /// This is a *separate* buffer from `scriptData.pendingDiff` (whose offsets index the normal,
     /// unformatted text); the offsets here index the compact preview text shown below.
     diff: DashQLPendingDiff | null;
+}
+
+type PreviewView = Pick<EditorView, 'dispatch'>;
+
+export function releasePreviewSnapshot(snapshot: PreviewSnapshot, view: PreviewView | null): void {
+    // CodeMirror fields and view plugins retain these pointers after dispatch. Detach them before
+    // releasing the WASM owners so unmounting virtualized rows cannot read freed memory.
+    if (view != null) {
+        view.dispatch({
+            effects: [
+                DashQLScannerDecorationUpdateEffect.of(null),
+                DashQLDiffDecorationUpdateEffect.of(null),
+                DashQLStoryUpdateEffect.of(null),
+            ],
+        });
+    }
+    if (snapshot.ownsParsed) snapshot.parsed?.destroy();
+    snapshot.diff?.diffBuffer.destroy();
 }
 
 /// Description previews retain raw source text because their parser spans index the source directly.
@@ -318,12 +336,11 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, session
     // Clean up the parsed script and the compact diff buffer when the snapshot is replaced or the
     // component unmounts. The compact diff buffer is owned here (distinct from scriptData.pendingDiff,
     // which the notebook state owns and frees on accept/reject).
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
         return () => {
-            if (previewSnapshot.ownsParsed) previewSnapshot.parsed?.destroy();
-            previewSnapshot.diff?.diffBuffer.destroy();
+            releasePreviewSnapshot(previewSnapshot, view);
         };
-    }, [previewSnapshot]);
+    }, [previewSnapshot, view]);
 
     React.useEffect(() => {
         if (view == null) {
