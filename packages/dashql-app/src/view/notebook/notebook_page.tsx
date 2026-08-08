@@ -9,8 +9,6 @@ import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH } from '../../router.js';
 
 import { NotebookFeedPage } from './feed/notebook_feed_page.js';
-import { NotebookShellPage } from './shell/notebook_shell_page.js';
-import { NotebookViewMode, useNotebookViewMode } from '../../scripts/notebook_commands.js';
 
 const LOG_CTX = 'notebook_page';
 
@@ -24,7 +22,6 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const [notebookScripts, modifyNotebookScripts] = useNotebookScripts(route.notebookId ?? null);
     const [conn, _modifyConn] = useConnectionState(notebookScripts?.notebookId ?? null);
     const [connectionOverlayOpen, setConnectionOverlayOpen] = React.useState<boolean>(false);
-    const { mode: notebookMode } = useNotebookViewMode();
     const connectionSettingsAnchorRef = React.useRef<HTMLButtonElement>(null);
 
     // Auto-close the connection settings overlay once a connect attempt succeeds
@@ -67,23 +64,13 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
 
     return (
         <div className={styles.page}>
-            <div className={notebookMode === NotebookViewMode.Notebook ? styles.mode : styles.mode_hidden}>
-                <NotebookFeedPage
-                    notebookScripts={notebookScripts}
-                    modifyNotebookScripts={modifyNotebookScripts}
-                    connection={conn ?? null}
-                    active={notebookMode === NotebookViewMode.Notebook}
-                    openConnectionOverlay={openConnectionOverlay}
-                />
-            </div>
-            <div className={notebookMode === NotebookViewMode.Shell ? styles.mode : styles.mode_hidden}>
-                <NotebookShellPage
-                    notebookScripts={notebookScripts}
-                    connection={conn ?? null}
-                    active={notebookMode === NotebookViewMode.Shell}
-                    openConnectionOverlay={() => openConnectionOverlay()}
-                />
-            </div>
+            <NotebookFeedPage
+                notebookScripts={notebookScripts}
+                modifyNotebookScripts={modifyNotebookScripts}
+                connection={conn ?? null}
+                active={true}
+                openConnectionOverlay={openConnectionOverlay}
+            />
             <ConnectionSettingsOverlay
                 notebookId={route.notebookId}
                 isOpen={connectionOverlayOpen}

@@ -7,13 +7,6 @@ import { CompletionPatch, computePatches, UpdatePatchStartingFrom } from './dash
 
 export const DASHQL_COMPLETION_LIMIT = 10;
 
-/// The configuration of the DashQL config
-export interface DashQLProcessorConfig {
-    /// Return false for editor documents that should be mirrored to the script rope but not parsed,
-    /// analyzed, or completed by DashQL (for example, Shell dot commands).
-    shouldProcessText?: (text: string) => boolean;
-}
-
 /// A script key
 export type DashQLScriptKey = number;
 /// A collection of FlatBuffers for a script
@@ -94,8 +87,6 @@ export interface DashQLProcessorUpdateOut {
 };
 /// A state that is propagated from the outside into processor
 export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
-    /// The config
-    config: DashQLProcessorConfig;
     /// The registry script retirstry
     scriptRegistry: dashql.DashQLScriptRegistry | null;
     /// The derive focus info
@@ -177,9 +168,6 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
     create: () => {
         // By default, the DashQL script is not configured
         const config: DashQLProcessorState = {
-            config: {
-            },
-
             scriptRegistry: null,
             scriptKey: 0,
             script: null,
@@ -256,8 +244,6 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
             return state;
         }
 
-        const shouldProcessText = state.config.shouldProcessText?.(transaction.newDoc.toString()) ?? true;
-
         // Did the doc change?
         if (transaction.docChanged) {
             // Apply all text changes to the the script.
@@ -277,24 +263,16 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
                     }
                 },
             );
-            if (shouldProcessText) {
-                state.scriptBuffers = analyzeScript(state.script!);
-                state.scriptCursor = state.script!.moveCursor(selection ?? 0);
-            } else {
-                state.scriptBuffers = { parsed: null, analyzed: null, destroy: destroyBuffers };
-                state.scriptCursor = null;
-                state.scriptCompletion = null;
-            }
+            state.scriptBuffers = analyzeScript(state.script!);
+            state.scriptCursor = state.script!.moveCursor(selection ?? 0);
 
-        } else if (shouldProcessText && (selectionChanged || state.scriptCursor == null)) {
+        } else if (selectionChanged || state.scriptCursor == null) {
             state = copyLazily(state, prevState);
             state.scriptCursor = state.script!.moveCursor(selection ?? 0);
         }
 
         // Check additional completion effects
-        if (shouldProcessText) {
-            state = updateCompletion(state, prevState, transaction);
-        }
+        state = updateCompletion(state, prevState, transaction);
 
         // Check pending-diff effects (accept / reject) and auto-accept on genuine user edits
         state = updateDiff(state, prevState, transaction, externalUpdate);

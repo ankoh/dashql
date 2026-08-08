@@ -187,11 +187,6 @@ export const DashQLDiffDecorationPlugin = createDiffDecorationExtension(
     state => state.field(DashQLProcessorPlugin).scriptPendingDiff,
 );
 
-export const DashQLDiffDecorationNoGutterPlugin = createDiffDecorationExtension(
-    state => state.field(DashQLProcessorPlugin).scriptPendingDiff,
-    false,
-);
-
 /// Effect used to push a pending diff into a standalone (read-only) editor from outside, e.g. the
 /// feed's compact preview which computes its own width-dependent diff. Pass null to clear it.
 export const DashQLDiffDecorationUpdateEffect: StateEffectType<DashQLPendingDiff | null> =

@@ -1,8 +1,6 @@
 import * as dashql from '../../core/index.js';
 
 import { EditorSelection, EditorState, Transaction } from '@codemirror/state';
-import { vi } from 'vitest';
-
 import {
     analyzeScript,
     DashQLCompletionAbortEffect,
@@ -25,54 +23,6 @@ afterEach(() => {
 });
 
 describe('DashQL processor completion triggers', () => {
-    it('does not analyze text excluded by the processor config', () => {
-        const catalog = dql!.createCatalog();
-        const script = dql!.createScript(catalog);
-        const analyze = vi.spyOn(script, 'analyze');
-        const processorState: DashQLProcessorUpdateIn = {
-            config: {
-                shouldProcessText: text => !text.trimStart().startsWith('.'),
-            },
-            scriptRegistry: null,
-            scriptKey: 1,
-            script,
-            scriptBuffers: analyzeScript(script),
-            scriptCursor: null,
-            scriptCompletion: null,
-            scriptPendingDiff: null,
-            derivedFocus: null,
-            onUpdate: () => {},
-        };
-        let editorState = EditorState.create({
-            extensions: [DashQLProcessorPlugin],
-        });
-        editorState = editorState.update({ effects: DashQLUpdateEffect.of(processorState) }).state;
-        analyze.mockClear();
-
-        editorState = editorState.update({
-            changes: { from: 0, insert: '.catalog' },
-            selection: EditorSelection.cursor('.catalog'.length),
-            annotations: Transaction.userEvent.of('input.type'),
-        }).state;
-
-        const excluded = editorState.field(DashQLProcessorPlugin);
-        expect(script.toString()).toBe('.catalog');
-        expect(analyze).not.toHaveBeenCalled();
-        expect(excluded.scriptBuffers.parsed).toBeNull();
-        expect(excluded.scriptBuffers.analyzed).toBeNull();
-        expect(excluded.scriptCursor).toBeNull();
-        expect(excluded.scriptCompletion).toBeNull();
-
-        editorState = editorState.update({
-            changes: { from: 0, to: '.catalog'.length, insert: 'select 1;' },
-            selection: EditorSelection.cursor('select 1;'.length),
-            annotations: Transaction.userEvent.of('input.type'),
-        }).state;
-
-        expect(analyze).toHaveBeenCalledOnce();
-        expect(editorState.field(DashQLProcessorPlugin).scriptBuffers.parsed).not.toBeNull();
-    });
-
     it('does not start completion when deleting selected comments before a token', () => {
         const catalog = dql!.createCatalog();
         const text = `-- Fetch and visualize vega cars data from a parquet file, rendering a point
@@ -95,7 +45,6 @@ VISUALIZE dashql.script."vis_data/vega_cars" USING vegalite (
         expect(scriptCursor.read().scannerSymbolCompletable()).toBe(true);
 
         const processorState: DashQLProcessorUpdateIn = {
-            config: {},
             scriptRegistry: null,
             scriptKey: 1,
             script,
@@ -136,7 +85,6 @@ VISUALIZE dashql.script."vis_data/vega_cars" USING vegalite (
         expect(scriptCursor.read().scannerSymbolCompletable()).toBe(true);
 
         const processorState: DashQLProcessorUpdateIn = {
-            config: {},
             scriptRegistry: null,
             scriptKey: 1,
             script,
@@ -169,7 +117,6 @@ VISUALIZE dashql.script."vis_data/vega_cars" USING vegalite (
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, text);
         const processorState: DashQLProcessorUpdateIn = {
-            config: {},
             scriptRegistry: null,
             scriptKey: 1,
             script,
@@ -217,7 +164,6 @@ VISUALIZE dashql.script."vis_data/vega_cars" USING vegalite (
         expect(scriptCursor.read().scannerSymbolCompletable()).toBe(true);
 
         const processorState: DashQLProcessorUpdateIn = {
-            config: {},
             scriptRegistry: registry,
             scriptKey: 1,
             script,
@@ -252,7 +198,6 @@ VISUALIZE dashql.script."vis_data/vega_cars" USING vegalite (
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, text);
         const processorState: DashQLProcessorUpdateIn = {
-            config: {},
             scriptRegistry: null,
             scriptKey: 1,
             script,
@@ -295,7 +240,6 @@ VISUALIZE dashql.script."vis_data/vega_cars" USING vegalite (
         script.moveCursor(firstCursor).destroy();
         const completionBuffer = script.completeAtCursor(10, registry);
         const processorState: DashQLProcessorUpdateIn = {
-            config: {},
             scriptRegistry: registry,
             scriptKey: 1,
             script,
@@ -350,7 +294,6 @@ VISUALIZE dashql.script."vis_data/vega_cars" USING vegalite (
         script.insertTextAt(0, text);
         const scriptBuffers = analyzeScript(script);
         const processorState: DashQLProcessorUpdateIn = {
-            config: {},
             scriptRegistry: registry,
             scriptKey: 1,
             script,

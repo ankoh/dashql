@@ -149,7 +149,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
             editorView.dispatch({
                 effects: [
                     DashQLUpdateEffect.of({
-                        config: {},
                         scriptRegistry: null,
                         scriptKey: formattedScript.getCatalogEntryId(),
                         script: formattedScript,

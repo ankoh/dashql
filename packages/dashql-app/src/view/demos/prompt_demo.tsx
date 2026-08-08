@@ -135,7 +135,6 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
         const initialBuffers = analyzeScript(script);
         const effects: StateEffect<any>[] = [
             DashQLUpdateEffect.of({
-                config: {},
                 scriptRegistry: registry,
                 scriptKey: 0,
                 script: script,
