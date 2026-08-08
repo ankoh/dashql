@@ -51,11 +51,11 @@ describe('createDefaultNotebookScripts', () => {
 
         expect(allocateNotebookScripts).toHaveBeenCalledTimes(1);
         expect(Object.keys(notebookScripts.scriptFolders)).toHaveLength(1);
-        expect(notebookScripts.scriptFocus.folderName).toBe('Main');
+        expect(notebookScripts.scriptFocus.folderName).toBe('main');
         expect(scriptDisplayName(notebookScripts.scriptFocus.fileName)).toBe('example_script');
         expect(notebookScripts.scriptFocus.interactionCounter).toBe(0);
 
-        const queryPage = notebookScripts.scriptFolders['Main'];
+        const queryPage = notebookScripts.scriptFolders['main'];
         expect(Object.keys(queryPage.scripts)).toHaveLength(1);
 
         const fileName = notebookScripts.scriptFocus.fileName;

@@ -42,7 +42,7 @@ export function createDefaultNotebookScripts(
 
     mainScript.replaceText(mainScriptText);
 
-    const mainFolderName = 'Main';
+    const mainFolderName = 'main';
     const mainFileName = generateScriptFileName({}, 'example_script');
 
     let mainScriptData = createScriptData(mainScript, mainFileName, mainFolderName);
