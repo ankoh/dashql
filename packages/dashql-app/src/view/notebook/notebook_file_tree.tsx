@@ -243,8 +243,9 @@ const SortableFolder: React.FC<SortableFolderProps> = (props) => {
                             type="button"
                             {...attributes}
                             {...listeners}
-                            className={classNames(styles.item_button, styles.folder_button, {
+                            className={classNames(styles.item_button, {
                                 [styles.item_button_selected]: props.active,
+                                [styles.item_button_with_action]: props.active,
                             })}
                             aria-expanded={props.expanded}
                             onClick={props.onSelect}
