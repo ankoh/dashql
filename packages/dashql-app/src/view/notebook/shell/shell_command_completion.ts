@@ -1,5 +1,5 @@
 import { EditorState, Extension, Prec, StateEffect, StateField, Transaction } from '@codemirror/state';
-import { EditorView, keymap, showTooltip, Tooltip } from '@codemirror/view';
+import { EditorView, keymap, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
 import { listShellCommandCompletions, ShellCommandCompletion } from './notebook_shell_commands.js';
 import * as styles from '../../editor/dashql_completion_list.module.css';
@@ -64,51 +64,6 @@ function closeShellCompletion(view: EditorView): boolean {
     return true;
 }
 
-function createShellCompletionTooltip(completion: ShellCompletionState): Tooltip {
-    return {
-        pos: completion.from,
-        end: completion.to,
-        create: view => {
-            const dom = document.createElement('div');
-            dom.className = styles.overlay_container;
-            dom.setAttribute('role', 'listbox');
-            dom.setAttribute('aria-label', 'Shell commands');
-
-            const list = document.createElement('div');
-            list.className = styles.list_container;
-
-            completion.candidates.forEach((candidate, index) => {
-                const option = document.createElement('div');
-                option.className = index === completion.selected
-                    ? `${styles.candidate_container} ${styles.selected}`
-                    : styles.candidate_container;
-                option.setAttribute('role', 'option');
-                option.setAttribute('aria-selected', String(index === completion.selected));
-
-                const icon = document.createElement('span');
-                icon.className = styles.candidate_icon;
-                icon.textContent = 'CMD';
-                const label = document.createElement('span');
-                label.className = styles.candidate_name;
-                label.textContent = candidate.label;
-                option.append(icon, label);
-                option.addEventListener('mousedown', event => {
-                    event.preventDefault();
-                    view.dispatch({
-                        changes: { from: completion.from, to: completion.to, insert: candidate.label },
-                        selection: { anchor: completion.from + candidate.label.length },
-                        userEvent: 'input.complete',
-                    });
-                    view.focus();
-                });
-                list.appendChild(option);
-            });
-            dom.appendChild(list);
-            return { dom };
-        },
-    };
-}
-
 export const ShellCommandCompletionField = StateField.define<ShellCompletionState | null>({
     create: state => deriveShellCommandCompletion(state),
     update: (previous, transaction: Transaction) => {
@@ -123,14 +78,82 @@ export const ShellCommandCompletionField = StateField.define<ShellCompletionStat
         if (!transaction.docChanged && !transaction.selection) return previous;
         return deriveShellCommandCompletion(transaction.state, previous);
     },
-    provide: field => showTooltip.computeN([field], state => {
-        const completion = state.field(field);
-        return completion == null ? [] : [createShellCompletionTooltip(completion)];
-    }),
+});
+
+const ShellCommandCompletionList = ViewPlugin.fromClass(class {
+    readonly dom: HTMLDivElement;
+    readonly list: HTMLDivElement;
+
+    constructor(view: EditorView) {
+        this.dom = document.createElement('div');
+        this.dom.className = `${styles.overlay_container} ${styles.hidden}`;
+        this.dom.setAttribute('role', 'listbox');
+        this.dom.setAttribute('aria-label', 'Shell commands');
+        this.list = document.createElement('div');
+        this.list.className = styles.list_container;
+        this.dom.appendChild(this.list);
+        document.body.appendChild(this.dom);
+        this.render(view);
+    }
+
+    update(update: ViewUpdate) {
+        this.render(update.view);
+    }
+
+    render(view: EditorView) {
+        const completion = view.state.field(ShellCommandCompletionField, false);
+        this.list.replaceChildren();
+        if (completion == null) {
+            this.dom.classList.add(styles.hidden);
+            return;
+        }
+
+        completion.candidates.forEach((candidate, index) => {
+            const option = document.createElement('div');
+            option.className = index === completion.selected
+                ? `${styles.candidate_container} ${styles.selected}`
+                : styles.candidate_container;
+            option.setAttribute('role', 'option');
+            option.setAttribute('aria-selected', String(index === completion.selected));
+
+            const icon = document.createElement('span');
+            icon.className = styles.candidate_icon;
+            icon.textContent = 'CMD';
+            const label = document.createElement('span');
+            label.className = styles.candidate_name;
+            label.textContent = candidate.label;
+            option.append(icon, label);
+            option.addEventListener('mousedown', event => {
+                event.preventDefault();
+                view.dispatch({
+                    changes: { from: completion.from, to: completion.to, insert: candidate.label },
+                    selection: { anchor: completion.from + candidate.label.length },
+                    userEvent: 'input.complete',
+                });
+                view.focus();
+            });
+            this.list.appendChild(option);
+        });
+
+        view.requestMeasure({
+            read: measuredView => measuredView.coordsAtPos(completion.from),
+            write: coords => {
+                if (coords == null) return;
+                this.dom.style.left = `${Math.max(0, coords.left)}px`;
+                this.dom.style.top = `${coords.bottom + 5}px`;
+                this.dom.classList.remove(styles.hidden);
+            },
+        });
+    }
+
+    destroy() {
+        this.dom.remove();
+    }
 });
 
 export const ShellCommandCompletionExtension: Extension = [
     ShellCommandCompletionField,
+    ShellCommandCompletionList,
     Prec.highest(keymap.of([
         { key: 'Enter', run: applySelectedShellCompletion },
         { key: 'Tab', run: applySelectedShellCompletion },

@@ -38,11 +38,14 @@ import { FeedEntryFooter } from '../feed/feed_entry_footer.js';
 import { createShellPromptGutter } from './shell_prompt_gutter.js';
 import { ShellQueryPreview } from './shell_query_preview.js';
 import { ShellCommandCompletionExtension } from './shell_command_completion.js';
+import { getShellConnectionDetails, type ShellConnectionDetail } from './notebook_shell_preamble.js';
+import { ShellResultDetails } from './shell_result_details.js';
 
 const LOG_CTX = 'notebook_shell';
 const ESTIMATED_ENTRY_HEIGHT = 280;
 const ESTIMATED_INPUT_HEIGHT = 80;
 const ROW_HEIGHT_EPSILON = 1;
+const PREAMBLE_ROW_KEY = 'preamble';
 const INPUT_ROW_KEY = 'input';
 
 export const enum ShellInputState {
@@ -326,7 +329,8 @@ const ShellInput: React.FC<ShellInputProps> = (props) => {
 const ShellResultCard: React.FC<{
     notebookId: string;
     entry: ShellEntry;
-}> = ({ notebookId, entry }) => {
+    onShowTable: (queryId: number) => void;
+}> = ({ notebookId, entry, onShowTable }) => {
     const query = useQueryState(notebookId, entry.queryId);
     const cancelQuery = useCancelQuery();
     const traceId = query?.traceId ?? null;
@@ -335,7 +339,7 @@ const ShellResultCard: React.FC<{
     const [logRequest, setLogRequest] = React.useState(0);
 
     return (
-        <div className={styles.result_card} aria-live="polite">
+        <div className={styles.result_card} aria-live="polite" onClick={event => event.stopPropagation()}>
             <EntryStatusBar
                 status={status}
                 onClick={traceId != null ? () => setLogRequest(value => value + 1) : undefined}
@@ -348,6 +352,7 @@ const ShellResultCard: React.FC<{
                 agentTraceId={null}
                 visualizeQuery={entry.visualizeQuery}
                 logRequest={{ nonce: logRequest, traceId }}
+                onShowTable={() => onShowTable(entry.queryId)}
             />}
         </div>
     );
@@ -357,6 +362,7 @@ interface ShellRowProps {
     notebookId: string;
     notebookScripts: NotebookScripts;
     entries: readonly ShellEntry[];
+    connectionDetails: readonly ShellConnectionDetail[];
     prompt: string;
     active: boolean;
     history: readonly ShellHistoryEntry[];
@@ -365,12 +371,15 @@ interface ShellRowProps {
     onInput: (text: string, buffers: DashQLScriptBuffers) => void;
     onHeightMeasured: (rowKey: string, height: number) => void;
     setFocusInput: (focus: (() => void) | null) => void;
+    onShowTable: (queryId: number) => void;
 }
 
 function ShellRow(props: RowComponentProps<ShellRowProps>) {
     const rowRef = React.useRef<HTMLDivElement>(null);
-    const entry = props.entries[props.index];
-    const rowKey = entry == null ? INPUT_ROW_KEY : `entry:${entry.entryId}`;
+    const isPreamble = props.index === 0;
+    const isInput = props.index === props.entries.length + 1;
+    const entry = isPreamble || isInput ? null : props.entries[props.index - 1];
+    const rowKey = isPreamble ? PREAMBLE_ROW_KEY : isInput ? INPUT_ROW_KEY : `entry:${entry!.entryId}`;
 
     React.useLayoutEffect(() => {
         const element = rowRef.current;
@@ -385,7 +394,24 @@ function ShellRow(props: RowComponentProps<ShellRowProps>) {
         return () => observer.disconnect();
     }, [props.onHeightMeasured, rowKey]);
 
-    if (entry == null) {
+    if (isPreamble) {
+        return (
+            <div ref={rowRef} style={{ ...props.style, height: 'auto' }} className={styles.preamble}>
+                <div className={styles.preamble_title}>DashQL Shell</div>
+                <dl className={styles.connection_details} aria-label="Connection details">
+                    {props.connectionDetails.map(detail => (
+                        <React.Fragment key={detail.label}>
+                            <dt>{detail.label}:</dt>
+                            <dd>{detail.value}</dd>
+                        </React.Fragment>
+                    ))}
+                </dl>
+                <div>Enter &quot;.&quot; for Shell commands; terminate SQL with &quot;;&quot;.</div>
+            </div>
+        );
+    }
+
+    if (isInput) {
         return (
             <div ref={rowRef} style={{ ...props.style, height: 'auto' }} className={styles.input_row}>
                 <ShellInput
@@ -402,6 +428,8 @@ function ShellRow(props: RowComponentProps<ShellRowProps>) {
         );
     }
 
+    if (entry == null) return null;
+
     return (
         <div ref={rowRef} style={{ ...props.style, height: 'auto' }}>
             <article className={styles.entry}>
@@ -410,7 +438,7 @@ function ShellRow(props: RowComponentProps<ShellRowProps>) {
                     sourceText={entry.sourceText}
                     prompt={props.prompt}
                 />
-                <ShellResultCard notebookId={props.notebookId} entry={entry} />
+                <ShellResultCard notebookId={props.notebookId} entry={entry} onShowTable={props.onShowTable} />
             </article>
         </div>
     );
@@ -425,6 +453,11 @@ export const NotebookShell: React.FC<Props> = (props) => {
     const [entries, setEntries] = React.useState<ShellEntry[]>([]);
     const [history, setHistory] = React.useState<ShellHistoryEntry[]>([]);
     const [error, setError] = React.useState<string | null>(null);
+    const [detailsQueryId, setDetailsQueryId] = React.useState<number | null>(null);
+    const detailsQuery = useQueryState(props.notebookScripts.notebookId, detailsQueryId);
+    const detailsEntry = detailsQueryId == null
+        ? null
+        : entries.find(entry => entry.queryId === detailsQueryId) ?? null;
     const listContainerRef = React.useRef<HTMLDivElement>(null);
     const listRef = useListRef(null);
     const listSize = observeSize(listContainerRef);
@@ -437,6 +470,10 @@ export const NotebookShell: React.FC<Props> = (props) => {
     entriesRef.current = entries;
     const prompt = props.connection?.connectorInfo.names.displayShort.toLowerCase()
         ?? props.notebookScripts.connectorInfo.names.displayShort.toLowerCase();
+    const connectionDetails = React.useMemo(
+        () => getShellConnectionDetails(props.connection),
+        [props.connection],
+    );
     const handleHeightMeasured = React.useCallback((rowKey: string, height: number) => {
         const previous = rowHeightsRef.current.get(rowKey);
         if (previous != null && Math.abs(previous - height) < ROW_HEIGHT_EPSILON) return;
@@ -452,7 +489,7 @@ export const NotebookShell: React.FC<Props> = (props) => {
     }, []);
     const focusInput = React.useCallback(() => {
         focusInputPendingRef.current = true;
-        listRef.current?.scrollToRow({ index: entriesRef.current.length, align: 'end' });
+        listRef.current?.scrollToRow({ index: entriesRef.current.length + 1, align: 'end' });
         requestAnimationFrame(() => {
             const focus = focusInputRef.current;
             if (focus == null) return;
@@ -475,9 +512,9 @@ export const NotebookShell: React.FC<Props> = (props) => {
     const clearEntries = React.useCallback(() => {
         for (const entry of entriesRef.current) {
             cancelQuery(props.notebookScripts.notebookId, entry.queryId);
+            rowHeightsRef.current.delete(`entry:${entry.entryId}`);
         }
         setEntries([]);
-        rowHeightsRef.current.clear();
         setError(null);
     }, [cancelQuery, props.notebookScripts.notebookId]);
 
@@ -575,13 +612,14 @@ export const NotebookShell: React.FC<Props> = (props) => {
 
     React.useEffect(() => {
         if (listRef.current == null) return;
-        listRef.current.scrollToRow({ index: entries.length, align: 'end' });
+        listRef.current.scrollToRow({ index: entries.length + 1, align: 'end' });
     }, [entries.length, listRef]);
 
     const rowProps = React.useMemo<ShellRowProps>(() => ({
         notebookId: props.notebookScripts.notebookId,
         notebookScripts: props.notebookScripts,
         entries,
+        connectionDetails,
         prompt,
         active: props.active,
         history,
@@ -590,7 +628,19 @@ export const NotebookShell: React.FC<Props> = (props) => {
         onInput: (text, buffers) => setError(getShellInputError(text, buffers)),
         onHeightMeasured: handleHeightMeasured,
         setFocusInput,
-    }), [props.notebookScripts, entries, prompt, props.active, history, error, submit, handleHeightMeasured, setFocusInput]);
+        onShowTable: setDetailsQueryId,
+    }), [props.notebookScripts, entries, connectionDetails, prompt, props.active, history, error, submit, handleHeightMeasured, setFocusInput]);
+
+    if (detailsQuery != null) {
+        return (
+            <ShellResultDetails
+                query={detailsQuery}
+                visualizeQuery={detailsEntry?.visualizeQuery ?? null}
+                onCancel={() => cancelQuery(props.notebookScripts.notebookId, detailsQuery.queryId)}
+                onClose={() => setDetailsQueryId(null)}
+            />
+        );
+    }
 
     return (
         <section className={styles.shell} aria-label="DashQL Shell" onClick={handleShellClick}>
@@ -602,13 +652,21 @@ export const NotebookShell: React.FC<Props> = (props) => {
                         height: listSize?.height ?? 0,
                         overflowX: 'hidden',
                     }}
-                    rowCount={entries.length + 1}
+                    rowCount={entries.length + 2}
                     rowHeight={(rowIndex) => {
                         void rowHeightsVersion;
-                        const entry = entries[rowIndex];
-                        const rowKey = entry == null ? INPUT_ROW_KEY : `entry:${entry.entryId}`;
+                        const entry = entries[rowIndex - 1];
+                        const rowKey = rowIndex === 0
+                            ? PREAMBLE_ROW_KEY
+                            : rowIndex === entries.length + 1
+                                ? INPUT_ROW_KEY
+                                : `entry:${entry.entryId}`;
                         return rowHeightsRef.current.get(rowKey)
-                            ?? (rowIndex < entries.length ? ESTIMATED_ENTRY_HEIGHT : ESTIMATED_INPUT_HEIGHT);
+                            ?? (rowIndex === 0
+                                ? ESTIMATED_INPUT_HEIGHT * 2
+                                : rowIndex <= entries.length
+                                    ? ESTIMATED_ENTRY_HEIGHT
+                                    : ESTIMATED_INPUT_HEIGHT);
                     }}
                     rowComponent={ShellRow}
                     rowProps={rowProps}

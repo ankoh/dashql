@@ -1,7 +1,8 @@
 import { EditorSelection, EditorState } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
 import { describe, expect, it } from 'vitest';
 
-import { deriveShellCommandCompletion } from './shell_command_completion.js';
+import { ShellCommandCompletionExtension, deriveShellCommandCompletion } from './shell_command_completion.js';
 
 function completionFor(text: string, cursor = text.length) {
     const state = EditorState.create({
@@ -12,6 +13,29 @@ function completionFor(text: string, cursor = text.length) {
 }
 
 describe('Shell command completion', () => {
+    it('renders completion options outside the virtualized shell row', async () => {
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+        const view = new EditorView({
+            state: EditorState.create({ extensions: [ShellCommandCompletionExtension] }),
+            parent: host,
+        });
+        view.dispatch({
+            changes: { from: 0, insert: '.c' },
+            selection: EditorSelection.cursor(2),
+            userEvent: 'input.type',
+        });
+
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        const completion = document.body.querySelector('[aria-label="Shell commands"]');
+        expect(completion).not.toBeNull();
+        expect(completion?.classList.contains('hidden')).toBe(false);
+        expect(completion?.querySelectorAll('[role="option"]')).toHaveLength(5);
+
+        view.destroy();
+        host.remove();
+    });
+
     it('offers dot commands by prefix', () => {
         const completion = completionFor('.c');
         expect(completion?.candidates.map(candidate => candidate.label)).toEqual([

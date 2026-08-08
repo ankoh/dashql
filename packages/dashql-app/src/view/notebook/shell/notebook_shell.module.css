@@ -20,6 +20,34 @@
     padding: 8px 16px 12px;
 }
 
+.preamble {
+    box-sizing: border-box;
+    padding: 16px 20px 20px;
+    color: var(--base_color_neutral_8);
+    overflow-wrap: anywhere;
+}
+
+.preamble_title {
+    font-weight: 600;
+}
+
+.connection_details {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: 12px;
+    margin: 8px 0;
+}
+
+.connection_details dt {
+    color: var(--base_color_neutral_8);
+    font-weight: 600;
+}
+
+.connection_details dd {
+    min-width: 0;
+    margin: 0;
+}
+
 .command_editor {
     min-width: 0;
     margin-bottom: 12px;
@@ -45,10 +73,31 @@
     font-size: 0.8rem;
 }
 
+.result_details {
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+    padding: 16px;
+    background: var(--notebook_body_background_color);
+}
+
+.result_details_card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: var(--notebook_entry_max_width);
+    height: 100%;
+    min-height: 0;
+    margin: 0 auto;
+    overflow: hidden;
+    background: white;
+    font-family: system-ui, sans-serif;
+}
+
 .input_row {
     box-sizing: border-box;
     min-height: 32px;
-    padding: 8px 16px 12px;
+    padding: 8px 20px 12px;
 }
 
 .input_editor {
@@ -59,19 +108,21 @@
 }
 
 .prompt_gutter {
-    width: 72px;
     background: transparent;
+}
+
+.prompt_gutter :global(.cm-gutterElement) {
+    padding: 0;
 }
 
 .prompt_gutter_marker {
     box-sizing: border-box;
     display: block;
-    width: 72px;
     min-height: 24px;
     padding-right: 12px;
-    color: var(--base_color_neutral_5);
+    color: var(--base_color_neutral_8);
     font-weight: 600;
-    text-align: left;
+    text-align: right;
     user-select: none;
 }
 
@@ -92,9 +143,18 @@
 }
 
 @media only screen and (max-width: 700px) {
-    .entry,
-    .input_row {
+    .entry {
         padding: 8px 12px;
+    }
+
+    .preamble,
+    .input_row {
+        padding-right: 16px;
+        padding-left: 16px;
+    }
+
+    .result_details {
+        padding: 8px;
     }
 
     .result_card {

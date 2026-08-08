@@ -2,7 +2,15 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import * as core from '../../../core/index.js';
 import { analyzeScript } from '../../editor/dashql_processor.js';
+import { ConnectionHealth, type ConnectionState } from '../../../connection/connection_state.js';
+import {
+    CONNECTOR_INFOS,
+    ConnectorType,
+    SALESFORCE_DATA_CLOUD_CONNECTOR,
+    TRINO_CONNECTOR,
+} from '../../../connection/connector_info.js';
 import { ShellInputState, classifyShellInput, getShellInputError } from './notebook_shell.js';
+import { getShellConnectionDetails } from './notebook_shell_preamble.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -59,5 +67,81 @@ describe('Notebook Shell input', () => {
 
     it('handles non-ASCII text without confusing byte spans', () => {
         expect(classify("select 'Grüße';").state).toBe(ShellInputState.Complete);
+    });
+});
+
+describe('Notebook Shell preamble', () => {
+    it('lists relevant Trino connection details without credentials', () => {
+        const connection = {
+            connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
+            connectionHealth: ConnectionHealth.ONLINE,
+            details: {
+                type: TRINO_CONNECTOR,
+                value: {
+                    proto: {
+                        setupParams: {
+                            endpoint: 'https://trino.example.com',
+                            catalogName: 'analytics',
+                            schemaNames: ['public', 'finance'],
+                            auth: {
+                                authType: 'AUTH_BASIC',
+                                basic: { username: 'analyst', secret: 'hidden' },
+                            },
+                        },
+                    },
+                },
+            },
+        } as unknown as ConnectionState;
+
+        expect(getShellConnectionDetails(connection)).toEqual([
+            { label: 'Connector', value: 'Trino' },
+            { label: 'Endpoint', value: 'https://trino.example.com' },
+            { label: 'Catalog', value: 'analytics' },
+            { label: 'Schemas', value: 'public, finance' },
+            { label: 'Account', value: 'analyst' },
+        ]);
+        expect(JSON.stringify(getShellConnectionDetails(connection))).not.toContain('hidden');
+    });
+
+    it('lists resolved Salesforce connection identity', () => {
+        const connection = {
+            connectorInfo: CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD],
+            connectionHealth: ConnectionHealth.ONLINE,
+            details: {
+                type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                value: {
+                    proto: {
+                        setupParams: {
+                            instanceUrl: 'https://example.my.salesforce.com',
+                            login: 'user@example.com',
+                        },
+                        oauthState: {
+                            dataCloudAccessToken: {
+                                jwt: {
+                                    payload: {
+                                        orgId: '00D000000000001',
+                                        customAttributes: { dataspace: 'production' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        } as unknown as ConnectionState;
+
+        expect(getShellConnectionDetails(connection)).toEqual([
+            { label: 'Connector', value: 'Salesforce Data Cloud' },
+            { label: 'Instance', value: 'https://example.my.salesforce.com' },
+            { label: 'Account', value: 'user@example.com' },
+            { label: 'Organization', value: '00D000000000001' },
+            { label: 'Data space', value: 'production' },
+        ]);
+    });
+
+    it('describes a shell without an active connection', () => {
+        expect(getShellConnectionDetails(null)).toEqual([
+            { label: 'Connection', value: 'Not connected' },
+        ]);
     });
 });
