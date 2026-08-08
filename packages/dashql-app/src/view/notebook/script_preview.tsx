@@ -56,6 +56,10 @@ export interface PreviewSnapshot {
 }
 
 type PreviewView = Pick<EditorView, 'dispatch'>;
+interface AppliedPreview {
+    view: PreviewView;
+    snapshot: PreviewSnapshot;
+}
 
 export function releasePreviewSnapshot(snapshot: PreviewSnapshot, view: PreviewView | null): void {
     // CodeMirror fields and view plugins retain these pointers after dispatch. Detach them before
@@ -71,6 +75,18 @@ export function releasePreviewSnapshot(snapshot: PreviewSnapshot, view: PreviewV
     }
     if (snapshot.ownsParsed) snapshot.parsed?.destroy();
     snapshot.diff?.diffBuffer.destroy();
+}
+
+export function releaseAppliedPreviewSnapshot(
+    snapshot: PreviewSnapshot,
+    applied: AppliedPreview | null,
+): AppliedPreview | null {
+    // React may replace state again before this snapshot's effect cleanup runs. Detach CodeMirror
+    // only when it still retains this snapshot; otherwise cleanup would clear a newer snapshot and
+    // leave the editor reading that snapshot's WASM buffer after a subsequent cleanup destroys it.
+    const isApplied = applied?.snapshot === snapshot;
+    releasePreviewSnapshot(snapshot, isApplied ? applied.view : null);
+    return isApplied ? null : applied;
 }
 
 /// Description previews retain raw source text because their parser spans index the source directly.
@@ -231,7 +247,11 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, noteboo
         ownsParsed: false,
         diff: null,
     }));
-    const appliedDescriptionParsedRef = React.useRef<core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null>(null);
+    const appliedPreviewRef = React.useRef<AppliedPreview | null>(null);
+    const appliedDescriptionRef = React.useRef<{
+        view: EditorView;
+        parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null;
+    } | null>(null);
     const pendingDiff = scriptData.pendingDiff;
     const descriptionPreview = React.useMemo(
         () => showStoryControls && pendingDiff == null ? buildDescriptionPreview(scriptData) : null,
@@ -338,9 +358,9 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, noteboo
     // which the notebook scripts state owns and frees on accept/reject).
     React.useLayoutEffect(() => {
         return () => {
-            releasePreviewSnapshot(previewSnapshot, view);
+            appliedPreviewRef.current = releaseAppliedPreviewSnapshot(previewSnapshot, appliedPreviewRef.current);
         };
-    }, [previewSnapshot, view]);
+    }, [previewSnapshot]);
 
     React.useEffect(() => {
         if (view == null) {
@@ -353,9 +373,10 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, noteboo
         // Width changes refresh the preview snapshot, but they must not reset a statement the user
         // already expanded. Only replace story decorations when the parsed source model changes.
         const descriptionParsed = descriptionPreview?.parsed ?? null;
-        if (appliedDescriptionParsedRef.current !== descriptionParsed) {
+        const appliedDescription = appliedDescriptionRef.current;
+        if (appliedDescription?.view !== view || appliedDescription.parsed !== descriptionParsed) {
             effects.push(DashQLStoryUpdateEffect.of(descriptionParsed));
-            appliedDescriptionParsedRef.current = descriptionParsed;
+            appliedDescriptionRef.current = { view, parsed: descriptionParsed };
         }
         view.dispatch({
             changes: {
@@ -365,6 +386,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, noteboo
             },
             effects,
         });
+        appliedPreviewRef.current = { view, snapshot: previewSnapshot };
         // The preview is ready only after the formatted document has reached CodeMirror. Reporting
         // readiness when the snapshot is merely queued lets a remounted virtual row collapse to its
         // empty-editor height for one frame.
