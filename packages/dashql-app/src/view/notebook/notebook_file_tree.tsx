@@ -353,7 +353,11 @@ export const NotebookFileTree: React.FC<NotebookFileTreeProps> = (props) => {
     }, [selectedFolderName]);
 
     return (
-        <nav className={classNames(styles.file_tree, props.className)} aria-label="Notebook files" data-notebookscripts-file-tree>
+        <nav
+            className={classNames(styles.file_tree, props.className)}
+            aria-label="Notebook files"
+            data-notebookscripts-file-tree
+        >
             <div className={styles.pages_container}>
                 <DndContext
                     sensors={sensors}

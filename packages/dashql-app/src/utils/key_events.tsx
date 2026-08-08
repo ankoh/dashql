@@ -24,9 +24,11 @@ export function useKeyEvents(subscribers: KeyEventHandler[]) {
         }
     }, []);
     const handleKeyPressCapture = React.useCallback<(event: KeyboardEvent) => void>((event: KeyboardEvent) => {
+        if (event.defaultPrevented) return;
         handleKeyPress(event, true);
     }, [handleKeyPress]);
     const handleKeyPressBubble = React.useCallback<(event: KeyboardEvent) => void>((event: KeyboardEvent) => {
+        if (event.defaultPrevented) return;
         handleKeyPress(event, false);
     }, [handleKeyPress]);
     React.useEffect(() => {

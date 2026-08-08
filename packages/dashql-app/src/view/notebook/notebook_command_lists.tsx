@@ -1,7 +1,7 @@
 import * as React from 'react';
 import symbols from '@ankoh/dashql-svg-symbols';
 import * as ActionList from '../foundations/action_list.js';
-import { LinkIcon, PaperAirplaneIcon, SyncIcon } from '@primer/octicons-react';
+import { LinkIcon, PaperAirplaneIcon, SyncIcon, TerminalIcon } from '@primer/octicons-react';
 
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../scripts/notebook_commands.js';
@@ -20,7 +20,6 @@ export const ConnectionCommandList: React.FC<{
     conn: ConnectionState | null;
     notebookScripts: NotebookScripts | null;
     navigationDisabled?: boolean;
-    showExecute?: boolean;
     onOpenSettings?: () => void;
     settingsRef?: React.Ref<HTMLButtonElement>;
 }> = (props) => {
@@ -55,20 +54,18 @@ export const ConnectionCommandList: React.FC<{
                     </ActionList.Trailing>
                 ) : <></>}
             </ActionList.ListItem>
-            {props.showExecute !== false && (
-                <ActionList.ListItem
-                    disabled={props.navigationDisabled || isDisconnected || !props.conn?.connectorInfo.features.executeQueryAction}
-                    onClick={() => notebookCommand(NotebookCommandType.ExecuteEditorQuery)}
-                >
-                    <ActionList.Leading>
-                        <PaperAirplaneIcon />
-                    </ActionList.Leading>
-                    <ActionList.ItemText>
-                        Execute Script
-                    </ActionList.ItemText>
-                    <ActionList.Trailing>Ctrl + E</ActionList.Trailing>
-                </ActionList.ListItem>
-            )}
+            <ActionList.ListItem
+                disabled={props.navigationDisabled || isDisconnected || !props.conn?.connectorInfo.features.executeQueryAction}
+                onClick={() => notebookCommand(NotebookCommandType.ExecuteEditorQuery)}
+            >
+                <ActionList.Leading>
+                    <PaperAirplaneIcon />
+                </ActionList.Leading>
+                <ActionList.ItemText>
+                    Execute Script
+                </ActionList.ItemText>
+                <ActionList.Trailing>Ctrl + E</ActionList.Trailing>
+            </ActionList.ListItem>
             <ActionList.ListItem
                 disabled={isDisconnected || isRefreshing || !props.conn?.connectorInfo.features.refreshSchemaAction}
                 aria-busy={isRefreshing}
@@ -83,6 +80,14 @@ export const ConnectionCommandList: React.FC<{
                     Refresh Catalog
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + R</ActionList.Trailing>
+            </ActionList.ListItem>
+            <ActionList.ListItem onClick={() => notebookCommand(NotebookCommandType.OpenShell)}>
+                <ActionList.Leading>
+                    <TerminalIcon />
+                </ActionList.Leading>
+                <ActionList.ItemText>
+                    Open Shell
+                </ActionList.ItemText>
             </ActionList.ListItem>
         </>
     );

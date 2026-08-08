@@ -3,14 +3,14 @@ import * as styles from './feed_entry_footer.module.css';
 
 import icons from '@ankoh/dashql-svg-symbols';
 
-import { QueryExecutionState } from '../../connection/query_execution_state.js';
-import { QueryResultView } from '../query_result/query_result_view.js';
-import { TableColumnHeader } from '../query_result/data_table_cell.js';
-import { VerticalTabs, VerticalTabVariant, type VerticalTabProps } from '../foundations/vertical_tabs.js';
-import { VisualizationDispatch } from '../visualization/visualization_dispatch.js';
-import { ResolvedVisualizeQuery } from '../../scripts/script_types.js';
-import { TraceLogPanel } from './trace_log_panel.js';
-import { TabHeader, useResultRowCount, formatRowCountDetail } from './tab_header.js';
+import { QueryExecutionState } from '../../../connection/query_execution_state.js';
+import { QueryResultView } from '../../query_result/query_result_view.js';
+import { TableColumnHeader } from '../../query_result/data_table_cell.js';
+import { VerticalTabs, VerticalTabVariant, type VerticalTabProps } from '../../foundations/vertical_tabs.js';
+import { VisualizationDispatch } from '../../visualization/visualization_dispatch.js';
+import { ResolvedVisualizeQuery } from '../../../scripts/script_types.js';
+import { TraceLogPanel } from '../trace_log_panel.js';
+import { TabHeader, useResultRowCount, formatRowCountDetail } from '../tab_header.js';
 
 const FEED_LIMIT_RESULT_ROWS = 6;
 /// The Log tab's viewport auto-expands to fit its rows and caps at this many (then scrolls).

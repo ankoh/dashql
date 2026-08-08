@@ -11,6 +11,7 @@ vi.mock('../../scripts/notebook_commands.js', () => ({
     NotebookCommandType: {
         ExecuteEditorQuery: 1,
         RefreshCatalog: 2,
+        OpenShell: 13,
     },
     useNotebookCommandDispatch: () => commandDispatch,
 }));
@@ -96,6 +97,16 @@ describe('ConnectionCommandList', () => {
         expect(refresh.disabled).toBe(true);
         expect(refresh.getAttribute('aria-busy')).toBe('true');
         expect(refresh.querySelector('[data-testid="status-indicator"]')).not.toBeNull();
+    });
+
+    it('opens Shell from the connection command list', () => {
+        renderConnection(createConnection(null, []));
+
+        const openShell = Array.from(container.querySelectorAll('button'))
+            .find(button => button.textContent?.includes('Open Shell'));
+        expect(openShell).toBeDefined();
+        act(() => openShell?.click());
+        expect(commandDispatch).toHaveBeenCalledWith(13);
     });
 
     it('returns to the refresh action after completion', () => {

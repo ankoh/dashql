@@ -253,4 +253,5 @@ describe('NotebookFileTree', () => {
         act(() => addFolder.click());
         expect(onAddFolder).toHaveBeenCalledOnce();
     });
+
 });

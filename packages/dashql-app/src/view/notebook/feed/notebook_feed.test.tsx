@@ -14,7 +14,7 @@ import {
     fakeStatusIndicatorModule,
     fakeSymbolIconModule,
     ResizeObserverMock,
-} from '../../test/view_mocks.js';
+} from '../../../test/view_mocks.js';
 
 const mockState = vi.hoisted(() => ({
     scrollToRowMock: vi.fn(),
@@ -43,11 +43,11 @@ const mockState = vi.hoisted(() => ({
     cachedFiles: [] as Array<{ name: string }>,
     previewReady: true,
 }));
-vi.mock('../../app_config.js', () => ({ useAppConfig: () => ({ settings: {} }) }));
-vi.mock('../../platform/ai_client_provider.js', () => ({ useAIClient: () => ({}) }));
+vi.mock('../../../app_config.js', () => ({ useAppConfig: () => ({ settings: {} }) }));
+vi.mock('../../../platform/ai_client_provider.js', () => ({ useAIClient: () => ({}) }));
 vi.mock('react-window', async () => fakeReactWindowModule(await import('react'), mockState.scrollToRowMock));
-vi.mock('./script_editor.js', async () => fakeScriptEditorModule(await import('react'), mockState));
-vi.mock('./prompt_editor.js', async () => {
+vi.mock('../script_editor.js', async () => fakeScriptEditorModule(await import('react'), mockState));
+vi.mock('../prompt_editor.js', async () => {
     const React = await import('react');
     return {
         PromptEditor: (props: { setView?: (view: unknown) => void }) => {
@@ -68,15 +68,15 @@ vi.mock('./prompt_editor.js', async () => {
         },
     };
 });
-vi.mock('./script_preview.js', async () => fakeScriptPreviewModule(await import('react'), mockState));
-vi.mock('../foundations/button.js', async () => fakeButtonModule(await import('react')));
-vi.mock('../foundations/status_indicator.js', async () => fakeStatusIndicatorModule(await import('react')));
-vi.mock('../foundations/symbol_icon.js', async () => fakeSymbolIconModule(await import('react')));
-vi.mock('../foundations/size_observer.js', () => ({
+vi.mock('../script_preview.js', async () => fakeScriptPreviewModule(await import('react'), mockState));
+vi.mock('../../foundations/button.js', async () => fakeButtonModule(await import('react')));
+vi.mock('../../foundations/status_indicator.js', async () => fakeStatusIndicatorModule(await import('react')));
+vi.mock('../../foundations/symbol_icon.js', async () => fakeSymbolIconModule(await import('react')));
+vi.mock('../../foundations/size_observer.js', () => ({
     observeSize: () => ({ width: mockState.observedWidth, height: 480 }),
 }));
-vi.mock('../../utils/scrollbar.js', () => fakeScrollbarModule());
-vi.mock('../../utils/key_events.js', () => ({
+vi.mock('../../../utils/scrollbar.js', () => fakeScrollbarModule());
+vi.mock('../../../utils/key_events.js', () => ({
     // The real hook keeps each call site's subscribers independent (every component that calls it
     // installs its own document listeners), so multiple components in the tree register in parallel —
     // e.g. the feed's handlers plus a nested Tooltip's Escape. The mock must not let a
@@ -91,7 +91,7 @@ vi.mock('../../utils/key_events.js', () => ({
         mockState.keyHandlers = [...next, ...handlers];
     },
 }));
-vi.mock('../../scripts/notebook_commands.js', async () => {
+vi.mock('../../../scripts/notebook_commands.js', async () => {
     const React = await import('react');
     return {
         NotebookCommandType: { ExecuteEditorQuery: 1 },
@@ -105,7 +105,7 @@ vi.mock('../../scripts/notebook_commands.js', async () => {
         },
     };
 });
-vi.mock('../../connection/query_executor.js', () => ({
+vi.mock('../../../connection/query_executor.js', () => ({
     useQueryState: (_notebookId: string | null, queryId: number | null) => {
         if (queryId == null) return null;
         return mockState.queryStates.get(queryId) ?? null;
@@ -115,10 +115,10 @@ vi.mock('../../connection/query_executor.js', () => ({
     computeQueryCacheKeyForConnection: vi.fn(async (_details, queryText: string) =>
         queryText === 'select 1' ? mockState.cacheKey : null),
 }));
-vi.mock('../../platform/storage/storage_provider.js', () => ({
+vi.mock('../../../platform/storage/storage_provider.js', () => ({
     useStorageReader: () => ({ backend: mockState.storageBackend }),
 }));
-vi.mock('../../agent/agent_run_provider.js', () => ({
+vi.mock('../../../agent/agent_run_provider.js', () => ({
     // Resolve an agent run by its id from the backing map, mirroring useQueryState.
     useAgentRunState: (runId: number | null) => {
         if (runId == null) return null;
@@ -128,7 +128,7 @@ vi.mock('../../agent/agent_run_provider.js', () => ({
     useStartAgentRun: () => mockState.startAgentRun,
     useCancelAgentRun: () => mockState.cancelAgentRun,
 }));
-vi.mock('../internals/trace_log_viewer.js', async () => {
+vi.mock('../../internals/trace_log_viewer.js', async () => {
     const React = await import('react');
     return {
         TraceLogViewer: (props: { traceId?: number; height?: number; maxRows?: number }) =>
@@ -157,8 +157,8 @@ import {
     REORDER_SCRIPTS,
     SELECT_SCRIPT,
     type NotebookScripts,
-} from '../../scripts/notebook_scripts.js';
-import { ConnectionHealth, type ConnectionState } from '../../connection/connection_state.js';
+} from '../../../scripts/notebook_scripts.js';
+import { ConnectionHealth, type ConnectionState } from '../../../connection/connection_state.js';
 import { NotebookFeed } from './notebook_feed.js';
 
 function createOnlineConnection(activeQueryIds: number[] = []): ConnectionState {

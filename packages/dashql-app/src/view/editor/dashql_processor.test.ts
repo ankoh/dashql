@@ -1,6 +1,7 @@
 import * as dashql from '../../core/index.js';
 
 import { EditorSelection, EditorState, Transaction } from '@codemirror/state';
+import { vi } from 'vitest';
 
 import {
     analyzeScript,
@@ -24,6 +25,54 @@ afterEach(() => {
 });
 
 describe('DashQL processor completion triggers', () => {
+    it('does not analyze text excluded by the processor config', () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        const analyze = vi.spyOn(script, 'analyze');
+        const processorState: DashQLProcessorUpdateIn = {
+            config: {
+                shouldProcessText: text => !text.trimStart().startsWith('.'),
+            },
+            scriptRegistry: null,
+            scriptKey: 1,
+            script,
+            scriptBuffers: analyzeScript(script),
+            scriptCursor: null,
+            scriptCompletion: null,
+            scriptPendingDiff: null,
+            derivedFocus: null,
+            onUpdate: () => {},
+        };
+        let editorState = EditorState.create({
+            extensions: [DashQLProcessorPlugin],
+        });
+        editorState = editorState.update({ effects: DashQLUpdateEffect.of(processorState) }).state;
+        analyze.mockClear();
+
+        editorState = editorState.update({
+            changes: { from: 0, insert: '.catalog' },
+            selection: EditorSelection.cursor('.catalog'.length),
+            annotations: Transaction.userEvent.of('input.type'),
+        }).state;
+
+        const excluded = editorState.field(DashQLProcessorPlugin);
+        expect(script.toString()).toBe('.catalog');
+        expect(analyze).not.toHaveBeenCalled();
+        expect(excluded.scriptBuffers.parsed).toBeNull();
+        expect(excluded.scriptBuffers.analyzed).toBeNull();
+        expect(excluded.scriptCursor).toBeNull();
+        expect(excluded.scriptCompletion).toBeNull();
+
+        editorState = editorState.update({
+            changes: { from: 0, to: '.catalog'.length, insert: 'select 1;' },
+            selection: EditorSelection.cursor('select 1;'.length),
+            annotations: Transaction.userEvent.of('input.type'),
+        }).state;
+
+        expect(analyze).toHaveBeenCalledOnce();
+        expect(editorState.field(DashQLProcessorPlugin).scriptBuffers.parsed).not.toBeNull();
+    });
+
     it('does not start completion when deleting selected comments before a token', () => {
         const catalog = dql!.createCatalog();
         const text = `-- Fetch and visualize vega cars data from a parquet file, rendering a point

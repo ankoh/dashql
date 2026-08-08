@@ -7,7 +7,7 @@ import { DashQLGutterPlugin } from './dashql_gutters.js';
 import { DashQLCompletionHintPlugin } from './dashql_completion_hint.js';
 import { DashQLCompletionListPlugin } from './dashql_completion_list.js';
 import { DashQLCompletionListenerPlugin } from './dashql_completion_listener.js';
-import { DashQLDiffDecorationPlugin } from './dashql_diff_decorations.js';
+import { DashQLDiffDecorationNoGutterPlugin, DashQLDiffDecorationPlugin } from './dashql_diff_decorations.js';
 import { DashQLDiffHintPlugin } from './dashql_diff_hint.js';
 import { DashQLAutoclosePlugin } from './dashql_autoclose.js';
 import { DashQLQuoteTombstonePlugin } from './dashql_quote_tombstone.js';
@@ -30,6 +30,22 @@ export const DashQLExtensions = [
     DashQLDecorationPlugin,
     DashQLCursorDiagnosticsPlugin,
     DashQLGutterPlugin,
+];
+
+// The Shell owns the only visible gutter (its prompt). Keep the editor behavior from the standard
+// bundle while omitting the diagnostic and diff gutter columns that would indent the input.
+export const DashQLShellExtensions = [
+    DashQLProcessorPlugin,
+    DashQLQuoteTombstonePlugin,
+    DashQLAutoclosePlugin,
+    DashQLFocusCompletionEffect,
+    DashQLCompletionHintPlugin,
+    DashQLCompletionListPlugin,
+    DashQLCompletionListenerPlugin,
+    DashQLDiffDecorationNoGutterPlugin,
+    DashQLDiffHintPlugin,
+    DashQLDecorationPlugin,
+    DashQLCursorDiagnosticsPlugin,
 ];
 
 export const DashQLReadonlyExtensions = [

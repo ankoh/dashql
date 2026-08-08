@@ -3,17 +3,19 @@ import * as detailStyles from './script_details.module.css';
 import * as styles from './catalog_schema_view.module.css';
 
 import { EditorView } from '@codemirror/view';
-import { LockIcon } from '@primer/octicons-react';
+import { LockIcon, XIcon } from '@primer/octicons-react';
 
 import { CodeMirror, createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, analyzeScript, DashQLScriptBuffers } from '../editor/dashql_processor.js';
 import { ScriptName } from './script_name.js';
 import type { DashQLScript } from '../../core/api.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 
 export interface CatalogScriptCardProps {
     script: DashQLScript;
     fileName: string;
     lastFullRefresh: number | null;
+    onClose?: () => void;
 }
 
 export const CatalogScriptCard: React.FC<CatalogScriptCardProps> = (props) => {
@@ -69,6 +71,16 @@ export const CatalogScriptCard: React.FC<CatalogScriptCardProps> = (props) => {
                     <div className={detailStyles.entry_card_file_name}>
                         <ScriptName file={props.fileName} icon={<LockIcon size={12} />} />
                     </div>
+                    {props.onClose != null && (
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            size={ButtonSize.Small}
+                            aria-label="Close catalog"
+                            onClick={props.onClose}
+                        >
+                            <XIcon size={16} />
+                        </IconButton>
+                    )}
                 </div>
                 <div className={styles.entry_card_editor}>
                     <CodeMirror ref={setView} extensions={readonlyExtensions} />

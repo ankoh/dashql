@@ -6,6 +6,7 @@ import { CatalogScriptCard } from './catalog_script_card.js';
 
 export interface CatalogFunctionsViewProps {
     connection: ConnectionState;
+    onClose?: () => void;
 }
 
 export const CatalogFunctionsView: React.FC<CatalogFunctionsViewProps> = (props) => {
@@ -17,6 +18,7 @@ export const CatalogFunctionsView: React.FC<CatalogFunctionsViewProps> = (props)
                 script={props.connection.catalogFunctionScript}
                 fileName="dashql-functions.sql"
                 lastFullRefresh={lastFullRefresh}
+                onClose={props.onClose}
             />
         </div>
     );
