@@ -10,6 +10,17 @@ import { createTrace } from './platform/logger/trace_context.js';
 import coreWasmUrl from '@ankoh/dashql-core-wasm?url';
 const DASHQL_WASM_URL = typeof coreWasmUrl === 'string' ? coreWasmUrl : new URL(coreWasmUrl as string, import.meta.url).href;
 
+export function logCoreStderr(traced: TracedLogger, text: string): void {
+    // Emscripten prints an "Aborted(...)" line immediately before it throws the same failure. The
+    // operation that invoked Wasm logs the thrown exception with context, so treating this duplicate
+    // stderr line as an error only produces a context-free toast (often just "Aborted()").
+    if (text === 'Aborted()') {
+        traced.warn(text, {}, "core");
+    } else {
+        traced.error(text, {}, "core");
+    }
+}
+
 export interface InstantiationProgress {
     startedAt: Date;
     updatedAt: Date;
@@ -88,7 +99,7 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
                 const instance = await dashql.DashQL.create({
                     // Optional: Console output handlers
                     print: (text: string) => traced.info(text, {}, "core"),
-                    printErr: (text: string) => traced.error(text, {}, "core"),
+                    printErr: (text: string) => logCoreStderr(traced, text),
 
                     // Override WASM instantiation to add progress tracking
                     instantiateWasm: async (imports, successCallback) => {
