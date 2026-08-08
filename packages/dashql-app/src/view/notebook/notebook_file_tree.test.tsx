@@ -13,6 +13,8 @@ vi.mock('../foundations/symbol_icon.js', async () => fakeSymbolIconModule(await 
 import {
     type NotebookStateAction,
     type NotebookState,
+    UPDATE_NOTEBOOK_ENTRY,
+    UPDATE_PAGE_FOLDER_NAME,
 } from '../../notebook/notebook_state.js';
 import { NotebookFileTree } from './notebook_file_tree.js';
 
@@ -44,6 +46,11 @@ function createNotebook(): NotebookState {
             interactionCounter: 0,
         },
     } as unknown as NotebookState;
+}
+
+function setInputValue(input: HTMLInputElement, value: string) {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 describe('NotebookFileTree', () => {
@@ -132,12 +139,61 @@ describe('NotebookFileTree', () => {
         expect(Array.from(container.querySelectorAll('button')).some(candidate => candidate.textContent === 'query')).toBe(true);
     });
 
-    it('uses shared draggable rows without separate item action controls', () => {
+    it('uses shared draggable rows without separate move controls', () => {
         render();
 
-        expect(container.querySelector('[aria-label^="Rename "]')).toBeNull();
         expect(container.querySelector('[aria-label^="Move "]')).toBeNull();
         expect(container.querySelector('[aria-label^="Reorder "]')).toBeNull();
+    });
+
+    it('renames a folder from its right-aligned action', () => {
+        render();
+
+        const renameButton = container.querySelector<HTMLButtonElement>('[aria-label="Rename main folder"]')!;
+        expect(container.querySelector('[aria-label="Rename archive folder"]')).toBeNull();
+        act(() => renameButton.click());
+
+        const input = container.querySelector<HTMLInputElement>('input[aria-label="Rename main folder"]')!;
+        expect(document.activeElement).toBe(input);
+        act(() => setInputValue(input, 'Analytics'));
+        act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
+
+        expect(modifyNotebook).toHaveBeenCalledWith({
+            type: UPDATE_PAGE_FOLDER_NAME,
+            value: { folderName: '1_main', newFolderName: 'Analytics' },
+        });
+    });
+
+    it('cancels a folder rename with Escape', () => {
+        render();
+
+        act(() => container.querySelector<HTMLButtonElement>('[aria-label="Rename main folder"]')!.click());
+        const input = container.querySelector<HTMLInputElement>('input[aria-label="Rename main folder"]')!;
+        act(() => {
+            setInputValue(input, 'History');
+            input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        });
+
+        expect(modifyNotebook).not.toHaveBeenCalled();
+        expect(container.querySelector('input[aria-label="Rename main folder"]')).toBeNull();
+    });
+
+    it('renames only the selected file from its right-aligned action', () => {
+        render();
+
+        const renameButton = container.querySelector<HTMLButtonElement>('[aria-label="Rename query file"]')!;
+        expect(container.querySelector('[aria-label="Rename report file"]')).toBeNull();
+        act(() => renameButton.click());
+
+        const input = container.querySelector<HTMLInputElement>('input[aria-label="Rename query file"]')!;
+        expect(document.activeElement).toBe(input);
+        act(() => setInputValue(input, 'customers'));
+        act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
+
+        expect(modifyNotebook).toHaveBeenCalledWith({
+            type: UPDATE_NOTEBOOK_ENTRY,
+            value: { fileName: '1_query.sql', newFileName: 'customers' },
+        });
     });
 
     it('does not start or reorder a drag from the keyboard', () => {

@@ -26,6 +26,8 @@ import {
 import {
     REORDER_NOTEBOOK_SCRIPTS,
     REORDER_PAGES,
+    UPDATE_NOTEBOOK_ENTRY,
+    UPDATE_PAGE_FOLDER_NAME,
     getSortedFileNames,
     getSortedFolderNames,
     type NotebookState,
@@ -33,6 +35,7 @@ import {
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { normalizePageName, scriptDisplayName } from '../../notebook/notebook_types.js';
 import { classNames } from '../../utils/classnames.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 
 export type NotebookFileTreeCatalogTab = 'relations' | 'functions';
@@ -56,12 +59,18 @@ interface SortableScriptProps {
     selected: boolean;
     isVisualization: boolean;
     onSelect: () => void;
+    onRename: (newFileName: string) => void;
 }
 
 const SortableScript: React.FC<SortableScriptProps> = (props) => {
     const label = scriptDisplayName(props.fileName) || 'Untitled';
+    const PencilIcon = SymbolIcon('pencil_16');
+    const [editing, setEditing] = React.useState(false);
+    const [draftName, setDraftName] = React.useState(label);
+    const inputRef = React.useRef<HTMLInputElement>(null);
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: props.fileName,
+        disabled: editing,
     });
     const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
@@ -69,23 +78,84 @@ const SortableScript: React.FC<SortableScriptProps> = (props) => {
         zIndex: isDragging ? 1 : undefined,
         opacity: isDragging ? 0.75 : undefined,
     };
+    React.useEffect(() => {
+        if (editing) {
+            inputRef.current?.focus();
+            inputRef.current?.select();
+        }
+    }, [editing]);
+    const saveRename = () => {
+        const nextName = draftName.trim();
+        setEditing(false);
+        if (nextName && nextName !== label) props.onRename(nextName);
+    };
     return (
         <li ref={setNodeRef} style={style} className={styles.sortable_item}>
-            <button
-                type="button"
-                {...attributes}
-                {...listeners}
-                className={classNames(styles.item_button, styles.script_button, {
-                    [styles.item_button_selected]: props.selected,
-                })}
-                aria-current={props.selected ? 'page' : undefined}
-                onClick={props.onSelect}
-            >
-                {props.isVisualization
-                    ? <GraphIcon size={14} className={styles.item_icon} />
-                    : <DatabaseIcon size={14} className={styles.item_icon} />}
-                <span className={styles.item_label}>{label}</span>
-            </button>
+            {editing ? (
+                <div className={classNames(styles.folder_edit, styles.script_edit)}>
+                    {props.isVisualization
+                        ? <GraphIcon size={14} className={styles.item_icon} />
+                        : <DatabaseIcon size={14} className={styles.item_icon} />}
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        className={classNames(styles.folder_name_input, styles.script_name_input)}
+                        aria-label={`Rename ${label} file`}
+                        value={draftName}
+                        onChange={(event) => setDraftName(event.target.value)}
+                        onBlur={saveRename}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                                event.preventDefault();
+                                event.currentTarget.blur();
+                            } else if (event.key === 'Escape') {
+                                event.preventDefault();
+                                setDraftName(label);
+                                setEditing(false);
+                            }
+                        }}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                    />
+                </div>
+            ) : (
+                <>
+                    <button
+                        type="button"
+                        {...attributes}
+                        {...listeners}
+                        className={classNames(styles.item_button, styles.script_button, {
+                            [styles.item_button_selected]: props.selected,
+                            [styles.item_button_with_action]: props.selected,
+                        })}
+                        aria-current={props.selected ? 'page' : undefined}
+                        onClick={props.onSelect}
+                    >
+                        {props.isVisualization
+                            ? <GraphIcon size={14} className={styles.item_icon} />
+                            : <DatabaseIcon size={14} className={styles.item_icon} />}
+                        <span className={styles.item_label}>{label}</span>
+                    </button>
+                    {props.selected && (
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            size={ButtonSize.Small}
+                            className={styles.rename_folder_button}
+                            aria-label={`Rename ${label} file`}
+                            onClick={() => {
+                                setDraftName(label);
+                                setEditing(true);
+                            }}
+                            onPointerDown={(event) => event.stopPropagation()}
+                            onKeyDown={(event) => event.stopPropagation()}
+                        >
+                            <PencilIcon size={12} />
+                        </IconButton>
+                    )}
+                </>
+            )}
         </li>
     );
 };
@@ -99,14 +169,21 @@ interface SortableFolderProps {
     visualizationFileNames: ReadonlySet<string>;
     navigationLevel: NotebookFileTreeNavigationLevel;
     onSelect: () => void;
+    onRename: (newFolderName: string) => void;
+    onRenameScript: (fileName: string, newFileName: string) => void;
     onSelectScript: (fileName: string) => void;
     onMoveScript: (fromIndex: number, toIndex: number) => void;
 }
 
 const SortableFolder: React.FC<SortableFolderProps> = (props) => {
     const label = normalizePageName(props.folderName) || 'Untitled';
+    const PencilIcon = SymbolIcon('pencil_16');
+    const [editing, setEditing] = React.useState(false);
+    const [draftName, setDraftName] = React.useState(label);
+    const inputRef = React.useRef<HTMLInputElement>(null);
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: props.folderName,
+        disabled: editing,
     });
     const scriptSensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -117,24 +194,84 @@ const SortableFolder: React.FC<SortableFolderProps> = (props) => {
         zIndex: isDragging ? 1 : undefined,
         opacity: isDragging ? 0.75 : undefined,
     };
+    React.useEffect(() => {
+        if (editing) {
+            inputRef.current?.focus();
+            inputRef.current?.select();
+        }
+    }, [editing]);
+    const saveRename = () => {
+        const nextName = draftName.trim();
+        setEditing(false);
+        if (nextName && nextName !== label) props.onRename(nextName);
+    };
     return (
         <li ref={setNodeRef} style={style} className={styles.folder_item}>
             <div className={styles.sortable_item}>
-                <button
-                    type="button"
-                    {...attributes}
-                    {...listeners}
-                    className={classNames(styles.item_button, {
-                        [styles.item_button_selected]: props.active,
-                    })}
-                    aria-expanded={props.expanded}
-                    onClick={props.onSelect}
-                >
-                    {props.expanded
-                        ? <FileDirectoryOpenFillIcon size={16} className={styles.item_icon} />
-                        : <FileDirectoryFillIcon size={16} className={styles.item_icon} />}
-                    <span className={styles.item_label}>{label}</span>
-                </button>
+                {editing ? (
+                    <div className={styles.folder_edit}>
+                        {props.expanded
+                            ? <FileDirectoryOpenFillIcon size={16} className={styles.item_icon} />
+                            : <FileDirectoryFillIcon size={16} className={styles.item_icon} />}
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            className={styles.folder_name_input}
+                            aria-label={`Rename ${label} folder`}
+                            value={draftName}
+                            onChange={(event) => setDraftName(event.target.value)}
+                            onBlur={saveRename}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter') {
+                                    event.preventDefault();
+                                    event.currentTarget.blur();
+                                } else if (event.key === 'Escape') {
+                                    event.preventDefault();
+                                    setDraftName(label);
+                                    setEditing(false);
+                                }
+                            }}
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck={false}
+                        />
+                    </div>
+                ) : (
+                    <>
+                        <button
+                            type="button"
+                            {...attributes}
+                            {...listeners}
+                            className={classNames(styles.item_button, styles.folder_button, {
+                                [styles.item_button_selected]: props.active,
+                            })}
+                            aria-expanded={props.expanded}
+                            onClick={props.onSelect}
+                        >
+                            {props.expanded
+                                ? <FileDirectoryOpenFillIcon size={16} className={styles.item_icon} />
+                                : <FileDirectoryFillIcon size={16} className={styles.item_icon} />}
+                            <span className={styles.item_label}>{label}</span>
+                        </button>
+                        {props.active && (
+                            <IconButton
+                                variant={ButtonVariant.Invisible}
+                                size={ButtonSize.Small}
+                                className={styles.rename_folder_button}
+                                aria-label={`Rename ${label} folder`}
+                                onClick={() => {
+                                    setDraftName(label);
+                                    setEditing(true);
+                                }}
+                                onPointerDown={(event) => event.stopPropagation()}
+                                onKeyDown={(event) => event.stopPropagation()}
+                            >
+                                <PencilIcon size={12} />
+                            </IconButton>
+                        )}
+                    </>
+                )}
             </div>
             {props.expanded && (
                 <DndContext
@@ -157,6 +294,7 @@ const SortableFolder: React.FC<SortableFolderProps> = (props) => {
                                     selected={fileName === props.selectedFileName}
                                     isVisualization={props.visualizationFileNames.has(fileName)}
                                     onSelect={() => props.onSelectScript(fileName)}
+                                    onRename={(newFileName) => props.onRenameScript(fileName, newFileName)}
                                 />
                             ))}
                         </ul>
@@ -231,6 +369,14 @@ export const NotebookFileTree: React.FC<NotebookFileTreeProps> = (props) => {
                                         fileNames={expanded ? selectedFileNames : []}
                                         visualizationFileNames={expanded ? visualizationFileNames : noVisualizationFiles}
                                         navigationLevel={props.navigationLevel}
+                                        onRename={(newFolderName) => props.modifyNotebook({
+                                            type: UPDATE_PAGE_FOLDER_NAME,
+                                            value: { folderName, newFolderName },
+                                        })}
+                                        onRenameScript={(fileName, newFileName) => props.modifyNotebook({
+                                            type: UPDATE_NOTEBOOK_ENTRY,
+                                            value: { fileName, newFileName },
+                                        })}
                                         onSelect={() => {
                                             if (selected) {
                                                 setCollapsedFolderName(expanded ? folderName : null);

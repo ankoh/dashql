@@ -48,6 +48,8 @@
 }
 
 .item_button:focus-visible,
+.folder_name_input:focus-visible,
+.rename_folder_button:focus-visible,
 .add_folder_button:focus-visible {
     outline: 2px solid var(--color-accent-fg, #0969da);
     outline-offset: -2px;
@@ -77,6 +79,54 @@
 .catalog_button {
     width: 100%;
     margin: 0;
+}
+
+.folder_button {
+    margin-right: 0;
+}
+
+.item_button_with_action {
+    margin-right: 0;
+}
+
+.rename_folder_button {
+    flex: 0 0 auto;
+    margin-left: 6px;
+    margin-right: 8px;
+    color: var(--color-fg-muted, #57606a);
+}
+
+.folder_edit {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    min-height: 32px;
+    margin: 0 8px;
+    padding: 4px 4px 4px 12px;
+}
+
+.folder_name_input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 24px;
+    padding: 2px 6px;
+    border: 1px solid var(--color-border-default, var(--border_color_primary));
+    border-radius: 3px;
+    color: inherit;
+    background: var(--color-canvas-default, white);
+    font: inherit;
+    font-size: 0.9rem;
+}
+
+.script_edit {
+    margin-left: 24px;
+}
+
+.script_name_input {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.8rem;
 }
 
 .item_button:hover,
