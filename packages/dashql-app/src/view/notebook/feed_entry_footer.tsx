@@ -123,11 +123,12 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
     // (e.g. Data/Chart before a result exists) padded the vertical tab bar out to its full height,
     // which looked odd next to a footer body that only holds a one-row table or a short log.
     const tabKeys = React.useMemo(() => {
-        const keys: FooterTab[] = [FooterTab.ExecutionLog, FooterTab.AgentLog];
+        const keys: FooterTab[] = [FooterTab.ExecutionLog];
+        if (agentTraceId != null) keys.push(FooterTab.AgentLog);
         if (hasResult) keys.push(FooterTab.Table);
         if (hasVisualization) keys.push(FooterTab.Visualization);
         return keys;
-    }, [hasResult, hasVisualization]);
+    }, [agentTraceId, hasResult, hasVisualization]);
     const enabledTabKeys = React.useMemo(
         () => tabKeys.filter(tab => !tabProps[tab].disabled),
         [tabKeys, tabProps],

@@ -325,11 +325,12 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     const hasResult = activeQueryState?.status === QueryExecutionStatus.SUCCEEDED;
     const hasVisualization = hasResult && hasVisualizeStmt;
     const serverTabs = React.useMemo(() => {
-        const tabs: TabKey[] = [TabKey.QueryStatusPanel, TabKey.AgentStatusPanel];
+        const tabs: TabKey[] = [TabKey.QueryStatusPanel];
+        if (agentTraceId != null) tabs.push(TabKey.AgentStatusPanel);
         if (hasResult) tabs.push(TabKey.QueryResultView);
         if (hasVisualization) tabs.push(TabKey.Visualization);
         return tabs;
-    }, [hasResult, hasVisualization]);
+    }, [agentTraceId, hasResult, hasVisualization]);
     const enabledServerTabs = React.useMemo(() => serverTabs.filter(tab => {
         switch (tab) {
             case TabKey.QueryStatusPanel: return queryTraceId != null;
