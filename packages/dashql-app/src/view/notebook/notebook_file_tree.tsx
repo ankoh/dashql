@@ -347,11 +347,19 @@ export const NotebookFileTree: React.FC<NotebookFileTreeProps> = (props) => {
         if (event.over == null) return;
         reorderFolders(folders.indexOf(String(event.active.id)), folders.indexOf(String(event.over.id)));
     }, [folders, reorderFolders]);
+    const handleFolderDragStart = React.useCallback(() => {
+        setCollapsedFolderName(selectedFolderName);
+    }, [selectedFolderName]);
 
     return (
         <nav className={classNames(styles.file_tree, props.className)} aria-label="Notebook files" data-notebook-file-tree>
             <div className={styles.pages_container}>
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleFolderDragEnd}>
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragStart={handleFolderDragStart}
+                    onDragEnd={handleFolderDragEnd}
+                >
                     <SortableContext items={folders} strategy={verticalListSortingStrategy}>
                         <ul className={styles.folder_list} aria-label="Notebook pages">
                             {folders.map((folderName) => {

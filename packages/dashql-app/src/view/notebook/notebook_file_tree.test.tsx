@@ -53,6 +53,15 @@ function setInputValue(input: HTMLInputElement, value: string) {
     input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+function dispatchPointerEvent(target: EventTarget, type: string, clientY: number) {
+    const event = new MouseEvent(type, { bubbles: true, button: 0, clientX: 0, clientY });
+    Object.defineProperties(event, {
+        isPrimary: { value: true },
+        pointerId: { value: 1 },
+    });
+    target.dispatchEvent(event);
+}
+
 describe('NotebookFileTree', () => {
     let container: HTMLDivElement;
     let root: Root;
@@ -144,6 +153,24 @@ describe('NotebookFileTree', () => {
 
         expect(container.querySelector('[aria-label^="Move "]')).toBeNull();
         expect(container.querySelector('[aria-label^="Reorder "]')).toBeNull();
+    });
+
+    it('collapses the expanded folder when a folder drag starts', async () => {
+        render();
+        const main = Array.from(container.querySelectorAll('button')).find(candidate => candidate.textContent === 'main')!;
+
+        act(() => {
+            dispatchPointerEvent(main, 'pointerdown', 0);
+            dispatchPointerEvent(document, 'pointermove', 8);
+        });
+
+        expect(main.getAttribute('aria-expanded')).toBe('false');
+        expect(Array.from(container.querySelectorAll('button')).some(candidate => candidate.textContent === 'query')).toBe(false);
+
+        await act(async () => {
+            dispatchPointerEvent(document, 'pointerup', 8);
+            await new Promise(resolve => setTimeout(resolve, 60));
+        });
     });
 
     it('renames a folder from its right-aligned action', () => {
