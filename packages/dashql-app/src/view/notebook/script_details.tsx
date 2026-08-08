@@ -7,6 +7,7 @@ import { DashQLCompletionAbortEffect, DashQLCompletionStatus, DashQLProcessorPlu
 
 import icons from '@ankoh/dashql-svg-symbols';
 
+import { PaperAirplaneIcon } from '@primer/octicons-react';
 import type { Icon } from '@primer/octicons-react';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
@@ -14,7 +15,7 @@ import { ButtonGroup } from '../foundations/button_group.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
-import { ConnectionState } from '../../connection/connection_state.js';
+import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
 import { useCancelQuery, useQueryState, useQueryExecutor } from '../../connection/query_executor.js';
 import { useAgentRunState, useCancelAgentRun } from '../../agent/agent_run_provider.js';
 import { EntryStatusBar } from './entry_status_bar.js';
@@ -278,6 +279,13 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     // current result was served from cache.
     const executeQuery = useQueryExecutor();
     const storageReader = useStorageReader();
+    const handleExecuteAndHide = React.useCallback(() => {
+        props.hideDetails();
+        if (scriptData == null || props.connection?.connectionHealth !== ConnectionHealth.ONLINE) {
+            return;
+        }
+        rerunEntry(props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts);
+    }, [props.hideDetails, props.connection?.connectionHealth, props.notebookScripts, props.modifyNotebookScripts, scriptData, executeQuery]);
     const handleRerun = React.useCallback(async (cacheKey: string | null) => {
         if (scriptData == null) {
             return;
@@ -344,14 +352,15 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     const keyHandlers = React.useMemo<KeyEventHandler[]>(
         () => [
             {
-                // Details is pinned to a script identity, while the global command executes the
-                // NotebookScripts' mutable selection. Do not let Ctrl+E target a different hidden script.
+                // Execute the pinned Details script directly rather than letting the global command
+                // resolve the hidden feed's mutable selection.
                 key: 'e',
                 ctrlKey: true,
                 capture: true,
                 callback: (event) => {
                     event.preventDefault();
                     event.stopImmediatePropagation();
+                    handleExecuteAndHide();
                 },
             },
             {
@@ -388,7 +397,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                 },
             },
         ],
-        [props.hideDetails, showServerDetails, enabledServerTabs, isEditingName, cancelNameEdit, editorView],
+        [props.hideDetails, showServerDetails, enabledServerTabs, isEditingName, cancelNameEdit, editorView, handleExecuteAndHide],
     );
     useKeyEvents(keyHandlers);
 
@@ -465,6 +474,15 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                 <div className={styles.entry_message_single}>
                     <div className={styles.entry_script_card}>
                         <div className={styles.entry_card_action_bar}>
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            size={ButtonSize.Small}
+                            aria-label={`Execute ${scriptDisplay} query`}
+                            disabled={props.connection?.connectionHealth !== ConnectionHealth.ONLINE}
+                            onClick={handleExecuteAndHide}
+                        >
+                            <PaperAirplaneIcon size={16} />
+                        </IconButton>
                         <div className={styles.entry_card_file_name}>
                             <ScriptName
                                 folder={folderName}
