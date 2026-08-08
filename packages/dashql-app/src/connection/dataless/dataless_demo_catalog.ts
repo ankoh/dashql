@@ -4,10 +4,9 @@ import { DynamicConnectionDispatch } from "../connection_registry.js";
 import { CATALOG_UPDATE_SCHEMA_SCRIPT } from "../connection_state.js";
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from "../catalog_update_state.js";
 import { generateCatalogScriptHeader, CatalogSource } from "../catalog_sql_generator.js";
-import { generateFunctionScriptHeader } from "../catalog_function_sql_generator.js";
+import { fetchPrefetchedHyperFunctions, loadPrefetchedHyperFunctions } from "../prefetched_hyper_functions.js";
 
 const demo_schema_url = new URL('../../../static/examples/demo/schema.sql', import.meta.url);
-const demo_functions_url = new URL('../../../static/examples/demo/functions.sql', import.meta.url);
 
 export async function updateDemoSchemaCatalog(
     notebookId: string,
@@ -20,10 +19,10 @@ export async function updateDemoSchemaCatalog(
 ): Promise<void> {
     const [schemaResponse, functionsResponse] = await Promise.all([
         fetch(demo_schema_url),
-        fetch(demo_functions_url),
+        fetchPrefetchedHyperFunctions(),
     ]);
     const catalogSQL = await schemaResponse.text();
-    const functionsSQL = await functionsResponse.text();
+    const functionsSQL = functionsResponse;
 
     connectionDispatch(notebookId, {
         type: CATALOG_UPDATE_SCHEMA_SCRIPT,
@@ -35,15 +34,5 @@ export async function updateDemoSchemaCatalog(
     catalogRelationScript.analyze();
     catalog.loadScript(catalogRelationScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
 
-    if (functionsSQL.trim().length > 0) {
-        const fnHeader = generateFunctionScriptHeader(CatalogSource.DemoScript);
-        catalogFunctionScript.replaceText(`${fnHeader}${functionsSQL}`);
-        catalogFunctionScript.analyze();
-        try {
-            catalog.dropScript(catalogFunctionScript);
-        } catch (e) {
-            // Script may not have been loaded yet - ignore error
-        }
-        catalog.loadScript(catalogFunctionScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
-    }
+    loadPrefetchedHyperFunctions(catalog, catalogFunctionScript, functionsSQL);
 }

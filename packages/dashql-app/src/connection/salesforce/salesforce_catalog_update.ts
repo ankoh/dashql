@@ -5,6 +5,7 @@ import { getSalesforceDataSpace } from './salesforce_api_client.js';
 import { SalesforceConnectionStateDetails } from './salesforce_connection_state.js';
 import { generateUnqualifiedSchemaSQL, generateCatalogScriptHeader, CatalogSource, type ColumnMetadata } from '../catalog_sql_generator.js';
 import { LoggerLike } from '../../platform/logger/logger.js';
+import { fetchPrefetchedHyperFunctions, loadPrefetchedHyperFunctions } from '../prefetched_hyper_functions.js';
 
 const SALESFORCE_CATALOG_RANK = 100;
 
@@ -14,6 +15,7 @@ export async function updateSalesforceCatalog(
     catalog: dashql.DashQLCatalog,
     dql: dashql.DashQL,
     catalogRelationScript: dashql.DashQLScript,
+    catalogFunctionScript: dashql.DashQLScript,
     api: SalesforceApiClientInterface,
     abortController: AbortController
 ): Promise<dashql.DashQLScript> {
@@ -30,11 +32,14 @@ export async function updateSalesforceCatalog(
 
     // Get Data Cloud metadata through the Salesforce Connect API.
     const metadataStartedAt = performance.now();
-    const metadata = await api.getDataCloudMetadata(
-        coreAccessToken,
-        dataSpace,
-        abortController.signal,
-    );
+    const [metadata, functionsSQL] = await Promise.all([
+        api.getDataCloudMetadata(
+            coreAccessToken,
+            dataSpace,
+            abortController.signal,
+        ),
+        fetchPrefetchedHyperFunctions(abortController.signal),
+    ]);
     logger.info("Received Salesforce catalog metadata", {
         dataSpace,
         entities: (metadata.metadata?.length ?? 0).toString(),
@@ -82,9 +87,16 @@ export async function updateSalesforceCatalog(
         // Script may not have been loaded yet - ignore error
     }
     catalog.loadScript(catalogRelationScript, SALESFORCE_CATALOG_RANK);
+    const functionCount = loadPrefetchedHyperFunctions(
+        catalog,
+        catalogFunctionScript,
+        functionsSQL,
+        SALESFORCE_CATALOG_RANK,
+    );
     logger.info("Loaded Salesforce catalog script", {
         dataSpace,
         tables: tables.size.toString(),
+        functions: functionCount.toString(),
         rank: SALESFORCE_CATALOG_RANK.toString(),
     }, "salesforce_catalog");
 

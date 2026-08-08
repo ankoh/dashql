@@ -141,7 +141,16 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                 // Update the catalog by querying the Salesforce Metadata Service?
                 case CatalogResolver.SALESFORCE_METDATA_API: {
                     if (conn.details.type == SALESFORCE_DATA_CLOUD_CONNECTOR) {
-                        const script = await updateSalesforceCatalog(traced, conn.details.value, conn.catalog, conn.instance, conn.catalogRelationScript, sfapi, abortController);
+                        const script = await updateSalesforceCatalog(
+                            traced,
+                            conn.details.value,
+                            conn.catalog,
+                            conn.instance,
+                            conn.catalogRelationScript,
+                            conn.catalogFunctionScript,
+                            sfapi,
+                            abortController,
+                        );
                         if (conn.catalogRelationScript !== script) {
                             connDispatch(notebookId, {
                                 type: SET_CATALOG_SCRIPT,
