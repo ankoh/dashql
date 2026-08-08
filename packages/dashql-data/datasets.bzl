@@ -94,7 +94,7 @@ DATASETS = [
 # compiled against. Bump both (and the four hashes below) together; the hashes are
 # refreshed by scripts/update_bazel_hashes.py.
 # renovate: datasource=github-releases depName=duckdb/duckdb
-TPCH_DUCKDB_VERSION = "1.5.4"
+TPCH_DUCKDB_VERSION = "1.5.5"
 
 # sha256 of tpch.duckdb_extension.gz per platform, keyed by DuckDB's own `PRAGMA
 # platform` name (osx_amd64 == x86_64 macOS, linux_amd64 == x86_64 Linux, …).
