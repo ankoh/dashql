@@ -31,7 +31,7 @@ interface EmscriptenModule {
     _dashql_script_insert_char_at: (ptr: number, offset: number, unicode: number) => void;
     _dashql_script_erase_text_range: (ptr: number, offset: number, length: number) => void;
     _dashql_script_replace_text: (ptr: number, text: number, textLength: number) => void;
-    _dashql_script_to_string: (result: number, ptr: number) => void;
+    _dashql_script_to_string: (result: number, ptr: number, offset: number, length: number) => void;
     _dashql_script_parse: (ptr: number) => void;
     _dashql_script_analyze: (ptr: number, parse_if_outdated: boolean) => void;
     _dashql_script_move_cursor: (result: number, ptr: number, offset: number) => void;
@@ -82,7 +82,7 @@ interface DashQLModuleExports {
     dashql_script_insert_char_at: (ptr: number, offset: number, unicode: number) => void;
     dashql_script_erase_text_range: (ptr: number, offset: number, length: number) => void;
     dashql_script_replace_text: (ptr: number, text: number, textLength: number) => void;
-    dashql_script_to_string: (result: number, ptr: number) => void;
+    dashql_script_to_string: (result: number, ptr: number, offset: number, length: number) => void;
     dashql_script_parse: (ptr: number) => void;
     dashql_script_analyze: (ptr: number, parse_if_outdated: boolean) => void;
     dashql_script_move_cursor: (result: number, ptr: number, offset: number) => void;
@@ -730,11 +730,16 @@ export class DashQLScript {
         const [textBegin, textLength] = this.ptr.api.copyString(text);
         this.ptr.api.instanceExports.dashql_script_replace_text(scriptPtr, textBegin, textLength);
     }
-    /// Convert a rope to a string
-    public toString(): string {
+    /// Convert the script, or a UTF-8 byte range of it, to a string.
+    public toString(offset?: number, length?: number): string {
         const scriptPtr = this.ptr.assertNotNull();
         return this.ptr.api.readStringResult((resultPtr) =>
-            this.ptr.api.instanceExports.dashql_script_to_string(resultPtr, scriptPtr)
+            this.ptr.api.instanceExports.dashql_script_to_string(
+                resultPtr,
+                scriptPtr,
+                offset ?? 0,
+                length ?? 0,
+            )
         );
     }
     /// Parse the script (throws exception on error)

@@ -43,6 +43,25 @@ describe('Notebook Shell input', () => {
         }
     }
 
+    function statementText(text: string): string | null {
+        script.replaceText(text);
+        const buffers = analyzeScript(script);
+        try {
+            const parsed = buffers.parsed?.read();
+            if (parsed == null
+                || parsed.scannerErrorsLength() > 0
+                || parsed.parserErrorsLength() > 0
+                || parsed.statementsLength() !== 1) {
+                return null;
+            }
+            const statement = parsed?.statements(0, new core.buffers.parser.Statement());
+            const span = statement?.statementSpan(new core.buffers.parser.TextSpan());
+            return span == null ? null : script.toString(span.offset(), span.length());
+        } finally {
+            buffers.destroy(buffers);
+        }
+    }
+
     it('continues incomplete input and executes a terminated statement', () => {
         expect(classify('').state).toBe(ShellInputState.Empty);
         expect(classify('select 1').state).toBe(ShellInputState.Incomplete);
@@ -67,6 +86,17 @@ describe('Notebook Shell input', () => {
 
     it('handles non-ASCII text without confusing byte spans', () => {
         expect(classify("select 'Grüße';").state).toBe(ShellInputState.Complete);
+    });
+
+    it('extracts the single statement span without its terminating semicolon', () => {
+        expect(statementText("  select 'Grüße;'; -- ignored after the statement"))
+            .toBe("select 'Grüße;'");
+        expect(statementText('select 1\n  ;')).toBe('select 1');
+    });
+
+    it('does not extract invalid or multiple statements', () => {
+        expect(statementText('select (1;')).toBeNull();
+        expect(statementText('select 1; select 2;')).toBeNull();
     });
 });
 

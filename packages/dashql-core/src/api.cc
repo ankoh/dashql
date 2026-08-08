@@ -116,8 +116,10 @@ extern "C" void dashql_script_erase_text_range(Script* script, size_t offset, si
     script->EraseTextRange(offset, count);
 }
 /// Get the script content as string
-extern "C" void dashql_script_to_string(FFIResult* result, Script* script) {
-    auto text = std::make_unique<std::string>(script->ToString());
+extern "C" void dashql_script_to_string(FFIResult* result, Script* script, size_t offset, size_t length) {
+    auto text = std::make_unique<std::string>(
+        length == 0 ? script->ToString()
+                    : script->ToString(TextSpan(static_cast<uint32_t>(offset), static_cast<uint32_t>(length))));
     result->data_ptr = text->data();
     result->data_length = text->length();
     result->owner_ptr = text.release();

@@ -579,7 +579,7 @@ table Statement {
     root_node: uint32;
     nodes_begin: uint32;
     node_count: uint32;
-    // Byte span of the statement in the source text, including its terminating semicolon when present.
+    // Byte span of the statement SQL in the source text, excluding its separator and comments.
     statement_span: TextSpan;
     // Slice into ParsedScript.comments containing this statement's description comments.
     description_begin: uint32;

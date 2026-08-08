@@ -167,6 +167,7 @@ class ParsedScript {
     /// `Statement` so the generated parser's embedded ParseContext layout stays stable.
     struct StatementDescription {
         TextSpan statement_span;
+        TextSpan source_span;
         uint32_t description_begin = 0;
         uint32_t description_count = 0;
     };
@@ -441,8 +442,10 @@ class Script {
     void ReplaceText(std::string_view text);
     /// Replace the execution-derived output schema. Returns true if it changed.
     bool SetExecutedOutputSchema(std::vector<std::string> column_names);
-    /// Print a script as string
+    /// Print the entire script as a string.
     std::string ToString();
+    /// Print a byte span of the script as a string.
+    std::string ToString(TextSpan span);
 
     /// Scans the script unconditionally (throws Exception on error)
     void Scan();

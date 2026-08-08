@@ -135,4 +135,13 @@ TEST(ScriptTest, ReplaceText) {
     ASSERT_EQ(script.ToString(), "bar");
 }
 
+TEST(ScriptTest, ConvertsTextSpanToString) {
+    Catalog catalog;
+    Script script{catalog};
+
+    script.ReplaceText("select 'Grüße'");
+    EXPECT_EQ(script.ToString(TextSpan(7, 9)), "'Grüße'");
+    EXPECT_EQ(script.ToString(TextSpan(100, 1)), "");
+}
+
 }  // namespace

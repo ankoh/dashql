@@ -2244,7 +2244,7 @@ std::string Formatter::WriteOutput() const {
         output += fmt.Render(node_states[statement.root].reg, options);
         output += ';';
 
-        size_t statement_end = description.statement_span.offset() + description.statement_span.length();
+        size_t statement_end = description.source_span.offset() + description.source_span.length();
         size_t within_end = before_end;
         while (within_end < comments.size() && comments[within_end].offset() < statement_end) ++within_end;
         AppendComments(output, input, comments.subspan(before_end, within_end - before_end), config.max_width);

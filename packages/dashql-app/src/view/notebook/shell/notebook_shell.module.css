@@ -62,9 +62,9 @@
 
 .result_card {
     min-height: 40px;
-    width: calc(100% - 72px);
+    width: calc(100% - 8px);
     max-width: var(--notebook_list_entry_max_width);
-    margin-left: 72px;
+    margin-left: 8px;
     border: 1px solid var(--log_border_color);
     border-radius: var(--border_radius);
     overflow: hidden;
@@ -158,7 +158,7 @@
     }
 
     .result_card {
-        width: calc(100% - 48px);
-        margin-left: 48px;
+        width: calc(100% - 8px);
+        margin-left: 8px;
     }
 }

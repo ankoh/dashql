@@ -54,8 +54,8 @@ extern "C" void dashql_script_insert_text_at(dashql::Script* script, size_t offs
 extern "C" void dashql_script_replace_text(dashql::Script* script, const char* text_ptr, size_t text_length);
 /// Erase a text range
 extern "C" void dashql_script_erase_text_range(dashql::Script* script, size_t offset, size_t count);
-/// Get the script content as string
-extern "C" void dashql_script_to_string(FFIResult* result, dashql::Script* script);
+/// Get the script content as a string. A zero-length span selects the entire script.
+extern "C" void dashql_script_to_string(FFIResult* result, dashql::Script* script, size_t offset, size_t length);
 /// Scan a script (throws exception on error)
 extern "C" void dashql_script_scan(dashql::Script* script);
 /// Parse a script (throws exception on error)

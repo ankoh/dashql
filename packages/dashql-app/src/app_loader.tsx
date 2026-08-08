@@ -82,7 +82,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     // Callback to consume setup event.
     // This function is called through os deep links and when opening DashQL by through .dashql files
     const [interactiveSetupArgs, setInteractiveSetupArgs] = React.useState<InteractiveAppSetupArgs | null>(null);
-    const consumeSetupEvent = React.useCallback(async (data: SetupEventVariant) => {
+    const consumeSetupEvent = React.useEffectEvent(async (data: SetupEventVariant) => {
         // Start trace for setup event handling
         const traced = logger.withTrace(createTrace());
         traced.debug("Consuming setup event", { "event_type": String(data.type) }, "app_loader");
@@ -140,7 +140,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 break;
             }
         }
-    }, [logger, setupCore, setupDone, storageWriter, connectionSignatures, navigate, setConnReg, setNotebookScriptsRegistry]);
+    });
 
     // Register an event handler for setup events
     React.useEffect(() => {

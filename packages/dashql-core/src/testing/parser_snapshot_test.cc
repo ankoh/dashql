@@ -126,7 +126,7 @@ void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript
         auto description_node = stmt.append_child();
         description_node << c4::yml::key("description");
         description_node |= c4::yml::MAP;
-        EncodeLocationText(description_node, description.statement_span, text);
+        EncodeLocationText(description_node, description.source_span, text);
         description_node.append_child() << c4::yml::key("description-begin") << description.description_begin;
         description_node.append_child() << c4::yml::key("description-count") << description.description_count;
         ParserSnapshotTest::EncodeAST(stmt, text, scanned, nodes, s.root);

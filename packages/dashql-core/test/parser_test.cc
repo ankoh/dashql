@@ -106,16 +106,32 @@ TEST(ParserTest, AssociatesLeadingCommentBlocksWithStatements) {
     auto& first = descriptions[0];
     EXPECT_EQ(first.description_begin, 0u);
     EXPECT_EQ(first.description_count, 2u);
-    EXPECT_EQ(text.substr(first.statement_span.offset(), first.statement_span.length()), "select 1;");
+    EXPECT_EQ(text.substr(first.statement_span.offset(), first.statement_span.length()), "select 1");
+    EXPECT_EQ(text.substr(first.source_span.offset(), first.source_span.length()), "select 1;");
 
     auto& second = descriptions[1];
     EXPECT_EQ(second.description_begin, 2u);
     EXPECT_EQ(second.description_count, 1u);
-    EXPECT_EQ(text.substr(second.statement_span.offset(), second.statement_span.length()), "select 2; -- trailing");
+    EXPECT_EQ(text.substr(second.statement_span.offset(), second.statement_span.length()), "select 2");
+    EXPECT_EQ(text.substr(second.source_span.offset(), second.source_span.length()), "select 2; -- trailing");
 
     auto& third = descriptions[2];
     EXPECT_EQ(third.description_count, 0u);
     EXPECT_EQ(text.substr(third.statement_span.offset(), third.statement_span.length()), "select 3");
+    EXPECT_EQ(text.substr(third.source_span.offset(), third.source_span.length()), "select 3");
+}
+
+TEST(ParserTest, StatementSpanExcludesWhitespaceBeforeSeparator) {
+    constexpr std::string_view text = "  select 'Grüße;'\n  ; -- trailing";
+    auto script = ParseString(text);
+
+    ASSERT_TRUE(script->errors.empty());
+    ASSERT_EQ(script->statements.size(), 1u);
+    auto description = script->AssociateDescriptions().front();
+    EXPECT_EQ(text.substr(description.statement_span.offset(), description.statement_span.length()),
+              "select 'Grüße;'");
+    EXPECT_EQ(text.substr(description.source_span.offset(), description.source_span.length()),
+              "select 'Grüße;'\n  ; -- trailing");
 }
 
 TEST(ParserTest, ParsesHyperQueryWithObfuscatedLiterals) {

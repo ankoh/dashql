@@ -305,7 +305,8 @@ std::vector<ParsedScript::StatementDescription> ParsedScript::AssociateDescripti
         }
         end = StatementSourceEnd(input, end, next_begin, comments);
         metadata.push_back({
-            .statement_span = TextSpan(root_span.offset(), static_cast<uint32_t>(end - root_span.offset())),
+            .statement_span = root_span,
+            .source_span = TextSpan(root_span.offset(), static_cast<uint32_t>(end - root_span.offset())),
         });
     }
 
@@ -319,7 +320,7 @@ std::vector<ParsedScript::StatementDescription> ParsedScript::AssociateDescripti
         size_t begin = comment_cursor;
         size_t end = begin;
         size_t cursor = previous_end;
-        while (end < comments.size() && comments[end].offset() < statement_metadata.statement_span.offset()) {
+        while (end < comments.size() && comments[end].offset() < statement_metadata.source_span.offset()) {
             auto& comment = comments[end];
             bool first = end == begin;
             bool allowed = first
@@ -331,11 +332,11 @@ std::vector<ParsedScript::StatementDescription> ParsedScript::AssociateDescripti
             cursor = comment.offset() + comment.length();
             ++end;
         }
-        if (begin < end && IsDescriptionGap(input, cursor, statement_metadata.statement_span.offset())) {
+        if (begin < end && IsDescriptionGap(input, cursor, statement_metadata.source_span.offset())) {
             statement_metadata.description_begin = static_cast<uint32_t>(begin);
             statement_metadata.description_count = static_cast<uint32_t>(end - begin);
         }
-        previous_end = statement_metadata.statement_span.offset() + statement_metadata.statement_span.length();
+        previous_end = statement_metadata.source_span.offset() + statement_metadata.source_span.length();
         comment_cursor = end;
     }
     return metadata;
@@ -1162,8 +1163,16 @@ bool Script::SetExecutedOutputSchema(std::vector<std::string> column_names) {
     executed_output_schema = std::move(normalized);
     return true;
 }
-/// Print a script as string
+/// Print the entire script as a string
 std::string Script::ToString() { return text.ToString(); }
+/// Print a script byte span as a string
+std::string Script::ToString(TextSpan span) {
+    auto output = text.ToString();
+    if (span.offset() >= output.size()) {
+        return {};
+    }
+    return output.substr(span.offset(), span.length());
+}
 
 /// Update memory statisics
 std::unique_ptr<buffers::statistics::ScriptMemoryStatistics> Script::GetMemoryStatistics() {

@@ -141,7 +141,7 @@ interface ShellInputProps {
     prompt: string;
     active: boolean;
     history: readonly ShellHistoryEntry[];
-    onSubmit: (text: string, buffers: DashQLScriptBuffers) => boolean;
+    onSubmit: (text: string, buffers: DashQLScriptBuffers, script: core.DashQLScript) => boolean;
     onInput: (text: string, buffers: DashQLScriptBuffers) => void;
     setFocusInput: (focus: (() => void) | null) => void;
 }
@@ -241,7 +241,7 @@ const ShellInput: React.FC<ShellInputProps> = (props) => {
             }
             const text = view.state.doc.toString();
             if (parseShellCommand(text) != null) {
-                if (!submitRef.current(text, processor.scriptBuffers)) return true;
+                if (!submitRef.current(text, processor.scriptBuffers, script)) return true;
                 historyIndexRef.current = historyRef.current.length + 1;
                 historyDraftRef.current = '';
                 replaceEditorText(view, '');
@@ -249,7 +249,7 @@ const ShellInput: React.FC<ShellInputProps> = (props) => {
             }
             const inputState = classifyShellInput(text, processor.scriptBuffers);
             if (inputState !== ShellInputState.Complete && inputState !== ShellInputState.Multiple) return false;
-            if (!submitRef.current(text, processor.scriptBuffers)) return true;
+            if (!submitRef.current(text, processor.scriptBuffers, script)) return true;
 
             historyIndexRef.current = historyRef.current.length + 1;
             historyDraftRef.current = '';
@@ -367,7 +367,7 @@ interface ShellRowProps {
     active: boolean;
     history: readonly ShellHistoryEntry[];
     error: string | null;
-    onSubmit: (sourceText: string, buffers: DashQLScriptBuffers) => boolean;
+    onSubmit: (sourceText: string, buffers: DashQLScriptBuffers, script: core.DashQLScript) => boolean;
     onInput: (text: string, buffers: DashQLScriptBuffers) => void;
     onHeightMeasured: (rowKey: string, height: number) => void;
     setFocusInput: (focus: (() => void) | null) => void;
@@ -545,7 +545,7 @@ export const NotebookShell: React.FC<Props> = (props) => {
         setNotebookMode,
     ]);
 
-    const submit = React.useCallback((sourceText: string, buffers: DashQLScriptBuffers): boolean => {
+    const submit = React.useCallback((sourceText: string, buffers: DashQLScriptBuffers, script: core.DashQLScript): boolean => {
         setError(null);
         if (parseShellCommand(sourceText) != null) {
             const commandError = executeShellCommand(sourceText, commandContext);
@@ -571,14 +571,23 @@ export const NotebookShell: React.FC<Props> = (props) => {
         }
         if (inputState !== ShellInputState.Complete) return false;
 
+        const parsed = buffers.parsed?.read() ?? null;
+        const firstStatement = parsed?.statements(0, new core.buffers.parser.Statement()) ?? null;
+        const statementSpan = firstStatement?.statementSpan(new core.buffers.parser.TextSpan()) ?? null;
+        const statementText = statementSpan == null
+            ? null
+            : script.toString(statementSpan.offset(), statementSpan.length());
+        if (statementText == null) {
+            setError('Could not resolve the Shell statement source.');
+            return false;
+        }
+
         const visualizeQuery = resolveVisualizeQuery(
             buffers,
             sourceText,
             makeScriptLookup(props.notebookScripts.scripts),
             logger,
         );
-        const parsed = buffers.parsed?.read() ?? null;
-        const firstStatement = parsed?.statements(0, new core.buffers.parser.Statement()) ?? null;
         const isVisualize = firstStatement?.statementType() === core.buffers.parser.StatementType.VIS_VISUALISE
             || /^\s*visualize\b/i.test(sourceText);
         if (isVisualize && visualizeQuery == null) {
@@ -586,7 +595,7 @@ export const NotebookShell: React.FC<Props> = (props) => {
             return false;
         }
 
-        const queryText = visualizeQuery?.sql ?? sourceText;
+        const queryText = visualizeQuery?.sql ?? statementText;
         const [queryId] = executeQuery(props.notebookScripts.notebookId, {
             query: queryText,
             analyzeResults: true,
