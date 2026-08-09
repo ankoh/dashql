@@ -18,6 +18,8 @@ export default vite.defineConfig(({ mode, command }) => {
     const JSONSCHEMA_PATH = path.resolve(rootDir, "__JSONSCHEMA_PATH__");
     const CORE_JS_PATH = path.resolve(rootDir, "__CORE_JS_PATH__");
     const CORE_WASM_PATH = path.resolve(rootDir, "__CORE_WASM_PATH__");
+    const SHELL_JS_PATH = path.resolve(rootDir, "__SHELL_JS_PATH__");
+    const SHELL_WASM_PATH = path.resolve(rootDir, "__SHELL_WASM_PATH__");
     const WEBDB_JS_PATH = path.resolve(rootDir, "__WEBDB_JS_PATH__");
     const WEBDB_WASM_PATH = path.resolve(rootDir, "__WEBDB_WASM_PATH__");
     // Entry point of the vendored UMAP wasm module (dependencies/umap-wasm/index.js).
@@ -146,6 +148,14 @@ export default vite.defineConfig(({ mode, command }) => {
                     find: /^@ankoh\/dashql-core-wasm(\?.*)?$/,
                     replacement: CORE_WASM_PATH + "$1",
                 },
+                {
+                    find: /^@ankoh\/dashql-shell-js(\?.*)?$/,
+                    replacement: SHELL_JS_PATH + "$1",
+                },
+                {
+                    find: /^@ankoh\/dashql-shell-wasm(\?.*)?$/,
+                    replacement: SHELL_WASM_PATH + "$1",
+                },
                 ...(
                     isNativeBuild
                         ? [{
@@ -208,6 +218,8 @@ export default vite.defineConfig(({ mode, command }) => {
                         PROTOBUF_PATH,
                         path.dirname(CORE_JS_PATH),
                         path.dirname(CORE_WASM_PATH),
+                        path.dirname(SHELL_JS_PATH),
+                        path.dirname(SHELL_WASM_PATH),
                         path.dirname(SVG_SYMBOLS_PATH),
                         // umap-wasm/index.js + its pkg/ subdir (glue + .wasm).
                         path.dirname(UMAP_JS_PATH),

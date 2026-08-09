@@ -1,0 +1,31 @@
+.page {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    background: #0d1117;
+}
+
+.terminal {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    padding: 12px;
+}
+
+.terminal :global(.xterm) {
+    height: 100%;
+}
+
+.status {
+    position: absolute;
+    right: 16px;
+    bottom: 10px;
+    max-width: min(560px, calc(100% - 32px));
+    color: #8b949e;
+    font-family: 'Roboto Mono';
+    font-size: 0.75rem;
+    pointer-events: none;
+}

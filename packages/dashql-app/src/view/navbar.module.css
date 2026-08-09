@@ -218,6 +218,38 @@
     min-width: 0;
     overflow: hidden;
 }
+
+.shell_button {
+    appearance: none;
+    display: flex;
+    flex: 0 0 28px;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--border_radius);
+    background: transparent;
+    color: var(--nav_tab_fg);
+    cursor: pointer;
+}
+
+.shell_button:hover,
+.shell_button_active {
+    border: var(--nav_border_active);
+    background-color: rgba(0, 0, 0, 0.45);
+}
+
+.shell_button:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 1px;
+}
+
+.shell_button svg {
+    display: block;
+    fill: currentColor;
+}
 .tab {
     position: relative;
     color: var(--nav_tab_fg);

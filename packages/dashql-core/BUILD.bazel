@@ -1,5 +1,6 @@
 load("@emsdk//emscripten_toolchain:wasm_rules.bzl", "wasm_cc_binary")
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+load("//bazel:dashql_wasm.bzl", "CORE_WASM_EXPORTS", "SHELL_WASM_EXPORTS", "dashql_wasm_linkopts")
 
 # ---------------------------------------------------------------------------
 # Main library (libdashql_core).
@@ -92,6 +93,7 @@ cc_library(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_DEPS,
+    visibility = ["//visibility:public"],
 )
 
 # ---------------------------------------------------------------------------
@@ -109,83 +111,7 @@ WASM_COPTS = [
     "-fconstexpr-steps=100000000",
     "-mbulk-memory",
 ]
-WASM_LINKOPTS = [
-    # Enable ES6 module output for modern bundlers
-    "-sMODULARIZE=1",
-    "-sEXPORT_ES6=1",
-    "-sEXPORT_NAME=createDashQLModule",
-
-    # Export all C functions (note: underscore prefix required in JS)
-    "-sEXPORTED_FUNCTIONS=[" +
-        "'_dashql_malloc'," +
-        "'_dashql_free'," +
-        "'_dashql_delete_owner'," +
-        "'_dashql_catalog_new'," +
-        "'_dashql_catalog_clear'," +
-        "'_dashql_catalog_contains_entry_id'," +
-        "'_dashql_catalog_describe_entries'," +
-        "'_dashql_catalog_describe_entries_of'," +
-        "'_dashql_catalog_load_script'," +
-        "'_dashql_catalog_drop_script'," +
-        "'_dashql_catalog_get_statistics'," +
-        "'_dashql_catalog_flatten'," +
-        "'_dashql_parse_vegalite_to_visualize'," +
-        "'_dashql_script_new'," +
-        "'_dashql_script_get_catalog_entry_id'," +
-        "'_dashql_script_set_output_schema'," +
-        "'_dashql_script_set_script_path'," +
-        "'_dashql_script_insert_text_at'," +
-        "'_dashql_script_insert_char_at'," +
-        "'_dashql_script_erase_text_range'," +
-        "'_dashql_script_replace_text'," +
-        "'_dashql_script_to_string'," +
-        "'_dashql_script_scan'," +
-        "'_dashql_script_parse'," +
-        "'_dashql_script_analyze'," +
-        "'_dashql_script_get_scanned'," +
-        "'_dashql_script_get_parsed'," +
-        "'_dashql_script_get_analyzed'," +
-        "'_dashql_script_compute_diff'," +
-        "'_dashql_script_get_statistics'," +
-        "'_dashql_script_format'," +
-        "'_dashql_script_move_cursor'," +
-        "'_dashql_script_complete_at_cursor'," +
-        "'_dashql_script_select_completion_candidate_at_cursor'," +
-        "'_dashql_script_select_completion_catalog_object_at_cursor'," +
-        "'_dashql_script_registry_new'," +
-        "'_dashql_script_registry_clear'," +
-        "'_dashql_script_registry_add_script'," +
-        "'_dashql_script_registry_drop_script'," +
-        "'_dashql_script_registry_find_column'," +
-        "'_dashql_plan_view_model_configure'," +
-        "'_dashql_plan_view_model_load_hyper_plan'," +
-        "'_dashql_plan_view_model_load_spark_plan'," +
-        "'_dashql_plan_view_model_new'," +
-        "'_dashql_plan_view_model_pack'," +
-        "'_dashql_plan_view_model_reset'," +
-        "'_dashql_plan_view_model_reset_execution'" +
-    "]",
-
-    # Export runtime helper functions and heap views
-    "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','stackSave','stackAlloc','stackRestore','HEAP8','HEAP16','HEAP32','HEAPU8','HEAPU16','HEAPU32','HEAP64','HEAPU64','HEAPF32','HEAPF64']",
-
-    # Enable memory growth for dynamic allocation
-    "-sALLOW_MEMORY_GROWTH=1",
-
-    # Disable standalone WASM mode to enable JS glue
-    "-sSTANDALONE_WASM=0",
-
-    # Control initial memory (16MB default)
-    "-sINITIAL_MEMORY=16777216",
-
-    # Size optimizations
-    "-sAGGRESSIVE_VARIABLE_ELIMINATION=1",
-    "-sELIMINATE_DUPLICATE_FUNCTIONS=1",
-    "-sFILESYSTEM=0",
-    "-sENVIRONMENT='web,node'",
-    "-sUSE_WEBGL2=0",
-    "-sUSE_SDL=0",
-]
+WASM_LINKOPTS = dashql_wasm_linkopts(CORE_WASM_EXPORTS, 16777216, "web,node")
 
 # Parser generated .cc compiled with -O1 only (bison output has huge local count at -O0).
 cc_library(
@@ -195,6 +121,27 @@ cc_library(
     features = ["wasm_exceptions", "wasm_simd"],
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = CORE_DEPS,
+)
+
+cc_library(
+    name = "parser_generated_wasm_pthread",
+    srcs = ["//grammar:gen/include/dashql/parser/parser_generated.cc"],
+    copts = WASM_COPTS + ["-O1", "-matomics"],
+    features = ["use_pthreads", "wasm_exceptions", "wasm_simd"],
+    target_compatible_with = ["@platforms//cpu:wasm32"],
+    deps = CORE_DEPS,
+)
+
+cc_library(
+    name = "dashql_core_wasm_library",
+    srcs = LIB_SRCS + [
+        "//grammar:scanner_generated",
+    ],
+    copts = WASM_COPTS + ["-matomics"],
+    features = ["use_pthreads", "wasm_exceptions", "wasm_simd"],
+    target_compatible_with = ["@platforms//cpu:wasm32"],
+    deps = [":parser_generated_wasm_pthread"] + CORE_DEPS,
+    visibility = ["//visibility:private"],
 )
 
 cc_binary(
@@ -218,6 +165,100 @@ wasm_cc_binary(
         "dashql_core.wasm",
         "dashql_core.js",
     ],
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+)
+
+# ---------------------------------------------------------------------------
+# Shell library and combined Core+Shell WASM binary.
+# ---------------------------------------------------------------------------
+
+SHELL_COPTS = [
+    "-std=c++20",
+    "-fexceptions",
+    "-Wno-deprecated-declarations",
+]
+
+SHELL_WASM_COPTS = SHELL_COPTS + [
+    "-DWASM=1",
+    "-matomics",
+    "-mbulk-memory",
+]
+
+SHELL_WASM_LINKOPTS = dashql_wasm_linkopts(
+    CORE_WASM_EXPORTS + SHELL_WASM_EXPORTS,
+    33554432,
+    "web,node,worker",
+    2147483648,
+    "createDashQLShellModule",
+)
+
+cc_library(
+    name = "dashql_shell",
+    srcs = [
+        "src/shell/api.cc",
+        "src/shell/arrow_renderer.cc",
+        "src/shell/prompt_buffer.cc",
+        "src/shell/shell_session.cc",
+    ],
+    hdrs = glob(["include/dashql/shell/*.h"]),
+    copts = select({
+        "@platforms//cpu:wasm32": SHELL_WASM_COPTS,
+        "//conditions:default": SHELL_COPTS,
+    }),
+    features = [
+        "use_pthreads",
+        "wasm_exceptions",
+    ],
+    includes = ["include"],
+    linkopts = ["-fexceptions"],
+    visibility = ["//visibility:public"],
+    deps = select({
+            "@platforms//cpu:wasm32": [":dashql_core_wasm_library"],
+            "//conditions:default": [":dashql_core"],
+        }) + [
+        "@apache_arrow//:arrow",
+    ],
+)
+
+cc_test(
+    name = "shell_unit_tests",
+    size = "small",
+    srcs = [
+        "test/shell_api_test.cc",
+        "test/shell_arrow_renderer_test.cc",
+        "test/shell_prompt_buffer_test.cc",
+    ],
+    copts = SHELL_COPTS,
+    deps = [
+        ":dashql_shell",
+        "@apache_arrow//:arrow",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_binary(
+    name = "dashql_shell_wasm",
+    copts = SHELL_WASM_COPTS,
+    features = [
+        "use_pthreads",
+        "wasm_exceptions",
+        "wasm_simd",
+    ],
+    linkopts = SHELL_WASM_LINKOPTS,
+    tags = ["manual"],
+    target_compatible_with = ["@platforms//cpu:wasm32"],
+    deps = [":dashql_shell"],
+)
+
+wasm_cc_binary(
+    name = "shell_wasm",
+    cc_target = ":dashql_shell_wasm",
+    outputs = [
+        "dashql_shell.js",
+        "dashql_shell.wasm",
+    ],
+    standalone = False,
     tags = ["manual"],
     visibility = ["//visibility:public"],
 )

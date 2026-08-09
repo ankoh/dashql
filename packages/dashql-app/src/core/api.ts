@@ -4,7 +4,7 @@ import * as flatbuffers from 'flatbuffers';
 import { VariantKind } from './variant.js';
 
 // Emscripten module interface (what the generated JS provides)
-interface EmscriptenModule {
+export interface EmscriptenModule {
     // Memory views (Emscripten provides these automatically)
     HEAP8: Int8Array;
     HEAPU8: Uint8Array;
@@ -69,6 +69,14 @@ interface EmscriptenModule {
     _dashql_plan_view_model_reset: (viewmodel_ptr: number) => void;
     _dashql_plan_view_model_reset_execution: (viewmodel_ptr: number) => void;
     _dashql_plan_view_model_pack: (result: number, viewmodel_ptr: number) => void;
+}
+
+export interface DashQLModuleOptions {
+    instantiateWasm?: InstantiateWasmCallback;
+    wasmBinary?: Uint8Array;
+    print?: (text: string) => void;
+    printErr?: (text: string) => void;
+    locateFile?: (path: string, prefix: string) => string;
 }
 
 // Our cleaned-up API interface (without underscores)
@@ -136,12 +144,7 @@ import createDashQLModule from '@ankoh/dashql-core-js';
 
 // Declare the factory function type to match our interface
 declare module '@ankoh/dashql-core-js' {
-    export default function createDashQLModule(options?: {
-        instantiateWasm?: InstantiateWasmCallback;
-        wasmBinary?: Uint8Array;
-        print?: (text: string) => void;
-        printErr?: (text: string) => void;
-    }): Promise<EmscriptenModule>;
+    export default function createDashQLModule(options?: DashQLModuleOptions): Promise<EmscriptenModule>;
 }
 
 interface FlatBufferObject<T, O> {
@@ -265,12 +268,7 @@ export class DashQL {
         };
     }
 
-    public static async create(options?: {
-        instantiateWasm?: InstantiateWasmCallback;
-        wasmBinary?: Uint8Array;
-        print?: (text: string) => void;
-        printErr?: (text: string) => void;
-    }): Promise<DashQL> {
+    public static async create(options?: DashQLModuleOptions): Promise<DashQL> {
         // Call the Emscripten-generated factory function
         // All WASI stubs and initialization are handled automatically!
         const module = await createDashQLModule({
@@ -283,6 +281,8 @@ export class DashQL {
 
             // Optional: intercept WASM instantiation for progress tracking
             instantiateWasm: options?.instantiateWasm,
+
+            locateFile: options?.locateFile,
         });
 
         return new DashQL(module);

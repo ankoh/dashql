@@ -348,6 +348,9 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     value: [queryId, e, resultStream?.getMetrics() ?? null],
                 });
             }
+            if (args.throwOnError) {
+                throw e;
+            }
             return null;
         }
 

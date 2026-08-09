@@ -171,6 +171,55 @@ TEST_F(RopeTest, FromText) {
     }
 }
 
+TEST_F(RopeTest, TracksGraphemeClustersAndPositions) {
+    rope::Rope rope{128, "a👩‍💻é界"};
+    EXPECT_EQ(rope.GetStats().utf8_codepoints, 7);
+    EXPECT_EQ(rope.GetStats().grapheme_clusters, 4);
+
+    EXPECT_EQ(rope.ResolveGrapheme(0).text_bytes, 0);
+    EXPECT_EQ(rope.ResolveGrapheme(1).text_bytes, 1);
+    EXPECT_EQ(rope.ResolveGrapheme(2).text_bytes, 1 + std::string{"👩‍💻"}.size());
+    EXPECT_EQ(rope.ResolveGrapheme(3).utf8_codepoints, 6);
+    EXPECT_EQ(rope.ResolveGrapheme(4).text_bytes, rope.ToString().size());
+    EXPECT_FALSE(rope.ResolveGraphemeBoundary(2).has_value());
+    EXPECT_EQ(rope.ResolveGraphemeBoundaryAtOrAfter(2).grapheme_clusters, 2);
+}
+
+TEST_F(RopeTest, KeepsLeafSplitsOnGraphemeBoundaries) {
+    const std::string text = "alpha👩‍💻bravoécharlie界delta";
+    auto rope = TestableRope::FromString(128, text, 16, 2);
+    EXPECT_EQ(rope.ToString(), text);
+    EXPECT_EQ(rope.GetStats().grapheme_clusters, 25);
+    ASSERT_NO_THROW(rope.CheckIntegrity());
+
+    size_t byte_offset = 0;
+    for (auto* leaf = rope.GetFirstLeaf(); leaf != nullptr; leaf = leaf->GetNext()) {
+        byte_offset += leaf->GetSize();
+        EXPECT_TRUE(rope.ResolveGraphemeBoundary(byte_offset).has_value());
+    }
+}
+
+TEST_F(RopeTest, RecomputesGraphemesAcrossEditBoundaries) {
+    rope::Rope rope{128, "👩💻"};
+    rope.Insert(1, "‍");
+    EXPECT_EQ(rope.ToString(), "👩‍💻");
+    EXPECT_EQ(rope.GetStats().grapheme_clusters, 1);
+    ASSERT_NO_THROW(rope.CheckIntegrity());
+
+    rope.Remove(1, 1);
+    EXPECT_EQ(rope.ToString(), "👩💻");
+    EXPECT_EQ(rope.GetStats().grapheme_clusters, 2);
+    ASSERT_NO_THROW(rope.CheckIntegrity());
+}
+
+TEST_F(RopeTest, RejectsGraphemeLargerThanLeaf) {
+    std::string combining = "a";
+    for (size_t i = 0; i < 24; ++i) {
+        combining += "́";
+    }
+    EXPECT_THROW((rope::Rope{64, combining}), std::length_error);
+}
+
 TEST_F(RopeTest, SplitOff0) {
     std::string expected;
     for (size_t i = 0; i < 1000; ++i) {

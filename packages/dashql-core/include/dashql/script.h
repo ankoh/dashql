@@ -480,4 +480,5 @@ class Script {
     std::string Format(const buffers::formatting::FormattingConfigT& config, bool parse_if_outdated = true);
 };
 
+
 }  // namespace dashql

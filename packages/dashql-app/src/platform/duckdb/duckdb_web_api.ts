@@ -153,13 +153,13 @@ export class WebDuckDBConnection extends DuckDBConnection {
         await this.webdb['postRequest'](task);
     }
 
-    protected async queryImpl(query: string): Promise<arrow.Table> {
+    protected async queryArrowIPCImpl(query: string): Promise<Uint8Array> {
         const task = new DuckDBWorkerTask<any, any, any>(WebDBWorkerRequestType.QUERY_RUN, {
             connectionId: this.connectionId,
             query,
         });
         const result = await this.webdb['postRequest'](task) as { buffer: Uint8Array };
-        return decodeArrowTable(result.buffer);
+        return result.buffer;
     }
 
     protected async queryPendingImpl(query: string, allowStreamResult: boolean): Promise<arrow.Table> {

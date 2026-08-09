@@ -7,6 +7,7 @@
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string_view>
 #include <type_traits>
@@ -26,7 +27,9 @@ struct TextStats {
     /// The UTF-8 codepoints
     size_t utf8_codepoints = 0;
     /// The line breaks
-    size_t line_breaks = 0;
+    uint32_t line_breaks = 0;
+    /// The extended grapheme clusters
+    uint32_t grapheme_clusters = 0;
 
     /// Constructor
     TextStats();
@@ -74,11 +77,11 @@ struct NodePtr {
     NodePtr() : raw_ptr(0) {}
     /// Create node ptr from leaf node
     NodePtr(LeafNode* ptr) : raw_ptr(reinterpret_cast<uintptr_t>(ptr)) {
-        assert((reinterpret_cast<uintptr_t>(ptr) & 0b1) == 0);
+        assert(ptr == nullptr || (reinterpret_cast<uintptr_t>(ptr) & 0b1) == 0);
     }
     /// Create node ptr from inner node
     NodePtr(InnerNode* ptr) : raw_ptr(reinterpret_cast<uintptr_t>(ptr) | 0b1) {
-        assert((reinterpret_cast<uintptr_t>(ptr) & 0b1) == 0);
+        assert(ptr != nullptr && (reinterpret_cast<uintptr_t>(ptr) & 0b1) == 0);
     }
 
     /// Get the tag
@@ -86,9 +89,9 @@ struct NodePtr {
     /// Is null?
     inline bool IsNull() const { return raw_ptr == 0; };
     /// Node type check
-    template <typename T> bool Is() { return GetTag() == T::NodePtrTag; }
+    template <typename T> bool Is() const { return !IsNull() && GetTag() == T::NodePtrTag; }
     /// Cast a node
-    template <typename T> T* Get() {
+    template <typename T> T* Get() const {
         assert(Is<T>());
         return reinterpret_cast<T*>((raw_ptr >> 1) << 1);
     }
@@ -232,6 +235,8 @@ struct InnerNode {
     Boundary FindByte(size_t byte_idx);
     /// Find the child that contains a character
     Boundary FindCodepoint(size_t char_idx);
+    /// Find the child that contains an extended grapheme cluster
+    Boundary FindGrapheme(size_t grapheme_idx);
     /// Find the child that contains a line break
     Boundary FindLineBreak(size_t line_break_idx);
     /// Find the children that contain a codepoint range
@@ -273,6 +278,12 @@ struct InnerNode {
 };
 
 struct Rope {
+    struct TextPosition {
+        size_t text_bytes = 0;
+        size_t utf8_codepoints = 0;
+        size_t grapheme_clusters = 0;
+    };
+
    protected:
     /// The page size
     const size_t page_size;
@@ -339,8 +350,12 @@ struct Rope {
 
     /// Get the root text info
     inline auto& GetStats() { return root_info; }
+    /// Get the root text info
+    inline const auto& GetStats() const { return root_info; }
     /// Get the first leaf node
-    inline auto GetLeafs() noexcept { return first_leaf; }
+    LeafNode* GetFirstLeaf() noexcept;
+    /// Get the first leaf node
+    const LeafNode* GetFirstLeaf() const noexcept;
 
     /// Insert a character at index
     void Insert(size_t char_idx, std::string_view text, bool force_bulk = false);
@@ -352,6 +367,12 @@ struct Rope {
     void CheckIntegrity();
     /// Copy the rope to a std::string
     std::string ToString(bool withPadding = false) const;
+    /// Resolve a grapheme boundary to aggregate text offsets.
+    TextPosition ResolveGrapheme(size_t grapheme_idx) const;
+    /// Resolve an exact UTF-8 byte offset to a grapheme boundary.
+    std::optional<TextPosition> ResolveGraphemeBoundary(size_t byte_idx) const;
+    /// Resolve the first grapheme boundary at or after a UTF-8 byte offset.
+    TextPosition ResolveGraphemeBoundaryAtOrAfter(size_t byte_idx) const;
 
     /// Append rope to the right
     Rope& operator<<(Rope&& other) {

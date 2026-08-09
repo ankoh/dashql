@@ -60,7 +60,12 @@ export abstract class DuckDBConnection {
 
     public async query(query: string): Promise<arrow.Table> {
         this.checkClosed();
-        return await this.queryImpl(query);
+        return decodeArrowTable(await this.queryArrowIPCImpl(query));
+    }
+
+    public async queryArrowIPC(query: string): Promise<Uint8Array> {
+        this.checkClosed();
+        return await this.queryArrowIPCImpl(query);
     }
 
     public async queryPending(query: string, allowStreamResult: boolean = false): Promise<arrow.Table> {
@@ -99,7 +104,7 @@ export abstract class DuckDBConnection {
     }
 
     protected abstract closeImpl(): Promise<void>;
-    protected abstract queryImpl(query: string): Promise<arrow.Table>;
+    protected abstract queryArrowIPCImpl(query: string): Promise<Uint8Array>;
     protected abstract queryPendingImpl(query: string, allowStreamResult: boolean): Promise<arrow.Table>;
     protected abstract pollPendingImpl(): Promise<arrow.Table>;
     protected abstract cancelPendingImpl(): Promise<void>;

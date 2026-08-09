@@ -220,10 +220,9 @@ export class NativeDuckDBConnection extends DuckDBConnection {
         await throwIfError(response);
     }
 
-    protected async queryImpl(query: string): Promise<arrow.Table> {
+    protected async queryArrowIPCImpl(query: string): Promise<Uint8Array> {
         const streamId = await this.startQueryStream(query);
-        const bytes = await this.readFullStream(streamId);
-        return decodeArrowTable(bytes);
+        return await this.readFullStream(streamId);
     }
 
     protected async queryPendingImpl(query: string, _allowStreamResult: boolean): Promise<arrow.Table> {

@@ -22,6 +22,7 @@ import { RouteContext, useRouteContext, useRouterNavigate, CHANGE_NOTEBOOK } fro
 import { useVersionCheck } from '../platform/version/version_check.js';
 import { useNotebookScripts } from '../scripts/notebook_scripts_registry.js';
 import { useLocation } from 'react-router-dom';
+import { NotebookViewMode, useNotebookViewMode } from '../scripts/notebook_commands.js';
 
 const LOG_CTX = "navbar";
 
@@ -144,6 +145,27 @@ const NotebookBar = (props: { notebookId: string | null; notebookName: string | 
     );
 };
 
+const NotebookShellButton = () => {
+    const { mode, setMode } = useNotebookViewMode();
+    const shellActive = mode === NotebookViewMode.Shell;
+    const label = shellActive ? 'Return to notebook' : 'Open shell';
+    return (
+        <button
+            id="notebook-shell-toggle"
+            type="button"
+            className={`${styles.shellButton} ${shellActive ? styles.shellButtonActive : ''}`}
+            title={label}
+            aria-label={label}
+            aria-pressed={shellActive}
+            onClick={() => setMode(shellActive ? NotebookViewMode.Notebook : NotebookViewMode.Shell)}
+        >
+            <svg width="18px" height="18px" aria-hidden="true">
+                <use xlinkHref={`${symbols}#console`} />
+            </svg>
+        </button>
+    );
+};
+
 const VersionButton = (_props: {}) => {
     const [showVersionOverlay, setShowVersionOverlay] = React.useState<boolean>(false);
     const versionCheck = useVersionCheck();
@@ -251,6 +273,7 @@ export const NavBar = (): React.ReactElement => {
             {isBrowser && <BrandLogo onClose={handleCloseNotebook} />}
             <div className={styles.tabs}>
                 <NotebookBar notebookId={notebookId} notebookName={connection?.name ?? null} notebookPath={notebookPath} onClose={handleCloseNotebook} />
+                {notebookId != null && <NotebookShellButton />}
             </div>
             <div className={styles.version_container}>
                 <InternalsButton notebookId={notebookId} />

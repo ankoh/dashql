@@ -48,6 +48,18 @@ export const useNotebookCommandDispatch = () => React.useContext(COMMAND_DISPATC
 export const COMPOSE_INPUT_MODE_SQL = 0;
 export const COMPOSE_INPUT_MODE_AI = 1;
 
+export enum NotebookViewMode {
+    Notebook = 0,
+    Shell = 1,
+}
+
+export interface NotebookViewModeContextValue {
+    mode: NotebookViewMode;
+    setMode: React.Dispatch<React.SetStateAction<NotebookViewMode>>;
+}
+const NOTEBOOK_VIEW_MODE_CTX = React.createContext<NotebookViewModeContextValue | null>(null);
+export const useNotebookViewMode = () => React.useContext(NOTEBOOK_VIEW_MODE_CTX)!;
+
 /// The requested compose input mode lives here rather than in the script feed, so the
 /// "Switch Mode" command and the Ctrl+M shortcut (dispatched from outside the feed) can drive
 /// it directly. The feed is just a consumer. Hoisting it here also means the mode persists when
@@ -72,6 +84,13 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
     const aiAvailable = useAIClient() != null;
     const aiAvailableRef = React.useRef(aiAvailable);
     aiAvailableRef.current = aiAvailable;
+    const [notebookViewMode, setNotebookViewMode] = React.useState(NotebookViewMode.Notebook);
+    const notebookViewModeRef = React.useRef(notebookViewMode);
+    notebookViewModeRef.current = notebookViewMode;
+    const notebookViewModeValue = React.useMemo<NotebookViewModeContextValue>(
+        () => ({ mode: notebookViewMode, setMode: setNotebookViewMode }),
+        [notebookViewMode],
+    );
     // The compose editor's SQL/AI input mode, hoisted here so commands can drive it (see
     // useComposeInputMode). Kept in a ref too, so the command dispatch callback can toggle it
     // without listing the mode in its dependency array.
@@ -99,6 +118,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
             switch (command) {
                 // Execute the query script in the current notebook
                 case NotebookCommandType.ExecuteEditorQuery:
+                    if (notebookViewModeRef.current !== NotebookViewMode.Notebook) break;
                     if (connection!.connectionHealth != ConnectionHealth.ONLINE) {
                         logger.warn("Cannot execute query command with an unhealthy connection", {
                             notebookId: route.notebookId,
@@ -271,9 +291,11 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
 
     return (
         <COMMAND_DISPATCH_CTX.Provider value={commandDispatch}>
-            <COMPOSE_INPUT_MODE_CTX.Provider value={composeInputModeValue}>
-                {props.children}
-            </COMPOSE_INPUT_MODE_CTX.Provider>
+            <NOTEBOOK_VIEW_MODE_CTX.Provider value={notebookViewModeValue}>
+                <COMPOSE_INPUT_MODE_CTX.Provider value={composeInputModeValue}>
+                    {props.children}
+                </COMPOSE_INPUT_MODE_CTX.Provider>
+            </NOTEBOOK_VIEW_MODE_CTX.Provider>
         </COMMAND_DISPATCH_CTX.Provider>
     );
 };

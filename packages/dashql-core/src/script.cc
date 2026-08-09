@@ -1120,7 +1120,8 @@ void AnalyzedScript::FollowPathUpwards(uint32_t ast_node_id, std::vector<uint32_
     }
 }
 
-Script::Script(Catalog& catalog) : catalog(catalog), catalog_entry_id(catalog.AllocateEntryId()), text(1024) {}
+Script::Script(Catalog& catalog)
+    : catalog(catalog), catalog_entry_id(catalog.AllocateEntryId()), text(1024) {}
 
 Script::~Script() { catalog.DropScript(*this); }
 

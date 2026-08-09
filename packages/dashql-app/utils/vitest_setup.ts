@@ -21,6 +21,7 @@ const g = globalThis as typeof globalThis & {
     Request?: typeof Request;
     Response?: typeof Response;
     DASHQL_PRECOMPILED?: Promise<Uint8Array>;
+    DASHQL_SHELL_PRECOMPILED?: Promise<Uint8Array>;
     WEBDB_PRECOMPILED: Promise<Uint8Array>;
 };
 if (typeof g.TextEncoder === "undefined") g.TextEncoder = TextEncoder;
@@ -30,19 +31,28 @@ if (typeof g.Headers === "undefined") g.Headers = Headers;
 if (typeof g.Request === "undefined") g.Request = Request;
 if (typeof g.Response === "undefined") g.Response = Response;
 
-const wasmPath = path.resolve(process.cwd(), "dependencies/dashql-core-wasm/dashql_core.wasm");
+const coreWasmPath = path.resolve(process.cwd(), "dependencies/dashql-core-wasm/dashql_core.wasm");
+const shellWasmPath = path.resolve(process.cwd(), "dependencies/dashql-shell-wasm/dashql_shell.wasm");
 const webdbWasmPath = path.resolve(process.cwd(), "dependencies/duckdb/duckdb_web.wasm");
 
 // Pre-load the WASM binary for faster instantiation
 // Using wasmBinary is simpler and more compatible with Emscripten than instantiateWasm
 let wasmBinaryPromise: Promise<Uint8Array> | null = null;
+let shellWasmBinaryPromise: Promise<Uint8Array> | null = null;
 let webdbWasmBinaryPromise: Promise<Uint8Array> | null = null;
 
 function getWasmBinary(): Promise<Uint8Array> {
     if (!wasmBinaryPromise) {
-        wasmBinaryPromise = fs.promises.readFile(wasmPath).then(buf => new Uint8Array(buf));
+        wasmBinaryPromise = fs.promises.readFile(coreWasmPath).then(buf => new Uint8Array(buf));
     }
     return wasmBinaryPromise;
+}
+
+function getShellWasmBinary(): Promise<Uint8Array> {
+    if (!shellWasmBinaryPromise) {
+        shellWasmBinaryPromise = fs.promises.readFile(shellWasmPath).then(buf => new Uint8Array(buf));
+    }
+    return shellWasmBinaryPromise;
 }
 
 function getWebDBWasmBinary(): Promise<Uint8Array> {
@@ -56,6 +66,7 @@ function getWebDBWasmBinary(): Promise<Uint8Array> {
 // Provide preloaded WASM binary to Emscripten
 // This is type-compatible and lets Emscripten handle all the memory setup properly
 g.DASHQL_PRECOMPILED = getWasmBinary();
+g.DASHQL_SHELL_PRECOMPILED = getShellWasmBinary();
 
 // Provide preloaded WebDB WASM binary for tests
 g.WEBDB_PRECOMPILED = getWebDBWasmBinary();
