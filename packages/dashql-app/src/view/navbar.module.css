@@ -24,7 +24,7 @@
     display: flex;
     flex: 1 1 auto;
     min-width: 0;
-    padding: 0 8px 0 8px;
+    padding: 0 8px;
 }
 
 .notebook_bar {
@@ -215,7 +215,6 @@
     align-items: center;
     column-gap: 4px;
     margin-left: 16px;
-    margin-right: 8px;
     min-width: 0;
     overflow: hidden;
 }
