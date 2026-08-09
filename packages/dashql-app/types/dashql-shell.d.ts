@@ -53,6 +53,10 @@ declare module '@ankoh/dashql-shell-js' {
     }
 
     interface DashQLShellModuleOptions {
+        instantiateWasm?: (
+            imports: WebAssembly.Imports,
+            successCallback: (instance: WebAssembly.Instance, module: WebAssembly.Module) => void,
+        ) => WebAssembly.Exports | Promise<WebAssembly.Exports>;
         wasmBinary?: Uint8Array;
         locateFile?: (path: string, prefix: string) => string;
         print?: (text: string) => void;

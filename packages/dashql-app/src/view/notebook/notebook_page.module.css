@@ -6,19 +6,6 @@
     min-height: 0;
 }
 
-.mode,
-.mode_hidden {
-    position: absolute;
-    inset: 0;
-    min-width: 0;
-    min-height: 0;
-}
-
-.mode_hidden {
-    visibility: hidden;
-    pointer-events: none;
-}
-
 .shell_loading {
     display: grid;
     width: 100%;

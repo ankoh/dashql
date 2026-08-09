@@ -1,6 +1,6 @@
 import createDashQLShellModule from '@ankoh/dashql-shell-js';
 import shellWasmUrl from '@ankoh/dashql-shell-wasm?url';
-import { DashQL, DashQLCatalog, DashQLScript, EmscriptenModule } from '../core/api.js';
+import { DashQL, DashQLCatalog, DashQLModuleOptions, DashQLScript, EmscriptenModule } from '../core/api.js';
 
 const RESULT_SIZE = 16;
 const RESULT_STATUS = 0;
@@ -94,11 +94,29 @@ interface DashQLShellEffectResult {
 export interface DashQLShellOptions {
     environment: DashQLShellEnvironment;
     terminalColumns?: number;
+    instantiateWasm?: DashQLModuleOptions['instantiateWasm'];
+    onProgress?: (progress: DashQLShellInstantiationProgress) => void;
     wasmBinary?: Uint8Array;
     wasmUrl?: string | URL;
     print?: (text: string) => void;
     printErr?: (text: string) => void;
 }
+
+export interface DashQLShellInstantiationProgress {
+    bytesLoaded: number;
+    bytesTotal: number;
+}
+
+interface DashQLShellModuleCacheEntry {
+    url: string;
+    promise: Promise<DashQLShellModule>;
+    progress: DashQLShellInstantiationProgress | null;
+    listeners: Set<(progress: DashQLShellInstantiationProgress) => void>;
+}
+
+const shellModuleGlobal = globalThis as typeof globalThis & {
+    __dashqlShellModuleCache?: DashQLShellModuleCacheEntry;
+};
 
 export interface DashQLShellPrompt {
     revision: bigint;
@@ -168,12 +186,73 @@ export class DashQLShell {
 
     static async create(options: DashQLShellOptions): Promise<DashQLShell> {
         const wasmUrl = options.wasmUrl?.toString() ?? shellWasmUrl;
-        const module = await createDashQLShellModule({
-            wasmBinary: options.wasmBinary,
-            locateFile: path => path.endsWith('.wasm') ? wasmUrl : path,
-            print: options.print,
-            printErr: options.printErr,
-        }) as unknown as DashQLShellModule;
+        const instantiateModule = async (
+            onProgress: ((progress: DashQLShellInstantiationProgress) => void) | undefined,
+        ): Promise<DashQLShellModule> => {
+            const instantiateWasm = options.instantiateWasm ?? (options.wasmBinary == null && onProgress != null
+            ? async (imports: WebAssembly.Imports, successCallback: (instance: WebAssembly.Instance, module: WebAssembly.Module) => void) => {
+                const response = await fetch(wasmUrl);
+                if (!response.ok) throw new Error(`failed to fetch shell Wasm: ${response.status} ${response.statusText}`);
+                const bytesTotal = Number(response.headers.get('content-length')) || 0;
+                let bytesLoaded = 0;
+                onProgress({ bytesLoaded, bytesTotal });
+                const body = response.body?.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
+                    transform(chunk, controller) {
+                        bytesLoaded += chunk.byteLength;
+                        onProgress({ bytesLoaded, bytesTotal });
+                        controller.enqueue(chunk);
+                    },
+                }));
+                const result = body == null
+                    ? await WebAssembly.instantiate(await response.arrayBuffer(), imports)
+                    : await WebAssembly.instantiateStreaming(new Response(body, response), imports);
+                successCallback(result.instance, result.module);
+                return {};
+            }
+            : undefined);
+            return await createDashQLShellModule({
+                instantiateWasm,
+                wasmBinary: options.wasmBinary,
+                locateFile: path => path.endsWith('.wasm') ? wasmUrl : path,
+                print: options.print,
+                printErr: options.printErr,
+            }) as unknown as DashQLShellModule;
+        };
+
+        let module: DashQLShellModule;
+        if (options.wasmBinary != null || options.instantiateWasm != null) {
+            module = await instantiateModule(options.onProgress);
+        } else {
+            let entry = shellModuleGlobal.__dashqlShellModuleCache;
+            if (entry == null || entry.url !== wasmUrl) {
+                const listeners = new Set<(progress: DashQLShellInstantiationProgress) => void>();
+                entry = {
+                    url: wasmUrl,
+                    progress: null,
+                    listeners,
+                    promise: Promise.resolve(null as unknown as DashQLShellModule),
+                };
+                entry.promise = instantiateModule(progress => {
+                    entry!.progress = progress;
+                    for (const listener of listeners) listener(progress);
+                }).catch(error => {
+                    if (shellModuleGlobal.__dashqlShellModuleCache === entry) {
+                        delete shellModuleGlobal.__dashqlShellModuleCache;
+                    }
+                    throw error;
+                });
+                shellModuleGlobal.__dashqlShellModuleCache = entry;
+            }
+            if (options.onProgress != null) {
+                entry.listeners.add(options.onProgress);
+                if (entry.progress != null) options.onProgress(entry.progress);
+            }
+            try {
+                module = await entry.promise;
+            } finally {
+                if (options.onProgress != null) entry.listeners.delete(options.onProgress);
+            }
+        }
         const core = new DashQL(module);
         const catalog = core.createCatalog();
         return new DashQLShell(module, core, catalog, options.environment, options.terminalColumns ?? 100);

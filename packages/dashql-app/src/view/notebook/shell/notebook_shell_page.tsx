@@ -11,6 +11,12 @@ import type { BrowserShellController } from '../../../shell/browser_shell.js';
 
 const LOG_CTX = 'notebook_shell_page';
 
+function formatInstantiationProgress(bytesLoaded: number, bytesTotal: number): string {
+    if (bytesTotal <= 0) return `Loading ${Math.round(bytesLoaded / 1000)} kB`;
+    const blocks = Math.max(0, Math.min(10, Math.floor(bytesLoaded / bytesTotal * 10)));
+    return `Loading [${'#'.repeat(blocks)}${'-'.repeat(10 - blocks)}]`;
+}
+
 interface Props {
     connection: ConnectionState | null;
     active: boolean;
@@ -25,7 +31,7 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
     const controllerRef = React.useRef<BrowserShellController | null>(null);
     const shellRef = React.useRef<DashQLShell | null>(null);
     const generationRef = React.useRef(0);
-    const [status, setStatus] = React.useState('Loading shell');
+    const [status, setStatus] = React.useState('Instantiating Shell');
     const relationsSql = connection?.catalogRelationScript.toString() ?? '';
     const functionsSql = connection?.catalogFunctionScript.toString() ?? '';
 
@@ -34,8 +40,14 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
         const generation = ++generationRef.current;
         let cancelled = false;
         const environment = createNotebookShellEnvironment(connection.notebookId, executeQuery, cancelQuery);
-        setStatus(shellRef.current == null ? 'Loading shell' : 'Refreshing shell catalog');
-        void createNotebookShell({ relationsSql, functionsSql }, environment).then(async nextShell => {
+        setStatus(shellRef.current == null ? 'Instantiating Shell' : 'Refreshing shell catalog');
+        void createNotebookShell({ relationsSql, functionsSql }, environment, {
+            onProgress: progress => {
+                if (!cancelled && generation === generationRef.current) {
+                    setStatus(`Instantiating Shell: ${formatInstantiationProgress(progress.bytesLoaded, progress.bytesTotal)}`);
+                }
+            },
+        }).then(async nextShell => {
             if (cancelled || generation !== generationRef.current) {
                 nextShell.destroy();
                 return;
@@ -88,7 +100,11 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
     return (
         <main className={styles.page} aria-label="DashQL shell">
             <div ref={containerRef} className={styles.terminal} />
-            <div className={styles.status} role="status" aria-live="polite">{status}</div>
+            {status && (
+                <div className={styles.status} role="status" aria-live="polite">
+                    <strong>[ RUN ]</strong> {status}
+                </div>
+            )}
         </main>
     );
 };

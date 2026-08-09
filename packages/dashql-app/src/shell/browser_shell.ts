@@ -51,17 +51,18 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
     const continuation = '     -> ';
     const terminal: Terminal = new Terminal({
         allowProposedApi: false,
+        allowTransparency: true,
         convertEol: true,
         cursorBlink: true,
-        cursorStyle: 'bar',
+        cursorStyle: 'block',
         fontFamily: 'Roboto Mono, monospace',
         fontSize: 13,
         screenReaderMode: true,
         scrollback: 10000,
         theme: {
-            background: '#0d1117',
+            background: '#00000000',
             foreground: '#e6edf3',
-            cursor: '#58a6ff',
+            cursor: '#ffffff',
             selectionBackground: '#264f78',
         },
     });

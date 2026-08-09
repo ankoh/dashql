@@ -26,7 +26,6 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const [conn, _modifyConn] = useConnectionState(notebookScripts?.notebookId ?? null);
     const [connectionOverlayOpen, setConnectionOverlayOpen] = React.useState<boolean>(false);
     const { mode: notebookMode } = useNotebookViewMode();
-    const [shellOpened, setShellOpened] = React.useState(false);
     const connectionSettingsAnchorRef = React.useRef<HTMLButtonElement>(null);
 
     // Auto-close the connection settings overlay once a connect attempt succeeds
@@ -59,10 +58,6 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
         }
     }, [route.notebookId]);
 
-    React.useEffect(() => {
-        if (notebookMode === NotebookViewMode.Shell) setShellOpened(true);
-    }, [notebookMode]);
-
     if (route.notebookId === null || notebookScripts == null) {
         return <div />;
     }
@@ -73,32 +68,18 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
 
     return (
         <div className={styles.page}>
-            <div
-                className={notebookMode === NotebookViewMode.Notebook ? styles.mode : styles.modeHidden}
-                inert={notebookMode !== NotebookViewMode.Notebook ? true : undefined}
-                aria-hidden={notebookMode !== NotebookViewMode.Notebook}
-            >
+            {notebookMode === NotebookViewMode.Notebook ? (
                 <NotebookFeedPage
                     notebookScripts={notebookScripts}
                     modifyNotebookScripts={modifyNotebookScripts}
                     connection={conn ?? null}
-                    active={notebookMode === NotebookViewMode.Notebook}
+                    active
                     openConnectionOverlay={openConnectionOverlay}
                 />
-            </div>
-            {shellOpened && (
-                <div
-                    className={notebookMode === NotebookViewMode.Shell ? styles.mode : styles.modeHidden}
-                    inert={notebookMode !== NotebookViewMode.Shell ? true : undefined}
-                    aria-hidden={notebookMode !== NotebookViewMode.Shell}
-                >
-                    <React.Suspense fallback={<div className={styles.shellLoading}>Loading shell...</div>}>
-                        <NotebookShellPage
-                            connection={conn ?? null}
-                            active={notebookMode === NotebookViewMode.Shell}
-                        />
-                    </React.Suspense>
-                </div>
+            ) : (
+                <React.Suspense fallback={<div className={styles.shellLoading}>Loading shell...</div>}>
+                    <NotebookShellPage connection={conn ?? null} active />
+                </React.Suspense>
             )}
             <ConnectionSettingsOverlay
                 notebookId={route.notebookId}

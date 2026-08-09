@@ -5,7 +5,7 @@ import symbols from '@ankoh/dashql-svg-symbols';
 import { XIcon } from '@primer/octicons-react';
 
 import { AnchorAlignment, AnchorSide } from './foundations/anchored_position.js';
-import { HoverMode, NavBarButtonWithRef, NavBarLink } from './navbar_button.js';
+import { HoverMode, NavBarButton, NavBarButtonWithRef, NavBarLink } from './navbar_button.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { NotebookStorageOverlay } from './storage/notebook_storage_overlay.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
@@ -150,19 +150,20 @@ const NotebookShellButton = () => {
     const shellActive = mode === NotebookViewMode.Shell;
     const label = shellActive ? 'Return to notebook' : 'Open shell';
     return (
-        <button
-            id="notebook-shell-toggle"
-            type="button"
-            className={`${styles.shellButton} ${shellActive ? styles.shellButtonActive : ''}`}
-            title={label}
-            aria-label={label}
-            aria-pressed={shellActive}
-            onClick={() => setMode(shellActive ? NotebookViewMode.Notebook : NotebookViewMode.Shell)}
-        >
-            <svg width="18px" height="18px" aria-hidden="true">
-                <use xlinkHref={`${symbols}#console`} />
-            </svg>
-        </button>
+        <div className={`${styles.tab} ${shellActive ? styles.active : ''}`}>
+            <NavBarButton
+                className={styles.tab_button}
+                hover={HoverMode.Darken}
+                onClick={() => setMode(shellActive ? NotebookViewMode.Notebook : NotebookViewMode.Shell)}
+            >
+                <>
+                    <svg width="16px" height="16px" aria-hidden="true">
+                        <use xlinkHref={`${symbols}#shell_24`} />
+                    </svg>
+                    <span className={styles.tab_button_text}>Shell</span>
+                </>
+            </NavBarButton>
+        </div>
     );
 };
 
@@ -273,9 +274,9 @@ export const NavBar = (): React.ReactElement => {
             {isBrowser && <BrandLogo onClose={handleCloseNotebook} />}
             <div className={styles.tabs}>
                 <NotebookBar notebookId={notebookId} notebookName={connection?.name ?? null} notebookPath={notebookPath} onClose={handleCloseNotebook} />
-                {notebookId != null && <NotebookShellButton />}
             </div>
-            <div className={styles.version_container}>
+            <div className={styles.navbar_actions}>
+                {notebookId != null && <NotebookShellButton />}
                 <InternalsButton notebookId={notebookId} />
                 <VersionButton />
                 {isBrowser &&
