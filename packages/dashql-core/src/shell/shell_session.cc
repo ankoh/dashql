@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "dashql/analyzer/completion.h"
+#include "dashql/shell/vt100.h"
 #include "utf8proc/utf8proc_wrapper.hpp"
 
 namespace dashql::shell {
@@ -18,45 +19,37 @@ using ScannerTokenType = buffers::parser::ScannerTokenType;
 constexpr uint32_t EFFECT_ENVELOPE_VERSION = 1;
 constexpr size_t EFFECT_ENVELOPE_HEADER_SIZE = 16;
 constexpr size_t HISTORY_LIMIT = 1000;
-constexpr std::string_view ANSI_RESET = "\x1b[0m";
-constexpr std::string_view ANSI_KEYWORD = "\x1b[1;38;2;255;122;178m";
-constexpr std::string_view ANSI_VIS_KEYWORD = "\x1b[3;38;2;107;170;159m";
-constexpr std::string_view ANSI_NUMBER = "\x1b[38;2;218;186;255m";
-constexpr std::string_view ANSI_STRING = "\x1b[38;2;255;129;112m";
-constexpr std::string_view ANSI_OPERATOR = "\x1b[38;2;255;122;178m";
-constexpr std::string_view ANSI_IDENTIFIER = "\x1b[38;2;107;170;159m";
-constexpr std::string_view ANSI_COMMENT = "\x1b[38;2;127;140;152m";
 
 std::string_view TokenStyle(ScannerTokenType type) {
     switch (type) {
         case ScannerTokenType::KEYWORD:
-            return ANSI_KEYWORD;
+            return vt100::kBoldForegroundPink;
         case ScannerTokenType::KEYWORD_VIS:
-            return ANSI_VIS_KEYWORD;
+            return vt100::kItalicForegroundTeal;
         case ScannerTokenType::LITERAL_INTEGER:
         case ScannerTokenType::LITERAL_FLOAT:
         case ScannerTokenType::LITERAL_BINARY:
         case ScannerTokenType::LITERAL_HEX:
         case ScannerTokenType::LITERAL_BOOLEAN:
-            return ANSI_NUMBER;
+            return vt100::kForegroundPurple;
         case ScannerTokenType::LITERAL_STRING:
-            return ANSI_STRING;
+            return vt100::kForegroundCoral;
         case ScannerTokenType::OPERATOR:
-            return ANSI_OPERATOR;
+            return vt100::kForegroundPink;
         case ScannerTokenType::IDENTIFIER:
-            return ANSI_IDENTIFIER;
+            return vt100::kForegroundTeal;
         case ScannerTokenType::COMMENT:
-            return ANSI_COMMENT;
+            return vt100::kForegroundGray;
         default:
             return {};
     }
 }
 
-void AppendCursorMove(std::string& output, size_t count, char direction) {
+void AppendCursorMove(std::string& output, size_t count, std::string_view command) {
     if (count == 0) return;
-    output.append("\x1b[");
+    output.append(vt100::kControlSequenceIntroducer);
     output.append(std::to_string(count));
-    output.push_back(direction);
+    output.append(command);
 }
 
 size_t CountLines(std::string_view text) {
@@ -233,8 +226,12 @@ ShellOperation ShellSession::OpenTerminal(std::string_view prompt, bool welcome)
     terminal_prompt_rows_ = 1;
     std::string output;
     if (welcome) {
-        output.append("\x1b[1mDashQL Shell\x1b[0m\r\n");
-        output.append("Terminate SQL with \";\". Tab completes. Ctrl+C cancels. Escape returns to the notebook.\r\n");
+        output.append(vt100::kBold);
+        output.append("DashQL Shell");
+        output.append(vt100::kResetAttributes);
+        output.append(vt100::kNewLine);
+        output.append("Terminate SQL with \";\". Tab completes. Ctrl+C cancels. Escape returns to the notebook.");
+        output.append(vt100::kNewLine);
     }
     output.append(RenderTerminalPrompt());
     return {ShellStatus::kOk, std::move(output)};
@@ -250,7 +247,7 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
     if (action == PromptInputAction::kSubmit) {
         terminal_action_ = action;
         terminal_prompt_rows_ = 1;
-        return {ShellStatus::kOk, "\r\n"};
+        return {ShellStatus::kOk, std::string{vt100::kNewLine}};
     }
     if (action == PromptInputAction::kComplete) {
         auto candidates = CompletePrompt(50);
@@ -267,7 +264,8 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
     }
     if (key == PromptInputKey::kCancel) {
         terminal_prompt_rows_ = 1;
-        std::string output{"^C\r\n"};
+        std::string output{"^C"};
+        output.append(vt100::kNewLine);
         output.append(RenderTerminalPrompt());
         return {ShellStatus::kOk, std::move(output)};
     }
@@ -276,31 +274,31 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
 
 ShellOperation ShellSession::ConsumeTerminalData(std::string_view data) {
     terminal_action_ = PromptInputAction::kNone;
-    if (data == "\x1b") {
+    if (data == vt100::kEscape) {
         terminal_action_ = PromptInputAction::kExit;
         return {ShellStatus::kOk, {}};
     }
-    if (data == "\x1f") return ConsumeTerminalInput(PromptInputKey::kForceSubmit);
-    if (data == "\x03") return ConsumeTerminalInput(PromptInputKey::kCancel);
-    if (data == "\r") return ConsumeTerminalInput(PromptInputKey::kEnter);
-    if (data == "\t") return ConsumeTerminalInput(PromptInputKey::kTab);
-    if (data == "\x7f") return ConsumeTerminalInput(PromptInputKey::kBackspace);
-    if (data == "\x1b[3~") return ConsumeTerminalInput(PromptInputKey::kDelete);
-    if (data == "\x1b[D") return ConsumeTerminalInput(PromptInputKey::kLeft);
-    if (data == "\x1b[C") return ConsumeTerminalInput(PromptInputKey::kRight);
-    if (data == "\x1b[A") return ConsumeTerminalInput(PromptInputKey::kHistoryPrevious);
-    if (data == "\x1b[B") return ConsumeTerminalInput(PromptInputKey::kHistoryNext);
-    if (data.starts_with('\x1b')) return {ShellStatus::kOk, {}};
+    if (data == vt100::kCtrlUnderscore) return ConsumeTerminalInput(PromptInputKey::kForceSubmit);
+    if (data == vt100::kCtrlC) return ConsumeTerminalInput(PromptInputKey::kCancel);
+    if (data == vt100::kCarriageReturn) return ConsumeTerminalInput(PromptInputKey::kEnter);
+    if (data == vt100::kTab) return ConsumeTerminalInput(PromptInputKey::kTab);
+    if (data == vt100::kBackspace) return ConsumeTerminalInput(PromptInputKey::kBackspace);
+    if (data == vt100::kDeleteKey) return ConsumeTerminalInput(PromptInputKey::kDelete);
+    if (data == vt100::kArrowLeftKey) return ConsumeTerminalInput(PromptInputKey::kLeft);
+    if (data == vt100::kArrowRightKey) return ConsumeTerminalInput(PromptInputKey::kRight);
+    if (data == vt100::kArrowUpKey) return ConsumeTerminalInput(PromptInputKey::kHistoryPrevious);
+    if (data == vt100::kArrowDownKey) return ConsumeTerminalInput(PromptInputKey::kHistoryNext);
+    if (data.starts_with(vt100::kEscape)) return {ShellStatus::kOk, {}};
     return ConsumeTerminalInput(PromptInputKey::kText, data);
 }
 
 ShellOperation ShellSession::FinishTerminalQuery(std::string_view output, bool error) {
     terminal_action_ = PromptInputAction::kNone;
     std::string rendered;
-    if (error) rendered.append("\x1b[31m");
+    if (error) rendered.append(vt100::kForegroundRed);
     rendered.append(output);
-    if (error) rendered.append(ANSI_RESET);
-    rendered.append("\r\n");
+    if (error) rendered.append(vt100::kResetAttributes);
+    rendered.append(vt100::kNewLine);
     prompt_.SetText("");
     terminal_prompt_rows_ = 1;
     rendered.append(RenderTerminalPrompt());
@@ -309,9 +307,11 @@ ShellOperation ShellSession::FinishTerminalQuery(std::string_view output, bool e
 
 ShellOperation ShellSession::RenderTerminalStatus(std::string_view message) {
     terminal_action_ = PromptInputAction::kNone;
-    std::string output{"\r\n\x1b[90m"};
+    std::string output{vt100::kNewLine};
+    output.append(vt100::kForegroundBrightBlack);
     output.append(message);
-    output.append("\x1b[0m\r\n");
+    output.append(vt100::kResetAttributes);
+    output.append(vt100::kNewLine);
     terminal_prompt_rows_ = 1;
     output.append(RenderTerminalPrompt());
     return {ShellStatus::kOk, std::move(output)};
@@ -544,15 +544,16 @@ std::string ShellSession::RenderTerminalPrompt() {
         const auto style = TokenStyle(packed->token_types[i]);
         if (!style.empty()) highlighted.append(style);
         highlighted.append(text.substr(begin, end - begin));
-        if (!style.empty()) highlighted.append(ANSI_RESET);
+        if (!style.empty()) highlighted.append(vt100::kResetAttributes);
         offset = end;
     }
     highlighted.append(text.substr(offset));
 
     std::string output;
     for (size_t i = 0; i < terminal_prompt_rows_; ++i) {
-        output.append("\r\x1b[2K");
-        if (i + 1 < terminal_prompt_rows_) output.append("\x1b[1A");
+        output.append(vt100::kCarriageReturn);
+        output.append(vt100::kEraseEntireLine);
+        if (i + 1 < terminal_prompt_rows_) output.append(vt100::kCursorUpOne);
     }
 
     size_t line_begin = 0;
@@ -562,7 +563,7 @@ std::string ShellSession::RenderTerminalPrompt() {
         output.append(line == 0 ? terminal_prompt : terminal_continuation_);
         output.append(highlighted.substr(line_begin, line_end - line_begin));
         if (line_end == std::string::npos) break;
-        output.append("\r\n");
+        output.append(vt100::kNewLine);
         line_begin = line_end + 1;
         ++line;
     }
@@ -575,9 +576,9 @@ std::string ShellSession::RenderTerminalPrompt() {
     const auto cursor_column = utf8::Utf8Proc::RenderWidth(std::string{cursor_prefix}) +
                                utf8::Utf8Proc::RenderWidth(text.substr(cursor_line_begin, cursor - cursor_line_begin));
     const auto rows_up = terminal_prompt_rows_ - cursor_line - 1;
-    output.push_back('\r');
-    AppendCursorMove(output, rows_up, 'A');
-    AppendCursorMove(output, cursor_column, 'C');
+    output.append(vt100::kCarriageReturn);
+    AppendCursorMove(output, rows_up, vt100::kCursorUpCommand);
+    AppendCursorMove(output, cursor_column, vt100::kCursorForwardCommand);
     return output;
 }
 
@@ -588,14 +589,14 @@ std::string ShellSession::RenderTerminalCompletions(const std::vector<Completion
     }
     width += 2;
     const auto columns = std::max<size_t>(1, renderer_.terminal_columns() / width);
-    std::string output{"\r\n"};
+    std::string output{vt100::kNewLine};
     for (size_t i = 0; i < candidates.size(); i += columns) {
         for (size_t j = i; j < std::min(i + columns, candidates.size()); ++j) {
             const auto& text = candidates[j].display_text;
             output.append(text);
             output.append(width - utf8::Utf8Proc::RenderWidth(text), ' ');
         }
-        output.append("\r\n");
+        output.append(vt100::kNewLine);
     }
     terminal_prompt_rows_ = 1;
     output.append(RenderTerminalPrompt());

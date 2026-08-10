@@ -3,6 +3,7 @@
 #include <string>
 
 #include "dashql/catalog.h"
+#include "dashql/shell/vt100.h"
 #include "gtest/gtest.h"
 
 namespace {
@@ -104,8 +105,15 @@ TEST(ShellApiTest, RendersHighlightedTerminalPrompt) {
     ASSERT_EQ(dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(), false,
                                          &output),
               DASHQL_SHELL_OK);
-    EXPECT_EQ((std::string_view{reinterpret_cast<const char*>(output.data_ptr), output.data_length}),
-              "\r\x1b[2Kdb> \r\x1b[4C");
+    std::string expected;
+    expected.append(dashql::shell::vt100::kCarriageReturn);
+    expected.append(dashql::shell::vt100::kEraseEntireLine);
+    expected.append("db> ");
+    expected.append(dashql::shell::vt100::kCarriageReturn);
+    expected.append(dashql::shell::vt100::kControlSequenceIntroducer);
+    expected.append("4");
+    expected.append(dashql::shell::vt100::kCursorForwardCommand);
+    EXPECT_EQ((std::string_view{reinterpret_cast<const char*>(output.data_ptr), output.data_length}), expected);
     dashql_shell_terminal_result_destroy(&output);
 
     const std::string query = "SELECT '界' FROM t";
@@ -113,9 +121,15 @@ TEST(ShellApiTest, RendersHighlightedTerminalPrompt) {
                                             reinterpret_cast<const uint8_t*>(query.data()), query.size(), &output),
               DASHQL_SHELL_OK);
     const std::string rendered{reinterpret_cast<const char*>(output.data_ptr), output.data_length};
-    EXPECT_NE(rendered.find("\x1b[1;38;2;255;122;178mSELECT\x1b[0m"), std::string::npos);
-    EXPECT_NE(rendered.find("\x1b[38;2;255;129;112m'界'\x1b[0m"), std::string::npos);
-    EXPECT_NE(rendered.find("\x1b[38;2;107;170;159mt\x1b[0m"), std::string::npos);
+    EXPECT_NE(rendered.find(std::string{dashql::shell::vt100::kBoldForegroundPink} + "SELECT" +
+                            std::string{dashql::shell::vt100::kResetAttributes}),
+              std::string::npos);
+    EXPECT_NE(rendered.find(std::string{dashql::shell::vt100::kForegroundCoral} + "'界'" +
+                            std::string{dashql::shell::vt100::kResetAttributes}),
+              std::string::npos);
+    EXPECT_NE(rendered.find(std::string{dashql::shell::vt100::kForegroundTeal} + "t" +
+                            std::string{dashql::shell::vt100::kResetAttributes}),
+              std::string::npos);
     dashql_shell_terminal_result_destroy(&output);
     dashql_shell_destroy(shell);
 }
@@ -136,14 +150,14 @@ TEST(ShellApiTest, ConsumesRawTerminalData) {
     EXPECT_EQ(output.action, DASHQL_SHELL_INPUT_NONE);
     dashql_shell_terminal_result_destroy(&output);
 
-    const std::string enter = "\r";
+    const std::string enter{dashql::shell::vt100::kCarriageReturn};
     ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(enter.data()), enter.size(),
                                                  &output),
               DASHQL_SHELL_OK);
     EXPECT_EQ(output.action, DASHQL_SHELL_INPUT_SUBMIT);
     dashql_shell_terminal_result_destroy(&output);
 
-    const std::string escape = "\x1b";
+    const std::string escape{dashql::shell::vt100::kEscape};
     ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(escape.data()),
                                                  escape.size(), &output),
               DASHQL_SHELL_OK);
