@@ -12,6 +12,7 @@ export type {
     DashQLShellEnvironment,
     DashQLShellOptions,
     DashQLShellPrompt,
+    DashQLShellTerminalOutput,
 } from './api.js';
 export { createDuckDBShellEnvironment } from './duckdb_shell_environment.js';
 export { createNotebookShellEnvironment } from './notebook_shell_environment.js';

@@ -14,6 +14,7 @@ class ArrowRenderer {
 
     void Resize(uint32_t terminal_columns);
     arrow::Result<std::string> RenderIPC(std::span<const uint8_t> data) const;
+    uint32_t terminal_columns() const { return terminal_columns_; }
 
    private:
     uint32_t terminal_columns_;

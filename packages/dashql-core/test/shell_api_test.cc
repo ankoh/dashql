@@ -94,4 +94,62 @@ TEST(ShellApiTest, DrivesPromptInteractionAndHistory) {
     dashql_shell_destroy(shell);
 }
 
+TEST(ShellApiTest, RendersHighlightedTerminalPrompt) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+
+    DashQLShellTerminalResult output{};
+    const std::string prompt = "db> ";
+    ASSERT_EQ(dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(), false,
+                                         &output),
+              DASHQL_SHELL_OK);
+    EXPECT_EQ((std::string_view{reinterpret_cast<const char*>(output.data_ptr), output.data_length}),
+              "\r\x1b[2Kdb> \r\x1b[4C");
+    dashql_shell_terminal_result_destroy(&output);
+
+    const std::string query = "SELECT '界' FROM t";
+    ASSERT_EQ(dashql_shell_terminal_consume(shell, DASHQL_SHELL_INPUT_TEXT,
+                                            reinterpret_cast<const uint8_t*>(query.data()), query.size(), &output),
+              DASHQL_SHELL_OK);
+    const std::string rendered{reinterpret_cast<const char*>(output.data_ptr), output.data_length};
+    EXPECT_NE(rendered.find("\x1b[1;38;2;255;122;178mSELECT\x1b[0m"), std::string::npos);
+    EXPECT_NE(rendered.find("\x1b[38;2;255;129;112m'界'\x1b[0m"), std::string::npos);
+    EXPECT_NE(rendered.find("\x1b[38;2;107;170;159mt\x1b[0m"), std::string::npos);
+    dashql_shell_terminal_result_destroy(&output);
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, ConsumesRawTerminalData) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+
+    DashQLShellTerminalResult output{};
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    const std::string query = "SELECT 1;";
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(query.data()), query.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    EXPECT_EQ(output.action, DASHQL_SHELL_INPUT_NONE);
+    dashql_shell_terminal_result_destroy(&output);
+
+    const std::string enter = "\r";
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(enter.data()), enter.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    EXPECT_EQ(output.action, DASHQL_SHELL_INPUT_SUBMIT);
+    dashql_shell_terminal_result_destroy(&output);
+
+    const std::string escape = "\x1b";
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(escape.data()),
+                                                 escape.size(), &output),
+              DASHQL_SHELL_OK);
+    EXPECT_EQ(output.action, DASHQL_SHELL_INPUT_EXIT);
+    dashql_shell_terminal_result_destroy(&output);
+    dashql_shell_destroy(shell);
+}
+
 }  // namespace

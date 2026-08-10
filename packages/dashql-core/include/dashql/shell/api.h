@@ -51,6 +51,7 @@ enum DashQLShellPromptInputAction : uint32_t {
     DASHQL_SHELL_INPUT_NONE = 0,
     DASHQL_SHELL_INPUT_SUBMIT = 1,
     DASHQL_SHELL_INPUT_COMPLETE = 2,
+    DASHQL_SHELL_INPUT_EXIT = 3,
 };
 
 struct DashQLShellResult {
@@ -73,6 +74,14 @@ struct DashQLShellPromptResult {
     uint32_t action;
 };
 
+struct DashQLShellTerminalResult {
+    uint32_t status;
+    uint32_t action;
+    uint32_t data_length;
+    const uint8_t* data_ptr;
+    void* owner_ptr;
+};
+
 struct DashQLShellCompletionResult {
     uint32_t count;
     const void* candidates_ptr;
@@ -91,6 +100,7 @@ struct DashQLShellCompletionCandidate {
 #if UINTPTR_MAX == UINT32_MAX
 static_assert(sizeof(DashQLShellResult) == 16);
 static_assert(sizeof(DashQLShellPromptResult) == 40);
+static_assert(sizeof(DashQLShellTerminalResult) == 20);
 static_assert(sizeof(DashQLShellCompletionResult) == 12);
 static_assert(sizeof(DashQLShellCompletionCandidate) == 24);
 #endif
@@ -134,6 +144,35 @@ DASHQL_SHELL_EXPORT uint32_t dashql_shell_prompt_consume(
 DASHQL_SHELL_EXPORT uint32_t dashql_shell_prompt_submit(DashQLShell* shell, DashQLShellResult* result);
 DASHQL_SHELL_EXPORT void dashql_shell_prompt_result_destroy(DashQLShellPromptResult* result);
 DASHQL_SHELL_EXPORT void dashql_shell_completion_result_destroy(DashQLShellCompletionResult* result);
+DASHQL_SHELL_EXPORT uint32_t dashql_shell_terminal_open(
+    DashQLShell* shell,
+    const uint8_t* prompt,
+    size_t prompt_length,
+    bool welcome,
+    DashQLShellTerminalResult* result);
+DASHQL_SHELL_EXPORT uint32_t dashql_shell_terminal_consume(
+    DashQLShell* shell,
+    uint32_t key,
+    const uint8_t* text,
+    size_t text_length,
+    DashQLShellTerminalResult* result);
+DASHQL_SHELL_EXPORT uint32_t dashql_shell_terminal_consume_data(
+    DashQLShell* shell,
+    const uint8_t* data,
+    size_t data_length,
+    DashQLShellTerminalResult* result);
+DASHQL_SHELL_EXPORT uint32_t dashql_shell_terminal_finish_query(
+    DashQLShell* shell,
+    const uint8_t* output,
+    size_t output_length,
+    bool error,
+    DashQLShellTerminalResult* result);
+DASHQL_SHELL_EXPORT uint32_t dashql_shell_terminal_status(
+    DashQLShell* shell,
+    const uint8_t* message,
+    size_t message_length,
+    DashQLShellTerminalResult* result);
+DASHQL_SHELL_EXPORT void dashql_shell_terminal_result_destroy(DashQLShellTerminalResult* result);
 DASHQL_SHELL_EXPORT uint32_t dashql_shell_history_export(DashQLShell* shell, DashQLShellResult* result);
 DASHQL_SHELL_EXPORT uint32_t dashql_shell_history_import(
     DashQLShell* shell,

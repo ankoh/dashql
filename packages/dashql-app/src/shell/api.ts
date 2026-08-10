@@ -9,6 +9,7 @@ const RESULT_DATA_POINTER = 2;
 const EFFECT_HEADER_SIZE = 16;
 const EFFECT_VERSION = 1;
 const PROMPT_RESULT_SIZE = 40;
+const TERMINAL_RESULT_SIZE = 20;
 const COMPLETION_RESULT_SIZE = 12;
 const COMPLETION_CANDIDATE_SIZE = 24;
 
@@ -50,6 +51,12 @@ export interface DashQLShellModule extends EmscriptenModule {
     _dashql_shell_prompt_submit(shell: number, result: number): number;
     _dashql_shell_prompt_result_destroy(result: number): void;
     _dashql_shell_completion_result_destroy(result: number): void;
+    _dashql_shell_terminal_open(shell: number, prompt: number, promptLength: number, welcome: boolean, result: number): number;
+    _dashql_shell_terminal_consume(shell: number, key: number, text: number, textLength: number, result: number): number;
+    _dashql_shell_terminal_consume_data(shell: number, data: number, dataLength: number, result: number): number;
+    _dashql_shell_terminal_finish_query(shell: number, output: number, outputLength: number, error: boolean, result: number): number;
+    _dashql_shell_terminal_status(shell: number, message: number, messageLength: number, result: number): number;
+    _dashql_shell_terminal_result_destroy(result: number): void;
     _dashql_shell_history_export(shell: number, result: number): number;
     _dashql_shell_history_import(shell: number, data: number, dataLength: number, result: number): number;
     _dashql_shell_start_query(shell: number, query: number, queryLength: number, result: number): number;
@@ -126,6 +133,11 @@ export interface DashQLShellPrompt {
     action: DashQLShellPromptAction;
 }
 
+export interface DashQLShellTerminalOutput {
+    action: DashQLShellPromptAction;
+    data: string;
+}
+
 export enum DashQLShellPromptInput {
     TEXT = 0,
     ENTER = 1,
@@ -144,6 +156,7 @@ export enum DashQLShellPromptAction {
     NONE = 0,
     SUBMIT = 1,
     COMPLETE = 2,
+    EXIT = 3,
 }
 
 export interface DashQLShellCompletionCandidate {
@@ -388,6 +401,36 @@ export class DashQLShell {
         });
     }
 
+    openTerminal(prompt = 'dashql> ', welcome = true): DashQLShellTerminalOutput {
+        return this.invokeTerminal(this.textEncoder.encode(prompt), (input, inputLength, result) => {
+            this.module._dashql_shell_terminal_open(this.shell, input, inputLength, welcome, result);
+        });
+    }
+
+    consumeTerminalInput(key: DashQLShellPromptInput, text = ''): DashQLShellTerminalOutput {
+        return this.invokeTerminal(this.textEncoder.encode(text), (input, inputLength, result) => {
+            this.module._dashql_shell_terminal_consume(this.shell, key, input, inputLength, result);
+        });
+    }
+
+    consumeTerminalData(data: string): DashQLShellTerminalOutput {
+        return this.invokeTerminal(this.textEncoder.encode(data), (input, inputLength, result) => {
+            this.module._dashql_shell_terminal_consume_data(this.shell, input, inputLength, result);
+        });
+    }
+
+    finishTerminalQuery(output: string, error = false): DashQLShellTerminalOutput {
+        return this.invokeTerminal(this.textEncoder.encode(output), (input, inputLength, result) => {
+            this.module._dashql_shell_terminal_finish_query(this.shell, input, inputLength, error, result);
+        });
+    }
+
+    renderTerminalStatus(message: string): DashQLShellTerminalOutput {
+        return this.invokeTerminal(this.textEncoder.encode(message), (input, inputLength, result) => {
+            this.module._dashql_shell_terminal_status(this.shell, input, inputLength, result);
+        });
+    }
+
     exportHistory(): Uint8Array {
         const operation = this.invoke(new Uint8Array(), (_input, _inputLength, result) => {
             this.module._dashql_shell_history_export(this.shell, result);
@@ -482,6 +525,37 @@ export class DashQLShell {
             };
         } finally {
             this.module._dashql_shell_prompt_result_destroy(result);
+            this.module._dashql_free(result);
+            this.module._dashql_free(input);
+        }
+    }
+
+    protected invokeTerminal(
+        data: Uint8Array,
+        callback: (input: number, inputLength: number, result: number) => void,
+    ): DashQLShellTerminalOutput {
+        this.assertAlive();
+        const input = data.byteLength === 0 ? 0 : this.module._dashql_malloc(data.byteLength);
+        const result = this.module._dashql_malloc(TERMINAL_RESULT_SIZE);
+        if ((data.byteLength !== 0 && input === 0) || result === 0) {
+            if (input !== 0) this.module._dashql_free(input);
+            if (result !== 0) this.module._dashql_free(result);
+            throw new DashQLShellError(DashQLShellStatus.INTERNAL_ERROR, 'failed to allocate terminal input');
+        }
+        try {
+            if (data.byteLength !== 0) this.module.HEAPU8.set(data, input);
+            this.module.HEAPU32.fill(0, result >>> 2, (result + TERMINAL_RESULT_SIZE) >>> 2);
+            callback(input, data.byteLength, result);
+            const index = result >>> 2;
+            const status = this.module.HEAPU32[index] as DashQLShellStatus;
+            const output = this.readText(this.module.HEAPU32[index + 3], this.module.HEAPU32[index + 2]);
+            if (status !== DashQLShellStatus.OK) throw new DashQLShellError(status, output);
+            return {
+                action: this.module.HEAPU32[index + 1] as DashQLShellPromptAction,
+                data: output,
+            };
+        } finally {
+            this.module._dashql_shell_terminal_result_destroy(result);
             this.module._dashql_free(result);
             this.module._dashql_free(input);
         }

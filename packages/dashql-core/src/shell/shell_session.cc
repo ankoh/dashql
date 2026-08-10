@@ -1,5 +1,6 @@
 #include "dashql/shell/shell_session.h"
 
+#include <algorithm>
 #include <cstring>
 #include <exception>
 #include <stdexcept>
@@ -12,9 +13,55 @@
 namespace dashql::shell {
 namespace {
 
+using ScannerTokenType = buffers::parser::ScannerTokenType;
+
 constexpr uint32_t EFFECT_ENVELOPE_VERSION = 1;
 constexpr size_t EFFECT_ENVELOPE_HEADER_SIZE = 16;
 constexpr size_t HISTORY_LIMIT = 1000;
+constexpr std::string_view ANSI_RESET = "\x1b[0m";
+constexpr std::string_view ANSI_KEYWORD = "\x1b[1;38;2;255;122;178m";
+constexpr std::string_view ANSI_VIS_KEYWORD = "\x1b[3;38;2;107;170;159m";
+constexpr std::string_view ANSI_NUMBER = "\x1b[38;2;218;186;255m";
+constexpr std::string_view ANSI_STRING = "\x1b[38;2;255;129;112m";
+constexpr std::string_view ANSI_OPERATOR = "\x1b[38;2;255;122;178m";
+constexpr std::string_view ANSI_IDENTIFIER = "\x1b[38;2;107;170;159m";
+constexpr std::string_view ANSI_COMMENT = "\x1b[38;2;127;140;152m";
+
+std::string_view TokenStyle(ScannerTokenType type) {
+    switch (type) {
+        case ScannerTokenType::KEYWORD:
+            return ANSI_KEYWORD;
+        case ScannerTokenType::KEYWORD_VIS:
+            return ANSI_VIS_KEYWORD;
+        case ScannerTokenType::LITERAL_INTEGER:
+        case ScannerTokenType::LITERAL_FLOAT:
+        case ScannerTokenType::LITERAL_BINARY:
+        case ScannerTokenType::LITERAL_HEX:
+        case ScannerTokenType::LITERAL_BOOLEAN:
+            return ANSI_NUMBER;
+        case ScannerTokenType::LITERAL_STRING:
+            return ANSI_STRING;
+        case ScannerTokenType::OPERATOR:
+            return ANSI_OPERATOR;
+        case ScannerTokenType::IDENTIFIER:
+            return ANSI_IDENTIFIER;
+        case ScannerTokenType::COMMENT:
+            return ANSI_COMMENT;
+        default:
+            return {};
+    }
+}
+
+void AppendCursorMove(std::string& output, size_t count, char direction) {
+    if (count == 0) return;
+    output.append("\x1b[");
+    output.append(std::to_string(count));
+    output.push_back(direction);
+}
+
+size_t CountLines(std::string_view text) {
+    return 1 + static_cast<size_t>(std::count(text.begin(), text.end(), '\n'));
+}
 
 void AppendU32(std::string& output, uint32_t value) {
     for (size_t i = 0; i < sizeof(value); ++i) {
@@ -171,6 +218,103 @@ PromptSnapshot ShellSession::ConsumePromptInput(PromptInputKey key, std::string_
     auto snapshot = SnapshotPrompt();
     snapshot.action = static_cast<uint32_t>(action);
     return snapshot;
+}
+
+ShellOperation ShellSession::OpenTerminal(std::string_view prompt, bool welcome) {
+    terminal_action_ = PromptInputAction::kNone;
+    if (!utf8::Utf8Proc::IsValid(prompt)) {
+        return {ShellStatus::kInvalidArgument, "terminal prompt must contain valid UTF-8"};
+    }
+    if (prompt.size() > terminal_prompt_storage_.size()) {
+        return {ShellStatus::kInvalidArgument, "terminal prompt is too long"};
+    }
+    std::copy(prompt.begin(), prompt.end(), terminal_prompt_storage_.begin());
+    terminal_prompt_length_ = prompt.size();
+    terminal_prompt_rows_ = 1;
+    std::string output;
+    if (welcome) {
+        output.append("\x1b[1mDashQL Shell\x1b[0m\r\n");
+        output.append("Terminate SQL with \";\". Tab completes. Ctrl+C cancels. Escape returns to the notebook.\r\n");
+    }
+    output.append(RenderTerminalPrompt());
+    return {ShellStatus::kOk, std::move(output)};
+}
+
+ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::string_view text) {
+    terminal_action_ = PromptInputAction::kNone;
+    auto snapshot = ConsumePromptInput(key, text);
+    if (snapshot.status != ShellStatus::kOk) {
+        return {snapshot.status, std::move(snapshot.message)};
+    }
+    const auto action = static_cast<PromptInputAction>(snapshot.action);
+    if (action == PromptInputAction::kSubmit) {
+        terminal_action_ = action;
+        terminal_prompt_rows_ = 1;
+        return {ShellStatus::kOk, "\r\n"};
+    }
+    if (action == PromptInputAction::kComplete) {
+        auto candidates = CompletePrompt(50);
+        if (candidates.size() == 1) {
+            snapshot = ApplyCompletion(candidates.front());
+            if (snapshot.status != ShellStatus::kOk) {
+                return {snapshot.status, std::move(snapshot.message)};
+            }
+            return {ShellStatus::kOk, RenderTerminalPrompt()};
+        }
+        if (candidates.size() > 1) {
+            return {ShellStatus::kOk, RenderTerminalCompletions(candidates)};
+        }
+    }
+    if (key == PromptInputKey::kCancel) {
+        terminal_prompt_rows_ = 1;
+        std::string output{"^C\r\n"};
+        output.append(RenderTerminalPrompt());
+        return {ShellStatus::kOk, std::move(output)};
+    }
+    return {ShellStatus::kOk, RenderTerminalPrompt()};
+}
+
+ShellOperation ShellSession::ConsumeTerminalData(std::string_view data) {
+    terminal_action_ = PromptInputAction::kNone;
+    if (data == "\x1b") {
+        terminal_action_ = PromptInputAction::kExit;
+        return {ShellStatus::kOk, {}};
+    }
+    if (data == "\x1f") return ConsumeTerminalInput(PromptInputKey::kForceSubmit);
+    if (data == "\x03") return ConsumeTerminalInput(PromptInputKey::kCancel);
+    if (data == "\r") return ConsumeTerminalInput(PromptInputKey::kEnter);
+    if (data == "\t") return ConsumeTerminalInput(PromptInputKey::kTab);
+    if (data == "\x7f") return ConsumeTerminalInput(PromptInputKey::kBackspace);
+    if (data == "\x1b[3~") return ConsumeTerminalInput(PromptInputKey::kDelete);
+    if (data == "\x1b[D") return ConsumeTerminalInput(PromptInputKey::kLeft);
+    if (data == "\x1b[C") return ConsumeTerminalInput(PromptInputKey::kRight);
+    if (data == "\x1b[A") return ConsumeTerminalInput(PromptInputKey::kHistoryPrevious);
+    if (data == "\x1b[B") return ConsumeTerminalInput(PromptInputKey::kHistoryNext);
+    if (data.starts_with('\x1b')) return {ShellStatus::kOk, {}};
+    return ConsumeTerminalInput(PromptInputKey::kText, data);
+}
+
+ShellOperation ShellSession::FinishTerminalQuery(std::string_view output, bool error) {
+    terminal_action_ = PromptInputAction::kNone;
+    std::string rendered;
+    if (error) rendered.append("\x1b[31m");
+    rendered.append(output);
+    if (error) rendered.append(ANSI_RESET);
+    rendered.append("\r\n");
+    prompt_.SetText("");
+    terminal_prompt_rows_ = 1;
+    rendered.append(RenderTerminalPrompt());
+    return {ShellStatus::kOk, std::move(rendered)};
+}
+
+ShellOperation ShellSession::RenderTerminalStatus(std::string_view message) {
+    terminal_action_ = PromptInputAction::kNone;
+    std::string output{"\r\n\x1b[90m"};
+    output.append(message);
+    output.append("\x1b[0m\r\n");
+    terminal_prompt_rows_ = 1;
+    output.append(RenderTerminalPrompt());
+    return {ShellStatus::kOk, std::move(output)};
 }
 
 ShellOperation ShellSession::SubmitPrompt() {
@@ -380,6 +524,82 @@ PromptSnapshot ShellSession::SnapshotPrompt(ShellStatus status, std::string mess
         .message = std::move(message),
         .action = static_cast<uint32_t>(PromptInputAction::kNone),
     };
+}
+
+std::string ShellSession::RenderTerminalPrompt() {
+    const auto text = prompt_.Text();
+    const auto terminal_prompt = terminal_prompt_length_ == 0
+                                     ? std::string_view{"dashql> "}
+                                     : std::string_view{terminal_prompt_storage_.data(), terminal_prompt_length_};
+    prompt_.script().Parse();
+    auto packed = prompt_.script().GetParsedScript()->PackTokens();
+
+    std::string highlighted;
+    highlighted.reserve(text.size() + packed->token_offsets.size() * 16);
+    size_t offset = 0;
+    for (size_t i = 0; i < packed->token_offsets.size(); ++i) {
+        const auto begin = static_cast<size_t>(packed->token_offsets[i]);
+        const auto end = begin + packed->token_lengths[i];
+        if (begin > offset) highlighted.append(text.substr(offset, begin - offset));
+        const auto style = TokenStyle(packed->token_types[i]);
+        if (!style.empty()) highlighted.append(style);
+        highlighted.append(text.substr(begin, end - begin));
+        if (!style.empty()) highlighted.append(ANSI_RESET);
+        offset = end;
+    }
+    highlighted.append(text.substr(offset));
+
+    std::string output;
+    for (size_t i = 0; i < terminal_prompt_rows_; ++i) {
+        output.append("\r\x1b[2K");
+        if (i + 1 < terminal_prompt_rows_) output.append("\x1b[1A");
+    }
+
+    size_t line_begin = 0;
+    size_t line = 0;
+    while (line_begin <= highlighted.size()) {
+        const auto line_end = highlighted.find('\n', line_begin);
+        output.append(line == 0 ? terminal_prompt : terminal_continuation_);
+        output.append(highlighted.substr(line_begin, line_end - line_begin));
+        if (line_end == std::string::npos) break;
+        output.append("\r\n");
+        line_begin = line_end + 1;
+        ++line;
+    }
+    terminal_prompt_rows_ = CountLines(text);
+
+    const auto cursor = prompt_.cursor_byte_offset();
+    const auto cursor_line = static_cast<size_t>(std::count(text.begin(), text.begin() + cursor, '\n'));
+    const auto cursor_line_begin = cursor_line == 0 ? 0 : text.rfind('\n', cursor - 1) + 1;
+    const auto cursor_prefix = cursor_line == 0 ? terminal_prompt : terminal_continuation_;
+    const auto cursor_column = utf8::Utf8Proc::RenderWidth(std::string{cursor_prefix}) +
+                               utf8::Utf8Proc::RenderWidth(text.substr(cursor_line_begin, cursor - cursor_line_begin));
+    const auto rows_up = terminal_prompt_rows_ - cursor_line - 1;
+    output.push_back('\r');
+    AppendCursorMove(output, rows_up, 'A');
+    AppendCursorMove(output, cursor_column, 'C');
+    return output;
+}
+
+std::string ShellSession::RenderTerminalCompletions(const std::vector<CompletionCandidate>& candidates) {
+    size_t width = 1;
+    for (const auto& candidate : candidates) {
+        width = std::max(width, utf8::Utf8Proc::RenderWidth(candidate.display_text));
+    }
+    width += 2;
+    const auto columns = std::max<size_t>(1, renderer_.terminal_columns() / width);
+    std::string output{"\r\n"};
+    for (size_t i = 0; i < candidates.size(); i += columns) {
+        for (size_t j = i; j < std::min(i + columns, candidates.size()); ++j) {
+            const auto& text = candidates[j].display_text;
+            output.append(text);
+            output.append(width - utf8::Utf8Proc::RenderWidth(text), ' ');
+        }
+        output.append("\r\n");
+    }
+    terminal_prompt_rows_ = 1;
+    output.append(RenderTerminalPrompt());
+    return output;
 }
 
 void ShellSession::DestroyPendingEffects() {

@@ -61,6 +61,19 @@ describe('DashQL shell Wasm', () => {
         await expect(shell.submitPrompt()).resolves.toBe('backend unavailable');
     });
 
+    it('renders terminal highlighting in Wasm', () => {
+        expect(shell.openTerminal('db> ', false).data).toBe('\r\x1b[2Kdb> \r\x1b[4C');
+        const output = shell.consumeTerminalData("SELECT '界' FROM t").data;
+        expect(output).toContain('\x1b[1;38;2;255;122;178mSELECT\x1b[0m');
+        expect(output).toContain("\x1b[38;2;255;129;112m'界'\x1b[0m");
+        expect(output).toContain('\x1b[38;2;107;170;159mt\x1b[0m');
+    });
+
+    it('decodes terminal controls', () => {
+        shell.openTerminal('db> ', false);
+        expect(shell.consumeTerminalData('\x1b').action).toBe(DashQLShellPromptAction.EXIT);
+    });
+
     it('drives multiline input and history through the shell core', async () => {
         let prompt = shell.consumePromptInput(DashQLShellPromptInput.TEXT, 'SELECT 42');
         expect(prompt.text).toBe('SELECT 42');

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <coroutine>
 #include <cstdint>
 #include <deque>
@@ -81,6 +82,7 @@ enum class PromptInputAction : uint32_t {
     kNone = 0,
     kSubmit = 1,
     kComplete = 2,
+    kExit = 3,
 };
 
 class ShellSession {
@@ -103,6 +105,12 @@ class ShellSession {
     std::vector<CompletionCandidate> CompletePrompt(size_t limit);
     PromptSnapshot ApplyCompletion(const CompletionCandidate& candidate);
     PromptSnapshot ConsumePromptInput(PromptInputKey key, std::string_view text = {});
+    ShellOperation OpenTerminal(std::string_view prompt, bool welcome = true);
+    ShellOperation ConsumeTerminalInput(PromptInputKey key, std::string_view text = {});
+    ShellOperation ConsumeTerminalData(std::string_view data);
+    ShellOperation FinishTerminalQuery(std::string_view output, bool error = false);
+    ShellOperation RenderTerminalStatus(std::string_view message);
+    PromptInputAction terminal_action() const { return terminal_action_; }
     ShellOperation SubmitPrompt();
     ShellOperation StartQuery(std::string_view query);
     ShellOperation CompleteEffect(uint64_t effect_id,
@@ -154,6 +162,8 @@ class ShellSession {
     ShellOperation CollectOperation(Task::Handle coroutine);
     ShellOperation EncodeOutgoingEffect();
     PromptSnapshot SnapshotPrompt(ShellStatus status = ShellStatus::kOk, std::string message = {});
+    std::string RenderTerminalPrompt();
+    std::string RenderTerminalCompletions(const std::vector<CompletionCandidate>& candidates);
     bool PromptIsComplete();
     void ResetHistoryCursor();
     void RememberPrompt(std::string_view query);
@@ -168,6 +178,11 @@ class ShellSession {
     std::unordered_map<uint64_t, PendingEffect> pending_effects_;
     std::optional<OutgoingEffect> outgoing_effect_;
     std::optional<ShellOperation> completed_operation_;
+    std::array<char, 256> terminal_prompt_storage_ = {};
+    size_t terminal_prompt_length_ = 0;
+    std::string_view terminal_continuation_ = "     -> ";
+    size_t terminal_prompt_rows_ = 1;
+    PromptInputAction terminal_action_ = PromptInputAction::kNone;
 };
 
 }  // namespace dashql::shell
