@@ -24,6 +24,12 @@ formatter-snapshots:
     dialects:
       duckdb:
 
+  - name: vis_cte_union_source
+    input: |-
+      visualize (with events as (select * from source), aggregates_other as (select ts_hour, sum(cpu_time) as metric, 'other' as target from events where not marker group by ts_hour, marker), aggregates_filtered as (select ts_hour, sum(cpu_time) as metric, 'filtered' as target from events where marker group by ts_hour) select * from aggregates_other union all select * from aggregates_filtered) using vegalite (mark => bar, encoding => (x => (field => ts_hour, type => temporal), y => (field => metric, type => quantitative), color => (field => target)))
+    dialects:
+      duckdb:
+
   - name: vis_multi_spec_keys
     input: |-
       visualize sales using vegalite (mark => line, width => 800, height => 400)

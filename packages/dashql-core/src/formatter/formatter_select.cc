@@ -27,6 +27,7 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
                       AttributeKey::SQL_COMBINE_OPERATION, AttributeKey::SQL_COMBINE_MODIFIER,
                       AttributeKey::SQL_COMBINE_INPUT>(node);
 
+    FmtReg query = 0;
     if (combine_operation && combine_input) {
         auto op = static_cast<CombineOperation>(combine_operation->children_begin_or_value());
         std::string_view op_text;
@@ -68,15 +69,76 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
             if (child.reg == 0) return FormatUnimplemented(node);
             inputs.push_back(child.reg);
         }
-        return fmt.Join(inputs, separator, break_separator, FormattingJoinPolicy::BreakAllOrNone);
+        query = fmt.Join(inputs, separator, break_separator, FormattingJoinPolicy::BreakAllOrNone);
     }
 
-    if (select_into || select_windows || select_row_locking || select_sample || select_limit_all) {
-        return FormatUnimplemented(node);
+    if (query == 0) {
+        if (select_into || select_windows || select_row_locking || select_sample || select_limit_all) {
+            return FormatUnimplemented(node);
+        }
+
+        std::vector<FmtReg> clauses;
+        clauses.reserve(8);
+        if (select_values) {
+            auto values_reg = Reg(*select_values);
+            if (values_reg == 0) return FormatUnimplemented(node);
+            if (config.mode == buffers::formatting::FormattingMode::PRETTY) {
+                clauses.push_back(
+                    fmt.Concat({fmt.Text("values"), fmt.Indented(fmt.Concat({fmt.Break(), values_reg}))}));
+            } else {
+                clauses.push_back(fmt.Concat({fmt.Text("values "), values_reg}));
+            }
+        }
+        if (select_targets) {
+            auto body = Reg(*select_targets);
+            if (select_distinct && select_distinct->node_type() == NodeType::ARRAY) {
+                if (select_distinct->children_count() > 0) {
+                    auto on_cols = Reg(*select_distinct);
+                    clauses.push_back(
+                        fmt.Concat({fmt.Text("select distinct on "), fmt.Parenthesized(on_cols), fmt.Text(" "), body}));
+                } else {
+                    clauses.push_back(fmt.Concat({fmt.Text("select distinct "), body}));
+                }
+            } else {
+                clauses.push_back(fmt.Concat({fmt.Text("select "), body}));
+            }
+        }
+        if (select_from) {
+            auto body = Reg(*select_from);
+            clauses.push_back(fmt.Concat({fmt.Text("from "), body}));
+        }
+        if (select_where) {
+            auto body = Reg(*select_where);
+            clauses.push_back(fmt.Concat({fmt.Text("where "), body}));
+        }
+        if (select_groups) {
+            auto body = Reg(*select_groups);
+            clauses.push_back(fmt.Concat({fmt.Text("group by "), body}));
+        }
+        if (select_having) {
+            auto body = Reg(*select_having);
+            clauses.push_back(fmt.Concat({fmt.Text("having "), body}));
+        }
+        if (select_order) {
+            auto body = Reg(*select_order);
+            clauses.push_back(fmt.Concat({fmt.Text("order by "), body}));
+        }
+        if (select_limit) {
+            auto body = Reg(*select_limit);
+            clauses.push_back(fmt.Concat({fmt.Text("limit "), body}));
+        }
+        if (select_offset) {
+            auto body = Reg(*select_offset);
+            clauses.push_back(fmt.Concat({fmt.Text("offset "), body}));
+        }
+
+        if (clauses.empty()) return FormatUnimplemented(node);
+        auto clause_policy = config.mode == buffers::formatting::FormattingMode::PRETTY
+                                 ? FormattingJoinPolicy::ForceBreak
+                                 : FormattingJoinPolicy::BreakAllOrNone;
+        query = fmt.Join(clauses, fmt.Text(" "), fmt.Break(), clause_policy);
     }
 
-    std::vector<FmtReg> clauses;
-    clauses.reserve(8);
     if (select_with_ctes) {
         auto cte_children = GetArrayStates(*select_with_ctes);
         std::vector<FmtReg> cte_regs;
@@ -86,69 +148,18 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
             cte_regs.push_back(cte_children[i].reg);
         }
         auto ctes = fmt.Concat(cte_regs);
+        FmtReg with_clause;
         if (select_with_recursive) {
-            clauses.push_back(fmt.Concat({fmt.Text("with recursive "), ctes}));
+            with_clause = fmt.Concat({fmt.Text("with recursive "), ctes});
         } else {
-            clauses.push_back(fmt.Concat({fmt.Text("with "), ctes}));
+            with_clause = fmt.Concat({fmt.Text("with "), ctes});
         }
+        auto with_policy = config.mode == buffers::formatting::FormattingMode::PRETTY
+                               ? FormattingJoinPolicy::ForceBreak
+                               : FormattingJoinPolicy::BreakAllOrNone;
+        query = fmt.Join(std::vector<FmtReg>{with_clause, query}, fmt.Text(" "), fmt.Break(), with_policy);
     }
-    if (select_values) {
-        auto values_reg = Reg(*select_values);
-        if (values_reg == 0) return FormatUnimplemented(node);
-        if (config.mode == buffers::formatting::FormattingMode::PRETTY) {
-            clauses.push_back(fmt.Concat({fmt.Text("values"), fmt.Indented(fmt.Concat({fmt.Break(), values_reg}))}));
-        } else {
-            clauses.push_back(fmt.Concat({fmt.Text("values "), values_reg}));
-        }
-    }
-    if (select_targets) {
-        auto body = Reg(*select_targets);
-        if (select_distinct && select_distinct->node_type() == NodeType::ARRAY) {
-            if (select_distinct->children_count() > 0) {
-                auto on_cols = Reg(*select_distinct);
-                clauses.push_back(
-                    fmt.Concat({fmt.Text("select distinct on "), fmt.Parenthesized(on_cols), fmt.Text(" "), body}));
-            } else {
-                clauses.push_back(fmt.Concat({fmt.Text("select distinct "), body}));
-            }
-        } else {
-            clauses.push_back(fmt.Concat({fmt.Text("select "), body}));
-        }
-    }
-    if (select_from) {
-        auto body = Reg(*select_from);
-        clauses.push_back(fmt.Concat({fmt.Text("from "), body}));
-    }
-    if (select_where) {
-        auto body = Reg(*select_where);
-        clauses.push_back(fmt.Concat({fmt.Text("where "), body}));
-    }
-    if (select_groups) {
-        auto body = Reg(*select_groups);
-        clauses.push_back(fmt.Concat({fmt.Text("group by "), body}));
-    }
-    if (select_having) {
-        auto body = Reg(*select_having);
-        clauses.push_back(fmt.Concat({fmt.Text("having "), body}));
-    }
-    if (select_order) {
-        auto body = Reg(*select_order);
-        clauses.push_back(fmt.Concat({fmt.Text("order by "), body}));
-    }
-    if (select_limit) {
-        auto body = Reg(*select_limit);
-        clauses.push_back(fmt.Concat({fmt.Text("limit "), body}));
-    }
-    if (select_offset) {
-        auto body = Reg(*select_offset);
-        clauses.push_back(fmt.Concat({fmt.Text("offset "), body}));
-    }
-
-    if (clauses.empty()) return FormatUnimplemented(node);
-    auto clause_policy = config.mode == buffers::formatting::FormattingMode::PRETTY
-                             ? FormattingJoinPolicy::ForceBreak
-                             : FormattingJoinPolicy::BreakAllOrNone;
-    return fmt.Join(clauses, fmt.Text(" "), fmt.Break(), clause_policy);
+    return query;
 }
 
 }  // namespace dashql
