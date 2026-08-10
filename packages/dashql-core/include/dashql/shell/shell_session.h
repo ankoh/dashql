@@ -80,6 +80,7 @@ enum class PromptInputKey : uint32_t {
     kHistoryPrevious = 8,
     kHistoryNext = 9,
     kCancel = 10,
+    kEscape = 11,
 };
 
 enum class PromptInputAction : uint32_t {
@@ -111,7 +112,6 @@ class ShellSession {
     PromptSnapshot ConsumePromptInput(PromptInputKey key, std::string_view text = {});
     ShellOperation OpenTerminal(std::string_view prompt, bool welcome = true);
     ShellOperation ConsumeTerminalInput(PromptInputKey key, std::string_view text = {});
-    ShellOperation ConsumeTerminalData(std::string_view data);
     ShellOperation FinishTerminalQuery(std::string_view output, bool error = false);
     ShellOperation RenderTerminalStatus(std::string_view message);
     PromptInputAction terminal_action() const { return terminal_action_; }

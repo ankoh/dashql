@@ -65,7 +65,6 @@ SHELL_WASM_EXPORTS = [
     "'_dashql_shell_completion_result_destroy'",
     "'_dashql_shell_terminal_open'",
     "'_dashql_shell_terminal_consume'",
-    "'_dashql_shell_terminal_consume_data'",
     "'_dashql_shell_terminal_finish_query'",
     "'_dashql_shell_terminal_status'",
     "'_dashql_shell_terminal_result_destroy'",

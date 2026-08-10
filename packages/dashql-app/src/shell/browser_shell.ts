@@ -1,7 +1,7 @@
 import type { IDisposable, Terminal } from '@xterm/xterm';
 import type { FitAddon } from '@xterm/addon-fit';
 
-import { DashQLShell, DashQLShellPromptAction } from './api.js';
+import { DashQLShell, DashQLShellPromptAction, DashQLShellPromptInput } from './api.js';
 
 export interface BrowserShellOptions {
     container: HTMLElement;
@@ -15,6 +15,15 @@ export interface BrowserShellController {
     replaceShell(shell: DashQLShell): void;
     writeStatus(message: string): void;
     dispose(): void;
+}
+
+export function sanitizeTerminalText(data: string): string {
+    const escape = data.indexOf('\x1b');
+    if (escape >= 0) data = data.substring(0, escape);
+    if (data.length === 1 && (data.charCodeAt(0) < 0x20 || data.charCodeAt(0) === 0x7f)) return '';
+    return data
+        .replace(/\r\n?/g, '\n')
+        .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
 }
 
 export async function embedDashQLShell(options: BrowserShellOptions): Promise<BrowserShellController> {
@@ -77,36 +86,52 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
             if (activeQuery === abort) activeQuery = null;
         }
     };
-    const consume = (data: string) => {
-        const output = shell.consumeTerminalData(data);
+    const consume = (key: DashQLShellPromptInput, text = '') => {
+        const output = shell.consumeTerminalInput(key, text);
         terminal.write(output.data);
         if (output.action === DashQLShellPromptAction.SUBMIT) void submit();
         else if (output.action === DashQLShellPromptAction.EXIT) options.onExit?.();
     };
 
     terminal.attachCustomKeyEventHandler(event => {
-        if (event.type !== 'keydown' || event.key !== 'Enter') return true;
-        if (event.ctrlKey || event.metaKey) {
-            consume('\x1f');
+        if (event.type !== 'keydown') return true;
+        const handled = () => {
+            event.preventDefault();
+            event.stopPropagation();
             return false;
+        };
+        if (event.ctrlKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === 'c') {
+            if (activeQuery != null) activeQuery.abort();
+            else consume(DashQLShellPromptInput.CANCEL);
+            return handled();
         }
-        if (event.shiftKey) {
-            if (activeQuery == null) consume('\n');
-            return false;
+        let key: DashQLShellPromptInput | null = null;
+        switch (event.key) {
+            case 'Enter':
+                if (event.ctrlKey || event.metaKey) key = DashQLShellPromptInput.FORCE_SUBMIT;
+                else if (event.shiftKey) {
+                    if (activeQuery == null) consume(DashQLShellPromptInput.TEXT, '\n');
+                    return handled();
+                } else key = DashQLShellPromptInput.ENTER;
+                break;
+            case 'Tab': key = DashQLShellPromptInput.TAB; break;
+            case 'Backspace': key = DashQLShellPromptInput.BACKSPACE; break;
+            case 'Delete': key = DashQLShellPromptInput.DELETE; break;
+            case 'ArrowLeft': key = DashQLShellPromptInput.LEFT; break;
+            case 'ArrowRight': key = DashQLShellPromptInput.RIGHT; break;
+            case 'ArrowUp': key = DashQLShellPromptInput.HISTORY_PREVIOUS; break;
+            case 'ArrowDown': key = DashQLShellPromptInput.HISTORY_NEXT; break;
+            case 'Escape': key = DashQLShellPromptInput.ESCAPE; break;
+            default: return true;
         }
-        return true;
+        if (activeQuery == null) consume(key);
+        return handled();
     });
 
     const dataSubscription: IDisposable = terminal.onData(data => {
-        if (disposed) return;
-        if (data === '\x03') {
-            if (activeQuery != null) activeQuery.abort();
-            else consume(data);
-        } else if (activeQuery != null) {
-            return;
-        } else {
-            consume(data);
-        }
+        if (disposed || activeQuery != null) return;
+        const text = sanitizeTerminalText(data);
+        if (text.length > 0) consume(DashQLShellPromptInput.TEXT, text);
     });
 
     terminal.write(shell.openTerminal(prompt).data);

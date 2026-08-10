@@ -271,6 +271,8 @@ PromptSnapshot ShellSession::ConsumePromptInput(PromptInputKey key, std::string_
             prompt_.SetText("");
             ResetHistoryCursor();
             break;
+        case PromptInputKey::kEscape:
+            break;
     }
     auto snapshot = SnapshotPrompt();
     snapshot.action = static_cast<uint32_t>(action);
@@ -307,8 +309,21 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
     if (terminal_completion_overlays.contains(this)) {
         const auto& overlay = terminal_completion_overlays.at(this);
         const auto variant_count = overlay.candidates[overlay.selection].qualification_texts.size();
+        if (key == PromptInputKey::kHistoryPrevious) return MoveTerminalCompletion(-1);
+        if (key == PromptInputKey::kHistoryNext) return MoveTerminalCompletion(1);
         if (variant_count > 1 && key == PromptInputKey::kLeft) return MoveTerminalCompletionVariant(-1);
         if (variant_count > 1 && key == PromptInputKey::kRight) return MoveTerminalCompletionVariant(1);
+        if (key == PromptInputKey::kEnter || key == PromptInputKey::kTab) return AcceptTerminalCompletion();
+        if (key == PromptInputKey::kEscape) {
+            auto output = ClearTerminalCompletionOverlay();
+            terminal_completion_overlays.erase(this);
+            output.append(RenderTerminalPrompt());
+            return {ShellStatus::kOk, std::move(output)};
+        }
+    }
+    if (key == PromptInputKey::kEscape) {
+        terminal_action_ = PromptInputAction::kExit;
+        return {ShellStatus::kOk, {}};
     }
     std::string output_prefix;
     if (terminal_completion_overlays.contains(this)) {
@@ -355,41 +370,6 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
         output_prefix.append(RefreshTerminalCompletionOverlay());
     }
     return {ShellStatus::kOk, std::move(output_prefix)};
-}
-
-ShellOperation ShellSession::ConsumeTerminalData(std::string_view data) {
-    terminal_action_ = PromptInputAction::kNone;
-    if (terminal_completion_overlays.contains(this)) {
-        const auto& overlay = terminal_completion_overlays.at(this);
-        const auto variant_count = overlay.candidates[overlay.selection].qualification_texts.size();
-        if (data == vt100::kArrowUpKey) return MoveTerminalCompletion(-1);
-        if (data == vt100::kArrowDownKey) return MoveTerminalCompletion(1);
-        if (variant_count > 1 && data == vt100::kArrowLeftKey) return MoveTerminalCompletionVariant(-1);
-        if (variant_count > 1 && data == vt100::kArrowRightKey) return MoveTerminalCompletionVariant(1);
-        if (data == vt100::kCarriageReturn || data == vt100::kTab) return AcceptTerminalCompletion();
-        if (data == vt100::kEscape) {
-            auto output = ClearTerminalCompletionOverlay();
-            terminal_completion_overlays.erase(this);
-            output.append(RenderTerminalPrompt());
-            return {ShellStatus::kOk, std::move(output)};
-        }
-    }
-    if (data == vt100::kEscape) {
-        terminal_action_ = PromptInputAction::kExit;
-        return {ShellStatus::kOk, {}};
-    }
-    if (data == vt100::kCtrlUnderscore) return ConsumeTerminalInput(PromptInputKey::kForceSubmit);
-    if (data == vt100::kCtrlC) return ConsumeTerminalInput(PromptInputKey::kCancel);
-    if (data == vt100::kCarriageReturn) return ConsumeTerminalInput(PromptInputKey::kEnter);
-    if (data == vt100::kTab) return ConsumeTerminalInput(PromptInputKey::kTab);
-    if (data == vt100::kBackspace) return ConsumeTerminalInput(PromptInputKey::kBackspace);
-    if (data == vt100::kDeleteKey) return ConsumeTerminalInput(PromptInputKey::kDelete);
-    if (data == vt100::kArrowLeftKey) return ConsumeTerminalInput(PromptInputKey::kLeft);
-    if (data == vt100::kArrowRightKey) return ConsumeTerminalInput(PromptInputKey::kRight);
-    if (data == vt100::kArrowUpKey) return ConsumeTerminalInput(PromptInputKey::kHistoryPrevious);
-    if (data == vt100::kArrowDownKey) return ConsumeTerminalInput(PromptInputKey::kHistoryNext);
-    if (data.starts_with(vt100::kEscape)) return {ShellStatus::kOk, {}};
-    return ConsumeTerminalInput(PromptInputKey::kText, data);
 }
 
 ShellOperation ShellSession::FinishTerminalQuery(std::string_view output, bool error) {

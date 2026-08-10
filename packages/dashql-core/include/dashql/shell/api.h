@@ -45,6 +45,7 @@ enum DashQLShellPromptInputKey : uint32_t {
     DASHQL_SHELL_INPUT_HISTORY_PREVIOUS = 8,
     DASHQL_SHELL_INPUT_HISTORY_NEXT = 9,
     DASHQL_SHELL_INPUT_CANCEL = 10,
+    DASHQL_SHELL_INPUT_ESCAPE = 11,
 };
 
 enum DashQLShellPromptInputAction : uint32_t {
@@ -155,11 +156,6 @@ DASHQL_SHELL_EXPORT uint32_t dashql_shell_terminal_consume(
     uint32_t key,
     const uint8_t* text,
     size_t text_length,
-    DashQLShellTerminalResult* result);
-DASHQL_SHELL_EXPORT uint32_t dashql_shell_terminal_consume_data(
-    DashQLShell* shell,
-    const uint8_t* data,
-    size_t data_length,
     DashQLShellTerminalResult* result);
 DASHQL_SHELL_EXPORT uint32_t dashql_shell_terminal_finish_query(
     DashQLShell* shell,

@@ -74,20 +74,20 @@ describe('DashQL shell Wasm', () => {
 
     it('renders terminal highlighting in Wasm', () => {
         expect(shell.openTerminal('db> ', false).data).toBe('\r\x1b[2Kdb> \r\x1b[4C');
-        const output = shell.consumeTerminalData("SELECT '界' FROM t").data;
+        const output = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, "SELECT '界' FROM t").data;
         expect(output).toContain('\x1b[1;38;2;255;122;178mSELECT\x1b[0m');
         expect(output).toContain("\x1b[38;2;255;129;112m'界'\x1b[0m");
         expect(output).toContain('\x1b[38;2;107;170;159mt\x1b[0m');
     });
 
-    it('decodes terminal controls', () => {
+    it('consumes semantic terminal controls', () => {
         shell.openTerminal('db> ', false);
-        expect(shell.consumeTerminalData('\x1b').action).toBe(DashQLShellPromptAction.EXIT);
+        expect(shell.consumeTerminalInput(DashQLShellPromptInput.ESCAPE).action).toBe(DashQLShellPromptAction.EXIT);
     });
 
     it('navigates, accepts, and dismisses terminal completion overlays', () => {
         shell.openTerminal('db> ', false);
-        const opened = shell.consumeTerminalData('sel');
+        const opened = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'sel');
 
         const candidates = shell.completePrompt(50);
         expect(candidates.length).toBeGreaterThan(1);
@@ -100,49 +100,49 @@ describe('DashQL shell Wasm', () => {
         expect(opened.data).toContain('\x1b[90m╰');
         expect(opened.data).not.toContain('\x1b[2K> ');
         let selected = opened;
-        for (let i = 0; i < selectIndex; ++i) selected = shell.consumeTerminalData('\x1b[B');
+        for (let i = 0; i < selectIndex; ++i) selected = shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_NEXT);
         expect(selected.data).toContain('\x1b[90mect');
-        expect(shell.consumeTerminalData('\r').action).toBe(DashQLShellPromptAction.NONE);
+        expect(shell.consumeTerminalInput(DashQLShellPromptInput.ENTER).action).toBe(DashQLShellPromptAction.NONE);
         expect(shell.movePromptRight().text).toBe('select');
 
-        shell.consumeTerminalData('\x03');
-        expect(shell.consumeTerminalData('sel').data).toContain('\x1b[7m');
-        expect(shell.consumeTerminalData('\x1b').action).toBe(DashQLShellPromptAction.NONE);
-        expect(shell.consumeTerminalData('\x1b').action).toBe(DashQLShellPromptAction.EXIT);
+        shell.consumeTerminalInput(DashQLShellPromptInput.CANCEL);
+        expect(shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'sel').data).toContain('\x1b[7m');
+        expect(shell.consumeTerminalInput(DashQLShellPromptInput.ESCAPE).action).toBe(DashQLShellPromptAction.NONE);
+        expect(shell.consumeTerminalInput(DashQLShellPromptInput.ESCAPE).action).toBe(DashQLShellPromptAction.EXIT);
     });
 
     it('does not cycle completion candidates with Left and Right', () => {
         shell.openTerminal('db> ', false);
-        shell.consumeTerminalData('sel');
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'sel');
         const candidates = shell.completePrompt(50);
         expect(candidates.length).toBeGreaterThan(1);
 
-        shell.consumeTerminalData('\x1b[C');
-        shell.consumeTerminalData('\x1b[D');
         shell.consumeTerminalInput(DashQLShellPromptInput.RIGHT);
-        shell.consumeTerminalData('\r');
+        shell.consumeTerminalInput(DashQLShellPromptInput.LEFT);
+        shell.consumeTerminalInput(DashQLShellPromptInput.RIGHT);
+        shell.consumeTerminalInput(DashQLShellPromptInput.ENTER);
         expect(shell.movePromptRight().text).toBe(candidates[0].completionText);
     });
 
     it('accepts keyword completion and its inline continuation in steps', () => {
         shell.openTerminal('db> ', false);
-        shell.consumeTerminalData('SELECT * FROM supplier gro');
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'SELECT * FROM supplier gro');
         const candidates = shell.completePrompt(50);
         const groupIndex = candidates.findIndex(candidate => candidate.completionText === 'group');
         expect(groupIndex).toBeGreaterThanOrEqual(0);
-        for (let i = 0; i < groupIndex; ++i) shell.consumeTerminalData('\x1b[B');
+        for (let i = 0; i < groupIndex; ++i) shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_NEXT);
 
-        const firstStep = shell.consumeTerminalData('\t');
+        const firstStep = shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
         expect(firstStep.data).toContain('\x1b[90m by');
         expect(shell.movePromptRight().text).toBe('SELECT * FROM supplier group');
 
-        shell.consumeTerminalData('\t');
+        shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
         expect(shell.movePromptRight().text).toBe('SELECT * FROM supplier group by');
     });
 
     it('anchors completion below an earlier cursor line', () => {
         shell.openTerminal('db> ', false);
-        shell.consumeTerminalData('sel\nFROM supplier');
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'sel\nFROM supplier');
         for (let i = 0; i < '\nFROM supplier'.length; ++i) shell.movePromptLeft();
         shell.consumeTerminalInput(DashQLShellPromptInput.RIGHT);
         const output = shell.consumeTerminalInput(DashQLShellPromptInput.LEFT);
@@ -151,18 +151,18 @@ describe('DashQL shell Wasm', () => {
 
     it('shows qualification inline before accepting the candidate', () => {
         shell.openTerminal('db> ', false);
-        shell.consumeTerminalData(
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT,
             'CREATE TABLE orders(customer_id BIGINT); CREATE TABLE customers(customer_id BIGINT); ' +
             'SELECT customer_id FROM orders o JOIN customers c ON o.customer_id = c.customer_id WHERE customer_id',
         );
         const candidates = shell.completePrompt(50);
         const candidateIndex = candidates.findIndex(candidate => candidate.completionText === 'customer_id');
         expect(candidateIndex).toBeGreaterThanOrEqual(0);
-        let selected = shell.consumeTerminalData('\x1b[B');
+        let selected = shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_NEXT);
         if (candidateIndex === 0) {
-            selected = shell.consumeTerminalData('\x1b[A');
+            selected = shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_PREVIOUS);
         } else {
-            for (let i = 1; i < candidateIndex; ++i) selected = shell.consumeTerminalData('\x1b[B');
+            for (let i = 1; i < candidateIndex; ++i) selected = shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_NEXT);
         }
         expect(selected.data).toContain('\x1b[');
         expect(selected.data).toContain('@');
@@ -171,19 +171,19 @@ describe('DashQL shell Wasm', () => {
 
     it('cycles inline qualification hints with Left and Right', () => {
         shell.openTerminal('db> ', false);
-        shell.consumeTerminalData(
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT,
             'CREATE TABLE orders(customer_id BIGINT); CREATE TABLE customers(customer_id BIGINT); ' +
             'SELECT customer_id FROM orders o JOIN customers c ON o.customer_id = c.customer_id WHERE customer_id',
         );
         const candidates = shell.completePrompt(50);
         const candidateIndex = candidates.findIndex(candidate => candidate.completionText === 'customer_id');
         expect(candidateIndex).toBeGreaterThanOrEqual(0);
-        for (let i = 0; i < candidateIndex; ++i) shell.consumeTerminalData('\x1b[B');
+        for (let i = 0; i < candidateIndex; ++i) shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_NEXT);
 
-        expect(shell.consumeTerminalData('\x1b[C').data).toContain('c.');
-        expect(shell.consumeTerminalData('\x1b[D').data).toContain('o.');
-        shell.consumeTerminalData('\t');
-        shell.consumeTerminalData('\t');
+        expect(shell.consumeTerminalInput(DashQLShellPromptInput.RIGHT).data).toContain('c.');
+        expect(shell.consumeTerminalInput(DashQLShellPromptInput.LEFT).data).toContain('o.');
+        shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
+        shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
         expect(shell.movePromptRight().text).toContain('o.customer_id');
     });
 

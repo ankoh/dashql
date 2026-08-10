@@ -53,7 +53,6 @@ export interface DashQLShellModule extends EmscriptenModule {
     _dashql_shell_completion_result_destroy(result: number): void;
     _dashql_shell_terminal_open(shell: number, prompt: number, promptLength: number, welcome: boolean, result: number): number;
     _dashql_shell_terminal_consume(shell: number, key: number, text: number, textLength: number, result: number): number;
-    _dashql_shell_terminal_consume_data(shell: number, data: number, dataLength: number, result: number): number;
     _dashql_shell_terminal_finish_query(shell: number, output: number, outputLength: number, error: boolean, result: number): number;
     _dashql_shell_terminal_status(shell: number, message: number, messageLength: number, result: number): number;
     _dashql_shell_terminal_result_destroy(result: number): void;
@@ -150,6 +149,7 @@ export enum DashQLShellPromptInput {
     HISTORY_PREVIOUS = 8,
     HISTORY_NEXT = 9,
     CANCEL = 10,
+    ESCAPE = 11,
 }
 
 export enum DashQLShellPromptAction {
@@ -410,12 +410,6 @@ export class DashQLShell {
     consumeTerminalInput(key: DashQLShellPromptInput, text = ''): DashQLShellTerminalOutput {
         return this.invokeTerminal(this.textEncoder.encode(text), (input, inputLength, result) => {
             this.module._dashql_shell_terminal_consume(this.shell, key, input, inputLength, result);
-        });
-    }
-
-    consumeTerminalData(data: string): DashQLShellTerminalOutput {
-        return this.invokeTerminal(this.textEncoder.encode(data), (input, inputLength, result) => {
-            this.module._dashql_shell_terminal_consume_data(this.shell, input, inputLength, result);
         });
     }
 

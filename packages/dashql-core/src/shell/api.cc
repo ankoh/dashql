@@ -295,7 +295,7 @@ uint32_t dashql_shell_prompt_consume(DashQLShell* shell,
                                      const uint8_t* text,
                                      size_t text_length,
                                      DashQLShellPromptResult* result) {
-    if (key > DASHQL_SHELL_INPUT_CANCEL || (text == nullptr && text_length != 0)) {
+    if (key > DASHQL_SHELL_INPUT_ESCAPE || (text == nullptr && text_length != 0)) {
         if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
         ResetPromptResult(result);
         return StorePromptResult(result,
@@ -356,7 +356,7 @@ uint32_t dashql_shell_terminal_consume(DashQLShell* shell,
                                        const uint8_t* text,
                                        size_t text_length,
                                        DashQLShellTerminalResult* result) {
-    if (key > DASHQL_SHELL_INPUT_CANCEL || (text == nullptr && text_length != 0)) {
+    if (key > DASHQL_SHELL_INPUT_ESCAPE || (text == nullptr && text_length != 0)) {
         if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
         ResetTerminalResult(result);
         return StoreTerminalResult(result,
@@ -366,20 +366,6 @@ uint32_t dashql_shell_terminal_consume(DashQLShell* shell,
     return InvokeTerminal(shell, result, [=](auto& session) {
         return session.ConsumeTerminalInput(static_cast<dashql::shell::PromptInputKey>(key), value);
     });
-}
-
-uint32_t dashql_shell_terminal_consume_data(DashQLShell* shell,
-                                            const uint8_t* data,
-                                            size_t data_length,
-                                            DashQLShellTerminalResult* result) {
-    if (data == nullptr && data_length != 0) {
-        if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
-        ResetTerminalResult(result);
-        return StoreTerminalResult(result,
-                                   {dashql::shell::ShellStatus::kInvalidArgument, "invalid terminal data"});
-    }
-    const std::string_view value{reinterpret_cast<const char*>(data), data_length};
-    return InvokeTerminal(shell, result, [=](auto& session) { return session.ConsumeTerminalData(value); });
 }
 
 uint32_t dashql_shell_terminal_finish_query(DashQLShell* shell,

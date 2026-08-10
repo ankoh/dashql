@@ -1,0 +1,21 @@
+// @vitest-environment node
+import { describe, expect, it } from 'vitest';
+
+import { sanitizeTerminalText } from './browser_shell.js';
+
+describe('browser shell input', () => {
+    it('rejects terminal key sequences from the text channel', () => {
+        expect(sanitizeTerminalText('\t')).toBe('');
+        expect(sanitizeTerminalText('\r')).toBe('');
+        expect(sanitizeTerminalText('\x03')).toBe('');
+        expect(sanitizeTerminalText('\x1b')).toBe('');
+        expect(sanitizeTerminalText('\x1b[B')).toBe('');
+        expect(sanitizeTerminalText('\x1b[3~')).toBe('');
+    });
+
+    it('preserves pasted and composed text', () => {
+        expect(sanitizeTerminalText('SELECT 界')).toBe('SELECT 界');
+        expect(sanitizeTerminalText('SELECT 1;\r\nSELECT 2;')).toBe('SELECT 1;\nSELECT 2;');
+        expect(sanitizeTerminalText('SELECT\tvalue')).toBe('SELECT\tvalue');
+    });
+});

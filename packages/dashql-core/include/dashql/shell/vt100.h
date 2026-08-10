@@ -4,21 +4,9 @@
 
 namespace dashql::shell::vt100 {
 
-inline constexpr std::string_view kEscape = "\x1b";
 inline constexpr std::string_view kControlSequenceIntroducer = "\x1b[";
 inline constexpr std::string_view kCarriageReturn = "\r";
-inline constexpr std::string_view kLineFeed = "\n";
 inline constexpr std::string_view kNewLine = "\r\n";
-inline constexpr std::string_view kTab = "\t";
-inline constexpr std::string_view kCtrlC = "\x03";
-inline constexpr std::string_view kCtrlUnderscore = "\x1f";
-inline constexpr std::string_view kBackspace = "\x7f";
-
-inline constexpr std::string_view kDeleteKey = "\x1b[3~";
-inline constexpr std::string_view kArrowLeftKey = "\x1b[D";
-inline constexpr std::string_view kArrowRightKey = "\x1b[C";
-inline constexpr std::string_view kArrowUpKey = "\x1b[A";
-inline constexpr std::string_view kArrowDownKey = "\x1b[B";
 
 inline constexpr std::string_view kCursorUpCommand = "A";
 inline constexpr std::string_view kCursorDownCommand = "B";
