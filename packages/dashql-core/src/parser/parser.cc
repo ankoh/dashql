@@ -512,10 +512,10 @@ struct SuffixProbePolicy {
         probe.reached_eof = true;
     }
     bool ShortCircuitOnError(Parser&) {
-        // Stop as soon as the parser errors after at least one fed symbol has shifted. EOF as the
-        // failing lookahead means the parser expected more input, not that the suffix was fully
-        // consumed; `reached_eof` is set only on the accept path (handled in OnAccept above).
-        return feed_shifted >= 1;
+        // Stop once a synthetic symbol has been offered. If it cannot shift, standard error
+        // recovery would consume the entire real suffix for every candidate without providing
+        // any additional compatibility signal.
+        return fed_count >= 1;
     }
 };
 

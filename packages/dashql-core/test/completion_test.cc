@@ -599,4 +599,37 @@ TEST(CompletionTest, IdentityCandidateReproducesQuotedInputVerbatim) {
     }
 }
 
+TEST(CompletionTest, CompletesInsertedCteNameBeforeLongSuffix) {
+    constexpr std::string_view main_script_text = R"SQL(with  as (
+    select
+      *,
+      date_trunc('hour', event_timestamp) ts_hour
+    from uip_iceberg.cdp_usage_prod_events.hyperdb_queries
+    where tenant = 'a360/prod/1e51a99248ee43beb982c09ea3ed8786'
+    and event_timestamp >= current_timestamp - interval '30' day
+), windowed as (
+  select
+    *,
+    ts_hour,
+    row_number() over (partition by tenant order by processed_rows desc) as rnk_processed_rows
+  from d
+)
+select *
+from windowed
+where rnk_processed_rows < 10
+)SQL";
+
+    Catalog catalog;
+    Script main_script{catalog};
+    main_script.InsertTextAt(0, main_script_text);
+    ASSERT_NO_THROW(main_script.Analyze());
+
+    constexpr size_t cursor_offset = std::string_view{"with "}.size();
+    main_script.MoveCursor(cursor_offset);
+    main_script.InsertTextAt(cursor_offset, "q");
+    ASSERT_NO_THROW(main_script.Analyze());
+    main_script.MoveCursor(cursor_offset + 1);
+    ASSERT_NO_THROW(main_script.CompleteAtCursor());
+}
+
 }  // namespace
