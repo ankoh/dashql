@@ -51,8 +51,12 @@ struct EffectCompletion {
 struct CompletionCandidate {
     std::string display_text;
     std::string completion_text;
+    std::string continuation_text;
+    std::vector<std::string> qualification_texts;
     uint32_t target_offset = 0;
     uint32_t target_length = 0;
+    uint32_t qualification_target_offset = 0;
+    uint32_t qualification_target_length = 0;
 };
 
 struct PromptSnapshot {
@@ -165,10 +169,12 @@ class ShellSession {
     std::string RenderTerminalPrompt();
     std::string OpenTerminalCompletionOverlay(std::vector<CompletionCandidate> candidates);
     std::string RefreshTerminalCompletionOverlay();
+    std::string RenderTerminalCompletionHint();
     std::string RenderTerminalCompletionOverlay();
     std::string ClearTerminalCompletionOverlay();
     ShellOperation AcceptTerminalCompletion();
     ShellOperation MoveTerminalCompletion(int direction);
+    ShellOperation MoveTerminalCompletionVariant(int direction);
     bool PromptIsComplete();
     void ResetHistoryCursor();
     void RememberPrompt(std::string_view query);

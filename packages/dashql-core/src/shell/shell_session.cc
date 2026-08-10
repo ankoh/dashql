@@ -112,11 +112,16 @@ std::string NormalizeError(std::span<const uint8_t> data) {
 struct TerminalCompletionOverlay {
     std::vector<CompletionCandidate> candidates;
     size_t selection = 0;
+    size_t variant_selection = 0;
     size_t window_begin = 0;
     size_t rows = 0;
     size_t cursor_row = 0;
     size_t anchor_column = 0;
     size_t content_width = 0;
+    size_t hint_prefix_width = 0;
+    size_t hint_suffix_width = 0;
+    size_t hint_current_width = 0;
+    bool hint_only = false;
 };
 
 thread_local std::unordered_map<ShellSession*, TerminalCompletionOverlay> terminal_completion_overlays;
@@ -180,11 +185,26 @@ std::vector<CompletionCandidate> ShellSession::CompletePrompt(size_t limit) {
         const auto completion_text = candidate.completion_text_is_verbatim
                                          ? candidate.completion_text
                                          : quote_anyupper_fuzzy(candidate.completion_text, quoted);
+        std::vector<std::string> qualification_texts;
+        for (const auto& object : candidate.catalog_objects) {
+            if (object.prefer_qualified && !object.qualified_name.empty()) {
+                std::string qualification_text;
+                for (size_t i = 0; i < object.qualified_name.size(); ++i) {
+                    if (i > 0) qualification_text.push_back('.');
+                    qualification_text.append(object.qualified_name[i]);
+                }
+                qualification_texts.push_back(std::move(qualification_text));
+            }
+        }
         candidates.push_back({
             .display_text = std::string{candidate.completion_text},
             .completion_text = std::string{completion_text},
+            .continuation_text = std::string{candidate.keyword_continuation},
+            .qualification_texts = std::move(qualification_texts),
             .target_offset = candidate.target_location.offset(),
             .target_length = candidate.target_location.length(),
+            .qualification_target_offset = candidate.target_location_qualified.offset(),
+            .qualification_target_length = candidate.target_location_qualified.length(),
         });
     }
     return candidates;
@@ -284,6 +304,12 @@ ShellOperation ShellSession::OpenTerminal(std::string_view prompt, bool welcome)
 
 ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::string_view text) {
     terminal_action_ = PromptInputAction::kNone;
+    if (terminal_completion_overlays.contains(this)) {
+        const auto& overlay = terminal_completion_overlays.at(this);
+        const auto variant_count = overlay.candidates[overlay.selection].qualification_texts.size();
+        if (variant_count > 1 && key == PromptInputKey::kLeft) return MoveTerminalCompletionVariant(-1);
+        if (variant_count > 1 && key == PromptInputKey::kRight) return MoveTerminalCompletionVariant(1);
+    }
     std::string output_prefix;
     if (terminal_completion_overlays.contains(this)) {
         output_prefix = ClearTerminalCompletionOverlay();
@@ -308,6 +334,7 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
                 return {snapshot.status, std::move(snapshot.message)};
             }
             output_prefix.append(RenderTerminalPrompt());
+            output_prefix.append(RefreshTerminalCompletionOverlay());
             return {ShellStatus::kOk, std::move(output_prefix)};
         }
         if (candidates.size() > 1) {
@@ -333,8 +360,12 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
 ShellOperation ShellSession::ConsumeTerminalData(std::string_view data) {
     terminal_action_ = PromptInputAction::kNone;
     if (terminal_completion_overlays.contains(this)) {
+        const auto& overlay = terminal_completion_overlays.at(this);
+        const auto variant_count = overlay.candidates[overlay.selection].qualification_texts.size();
         if (data == vt100::kArrowUpKey) return MoveTerminalCompletion(-1);
         if (data == vt100::kArrowDownKey) return MoveTerminalCompletion(1);
+        if (variant_count > 1 && data == vt100::kArrowLeftKey) return MoveTerminalCompletionVariant(-1);
+        if (variant_count > 1 && data == vt100::kArrowRightKey) return MoveTerminalCompletionVariant(1);
         if (data == vt100::kCarriageReturn || data == vt100::kTab) return AcceptTerminalCompletion();
         if (data == vt100::kEscape) {
             auto output = ClearTerminalCompletionOverlay();
@@ -395,6 +426,10 @@ ShellOperation ShellSession::SubmitPrompt() {
         return {ShellStatus::kInvalidArgument, "query must not be empty"};
     }
     RememberPrompt(query);
+    auto query_end = query.find_last_not_of(" \t\r\n");
+    if (query_end != std::string::npos && query[query_end] == ';') {
+        return StartQuery(std::string_view{query}.substr(0, query_end));
+    }
     return StartQuery(query);
 }
 
@@ -694,6 +729,8 @@ std::string ShellSession::RenderTerminalCompletionOverlay() {
     auto found = terminal_completion_overlays.find(this);
     if (found == terminal_completion_overlays.end()) return output;
     auto& overlay = found->second;
+    output.append(RenderTerminalCompletionHint());
+    if (overlay.hint_only) return output;
 
     const auto window_end = std::min(overlay.window_begin + TERMINAL_COMPLETION_ROWS, overlay.candidates.size());
     const auto candidate_rows = window_end - overlay.window_begin;
@@ -702,7 +739,7 @@ std::string ShellSession::RenderTerminalCompletionOverlay() {
     for (size_t i = 0; i < overlay.content_width + 2; ++i) horizontal.append("─");
     output.append(vt100::kSaveCursor);
     output.append(vt100::kCarriageReturn);
-    AppendCursorMove(output, terminal_prompt_rows_ - overlay.cursor_row, vt100::kCursorDownCommand);
+    AppendCursorMove(output, 1, vt100::kCursorDownCommand);
     AppendCursorMove(output, overlay.anchor_column, vt100::kCursorForwardCommand);
     output.append(vt100::kEraseEntireLine);
     output.append(vt100::kForegroundBrightBlack);
@@ -742,13 +779,27 @@ std::string ShellSession::RenderTerminalCompletionOverlay() {
 
 std::string ShellSession::ClearTerminalCompletionOverlay() {
     auto found = terminal_completion_overlays.find(this);
-    if (found == terminal_completion_overlays.end() || found->second.rows == 0) return {};
+    if (found == terminal_completion_overlays.end()) return {};
     auto& overlay = found->second;
 
     std::string output;
+    if (overlay.hint_suffix_width > 0) {
+        output.append(overlay.hint_suffix_width, ' ');
+        AppendCursorMove(output, overlay.hint_suffix_width, vt100::kCursorBackwardCommand);
+        overlay.hint_suffix_width = 0;
+    }
+    if (overlay.hint_prefix_width > 0) {
+        AppendCursorMove(output, overlay.hint_current_width + overlay.hint_prefix_width,
+                         vt100::kCursorBackwardCommand);
+        AppendCursorMove(output, overlay.hint_prefix_width, vt100::kDeleteCharacterCommand);
+        AppendCursorMove(output, overlay.hint_current_width, vt100::kCursorForwardCommand);
+        overlay.hint_prefix_width = 0;
+        overlay.hint_current_width = 0;
+    }
+    if (overlay.rows == 0) return output;
     output.append(vt100::kSaveCursor);
     output.append(vt100::kCarriageReturn);
-    AppendCursorMove(output, terminal_prompt_rows_ - overlay.cursor_row, vt100::kCursorDownCommand);
+    AppendCursorMove(output, 1, vt100::kCursorDownCommand);
     for (size_t i = 0; i < overlay.rows; ++i) {
         AppendCursorMove(output, overlay.anchor_column, vt100::kCursorForwardCommand);
         output.append(vt100::kEraseEntireLine);
@@ -762,14 +813,120 @@ std::string ShellSession::ClearTerminalCompletionOverlay() {
     return output;
 }
 
+std::string ShellSession::RenderTerminalCompletionHint() {
+    auto found = terminal_completion_overlays.find(this);
+    if (found == terminal_completion_overlays.end()) return {};
+    auto& overlay = found->second;
+    const auto& candidate = overlay.candidates[overlay.selection];
+    const auto text = prompt_.Text();
+    const auto target_end = static_cast<size_t>(candidate.target_offset) + candidate.target_length;
+    if (target_end != prompt_.cursor_byte_offset() || target_end != text.size()) return {};
+
+    const auto current = std::string_view{text}.substr(candidate.target_offset, candidate.target_length);
+    std::string prefix;
+    std::string suffix;
+    if (overlay.hint_only) {
+        const auto desired = std::string_view{candidate.completion_text};
+        const auto completion = desired.find(current);
+        if (completion != std::string_view::npos) {
+            prefix = desired.substr(0, completion);
+            suffix = desired.substr(completion + current.size());
+        } else {
+            suffix = desired;
+        }
+    } else if (!candidate.qualification_texts.empty()) {
+        const auto variant = std::min(overlay.variant_selection, candidate.qualification_texts.size() - 1);
+        const auto qualified = std::string_view{candidate.qualification_texts[variant]};
+        const auto completion = qualified.find(candidate.completion_text);
+        if (completion != std::string_view::npos && std::string_view{candidate.completion_text}.starts_with(current)) {
+            prefix = qualified.substr(0, completion);
+            suffix = std::string{candidate.completion_text}.substr(current.size());
+            suffix.append(qualified.substr(completion + candidate.completion_text.size()));
+        }
+    } else if (candidate.completion_text == current && !candidate.continuation_text.empty()) {
+        suffix = " " + candidate.continuation_text;
+    } else if (std::string_view{candidate.completion_text}.starts_with(current)) {
+        suffix = std::string_view{candidate.completion_text}.substr(current.size());
+    }
+    if (prefix.empty() && suffix.empty() && !candidate.continuation_text.empty()) {
+        suffix = " " + candidate.continuation_text;
+    }
+    if (prefix.empty() && suffix.empty()) return {};
+
+    overlay.hint_prefix_width = DisplayWidth(prefix);
+    overlay.hint_suffix_width = DisplayWidth(suffix);
+    overlay.hint_current_width = DisplayWidth(current);
+    std::string output;
+    if (!prefix.empty()) {
+        AppendCursorMove(output, overlay.hint_current_width, vt100::kCursorBackwardCommand);
+        AppendCursorMove(output, overlay.hint_prefix_width, vt100::kInsertCharacterCommand);
+        output.append(vt100::kForegroundBrightBlack);
+        output.append(prefix);
+        output.append(vt100::kResetAttributes);
+        AppendCursorMove(output, overlay.hint_current_width, vt100::kCursorForwardCommand);
+    }
+    if (!suffix.empty()) {
+        output.append(vt100::kForegroundBrightBlack);
+        output.append(suffix);
+        output.append(vt100::kResetAttributes);
+        AppendCursorMove(output, overlay.hint_suffix_width, vt100::kCursorBackwardCommand);
+    }
+    return output;
+}
+
 ShellOperation ShellSession::AcceptTerminalCompletion() {
     auto output = ClearTerminalCompletionOverlay();
     auto& overlay = terminal_completion_overlays.at(this);
+    const auto variant_selection = overlay.variant_selection;
     auto candidate = std::move(overlay.candidates[overlay.selection]);
     terminal_completion_overlays.erase(this);
+    const auto continuation = candidate.continuation_text;
+    const auto qualification = candidate.qualification_texts.empty()
+                                   ? std::string{}
+                                   : candidate.qualification_texts[std::min(variant_selection,
+                                                                           candidate.qualification_texts.size() - 1)];
     const auto snapshot = ApplyCompletion(candidate);
     if (snapshot.status != ShellStatus::kOk) return {snapshot.status, std::move(snapshot.message)};
     output.append(RenderTerminalPrompt());
+    if (!qualification.empty() && qualification != candidate.completion_text) {
+        auto& next = terminal_completion_overlays[this];
+        next = {};
+        next.hint_only = true;
+        const auto prompt_text = prompt_.Text();
+        next.cursor_row = static_cast<size_t>(
+            std::count(prompt_text.begin(), prompt_text.begin() + prompt_.cursor_byte_offset(), '\n'));
+        next.candidates.push_back({
+            .display_text = candidate.completion_text,
+            .completion_text = qualification,
+            .continuation_text = continuation,
+            .qualification_texts = {},
+            .target_offset = candidate.qualification_target_offset,
+            .target_length = static_cast<uint32_t>(candidate.completion_text.size()),
+            .qualification_target_offset = candidate.qualification_target_offset,
+            .qualification_target_length = static_cast<uint32_t>(candidate.completion_text.size()),
+        });
+        output.append(RenderTerminalCompletionHint());
+    } else if (!continuation.empty()) {
+        auto& next = terminal_completion_overlays[this];
+        next = {};
+        next.hint_only = true;
+        const auto prompt_text = prompt_.Text();
+        next.cursor_row = static_cast<size_t>(
+            std::count(prompt_text.begin(), prompt_text.begin() + prompt_.cursor_byte_offset(), '\n'));
+        next.candidates.push_back({
+            .display_text = continuation,
+            .completion_text = " " + continuation,
+            .continuation_text = {},
+            .qualification_texts = {},
+            .target_offset = static_cast<uint32_t>(prompt_.cursor_byte_offset()),
+            .target_length = 0,
+            .qualification_target_offset = static_cast<uint32_t>(prompt_.cursor_byte_offset()),
+            .qualification_target_length = 0,
+        });
+        output.append(RenderTerminalCompletionHint());
+    } else {
+        output.append(RefreshTerminalCompletionOverlay());
+    }
     return {ShellStatus::kOk, std::move(output)};
 }
 
@@ -781,10 +938,23 @@ ShellOperation ShellSession::MoveTerminalCompletion(int direction) {
     } else {
         overlay.selection = (overlay.selection + 1) % count;
     }
+    overlay.variant_selection = 0;
     if (overlay.selection < overlay.window_begin) {
         overlay.window_begin = overlay.selection;
     } else if (overlay.selection >= overlay.window_begin + TERMINAL_COMPLETION_ROWS) {
         overlay.window_begin = overlay.selection - TERMINAL_COMPLETION_ROWS + 1;
+    }
+    return {ShellStatus::kOk, RenderTerminalCompletionOverlay()};
+}
+
+ShellOperation ShellSession::MoveTerminalCompletionVariant(int direction) {
+    auto& overlay = terminal_completion_overlays.at(this);
+    const auto count = overlay.candidates[overlay.selection].qualification_texts.size();
+    if (count < 2) return {ShellStatus::kOk, {}};
+    if (direction < 0) {
+        overlay.variant_selection = overlay.variant_selection == 0 ? count - 1 : overlay.variant_selection - 1;
+    } else {
+        overlay.variant_selection = (overlay.variant_selection + 1) % count;
     }
     return {ShellStatus::kOk, RenderTerminalCompletionOverlay()};
 }

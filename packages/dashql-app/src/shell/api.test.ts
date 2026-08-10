@@ -54,11 +54,22 @@ describe('DashQL shell Wasm', () => {
 
     it('submits the prompt through the asynchronous effect interface', async () => {
         executeQuery = async query => {
-            expect(query).toBe('SELECT 42;');
+            expect(query).toBe('SELECT 42');
             throw new Error('backend unavailable');
         };
         shell.setPrompt('SELECT 42;');
         await expect(shell.submitPrompt()).resolves.toBe('backend unavailable');
+    });
+
+    it('strips only the trailing shell terminator before execution', async () => {
+        executeQuery = async query => {
+            expect(query).toBe("SELECT ';' AS value");
+            throw new Error('expected');
+        };
+        const prompt = "SELECT ';' AS value;  \n";
+        shell.setPrompt(prompt);
+        await expect(shell.submitPrompt()).resolves.toBe('expected');
+        expect(new TextDecoder().decode(shell.exportHistory()).endsWith(prompt)).toBe(true);
     });
 
     it('renders terminal highlighting in Wasm', () => {
@@ -88,7 +99,9 @@ describe('DashQL shell Wasm', () => {
         expect(opened.data).toContain('\x1b[1B\x1b[4C\x1b[2K\x1b[90m╭');
         expect(opened.data).toContain('\x1b[90m╰');
         expect(opened.data).not.toContain('\x1b[2K> ');
-        for (let i = 0; i < selectIndex; ++i) shell.consumeTerminalData('\x1b[B');
+        let selected = opened;
+        for (let i = 0; i < selectIndex; ++i) selected = shell.consumeTerminalData('\x1b[B');
+        expect(selected.data).toContain('\x1b[90mect');
         expect(shell.consumeTerminalData('\r').action).toBe(DashQLShellPromptAction.NONE);
         expect(shell.movePromptRight().text).toBe('select');
 
@@ -96,6 +109,82 @@ describe('DashQL shell Wasm', () => {
         expect(shell.consumeTerminalData('sel').data).toContain('\x1b[7m');
         expect(shell.consumeTerminalData('\x1b').action).toBe(DashQLShellPromptAction.NONE);
         expect(shell.consumeTerminalData('\x1b').action).toBe(DashQLShellPromptAction.EXIT);
+    });
+
+    it('does not cycle completion candidates with Left and Right', () => {
+        shell.openTerminal('db> ', false);
+        shell.consumeTerminalData('sel');
+        const candidates = shell.completePrompt(50);
+        expect(candidates.length).toBeGreaterThan(1);
+
+        shell.consumeTerminalData('\x1b[C');
+        shell.consumeTerminalData('\x1b[D');
+        shell.consumeTerminalInput(DashQLShellPromptInput.RIGHT);
+        shell.consumeTerminalData('\r');
+        expect(shell.movePromptRight().text).toBe(candidates[0].completionText);
+    });
+
+    it('accepts keyword completion and its inline continuation in steps', () => {
+        shell.openTerminal('db> ', false);
+        shell.consumeTerminalData('SELECT * FROM supplier gro');
+        const candidates = shell.completePrompt(50);
+        const groupIndex = candidates.findIndex(candidate => candidate.completionText === 'group');
+        expect(groupIndex).toBeGreaterThanOrEqual(0);
+        for (let i = 0; i < groupIndex; ++i) shell.consumeTerminalData('\x1b[B');
+
+        const firstStep = shell.consumeTerminalData('\t');
+        expect(firstStep.data).toContain('\x1b[90m by');
+        expect(shell.movePromptRight().text).toBe('SELECT * FROM supplier group');
+
+        shell.consumeTerminalData('\t');
+        expect(shell.movePromptRight().text).toBe('SELECT * FROM supplier group by');
+    });
+
+    it('anchors completion below an earlier cursor line', () => {
+        shell.openTerminal('db> ', false);
+        shell.consumeTerminalData('sel\nFROM supplier');
+        for (let i = 0; i < '\nFROM supplier'.length; ++i) shell.movePromptLeft();
+        shell.consumeTerminalInput(DashQLShellPromptInput.RIGHT);
+        const output = shell.consumeTerminalInput(DashQLShellPromptInput.LEFT);
+        expect(output.data).toContain('\x1b[1B\x1b[4C\x1b[2K\x1b[90m╭');
+    });
+
+    it('shows qualification inline before accepting the candidate', () => {
+        shell.openTerminal('db> ', false);
+        shell.consumeTerminalData(
+            'CREATE TABLE orders(customer_id BIGINT); CREATE TABLE customers(customer_id BIGINT); ' +
+            'SELECT customer_id FROM orders o JOIN customers c ON o.customer_id = c.customer_id WHERE customer_id',
+        );
+        const candidates = shell.completePrompt(50);
+        const candidateIndex = candidates.findIndex(candidate => candidate.completionText === 'customer_id');
+        expect(candidateIndex).toBeGreaterThanOrEqual(0);
+        let selected = shell.consumeTerminalData('\x1b[B');
+        if (candidateIndex === 0) {
+            selected = shell.consumeTerminalData('\x1b[A');
+        } else {
+            for (let i = 1; i < candidateIndex; ++i) selected = shell.consumeTerminalData('\x1b[B');
+        }
+        expect(selected.data).toContain('\x1b[');
+        expect(selected.data).toContain('@');
+        expect(selected.data).toContain('\x1b[90m');
+    });
+
+    it('cycles inline qualification hints with Left and Right', () => {
+        shell.openTerminal('db> ', false);
+        shell.consumeTerminalData(
+            'CREATE TABLE orders(customer_id BIGINT); CREATE TABLE customers(customer_id BIGINT); ' +
+            'SELECT customer_id FROM orders o JOIN customers c ON o.customer_id = c.customer_id WHERE customer_id',
+        );
+        const candidates = shell.completePrompt(50);
+        const candidateIndex = candidates.findIndex(candidate => candidate.completionText === 'customer_id');
+        expect(candidateIndex).toBeGreaterThanOrEqual(0);
+        for (let i = 0; i < candidateIndex; ++i) shell.consumeTerminalData('\x1b[B');
+
+        expect(shell.consumeTerminalData('\x1b[C').data).toContain('c.');
+        expect(shell.consumeTerminalData('\x1b[D').data).toContain('o.');
+        shell.consumeTerminalData('\t');
+        shell.consumeTerminalData('\t');
+        expect(shell.movePromptRight().text).toContain('o.customer_id');
     });
 
     it('drives multiline input and history through the shell core', async () => {

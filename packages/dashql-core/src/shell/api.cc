@@ -280,8 +280,12 @@ uint32_t dashql_shell_prompt_apply_completion(DashQLShell* shell,
                                     candidate->display_text_length},
         .completion_text = std::string{reinterpret_cast<const char*>(candidate->completion_text_ptr),
                                        candidate->completion_text_length},
+        .continuation_text = {},
+        .qualification_texts = {},
         .target_offset = candidate->target_offset,
         .target_length = candidate->target_length,
+        .qualification_target_offset = candidate->target_offset,
+        .qualification_target_length = candidate->target_length,
     };
     return InvokePrompt(shell, result, [&](auto& session) { return session.ApplyCompletion(completion); });
 }

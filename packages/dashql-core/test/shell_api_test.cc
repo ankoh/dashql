@@ -52,6 +52,34 @@ TEST(ShellApiTest, EditsAndSubmitsPrompt) {
     dashql_shell_destroy(shell);
 }
 
+TEST(ShellApiTest, StripsTrailingSemicolonWhenSubmittingPrompt) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+
+    DashQLShellPromptResult prompt{};
+    const std::string query = "SELECT ';' AS value;  \n";
+    ASSERT_EQ(dashql_shell_prompt_set(shell, reinterpret_cast<const uint8_t*>(query.data()), query.size(), &prompt),
+              DASHQL_SHELL_OK);
+    dashql_shell_prompt_result_destroy(&prompt);
+
+    DashQLShellResult operation{};
+    ASSERT_EQ(dashql_shell_prompt_submit(shell, &operation), DASHQL_SHELL_PENDING);
+    ASSERT_GE(operation.data_length, 16u);
+    EXPECT_EQ(
+        (std::string_view{reinterpret_cast<const char*>(operation.data_ptr + 16), operation.data_length - 16}),
+        "SELECT ';' AS value");
+    dashql_shell_result_destroy(&operation);
+
+    const auto history = dashql_shell_history_export(shell, &operation);
+    ASSERT_EQ(history, DASHQL_SHELL_OK);
+    const auto history_data = std::string_view{reinterpret_cast<const char*>(operation.data_ptr), operation.data_length};
+    ASSERT_GE(history_data.size(), sizeof(uint32_t));
+    EXPECT_EQ(history_data.substr(sizeof(uint32_t)), query);
+    dashql_shell_result_destroy(&operation);
+    dashql_shell_destroy(shell);
+}
+
 TEST(ShellApiTest, ReturnsCompletionCandidates) {
     dashql::Catalog catalog;
     auto* shell = dashql_shell_new(&catalog, 80);
@@ -194,6 +222,7 @@ TEST(ShellApiTest, NavigatesAndAcceptsTerminalCompletionOverlay) {
     EXPECT_NE(TerminalData(output).find("\x1b[1B\x1b[8C\x1b[2K\x1b[90m╭"), std::string_view::npos);
     EXPECT_NE(TerminalData(output).find("\x1b[90m╰"), std::string_view::npos);
     EXPECT_EQ(TerminalData(output).find("\x1b[2K> "), std::string_view::npos);
+    const std::string initial_output{TerminalData(output)};
     dashql_shell_terminal_result_destroy(&output);
 
     DashQLShellCompletionResult completions{};
@@ -211,13 +240,18 @@ TEST(ShellApiTest, NavigatesAndAcceptsTerminalCompletionOverlay) {
     ASSERT_LT(select_index, completions.count);
 
     const std::string down{dashql::shell::vt100::kArrowDownKey};
+    std::string selected_output;
     for (size_t i = 0; i < select_index; ++i) {
         ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(down.data()), down.size(),
                                                      &output),
                   DASHQL_SHELL_OK);
         EXPECT_EQ(output.action, DASHQL_SHELL_INPUT_NONE);
+        selected_output.assign(TerminalData(output));
         dashql_shell_terminal_result_destroy(&output);
     }
+    if (select_index == 0) selected_output = initial_output;
+    EXPECT_NE(selected_output.find(std::string{dashql::shell::vt100::kForegroundBrightBlack} + "ect"),
+              std::string::npos);
 
     const std::string enter{dashql::shell::vt100::kCarriageReturn};
     ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(enter.data()), enter.size(),
@@ -229,6 +263,296 @@ TEST(ShellApiTest, NavigatesAndAcceptsTerminalCompletionOverlay) {
     DashQLShellPromptResult prompt{};
     ASSERT_EQ(dashql_shell_prompt_move_right(shell, &prompt), DASHQL_SHELL_OK);
     EXPECT_EQ(PromptText(prompt), "select");
+    dashql_shell_prompt_result_destroy(&prompt);
+    dashql_shell_completion_result_destroy(&completions);
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, DoesNotCycleTerminalCandidatesWithLeftAndRight) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+
+    DashQLShellTerminalResult output{};
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    const std::string query = "sel";
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(query.data()), query.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    DashQLShellCompletionResult completions{};
+    ASSERT_EQ(dashql_shell_prompt_complete(shell, 50, &completions), DASHQL_SHELL_OK);
+    ASSERT_GT(completions.count, 1u);
+    const auto* candidates = static_cast<const DashQLShellCompletionCandidate*>(completions.candidates_ptr);
+    const std::string expected{reinterpret_cast<const char*>(candidates[0].completion_text_ptr),
+                               candidates[0].completion_text_length};
+
+    const std::string right{dashql::shell::vt100::kArrowRightKey};
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(right.data()), right.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    const std::string left{dashql::shell::vt100::kArrowLeftKey};
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(left.data()), left.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+    ASSERT_EQ(dashql_shell_terminal_consume(shell, DASHQL_SHELL_INPUT_RIGHT, nullptr, 0, &output), DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    const std::string enter{dashql::shell::vt100::kCarriageReturn};
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(enter.data()), enter.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    DashQLShellPromptResult prompt{};
+    ASSERT_EQ(dashql_shell_prompt_move_right(shell, &prompt), DASHQL_SHELL_OK);
+    EXPECT_EQ(PromptText(prompt), expected);
+    dashql_shell_prompt_result_destroy(&prompt);
+    dashql_shell_completion_result_destroy(&completions);
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, CyclesInlineQualificationHintsWithLeftAndRight) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 100);
+    ASSERT_NE(shell, nullptr);
+
+    DashQLShellTerminalResult output{};
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    const std::string query = "CREATE TABLE orders(customer_id BIGINT); CREATE TABLE customers(customer_id BIGINT); "
+                              "SELECT customer_id FROM orders o JOIN customers c ON o.customer_id = c.customer_id "
+                              "WHERE customer_id";
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(query.data()), query.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    DashQLShellCompletionResult completions{};
+    ASSERT_EQ(dashql_shell_prompt_complete(shell, 50, &completions), DASHQL_SHELL_OK);
+    const auto* candidates = static_cast<const DashQLShellCompletionCandidate*>(completions.candidates_ptr);
+    size_t customer_id_index = completions.count;
+    for (size_t i = 0; i < completions.count; ++i) {
+        if (std::string_view{reinterpret_cast<const char*>(candidates[i].completion_text_ptr),
+                             candidates[i].completion_text_length} == "customer_id") {
+            customer_id_index = i;
+            break;
+        }
+    }
+    ASSERT_LT(customer_id_index, completions.count);
+
+    const std::string down{dashql::shell::vt100::kArrowDownKey};
+    for (size_t i = 0; i < customer_id_index; ++i) {
+        ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(down.data()), down.size(),
+                                                     &output),
+                  DASHQL_SHELL_OK);
+        dashql_shell_terminal_result_destroy(&output);
+    }
+
+    const std::string right{dashql::shell::vt100::kArrowRightKey};
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(right.data()), right.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    const std::string right_output{TerminalData(output)};
+    EXPECT_NE(right_output.find(dashql::shell::vt100::kInsertCharacterCommand), std::string::npos);
+    EXPECT_NE(right_output.find("c."), std::string::npos);
+    dashql_shell_terminal_result_destroy(&output);
+
+    const std::string left{dashql::shell::vt100::kArrowLeftKey};
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(left.data()), left.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    EXPECT_NE(TerminalData(output).find("o."), std::string_view::npos);
+    dashql_shell_terminal_result_destroy(&output);
+
+    const std::string tab{dashql::shell::vt100::kTab};
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(tab.data()), tab.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(tab.data()), tab.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    DashQLShellPromptResult prompt{};
+    ASSERT_EQ(dashql_shell_prompt_move_right(shell, &prompt), DASHQL_SHELL_OK);
+    EXPECT_NE(PromptText(prompt).find("o.customer_id"), std::string_view::npos);
+    dashql_shell_prompt_result_destroy(&prompt);
+    dashql_shell_completion_result_destroy(&completions);
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, AppliesKeywordCompletionInMultipleSteps) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 100);
+    ASSERT_NE(shell, nullptr);
+
+    DashQLShellTerminalResult output{};
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    const std::string query = "SELECT * FROM supplier gro";
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(query.data()), query.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    DashQLShellCompletionResult completions{};
+    ASSERT_EQ(dashql_shell_prompt_complete(shell, 50, &completions), DASHQL_SHELL_OK);
+    const auto* candidates = static_cast<const DashQLShellCompletionCandidate*>(completions.candidates_ptr);
+    size_t group_index = completions.count;
+    for (size_t i = 0; i < completions.count; ++i) {
+        if (std::string_view{reinterpret_cast<const char*>(candidates[i].completion_text_ptr),
+                             candidates[i].completion_text_length} == "group") {
+            group_index = i;
+            break;
+        }
+    }
+    ASSERT_LT(group_index, completions.count);
+
+    const std::string down{dashql::shell::vt100::kArrowDownKey};
+    for (size_t i = 0; i < group_index; ++i) {
+        ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(down.data()), down.size(),
+                                                     &output),
+                  DASHQL_SHELL_OK);
+        dashql_shell_terminal_result_destroy(&output);
+    }
+
+    const std::string tab{dashql::shell::vt100::kTab};
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(tab.data()), tab.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    EXPECT_NE(TerminalData(output).find(std::string{dashql::shell::vt100::kForegroundBrightBlack} + " by"),
+              std::string_view::npos)
+        << TerminalData(output);
+    dashql_shell_terminal_result_destroy(&output);
+
+    DashQLShellPromptResult prompt{};
+    ASSERT_EQ(dashql_shell_prompt_move_right(shell, &prompt), DASHQL_SHELL_OK);
+    EXPECT_EQ(PromptText(prompt), "SELECT * FROM supplier group");
+    dashql_shell_prompt_result_destroy(&prompt);
+
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(tab.data()), tab.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+    ASSERT_EQ(dashql_shell_prompt_move_right(shell, &prompt), DASHQL_SHELL_OK);
+    EXPECT_EQ(PromptText(prompt), "SELECT * FROM supplier group by");
+    dashql_shell_prompt_result_destroy(&prompt);
+    dashql_shell_completion_result_destroy(&completions);
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, AnchorsCompletionBelowCursorInMultilinePrompt) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 100);
+    ASSERT_NE(shell, nullptr);
+
+    DashQLShellTerminalResult output{};
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    const std::string query = "sel\nFROM supplier";
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(query.data()), query.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    DashQLShellPromptResult prompt{};
+    for (size_t i = 0; i < std::string_view{"\nFROM supplier"}.size(); ++i) {
+        ASSERT_EQ(dashql_shell_prompt_move_left(shell, &prompt), DASHQL_SHELL_OK);
+        dashql_shell_prompt_result_destroy(&prompt);
+    }
+
+    ASSERT_EQ(dashql_shell_terminal_consume(shell, DASHQL_SHELL_INPUT_RIGHT, nullptr, 0, &output), DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+    ASSERT_EQ(dashql_shell_terminal_consume(shell, DASHQL_SHELL_INPUT_LEFT, nullptr, 0, &output), DASHQL_SHELL_OK);
+    const auto rendered = TerminalData(output);
+    EXPECT_NE(rendered.find("\x1b[1B\x1b[8C\x1b[2K\x1b[90m╭"), std::string_view::npos);
+    dashql_shell_terminal_result_destroy(&output);
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, RendersAndAcceptsQualificationHintBeforeCursor) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 100);
+    ASSERT_NE(shell, nullptr);
+
+    DashQLShellTerminalResult output{};
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    const std::string query = "SELECT customer_id FROM orders o JOIN customers c ON o.customer_id = c.customer_id "
+                              "WHERE customer_id";
+    const std::string schema = "CREATE TABLE orders(customer_id BIGINT); CREATE TABLE customers(customer_id BIGINT); ";
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(schema.data()), schema.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(query.data()), query.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    DashQLShellCompletionResult completions{};
+    ASSERT_EQ(dashql_shell_prompt_complete(shell, 50, &completions), DASHQL_SHELL_OK);
+    const auto* candidates = static_cast<const DashQLShellCompletionCandidate*>(completions.candidates_ptr);
+    size_t customer_id_index = completions.count;
+    for (size_t i = 0; i < completions.count; ++i) {
+        if (std::string_view{reinterpret_cast<const char*>(candidates[i].completion_text_ptr),
+                             candidates[i].completion_text_length} == "customer_id") {
+            customer_id_index = i;
+            break;
+        }
+    }
+    ASSERT_LT(customer_id_index, completions.count);
+
+    const std::string down{dashql::shell::vt100::kArrowDownKey};
+    std::string selected_output;
+    for (size_t i = 0; i < customer_id_index; ++i) {
+        ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(down.data()), down.size(),
+                                                     &output),
+                  DASHQL_SHELL_OK);
+        selected_output.assign(TerminalData(output));
+        dashql_shell_terminal_result_destroy(&output);
+    }
+    if (customer_id_index == 0) {
+        ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(down.data()), down.size(),
+                                                     &output),
+                  DASHQL_SHELL_OK);
+        dashql_shell_terminal_result_destroy(&output);
+        const std::string up{dashql::shell::vt100::kArrowUpKey};
+        ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(up.data()), up.size(),
+                                                     &output),
+                  DASHQL_SHELL_OK);
+        selected_output.assign(TerminalData(output));
+        dashql_shell_terminal_result_destroy(&output);
+    }
+    EXPECT_NE(selected_output.find(dashql::shell::vt100::kInsertCharacterCommand), std::string::npos);
+    EXPECT_NE(selected_output.find(dashql::shell::vt100::kForegroundBrightBlack), std::string::npos);
+
+    const std::string tab{dashql::shell::vt100::kTab};
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(tab.data()), tab.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    EXPECT_NE(TerminalData(output).find(dashql::shell::vt100::kInsertCharacterCommand), std::string_view::npos);
+    dashql_shell_terminal_result_destroy(&output);
+
+    ASSERT_EQ(dashql_shell_terminal_consume_data(shell, reinterpret_cast<const uint8_t*>(tab.data()), tab.size(),
+                                                 &output),
+              DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+    DashQLShellPromptResult prompt{};
+    ASSERT_EQ(dashql_shell_prompt_move_right(shell, &prompt), DASHQL_SHELL_OK);
+    EXPECT_NE(PromptText(prompt).find(".customer_id"), std::string_view::npos);
     dashql_shell_prompt_result_destroy(&prompt);
     dashql_shell_completion_result_destroy(&completions);
     dashql_shell_destroy(shell);
