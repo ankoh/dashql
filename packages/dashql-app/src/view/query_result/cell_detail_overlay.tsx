@@ -5,7 +5,7 @@ import * as dashql from '../../core/index.js';
 import { EditorView } from '@codemirror/view';
 import { XIcon, ChevronUpIcon, ChevronDownIcon } from '@primer/octicons-react';
 
-import { IconButton, ButtonVariant } from '../foundations/button.js';
+import { ButtonSize, IconButton, ButtonVariant } from '../foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../foundations/segmented_control.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { JsonView } from '../json/json_view.js';
@@ -13,9 +13,12 @@ import { CodeMirror, createReadonlyCodeMirrorExtensions } from '../editor/codemi
 import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../editor/dashql_processor.js';
 import { Overlay, OverlaySize } from '../foundations/overlay.js';
 import { useDashQLCoreSetup } from '../../core_provider.js';
+import { CopyToClipboardButton } from '../../utils/clipboard.js';
 import { useKeyEvents } from '../../utils/key_events.js';
 import { peekFormat } from './format_peek.js';
 import { PlanRenderer } from '../plan/plan_renderer.js';
+
+const LOG_CTX = 'cell_detail_overlay';
 
 enum FormatMode {
     Raw = 0,
@@ -398,6 +401,14 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
                             <span className={styles.header_title_field}>{props.columnName ?? 'value'}</span>
                         </span>
                         <div className={styles.header_spacer} />
+                        <CopyToClipboardButton
+                            variant={ButtonVariant.Invisible}
+                            size={ButtonSize.Small}
+                            value={rawText}
+                            logContext={LOG_CTX}
+                            aria-label="Copy raw output"
+                            aria-labelledby=""
+                        />
                         {availableModes.length > 1 && (
                             <SegmentedControl
                                 aria-label="Format mode"
