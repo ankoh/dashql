@@ -1,0 +1,30 @@
+.dashql-code-action-menu {
+    position: fixed;
+    z-index: 1000;
+    min-width: 192px;
+    padding: 8px;
+    border: 1px solid var(--border_color_primary);
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(31, 35, 40, 0.12), 0 8px 24px rgba(66, 74, 83, 0.12);
+}
+
+.dashql-code-action-item {
+    width: 100%;
+    min-height: 32px;
+    padding: 4px 12px;
+    border: 1px solid transparent;
+    border-radius: var(--border_radius);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+.dashql-code-action-item:hover,
+.dashql-code-action-item:focus-visible {
+    border-color: var(--border_color_primary);
+    background: rgba(208, 215, 222, 0.32);
+    outline: none;
+}

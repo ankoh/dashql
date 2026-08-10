@@ -20,6 +20,7 @@ export interface ScriptEditorProps {
     className?: string;
     autoHeight?: boolean;
     setView?: (view: EditorView) => void;
+    onNavigateToScript?: (scriptKey: number) => void;
 }
 
 export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
@@ -41,7 +42,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     // Effect to update the editor script whenever the script changes
     React.useEffect(() => {
         if (config == null || view == null || scriptData == null || scripts == null) return;
-        updateEditor(view, scripts, scriptData, modifyScripts, logger, config);
+        updateEditor(view, scripts, scriptData, modifyScripts, logger, config, props.onNavigateToScript);
     }, [
         config,
         view,
@@ -50,6 +51,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
         scriptData?.pendingDiff,
         scripts?.semanticUserFocus,
         scripts?.connectionCatalog,
+        props.onNavigateToScript,
     ]);
     // Forward the view ref, if requested
     React.useEffect(() => {
@@ -70,7 +72,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     );
 };
 
-function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: ScriptData, modifyScripts: ModifyNotebookScripts, logger: Logger, _config: AppConfig) {
+function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: ScriptData, modifyScripts: ModifyNotebookScripts, logger: Logger, _config: AppConfig, onNavigateToScript?: (scriptKey: number) => void) {
     const state = view.state.field(DashQLProcessorPlugin);
     const changes: ChangeSpec[] = [];
     const effects: StateEffect<any>[] = [];
@@ -144,6 +146,9 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
             scriptPendingDiff: scriptData.pendingDiff,
 
             derivedFocus: scripts.semanticUserFocus,
+
+            lookupScript: (scriptKey) => scripts.scripts[scriptKey]?.script ?? null,
+            onNavigateToScript,
 
             onUpdate: updateScript,
         }),

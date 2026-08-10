@@ -267,6 +267,16 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
                                 }}
                                 scriptId={detailsScriptId}
                                 initialTab={detailsInitialTab}
+                                navigateToScript={(scriptKey) => {
+                                    const target = props.notebookScripts.scripts[scriptKey];
+                                    if (!target?.folderName || !target.fileName) return;
+                                    props.modifyNotebookScripts({
+                                        type: SELECT_SCRIPT_PATH,
+                                        value: { folderName: target.folderName, fileName: target.fileName },
+                                    });
+                                    setDetailsScriptId(scriptKey);
+                                    setDetailsInitialTab(undefined);
+                                }}
                             />
                             : null}
             </main>

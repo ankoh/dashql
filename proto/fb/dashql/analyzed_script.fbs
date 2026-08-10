@@ -297,6 +297,8 @@ table VisualizationSpec {
     ast_statement_id: uint32;
     /// The kind of resolved source
     source_kind: VisSourceKind = UNRESOLVED;
+    /// The AST node id of the data source (table reference or inline SELECT)
+    source_ast_node_id: uint32;
     /// The qualified name of the source for SCRIPT_REFERENCE / TABLE_REFERENCE
     source_qualified_name: QualifiedTableName;
     /// The resolved catalog table id of the source for SCRIPT_REFERENCE / TABLE_REFERENCE.

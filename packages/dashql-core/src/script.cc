@@ -1021,6 +1021,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
             sb.add_ast_node_id(spec.ast_node_id);
             sb.add_ast_statement_id(spec.ast_statement_id.value_or(PROTO_NULL_U32));
             sb.add_source_kind(static_cast<buffers::analyzer::VisSourceKind>(spec.resolved_source.kind));
+            sb.add_source_ast_node_id(spec.source_node_id.value_or(PROTO_NULL_U32));
             sb.add_source_qualified_name(qname_ofs);
             sb.add_source_resolved_table_id(
                 spec.resolved_source.resolved_table_id.has_value()

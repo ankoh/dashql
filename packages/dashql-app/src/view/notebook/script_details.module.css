@@ -102,6 +102,12 @@
     flex-shrink: 0;
 }
 
+.entry_card_trailing_actions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
 .script_body {
     position: relative;
     flex: 1;

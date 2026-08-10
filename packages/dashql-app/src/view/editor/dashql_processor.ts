@@ -92,6 +92,11 @@ export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
     /// The derive focus info
     derivedFocus: SemanticUserFocus | null;
 
+    /// Resolve a notebook script by its catalog entry id for code actions.
+    lookupScript?: (scriptKey: DashQLScriptKey) => dashql.DashQLScript | null;
+    /// Navigate to a notebook script definition.
+    onNavigateToScript?: (scriptKey: DashQLScriptKey) => void;
+
     /// This callback is called when the editor updates the script, the cursor, completions.
     /// The callee is responsible for keeping FlatBufferPtrs alive and clean them up once they get overwritten.
     onUpdate: (out: DashQLProcessorUpdateOut) => void;
@@ -181,6 +186,8 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
             scriptPendingDiff: null,
 
             derivedFocus: null as SemanticUserFocus | null,
+            lookupScript: undefined,
+            onNavigateToScript: undefined,
 
             onUpdate: () => { },
         };

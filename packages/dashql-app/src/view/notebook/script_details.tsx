@@ -16,7 +16,7 @@ import { useCancelQuery, useQueryState, useQueryExecutor } from '../../connectio
 import { useAgentRunState, useCancelAgentRun } from '../../agent/agent_run_provider.js';
 import { ScriptOutputDetails, ScriptDetailsTab } from './script_output_details.js';
 import { QueryResultCacheLabel, QueryResultRerunButton } from './query_result_cache_controls.js';
-import { ACCEPT_PENDING_DIFF, getSelectedScriptRef, getSelectedScriptFolder, NotebookScripts, REJECT_PENDING_DIFF, RENAME_SCRIPT } from '../../scripts/notebook_scripts.js';
+import { ACCEPT_PENDING_DIFF, getSelectedScriptRef, getSelectedScriptFolder, NotebookScripts, REJECT_PENDING_DIFF, RENAME_SCRIPT, SELECT_SCRIPT_PATH } from '../../scripts/notebook_scripts.js';
 import { rerunEntry } from './rerun_query.js';
 import { useStorageReader } from '../../platform/storage/storage_provider.js';
 import { normalizeScriptFolderName, scriptDisplayName } from '../../scripts/script_types.js';
@@ -29,6 +29,7 @@ import { ScriptName } from './script_name.js';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
 import { createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../editor/dashql_processor.js';
+import { ScriptActionMenu } from './script_action_menu.js';
 
 export { ScriptDetailsTab as TabKey };
 
@@ -39,6 +40,7 @@ export interface ScriptDetailsProps {
     hideDetails: () => void;
     scriptId?: number;
     initialTab?: ScriptDetailsTab;
+    navigateToScript?: (scriptKey: number) => void;
 }
 
 export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
@@ -231,6 +233,18 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
             props.modifyNotebookScripts({ type: REJECT_PENDING_DIFF, value: scriptData.scriptKey });
         }
     }, [editorView, props.modifyNotebookScripts, scriptData]);
+    const navigateToScript = React.useCallback((scriptKey: number) => {
+        if (props.navigateToScript) {
+            props.navigateToScript(scriptKey);
+            return;
+        }
+        const target = props.notebookScripts.scripts[scriptKey];
+        if (!target?.folderName || !target.fileName) return;
+        props.modifyNotebookScripts({
+            type: SELECT_SCRIPT_PATH,
+            value: { folderName: target.folderName, fileName: target.fileName },
+        });
+    }, [props.navigateToScript, props.notebookScripts.scripts, props.modifyNotebookScripts]);
 
     const activeQueryId = scriptData?.latestQueryId ?? null;
     const activeQueryState = useQueryState(props.notebookScripts?.notebookId ?? null, activeQueryId);
@@ -377,14 +391,17 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                                 <ScriptStatisticsBar stats={scriptData.statistics} />
                             </div>
                         )}
-                            <IconButton
-                                className={styles.entry_card_collapse_button}
-                                variant={ButtonVariant.Invisible}
-                                onClick={props.hideDetails}
-                                aria-label="Collapse"
-                            >
-                                <ScreenNormalIcon size={16} />
-                            </IconButton>
+                            <div className={styles.entry_card_trailing_actions}>
+                                <ScriptActionMenu editorView={editorView} />
+                                <IconButton
+                                    className={styles.entry_card_collapse_button}
+                                    variant={ButtonVariant.Invisible}
+                                    onClick={props.hideDetails}
+                                    aria-label="Collapse"
+                                >
+                                    <ScreenNormalIcon size={16} />
+                                </IconButton>
+                            </div>
                         </div>
                         <div className={styles.script_body}>
                             <div className={styles.editor_container}>
@@ -392,6 +409,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                                     notebookId={props.notebookScripts.notebookId}
                                     scriptKey={notebookEntry.scriptId}
                                     setView={setEditorView}
+                                    onNavigateToScript={navigateToScript}
                                 />
                                 <div className={styles.format_toggle}>
                                     {hasPendingDiff ? (
