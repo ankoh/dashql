@@ -1449,6 +1449,16 @@ describe('getExecutableQueryText', () => {
         expect(text.toLowerCase()).toContain('select v as a');
     });
 
+    it('extracts the inner SELECT when a comment precedes VISUALIZE', () => {
+        const state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const script = `-- chart context\n${VISUALIZE_SCRIPT}`;
+        const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
+
+        const text = getExecutableQueryText(next, next.scripts[scriptKey]);
+        expect(text).toBe('select v as a from generate_series(1, 10) t(v)');
+    });
+
     it('returns the raw script text for a plain SQL statement', () => {
         const state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];

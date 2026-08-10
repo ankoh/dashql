@@ -70,9 +70,9 @@ std::unique_ptr<buffers::parser::ScannerTokensT> ParsedScript::PackTokens() {
     std::vector<uint32_t> offsets;
     std::vector<uint32_t> lengths;
     std::vector<buffers::parser::ScannerTokenType> types;
-    offsets.reserve(scan.symbols.GetSize() * 3 / 2);
-    lengths.reserve(scan.symbols.GetSize() * 3 / 2);
-    types.reserve(scan.symbols.GetSize() * 3 / 2);
+    offsets.reserve(scan.symbols.GetSize());
+    lengths.reserve(scan.symbols.GetSize());
+    types.reserve(scan.symbols.GetSize());
 
     // Build a bitset of symbol indices that lie inside a vis spec body.
     std::vector<bool> vis_spec_overrides(scan.symbols.GetSize(), false);
@@ -83,15 +83,7 @@ std::unique_ptr<buffers::parser::ScannerTokensT> ParsedScript::PackTokens() {
         }
     }
 
-    size_t ci = 0;
     scan.symbols.ForEachIn(0, scan.symbols.GetSize() - 1, [&](size_t symbol_id, parser::Parser::symbol_type symbol) {
-        // Emit all comments in between.
-        while (ci < scan.comments.size() && scan.comments[ci].offset() < symbol.location.offset()) {
-            auto& comment = scan.comments[ci++];
-            offsets.push_back(comment.offset());
-            lengths.push_back(comment.length());
-            types.push_back(buffers::parser::ScannerTokenType::COMMENT);
-        }
         // Map as standard token, then apply keyword overrides.
         offsets.push_back(symbol.location.offset());
         lengths.push_back(symbol.location.length());
@@ -105,13 +97,6 @@ std::unique_ptr<buffers::parser::ScannerTokensT> ParsedScript::PackTokens() {
         }
         types.push_back(token_type);
     });
-    // Emit trailing comments
-    for (; ci < scan.comments.size(); ++ci) {
-        auto& comment = scan.comments[ci++];
-        offsets.push_back(comment.offset());
-        lengths.push_back(comment.length());
-        types.push_back(buffers::parser::ScannerTokenType::COMMENT);
-    }
 
     // Build the line breaks
     std::vector<uint32_t> breaks;

@@ -55,6 +55,32 @@ describe('DashQL Scanner', () => {
     });
 
     describe(`Utils`, () => {
+        it(`Should resolve symbol spans independently of comments`, () => {
+            const catalog = dql!.createCatalog();
+            const script = dql!.createScript(catalog);
+            const text = '-- leading comment\nselect /* middle comment */ 1';
+            script.insertTextAt(0, text);
+            script.analyze();
+
+            const parsed = script.getParsed().read();
+            const tokens = parsed.tokens()!;
+            const tokenOffsets = Array.from(tokens.tokenOffsetsArray()!);
+            expect(tokenOffsets).toEqual([text.indexOf('select'), text.lastIndexOf('1')]);
+            expect(parsed.commentsLength()).toBe(2);
+            const comment = new dashql.buffers.parser.TextSpan();
+            expect(parsed.comments(0, comment)?.offset()).toBe(0);
+            expect(parsed.comments(1, comment)?.offset()).toBe(text.indexOf('/*'));
+            const span = (offset: number, length: number) => ({
+                offset: () => offset,
+                length: () => length,
+            }) as dashql.buffers.parser.SymbolSpan;
+
+            expect(dashql.resolveSymbolSpan(tokens, span(0, 1)))
+                .toEqual({ offset: text.indexOf('select'), length: 'select'.length });
+            expect(dashql.resolveSymbolSpan(tokens, span(1, 1)))
+                .toEqual({ offset: text.lastIndexOf('1'), length: 1 });
+        });
+
         it(`Should find tokens in range`, () => {
             const test_tokens = (
                 text: string,

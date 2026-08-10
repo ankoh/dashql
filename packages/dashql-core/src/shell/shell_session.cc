@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstring>
 #include <exception>
+#include <limits>
 #include <stdexcept>
 #include <unordered_set>
 #include <utility>
@@ -619,20 +620,38 @@ std::string ShellSession::RenderTerminalPrompt() {
                                      ? std::string_view{"dashql> "}
                                      : std::string_view{terminal_prompt_storage_.data(), terminal_prompt_length_};
     prompt_.script().Parse();
-    auto packed = prompt_.script().GetParsedScript()->PackTokens();
+    auto parsed = prompt_.script().GetParsedScript();
+    auto packed = parsed->PackTokens();
+    const auto& comments = parsed->scanned_script->comments;
 
     std::string highlighted;
-    highlighted.reserve(text.size() + packed->token_offsets.size() * 16);
+    highlighted.reserve(text.size() + (packed->token_offsets.size() + comments.size()) * 16);
     size_t offset = 0;
-    for (size_t i = 0; i < packed->token_offsets.size(); ++i) {
-        const auto begin = static_cast<size_t>(packed->token_offsets[i]);
-        const auto end = begin + packed->token_lengths[i];
+    size_t token_idx = 0;
+    size_t comment_idx = 0;
+    while (token_idx < packed->token_offsets.size() || comment_idx < comments.size()) {
+        const auto token_begin = token_idx < packed->token_offsets.size()
+                                     ? static_cast<size_t>(packed->token_offsets[token_idx])
+                                     : std::numeric_limits<size_t>::max();
+        const auto comment_begin = comment_idx < comments.size()
+                                       ? static_cast<size_t>(comments[comment_idx].offset())
+                                       : std::numeric_limits<size_t>::max();
+        const bool is_comment = comment_begin < token_begin;
+        const auto begin = is_comment ? comment_begin : token_begin;
+        const auto length = is_comment ? comments[comment_idx].length() : packed->token_lengths[token_idx];
+        const auto type = is_comment ? ScannerTokenType::COMMENT : packed->token_types[token_idx];
+        const auto end = begin + length;
         if (begin > offset) highlighted.append(text.substr(offset, begin - offset));
-        const auto style = TokenStyle(packed->token_types[i]);
+        const auto style = TokenStyle(type);
         if (!style.empty()) highlighted.append(style);
         highlighted.append(text.substr(begin, end - begin));
         if (!style.empty()) highlighted.append(vt100::kResetAttributes);
         offset = end;
+        if (is_comment) {
+            ++comment_idx;
+        } else {
+            ++token_idx;
+        }
     }
     highlighted.append(text.substr(offset));
 

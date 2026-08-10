@@ -604,6 +604,8 @@ enum ScannerTokenType: uint8 {
 }
 
 table ScannerTokens {
+    // Parser symbols only. Indexes in these arrays are the indexes used by SymbolSpan.
+    // Comments are trivia and are stored separately in ParsedScript.comments.
     token_offsets: [uint32];
     token_lengths: [uint32];
     token_types: [ScannerTokenType];

@@ -8,6 +8,7 @@ import { tags as CODEMIRROR_TAGS, Tag } from '@lezer/highlight';
 import './dashql_decorations.css';
 
 export const visKeywordTag = Tag.define(CODEMIRROR_TAGS.keyword);
+export const commentTag = CODEMIRROR_TAGS.comment;
 
 const PROTO_TAG_MAPPING: Map<dashql.buffers.parser.ScannerTokenType, Tag> = new Map([
     [dashql.buffers.parser.ScannerTokenType.KEYWORD, CODEMIRROR_TAGS.keyword],
@@ -20,10 +21,9 @@ const PROTO_TAG_MAPPING: Map<dashql.buffers.parser.ScannerTokenType, Tag> = new 
     [dashql.buffers.parser.ScannerTokenType.LITERAL_STRING, CODEMIRROR_TAGS.string],
     [dashql.buffers.parser.ScannerTokenType.LITERAL_INTEGER, CODEMIRROR_TAGS.integer],
     [dashql.buffers.parser.ScannerTokenType.IDENTIFIER, CODEMIRROR_TAGS.name],
-    [dashql.buffers.parser.ScannerTokenType.COMMENT, CODEMIRROR_TAGS.comment],
 ]);
 
-const CODEMIRROR_TAGS_USED: Set<Tag> = new Set();
+const CODEMIRROR_TAGS_USED: Set<Tag> = new Set([commentTag]);
 for (const [_token, tag] of PROTO_TAG_MAPPING) {
     CODEMIRROR_TAGS_USED.add(tag);
 }
@@ -63,28 +63,55 @@ export function buildDecorationsForRanges(
     const tokenOffsets = tokens.tokenOffsetsArray()!;
     const tokenLengths = tokens.tokenLengthsArray()!;
     const tokenTypes = tokens.tokenTypesArray()!;
+    const commentDecoration = decorations.get(commentTag)!;
+    const tmpComment = new dashql.buffers.parser.TextSpan();
+
+    const firstCommentEndingAfter = (offset: number): number => {
+        let begin = 0;
+        let end = script.commentsLength();
+        while (begin < end) {
+            const mid = (begin + end) >>> 1;
+            const comment = script.comments(mid, tmpComment)!;
+            if (comment.offset() + comment.length() <= offset) begin = mid + 1;
+            else end = mid;
+        }
+        return begin;
+    };
 
     // RangeSetBuilder requires strictly ascending `from`. Ranges are sorted ascending and tokens
     // are sorted by offset, but `findTokensInRange` backs up to include a token straddling the
     // range start, so adjacent ranges can revisit the same token. `cursor` guards against emitting
     // a token index twice (only relevant with folded gaps; the plain editor has a single range).
-    let cursor = 0;
+    let tokenCursor = 0;
+    let commentCursor = 0;
     for (const { from, to } of ranges) {
         let [lb, ub] = dashql.findTokensInRange(tokens, from, to);
-        if (lb < cursor) {
-            lb = cursor;
-        }
-        for (let i = lb; i < ub; ++i) {
-            const tag = PROTO_TAG_MAPPING.get(tokenTypes[i]);
-            if (tag) {
-                const offset = tokenOffsets[i];
-                const length = tokenLengths[i];
-                builder.add(offset, offset + length, decorations.get(tag)!);
+        lb = Math.max(lb, tokenCursor);
+        let commentIdx = Math.max(firstCommentEndingAfter(from), commentCursor);
+        let tokenIdx = lb;
+        while (tokenIdx < ub || commentIdx < script.commentsLength()) {
+            const tokenOffset = tokenIdx < ub ? tokenOffsets[tokenIdx] : Number.POSITIVE_INFINITY;
+            const comment = commentIdx < script.commentsLength()
+                ? script.comments(commentIdx, tmpComment)
+                : null;
+            const commentOffset = comment?.offset() ?? Number.POSITIVE_INFINITY;
+            if (commentOffset >= to && tokenOffset === Number.POSITIVE_INFINITY) break;
+
+            if (commentOffset < tokenOffset) {
+                if (commentOffset < to) {
+                    builder.add(commentOffset, commentOffset + comment!.length(), commentDecoration);
+                }
+                ++commentIdx;
+            } else {
+                const tag = PROTO_TAG_MAPPING.get(tokenTypes[tokenIdx]);
+                if (tag) {
+                    builder.add(tokenOffset, tokenOffset + tokenLengths[tokenIdx], decorations.get(tag)!);
+                }
+                ++tokenIdx;
             }
         }
-        if (ub > cursor) {
-            cursor = ub;
-        }
+        tokenCursor = Math.max(tokenCursor, ub);
+        commentCursor = Math.max(commentCursor, commentIdx);
     }
     return builder.finish();
 }

@@ -226,8 +226,7 @@ TEST(ScannerTest, LeavesOtherBlockCommentsUnchanged) {
 
     EXPECT_EQ(scanned->comments.size(), 4u);
     EXPECT_EQ(packed->token_types,
-              (std::vector<ScannerToken>{ScannerToken::KEYWORD, ScannerToken::COMMENT, ScannerToken::COMMENT,
-                                         ScannerToken::COMMENT, ScannerToken::COMMENT, ScannerToken::LITERAL_INTEGER}));
+              (std::vector<ScannerToken>{ScannerToken::KEYWORD, ScannerToken::LITERAL_INTEGER}));
     EXPECT_TRUE(parsed->errors.empty());
 }
 
@@ -260,7 +259,8 @@ TEST(ScannerTest, TrailingComments) {
     auto scanned = parser::Scanner::Scan(buffer, 0, 0);
     auto parsed = parser::Parser::Parse(scanned);
     auto packed = parsed->PackTokens();
-    ASSERT_EQ(packed->token_types.size(), 3);
+    ASSERT_EQ(packed->token_types.size(), 2);
+    ASSERT_EQ(scanned->comments.size(), 1);
 }
 
 }  // namespace
