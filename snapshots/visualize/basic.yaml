@@ -419,7 +419,7 @@ visualize-snapshots:
         VISUALIZE sales USING vegalite (
           mark => bar,
           encoding => (
-            x => (field => category, type => nominal, axis => (label_angle => -45))
+            x => (field => category, type => nominal, axis => (label_angle => -45, title => 'Category'))
           )
         );
     vegalite: |-
@@ -434,6 +434,7 @@ visualize-snapshots:
             "field": "category",
             "type": "nominal",
             "axis": {
+              "title": "Category",
               "labelAngle": -45.0
             }
           }
@@ -443,7 +444,7 @@ visualize-snapshots:
       VISUALIZE sales USING vegalite (
         mark => bar,
         encoding => (
-          x => (field => category, type => nominal, axis => (label_angle => -45))
+          x => (field => category, type => nominal, axis => (title => 'Category', label_angle => -45))
         )
       );
 

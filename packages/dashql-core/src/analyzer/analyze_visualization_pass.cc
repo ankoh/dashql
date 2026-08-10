@@ -71,8 +71,9 @@ std::optional<std::string_view> ReadTextValue(AnalysisState& state, const buffer
     switch (node->node_type()) {
         case NodeType::OBJECT_SQL_COLUMN_REF:
         case NodeType::NAME:
-        case NodeType::LITERAL_STRING:
             return state.scanned.ReadTextAtSymbolSpan(node->symbol_span());
+        case NodeType::LITERAL_STRING:
+            return trim_view(state.scanned.ReadTextAtSymbolSpan(node->symbol_span()), is_no_quote);
         default:
             return std::nullopt;
     }

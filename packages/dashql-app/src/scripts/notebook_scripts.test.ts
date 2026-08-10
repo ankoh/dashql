@@ -1459,6 +1459,25 @@ describe('getExecutableQueryText', () => {
         expect(text).toBe('select v as a from generate_series(1, 10) t(v)');
     });
 
+    it('strips SQL quotes from a nested Vega-Lite axis title', () => {
+        const state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const script = `visualize (select 1 as metric) using vegalite (
+            mark => bar,
+            encoding => (y => (
+                field => metric,
+                type => quantitative,
+                axis => (title => 'cpu_time')
+            ))
+        )`;
+        const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
+        const raw = next.scripts[scriptKey].annotations.visualizeQuery?.renderer === 'vegalite'
+            ? next.scripts[scriptKey].annotations.visualizeQuery.vegaLiteSpec as any
+            : null;
+
+        expect(raw?.encoding?.y).toMatchObject({ axis: { title: 'cpu_time' } });
+    });
+
     it('returns the raw script text for a plain SQL statement', () => {
         const state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];
