@@ -15,7 +15,7 @@ import type { RowComponentProps } from 'react-window';
 import { ButtonSize, ButtonVariant, IconButton } from '../../foundations/button.js';
 import { ButtonGroup } from '../../foundations/button_group.js';
 import { ConnectionHealth, ConnectionState } from '../../../connection/connection_state.js';
-import { getExecutableQueryText, getSelectedScriptRef, getSelectedScriptFolder, getSelectedScriptRefs, getSortedScriptFileNames, getUncommittedScriptData, tryGetExecutableQueryText, type ScriptData, NotebookScripts, SELECT_SCRIPT, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF, SET_SCRIPT_TEXT } from '../../../scripts/notebook_scripts.js';
+import { getExecutableQueryText, getSelectedScriptRef, getSelectedScriptFolder, getSelectedScriptRefs, getSortedScriptFileNames, getUncommittedScriptData, tryGetExecutableQueryText, type ScriptData, NotebookScripts, SELECT_SCRIPT, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../../scripts/notebook_scripts.js';
 import { useAIClient } from '../../../platform/ai_client_provider.js';
 import { COMPOSE_INPUT_MODE_AI, useComposeInputMode } from '../../../scripts/notebook_commands.js';
 import { useLatestAgentRunState, useAgentRunState, useStartAgentRun, useCancelAgentRun } from '../../../agent/agent_run_provider.js';
@@ -44,8 +44,6 @@ import { registerNotebookScriptQuery, rerunEntry } from '../rerun_query.js';
 import { useStorageReader } from '../../../platform/storage/storage_provider.js';
 import { STORAGE_CACHE_EXTENSION } from '../../../platform/storage/storage_backend.js';
 import { CachedResultBean, QueryResultCacheLabel, QueryResultRerunButton } from '../query_result_cache_controls.js';
-import { inlineAllScriptReferencesInScript } from '../../editor/dashql_code_actions.js';
-import { ScriptActionMenu } from '../script_action_menu.js';
 
 interface FeedScrollTarget {
     fileName: string;
@@ -116,7 +114,6 @@ interface CollapsedScriptCardProps {
     onMoveDown: (fileName: string) => void;
     onExecute: (fileName: string) => void;
     onUseAIContext: (scriptKey: number) => void;
-    onInlineScriptRefs: (scriptKey: number) => void;
     onShowStatus: (fileName: string) => void;
     onShowAgentStatus: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
@@ -130,7 +127,7 @@ interface CollapsedScriptCardProps {
     onFormattedText: (scriptText: string) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ notebookId, connectorIcon, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canExecute, canUseAI, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onInlineScriptRefs, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, hasCachedResult, onPreviewReady, initialPreviewText, onFormattedText }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ notebookId, connectorIcon, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canExecute, canUseAI, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, hasCachedResult, onPreviewReady, initialPreviewText, onFormattedText }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
     const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
@@ -272,11 +269,6 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ notebookId, connectorI
                                 <ScriptStatisticsBar stats={scriptData.statistics} />
                             </div>
                         )}
-                        <ScriptActionMenu
-                            onInlineScriptRefs={scriptData == null
-                                ? undefined
-                                : () => onInlineScriptRefs(scriptData.scriptKey)}
-                        />
                         <IconButton
                             variant={ButtonVariant.Invisible}
                             size={ButtonSize.Small}
@@ -413,7 +405,6 @@ interface ScriptFeedRowProps {
     onMoveDown: (fileName: string) => void;
     onExecute: (fileName: string) => void;
     onUseAIContext: (scriptKey: number) => void;
-    onInlineScriptRefs: (scriptKey: number) => void;
     onShowStatus: (fileName: string) => void;
     onShowAgentStatus: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
@@ -430,7 +421,7 @@ interface ScriptFeedRowProps {
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { notebookId, connectorIcon, entries, scripts, folderName, scriptDebugMode, focusedFileName, executableScriptKeys, canUseAI, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onInlineScriptRefs, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, cachedScriptKeys, previewHints, onHeightMeasured, onFormattedText, topPadding } = props;
+    const { notebookId, connectorIcon, entries, scripts, folderName, scriptDebugMode, focusedFileName, executableScriptKeys, canUseAI, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, cachedScriptKeys, previewHints, onHeightMeasured, onFormattedText, topPadding } = props;
     const isFillerRow = props.index >= entries.length;
     const entryIndex = props.index;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -519,7 +510,6 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onMoveDown={onMoveDown}
                     onExecute={onExecute}
                     onUseAIContext={onUseAIContext}
-                    onInlineScriptRefs={onInlineScriptRefs}
                     onShowStatus={onShowStatus}
                     onShowAgentStatus={onShowAgentStatus}
                     onShowTable={onShowTable}
@@ -665,18 +655,6 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
             setInputMode(COMPOSE_INPUT_MODE_AI);
         }
     }, [composeEditorView, inputMode, setInputMode]);
-
-    const handleInlineScriptRefs = React.useCallback((scriptKey: number) => {
-        const scriptData = props.notebookScripts.scripts[scriptKey];
-        if (!scriptData) return;
-        const rewritten = inlineAllScriptReferencesInScript(
-            scriptData.script,
-            scriptData.scriptAnalysis.buffers,
-            key => props.notebookScripts.scripts[key]?.script ?? null,
-        );
-        if (rewritten == null) return;
-        props.modifyNotebookScripts({ type: SET_SCRIPT_TEXT, value: { scriptKey, text: rewritten } });
-    }, [props.notebookScripts.scripts, props.modifyNotebookScripts]);
 
     const handleFocus = React.useCallback((fileName: string) => {
         props.modifyNotebookScripts({ type: SELECT_SCRIPT, value: fileName });
@@ -1095,7 +1073,6 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         onMoveDown: handleMoveDown,
         onExecute: handleExecuteEntry,
         onUseAIContext: handleUseAIContext,
-        onInlineScriptRefs: handleInlineScriptRefs,
         onShowStatus: handleShowStatus,
         onShowAgentStatus: handleShowAgentStatus,
         onShowTable: handleShowTable,
@@ -1109,7 +1086,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         onFormattedText: handleFormattedText,
         topPadding: feedTopPadding,
         heightsVersion,
-    }), [entries, props.notebookScripts.scripts, props.notebookScripts.connectorInfo.icons?.outlines, props.notebookScripts.scriptFocus.fileName, folderName, scriptDebugMode, executableScriptKeys, aiAvailable, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleUseAIContext, handleInlineScriptRefs, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, cachedScriptKeys, handleHeightMeasured, handleFormattedText, feedTopPadding, heightsVersion]);
+    }), [entries, props.notebookScripts.scripts, props.notebookScripts.connectorInfo.icons?.outlines, props.notebookScripts.scriptFocus.fileName, folderName, scriptDebugMode, executableScriptKeys, aiAvailable, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleUseAIContext, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, cachedScriptKeys, handleHeightMeasured, handleFormattedText, feedTopPadding, heightsVersion]);
 
     return (
         <div
