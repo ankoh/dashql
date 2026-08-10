@@ -3,7 +3,7 @@ import * as core from '../core/index.js';
 
 import { ConnectionState } from './connection_state.js';
 import { Logger } from '../platform/logger/logger.js';
-import { analyzeScriptData, makeScriptLookup, ScriptData, NotebookScripts, createEmptyScriptData } from '../scripts/notebook_scripts.js';
+import { analyzeScriptData, ScriptData, NotebookScripts, createEmptyScriptData } from '../scripts/notebook_scripts.js';
 import { NotebookScriptsAllocator, NotebookScriptsInput } from '../scripts/notebook_scripts_registry.js';
 import { createEmptyAnnotations, createScriptRef, generateScriptFileName } from '../scripts/script_types.js';
 
@@ -51,7 +51,6 @@ export function createDefaultNotebookScripts(
         mainScriptData,
         registry,
         conn.catalog,
-        makeScriptLookup({ [mainScriptData.scriptKey]: mainScriptData }),
         logger,
     );
 

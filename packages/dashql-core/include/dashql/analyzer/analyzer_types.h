@@ -741,11 +741,11 @@ struct UmapSpec {
 /// The kind of source resolved for a VISUALIZE statement
 enum class VisSourceKind : uint8_t {
     Unresolved = 0,
-    /// `visualize <db>.<schema>.<table> using vegalite (...)` — bare table reference
+    /// Reserved legacy value.
     TableReference = 1,
-    /// `visualize dashql.script."<folder>/<file>" using vegalite (...)` — qualified script path
+    /// Reserved legacy value.
     ScriptReference = 2,
-    /// `visualize (select ...) using vegalite (...)` — inline parenthesised SELECT subquery
+    /// `<query> |> visualize ...` — the complete input query
     InlineSelect = 3,
 };
 
@@ -753,16 +753,7 @@ enum class VisSourceKind : uint8_t {
 struct ResolvedVisSource {
     /// The kind of resolved source
     VisSourceKind kind = VisSourceKind::Unresolved;
-    /// For ScriptReference / TableReference: the resolved qualified name (copied
-    /// from the table reference produced by NameResolutionPass)
-    std::optional<QualifiedTableName> qualified_name;
-    /// For ScriptReference / TableReference: the resolved catalog table id (copied from the table
-    /// reference's resolved_table). Its packed form is (catalog_entry_id << 32) | table_index, so the
-    /// upper 32 bits identify the producing script's catalog entry — which is exactly its scriptKey.
-    /// TypeScript uses this to inline the producing script's text without any name lookup.
-    /// Absent when the reference did not resolve (e.g. the source script has an error).
-    std::optional<QualifiedCatalogObjectID> resolved_table_id;
-    /// For InlineSelect: the AST node id of the OBJECT_SQL_SELECT subquery
+    /// The AST node id of the complete input query.
     std::optional<uint32_t> inline_select_ast_node_id;
 };
 
@@ -773,14 +764,13 @@ struct VisualizationSpec {
     /// The statement id containing this visualization
     std::optional<uint32_t> ast_statement_id;
     /// The visualization renderer named after `USING` (e.g. `vegalite`).
-    /// Empty for a sourceless/spec-less `VISUALIZE;` statement.
     std::optional<std::string_view> renderer;
     /// The mark type (bar, line, point, area, etc.)
     std::optional<buffers::parser::VisMarkType> mark_type;
     /// The structured mark definition (present when the mark carries properties
     /// beyond a bare type, e.g. `mark => (type => line, point => (...))`)
     std::optional<VisMark> mark;
-    /// The AST node id of the data source (table ref or SELECT subquery)
+    /// The AST node id of the input query.
     std::optional<uint32_t> source_node_id;
     /// The resolved source classification, populated in AnalyzeVisualizationPass::Finish
     ResolvedVisSource resolved_source;

@@ -1012,21 +1012,11 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
                 renderer_ofs = builder.CreateString(std::string(*spec.renderer));
             }
 
-            flatbuffers::Offset<buffers::analyzer::QualifiedTableName> qname_ofs;
-            if (spec.resolved_source.qualified_name.has_value()) {
-                qname_ofs = spec.resolved_source.qualified_name->Pack(builder);
-            }
-
             buffers::analyzer::VisualizationSpecBuilder sb{builder};
             sb.add_ast_node_id(spec.ast_node_id);
             sb.add_ast_statement_id(spec.ast_statement_id.value_or(PROTO_NULL_U32));
             sb.add_source_kind(static_cast<buffers::analyzer::VisSourceKind>(spec.resolved_source.kind));
             sb.add_source_ast_node_id(spec.source_node_id.value_or(PROTO_NULL_U32));
-            sb.add_source_qualified_name(qname_ofs);
-            sb.add_source_resolved_table_id(
-                spec.resolved_source.resolved_table_id.has_value()
-                    ? spec.resolved_source.resolved_table_id->UnpackTableID().Pack()
-                    : 0);
             sb.add_source_inline_select_ast_node_id(
                 spec.resolved_source.inline_select_ast_node_id.value_or(PROTO_NULL_U32));
             sb.add_renderer(renderer_ofs);
@@ -1132,39 +1122,24 @@ void Script::InsertCharAt(size_t char_idx, uint32_t unicode) {
     auto length = dashql::utf8::utf8proc_encode_char(unicode, reinterpret_cast<uint8_t*>(buffer.data()));
     std::string_view encoded{reinterpret_cast<char*>(buffer.data()), static_cast<size_t>(length)};
     text.Insert(char_idx, encoded);
-    executed_output_schema.clear();
     ++text_version;
 }
 /// Insert a text at an offet
 void Script::InsertTextAt(size_t char_idx, std::string_view encoded) {
     text.Insert(char_idx, encoded);
-    executed_output_schema.clear();
     ++text_version;
 }
 /// Erase a text at an offet
 void Script::EraseTextRange(size_t char_idx, size_t count) {
     text.Remove(char_idx, count);
-    executed_output_schema.clear();
     ++text_version;
 }
 /// Replace the text in the script
 void Script::ReplaceText(std::string_view encoded) {
     text = rope::Rope{1024, encoded};
-    executed_output_schema.clear();
     ++text_version;
 }
 
-bool Script::SetExecutedOutputSchema(std::vector<std::string> column_names) {
-    std::vector<std::string> normalized;
-    normalized.reserve(column_names.size());
-    for (auto& name : column_names) {
-        if (name.empty()) continue;
-        normalized.push_back(std::move(name));
-    }
-    if (normalized == executed_output_schema) return false;
-    executed_output_schema = std::move(normalized);
-    return true;
-}
 /// Print the entire script as a string
 std::string Script::ToString() { return text.ToString(); }
 /// Print a script byte span as a string
@@ -1284,7 +1259,7 @@ void Script::Analyze(bool parse_if_outdated) {
     }
     // Analyze a script
     auto time_before_analyzing = std::chrono::steady_clock::now();
-    analyzed_script = Analyzer::Analyze(parsed_script, catalog, script_path, executed_output_schema);  // throws on error
+    analyzed_script = Analyzer::Analyze(parsed_script, catalog);  // throws on error
     timing_statistics.mutate_analyzer_last_elapsed(
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - time_before_analyzing)
             .count());

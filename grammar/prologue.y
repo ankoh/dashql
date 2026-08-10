@@ -81,7 +81,7 @@ using namespace dashql::parser;
 %token         Op
 %token         FCONST BCONST XCONST
 %token         ICONST PARAM
-%token         TYPECAST DOT DOT_DOT DOT_TRAILING COLON_EQUALS EQUALS_GREATER
+%token         TYPECAST DOT DOT_DOT DOT_TRAILING COLON_EQUALS EQUALS_GREATER PIPE_GREATER
 %token         LESS_EQUALS GREATER_EQUALS NOT_EQUALS
 %token         COMPLETE_HERE
 

@@ -222,19 +222,6 @@ class AnalyzedScript : public CatalogEntry {
     using InferredColumn = dashql::InferredColumn;
     using InferredTableSchema = dashql::InferredTableSchema;
 
-    /// Owned storage for synthetic script output table names.
-    /// These are used for catalog registration under dashql.script."<path>".
-    struct ScriptOutputNames {
-        std::string path_buffer;
-        RegisteredName db_name;
-        RegisteredName schema_name;
-        RegisteredName table_name;
-        std::vector<std::string> column_name_buffers;
-        std::vector<RegisteredName> column_names;
-        ScriptOutputNames() : path_buffer{}, db_name{}, schema_name{}, table_name{} {}
-    };
-    std::optional<ScriptOutputNames> script_output_names;
-
     /// The parsed script
     std::shared_ptr<ParsedScript> parsed_script;
 
@@ -384,13 +371,6 @@ class Script {
     /// The catalog entry id
     const CatalogEntryID catalog_entry_id;
 
-    /// The path for this script in the synthetic SQL namespace (e.g., "main/01-script.sql").
-    /// Set externally before analysis. Empty means no script registration.
-    std::string script_path;
-    /// Column names learned from the latest successful execution.
-    /// Empty means static analysis remains the source of the output schema.
-    std::vector<std::string> executed_output_schema;
-
     /// The underlying rope
     rope::Rope text;
     /// The text version
@@ -441,7 +421,6 @@ class Script {
     /// Replace the entire text
     void ReplaceText(std::string_view text);
     /// Replace the execution-derived output schema. Returns true if it changed.
-    bool SetExecutedOutputSchema(std::vector<std::string> column_names);
     /// Print the entire script as a string.
     std::string ToString();
     /// Print a byte span of the script as a string.

@@ -1,8 +1,6 @@
 #include "dashql/analyzer/analyze_visualization_pass.h"
 
 #include <cstdlib>
-#include <unordered_map>
-
 #include "dashql/analyzer/analysis_state.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
@@ -587,45 +585,13 @@ void AnalyzeVisualizationPass::Finish() {
         }
     }
 
-    // Build an index from ast_node_id -> table reference, so the visualize source can be
-    // resolved against the references already classified by NameResolutionPass.
-    std::unordered_map<uint32_t, std::reference_wrapper<const AnalyzedScript::TableReference>>
-        table_refs_by_ast_node;
-    state.analyzed->table_references.ForEach([&](size_t, const AnalyzedScript::TableReference& ref) {
-        table_refs_by_ast_node.emplace(ref.ast_node_id, std::cref(ref));
-    });
-
     for (auto& spec : collected_specs) {
         if (!spec.source_node_id.has_value()) continue;
         auto source_node_id = *spec.source_node_id;
         const auto& source_node = state.ast[source_node_id];
-        switch (source_node.node_type()) {
-            case buffers::parser::NodeType::OBJECT_SQL_SELECT: {
-                spec.resolved_source.kind = VisSourceKind::InlineSelect;
-                spec.resolved_source.inline_select_ast_node_id = source_node_id;
-                break;
-            }
-            case buffers::parser::NodeType::OBJECT_SQL_TABLEREF: {
-                auto it = table_refs_by_ast_node.find(source_node_id);
-                if (it == table_refs_by_ast_node.end()) break;
-                auto* rel =
-                    std::get_if<AnalyzedScript::TableReference::RelationExpression>(&it->second.get().inner);
-                if (!rel) break;
-                spec.resolved_source.qualified_name = rel->table_name;
-                // Carry the resolved catalog table id through to the packed spec so TypeScript can map
-                // a script reference back to the producing script by (id >> 32) without re-resolving
-                // the "<folder>/<file>" name. Absent when the reference did not resolve.
-                if (rel->resolved_table.has_value()) {
-                    spec.resolved_source.resolved_table_id = rel->resolved_table->catalog_table_id;
-                }
-                bool is_script_ref = rel->table_name.database_name.get().text == "dashql" &&
-                                      rel->table_name.schema_name.get().text == "script";
-                spec.resolved_source.kind =
-                    is_script_ref ? VisSourceKind::ScriptReference : VisSourceKind::TableReference;
-                break;
-            }
-            default:
-                break;
+        if (source_node.node_type() == buffers::parser::NodeType::OBJECT_SQL_SELECT) {
+            spec.resolved_source.kind = VisSourceKind::InlineSelect;
+            spec.resolved_source.inline_select_ast_node_id = source_node_id;
         }
     }
 

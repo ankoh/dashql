@@ -14,8 +14,6 @@ CORE_WASM_EXPORTS = [
     "'_dashql_parse_vegalite_to_visualize'",
     "'_dashql_script_new'",
     "'_dashql_script_get_catalog_entry_id'",
-    "'_dashql_script_set_output_schema'",
-    "'_dashql_script_set_script_path'",
     "'_dashql_script_insert_text_at'",
     "'_dashql_script_insert_char_at'",
     "'_dashql_script_erase_text_range'",

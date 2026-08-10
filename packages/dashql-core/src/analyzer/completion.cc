@@ -288,6 +288,12 @@ bool Completion::IsSymbolKindCompletable(parser::Parser::symbol_kind_type kind) 
         case parser::Parser::symbol_kind_type::S_LESS_THAN:
         case parser::Parser::symbol_kind_type::S_GREATER_THAN:
         case parser::Parser::symbol_kind_type::S_EQUALS:
+        case parser::Parser::symbol_kind_type::S_Op:
+        case parser::Parser::symbol_kind_type::S_EQUALS_GREATER:
+        case parser::Parser::symbol_kind_type::S_PIPE_GREATER:
+        case parser::Parser::symbol_kind_type::S_LESS_EQUALS:
+        case parser::Parser::symbol_kind_type::S_GREATER_EQUALS:
+        case parser::Parser::symbol_kind_type::S_NOT_EQUALS:
             return false;
         default:
             return true;

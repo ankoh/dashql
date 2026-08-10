@@ -29,7 +29,6 @@ import { ScriptName } from './script_name.js';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
 import { createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../editor/dashql_processor.js';
-import { ScriptActionMenu } from './script_action_menu.js';
 
 export { ScriptDetailsTab as TabKey };
 
@@ -392,7 +391,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                             </div>
                         )}
                             <div className={styles.entry_card_trailing_actions}>
-                                <ScriptActionMenu editorView={editorView} />
                                 <IconButton
                                     className={styles.entry_card_collapse_button}
                                     variant={ButtonVariant.Invisible}

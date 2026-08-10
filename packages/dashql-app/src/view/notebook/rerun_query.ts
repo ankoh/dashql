@@ -1,6 +1,6 @@
 import type { QueryExecutor } from '../../connection/query_executor.js';
 import { QueryType } from '../../connection/query_execution_state.js';
-import { NotebookScripts, ScriptData, REGISTER_QUERY, REGISTER_SCRIPT_OUTPUT_SCHEMA, getExecutableQueryText } from '../../scripts/notebook_scripts.js';
+import { NotebookScripts, ScriptData, REGISTER_QUERY, getExecutableQueryText } from '../../scripts/notebook_scripts.js';
 import { ModifyNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
 import { projectionForVisualizeQuery } from '../../scripts/script_types.js';
 
@@ -12,18 +12,7 @@ export function registerNotebookScriptQuery(
     modifyNotebookScripts: ModifyNotebookScripts,
 ): void {
     modifyNotebookScripts({ type: REGISTER_QUERY, value: [scriptData.scriptKey, queryId] });
-    void execution.then(table => {
-        if (table == null) return;
-        modifyNotebookScripts({
-            type: REGISTER_SCRIPT_OUTPUT_SCHEMA,
-            value: {
-                scriptKey: scriptData.scriptKey,
-                queryId,
-                queryText,
-                columnNames: table.schema.fields.map(field => field.name),
-            },
-        });
-    }).catch(() => {});
+    void execution.catch(() => {});
 }
 
 export function rerunEntry(

@@ -36,8 +36,6 @@ describe('DashQL Completion', () => {
             'select',
             'set',
             'values',
-            'visualise',
-            'visualize',
             'with',
             'create',
             'explain',
@@ -112,123 +110,6 @@ describe('DashQL Completion', () => {
         const name1 = catalogObject.qualifiedName(1)!;
         expect(name0).toEqual("\"T\"");
         expect(name1).toEqual("\"attrA\"");
-    });
-
-    describe('script qualified name', () => {
-        test('dot completion after dashql.script. in SELECT FROM', () => {
-            const catalog = dql!.createCatalog();
-
-            // Script A: produces a synthetic table via script_path
-            const scriptA = dql!.createScript(catalog);
-            scriptA.setScriptPath('main/01-script.sql');
-            scriptA.insertTextAt(0, 'SELECT 1 as x, 2 as y');
-            scriptA.analyze();
-            catalog.loadScript(scriptA, 0);
-
-            // Script B: references the synthetic script table via dot completion
-            const text = 'SELECT * FROM dashql.script.';
-            const scriptB = dql!.createScript(catalog);
-            scriptB.insertTextAt(0, text);
-            scriptB.analyze();
-            const cursor = scriptB.moveCursor(text.length);
-            const completion = scriptB.completeAtCursor(10);
-            cursor.destroy();
-
-            const reader = completion.read();
-            const candidates: string[] = [];
-            for (let i = 0; i < reader.candidatesLength(); ++i) {
-                candidates.push(reader.candidates(i)!.completionText()!);
-            }
-            // The script path is not a valid bare identifier, so it is quoted for insertion.
-            expect(candidates).toContain('"main/01-script.sql"');
-        });
-
-        test('dot completion after dashql.script. in VISUALIZE', () => {
-            const catalog = dql!.createCatalog();
-
-            const scriptA = dql!.createScript(catalog);
-            scriptA.setScriptPath('main/01-script.sql');
-            scriptA.insertTextAt(0, 'SELECT 1 as x, 2 as y');
-            scriptA.analyze();
-            catalog.loadScript(scriptA, 0);
-
-            const text = 'VISUALIZE dashql.script.';
-            const scriptB = dql!.createScript(catalog);
-            scriptB.insertTextAt(0, text);
-            scriptB.analyze();
-            const cursor = scriptB.moveCursor(text.length);
-            const completion = scriptB.completeAtCursor(10);
-            cursor.destroy();
-
-            const reader = completion.read();
-            const candidates: string[] = [];
-            for (let i = 0; i < reader.candidatesLength(); ++i) {
-                candidates.push(reader.candidates(i)!.completionText()!);
-            }
-            // The script path is not a valid bare identifier, so it is quoted for insertion.
-            expect(candidates).toContain('"main/01-script.sql"');
-        });
-
-        test('rename updates completion candidates', () => {
-            const catalog = dql!.createCatalog();
-
-            // First registration with old path
-            const scriptA = dql!.createScript(catalog);
-            scriptA.setScriptPath('main/01-old.sql');
-            scriptA.insertTextAt(0, 'SELECT 1 as x');
-            scriptA.analyze();
-            catalog.loadScript(scriptA, 0);
-
-            // Rename: re-set path and re-analyze
-            scriptA.setScriptPath('main/02-renamed.sql');
-            scriptA.analyze();
-            catalog.loadScript(scriptA, 0);
-
-            // Dot-complete should show new name, not old
-            const text = 'SELECT * FROM dashql.script.';
-            const scriptB = dql!.createScript(catalog);
-            scriptB.insertTextAt(0, text);
-            scriptB.analyze();
-            const cursor = scriptB.moveCursor(text.length);
-            const completion = scriptB.completeAtCursor(10);
-            cursor.destroy();
-
-            const reader = completion.read();
-            const candidates: string[] = [];
-            for (let i = 0; i < reader.candidatesLength(); ++i) {
-                candidates.push(reader.candidates(i)!.completionText()!);
-            }
-            // The script path is not a valid bare identifier, so it is quoted for insertion.
-            expect(candidates).toContain('"main/02-renamed.sql"');
-            expect(candidates).not.toContain('"main/01-old.sql"');
-        });
-
-        test('execution output schema updates qualified column completion', () => {
-            const catalog = dql!.createCatalog();
-            const source = dql!.createScript(catalog);
-            source.setScriptPath('main/source');
-            source.insertTextAt(0, 'SELECT * FROM remote_table');
-            source.analyze();
-            catalog.loadScript(source, 0);
-
-            expect(source.setOutputSchema(['customer_id', 'customer_name'])).toBe(true);
-            expect(source.setOutputSchema(['customer_id', 'customer_name'])).toBe(false);
-            source.analyze();
-            catalog.loadScript(source, 0);
-
-            const text = 'SELECT * FROM dashql.script."main/source" AS s WHERE s.customer_';
-            const consumer = dql!.createScript(catalog);
-            consumer.insertTextAt(0, text);
-            consumer.analyze();
-            consumer.moveCursor(text.length).destroy();
-            const completion = consumer.completeAtCursor(10).read();
-            const candidates: string[] = [];
-            for (let i = 0; i < completion.candidatesLength(); ++i) {
-                candidates.push(completion.candidates(i)!.completionText()!);
-            }
-            expect(candidates).toContain('customer_id');
-            expect(candidates).toContain('customer_name');
-        });
     });
 
     describe('candidate selection', () => {

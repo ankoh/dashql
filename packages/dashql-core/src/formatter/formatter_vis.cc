@@ -299,29 +299,23 @@ FmtReg Formatter::FormatVisualize(size_t node_id) {
     auto spec_reg = Reg(*spec);
     if (spec_reg == 0) return FormatUnimplemented(node);
 
-    std::vector<FmtReg> header_parts;
-    header_parts.reserve(5);
-    header_parts.push_back(fmt.Text("visualize "));
+    if (!source || source->node_type() == NodeType::NONE) return FormatUnimplemented(node);
+    auto source_reg = Reg(*source);
+    if (source_reg == 0) return FormatUnimplemented(node);
 
-    if (source && source->node_type() != NodeType::NONE) {
-        auto source_reg = Reg(*source);
-        if (source_reg != 0) {
-            if (source->node_type() == NodeType::OBJECT_SQL_SELECT) {
-                header_parts.push_back(fmt.Parenthesized(source_reg));
-            } else {
-                header_parts.push_back(source_reg);
-            }
-            header_parts.push_back(fmt.Text(" "));
-        }
-    }
-
-    header_parts.push_back(fmt.Text("using "));
+    std::vector<FmtReg> pipe_parts;
+    pipe_parts.reserve(4);
+    pipe_parts.push_back(fmt.Text("|> visualize using "));
     if (renderer && renderer->node_type() != NodeType::NONE) {
-        header_parts.push_back(fmt.Text(scanned.ReadTextAtSymbolSpan(renderer->symbol_span())));
-        header_parts.push_back(fmt.Text(" "));
+        pipe_parts.push_back(fmt.Text(scanned.ReadTextAtSymbolSpan(renderer->symbol_span())));
+        pipe_parts.push_back(fmt.Text(" "));
     }
-    auto header = fmt.Concat(std::move(header_parts));
-    return fmt.Concat({header, spec_reg});
+    pipe_parts.push_back(spec_reg);
+    auto pipe = fmt.Concat(std::move(pipe_parts));
+    auto policy = config.mode == buffers::formatting::FormattingMode::INLINE
+                      ? FormattingJoinPolicy::BreakOnOverflow
+                      : FormattingJoinPolicy::ForceBreak;
+    return fmt.Join(std::vector<FmtReg>{source_reg, pipe}, fmt.Text(" "), fmt.Break(), policy);
 }
 
 }  // namespace dashql

@@ -9,37 +9,14 @@ import { type LoggerLike } from '../platform/logger/logger.js';
 
 const LOG_CTX = 'visualize_executor';
 
-/// Looks up a script's text by its scriptKey (its catalog entry id).
-/// Returns null if no such script exists in the notebook.
-export type ScriptTextByKey = (scriptKey: number) => string | null;
-
-function quoteIdent(name: string): string {
-    return '"' + name.replace(/"/g, '""') + '"';
-}
-
-/// The producing script's scriptKey for a VISUALIZE script reference.
-///
-/// A script reference resolves through the catalog to the producing script's synthetic output table.
-/// The resolved table id is packed as `(catalog_entry_id << 32) | table_index`, and the catalog
-/// entry id equals the producing script's scriptKey. Returns null when the reference did
-/// not resolve (packed id 0 — entry ids start at 1, so a valid id is always >= 2^32).
-function readScriptReferenceKey(spec: buffers.analyzer.VisualizationSpec): number | null {
-    const packed = spec.sourceResolvedTableId();
-    if (packed === 0n) return null;
-    return Number(packed >> 32n);
-}
-
 /// Resolves the executable SQL and the Vega-Lite spec for the first VISUALIZE
 /// statement in `scriptBuffers`. Returns null if the script does not contain a
 /// VIS_VISUALISE statement, or if the source could not be resolved.
 ///
-/// `scriptText` is the source of the script that owns `scriptBuffers` (used for
-/// the inline-select case). `lookupScriptText` is consulted only for
-/// ScriptReference sources.
+/// `scriptText` is the source of the script that owns `scriptBuffers`.
 export function resolveVisualizeQuery(
     scriptBuffers: DashQLScriptBuffers,
     scriptText: string,
-    lookupScriptText: ScriptTextByKey,
     logger?: LoggerLike,
 ): ResolvedVisualizeQuery | null {
     const analyzedPtr = scriptBuffers.analyzed;
@@ -57,30 +34,6 @@ export function resolveVisualizeQuery(
 
     let sql: string | null = null;
     switch (spec.sourceKind()) {
-        case buffers.analyzer.VisSourceKind.SCRIPT_REFERENCE: {
-            const producerKey = readScriptReferenceKey(spec);
-            if (producerKey != null) {
-                sql = lookupScriptText(producerKey);
-            }
-            break;
-        }
-        case buffers.analyzer.VisSourceKind.TABLE_REFERENCE: {
-            const tmpName = new buffers.analyzer.QualifiedTableName();
-            const qname = spec.sourceQualifiedName(tmpName);
-            if (qname) {
-                const parts: string[] = [];
-                const db = qname.databaseName();
-                const schema = qname.schemaName();
-                const tbl = qname.tableName();
-                if (db) parts.push(quoteIdent(db));
-                if (schema) parts.push(quoteIdent(schema));
-                if (tbl) parts.push(quoteIdent(tbl));
-                if (parts.length > 0) {
-                    sql = `SELECT * FROM ${parts.join('.')}`;
-                }
-            }
-            break;
-        }
         case buffers.analyzer.VisSourceKind.INLINE_SELECT: {
             const nodeId = spec.sourceInlineSelectAstNodeId();
             const parsed = parsedPtr.read();
@@ -89,9 +42,7 @@ export function resolveVisualizeQuery(
             const span = node?.symbolSpan() ?? null;
             if (tokens && span) {
                 const ts = resolveSymbolSpan(tokens, span);
-                // Strip the wrapping parentheses inserted by the grammar (`LRB sql_select_stmt RRB`)
-                const inner = scriptText.substr(ts.offset + 1, Math.max(ts.length - 2, 0));
-                sql = inner.trim();
+                sql = scriptText.substr(ts.offset, ts.length).trim();
             }
             break;
         }

@@ -6,7 +6,7 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales USING vegalite (mark => bar);
+        SELECT * FROM sales |> VISUALIZE USING vegalite (mark => bar);
 
   - name: vis_mark_def_simple
     catalog:
@@ -15,7 +15,7 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales USING vegalite (
+        SELECT * FROM sales |> VISUALIZE USING vegalite (
           mark => (type => bar, filled => true, opacity => 0.8)
         );
 
@@ -26,7 +26,7 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales USING vegalite (
+        SELECT * FROM sales |> VISUALIZE USING vegalite (
           mark => (type => line, point => true)
         );
 
@@ -37,7 +37,7 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales USING vegalite (
+        SELECT * FROM sales |> VISUALIZE USING vegalite (
           mark => (type => line, point => (filled => false, fill => 'white'))
         );
 
@@ -48,7 +48,7 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales USING vegalite (
+        SELECT * FROM sales |> VISUALIZE USING vegalite (
           mark => (
             type => area,
             line => (stroke => 'red', stroke_width => 2),
@@ -68,7 +68,7 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales USING vegalite (
+        SELECT * FROM sales |> VISUALIZE USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal)
@@ -82,7 +82,7 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales USING vegalite (
+        SELECT * FROM sales |> VISUALIZE USING vegalite (
           mark => line,
           encoding => (
             x => (field => date, type => temporal),
@@ -97,7 +97,7 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales USING vegalite (
+        SELECT * FROM sales |> VISUALIZE USING vegalite (
           mark => point,
           encoding => (
             x => (field => revenue, type => quantitative, scale => (type => log, zero => false))
@@ -111,7 +111,7 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales USING vegalite (
+        SELECT * FROM sales |> VISUALIZE USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal, axis => (label_angle => -45, title => 'Category'))
@@ -125,7 +125,7 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales USING vegalite (
+        SELECT * FROM sales |> VISUALIZE USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal),
@@ -141,7 +141,7 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales USING vegalite (
+        SELECT * FROM sales |> VISUALIZE USING vegalite (
           mark => line,
           encoding => (
             x => date,
@@ -156,21 +156,11 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE (SELECT category, revenue FROM sales) USING vegalite (
+        SELECT category, revenue FROM sales |> VISUALIZE USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal),
             y => (field => revenue, type => quantitative)
-          )
-        );
-
-  - name: vis_no_source
-    script:
-      input: |
-        VISUALIZE USING vegalite (
-          mark => line,
-          encoding => (
-            x => (field => date, type => temporal)
           )
         );
 
@@ -181,7 +171,7 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales USING vegalite (
+        SELECT * FROM sales |> VISUALIZE USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal),
@@ -196,7 +186,7 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales USING vegalite (
+        SELECT * FROM sales |> VISUALIZE USING vegalite (
           mark => bar,
           encoding => (
             x => (field => date, type => temporal),
@@ -212,7 +202,7 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales USING vegalite (
+        SELECT * FROM sales |> VISUALIZE USING vegalite (
           mark => bar,
           encoding => (
             x => (field => revenue, type => quantitative, bin => true),
@@ -227,7 +217,7 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales USING vegalite (
+        SELECT * FROM sales |> VISUALIZE USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal, sort => 'descending'),
@@ -242,7 +232,7 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        VISUALIZE sales USING vegalite (
+        SELECT * FROM sales |> VISUALIZE USING vegalite (
           mark => bar,
           width => 800,
           height => 400
@@ -255,7 +245,7 @@ visualize-snapshots:
           create table embeddings (id int, embedding float[], cluster_id int, name text);
     script:
       input: |
-        VISUALIZE embeddings USING umap (
+        SELECT * FROM embeddings |> VISUALIZE USING umap (
           vector => embedding
         );
 
@@ -266,7 +256,7 @@ visualize-snapshots:
           create table embeddings (id int, embedding float[], cluster_id int, name text);
     script:
       input: |
-        VISUALIZE embeddings USING umap (
+        SELECT * FROM embeddings |> VISUALIZE USING umap (
           vector => embedding,
           category => cluster_id,
           label => name
@@ -279,7 +269,7 @@ visualize-snapshots:
           create table embeddings (id int, embedding float[], cluster_id int, name text);
     script:
       input: |
-        VISUALIZE embeddings USING umap (
+        SELECT * FROM embeddings |> VISUALIZE USING umap (
           vector => embedding,
           category => cluster_id,
           neighbors => 15,
@@ -294,7 +284,7 @@ visualize-snapshots:
           create table embeddings (id int, embedding float[], cluster_id int, name text);
     script:
       input: |
-        VISUALIZE (SELECT embedding, cluster_id FROM embeddings) USING umap (
+        SELECT embedding, cluster_id FROM embeddings |> VISUALIZE USING umap (
           vector => embedding,
           category => cluster_id
         );

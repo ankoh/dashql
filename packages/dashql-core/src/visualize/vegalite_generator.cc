@@ -555,13 +555,8 @@ std::string GenerateVegaLiteSpec(const VisualizationSpec& spec, const AnalyzedSc
         writer.Key("data");
         writer.StartObject();
         if (source_node.node_type() == buffers::parser::NodeType::OBJECT_SQL_SELECT) {
-            // Strip the wrapping parentheses from the grammar rule: LRB sql_select_stmt RRB
-            std::string source_text(input.substr(span.offset() + 1, span.length() - 2));
-            writer.Key("$sql");
-            writer.String(source_text.c_str());
-        } else {
             std::string source_text(input.substr(span.offset(), span.length()));
-            writer.Key("name");
+            writer.Key("$sql");
             writer.String(source_text.c_str());
         }
         writer.EndObject();

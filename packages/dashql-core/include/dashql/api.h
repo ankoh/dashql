@@ -42,9 +42,6 @@ extern "C" void dashql_delete_owner(void* owner_ptr, void (*owner_deleter)(void*
 extern "C" void dashql_script_new(FFIResult* result, dashql::Catalog* catalog);
 /// Get the entry id
 extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script);
-/// Set output column names learned from execution. The input is a JSON string array.
-extern "C" bool dashql_script_set_output_schema(dashql::Script* script, const char* schema_ptr,
-                                                 size_t schema_length);
 /// Insert char at a position
 extern "C" void dashql_script_insert_char_at(dashql::Script* script, size_t offset, uint32_t unicode);
 /// Insert text at a position

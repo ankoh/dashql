@@ -56,7 +56,7 @@ Passes 3-5 depend on results from pass 1 (resolved column refs) via the shared `
 The most complex pass. It operates in two stages:
 
 **Stage A — Visit (bottom-up via buffer scan):**
-During the left-to-right scan, the pass collects table references, column references, result targets, CTE definitions, and column definitions. At scope-creating nodes (`SELECT`, `VISUALISE`, `CREATE TABLE`), it:
+During the left-to-right scan, the pass collects table references, column references, result targets, CTE definitions, and column definitions. At scope-creating nodes (`SELECT`, pipeline `VISUALISE`, `CREATE TABLE`), it:
 - Merges child state into a new `NameScope`
 - Registers the scope's CTE definitions
 - Links parent/child scope relationships
@@ -108,9 +108,18 @@ Detects comparison predicates on a single (optionally projected) column:
 ### 6. Analyze Visualization
 
 Processes DashQL visualization AST nodes, extracting:
+- The complete, self-contained classical `SELECT` query on the left side of
+  `<query> |> VISUALIZE USING <renderer> (...)`
 - Mark types (bar, line, point, etc.)
 - Encoding channels (x, y, color, size, etc.) with their field references
 - Scale, axis, and legend configuration
+
+The query is retained as one AST source span and later executed verbatim. The
+analyzer does not classify visualization sources or resolve them through
+notebook script metadata. Standalone `VISUALIZE`, source-free visualization,
+and the former `VISUALIZE <source> USING ...` form are rejected by the parser
+and therefore never reach this pass. The cutover has no compatibility path in
+the analyzer.
 
 ## Shared State
 

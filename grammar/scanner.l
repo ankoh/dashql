@@ -257,6 +257,8 @@ colon_equals    ":="
  * psqlscan.l since the token value is ignored there.)
  */
 equals_greater  "=>"
+/* SQL pipe operator used by terminal visualization clauses. */
+pipe_greater    "|>"
 less_equals     "<="
 greater_equals  ">="
 less_greater    "<>"
@@ -424,6 +426,7 @@ auto& ext_depth = ctx.ext_depth;
 {raw_dot_trailing}  { return Parser::make_DOT_TRAILING(buffers::parser::SymbolSpan(loc.offset(), 1)); }
 {colon_equals}      { return Parser::make_COLON_EQUALS(loc); }
 {equals_greater}    { return Parser::make_EQUALS_GREATER(loc); }
+{pipe_greater}      { return Parser::make_PIPE_GREATER(loc); }
 {less_equals}       { return Parser::make_LESS_EQUALS(loc); }
 {greater_equals}    { return Parser::make_GREATER_EQUALS(loc); }
 {less_greater}      { return Parser::make_NOT_EQUALS(loc); }
@@ -525,13 +528,15 @@ auto& ext_depth = ctx.ext_depth;
                         }
                         /*
                          * Likewise, if what we have left is two chars, and
-                         * those match the tokens ">=", "<=", "=>", "<>" or
+                         * those match the tokens ">=", "<=", "=>", "|>", "<>" or
                          * "!=", then we must return the appropriate token
                          * rather than the generic Op.
                          */
                         if (nchars == 2) {
                             if (yytext[0] == '=' && yytext[1] == '>')
                                 return Parser::make_EQUALS_GREATER(loc);
+                            if (yytext[0] == '|' && yytext[1] == '>')
+                                return Parser::make_PIPE_GREATER(loc);
                             if (yytext[0] == '>' && yytext[1] == '=')
                                 return Parser::make_GREATER_EQUALS(loc);
                             if (yytext[0] == '<' && yytext[1] == '=')

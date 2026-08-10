@@ -7,6 +7,15 @@ using namespace dashql;
 
 namespace {
 
+TEST(CompletionTest, OperatorsAreNotCompletable) {
+    using Symbol = parser::Parser::symbol_kind_type;
+    for (auto symbol : {Symbol::S_EQUALS, Symbol::S_Op, Symbol::S_EQUALS_GREATER, Symbol::S_PIPE_GREATER,
+                        Symbol::S_LESS_EQUALS, Symbol::S_GREATER_EQUALS, Symbol::S_NOT_EQUALS}) {
+        EXPECT_FALSE(Completion::IsSymbolKindCompletable(symbol));
+    }
+    EXPECT_TRUE(Completion::IsSymbolKindCompletable(Symbol::S_IDENT));
+}
+
 const std::string_view TPCH_SCHEMA = R"SQL(
 create table part (p_partkey integer not null, p_name varchar(55) not null, p_mfgr char(25) not null, p_brand char(10) not null, p_type varchar(25) not null, p_size integer not null, p_container char(10) not null, p_retailprice decimal(12,2) not null, p_comment varchar(23) not null, primary key (p_partkey));
 create table supplier (s_suppkey integer not null, s_name char(25) not null, s_address varchar(40) not null, s_nationkey integer not null, s_phone char(15) not null, s_acctbal decimal(12,2) not null, s_comment varchar(101) not null, primary key (s_suppkey));
@@ -294,137 +303,12 @@ TEST(CompletionTest, PassiveHint_AfterFromTable) {
     ASSERT_EQ(results[0].completion_text, "where");
 }
 
-TEST(CompletionTest, ScriptQualifiedName_SelectFrom) {
-    Catalog catalog;
-    Script script_a{catalog};
-    script_a.script_path = "main/01-script.sql";
-    script_a.InsertTextAt(0, "SELECT 1 as x, 2 as y");
-    ASSERT_NO_THROW({
-        script_a.Scan();
-        script_a.Parse();
-        script_a.Analyze();
-    });
-
-    // Verify synthetic table and schema were created
-    ASSERT_TRUE(script_a.analyzed_script->script_output_names.has_value());
-    ASSERT_GT(script_a.analyzed_script->GetTables().GetSize(), 0);
-    auto& schemas = script_a.analyzed_script->GetSchemasByName();
-    ASSERT_NE(schemas.find({"dashql", "script"}), schemas.end());
-
-    ASSERT_NO_THROW(catalog.LoadScript(script_a, 0));
-
-    // Dot completion from SELECT context
-    const std::string_view text = "SELECT * FROM dashql.script.";
-    Script script_b{catalog};
-    script_b.InsertTextAt(0, text);
-    ASSERT_NO_THROW({
-        script_b.Scan();
-        script_b.Parse();
-        script_b.Analyze();
-    });
-
-    auto cursor_ofs = text.find("script.") + std::string_view{"script."}.size();
-    script_b.MoveCursor(cursor_ofs);
-
-    auto completion = script_b.CompleteAtCursor();
-    auto& results = completion->GetResultCandidates();
-
-    bool found = false;
-    for (auto& candidate : results) {
-        if (candidate.completion_text.find("main/01-script.sql") != std::string_view::npos) {
-            found = true;
-            break;
-        }
-    }
-    ASSERT_TRUE(found) << "Expected script path in SELECT FROM context, got "
-                       << results.size() << " candidates: "
-                       << (results.empty() ? "(none)" : std::string(results[0].completion_text));
-}
-
-TEST(CompletionTest, ScriptQualifiedName_Visualize) {
-    Catalog catalog;
-    Script script_a{catalog};
-    script_a.script_path = "main/01-script.sql";
-    script_a.InsertTextAt(0, "SELECT 1 as x, 2 as y");
-    ASSERT_NO_THROW({
-        script_a.Scan();
-        script_a.Parse();
-        script_a.Analyze();
-    });
-    ASSERT_NO_THROW(catalog.LoadScript(script_a, 0));
-
-    // Dot completion from VISUALIZE context
-    const std::string_view text = "VISUALIZE dashql.script.";
-    Script script_b{catalog};
-    script_b.InsertTextAt(0, text);
-    ASSERT_NO_THROW({
-        script_b.Scan();
-        script_b.Parse();
-        script_b.Analyze();
-    });
-
-    auto cursor_ofs = text.find("script.") + std::string_view{"script."}.size();
-    auto* cursor_ptr = script_b.MoveCursor(cursor_ofs);
-    ASSERT_NE(cursor_ptr, nullptr);
-    ASSERT_TRUE(cursor_ptr->scanner_location.has_value()) << "No scanner location";
-
-    auto completion = script_b.CompleteAtCursor();
-    auto& results = completion->GetResultCandidates();
-
-    bool found = false;
-    for (auto& candidate : results) {
-        if (candidate.completion_text.find("main/01-script.sql") != std::string_view::npos) {
-            found = true;
-            break;
-        }
-    }
-    ASSERT_TRUE(found) << "Expected script path in VISUALIZE context, got "
-                       << results.size() << " candidates: "
-                       << (results.empty() ? "(none)" : std::string(results[0].completion_text))
-                       << ". Cursor has ast_node=" << (cursor_ptr->ast_node_id.has_value() ? (int)*cursor_ptr->ast_node_id : -1)
-                       << " stmt=" << (cursor_ptr->statement_id.has_value() ? (int)*cursor_ptr->statement_id : -1)
-                       << " path_len=" << cursor_ptr->ast_path_to_root.size()
-                       << " context=" << cursor_ptr->context.index();
-}
-
-TEST(CompletionTest, ScriptOutputSchema_FromExecution) {
-    Catalog catalog;
-    Script source{catalog};
-    source.script_path = "main/source";
-    source.InsertTextAt(0, "SELECT * FROM remote_table");
-    ASSERT_NO_THROW(source.Analyze());
-    ASSERT_EQ(source.analyzed_script->GetTables().GetSize(), 1);
-    ASSERT_TRUE(source.analyzed_script->GetTables()[0].table_columns.empty());
-    ASSERT_NO_THROW(catalog.LoadScript(source, 0));
-
-    ASSERT_TRUE(source.SetExecutedOutputSchema({"customer_id", "customer_name"}));
-    ASSERT_NO_THROW(source.Analyze());
-    ASSERT_NO_THROW(catalog.LoadScript(source, 0));
-
-    const std::string_view text = "SELECT * FROM dashql.script.\"main/source\" AS s WHERE s.cust";
-    Script consumer{catalog};
-    consumer.InsertTextAt(0, text);
-    ASSERT_NO_THROW(consumer.Analyze());
-    consumer.MoveCursor(text.size());
-    auto completion = consumer.CompleteAtCursor();
-
-    bool found_id = false;
-    bool found_name = false;
-    for (auto& candidate : completion->GetResultCandidates()) {
-        found_id |= candidate.completion_text == "customer_id";
-        found_name |= candidate.completion_text == "customer_name";
-    }
-    EXPECT_TRUE(found_id);
-    EXPECT_TRUE(found_name);
-}
-
 TEST(CompletionTest, InlineVisualizeSourceOutputAlias) {
     const std::string_view text = R"SQL(
-VISUALIZE (
-    SELECT category AS chart_category, SUM(amount) AS chart_total
-    FROM sales
-    GROUP BY category
-) USING vegalite (
+SELECT category AS chart_category, SUM(amount) AS chart_total
+FROM sales
+GROUP BY category
+|> VISUALIZE USING vegalite (
     encoding => (y => (field => chart_t, type => quantitative))
 )
 )SQL";
@@ -446,42 +330,6 @@ VISUALIZE (
         EXPECT_GT(candidate.score, 59u);
     }
     EXPECT_TRUE(found);
-}
-
-TEST(CompletionTest, ScriptOutputSchema_ReplacesPreviousExecutionAndClearsOnEdit) {
-    Catalog catalog;
-    Script source{catalog};
-    source.script_path = "main/source";
-    source.InsertTextAt(0, "SELECT * FROM remote_table");
-    ASSERT_TRUE(source.SetExecutedOutputSchema({"old_column"}));
-    ASSERT_NO_THROW(source.Analyze());
-    ASSERT_NO_THROW(catalog.LoadScript(source, 0));
-
-    ASSERT_TRUE(source.SetExecutedOutputSchema({"new_column"}));
-    ASSERT_FALSE(source.SetExecutedOutputSchema({"new_column"}));
-    ASSERT_NO_THROW(source.Analyze());
-    ASSERT_NO_THROW(catalog.LoadScript(source, 0));
-    ASSERT_EQ(source.analyzed_script->GetTables()[0].table_columns.size(), 1);
-    EXPECT_EQ(source.analyzed_script->GetTables()[0].table_columns[0].column_name.get().text, "new_column");
-
-    source.InsertTextAt(source.ToString().size(), " WHERE true");
-    ASSERT_NO_THROW(source.Analyze());
-    ASSERT_NO_THROW(catalog.LoadScript(source, 0));
-    EXPECT_TRUE(source.analyzed_script->GetTables()[0].table_columns.empty());
-}
-
-TEST(CompletionTest, ScriptOutputSchema_PreservesDuplicateColumns) {
-    Catalog catalog;
-    Script source{catalog};
-    source.script_path = "main/source";
-    source.InsertTextAt(0, "SELECT * FROM remote_table");
-    ASSERT_TRUE(source.SetExecutedOutputSchema({"value", "value"}));
-    ASSERT_NO_THROW(source.Analyze());
-
-    auto& columns = source.analyzed_script->GetTables()[0].table_columns;
-    ASSERT_EQ(columns.size(), 2);
-    EXPECT_EQ(columns[0].column_name.get().text, "value");
-    EXPECT_EQ(columns[1].column_name.get().text, "value");
 }
 
 TEST(CompletionTest, NoCompletionInsideLineComment) {

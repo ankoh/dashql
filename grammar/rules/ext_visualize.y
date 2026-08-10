@@ -3,7 +3,7 @@
 //
 // Shape:
 //
-//   VISUALIZE <table-ref> USING vegalite (
+//   <query> |> VISUALIZE USING vegalite (
 //       mark => line,
 //       encoding => (
 //           x => (field => time, type => temporal, scale => (domain => [0, 100]))
@@ -31,58 +31,45 @@ vis_visualise_keyword:
 // as a terminal so `USING vegalite (...)` and `USING umap (...)` branch to their
 // own spec grammar. Adding a future renderer is a new alternative here plus its spec rules.
 vis_visualise_stmt:
-    vis_visualise_keyword vis_opt_source USING VEGALITE LRB vis_spec_list RRB {
+    vis_visualise_source PIPE_GREATER vis_visualise_keyword USING VEGALITE LRB vis_spec_list RRB {
         if (!ctx.IsVisEnabled()) {
-            error(@1, "VISUALISE syntax is disabled in this ParseContext");
+            error(@3, "VISUALISE syntax is disabled in this ParseContext");
             YYERROR;
         }
-        ctx.MarkVisSpecSpan(@6);
+        ctx.MarkVisSpecSpan(@7);
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_VISUALISE, {
-            Attr(Key::VIS_VISUALISE_SELECT, $2),
-            Attr(Key::VIS_VISUALISE_USING, ctx.NameFromKeyword(@4, $4)),
+            Attr(Key::VIS_VISUALISE_SELECT, $1),
+            Attr(Key::VIS_VISUALISE_USING, ctx.NameFromKeyword(@5, $5)),
             Attr(Key::VIS_VISUALISE_SPEC,
-                 ctx.Object(@6, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($6), false)),
+                 ctx.Object(@7, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($7), false)),
         }, false);
     }
-  | vis_visualise_keyword vis_opt_source USING UMAP LRB vis_umap_spec_list RRB {
+  | vis_visualise_source PIPE_GREATER vis_visualise_keyword USING UMAP LRB vis_umap_spec_list RRB {
         if (!ctx.IsVisEnabled()) {
-            error(@1, "VISUALISE syntax is disabled in this ParseContext");
+            error(@3, "VISUALISE syntax is disabled in this ParseContext");
             YYERROR;
         }
-        ctx.MarkVisSpecSpan(@6);
+        ctx.MarkVisSpecSpan(@7);
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_VISUALISE, {
-            Attr(Key::VIS_VISUALISE_SELECT, $2),
-            Attr(Key::VIS_VISUALISE_USING, ctx.NameFromKeyword(@4, $4)),
+            Attr(Key::VIS_VISUALISE_SELECT, $1),
+            Attr(Key::VIS_VISUALISE_USING, ctx.NameFromKeyword(@5, $5)),
             Attr(Key::VIS_VISUALISE_SPEC,
-                 ctx.Object(@6, buffers::parser::NodeType::OBJECT_VIS_UMAP_SPEC, std::move($6), false)),
-        }, false);
-    }
-  | vis_visualise_keyword vis_opt_source {
-        if (!ctx.IsVisEnabled()) {
-            error(@1, "VISUALISE syntax is disabled in this ParseContext");
-            YYERROR;
-        }
-        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_VISUALISE, {
-            Attr(Key::VIS_VISUALISE_SELECT, $2),
+                 ctx.Object(@7, buffers::parser::NodeType::OBJECT_VIS_UMAP_SPEC, std::move($7), false)),
         }, false);
     }
     ;
 
-vis_opt_source:
-    LRB sql_select_stmt RRB {
-        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_SELECT, std::move($2));
+vis_visualise_source:
+    sql_select_stmt {
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_SELECT, std::move($1));
     }
-  | sql_relation_expr {
-        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_TABLEREF, std::move($1));
-    }
-  | %empty { $$ = Null(); }
     ;
 
 // ---------------------------------------------------------------------------
 // umap renderer spec
 //
 // Shape:
-//   VISUALIZE t USING umap (
+//   SELECT * FROM t |> VISUALIZE USING umap (
 //       vector    => embedding,          -- required: column holding the high-dim vectors
 //       category  => cluster_id,          -- optional: column → category color index
 //       label     => customer_name,       -- optional: column shown in the tooltip

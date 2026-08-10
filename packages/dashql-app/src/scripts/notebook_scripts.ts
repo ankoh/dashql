@@ -4,7 +4,7 @@ import * as Immutable from 'immutable';
 import { analyzeScript, DashQLCompletionState, DashQLPendingDiff, DashQLProcessorUpdateOut, DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, SemanticUserFocus } from './focus.js';
 import { ConnectorInfo } from '../connection/connector_info.js';
-import { resolveVisualizeQuery, ScriptTextByKey } from '../connection/visualize_executor.js';
+import { resolveVisualizeQuery } from '../connection/visualize_executor.js';
 import { VariantKind } from '../utils/index.js';
 import {
     CREATE_SCRIPT_FOLDER as STORAGE_CREATE_SCRIPT_FOLDER,
@@ -166,7 +166,6 @@ export const ANALYZE_OUTDATED_SCRIPT = Symbol('ANALYZE_OUTDATED_SCRIPT');
 export const UPDATE_FROM_PROCESSOR = Symbol('UPDATE_FROM_PROCESSOR');
 export const CATALOG_DID_UPDATE = Symbol('CATALOG_DID_UPDATE');
 export const REGISTER_QUERY = Symbol('REGISTER_QUERY');
-export const REGISTER_SCRIPT_OUTPUT_SCHEMA = Symbol('REGISTER_SCRIPT_OUTPUT_SCHEMA');
 export const REGISTER_AGENT_RUN = Symbol('REGISTER_AGENT_RUN');
 export const CREATE_SCRIPT = Symbol('CREATE_SCRIPT');
 export const DELETE_SCRIPT = Symbol('DELETE_SCRIPT');
@@ -194,12 +193,6 @@ export type NotebookScriptsAction =
     | VariantKind<typeof UPDATE_FROM_PROCESSOR, DashQLProcessorUpdateOut>
     | VariantKind<typeof CATALOG_DID_UPDATE, null>
     | VariantKind<typeof REGISTER_QUERY, [ScriptKey, number]>
-    | VariantKind<typeof REGISTER_SCRIPT_OUTPUT_SCHEMA, {
-        scriptKey: ScriptKey;
-        queryId: number;
-        queryText: string;
-        columnNames: string[];
-    }>
     | VariantKind<typeof REGISTER_AGENT_RUN, [ScriptKey, number]>
     | VariantKind<typeof CREATE_SCRIPT, null>
     | VariantKind<typeof DELETE_SCRIPT, string>
@@ -756,7 +749,6 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 annotations: deriveScriptAnnotations(
                     update.scriptBuffers,
                     prevScript.script.toString(),
-                    makeScriptLookup(state.scripts),
                     logger,
                 ),
             };
@@ -845,46 +837,6 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 };
                 return next;
             }
-        }
-
-        case REGISTER_SCRIPT_OUTPUT_SCHEMA: {
-            const { scriptKey, queryId, queryText, columnNames } = action.value;
-            const scriptData = state.scripts[scriptKey];
-            if (!scriptData || scriptData.latestQueryId !== queryId) {
-                return state;
-            }
-            // An edit or dependency update may complete while an older query is still running. Only
-            // install a schema when the script still resolves to exactly the SQL that produced it.
-            if (getExecutableQueryText(state, scriptData) !== queryText) {
-                return state;
-            }
-            if (!scriptData.script.setOutputSchema(columnNames)) {
-                return state;
-            }
-
-            const nextScriptData = analyzeScriptData(
-                scriptData,
-                state.scriptRegistry,
-                state.connectionCatalog,
-                makeScriptLookup(state.scripts),
-                logger,
-            );
-            const scripts = {
-                ...state.scripts,
-                [scriptKey]: nextScriptData,
-            };
-            for (const key in scripts) {
-                if (+key === scriptKey) continue;
-                const other = scripts[key];
-                scripts[key] = {
-                    ...other,
-                    scriptAnalysis: { ...other.scriptAnalysis, outdated: true },
-                };
-            }
-            return {
-                ...clearSemanticUserFocus(state),
-                scripts,
-            };
         }
 
         case REGISTER_AGENT_RUN: {
@@ -1090,7 +1042,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                     // Re-analyze through the path-aware helper so the analyzer picks up the new notebook
                     // path and reloads the script into the catalog under its new name.
                     newScripts[scriptId] = analyzeScriptData(
-                        renamedScriptData, state.scriptRegistry, state.connectionCatalog, makeScriptLookup(newScripts), logger,
+                        renamedScriptData, state.scriptRegistry, state.connectionCatalog, logger,
                     );
                     // The catalog entry changed name; mark all other scripts outdated so cross-script
                     // references (qualified-name table refs, VISUALIZE script refs) re-resolve.
@@ -1177,7 +1129,6 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                         renamedScriptData,
                         state.scriptRegistry,
                         state.connectionCatalog,
-                        makeScriptLookup(newScripts),
                         logger,
                     );
                 }
@@ -1446,8 +1397,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             scriptData.script.replaceText(text);
             // Re-analyze through the path-aware helper (destroys the stale buffers, refreshes
             // buffers + annotations incl. visualizeQuery, reloads the script into the catalog)
-            const scriptLookup = makeScriptLookup(state.scripts);
-            const nextScriptData = analyzeScriptData(scriptData, state.scriptRegistry, state.connectionCatalog, scriptLookup, logger);
+            const nextScriptData = analyzeScriptData(scriptData, state.scriptRegistry, state.connectionCatalog, logger);
             nextScriptData.pendingDiff = pendingDiff;
 
             const nextState: NotebookScripts = {
@@ -1519,8 +1469,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             scriptData.pendingDiff.diffBuffer.destroy();
             // Rewrite the script text in-place and re-analyze through the path-aware helper.
             scriptData.script.replaceText(priorText);
-            const scriptLookup = makeScriptLookup(state.scripts);
-            const nextScriptData = analyzeScriptData(scriptData, state.scriptRegistry, state.connectionCatalog, scriptLookup, logger);
+            const nextScriptData = analyzeScriptData(scriptData, state.scriptRegistry, state.connectionCatalog, logger);
             nextScriptData.pendingDiff = null;
 
             const nextState: NotebookScripts = {
@@ -1605,10 +1554,8 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             const newPages: ScriptFolderMap = { ...state.scriptFolders, [folderName]: newPage };
             const newScripts: ScriptDataMap = { ...repadded.scripts, [scriptKey]: scriptData };
 
-            // Analyze before persisting so annotations (incl. resolved visualizeQuery for a
-            // SCRIPT_REFERENCE to an existing entry) are ready. The lookup spans the new
-            // page/script maps so cross-script references resolve.
-            scriptData = analyzeScriptData(scriptData, state.scriptRegistry, state.connectionCatalog, makeScriptLookup(newScripts), logger);
+            // Analyze before persisting so derived annotations are ready.
+            scriptData = analyzeScriptData(scriptData, state.scriptRegistry, state.connectionCatalog, logger);
             newScripts[scriptKey] = scriptData;
 
             const next: NotebookScripts = {
@@ -1854,7 +1801,6 @@ export function rotateScriptStatistics(
 function deriveScriptAnnotations(
     data: DashQLScriptBuffers,
     scriptText: string,
-    lookupScriptText: ScriptTextByKey,
     logger?: Logger,
 ): ScriptAnnotations {
     if (!data.analyzed) {
@@ -1880,7 +1826,7 @@ function deriveScriptAnnotations(
     // Resolve the first VISUALIZE statement (if any) into its executable SQL +
     // parsed Vega-Lite spec. We do this once at analysis time so consumers
     // don't have to touch the flatbuffer or re-parse JSON.
-    const visualizeQuery = resolveVisualizeQuery(data, scriptText, lookupScriptText, logger);
+    const visualizeQuery = resolveVisualizeQuery(data, scriptText, logger);
 
     return {
         tableRefs: [],
@@ -1890,36 +1836,16 @@ function deriveScriptAnnotations(
     };
 }
 
-export function makeScriptLookup(scripts: ScriptDataMap): ScriptTextByKey {
-    // Script references (`dashql.script."folder/file"`) are resolved by the C++ catalog during
-    // name resolution; the resolved table id encodes the producing script's catalog entry id, which
-    // equals its scriptKey (see readScriptReferenceKey / ScriptData.scriptKey). So resolving
-    // a reference to its source text is a direct scriptKey lookup — no name/page indexing needed.
-    return (scriptKey) => scripts[scriptKey]?.script.toString() ?? null;
-}
-
 /// Resolve the executable SQL text for a script.
 ///
 /// For a VISUALIZE statement this is the extracted inner query (Hyper does not
 /// understand the `visualize` keyword); for any other statement it is the raw
 /// script text.
 ///
-/// The cached `annotations.visualizeQuery.sql` is the source of truth ONLY while
-/// the script is up to date. A VISUALIZE that references another script
-/// (`dashql.script."x/foo"`, see resolveVisualizeQuery's SCRIPT_REFERENCE case)
-/// embeds the *current* text of that source script — so the cached SQL goes stale
-/// when the source is edited. Any edit to any script marks every *other* script
-/// `outdated` (see SET_SCRIPT_TEXT / UPDATE_FROM_PROCESSOR) but does NOT re-derive
-/// their annotations, so `!outdated` is precisely the condition under which the
-/// cached SQL is still valid. Trusting it while outdated was the bug where
-/// re-running a vis after changing its source's generate_series kept the old range.
-///
-/// When outdated (a source may have changed or been renamed) we analyze into fresh
-/// throwaway buffers against the current catalog. Reusing the prior analyzed buffers
-/// is insufficient after a rename because an unresolved source has no script key for
-/// resolveVisualizeQuery to look up. We must never fall back to the raw script text,
-/// which would send `visualize (...)` verbatim to the backend. The throwaway buffers
-/// are owned/freed here and must not be handed back into the reducer.
+/// The cached `annotations.visualizeQuery.sql` is the source of truth only while
+/// the script is up to date. When outdated, analyze into fresh throwaway buffers.
+/// We must never fall back to the raw script text, which would send the terminal
+/// visualization pipe to the backend.
 export function getExecutableQueryText(notebookScripts: NotebookScripts, scriptData: ScriptData): string {
     const scriptText = scriptData.script.toString();
 
@@ -1937,11 +1863,7 @@ export function getExecutableQueryText(notebookScripts: NotebookScripts, scriptD
     // Outdated or never analyzed → perform fresh name resolution against the current catalog.
     const buffers = analyzeScript(scriptData.script);
     try {
-        const resolved = resolveVisualizeQuery(
-            buffers,
-            scriptText,
-            makeScriptLookup(notebookScripts.scripts),
-        );
+        const resolved = resolveVisualizeQuery(buffers, scriptText);
         if (resolved != null) {
             return resolved.sql;
         }
@@ -2029,18 +1951,9 @@ function computePendingDiff(
     }
 }
 
-export function analyzeScriptData(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, scriptLookup: ScriptTextByKey, logger: Logger): ScriptData {
+export function analyzeScriptData(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, logger: Logger): ScriptData {
     const next: ScriptData = { ...scriptData };
     next.scriptAnalysis.buffers.destroy(next.scriptAnalysis.buffers);
-
-    // Set the script path so the analyzer registers this script in the catalog.
-    // Register under the *clean display* folder and file names — folder without its ordering prefix,
-    // file without its ordering prefix AND without the ".sql" extension — so the SQL-visible
-    // reference namespace matches what is shown in the UI and is stable across reorders. A script
-    // "1_foo.sql" in page "2_sales" is referenced as dashql.script."sales/foo".
-    if (next.folderName && next.fileName) {
-        next.script.setScriptPath(`${normalizeScriptFolderName(next.folderName)}/${scriptDisplayName(next.fileName)}`);
-    }
 
     // Analyze the script
     next.scriptAnalysis = {
@@ -2053,15 +1966,11 @@ export function analyzeScriptData(scriptData: ScriptData, registry: core.DashQLS
     next.annotations = deriveScriptAnnotations(
         next.scriptAnalysis.buffers,
         next.script.toString(),
-        scriptLookup,
         logger,
     );
 
     // Update the script in the registry
     registry.addScript(next.script);
-
-    // Always load scripts into the catalog so they can be referenced by qualified name
-    catalog.loadScript(next.script, scriptData.scriptKey);
 
     // Update the cursor?
     if (next.cursor != null) {
@@ -2079,7 +1988,7 @@ export function analyzeOutdatedScript<V extends NotebookScriptsInput>(state: V, 
         return state;
     }
     // Create the next notebook scripts state
-    const nextScriptData = analyzeScriptData(scriptData, state.scriptRegistry, state.connectionCatalog, makeScriptLookup(state.scripts), logger);
+    const nextScriptData = analyzeScriptData(scriptData, state.scriptRegistry, state.connectionCatalog, logger);
     const next = {
         ...clearSemanticUserFocus(state),
         scripts: {
@@ -2149,9 +2058,8 @@ export function getScriptKeysInFeedOrder<V extends NotebookScriptsInput>(state: 
 /// point upward — a script references entries declared above it in the feed — so
 /// by the time we analyze a script, every script it depends on has already been
 /// analyzed and loaded into the catalog. A single pass therefore resolves
-/// cross-script references (qualified-name table refs, SCRIPT_REFERENCE
-/// visualizations) without a second reconciliation pass. The catalog must
-/// already be populated (schema loaded) when this is called.
+/// catalog references without a second reconciliation pass. The catalog must
+/// already be populated when this is called.
 ///
 /// Failures are isolated per script: one un-analyzable script is logged and
 /// reported via `progress.onScriptDone(false)` but does not abort analysis of
@@ -2161,14 +2069,10 @@ export function analyzeAllScripts<V extends NotebookScriptsInput>(state: V, logg
     const orderedKeys = getScriptKeysInFeedOrder(state);
     progress?.onScriptCount?.(orderedKeys.length);
 
-    // The text-based lookup used for SCRIPT_REFERENCE sources is independent of
-    // analysis, so one lookup over the (shared) script objects covers the pass.
-    const scriptLookup = makeScriptLookup(scripts);
-
     for (const scriptKey of orderedKeys) {
         let ok = false;
         try {
-            scripts[scriptKey] = analyzeScriptData(scripts[scriptKey], state.scriptRegistry, state.connectionCatalog, scriptLookup, logger);
+            scripts[scriptKey] = analyzeScriptData(scripts[scriptKey], state.scriptRegistry, state.connectionCatalog, logger);
             ok = true;
         } catch (e) {
             logger.warn("Failed to analyze notebook script", { scriptKey: scriptKey.toString(), error: stringifyError(e) }, LOG_CTX);

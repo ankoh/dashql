@@ -438,23 +438,6 @@ describe('NotebookFeed', () => {
         expect(Array.from(executeButtons).every(button => (button as HTMLButtonElement).disabled)).toBe(true);
     });
 
-    it('disables only an unresolved VISUALIZE entry instead of crashing the feed', () => {
-        const notebookScripts = createNotebookScripts();
-        notebookScripts.scripts[101] = makeScriptData(
-            101,
-            'visualize dashql.script."Missing/source" using vegalite ( mark => bar )',
-            '01-script.sql',
-            'Main',
-        );
-
-        expect(() => renderFeed({ notebookScripts, modifyNotebookScripts: vi.fn(), showDetails: vi.fn() })).not.toThrow();
-
-        const executeButtons = container.querySelectorAll('[aria-label="Execute script query"]');
-        expect(executeButtons).toHaveLength(2);
-        expect((executeButtons[0] as HTMLButtonElement).disabled).toBe(true);
-        expect((executeButtons[1] as HTMLButtonElement).disabled).toBe(false);
-    });
-
     it('switches to AI, focuses the prompt, and shows the clicked script as context', () => {
         renderFeed({ notebookScripts: createNotebookScripts(), modifyNotebookScripts: vi.fn(), showDetails: vi.fn() });
 

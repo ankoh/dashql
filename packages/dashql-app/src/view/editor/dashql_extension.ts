@@ -11,7 +11,6 @@ import { DashQLDiffDecorationPlugin } from './dashql_diff_decorations.js';
 import { DashQLDiffHintPlugin } from './dashql_diff_hint.js';
 import { DashQLAutoclosePlugin } from './dashql_autoclose.js';
 import { DashQLQuoteTombstonePlugin } from './dashql_quote_tombstone.js';
-import { DashQLCodeActionPlugin } from './dashql_code_actions.js';
 
 const DashQLFocusCompletionEffect = EditorView.focusChangeEffect.of((state, focusing) => {
     if (!focusing || state.doc.length > 0) return null;
@@ -31,7 +30,6 @@ export const DashQLExtensions = [
     DashQLDecorationPlugin,
     DashQLCursorDiagnosticsPlugin,
     DashQLGutterPlugin,
-    DashQLCodeActionPlugin,
 ];
 
 export const DashQLReadonlyExtensions = [

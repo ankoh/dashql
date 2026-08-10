@@ -72,29 +72,6 @@ extern "C" void dashql_script_new(FFIResult* result, dashql::Catalog* catalog) {
 }
 /// Get the catalog entry id
 extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script) { return script->GetCatalogEntryId(); }
-/// Set output column names learned from execution
-extern "C" bool dashql_script_set_output_schema(Script* script, const char* schema_ptr, size_t schema_length) {
-    std::unique_ptr<const std::byte[]> schema_buffer{reinterpret_cast<const std::byte*>(schema_ptr)};
-    rapidjson::Document schema;
-    schema.Parse(schema_ptr, schema_length);
-    if (schema.HasParseError() || !schema.IsArray()) {
-        throw std::invalid_argument("output schema must be a JSON string array");
-    }
-    std::vector<std::string> columns;
-    columns.reserve(schema.Size());
-    for (auto& value : schema.GetArray()) {
-        if (!value.IsString()) {
-            throw std::invalid_argument("output schema must contain only strings");
-        }
-        columns.emplace_back(value.GetString(), value.GetStringLength());
-    }
-    return script->SetExecutedOutputSchema(std::move(columns));
-}
-/// Set the script path for catalog registration
-extern "C" void dashql_script_set_script_path(Script* script, const char* path_ptr, size_t path_length) {
-    std::unique_ptr<const char[]> path_buffer{path_ptr};
-    script->script_path = (path_ptr && path_length > 0) ? std::string(path_ptr, path_length) : std::string{};
-}
 /// Insert char at a position
 extern "C" void dashql_script_insert_char_at(Script* script, size_t offset, uint32_t unicode) {
     script->InsertCharAt(offset, unicode);

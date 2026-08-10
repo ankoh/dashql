@@ -14,7 +14,6 @@ import {
     DELETE_SCRIPT,
     PROMOTE_UNCOMMITTED_SCRIPT,
     REGISTER_QUERY,
-    REGISTER_SCRIPT_OUTPUT_SCHEMA,
     REGISTER_AGENT_RUN,
     SELECT_SCRIPT,
     SELECT_SCRIPT_PATH,
@@ -562,7 +561,7 @@ describe('RENAME_SCRIPT', () => {
         const display = getSortedScriptFileNames(getSelectedScriptFolder(s3)!).map(scriptDisplayName);
         expect(display).toContain('shared');
         expect(display).toContain('shared-2');
-        // The two scripts keep distinct clean names (the SQL reference namespace stays unique).
+        // The two scripts keep distinct clean names.
         expect(new Set(display).size).toBe(display.length);
     });
 
@@ -579,35 +578,6 @@ describe('RENAME_SCRIPT', () => {
         expect(next).toBe(state);
     });
 
-    it('re-analyzes the renamed script inline so its analysis stays fresh', () => {
-        const state = buildState();
-        const file = state.scriptFocus.fileName;
-        const scriptId = getSelectedScriptFolder(state)!.scripts[file].scriptId;
-        const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
-        expect(s1.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
-
-        // The rename re-registers the script under its new SQL script path immediately, so the renamed
-        // script's own analysis is refreshed (not deferred).
-        const s2 = reduce(s1, { type: RENAME_SCRIPT, value: { fileName: file, newFileName: '02-renamed.sql' } });
-        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
-    });
-
-    it('marks other scripts outdated on rename so cross-script references re-resolve', () => {
-        const s0 = buildState();
-        const s1 = reduce(s0, { type: CREATE_SCRIPT, value: null });
-        const files = getSortedScriptFileNames(getSelectedScriptFolder(s1)!);
-        const renamedId = getSelectedScriptFolder(s1)!.scripts[files[0]].scriptId;
-        const otherId = getSelectedScriptFolder(s1)!.scripts[files[1]].scriptId;
-        // Bring both scripts up to date first.
-        const s2 = reduce(reduce(s1, { type: ANALYZE_OUTDATED_SCRIPT, value: renamedId }), { type: ANALYZE_OUTDATED_SCRIPT, value: otherId });
-        expect(s2.scripts[otherId].scriptAnalysis.outdated).toBe(false);
-
-        const s3 = reduce(s2, { type: RENAME_SCRIPT, value: { fileName: files[0], newFileName: 'renamed' } });
-        // The renamed script is fresh, but the other script is marked outdated so it re-resolves refs.
-        expect(s3.scripts[renamedId].scriptAnalysis.outdated).toBe(false);
-        expect(s3.scripts[otherId].scriptAnalysis.outdated).toBe(true);
-    });
-
     it('does not mark outdated when fileName is unchanged', () => {
         const state = buildState();
         const file = state.scriptFocus.fileName;
@@ -620,26 +590,6 @@ describe('RENAME_SCRIPT', () => {
         expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
     });
 
-    it('updates the catalog path immediately on rename, using clean names', () => {
-        const state = buildState();
-        const oldName = state.scriptFocus.fileName;
-        const folder = MAIN_FOLDER;
-        const scriptId = getSelectedScriptFolder(state)!.scripts[oldName].scriptId;
-        state.scripts[scriptId].script.insertTextAt(0, 'SELECT 1 as x, 2 as y');
-
-        // The catalog path is the clean folder/file: no ordering prefix, no ".sql".
-        const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
-        expect(s1.scripts[scriptId].annotations.tableDefs).toContain(`${folder}/${scriptDisplayName(oldName)}`);
-
-        // The rename re-analyzes inline, so the catalog path is updated to the new clean name right
-        // away — no deferred re-analysis needed. The stale old path is gone.
-        const s2 = reduce(s1, { type: RENAME_SCRIPT, value: { fileName: oldName, newFileName: 'renamed' } });
-        const newName = getSortedScriptFileNames(getSelectedScriptFolder(s2)!)[0];
-        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
-        expect(scriptDisplayName(newName)).toBe('renamed');
-        expect(s2.scripts[scriptId].annotations.tableDefs).toContain(`${folder}/renamed`);
-        expect(s2.scripts[scriptId].annotations.tableDefs).not.toContain(`${folder}/${scriptDisplayName(oldName)}`);
-    });
 });
 
 describe('RENAME_SCRIPT_FOLDER', () => {
@@ -658,18 +608,6 @@ describe('RENAME_SCRIPT_FOLDER', () => {
         expect(next).toBe(state);
     });
 
-    it('re-analyzes all page scripts on folder rename', () => {
-        const state = buildState();
-        const file = state.scriptFocus.fileName;
-        const scriptId = getSelectedScriptFolder(state)!.scripts[file].scriptId;
-
-        const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
-        expect(s1.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
-
-        const s2 = reduce(s1, { type: RENAME_SCRIPT_FOLDER, value: { folderName: MAIN_FOLDER, newFolderName: 'Analytics' } });
-        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
-    });
-
     it('does not mark outdated when folderName is unchanged', () => {
         const state = buildState();
         const file = state.scriptFocus.fileName;
@@ -682,81 +620,6 @@ describe('RENAME_SCRIPT_FOLDER', () => {
         expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
     });
 
-    it('updates catalog path immediately following folder rename, using clean names', () => {
-        const state = buildState();
-        const file = state.scriptFocus.fileName;
-        const cleanFile = scriptDisplayName(file);
-        const oldFolder = MAIN_FOLDER;
-        const scriptId = getSelectedScriptFolder(state)!.scripts[file].scriptId;
-        state.scripts[scriptId].script.insertTextAt(0, 'SELECT 1 as x');
-
-        const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptId });
-        expect(s1.scripts[scriptId].annotations.tableDefs).toContain(`${oldFolder}/${cleanFile}`);
-
-        const newFolder = 'Analytics';
-        const s2 = reduce(s1, { type: RENAME_SCRIPT_FOLDER, value: { folderName: oldFolder, newFolderName: newFolder } });
-        expect(s2.scripts[scriptId].scriptAnalysis.outdated).toBe(false);
-        expect(s2.scripts[scriptId].annotations.tableDefs).toContain(`${newFolder}/${cleanFile}`);
-        expect(s2.scripts[scriptId].annotations.tableDefs).not.toContain(`${oldFolder}/${cleanFile}`);
-    });
-
-    it('resolves a VISUALIZE reference immediately after its source folder is renamed', () => {
-        const state = buildScriptState(['1_source.sql', '2_chart.sql']);
-        const page = state.scriptFolders[MAIN_FOLDER];
-        const sourceId = page.scripts['1_source.sql'].scriptId;
-        const chartId = page.scripts['2_chart.sql'].scriptId;
-        const s1 = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: sourceId, text: 'SELECT 1 AS x' } });
-        const s2 = reduce(s1, {
-            type: SET_SCRIPT_TEXT,
-            value: {
-                scriptKey: chartId,
-                text: `visualize dashql.script."Analytics/source" using vegalite ( mark => bar, encoding => ( x => (field => x) ) )`,
-            },
-        });
-
-        expect(s2.scripts[chartId].annotations.visualizeQuery).toBeNull();
-
-        const s3 = reduce(s2, {
-            type: RENAME_SCRIPT_FOLDER,
-            value: { folderName: MAIN_FOLDER, newFolderName: 'Analytics' },
-        });
-
-        expect(s3.scripts[sourceId].scriptAnalysis.outdated).toBe(false);
-        expect(s3.scripts[chartId].scriptAnalysis.outdated).toBe(false);
-        expect(s3.scripts[chartId].annotations.visualizeQuery?.sql).toContain('SELECT 1 AS x');
-        expect(getExecutableQueryText(s3, s3.scripts[chartId])).toContain('SELECT 1 AS x');
-    });
-
-    it('freshly resolves an outdated VISUALIZE in another page after its source folder is renamed', () => {
-        let state = buildState();
-        const originalFolder = state.scriptFocus.folderName;
-        const originalFile = state.scriptFocus.fileName;
-        const sourceId = state.scriptFolders[originalFolder].scripts[originalFile].scriptId;
-        state = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: sourceId, text: 'SELECT 1 AS x' } });
-        state = reduce(state, { type: CREATE_SCRIPT_FOLDER, value: null });
-
-        const sourceFolder = getSortedScriptFolderNames(state.scriptFolders)
-            .find(folder => normalizeScriptFolderName(folder) === originalFolder)!;
-        const chartFolder = state.scriptFocus.folderName;
-        const chartFile = state.scriptFocus.fileName;
-        const chartId = state.scriptFolders[chartFolder].scripts[chartFile].scriptId;
-        state = reduce(state, {
-            type: SET_SCRIPT_TEXT,
-            value: {
-                scriptKey: chartId,
-                text: `visualize dashql.script."Analytics/${scriptDisplayName(originalFile)}" using vegalite ( mark => bar, encoding => ( x => (field => x) ) )`,
-            },
-        });
-        expect(state.scripts[chartId].annotations.visualizeQuery).toBeNull();
-
-        state = reduce(state, {
-            type: RENAME_SCRIPT_FOLDER,
-            value: { folderName: sourceFolder, newFolderName: 'Analytics' },
-        });
-
-        expect(state.scripts[chartId].scriptAnalysis.outdated).toBe(true);
-        expect(getExecutableQueryText(state, state.scripts[chartId])).toContain('SELECT 1 AS x');
-    });
 });
 
 // ---------------------------------------------------------------------------
@@ -823,25 +686,6 @@ describe('REORDER_SCRIPT_FOLDERS', () => {
         expect(sorted.map(normalizeScriptFolderName)).toEqual(['gamma', 'alpha', 'beta']);
         // Prefixes are dense and single-digit for a 3-page notebook.
         expect(sorted).toEqual(['1_gamma', '2_alpha', '3_beta']);
-    });
-
-    it('keeps the clean (SQL-visible) reference namespace stable across a reorder', () => {
-        const state = buildMultiPageState(['alpha', 'beta']);
-        const betaFile = Object.keys(state.scriptFolders['beta'].scripts)[0];
-        const cleanFile = scriptDisplayName(betaFile);
-        const betaScriptId = state.scriptFolders['beta'].scripts[betaFile].scriptId;
-
-        // Analyze beta so its catalog path (tableDefs) is populated with the clean name.
-        const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: betaScriptId });
-        expect(s1.scripts[betaScriptId].annotations.tableDefs).toContain(`beta/${cleanFile}`);
-
-        // Reorder beta to the front, then re-analyze: the catalog path must still be the clean name.
-        const s2 = reduce(s1, { type: REORDER_SCRIPT_FOLDERS, value: ['beta', 'alpha'] });
-        const movedFolder = getSortedScriptFolderNames(s2.scriptFolders)[0];
-        expect(normalizeScriptFolderName(movedFolder)).toBe('beta');
-        const s3 = reduce(s2, { type: ANALYZE_OUTDATED_SCRIPT, value: betaScriptId });
-        expect(s3.scripts[betaScriptId].annotations.tableDefs).toContain(`beta/${cleanFile}`);
-        expect(s3.scripts[betaScriptId].annotations.tableDefs).not.toContain(`${movedFolder}/${cleanFile}`);
     });
 
     it('is a no-op when the requested order matches the current order', () => {
@@ -1156,24 +1000,6 @@ describe('REORDER_SCRIPTS', () => {
         expect(files.map(scriptDisplayName)).toEqual(['c', 'a', 'b']);
     });
 
-    it('keeps the clean (SQL-visible) reference namespace stable across a reorder', () => {
-        const state = buildScriptState(['1_a.sql', '2_b.sql']);
-        const bFile = '2_b.sql';
-        const bScriptId = state.scriptFolders[MAIN_FOLDER].scripts[bFile].scriptId;
-
-        const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: bScriptId });
-        expect(s1.scripts[bScriptId].annotations.tableDefs).toContain(`${MAIN_FOLDER}/b`);
-
-        // Move b to the front: its prefix changes (2_ -> 1_) but its clean name stays "b".
-        const s2 = reduce(s1, { type: REORDER_SCRIPTS, value: { folderName: MAIN_FOLDER, fileNames: ['2_b.sql', '1_a.sql'] } });
-        const movedFile = getSortedScriptFileNames(getSelectedScriptFolder(s2)!)[0];
-        expect(scriptDisplayName(movedFile)).toBe('b');
-        expect(movedFile).not.toBe(bFile);
-
-        const s3 = reduce(s2, { type: ANALYZE_OUTDATED_SCRIPT, value: bScriptId });
-        expect(s3.scripts[bScriptId].annotations.tableDefs).toContain(`${MAIN_FOLDER}/b`);
-    });
-
     it('is a no-op when the requested order matches the current feed order', () => {
         const state = buildScriptState(['1_a.sql', '2_b.sql', '3_c.sql']);
         const next = reduce(state, { type: REORDER_SCRIPTS, value: { folderName: MAIN_FOLDER, fileNames: ['1_a.sql', '2_b.sql', '3_c.sql'] } });
@@ -1280,51 +1106,6 @@ describe('CREATE_SCRIPT ordering', () => {
 });
 
 // ---------------------------------------------------------------------------
-// makeScriptLookup / clean-name references
-// ---------------------------------------------------------------------------
-
-describe('clean-name script references', () => {
-    it('resolves a VISUALIZE reference written against the clean folder/file name', () => {
-        // Source script "1_a.sql" in "Main" is referenced as dashql.script."Main/a".
-        const state = buildScriptState(['1_a.sql']);
-        const sourceId = state.scriptFolders[MAIN_FOLDER].scripts['1_a.sql'].scriptId;
-        const s1 = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: sourceId, text: 'SELECT 1 as a' } });
-
-        const visualize = `visualize dashql.script."${MAIN_FOLDER}/a" using vegalite ( mark => bar, encoding => ( x => (field => a) ) )`;
-        const s2 = reduce(s1, { type: CREATE_SCRIPT_WITH_TEXT, value: { text: visualize } });
-        const focusFile = s2.scriptFocus.fileName;
-        const visId = getSelectedScriptFolder(s2)!.scripts[focusFile].scriptId;
-        expect(s2.scripts[visId].annotations.visualizeQuery).not.toBeNull();
-        expect(s2.scripts[visId].annotations.visualizeQuery!.sql.toLowerCase()).toContain('select 1 as a');
-    });
-
-    it('a clean-name reference still resolves after the source script is reordered', () => {
-        const state = buildScriptState(['1_a.sql', '2_b.sql']);
-        const aId = state.scriptFolders[MAIN_FOLDER].scripts['1_a.sql'].scriptId;
-        const s1 = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: aId, text: 'SELECT 1 as a' } });
-
-        // A third script visualises "Main/a" by its clean name.
-        const visualize = `visualize dashql.script."${MAIN_FOLDER}/a" using vegalite ( mark => bar, encoding => ( x => (field => a) ) )`;
-        const s2 = reduce(s1, { type: CREATE_SCRIPT_WITH_TEXT, value: { text: visualize } });
-        const visFile = s2.scriptFocus.fileName;
-        const visId = getSelectedScriptFolder(s2)!.scripts[visFile].scriptId;
-        expect(s2.scripts[visId].annotations.visualizeQuery).not.toBeNull();
-
-        // Reorder so "a" moves to the bottom (its prefix changes), then re-analyze the vis script.
-        const order = getSortedScriptFileNames(getSelectedScriptFolder(s2)!).filter(f => scriptDisplayName(f) !== 'a');
-        const s3 = reduce(s2, {
-            type: REORDER_SCRIPTS,
-            value: { folderName: MAIN_FOLDER, fileNames: [...order, '1_a.sql'] },
-        });
-        const visFileAfter = getSortedScriptFileNames(getSelectedScriptFolder(s3)!).find(f => getSelectedScriptFolder(s3)!.scripts[f].scriptId === visId)!;
-        const s4 = reduce(s3, { type: SET_SCRIPT_TEXT, value: { scriptKey: visId, text: s3.scripts[visId].script.toString() } });
-        // The reference still resolves because it points at the stable clean name "Main/a".
-        expect(s4.scripts[visId].annotations.visualizeQuery).not.toBeNull();
-        void visFileAfter;
-    });
-});
-
-// ---------------------------------------------------------------------------
 // PROMOTE_UNCOMMITTED_SCRIPT
 // ---------------------------------------------------------------------------
 
@@ -1415,12 +1196,12 @@ describe('ANALYZE_OUTDATED_SCRIPT', () => {
 
 describe('getExecutableQueryText', () => {
     const VISUALIZE_SCRIPT =
-        'visualize ( select v as a from generate_series(1, 10) t(v) ) using vegalite ( mark => bar, encoding => ( x => (field => a) ) )';
+        'select v as a from generate_series(1, 10) t(v) |> visualize using vegalite ( mark => bar, encoding => ( x => (field => a) ) )';
 
     it('extracts the inner SELECT from a VISUALIZE script even when analysis is still outdated', () => {
         // Reproduces the first-run race: the script was just inserted and not
         // analyzed yet, so annotations.visualizeQuery is null. We must still
-        // send the inner SELECT to the backend, not the raw `visualize (...)`.
+        // send the source SELECT to the backend, not the full visualization pipeline.
         const state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];
         const scriptData = state.scripts[scriptKey];
@@ -1462,7 +1243,7 @@ describe('getExecutableQueryText', () => {
     it('strips SQL quotes from a nested Vega-Lite axis title', () => {
         const state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];
-        const script = `visualize (select 1 as metric) using vegalite (
+        const script = `select 1 as metric |> visualize using vegalite (
             mark => bar,
             encoding => (y => (
                 field => metric,
@@ -1488,44 +1269,6 @@ describe('getExecutableQueryText', () => {
         expect(text).toBe('SELECT 1 as x');
     });
 
-    it('throws instead of returning raw VISUALIZE text when its source is unresolved', () => {
-        const state = buildState();
-        const scriptKey = +Object.keys(state.scripts)[0];
-        const scriptData = state.scripts[scriptKey];
-        scriptData.script.replaceText(
-            'visualize dashql.script."Missing/source" using vegalite ( mark => bar )',
-        );
-
-        expect(() => getExecutableQueryText(state, scriptData))
-            .toThrow('Could not resolve VISUALIZE source query');
-    });
-
-    it('re-resolves a SCRIPT_REFERENCE against the source script\'s current text', () => {
-        // Regression: a `visualize dashql.script."Main/a"` embeds the *current*
-        // text of source script "a". Editing "a" only marks the vis script
-        // outdated; it does not re-derive its cached visualizeQuery. Re-executing
-        // the vis must still pick up the edited source, not the stale snapshot.
-        const state = buildScriptState(['1_a.sql']);
-        const sourceId = state.scriptFolders[MAIN_FOLDER].scripts['1_a.sql'].scriptId;
-        const s1 = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: sourceId, text: 'select v as a from generate_series(1, 100) t(v)' } });
-
-        const visualize = `visualize dashql.script."${MAIN_FOLDER}/a" using vegalite ( mark => line, encoding => ( x => (field => a) ) )`;
-        const s2 = reduce(s1, { type: CREATE_SCRIPT_WITH_TEXT, value: { text: visualize } });
-        const visId = getSelectedScriptFolder(s2)!.scripts[s2.scriptFocus.fileName].scriptId;
-
-        // The vis resolves against the source's initial text.
-        expect(getExecutableQueryText(s2, s2.scripts[visId]).toLowerCase()).toContain('generate_series(1, 100)');
-
-        // Edit the source script's range; the vis script is now marked outdated but its cached SQL is stale.
-        const s3 = reduce(s2, { type: SET_SCRIPT_TEXT, value: { scriptKey: sourceId, text: 'select v as a from generate_series(1, 1) t(v)' } });
-        expect(s3.scripts[visId].scriptAnalysis.outdated).toBe(true);
-        expect(s3.scripts[visId].annotations.visualizeQuery!.sql.toLowerCase()).toContain('generate_series(1, 100)');
-
-        // Re-executing the vis must reflect the edited source, not the stale cache.
-        const executed = getExecutableQueryText(s3, s3.scripts[visId]).toLowerCase();
-        expect(executed).toContain('generate_series(1, 1)');
-        expect(executed).not.toContain('generate_series(1, 100)');
-    });
 });
 
 // ---------------------------------------------------------------------------
@@ -1599,26 +1342,6 @@ describe('analyzeAllScripts', () => {
         }
     });
 
-    it('resolves an upward SCRIPT_REFERENCE in a single pass', () => {
-        // A later entry references an earlier one by SQL script path. Because we
-        // analyze top-down, the source is already in the catalog when the
-        // referencing visualize entry is analyzed - no second pass needed.
-        let state = buildState();
-        const sourceFile = state.scriptFocus.fileName;
-        state.scripts[state.scriptFolders[MAIN_FOLDER].scripts[sourceFile].scriptId]
-            .script.replaceText('SELECT 1 as a');
-
-        const s1 = reduce(state, {
-            type: CREATE_SCRIPT_WITH_TEXT,
-            value: { text: `visualize dashql.script."${MAIN_FOLDER}/${scriptDisplayName(sourceFile)}" using vegalite ( mark => bar, encoding => ( x => (field => a) ) )` },
-        });
-
-        const next = analyzeAllScripts(s1, logger);
-
-        const visFile = next.scriptFocus.fileName;
-        const visScriptId = next.scriptFolders[MAIN_FOLDER].scripts[visFile].scriptId;
-        expect(next.scripts[visScriptId].annotations.visualizeQuery).not.toBeNull();
-    });
 });
 
 // ---------------------------------------------------------------------------
@@ -1636,68 +1359,6 @@ describe('REGISTER_QUERY', () => {
     it('returns the unchanged state for an unknown scriptKey', () => {
         const state = buildState();
         const next = reduce(state, { type: REGISTER_QUERY, value: [99999, 1] });
-        expect(next).toBe(state);
-    });
-});
-
-describe('REGISTER_SCRIPT_OUTPUT_SCHEMA', () => {
-    it('updates the script catalog schema and marks dependent scripts outdated', () => {
-        let state = buildState();
-        const sourceKey = +Object.keys(state.scripts)[0];
-        state = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: sourceKey, text: 'SELECT * FROM remote_table' } });
-        state = reduce(state, { type: CREATE_SCRIPT, value: null });
-        const dependentKey = +Object.keys(state.scripts).find(key => +key !== sourceKey)!;
-        state = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: dependentKey });
-        state = reduce(state, { type: REGISTER_QUERY, value: [sourceKey, 42] });
-
-        const next = reduce(state, {
-            type: REGISTER_SCRIPT_OUTPUT_SCHEMA,
-            value: {
-                scriptKey: sourceKey,
-                queryId: 42,
-                queryText: 'SELECT * FROM remote_table',
-                columnNames: ['customer_id', 'customer_name'],
-            },
-        });
-
-        expect(next.scripts[sourceKey].scriptAnalysis.outdated).toBe(false);
-        expect(next.scripts[dependentKey].scriptAnalysis.outdated).toBe(true);
-
-        const text = `SELECT * FROM dashql.script."${next.scripts[sourceKey].folderName.replace(/^\d+_/, '')}/${scriptDisplayName(next.scripts[sourceKey].fileName)}" AS s WHERE s.customer_`;
-        const consumer = next.instance.createScript(next.connectionCatalog);
-        consumer.insertTextAt(0, text);
-        consumer.analyze();
-        consumer.moveCursor(text.length).destroy();
-        const completion = consumer.completeAtCursor(10).read();
-        const candidates = Array.from({ length: completion.candidatesLength() }, (_, i) => completion.candidates(i)!.completionText());
-        expect(candidates).toContain('customer_id');
-        expect(candidates).toContain('customer_name');
-        consumer.destroy();
-    });
-
-    it('ignores a result from a superseded query', () => {
-        let state = buildState();
-        const scriptKey = +Object.keys(state.scripts)[0];
-        state = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: 'SELECT * FROM remote_table' } });
-        state = reduce(state, { type: REGISTER_QUERY, value: [scriptKey, 43] });
-
-        const next = reduce(state, {
-            type: REGISTER_SCRIPT_OUTPUT_SCHEMA,
-            value: { scriptKey, queryId: 42, queryText: 'SELECT * FROM remote_table', columnNames: ['stale'] },
-        });
-        expect(next).toBe(state);
-    });
-
-    it('ignores a result when the executed SQL is stale', () => {
-        let state = buildState();
-        const scriptKey = +Object.keys(state.scripts)[0];
-        state = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: 'SELECT * FROM remote_table' } });
-        state = reduce(state, { type: REGISTER_QUERY, value: [scriptKey, 42] });
-
-        const next = reduce(state, {
-            type: REGISTER_SCRIPT_OUTPUT_SCHEMA,
-            value: { scriptKey, queryId: 42, queryText: 'SELECT * FROM old_table', columnNames: ['stale'] },
-        });
         expect(next).toBe(state);
     });
 });
@@ -1748,15 +1409,13 @@ describe('SET_SCRIPT_TEXT', () => {
         const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: 'SELECT 1 as x, 2 as y' } });
         expect(next.scripts[scriptKey].scriptAnalysis.outdated).toBe(false);
         expect(next.scripts[scriptKey].scriptAnalysis.buffers.analyzed).not.toBeNull();
-        // The script is registered in the catalog under its clean SQL script path (no prefix, no ".sql")
-        expect(next.scripts[scriptKey].annotations.tableDefs).toContain(`${MAIN_FOLDER}/${scriptDisplayName(state.scriptFocus.fileName)}`);
     });
 
     it('refreshes the resolved VISUALIZE annotation', () => {
         const state = buildState();
         const scriptKey = getSelectedScriptFolder(state)!.scripts[state.scriptFocus.fileName].scriptId;
         const visualize =
-            'visualize ( select v as a from generate_series(1, 10) t(v) ) using vegalite ( mark => bar, encoding => ( x => (field => a) ) )';
+            'select v as a from generate_series(1, 10) t(v) |> visualize using vegalite ( mark => bar, encoding => ( x => (field => a) ) )';
         const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: visualize } });
         expect(next.scripts[scriptKey].annotations.visualizeQuery).not.toBeNull();
         expect(next.scripts[scriptKey].annotations.visualizeQuery!.sql.toLowerCase()).toContain('select v as a');
@@ -1846,13 +1505,6 @@ describe('ACCEPT_PENDING_DIFF / REJECT_PENDING_DIFF', () => {
         expect(destroySpy).toHaveBeenCalledTimes(1);
     });
 
-    it('REJECT marks other scripts outdated (cross-script references re-resolve)', () => {
-        const [staged, scriptKey] = stagePendingDiff('SELECT 1 as a', 'SELECT 2 as b');
-        const otherKey = +Object.keys(staged.scripts).find(k => +k !== scriptKey)!;
-        const next = reduce(staged, { type: REJECT_PENDING_DIFF, value: scriptKey });
-        expect(next.scripts[otherKey].scriptAnalysis.outdated).toBe(true);
-    });
-
     it('ACCEPT is a no-op when there is no pending diff (same state ref)', () => {
         const state = buildState();
         const scriptKey = getSelectedScriptFolder(state)!.scripts[state.scriptFocus.fileName].scriptId;
@@ -1905,19 +1557,6 @@ describe('CREATE_SCRIPT_WITH_TEXT', () => {
         expect(next.scriptFocus.fileName).toBe(files[files.length - 1]);
     });
 
-    it('resolves a VISUALIZE script-reference to an existing entry', () => {
-        const state = buildState();
-        const sourceFile = state.scriptFocus.fileName;
-        // Give the focused entry a SELECT so it can be referenced by path
-        const s1 = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey: getSelectedScriptFolder(state)!.scripts[sourceFile].scriptId, text: 'SELECT 1 as a' } });
-        // Script references address the source by its clean display name (no ordering prefix, no
-        // ".sql"), which is the namespace the catalog registers scripts under.
-        const visualize = `visualize dashql.script."${MAIN_FOLDER}/${scriptDisplayName(sourceFile)}" using vegalite ( mark => bar, encoding => ( x => (field => a) ) )`;
-        const s2 = reduce(s1, { type: CREATE_SCRIPT_WITH_TEXT, value: { text: visualize } });
-        const focusFile = s2.scriptFocus.fileName;
-        const newEntry = getSelectedScriptFolder(s2)!.scripts[focusFile];
-        expect(s2.scripts[newEntry.scriptId].annotations.visualizeQuery).not.toBeNull();
-    });
 });
 
 // ---------------------------------------------------------------------------

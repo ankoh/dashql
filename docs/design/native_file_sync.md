@@ -125,8 +125,8 @@ Notebook scripts reconciliation stays in
 - Changed script text clears stale completion and pending-diff buffers.
 - Existing page/script focus is retained when that path still exists; otherwise focus falls back to
   the first sorted entry.
-- Any notebook or catalog change causes the notebook to be reanalyzed so cross-script references and
-  derived annotations remain coherent.
+- Any notebook or catalog change causes the notebook to be reanalyzed so catalog-dependent analysis
+  and derived annotations remain coherent.
 
 ## Reload Protocol
 

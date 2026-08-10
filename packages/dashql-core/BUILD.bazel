@@ -84,14 +84,20 @@ CORE_DEPS = [
 ]
 
 cc_library(
+    name = "scanner_generated_native",
+    srcs = ["//grammar:scanner_generated"],
+    copts = DASHQL_COPTS,
+    deps = CORE_DEPS,
+)
+
+cc_library(
     name = "dashql_core",
     srcs = LIB_SRCS + [
         "//grammar:parser_generated",
-        "//grammar:scanner_generated",
     ],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
-    deps = CORE_DEPS,
+    deps = [":scanner_generated_native"] + CORE_DEPS,
     visibility = ["//visibility:public"],
 )
 
@@ -132,28 +138,48 @@ cc_library(
 )
 
 cc_library(
-    name = "dashql_core_wasm_library",
-    srcs = LIB_SRCS + [
-        "//grammar:scanner_generated",
-    ],
+    name = "scanner_generated_wasm_pthread",
+    srcs = ["//grammar:scanner_generated"],
     copts = WASM_COPTS + ["-matomics"],
     features = ["use_pthreads", "wasm_exceptions", "wasm_simd"],
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [":parser_generated_wasm_pthread"] + CORE_DEPS,
+)
+
+cc_library(
+    name = "scanner_generated_wasm",
+    srcs = ["//grammar:scanner_generated"],
+    copts = WASM_COPTS,
+    features = ["wasm_exceptions", "wasm_simd"],
+    target_compatible_with = ["@platforms//cpu:wasm32"],
+    deps = [":parser_generated_wasm"] + CORE_DEPS,
+)
+
+cc_library(
+    name = "dashql_core_wasm_library",
+    srcs = LIB_SRCS,
+    copts = WASM_COPTS + ["-matomics"],
+    features = ["use_pthreads", "wasm_exceptions", "wasm_simd"],
+    target_compatible_with = ["@platforms//cpu:wasm32"],
+    deps = [
+        ":parser_generated_wasm_pthread",
+        ":scanner_generated_wasm_pthread",
+    ] + CORE_DEPS,
     visibility = ["//visibility:private"],
 )
 
 cc_binary(
     name = "dashql_core_wasm",
-    srcs = LIB_SRCS + [
-        "//grammar:scanner_generated",
-    ],
+    srcs = LIB_SRCS,
     copts = WASM_COPTS,
     features = ["wasm_exceptions", "wasm_simd"],
     linkopts = WASM_LINKOPTS,
     tags = ["manual"],
     target_compatible_with = ["@platforms//cpu:wasm32"],
-    deps = [":parser_generated_wasm"] + CORE_DEPS,
+    deps = [
+        ":parser_generated_wasm",
+        ":scanner_generated_wasm",
+    ] + CORE_DEPS,
 )
 
 wasm_cc_binary(

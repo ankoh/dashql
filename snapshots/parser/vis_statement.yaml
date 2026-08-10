@@ -4,20 +4,11 @@ parser-snapshots:
     input: |-
       VISUALISE;
     expected:
-      statements:
-        - type: VIS_VISUALISE
-          ast-begin: 0
-          ast-size: 1
-          description:
-            text: "VISUALISE;"
-            description-begin: 0
-            description-count: 0
-          ast:
-            type: OBJECT_VIS_VISUALISE
-            text: "VISUALISE"
-            children: []
+      statements: []
       scanner-errors: []
-      parser-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected VISUALISE'
+          text: "VISUALISE"
       line-breaks: []
       comments: []
 
@@ -25,81 +16,57 @@ parser-snapshots:
     input: |-
       VISUALIZE;
     expected:
-      statements:
-        - type: VIS_VISUALISE
-          ast-begin: 0
-          ast-size: 1
-          description:
-            text: "VISUALIZE;"
-            description-begin: 0
-            description-count: 0
-          ast:
-            type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE"
-            children: []
+      statements: []
       scanner-errors: []
-      parser-errors: []
-      line-breaks: []
-      comments: []
-
-  - name: vis_statement_minimal_mark
-    input: |-
-      VISUALIZE USING vegalite (mark => line);
-    expected:
-      statements:
-        - type: VIS_VISUALISE
-          ast-begin: 0
-          ast-size: 4
-          description:
-            text: "VISUALIZE .. => line);"
-            description-begin: 0
-            description-count: 0
-          ast:
-            type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..k => line)"
-            children:
-              - key: VIS_VISUALISE_USING
-                type: NAME
-                text: "vegalite"
-              - key: VIS_VISUALISE_SPEC
-                type: OBJECT_VIS_SPEC
-                text: "mark => line"
-                children:
-                  - key: VIS_SPEC_MARK
-                    type: ENUM_VIS_MARK_TYPE
-                    text: "line"
-                    children: []
-      scanner-errors: []
-      parser-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected VISUALIZE'
+          text: "VISUALIZE"
       line-breaks: []
       comments: []
 
   - name: vis_statement_table_source
     input: |-
-      VISUALIZE sales USING vegalite (mark => bar);
+      SELECT * FROM sales |> VISUALIZE USING vegalite (mark => bar);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 7
+          ast-size: 12
           description:
-            text: "VISUALIZE ..k => bar);"
+            text: "SELECT * F..k => bar);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..rk => bar)"
+            text: "SELECT * F..rk => bar)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "sales"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "sales"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -118,34 +85,51 @@ parser-snapshots:
 
   - name: vis_statement_qualified_table_source
     input: |-
-      VISUALIZE warehouse.public.sales USING vegalite (mark => point);
+      SELECT * FROM warehouse.public.sales |> VISUALIZE USING vegalite (mark => point);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 9
+          ast-size: 14
           description:
-            text: "VISUALIZE ..=> point);"
+            text: "SELECT * F..=> point);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE .. => point)"
+            text: "SELECT * F.. => point)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "warehouse...blic.sales"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * F..blic.sales"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "warehouse...blic.sales"
+                    text: "*"
                     children:
-                      - type: NAME
-                        text: "warehouse"
-                      - type: NAME
-                        text: "public"
-                      - type: NAME
-                        text: "sales"
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM wareh..blic.sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
+                        text: "warehouse...blic.sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "warehouse...blic.sales"
+                            children:
+                              - type: NAME
+                                text: "warehouse"
+                              - type: NAME
+                                text: "public"
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -164,23 +148,23 @@ parser-snapshots:
 
   - name: vis_statement_select_source
     input: |-
-      VISUALIZE (SELECT * FROM sales) USING vegalite (mark => line);
+      SELECT * FROM sales |> VISUALIZE USING vegalite (mark => line);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 12
           description:
-            text: "VISUALIZE .. => line);"
+            text: "SELECT * F.. => line);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..k => line)"
+            text: "SELECT * F..k => line)"
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_SELECT
-                text: "(SELECT * ..ROM sales)"
+                text: "SELECT * FROM sales"
                 children:
                   - key: SQL_SELECT_TARGETS
                     type: ARRAY
@@ -223,30 +207,47 @@ parser-snapshots:
 
   - name: vis_statement_multi_spec_keys
     input: |-
-      VISUALIZE sales USING vegalite (mark => line, width => 800, height => 400);
+      SELECT * FROM sales |> VISUALIZE USING vegalite (mark => line, width => 800, height => 400);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 9
+          ast-size: 14
           description:
-            text: "VISUALIZE ..t => 400);"
+            text: "SELECT * F..t => 400);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..ht => 400)"
+            text: "SELECT * F..ht => 400)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "sales"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "sales"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -271,7 +272,7 @@ parser-snapshots:
 
   - name: vis_statement_encoding_single_channel
     input: |-
-      VISUALIZE sales USING vegalite (
+      SELECT * FROM sales |> VISUALIZE USING vegalite (
         mark => bar,
         encoding => (
           x => (field => category, type => nominal)
@@ -281,25 +282,42 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 13
+          ast-size: 18
           description:
-            text: "VISUALIZE ..al)\n  )\n);"
+            text: "SELECT * F..al)\n  )\n);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..nal)\n  )\n)"
+            text: "SELECT * F..nal)\n  )\n)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "sales"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "sales"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -336,16 +354,16 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [32,33]
-        - text: [47,48]
-        - text: [63,64]
-        - text: [109,110]
-        - text: [113,114]
+        - text: [49,50]
+        - text: [64,65]
+        - text: [80,81]
+        - text: [126,127]
+        - text: [130,131]
       comments: []
 
   - name: vis_statement_encoding_two_channels
     input: |-
-      VISUALIZE sales USING vegalite (
+      SELECT * FROM sales |> VISUALIZE USING vegalite (
         mark => line,
         encoding => (
           x => (field => date, type => temporal),
@@ -356,25 +374,42 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 18
+          ast-size: 23
           description:
-            text: "VISUALIZE ..ve)\n  )\n);"
+            text: "SELECT * F..ve)\n  )\n);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..ive)\n  )\n)"
+            text: "SELECT * F..ive)\n  )\n)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "sales"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "sales"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -429,17 +464,17 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [32,33]
-        - text: [48,49]
-        - text: [64,65]
-        - text: [108,109]
-        - text: [158,159]
-        - text: [162,163]
+        - text: [49,50]
+        - text: [65,66]
+        - text: [81,82]
+        - text: [125,126]
+        - text: [175,176]
+        - text: [179,180]
       comments: []
 
   - name: vis_statement_encoding_with_scale
     input: |-
-      VISUALIZE sales USING vegalite (
+      SELECT * FROM sales |> VISUALIZE USING vegalite (
         encoding => (
           x => (field => time, type => temporal, scale => (domain => [0, 100]))
         )
@@ -448,25 +483,42 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 17
+          ast-size: 22
           description:
-            text: "VISUALIZE ..]))\n  )\n);"
+            text: "SELECT * F..]))\n  )\n);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..0]))\n  )\n)"
+            text: "SELECT * F..0]))\n  )\n)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "sales"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "sales"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -515,15 +567,15 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [32,33]
-        - text: [48,49]
-        - text: [122,123]
-        - text: [126,127]
+        - text: [49,50]
+        - text: [65,66]
+        - text: [139,140]
+        - text: [143,144]
       comments: []
 
   - name: vis_statement_encoding_with_axis
     input: |-
-      VISUALIZE sales USING vegalite (
+      SELECT * FROM sales |> VISUALIZE USING vegalite (
         encoding => (
           x => (field => date, type => temporal, axis => (format => '%Y', grid => false))
         )
@@ -532,25 +584,42 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 15
+          ast-size: 20
           description:
-            text: "VISUALIZE ..e))\n  )\n);"
+            text: "SELECT * F..e))\n  )\n);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..se))\n  )\n)"
+            text: "SELECT * F..se))\n  )\n)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "sales"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "sales"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -593,15 +662,15 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [32,33]
-        - text: [48,49]
-        - text: [132,133]
-        - text: [136,137]
+        - text: [49,50]
+        - text: [65,66]
+        - text: [149,150]
+        - text: [153,154]
       comments: []
 
   - name: vis_statement_encoding_with_legend
     input: |-
-      VISUALIZE sales USING vegalite (
+      SELECT * FROM sales |> VISUALIZE USING vegalite (
         encoding => (
           color => (field => region, type => nominal, legend => (title => 'Region', orient => 'right'))
         )
@@ -610,25 +679,42 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 15
+          ast-size: 20
           description:
-            text: "VISUALIZE ..'))\n  )\n);"
+            text: "SELECT * F..'))\n  )\n);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..t'))\n  )\n)"
+            text: "SELECT * F..t'))\n  )\n)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "sales"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "sales"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -671,15 +757,15 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [32,33]
-        - text: [48,49]
-        - text: [146,147]
-        - text: [150,151]
+        - text: [49,50]
+        - text: [65,66]
+        - text: [163,164]
+        - text: [167,168]
       comments: []
 
   - name: vis_statement_scale_full
     input: |-
-      VISUALIZE sales USING vegalite (
+      SELECT * FROM sales |> VISUALIZE USING vegalite (
         encoding => (
           x => (
             field => price,
@@ -698,25 +784,42 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 21
+          ast-size: 26
           description:
-            text: "VISUALIZE ..  )\n  )\n);"
+            text: "SELECT * F..  )\n  )\n);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..   )\n  )\n)"
+            text: "SELECT * F..   )\n  )\n)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "sales"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "sales"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -778,25 +881,25 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [32,33]
-        - text: [48,49]
-        - text: [59,60]
-        - text: [81,82]
-        - text: [109,110]
+        - text: [49,50]
+        - text: [65,66]
+        - text: [76,77]
+        - text: [98,99]
         - text: [126,127]
-        - text: [147,148]
-        - text: [176,177]
-        - text: [198,199]
-        - text: [221,222]
-        - text: [243,244]
-        - text: [251,252]
-        - text: [257,258]
-        - text: [261,262]
+        - text: [143,144]
+        - text: [164,165]
+        - text: [193,194]
+        - text: [215,216]
+        - text: [238,239]
+        - text: [260,261]
+        - text: [268,269]
+        - text: [274,275]
+        - text: [278,279]
       comments: []
 
   - name: vis_statement_encoding_shorthand_value
     input: |-
-      VISUALIZE sales USING vegalite (
+      SELECT * FROM sales |> VISUALIZE USING vegalite (
         encoding => (
           x => date,
           y => revenue
@@ -806,25 +909,42 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 13
+          ast-size: 18
           description:
-            text: "VISUALIZE ..nue\n  )\n);"
+            text: "SELECT * F..nue\n  )\n);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..enue\n  )\n)"
+            text: "SELECT * F..enue\n  )\n)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "sales"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "sales"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -859,16 +979,16 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [32,33]
-        - text: [48,49]
-        - text: [63,64]
+        - text: [49,50]
+        - text: [65,66]
         - text: [80,81]
-        - text: [84,85]
+        - text: [97,98]
+        - text: [101,102]
       comments: []
 
   - name: vis_statement_encoding_color_channel
     input: |-
-      VISUALIZE sales USING vegalite (
+      SELECT * FROM sales |> VISUALIZE USING vegalite (
         mark => point,
         encoding => (
           x => (field => date, type => temporal),
@@ -880,25 +1000,42 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 23
+          ast-size: 28
           description:
-            text: "VISUALIZE ..al)\n  )\n);"
+            text: "SELECT * F..al)\n  )\n);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..nal)\n  )\n)"
+            text: "SELECT * F..nal)\n  )\n)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "sales"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "sales"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -971,43 +1108,60 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [32,33]
         - text: [49,50]
-        - text: [65,66]
-        - text: [109,110]
-        - text: [160,161]
-        - text: [208,209]
-        - text: [212,213]
+        - text: [66,67]
+        - text: [82,83]
+        - text: [126,127]
+        - text: [177,178]
+        - text: [225,226]
+        - text: [229,230]
       comments: []
 
   - name: vis_statement_mark_def_simple
     input: |-
-      VISUALIZE sales USING vegalite (
+      SELECT * FROM sales |> VISUALIZE USING vegalite (
         mark => (type => bar, filled => true, opacity => 0.8)
       );
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 10
+          ast-size: 15
           description:
-            text: "VISUALIZE ..=> 0.8)\n);"
+            text: "SELECT * F..=> 0.8)\n);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE .. => 0.8)\n)"
+            text: "SELECT * F.. => 0.8)\n)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "sales"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "sales"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -1032,38 +1186,55 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [32,33]
-        - text: [88,89]
+        - text: [49,50]
+        - text: [105,106]
       comments: []
 
   - name: vis_statement_mark_def_point_toggle
     input: |-
-      VISUALIZE sales USING vegalite (
+      SELECT * FROM sales |> VISUALIZE USING vegalite (
         mark => (type => line, point => true)
       );
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 9
+          ast-size: 14
           description:
-            text: "VISUALIZE ..> true)\n);"
+            text: "SELECT * F..> true)\n);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..=> true)\n)"
+            text: "SELECT * F..=> true)\n)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "sales"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "sales"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -1085,38 +1256,55 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [32,33]
-        - text: [72,73]
+        - text: [49,50]
+        - text: [89,90]
       comments: []
 
   - name: vis_statement_mark_def_nested_overlay
     input: |-
-      VISUALIZE sales USING vegalite (
+      SELECT * FROM sales |> VISUALIZE USING vegalite (
         mark => (type => line, point => (filled => false, fill => 'white'))
       );
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 11
+          ast-size: 16
           description:
-            text: "VISUALIZE ..hite'))\n);"
+            text: "SELECT * F..hite'))\n);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..white'))\n)"
+            text: "SELECT * F..white'))\n)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "sales"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "sales"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -1145,13 +1333,13 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [32,33]
-        - text: [102,103]
+        - text: [49,50]
+        - text: [119,120]
       comments: []
 
   - name: vis_statement_mark_def_broad
     input: |-
-      VISUALIZE sales USING vegalite (
+      SELECT * FROM sales |> VISUALIZE USING vegalite (
         mark => (
           type => area,
           line => (stroke => 'red', stroke_width => 2),
@@ -1167,25 +1355,42 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 20
+          ast-size: 25
           description:
-            text: "VISUALIZE ..rue\n  )\n);"
+            text: "SELECT * F..rue\n  )\n);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..true\n  )\n)"
+            text: "SELECT * F..true\n  )\n)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "sales"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "sales"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -1241,22 +1446,22 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [32,33]
-        - text: [44,45]
-        - text: [62,63]
-        - text: [112,113]
-        - text: [132,133]
-        - text: [158,159]
-        - text: [185,186]
-        - text: [216,217]
-        - text: [236,237]
-        - text: [256,257]
-        - text: [260,261]
+        - text: [49,50]
+        - text: [61,62]
+        - text: [79,80]
+        - text: [129,130]
+        - text: [149,150]
+        - text: [175,176]
+        - text: [202,203]
+        - text: [233,234]
+        - text: [253,254]
+        - text: [273,274]
+        - text: [277,278]
       comments: []
 
   - name: vis_statement_array_value
     input: |-
-      VISUALIZE sales USING vegalite (
+      SELECT * FROM sales |> VISUALIZE USING vegalite (
         encoding => (
           x => (scale => (domain => [0, 50, 100]))
         )
@@ -1265,25 +1470,42 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 14
+          ast-size: 19
           description:
-            text: "VISUALIZE ..]))\n  )\n);"
+            text: "SELECT * F..]))\n  )\n);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..0]))\n  )\n)"
+            text: "SELECT * F..0]))\n  )\n)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "sales"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "sales"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -1320,38 +1542,55 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [32,33]
-        - text: [48,49]
-        - text: [93,94]
-        - text: [97,98]
+        - text: [49,50]
+        - text: [65,66]
+        - text: [110,111]
+        - text: [114,115]
       comments: []
 
   - name: vis_statement_numeric_values
     input: |-
-      VISUALIZE sales USING vegalite (width => 800, height => 400, padding => 20);
+      SELECT * FROM sales |> VISUALIZE USING vegalite (width => 800, height => 400, padding => 20);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 9
+          ast-size: 14
           description:
-            text: "VISUALIZE ..ng => 20);"
+            text: "SELECT * F..ng => 20);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..ing => 20)"
+            text: "SELECT * F..ing => 20)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "sales"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "sales"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -1375,7 +1614,7 @@ parser-snapshots:
 
   - name: vis_statement_full_pipeline
     input: |-
-      VISUALIZE (SELECT * FROM sales) USING vegalite (
+      SELECT * FROM sales |> VISUALIZE USING vegalite (
         mark => line,
         encoding => (
           x => (field => date, type => temporal, axis => (format => '%b %Y')),
@@ -1392,16 +1631,16 @@ parser-snapshots:
           ast-begin: 0
           ast-size: 37
           description:
-            text: "VISUALIZE ..Region'\n);"
+            text: "SELECT * F..Region'\n);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE .. Region'\n)"
+            text: "SELECT * F.. Region'\n)"
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_SELECT
-                text: "(SELECT * ..ROM sales)"
+                text: "SELECT * FROM sales"
                 children:
                   - key: SQL_SELECT_TARGETS
                     type: ARRAY
@@ -1528,34 +1767,61 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [48,49]
-        - text: [64,65]
-        - text: [80,81]
-        - text: [153,154]
-        - text: [229,230]
-        - text: [308,309]
-        - text: [313,314]
-        - text: [329,330]
-        - text: [346,347]
-        - text: [377,378]
+        - text: [49,50]
+        - text: [65,66]
+        - text: [81,82]
+        - text: [154,155]
+        - text: [230,231]
+        - text: [309,310]
+        - text: [314,315]
+        - text: [330,331]
+        - text: [347,348]
+        - text: [378,379]
       comments: []
 
   - name: vis_statement_trailing_comma_spec
     input: |-
-      VISUALIZE USING vegalite (mark => line, width => 800,);
+      SELECT * FROM sales |> VISUALIZE USING vegalite (mark => line, width => 800,);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 5
+          ast-size: 13
           description:
-            text: "VISUALIZE .. => 800,);"
+            text: "SELECT * F.. => 800,);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..h => 800,)"
+            text: "SELECT * F..h => 800,)"
             children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "*"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
+                        text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -1577,7 +1843,7 @@ parser-snapshots:
 
   - name: vis_statement_trailing_comma_encoding
     input: |-
-      VISUALIZE USING vegalite (
+      SELECT * FROM sales |> VISUALIZE USING vegalite (
         mark => bar,
         encoding => (
           x => (field => date, type => temporal,),
@@ -1588,15 +1854,42 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 14
+          ast-size: 22
           description:
-            text: "VISUALIZE ..),\n  ),\n);"
+            text: "SELECT * F..),\n  ),\n);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..,),\n  ),\n)"
+            text: "SELECT * F..,),\n  ),\n)"
             children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * FROM sales"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "*"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM sales"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
+                        text: "sales"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "sales"
+                            children:
+                              - type: NAME
+                                text: "sales"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "vegalite"
@@ -1647,12 +1940,12 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [26,27]
-        - text: [41,42]
-        - text: [57,58]
-        - text: [102,103]
-        - text: [132,133]
-        - text: [137,138]
+        - text: [49,50]
+        - text: [64,65]
+        - text: [80,81]
+        - text: [125,126]
+        - text: [155,156]
+        - text: [160,161]
       comments: []
 
   - name: vis_statement_keyword_collision_select
@@ -1837,30 +2130,47 @@ parser-snapshots:
 
   - name: vis_statement_umap_minimal
     input: |-
-      VISUALIZE embeddings USING umap (vector => embedding);
+      SELECT * FROM embeddings |> VISUALIZE USING umap (vector => embedding);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 9
+          ast-size: 14
           description:
-            text: "VISUALIZE ..mbedding);"
+            text: "SELECT * F..mbedding);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..embedding)"
+            text: "SELECT * F..embedding)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "embeddings"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * F..embeddings"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "embeddings"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM embeddings"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "embeddings"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "embeddings"
+                            children:
+                              - type: NAME
+                                text: "embeddings"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "umap"
@@ -1885,7 +2195,7 @@ parser-snapshots:
 
   - name: vis_statement_umap_category_label
     input: |-
-      VISUALIZE embeddings USING umap (
+      SELECT * FROM embeddings |> VISUALIZE USING umap (
         vector => embedding,
         category => cluster_id,
         label => name
@@ -1894,25 +2204,42 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 15
+          ast-size: 20
           description:
-            text: "VISUALIZE ..=> name\n);"
+            text: "SELECT * F..=> name\n);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE .. => name\n)"
+            text: "SELECT * F.. => name\n)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "embeddings"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * F..embeddings"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "embeddings"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM embeddings"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "embeddings"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "embeddings"
+                            children:
+                              - type: NAME
+                                text: "embeddings"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "umap"
@@ -1953,15 +2280,15 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [33,34]
-        - text: [56,57]
-        - text: [82,83]
-        - text: [98,99]
+        - text: [50,51]
+        - text: [73,74]
+        - text: [99,100]
+        - text: [115,116]
       comments: []
 
   - name: vis_statement_umap_projection
     input: |-
-      VISUALIZE embeddings USING umap (
+      SELECT * FROM embeddings |> VISUALIZE USING umap (
         vector => embedding,
         category => cluster_id,
         neighbors => 15,
@@ -1972,25 +2299,42 @@ parser-snapshots:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 15
+          ast-size: 20
           description:
-            text: "VISUALIZE .. cosine\n);"
+            text: "SELECT * F.. cosine\n);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..> cosine\n)"
+            text: "SELECT * F..> cosine\n)"
             children:
               - key: VIS_VISUALISE_SELECT
-                type: OBJECT_SQL_TABLEREF
-                text: "embeddings"
+                type: OBJECT_SQL_SELECT
+                text: "SELECT * F..embeddings"
                 children:
-                  - key: SQL_TABLEREF_NAME
+                  - key: SQL_SELECT_TARGETS
                     type: ARRAY
-                    text: "embeddings"
+                    text: "*"
                     children:
-                      - type: NAME
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM embeddings"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
                         text: "embeddings"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "embeddings"
+                            children:
+                              - type: NAME
+                                text: "embeddings"
               - key: VIS_VISUALISE_USING
                 type: NAME
                 text: "umap"
@@ -2030,33 +2374,33 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [33,34]
-        - text: [56,57]
-        - text: [82,83]
-        - text: [101,102]
-        - text: [120,121]
-        - text: [139,140]
+        - text: [50,51]
+        - text: [73,74]
+        - text: [99,100]
+        - text: [118,119]
+        - text: [137,138]
+        - text: [156,157]
       comments: []
 
   - name: vis_statement_umap_select_source
     input: |-
-      VISUALIZE (SELECT embedding FROM embeddings) USING umap (vector => embedding);
+      SELECT embedding FROM embeddings |> VISUALIZE USING umap (vector => embedding);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
           ast-size: 16
           description:
-            text: "VISUALIZE ..mbedding);"
+            text: "SELECT emb..mbedding);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "VISUALIZE ..embedding)"
+            text: "SELECT emb..embedding)"
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_SELECT
-                text: "(SELECT em..mbeddings)"
+                text: "SELECT emb..embeddings"
                 children:
                   - key: SQL_SELECT_TARGETS
                     type: ARRAY

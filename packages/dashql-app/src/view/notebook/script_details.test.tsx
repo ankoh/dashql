@@ -8,6 +8,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 import {
     fakeButtonModule,
     fakeSymbolIconModule,
+    ResizeObserverMock,
 } from '../../test/view_mocks.js';
 
 const mockState = vi.hoisted(() => ({
@@ -56,6 +57,7 @@ vi.mock('../../platform/storage/storage_provider.js', () => ({
 vi.mock('../../compute/computation_registry.js', () => ({
     useComputationRegistry: () => [{ tableComputations: {} }, vi.fn()],
 }));
+vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
 import { ConnectionHealth, type ConnectionState } from '../../connection/connection_state.js';
 import { REGISTER_QUERY, type NotebookScripts } from '../../scripts/notebook_scripts.js';

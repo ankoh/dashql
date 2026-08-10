@@ -34,11 +34,6 @@ struct AnalysisState {
     const CatalogEntryID catalog_entry_id;
     /// The catalog
     Catalog& catalog;
-    /// The script path for catalog registration (e.g., "main/01-script.sql"). Empty means none.
-    std::string_view script_path;
-    /// Output columns learned from the latest successful execution.
-    std::span<const std::string> executed_output_schema;
-
     /// A dummy emtpy registered name.
     /// Used to construct qualified column and table identifiers and fill the prefix.
     RegisteredName& empty_name;

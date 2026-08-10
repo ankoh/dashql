@@ -17,45 +17,26 @@ import {
     SET_SCRIPT_TEXT,
 } from './notebook_scripts.js';
 import { resolveSymbolSpan } from '../core/tokens.js';
-import { normalizeScriptFolderName, scriptDisplayName } from './script_types.js';
+import { scriptDisplayName } from './script_types.js';
 
 /// The source clause for the generated VISUALIZE statement.
 ///
 /// The actual transcoding lives in the WASM core (`ParseVegaLiteToVisualize`); we encode the
 /// source into the Vega-Lite spec's `data` member (see `visSourceToData`) and let the core
-/// derive the `VISUALIZE <source> USING vegalite (…)` clause. This keeps a single transcoder.
+/// derive the `<query> |> VISUALIZE USING vegalite (…)` clause. This keeps a single transcoder.
 export type VisSource =
-    /// Reference an existing notebookScripts script by `(folder, file)`.
-    /// Encoded as `dashql.script."<folder>/<file>"`.
-    | { kind: 'script-reference'; folderName: string; fileName: string }
-    /// Reference a catalog table / relation by (optionally qualified) name.
-    | { kind: 'table-reference'; database?: string | null; schema?: string | null; table: string }
-    /// Inline SELECT subquery, emitted verbatim inside parentheses.
-    | { kind: 'inline-select'; sql: string }
-    /// Reuse a source clause extracted verbatim from an existing VISUALIZE statement.
-    | { kind: 'raw'; text: string }
-    /// No source clause (`VISUALIZE USING vegalite (…)`).
-    | { kind: 'none' };
+    /// Inline query, emitted verbatim before the visualization pipe.
+    { kind: 'inline-select'; sql: string }
+    /// Reuse a query source extracted verbatim from an existing visualization pipeline.
+    | { kind: 'raw'; text: string };
 
 /// Encode a VisSource into the `data` member that the WASM transcoder understands.
-/// Returns null for `none` (no `data` member is injected).
-export function visSourceToData(source: VisSource): Record<string, unknown> | null {
+export function visSourceToData(source: VisSource): Record<string, unknown> {
     switch (source.kind) {
-        case 'none':
-            return null;
         case 'raw':
-            return source.text.trim() ? { $raw: source.text.trim() } : null;
+            return { $raw: source.text.trim() };
         case 'inline-select':
-            return source.sql.trim() ? { $sql: source.sql.trim() } : null;
-        case 'script-reference':
-            return { $ref: ['dashql', 'script', `${source.folderName}/${source.fileName}`] };
-        case 'table-reference': {
-            const ref: string[] = [];
-            if (source.database) ref.push(source.database);
-            if (source.schema) ref.push(source.schema);
-            ref.push(source.table);
-            return { $ref: ref };
-        }
+            return { $sql: source.sql.trim() };
     }
 }
 
@@ -103,14 +84,11 @@ export function createNotebookScriptsAgentHost(params: NotebookScriptsAgentHostP
             // driver treats as a verifiable error and repairs.
             const spec = JSON.parse(rawSpecJson) as Record<string, unknown>;
             // Inject the resolved source as the spec's `data` member; the WASM transcoder turns it
-            // into the `VISUALIZE <source> USING vegalite (…)` clause. The model is told not to emit `data`, but
+            // into the `<query> |> VISUALIZE USING vegalite (…)` clause. The model is told not to emit `data`, but
             // overwrite it defensively so our source always wins.
-            const data = visSourceToData(determineVisSource(notebookScripts, contextScriptData));
-            if (data != null) {
-                spec.data = data;
-            } else {
-                delete spec.data;
-            }
+            const source = determineVisSource(notebookScripts, contextScriptData);
+            if (source == null) throw new Error('A query source is required to create a visualization');
+            spec.data = visSourceToData(source);
             return notebookScripts.instance.parseVegaLiteToVisualize(JSON.stringify(spec));
         },
 
@@ -177,25 +155,16 @@ export function chooseApplyAction(
 ///   in-place edit keeps pointing at the same data.
 /// - Otherwise (focused is a SQL script) reference that script by its SQL script path.
 /// - If nothing usable is focused, fall back to no source (the verify pass will flag it).
-export function determineVisSource(_notebookScripts: NotebookScripts, contextScriptData: ScriptData | null): VisSource {
+export function determineVisSource(_notebookScripts: NotebookScripts, contextScriptData: ScriptData | null): VisSource | null {
     if (contextScriptData == null) {
-        return { kind: 'none' };
+        return null;
     }
     if (focusedIsVisualize(contextScriptData)) {
         const reused = extractVisSourceFromScript(contextScriptData);
         if (reused != null) return reused;
     }
-    // Reference the focused SQL script by its SQL script path. Use the clean display names (folder
-    // without its ordering prefix, file without prefix and ".sql") so the encoded reference matches
-    // how the script is registered in the catalog (dashql.script."<clean folder>/<clean file>").
-    if (contextScriptData.folderName && contextScriptData.fileName) {
-        return {
-            kind: 'script-reference',
-            folderName: normalizeScriptFolderName(contextScriptData.folderName),
-            fileName: scriptDisplayName(contextScriptData.fileName),
-        };
-    }
-    return { kind: 'none' };
+    const sql = contextScriptData.script.toString().trim().replace(/;\s*$/, '');
+    return sql ? { kind: 'inline-select', sql } : null;
 }
 
 /// Extract the source clause of the focused script's first VISUALIZE statement as a VisSource,
@@ -212,34 +181,6 @@ function extractVisSourceFromScript(scriptData: ScriptData): VisSource | null {
     if (!spec) return null;
 
     switch (spec.sourceKind()) {
-        case core.buffers.analyzer.VisSourceKind.SCRIPT_REFERENCE: {
-            const tmpName = new core.buffers.analyzer.QualifiedTableName();
-            const qname = spec.sourceQualifiedName(tmpName);
-            const path = qname?.tableName() ?? null;
-            if (path) {
-                const slash = path.indexOf('/');
-                if (slash > 0 && slash < path.length - 1) {
-                    return {
-                        kind: 'script-reference',
-                        folderName: path.substring(0, slash),
-                        fileName: path.substring(slash + 1),
-                    };
-                }
-            }
-            return null;
-        }
-        case core.buffers.analyzer.VisSourceKind.TABLE_REFERENCE: {
-            const tmpName = new core.buffers.analyzer.QualifiedTableName();
-            const qname = spec.sourceQualifiedName(tmpName);
-            const tbl = qname?.tableName();
-            if (!tbl) return null;
-            return {
-                kind: 'table-reference',
-                database: qname?.databaseName() ?? null,
-                schema: qname?.schemaName() ?? null,
-                table: tbl,
-            };
-        }
         case core.buffers.analyzer.VisSourceKind.INLINE_SELECT: {
             const nodeId = spec.sourceInlineSelectAstNodeId();
             const parsed = parsedPtr.read();
@@ -249,8 +190,8 @@ function extractVisSourceFromScript(scriptData: ScriptData): VisSource | null {
             if (tokens && span) {
                 const ts = resolveSymbolSpan(tokens, span);
                 const scriptText = scriptData.script.toString();
-                const inner = scriptText.substr(ts.offset + 1, Math.max(ts.length - 2, 0)).trim();
-                if (inner) return { kind: 'inline-select', sql: inner };
+                const query = scriptText.substr(ts.offset, ts.length).trim();
+                if (query) return { kind: 'inline-select', sql: query };
             }
             return null;
         }

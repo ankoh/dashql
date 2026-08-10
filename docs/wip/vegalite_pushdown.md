@@ -3,13 +3,14 @@
 ## Context
 
 DashQL is in a rare position: it owns *both* the SQL semantics and the visualization
-spec semantics for a `VISUALIZE ... USING vegalite (...)` statement. Today those two
-worlds are not wired together on the hot path.
+spec semantics for a complete, self-contained
+`<classical SELECT query> |> VISUALIZE USING vegalite (...)` pipeline. Today
+those two worlds are not wired together on the hot path.
 
-**The inefficiency.** For a `VISUALIZE` cell, the frontend resolves the source to a bare
-`SELECT * FROM ...` (or the inline select verbatim) in
-`packages/dashql-app/src/connection/visualize_executor.ts:42`, executes it, then
-`VegaLiteView` marshals the **entire** result table row-by-row into `data: { values: rows }`
+**The inefficiency.** For a cell containing a visualization pipeline, the
+frontend slices the complete query prefix from the same script and executes it.
+Then `VegaLiteView` marshals the **entire** result table row-by-row into
+`data: { values: rows }`
 (`packages/dashql-app/src/view/visualization/vegalite_view.tsx:13-31,47`). Any
 `aggregate` / `bin` / `sort` / `top-N` declared in the spec is then executed by
 **Vega-Lite in JavaScript** over the full, un-reduced dataset. For a bar chart that is
@@ -28,7 +29,7 @@ via `SQLFrame` (`packages/dashql-app/src/sql/sqlframe_builder.ts`), which compil
 GROUP BY aggregation, filters, ordering, and limit into DuckDB CTEs. The Vega-Lite path
 simply doesn't use it.
 
-**Intended outcome.** A `VISUALIZE` whose spec declares aggregation/binning/top-N executes
+**Intended outcome.** A visualization pipeline whose spec declares aggregation/binning/top-N executes
 the reduction in the SQL engine (DuckDB/Hyper/Trino) and hands Vega-Lite a small,
 pre-aggregated table. The declarative Vega-Lite authoring experience is unchanged; the
 computation moves to where the data lives.
@@ -72,18 +73,19 @@ Both are generated together, lazily, in the core during `AnalyzedScript::Pack`.
   emitting an axis/legend `title`.
 - `count` with no field → output column `__count` (Vega-Lite's own convention).
 
-### Source substitution (handles the script-reference gap)
+### Source handling: wrap the complete query prefix
 
-The core has the source text for `TABLE_REFERENCE` (construct `SELECT * FROM name`) and
-`INLINE_SELECT` (the parenthesized select is in the same script input), but **not** for
-`SCRIPT_REFERENCE` — that SQL lives in another notebook cell whose text only the frontend
-resolves (`visualize_executor.ts` already does this for all three kinds).
-
-To keep the generation in the core while respecting that gap, the core emits the pushdown
-SQL as a **wrapper over a sentinel source**:
+The pipeline input is always a complete classical `SELECT` query in the same
+script. The core owns its exact source span, so pushdown SQL can be generated
+directly around that query with no frontend lookup, reconstruction, sentinel,
+or substitution:
 
 ```sql
-WITH __vis_source AS ( {{SOURCE}} )
+WITH __vis_source AS (
+    SELECT month, revenue
+    FROM sales
+    WHERE fiscal_year = 2026
+)
 SELECT "month", SUM("revenue") AS "sum_revenue"
 FROM __vis_source
 GROUP BY 1
@@ -91,10 +93,11 @@ ORDER BY ...
 LIMIT ...
 ```
 
-The frontend substitutes `{{SOURCE}}` with the base SQL it already resolves today
-(`resolveVisualizeQuery`), uniformly for all three source kinds. (A quoted-identifier
-sentinel or a documented placeholder token — pick one and document it in both the emitter
-and the substitution site so they can't drift.)
+The wrapper must preserve the complete query prefix exactly, including CTEs,
+projections, filters, joins, grouping, ordering, and limits authored before the
+pipe. The generated `pushdown_sql` is complete executable SQL. The frontend
+chooses it when present and otherwise executes the original query prefix; it
+never edits either string.
 
 ### Phasing
 
@@ -113,8 +116,9 @@ and the substitution site so they can't drift.)
 - `include/dashql/analyzer/analyzer_types.h` — add `std::string pushdown_sql;` to
   `VisualizationSpec` (near `vegalite_json`, ~line 785).
 - `src/visualize/` — add a new `vegalite_pushdown.cc` (+ header in
-  `include/dashql/visualize/`) implementing the lowering rule: inspect
-  `spec.encoding_channels` for group keys vs. measures, build the sentinel-wrapped GROUP BY
+   `include/dashql/visualize/`) implementing the lowering rule: inspect
+  `spec.encoding_channels` for group keys vs. measures, read the complete query
+  prefix from `spec.source_node_id`, and build the complete CTE-wrapped GROUP BY
   SQL. Mirror the SQL-building idioms in `sqlframe_builder.ts` (quoting, agg formatting).
 - `src/visualize/vegalite_generator.cc` — make `GenerateVegaLiteSpec` pushdown-aware: when
   aggregation is lowered, emit channel `field` as the output alias and **omit**
@@ -128,10 +132,10 @@ and the substitution site so they can't drift.)
   Regenerate bindings via the normal Bazel codegen.
 
 **Frontend (`packages/dashql-app`):**
-- `src/connection/visualize_executor.ts:116-127` — in the `vegalite` branch, read
-  `spec.pushdownSql()`; if present, substitute `{{SOURCE}}` with the already-resolved base
-  `sql` and return that as the executable SQL. `VegaLiteView` needs **no change** — it just
-  receives fewer rows and a transform-free spec.
+- `src/connection/visualize_executor.ts` — in the `vegalite` branch, execute
+  `spec.pushdownSql()` when present; otherwise execute the complete original
+  query prefix. No source lookup or substitution is allowed. `VegaLiteView`
+  needs **no change** — it just receives fewer rows and a transform-free spec.
 
 ## Verification
 
@@ -143,12 +147,13 @@ and the substitution site so they can't drift.)
   (`x` + `color`); (c) `count` with no field → `__count`; (d) no-aggregate spec → **no**
   pushdown emitted (regression guard); (e) top-N with sort+limit. Run via the Bazel test
   target (per project convention — not `npx`/raw ctest directly).
-- **TS transcode test** — extend
-  `packages/dashql-app/src/scripts/vegalite_transcode.test.ts` to assert the `{{SOURCE}}`
-  substitution produces valid SQL for each of the three source kinds
-  (table / inline / script reference).
-- **End-to-end in the app** — run a notebook with a `VISUALIZE ... USING vegalite` bar
-  chart over an aggregating spec; confirm the executed query is the GROUP BY (small result)
+- **TS execution test** — cover selection of the complete `pushdown_sql` when
+  present and fallback to the unmodified complete query prefix otherwise.
+  Include a query with a CTE, join, filter, ordering, and limit to guard against
+  prefix truncation or reconstruction.
+- **End-to-end in the app** — run a notebook with a complete
+  `SELECT ... FROM <relation> |> VISUALIZE USING vegalite (...)` query and an
+  aggregating bar-chart spec; confirm the executed query is the GROUP BY (small result)
   rather than `SELECT *`, and the chart renders identically to the pre-change JS-aggregated
   version. Compare against the current behavior on the same spec.
 - **Guardrail** — verify that specs with no aggregate/bin are byte-identical to today
@@ -160,7 +165,8 @@ and the substitution site so they can't drift.)
   `aggregate`/`bin`) is what prevents it. Any code path that emits `pushdown_sql` must also
   go through the pushdown-aware spec generation — keep them in one function so they can't
   diverge.
-- **Sentinel drift** — the placeholder token is a contract between `vegalite_pushdown.cc`
-  and `visualize_executor.ts`. Define it once, document at both sites.
+- **Query-boundary correctness** — source-span extraction must include the full
+  classical query and exclude `|> VISUALIZE`. Snapshot complex prefixes so the
+  wrapper cannot silently truncate a CTE, clause, or nested query.
 - **Auto-title cosmetics** — aggregated axis titles degrade from "Sum of revenue" to
   "sum_revenue"; note as a known follow-up (emit explicit axis/legend titles).

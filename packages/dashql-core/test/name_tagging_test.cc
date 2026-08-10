@@ -61,6 +61,7 @@ TEST_P(TestNameTags, Test) {
     ASSERT_TRUE(parsed->errors.empty()) << parsed->errors[0].message;
     Catalog catalog;
     auto analyzed = Analyzer::Analyze(parsed, catalog);
+    ASSERT_NE(analyzed, nullptr);
 
     ASSERT_EQ(scanned->name_registry.GetSize(), GetParam().expected.size()) << snapshot(scanned->name_registry);
     size_t i = 0;

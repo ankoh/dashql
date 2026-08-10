@@ -187,7 +187,7 @@ Certain tokens suppress passive hints entirely because the user is about to type
 | `AND` | User will type an expression |
 | `OR` | User will type an expression |
 | `BY` | User will type a column reference |
-| `VISUALISE` / `VISUALIZE` | User will type a visualization name |
+| `VISUALISE` / `VISUALIZE` | In the required-source `source |> VISUALIZE` pipeline, passive hints remain suppressed; explicit completion can offer `USING` |
 
 When the previous token is in this list, no passive hint is shown.
 This is the sole mechanism for controlling passive hint visibility — keyword prevalence scoring naturally ensures that high-value keywords (FROM, WHERE, etc.) outrank noise when hints are not suppressed.
@@ -255,7 +255,7 @@ The `find_continuation` heuristic picks a continuation when:
 - Exactly one keyword/operator is expected after the feed, OR
 - One keyword has a uniquely highest `getKeywordContinuationScore` (a hardcoded priority for keywords like BY, AS, ON, TABLE, SET).
 
-When many unreserved keywords are expected (because IDENT is valid and all unreserved keywords can serve as identifiers), the continuation score disambiguates: only a keyword with a uniquely highest score is selected. Keywords that follow their predecessor in nearly all contexts (BY after GROUP/ORDER, AS after VISUALISE ident) have score 10; context-specific continuations (ASC, DESC, NULLS, etc.) have score 6; everything else has 0.
+When many unreserved keywords are expected (because IDENT is valid and all unreserved keywords can serve as identifiers), the continuation score disambiguates: only a keyword with a uniquely highest score is selected. Keywords that follow their predecessor in nearly all contexts (such as BY after GROUP/ORDER) have score 10; context-specific continuations (ASC, DESC, NULLS, etc.) have score 6; everything else has 0. After the `VISUALISE` token in `<source> |> VISUALISE`, `USING` is selected because it is the grammar's sole keyword continuation, not because it has a special score. Completion does not expose standalone or `VISUALIZE <source> USING ...` forms.
 
 Identifier candidates also receive a continuation: the engine feeds `IDENT` once and finds the best keyword continuation for the generic identifier case (e.g. identifiers in CTE position get `as`).
 

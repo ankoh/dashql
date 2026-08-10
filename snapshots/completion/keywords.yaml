@@ -60,9 +60,9 @@ completion-snapshots:
           location: "se"
           location-qualified: "se"
           objects: []
-        - score: 50
-          value: visualise
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+        - score: 2
+          value: with
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
           location: "se"
           location-qualified: "se"
           objects: []

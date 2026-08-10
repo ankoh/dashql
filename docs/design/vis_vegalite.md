@@ -13,22 +13,20 @@ a `VisualizationSpec` struct. The Vega-Lite generator
 ### Data source
 
 ```sql
-VISUALIZE sales USING vegalite (mark => bar);
-VISUALIZE (SELECT category, revenue FROM sales) USING vegalite (mark => bar);
+SELECT * FROM sales |> VISUALIZE USING vegalite (mark => bar);
+SELECT category, revenue FROM sales |> VISUALIZE USING vegalite (mark => bar);
 ```
 
-For table references, the table name is emitted as `data.name`. For SELECT
-subqueries, the SQL text is emitted under `data.$sql` (with wrapping
-parentheses stripped):
+The generator preserves the complete classical query prefix under `data.$sql`:
 
 ```json
-{ "data": { "name": "sales" } }
+{ "data": { "$sql": "SELECT * FROM sales" } }
 { "data": { "$sql": "SELECT category, revenue FROM sales" } }
 ```
 
-When the source is omitted, no `data` field is emitted. The embedding
-environment is expected to resolve dataset names and execute any SQL queries
-before rendering.
+The source is required and self-contained. The frontend executes this query
+verbatim before rendering; it does not look up another script, reconstruct a
+relation query, or substitute source text.
 
 ### Mark
 
@@ -172,28 +170,33 @@ The `$schema` key is always emitted pointing to Vega-Lite v5.
 ## Reverse: Vega-Lite -> VISUALIZE
 
 The reverse parser (`vegalite_parser.cc`) reads a Vega-Lite JSON string and
-produces a VISUALIZE statement string.
+produces a complete query-prefixed `VISUALIZE` pipeline string.
 
 ### Data source
 
 | Vega-Lite `data` form | VISUALIZE output |
 |-----------------------|------------------|
-| `"data": { "name": "sales" }` | `VISUALIZE sales USING vegalite (...)` |
-| `"data": { "$sql": "SELECT ..." }` | `VISUALIZE (SELECT ...) USING vegalite (...)` |
-| No data field | `VISUALIZE USING vegalite (...)` |
-| `"data": { "url": "..." }` | Not handled (source omitted) |
-| `"data": { "values": [...] }` | Not handled (source omitted) |
+| `"data": { "$sql": "SELECT ..." }` | `SELECT ... |> VISUALIZE USING vegalite (...)` |
+| `"data": { "$raw": "SELECT ..." }` | `SELECT ... |> VISUALIZE USING vegalite (...)` |
+| No data field | No output; translation fails because a source is required |
+| `"data": { "name": "sales" }` | No output; a complete SQL query is required |
+| `"data": { "url": "..." }` | No output; no SQL relation can be derived |
+| `"data": { "values": [...] }` | No output; no SQL relation can be derived |
+
+`$raw` is a DashQL transcoder convention rather than a standard Vega-Lite data
+form. Like `$sql`, it must contain the complete classical `SELECT` query that
+will appear before `|> VISUALIZE`; it is not a script or relation reference.
 
 ### Mark
 
 The mark string is emitted directly as a keyword:
 
 ```json
-{ "mark": "bar" }
+{ "data": { "$sql": "SELECT * FROM sales" }, "mark": "bar" }
 ```
 
 ```sql
-VISUALIZE USING vegalite (mark => bar);
+SELECT * FROM sales |> VISUALIZE USING vegalite (mark => bar);
 ```
 
 Object-form marks (`{ "mark": { "type": "bar", "opacity": 0.7 } }`) are not
@@ -232,8 +235,9 @@ pairs.
 ## Roundtrip fidelity
 
 The snapshot tests (`snapshots/visualize/basic.yaml`) verify roundtrip
-correctness: parse VISUALIZE -> analyze -> generate Vega-Lite -> parse back to
-VISUALIZE. The roundtrip is tested for:
+correctness: parse the complete query-prefixed pipeline -> analyze -> generate
+Vega-Lite -> parse back to the query-prefixed pipeline. The roundtrip is tested
+for:
 
 - Basic mark-only specs
 - Field type annotations
@@ -242,8 +246,9 @@ VISUALIZE. The roundtrip is tested for:
 - Axis configuration (labelAngle, grid, etc.)
 - Color encoding
 - Shorthand encoding (bare column reference)
-- Subquery data sources
-- No-source specs
+- Classical `SELECT` data sources
+- Preservation of the complete query prefix
+- Rejection of specs without a SQL source
 - Aggregate functions
 - Bin configuration
 
@@ -272,6 +277,7 @@ This is correct — the shorthand is syntactic sugar that the analyzer resolves.
 
 | Feature | Status |
 |---------|--------|
+| `"data": { "name" }` | Rejected; no complete SQL query is available |
 | `"data": { "url" }` / `"values"` | Dropped |
 | Object-form mark | Not handled |
 | `layer` array | Not handled |
@@ -310,7 +316,7 @@ SQL text
 ```
 Vega-Lite JSON string
   -> Parser (vegalite_parser.cc, RapidJSON)
-  -> VISUALIZE SQL string
+  -> canonical visualization pipeline string
 ```
 
 The reverse path is a direct JSON-to-text translation. It does not go through

@@ -14,8 +14,7 @@
 
 namespace dashql {
 
-Analyzer::Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog, std::string_view script_path,
-                   std::span<const std::string> executed_output_schema)
+Analyzer::Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog)
     : state(parsed, catalog),
       pass_manager(),
       name_resolution(std::make_unique<NameResolutionPass>(state)),
@@ -23,10 +22,7 @@ Analyzer::Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog, std::
       identify_constants(std::make_unique<ConstantPropagationPass>(state)),
       identify_projections(std::make_unique<IdentifyColumnComputationsPass>(state)),
       identify_filters(std::make_unique<IdentifyColumnFiltersPass>(state)),
-      analyze_visualization(std::make_unique<AnalyzeVisualizationPass>(state)) {
-    state.script_path = script_path;
-    state.executed_output_schema = executed_output_schema;
-}
+      analyze_visualization(std::make_unique<AnalyzeVisualizationPass>(state)) {}
 
 std::shared_ptr<AnalyzedScript> Analyzer::Execute() {
     std::initializer_list<std::reference_wrapper<PassManager::LTRPass>> scan1{
@@ -37,13 +33,11 @@ std::shared_ptr<AnalyzedScript> Analyzer::Execute() {
     return state.analyzed;
 }
 
-std::shared_ptr<AnalyzedScript> Analyzer::Analyze(std::shared_ptr<ParsedScript> parsed, Catalog& catalog,
-                                                   std::string_view script_path,
-                                                  std::span<const std::string> executed_output_schema) {
+std::shared_ptr<AnalyzedScript> Analyzer::Analyze(std::shared_ptr<ParsedScript> parsed, Catalog& catalog) {
     if (parsed == nullptr) {
         throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
     }
-    Analyzer az{parsed, catalog, script_path, executed_output_schema};
+    Analyzer az{parsed, catalog};
     return az.Execute();
 }
 

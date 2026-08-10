@@ -300,35 +300,21 @@ void AppendChannel(std::string& out, std::string_view channel_name, const rapidj
     out += ")";
 }
 
-/// Emit the VISUALIZE source clause from the spec's `data` member.
+/// Emit the query input before the VISUALIZE pipe from the spec's `data` member.
 ///
 /// Recognised conventions (the analyzer-driven generator emits `name` / `$sql`; the agent loop
 /// injects `$ref` / `$raw` for qualified- and verbatim-source edits):
-///   - `{ "$sql": "SELECT …" }`           -> inline select `( SELECT … )`
-///   - `{ "$raw": "<text>" }`             -> verbatim source text (reused from an existing stmt)
-///   - `{ "$ref": ["db", "schema", "t"] } -> dotted identifier path `db.schema."t"`
-///   - `{ "name": "sales" }`              -> single identifier `sales`
+///   - `{ "$sql": "SELECT …" }`           -> query text
+///   - `{ "$raw": "<text>" }`             -> verbatim query text
 std::optional<std::string> EmitSource(const rapidjson::Value& data) {
     if (!data.IsObject()) return std::nullopt;
     if (data.HasMember("$sql") && data["$sql"].IsString()) {
-        return "(" + std::string(data["$sql"].GetString()) + ")";
+        std::string sql = data["$sql"].GetString();
+        return sql.empty() ? std::nullopt : std::optional<std::string>(std::move(sql));
     }
     if (data.HasMember("$raw") && data["$raw"].IsString()) {
         std::string raw = data["$raw"].GetString();
         return raw.empty() ? std::nullopt : std::optional<std::string>(raw);
-    }
-    if (data.HasMember("$ref") && data["$ref"].IsArray()) {
-        const auto& arr = data["$ref"];
-        std::string out;
-        for (rapidjson::SizeType i = 0; i < arr.Size(); ++i) {
-            if (!arr[i].IsString()) continue;
-            if (!out.empty()) out += ".";
-            out += EmitIdentifier(arr[i].GetString());
-        }
-        return out.empty() ? std::nullopt : std::optional<std::string>(out);
-    }
-    if (data.HasMember("name") && data["name"].IsString()) {
-        return EmitIdentifier(data["name"].GetString());
     }
     return std::nullopt;
 }
@@ -398,15 +384,12 @@ std::string ParseVegaLiteToVisualize(const std::string& vegalite_json) {
         }
     }
 
-    std::string result = "VISUALIZE ";
-    if (doc.HasMember("data")) {
-        auto source = EmitSource(doc["data"]);
-        if (source) {
-            result += *source;
-            result += " ";
-        }
-    }
-    result += "USING vegalite (\n";
+    if (!doc.HasMember("data")) return "";
+    auto source = EmitSource(doc["data"]);
+    if (!source) return "";
+
+    std::string result = *source;
+    result += "\n|> VISUALIZE USING vegalite (\n";
     for (size_t i = 0; i < lines.size(); ++i) {
         if (i > 0) result += ",\n";
         result += lines[i];

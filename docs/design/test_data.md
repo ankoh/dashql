@@ -6,7 +6,8 @@ queries are static SQL, and demo mode *synthesizes* random Arrow batches at runt
 
 `data.dashql.app` hosts real test datasets (à la
 [vega-datasets](https://github.com/vega/vega-datasets)) that notebooks can query over HTTP.
-The immediate consumer is the umap renderer (`VISUALIZE … USING umap`),
+The immediate consumer is the umap renderer
+(`SELECT * FROM '<dataset-url>' |> VISUALIZE USING umap (...)`),
 which needs a query result with a `FLOAT[]` vector column — data that is impractical to
 synthesize convincingly.
 
@@ -186,4 +187,3 @@ See `packages/dashql-data/README.md` for the operational walkthrough.
    `curl https://data.dashql.app/index.json` and query the Parquet from Hyper over HTTP.
 5. **Idempotency**: re-run `:sync`; every versioned file is skipped (HeadObject hit), only
    `index.json` re-uploads.
-
