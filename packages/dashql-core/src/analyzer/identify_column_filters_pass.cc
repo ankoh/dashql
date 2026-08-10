@@ -106,10 +106,15 @@ void IdentifyColumnFiltersPass::Finish() {
     // Store filters in the analyzed script
     for (auto& expr : filters) {
         const buffers::parser::Node& node = state.ast[expr.ast_node_id];
+
+        // AddNode initializes a materialized node as its own parent. Parser recovery can leave such
+        // a node unattached, so it is not a recursive filter tree and must not be stored as a root.
+        if (node.parent() == expr.ast_node_id) {
+            continue;
+        }
         auto* parent_expr = state.GetDerivedForNode<AnalyzedScript::Expression>(node.parent());
 
         // Only store the roots of filters.
-        // This is actually unexpected for column filters...
         if (parent_expr && parent_expr->is_column_filter) {
             assert(false && "column filters should not be recursive");
             continue;
