@@ -142,16 +142,12 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
         }
     });
 
-    // Register an event handler for setup events
+    // Effect Events are non-reactive. Depending on consumeSetupEvent would resubscribe after every
+    // render even though it always reads the latest callback state.
     React.useEffect(() => {
-        // Subscribe to setup events
         appEvents.subscribeSetupEvents(consumeSetupEvent);
-        // Remove listener as soon as this component unmounts
-        return () => {
-            appEvents.unsubscribeSetupEvents(consumeSetupEvent);
-        };
-
-    }, [appEvents, consumeSetupEvent]);
+        return () => appEvents.unsubscribeSetupEvents(consumeSetupEvent);
+    }, [appEvents]);
 
     // Effect to run the default setup once at the beginning.
     // We guard against re-runs triggered by config identity changes (e.g. AppSettingsSync

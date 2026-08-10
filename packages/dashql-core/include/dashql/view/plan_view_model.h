@@ -199,8 +199,6 @@ class PlanViewModel {
     void IdentifyOperatorEdges(std::span<OperatorNode> ops, size_t child_edge_count);
     /// Identify Hyper pipelines
     void IdentifyHyperPipelines();
-    /// Identify Spark stages
-    void IdentifySparkStages();
 
    public:
     /// Constructor
@@ -212,8 +210,6 @@ class PlanViewModel {
     void ResetExecution();
     /// Parse a hyper plan
     void ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]> plan_buffer = nullptr);  // throws Exception
-    /// Parse a Spark plan
-    void ParseSparkPlan(std::string_view plan, std::unique_ptr<char[]> plan_buffer = nullptr);  // throws Exception
     /// Configure
     void Configure(const buffers::view::PlanLayoutConfig& layout_config);
     /// Compute the plan layout

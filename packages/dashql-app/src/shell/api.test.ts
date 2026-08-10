@@ -74,6 +74,30 @@ describe('DashQL shell Wasm', () => {
         expect(shell.consumeTerminalData('\x1b').action).toBe(DashQLShellPromptAction.EXIT);
     });
 
+    it('navigates, accepts, and dismisses terminal completion overlays', () => {
+        shell.openTerminal('db> ', false);
+        const opened = shell.consumeTerminalData('sel');
+
+        const candidates = shell.completePrompt(50);
+        expect(candidates.length).toBeGreaterThan(1);
+        const selectIndex = candidates.findIndex(candidate => candidate.completionText === 'select');
+        expect(selectIndex).toBeGreaterThanOrEqual(0);
+
+        expect(opened.action).toBe(DashQLShellPromptAction.NONE);
+        expect(opened.data).toContain('\x1b[7m');
+        expect(opened.data).toContain('\x1b[1B\x1b[4C\x1b[2K\x1b[90m╭');
+        expect(opened.data).toContain('\x1b[90m╰');
+        expect(opened.data).not.toContain('\x1b[2K> ');
+        for (let i = 0; i < selectIndex; ++i) shell.consumeTerminalData('\x1b[B');
+        expect(shell.consumeTerminalData('\r').action).toBe(DashQLShellPromptAction.NONE);
+        expect(shell.movePromptRight().text).toBe('select');
+
+        shell.consumeTerminalData('\x03');
+        expect(shell.consumeTerminalData('sel').data).toContain('\x1b[7m');
+        expect(shell.consumeTerminalData('\x1b').action).toBe(DashQLShellPromptAction.NONE);
+        expect(shell.consumeTerminalData('\x1b').action).toBe(DashQLShellPromptAction.EXIT);
+    });
+
     it('drives multiline input and history through the shell core', async () => {
         let prompt = shell.consumePromptInput(DashQLShellPromptInput.TEXT, 'SELECT 42');
         expect(prompt.text).toBe('SELECT 42');
@@ -111,13 +135,13 @@ describe('DashQL shell Wasm', () => {
             await expect(shell.executeQuery(
                 "SELECT * FROM (VALUES (1, 'alpha'), (20, '界'), (300, NULL)) AS t(value, name)",
             )).resolves.toBe(
-                '┌───────┬───────┐\n' +
+                '╭───────┬───────╮\n' +
                 '│ value │ name  │\n' +
                 '╞═══════╪═══════╡\n' +
                 '│     1 ┆ alpha │\n' +
                 '│    20 ┆ 界    │\n' +
                 '│   300 ┆       │\n' +
-                '└───────┴───────┘',
+                '╰───────┴───────╯',
             );
         } finally {
             if (connection) await connection.close();

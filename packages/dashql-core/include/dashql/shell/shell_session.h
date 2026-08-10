@@ -163,7 +163,12 @@ class ShellSession {
     ShellOperation EncodeOutgoingEffect();
     PromptSnapshot SnapshotPrompt(ShellStatus status = ShellStatus::kOk, std::string message = {});
     std::string RenderTerminalPrompt();
-    std::string RenderTerminalCompletions(const std::vector<CompletionCandidate>& candidates);
+    std::string OpenTerminalCompletionOverlay(std::vector<CompletionCandidate> candidates);
+    std::string RefreshTerminalCompletionOverlay();
+    std::string RenderTerminalCompletionOverlay();
+    std::string ClearTerminalCompletionOverlay();
+    ShellOperation AcceptTerminalCompletion();
+    ShellOperation MoveTerminalCompletion(int direction);
     bool PromptIsComplete();
     void ResetHistoryCursor();
     void RememberPrompt(std::string_view query);

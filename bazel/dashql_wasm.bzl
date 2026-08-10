@@ -41,7 +41,6 @@ CORE_WASM_EXPORTS = [
     "'_dashql_script_registry_find_column'",
     "'_dashql_plan_view_model_configure'",
     "'_dashql_plan_view_model_load_hyper_plan'",
-    "'_dashql_plan_view_model_load_spark_plan'",
     "'_dashql_plan_view_model_new'",
     "'_dashql_plan_view_model_pack'",
     "'_dashql_plan_view_model_reset'",

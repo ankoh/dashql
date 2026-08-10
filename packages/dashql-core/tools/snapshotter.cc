@@ -538,12 +538,6 @@ static void generate_hyper_plan_snapshots(const std::filesystem::path& snapshot_
     });
 }
 
-static void generate_spark_plan_snapshots(const std::filesystem::path& snapshot_dir) {
-    generate_planviewmodel_snapshots(snapshot_dir, [](PlanViewModel& view_model, std::string input_buffer) {
-        view_model.ParseSparkPlan(std::move(input_buffer));
-    });
-}
-
 static void generate_formatter_snapshots(const std::filesystem::path& snapshot_dir) {
     static constexpr std::array<buffers::formatting::FormattingMode, 3> ALL_MODES = {
         buffers::formatting::FormattingMode::INLINE, buffers::formatting::FormattingMode::COMPACT,
@@ -946,8 +940,6 @@ int main(int argc, char* argv[]) {
     if (f.empty() || f == "formatter") generate_formatter_snapshots(source_dir / "snapshots" / "formatter");
     if (f.empty() || f == "hyper_plan")
         generate_hyper_plan_snapshots(source_dir / "snapshots" / "plans" / "hyper" / "tests");
-    if (f.empty() || f == "spark_plan")
-        generate_spark_plan_snapshots(source_dir / "snapshots" / "plans" / "spark" / "tests");
     if (f.empty() || f == "visualize") generate_visualize_snapshots(source_dir / "snapshots" / "visualize");
     if (f.empty() || f == "diff") generate_diff_snapshots(source_dir / "snapshots" / "diff");
     return 0;

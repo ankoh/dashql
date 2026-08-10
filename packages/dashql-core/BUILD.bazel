@@ -47,7 +47,6 @@ LIB_SRCS = [
     "src/view/hyper_plan_parser.cc",
     "src/view/plan_view_model.cc",
     "src/view/plan_layout.cc",
-    "src/view/spark_plan_parser.cc",
     "src/visualize/vegalite_generator.cc",
     "src/visualize/vegalite_parser.cc",
 ]
@@ -328,8 +327,6 @@ TEST_SRCS = [
     "test/rope_test.cc",
     "test/scanner_test.cc",
     "test/script_test.cc",
-    "test/spark_plan_snapshot_test_suite.cc",
-    "test/spark_plan_test.cc",
     "test/topk_test.cc",
     "test/visualize_snapshot_test_suite.cc",
     "test/unification_test.cc",
@@ -462,19 +459,6 @@ cc_test(
         "test/hyper_plan_test.cc",
     ],
     data = ["//snapshots/plans/hyper/tests:files"],
-    copts = DASHQL_COPTS,
-    linkopts = DASHQL_LINKOPTS,
-    deps = CORE_TEST_DEPS,
-    visibility = ["//visibility:public"]
-)
-cc_test(
-    name = "spark_plan_tests",
-    size = "small",
-    srcs = [
-        "test/spark_plan_snapshot_test_suite.cc",
-        "test/spark_plan_test.cc",
-    ],
-    data = ["//snapshots/plans/spark/tests:files"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,

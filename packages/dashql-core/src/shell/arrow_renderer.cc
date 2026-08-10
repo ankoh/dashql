@@ -275,7 +275,7 @@ std::string RenderTable(const Table& table, size_t terminal_columns) {
     }
     const auto widths = ResolveColumnWidths(table, terminal_columns);
     std::string output;
-    AppendRule(output, "┌", "┬", "┐", "─", widths);
+    AppendRule(output, "╭", "┬", "╮", "─", widths);
 
     std::vector<Cell> headers;
     headers.reserve(table.headers.size());
@@ -287,7 +287,7 @@ std::string RenderTable(const Table& table, size_t terminal_columns) {
     for (const auto& row : table.rows) {
         AppendRow(output, row, widths, "┆");
     }
-    AppendRule(output, "└", "┴", "┘", "─", widths);
+    AppendRule(output, "╰", "┴", "╯", "─", widths);
     if (!output.empty()) {
         output.pop_back();
     }

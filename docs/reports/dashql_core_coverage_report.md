@@ -25,7 +25,6 @@ Overall: 10,054 / 13,868 lines hit (72.5%)
     19/    21       ( 90.5%)      2  src/analyzer/pass_manager.cc
     67/    75       ( 89.3%)      8  src/analyzer/identify_function_calls_pass.cc
    109/   127       ( 85.8%)     18  src/formatter/formatter_select.cc
-   162/   190       ( 85.3%)     28  src/view/spark_plan_parser.cc
    165/   197       ( 83.8%)     32  src/analyzer/constant_propagation_pass.cc
    166/   200       ( 83.0%)     34  src/parser/parse_context.cc
     67/    81       ( 82.7%)     14  src/parser/grammar/state.cc

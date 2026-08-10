@@ -21,12 +21,16 @@ inline constexpr std::string_view kArrowUpKey = "\x1b[A";
 inline constexpr std::string_view kArrowDownKey = "\x1b[B";
 
 inline constexpr std::string_view kCursorUpCommand = "A";
+inline constexpr std::string_view kCursorDownCommand = "B";
 inline constexpr std::string_view kCursorForwardCommand = "C";
 inline constexpr std::string_view kCursorUpOne = "\x1b[1A";
 inline constexpr std::string_view kEraseEntireLine = "\x1b[2K";
+inline constexpr std::string_view kSaveCursor = "\x1b[s";
+inline constexpr std::string_view kRestoreCursor = "\x1b[u";
 
 inline constexpr std::string_view kResetAttributes = "\x1b[0m";
 inline constexpr std::string_view kBold = "\x1b[1m";
+inline constexpr std::string_view kReverseVideo = "\x1b[7m";
 inline constexpr std::string_view kForegroundRed = "\x1b[31m";
 inline constexpr std::string_view kForegroundBrightBlack = "\x1b[90m";
 inline constexpr std::string_view kBoldForegroundPink = "\x1b[1;38;2;255;122;178m";

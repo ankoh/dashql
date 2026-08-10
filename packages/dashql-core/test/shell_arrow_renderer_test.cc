@@ -47,13 +47,13 @@ TEST(ArrowRendererTest, RendersArrowIPC) {
     auto output = renderer.RenderIPC(std::span<const uint8_t>{ipc->data(), static_cast<size_t>(ipc->size())});
     ASSERT_TRUE(output.ok()) << output.status().ToString();
     EXPECT_EQ(*output,
-              "┌───────┬───────┐\n"
+               "╭───────┬───────╮\n"
               "│ name  │ value │\n"
               "╞═══════╪═══════╡\n"
               "│ alpha ┆     1 │\n"
               "│ 界    ┆    20 │\n"
               "│       ┆   300 │\n"
-              "└───────┴───────┘");
+               "╰───────┴───────╯");
 }
 
 TEST(ArrowRendererTest, ConstrainsOutputToTerminalWidth) {
