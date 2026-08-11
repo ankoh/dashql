@@ -102,13 +102,29 @@ describe('DashQL shell Wasm', () => {
         let selected = opened;
         for (let i = 0; i < selectIndex; ++i) selected = shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_NEXT);
         expect(selected.data).toContain('\x1b[90mect');
-        expect(shell.consumeTerminalInput(DashQLShellPromptInput.ENTER).action).toBe(DashQLShellPromptAction.NONE);
+        expect(shell.consumeTerminalInput(DashQLShellPromptInput.TAB).action).toBe(DashQLShellPromptAction.NONE);
         expect(shell.movePromptRight().text).toBe('select');
 
         shell.consumeTerminalInput(DashQLShellPromptInput.CANCEL);
         expect(shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'sel').data).toContain('\x1b[7m');
         expect(shell.consumeTerminalInput(DashQLShellPromptInput.ESCAPE).action).toBe(DashQLShellPromptAction.NONE);
         expect(shell.consumeTerminalInput(DashQLShellPromptInput.ESCAPE).action).toBe(DashQLShellPromptAction.EXIT);
+    });
+
+    it('shows only an inline hint before the completion prefix', () => {
+        shell.openTerminal('db> ', false);
+        const hinted = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, ' ');
+
+        expect(hinted.data).toContain('\x1b[90m');
+        expect(hinted.data).not.toContain('╭');
+        expect(hinted.data).not.toContain('\x1b[7m');
+
+        const listed = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 's');
+        expect(listed.data).toContain('╭');
+        expect(listed.data).toContain('\x1b[7m');
+
+        shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
+        expect(shell.movePromptRight().text.length).toBeGreaterThan(2);
     });
 
     it('does not cycle completion candidates with Left and Right', () => {
@@ -120,8 +136,16 @@ describe('DashQL shell Wasm', () => {
         shell.consumeTerminalInput(DashQLShellPromptInput.RIGHT);
         shell.consumeTerminalInput(DashQLShellPromptInput.LEFT);
         shell.consumeTerminalInput(DashQLShellPromptInput.RIGHT);
-        shell.consumeTerminalInput(DashQLShellPromptInput.ENTER);
+        shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
         expect(shell.movePromptRight().text).toBe(candidates[0].completionText);
+    });
+
+    it('keeps Enter available for a newline while completion is open', () => {
+        shell.openTerminal('db> ', false);
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'sel');
+
+        expect(shell.consumeTerminalInput(DashQLShellPromptInput.ENTER).action).toBe(DashQLShellPromptAction.NONE);
+        expect(shell.movePromptRight().text).toBe('sel\n');
     });
 
     it('accepts keyword completion and its inline continuation in steps', () => {

@@ -384,7 +384,6 @@ class Script {
     std::shared_ptr<ParsedScript> parsed_script;
     /// The last analyzed script
     std::shared_ptr<AnalyzedScript> analyzed_script;
-
     /// The last cursor
     std::unique_ptr<ScriptCursor> cursor;
 
@@ -461,6 +460,7 @@ class Script {
 
     /// Format a script
     std::string Format(const buffers::formatting::FormattingConfigT& config, bool parse_if_outdated = true);
+    bool IsFullyFormattable(const buffers::formatting::FormattingConfigT& config, bool parse_if_outdated = true);
 };
 
 

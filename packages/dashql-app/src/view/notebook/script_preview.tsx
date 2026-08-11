@@ -19,7 +19,6 @@ import type { DashQLPendingDiff } from '../editor/dashql_processor.js';
 const LOG_CTX = 'script_preview';
 const PREVIEW_INDENTATION_WIDTH = 2;
 const PREVIEW_MIN_WIDTH_CHARS = 24;
-
 const SCRIPT_PREVIEW_LAYOUT = EditorView.theme({
     '.cm-scroller': {
         overflow: 'hidden',
@@ -42,6 +41,7 @@ export interface ScriptPreviewProps {
     /// Last formatted text retained by the parent feed across virtual row unmounts.
     initialTextHint?: string;
     onFormattedText?: (scriptText: string) => void;
+    onFormattingStatus?: (formattable: boolean) => void;
 }
 
 export interface PreviewSnapshot {
@@ -109,6 +109,24 @@ function buildDescriptionPreview(scriptData: ScriptData): PreviewSnapshot | null
     };
 }
 
+function buildUnformattedPreview(scriptData: ScriptData, logger: Logger): PreviewSnapshot {
+    const scriptText = readScriptText(scriptData.script, logger, scriptData.scriptKey, LOG_CTX) ?? '';
+    try {
+        return {
+            scriptText,
+            parsed: scriptData.script.getParsed(),
+            ownsParsed: true,
+            diff: null,
+        };
+    } catch (e: any) {
+        logger.warn('Failed to read parsed script for unformatted preview', {
+            scriptKey: scriptData.scriptKey.toString(),
+            error: stringifyError(e),
+        }, LOG_CTX);
+        return { scriptText, parsed: null, ownsParsed: false, diff: null };
+    }
+}
+
 /// Build the compact formatting config used for both the preview text and the compact diff, so the
 /// diff's target offsets index the exact string the preview renders.
 function compactFormattingConfig(maxWidth: number, debugMode: boolean): core.buffers.formatting.FormattingConfigT {
@@ -163,6 +181,7 @@ function computeCompactDiff(
         priorCatalog = instance.createCatalog();
         priorRaw = instance.createScript(priorCatalog);
         priorRaw.insertTextAt(0, priorText);
+        if (!priorRaw.isFullyFormattable(compactFormattingConfig(maxWidth, debugMode), true)) return null;
         priorFormatted = priorRaw.format(compactFormattingConfig(maxWidth, debugMode), null, true);
         // computeDiff walks the parsed AST of both scripts. `newFormatted` was already parsed by the
         // caller's `analyze()`, so only the freshly formatted prior script needs parsing here.
@@ -193,9 +212,11 @@ function formatPreviewScript(
     debugMode: boolean,
     logger: Logger,
 ): PreviewSnapshot | null {
+    const formattingConfig = compactFormattingConfig(maxWidth, debugMode);
     let formattedScript: core.DashQLScript;
     try {
-        formattedScript = sourceScript.format(compactFormattingConfig(maxWidth, debugMode), null, true);
+        if (!sourceScript.isFullyFormattable(formattingConfig, true)) return null;
+        formattedScript = sourceScript.format(formattingConfig, null, false);
     } catch (e: any) {
         logger.warn('Failed to format script preview, using raw script text', {
             scriptKey: scriptKey.toString(),
@@ -231,7 +252,7 @@ function formatPreviewScript(
     }
 }
 
-export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, notebookId, scriptData, onReady, storyActivation = 'toggle', onStoryActivate, showStoryControls = true, showStoryGutter = true, initialTextHint = '', onFormattedText }) => {
+export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, notebookId, scriptData, onReady, storyActivation = 'toggle', onStoryActivate, showStoryControls = true, showStoryGutter = true, initialTextHint = '', onFormattedText, onFormattingStatus }) => {
     const config = useAppConfig();
     const logger = useLogger();
     // Reach the core instance (mirrors ScriptEditor) so a staged rewrite can be diffed against its
@@ -310,6 +331,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, noteboo
         if (descriptionPreview != null) {
             setPreviewSnapshot(descriptionPreview);
             onFormattedText?.(descriptionPreview.scriptText);
+            onFormattingStatus?.(true);
             return;
         }
         // Don't format until we have measured the actual width and the core instance is available.
@@ -328,12 +350,16 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, noteboo
         if (nextFormatted != null) {
             onFormattedText?.(nextFormatted.scriptText);
         }
-        setPreviewSnapshot(nextFormatted ?? {
-            scriptText: '',
-            parsed: null,
-            ownsParsed: false,
-            diff: null,
-        });
+        if (nextFormatted != null) {
+            setPreviewSnapshot(nextFormatted);
+            onFormattingStatus?.(true);
+            return;
+        }
+
+        const unformattedPreview = buildUnformattedPreview(scriptData, logger);
+        setPreviewSnapshot(unformattedPreview);
+        onFormattedText?.(unformattedPreview.scriptText);
+        onFormattingStatus?.(false);
     }, [
         instance,
         formattingDebugMode,
@@ -350,6 +376,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, noteboo
         pendingDiff,
         onReady,
         onFormattedText,
+        onFormattingStatus,
         descriptionPreview,
     ]);
 

@@ -309,12 +309,14 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
     terminal_action_ = PromptInputAction::kNone;
     if (terminal_completion_overlays.contains(this)) {
         const auto& overlay = terminal_completion_overlays.at(this);
-        const auto variant_count = overlay.candidates[overlay.selection].qualification_texts.size();
-        if (key == PromptInputKey::kHistoryPrevious) return MoveTerminalCompletion(-1);
-        if (key == PromptInputKey::kHistoryNext) return MoveTerminalCompletion(1);
-        if (variant_count > 1 && key == PromptInputKey::kLeft) return MoveTerminalCompletionVariant(-1);
-        if (variant_count > 1 && key == PromptInputKey::kRight) return MoveTerminalCompletionVariant(1);
-        if (key == PromptInputKey::kEnter || key == PromptInputKey::kTab) return AcceptTerminalCompletion();
+        if (!overlay.hint_only) {
+            const auto variant_count = overlay.candidates[overlay.selection].qualification_texts.size();
+            if (key == PromptInputKey::kHistoryPrevious) return MoveTerminalCompletion(-1);
+            if (key == PromptInputKey::kHistoryNext) return MoveTerminalCompletion(1);
+            if (variant_count > 1 && key == PromptInputKey::kLeft) return MoveTerminalCompletionVariant(-1);
+            if (variant_count > 1 && key == PromptInputKey::kRight) return MoveTerminalCompletionVariant(1);
+        }
+        if (key == PromptInputKey::kTab) return AcceptTerminalCompletion();
         if (key == PromptInputKey::kEscape) {
             auto output = ClearTerminalCompletionOverlay();
             terminal_completion_overlays.erase(this);
@@ -695,6 +697,7 @@ std::string ShellSession::OpenTerminalCompletionOverlay(std::vector<CompletionCa
     auto& overlay = terminal_completion_overlays[this];
     overlay = {};
     overlay.candidates = std::move(candidates);
+    overlay.hint_only = overlay.candidates.front().target_length == 0;
     for (auto& candidate : overlay.candidates) {
         candidate.display_text = EscapeTerminalText(candidate.display_text);
         overlay.content_width = std::max(overlay.content_width, DisplayWidth(candidate.display_text));

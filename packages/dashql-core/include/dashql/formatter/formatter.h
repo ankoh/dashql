@@ -33,6 +33,7 @@ struct Formatter {
     buffers::formatting::FormattingConfigT config;
     FormattingProgram fmt;
     std::vector<NodeState> node_states;
+    std::vector<bool> node_is_unimplemented;
 
     NodeState& GetState(const buffers::parser::Node& node) { return node_states[&node - ast.data()]; }
     const NodeState& GetState(const buffers::parser::Node& node) const { return node_states[&node - ast.data()]; }
@@ -128,6 +129,7 @@ struct Formatter {
     size_t EstimateFormattedSize() const;
     std::string Format(const buffers::formatting::FormattingConfigT& config);
     std::string FormatNodeAt(size_t node_id, const buffers::formatting::FormattingConfigT& config);
+    bool IsFullyFormatted() const;
 };
 
 }  // namespace dashql

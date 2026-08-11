@@ -9,20 +9,21 @@ export function fakeScriptEditorModule(React: typeof import('react'), state: { c
     };
 }
 
-export function fakeScriptPreviewModule(React: typeof import('react'), state?: { previewReady: boolean }) {
+export function fakeScriptPreviewModule(React: typeof import('react'), state?: { previewReady: boolean; previewFormattable?: boolean }) {
     return {
-        ScriptPreview: (props: { onReady?: (ready: boolean) => void; onFormattedText?: (text: string) => void }) => React.createElement(
-            'div',
-            {
-                'data-testid': 'script-preview',
-                ref: () => {
-                    props.onFormattedText?.('formatted preview');
-                    if (state?.previewReady ?? true) props.onReady?.(true);
-                },
-            },
-            'preview',
-            React.createElement('button', { 'data-dashql-story-control': 'true' }, 'SQL'),
-        ),
+        ScriptPreview: (props: { onReady?: (ready: boolean) => void; onFormattedText?: (text: string) => void; onFormattingStatus?: (formattable: boolean) => void }) => {
+            React.useEffect(() => {
+                props.onFormattedText?.('formatted preview');
+                props.onFormattingStatus?.(state?.previewFormattable ?? true);
+                if (state?.previewReady ?? true) props.onReady?.(true);
+            }, [props.onFormattedText, props.onFormattingStatus, props.onReady]);
+            return React.createElement(
+                'div',
+                { 'data-testid': 'script-preview' },
+                'preview',
+                React.createElement('button', { 'data-dashql-story-control': 'true' }, 'SQL'),
+            );
+        },
     };
 }
 

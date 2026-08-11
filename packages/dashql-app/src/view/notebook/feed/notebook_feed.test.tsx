@@ -42,6 +42,7 @@ const mockState = vi.hoisted(() => ({
     cacheKey: null as string | null,
     cachedFiles: [] as Array<{ name: string }>,
     previewReady: true,
+    previewFormattable: true,
 }));
 vi.mock('../../../app_config.js', () => ({ useAppConfig: () => ({ settings: {} }) }));
 vi.mock('../../../platform/ai_client_provider.js', () => ({ useAIClient: () => ({}) }));
@@ -299,6 +300,7 @@ describe('NotebookFeed', () => {
         mockState.cacheKey = null;
         mockState.cachedFiles = [];
         mockState.previewReady = true;
+        mockState.previewFormattable = true;
         ResizeObserverMock.reset();
         getBoundingClientRect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
             const scriptId = this.closest<HTMLElement>('[data-row-script-id]')?.dataset.rowScriptId;
@@ -381,6 +383,14 @@ describe('NotebookFeed', () => {
         expect(executeButtons[1].hasAttribute('aria-current')).toBe(false);
         expect(container.querySelectorAll('[aria-label="Use script as AI context"]')).toHaveLength(2);
         expect(container.querySelector('[aria-label^="Open script"]')).toBeNull();
+    });
+
+    it('shows a warning when compact formatting is unavailable', () => {
+        mockState.previewFormattable = false;
+        renderFeed({ notebookScripts: createNotebookScripts(), modifyNotebookScripts: vi.fn(), showDetails: vi.fn() });
+
+        expect(container.querySelectorAll('[role="status"]')).toHaveLength(2);
+        expect(container.querySelectorAll('[role="status"]')[0].textContent).toBe('Compact formatting is unavailable for this statement');
     });
 
     it('moves the Ctrl+E indicator to the newly focused card', () => {

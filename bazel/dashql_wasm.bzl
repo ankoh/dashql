@@ -30,6 +30,7 @@ CORE_WASM_EXPORTS = [
     "'_dashql_script_get_statistics'",
     "'_dashql_script_format'",
     "'_dashql_script_format_extended'",
+    "'_dashql_script_is_fully_formattable'",
     "'_dashql_script_move_cursor'",
     "'_dashql_script_complete_at_cursor'",
     "'_dashql_script_select_completion_candidate_at_cursor'",

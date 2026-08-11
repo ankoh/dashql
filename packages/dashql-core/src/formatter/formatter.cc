@@ -502,6 +502,7 @@ FmtReg Formatter::FormatLeaf(const buffers::parser::Node& node) {
 }
 
 FmtReg Formatter::FormatUnimplemented(const buffers::parser::Node& node) {
+    node_is_unimplemented[&node - ast.data()] = true;
     std::string_view type_name = buffers::parser::EnumNameNodeType(node.node_type());
     return fmt.Concat({fmt.Text("'<"), fmt.Text(type_name), fmt.Text(">'")});
 }
@@ -538,6 +539,12 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         if (parent_id < ast.size() && ast[parent_id].attribute_key() == AttributeKey::SQL_SELECT_VALUES) {
             return fmt.Parenthesized(FormatCommaList(node));
         }
+        if (parent_id < ast.size() && ast[parent_id].node_type() == NodeType::OBJECT_SQL_FUNCTION_EXPRESSION) {
+            return FormatCommaList(node);
+        }
+        if (parent_id < ast.size() && ast[parent_id].node_type() == NodeType::OBJECT_SQL_NARY_EXPRESSION) {
+            return FormatCommaList(node);
+        }
     }
 
     switch (node.attribute_key()) {
@@ -552,9 +559,12 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::EXT_PIPE_AGGREGATE_GROUPS:
         case AttributeKey::EXT_PIPE_COMBINE_INPUTS:
         case AttributeKey::EXT_PIPE_ORDER:
+        case AttributeKey::EXT_PIPE_STAGES:
         case AttributeKey::SQL_WINDOW_FRAME_PARTITION:
         case AttributeKey::SQL_WINDOW_FRAME_ORDER:
         case AttributeKey::SQL_FUNCTION_WITHIN_GROUP:
+        case AttributeKey::SQL_FUNCTION_ARGUMENTS:
+        case AttributeKey::SQL_EXPRESSION_ARGS:
         case AttributeKey::SQL_CREATE_TABLE_ELEMENTS:
         case AttributeKey::SQL_GROUP_BY_ITEM_ARG:
             return FormatCommaList(node);
@@ -2282,6 +2292,7 @@ std::string Formatter::Format(const buffers::formatting::FormattingConfigT& conf
     fmt.Reset();
     fmt.SetConfig(config);
     node_states.assign(ast.size(), {});
+    node_is_unimplemented.assign(ast.size(), false);
     for (const auto& statement : parsed.statements) {
         if (statement.root < node_states.size()) {
             node_states[statement.root].is_statement_root = true;
@@ -2306,6 +2317,7 @@ std::string Formatter::FormatNodeAt(size_t node_id, const buffers::formatting::F
     fmt.Reset();
     fmt.SetConfig(config);
     node_states.assign(ast.size(), {});
+    node_is_unimplemented.assign(ast.size(), false);
     PreparePrecedence();
     for (size_t i = 0; i < ast.size(); ++i) {
         IdentifyParentheses(ast.size() - 1 - i);
@@ -2318,6 +2330,16 @@ std::string Formatter::FormatNodeAt(size_t node_id, const buffers::formatting::F
         .mode = config.mode,
     };
     return fmt.Render(node_states[node_id].reg, options);
+}
+
+bool Formatter::IsFullyFormatted() const {
+    for (size_t i = 0; i < node_is_unimplemented.size(); ++i) {
+        if (node_is_unimplemented[i]) {
+            std::cerr << "unimplemented " << i << " " << buffers::parser::EnumNameNodeType(ast[i].node_type())
+                      << " " << buffers::parser::EnumNameAttributeKey(ast[i].attribute_key()) << '\n';
+        }
+    }
+    return std::none_of(node_is_unimplemented.begin(), node_is_unimplemented.end(), [](bool value) { return value; });
 }
 
 }  // namespace dashql

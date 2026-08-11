@@ -409,14 +409,40 @@
     background-color:var(--notebook_feed_preview_background);
 }
 
-/* Accept/Reject controls for a staged agent rewrite, overlaid on the body's top-right (spatially
-   tied to the diff decorations, mirroring the Details editor's format_toggle). Sits above the
-   read-only preview so it stays reachable while the status bar shows any re-execution progress. */
-.feed_body_diff_actions {
+/* Formatting status and staged-rewrite actions share the editor's top-right overlay so both remain
+   visible without covering each other. */
+.feed_body_overlays {
     position: absolute;
     top: 8px;
     right: 8px;
     z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.feed_body_format_warning {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--base_color_yellow_5);
+}
+
+.feed_body_format_warning:focus-visible {
+    outline: 2px solid var(--focus_outline_color, #0969da);
+    outline-offset: 2px;
+}
+
+.visually_hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 .script_preview_editor {
     padding: 0;

@@ -67,6 +67,55 @@ describe('DashQL formatting', () => {
             "select 1 + b\n" +
             "from foo;"
         );
+        expect(script.isFullyFormattable(config)).toBe(true);
+    });
+
+    it('reports formatter placeholders as incomplete formatting', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, 'create view v as select 1');
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            80,
+            2,
+        );
+
+        expect(script.isFullyFormattable(config)).toBe(false);
+    });
+
+    it('formats relational pipe log queries', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `FROM noncorelogs.noncore_views.cdp_hyperdb_logs_v2
+|> extend json_extract_scalar(_event, '$.ctx["query-id"]') AS qid,
+    element_at(v, 'transfer-mode') AS transfer_mode,
+    json_extract_scalar(_event, '$.ctx.workload.name') AS workload
+|> WHERE ts_date IN ('20260805', '20260806', '20260807', '20260808', '20260809', '20260810', '20260811')
+    AND _falcon_instance = 'aws-prod1-useast1'
+    AND _functional_domain = 'cdp1'
+    AND k IN ('query-end', 'grpc-query-info-end', 'grpc-query-end', 'query-status-written')
+    AND json_extract_scalar(_event, '$.ctx["query-id"]') IS NOT NULL
+|> limit 10`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.TRINO,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            120,
+            2,
+        );
+
+        script.parse();
+        const formatted = script.format(config, null, false);
+        expect(formatted.toString()).toEqual(
+            `from noncorelogs.noncore_views.cdp_hyperdb_logs_v2
+|> extend json_extract_scalar(_event, '$.ctx["query-id"]') as qid, element_at(v, 'transfer-mode') as transfer_mode,
+  json_extract_scalar(_event, '$.ctx.workload.name') as workload
+|> where ts_date in ('20260805', '20260806', '20260807', '20260808', '20260809', '20260810', '20260811')
+  and _falcon_instance = 'aws-prod1-useast1' and _functional_domain = 'cdp1'
+  and k in ('query-end', 'grpc-query-info-end', 'grpc-query-end', 'query-status-written')
+  and json_extract_scalar(_event, '$.ctx["query-id"]') is not null
+|> limit 10;`
+        );
     });
 
     it('formats with debug settings preamble and line width comments', async () => {

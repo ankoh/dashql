@@ -3,7 +3,7 @@ import * as styles from './notebook_feed.module.css';
 
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '@primer/octicons-react';
-import { CodeIcon, ComposeIcon, PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon, XIcon } from '@primer/octicons-react';
+import { AlertIcon, CodeIcon, ComposeIcon, PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon, XIcon } from '@primer/octicons-react';
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import { useAppConfig } from '../../../app_config.js';
@@ -45,6 +45,7 @@ import { useStorageReader } from '../../../platform/storage/storage_provider.js'
 import { STORAGE_CACHE_EXTENSION } from '../../../platform/storage/storage_backend.js';
 import { CachedResultBean, QueryResultCacheLabel, QueryResultRerunButton } from '../query_result_cache_controls.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
+import { Tooltip } from '../../foundations/tooltip.js';
 
 interface FeedScrollTarget {
     fileName: string;
@@ -71,6 +72,7 @@ const FEED_TOP_PADDING = 24;
 const FEED_MOBILE_TOP_PADDING = 8;
 const FEED_BOTTOM_PADDING = 8;
 const FEED_BOTTOM_FADE_HEIGHT = 24;
+const COMPACT_FORMATTING_WARNING = 'Compact formatting is unavailable for this statement';
 
 interface ScriptPreviewHint {
     height?: number;
@@ -183,6 +185,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ notebookId, connectorI
     }, [scriptKey, onRejectDiff]);
 
     const [isEditing, setIsEditing] = React.useState(false);
+    const [isCompactFormattable, setIsCompactFormattable] = React.useState(true);
 
     // The label and the rename input show the clean display name (no ordering prefix, no ".sql");
     // the raw scriptFileName remains the identity passed to handlers and to RENAME_SCRIPT.
@@ -315,28 +318,45 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ notebookId, connectorI
                                 onReady={onPreviewReady}
                                 initialTextHint={initialPreviewText}
                                 onFormattedText={onFormattedText}
+                                onFormattingStatus={setIsCompactFormattable}
                             />
                         )}
-                        {hasPendingDiff && (
-                            <div className={styles.feed_body_diff_actions} data-diff-actions>
-                                <ButtonGroup>
-                                    <IconButton
-                                        variant={ButtonVariant.Default}
-                                        size={ButtonSize.Small}
-                                        onClick={acceptDiff}
-                                        aria-label="Accept rewrite"
-                                    >
-                                        <CheckIcon size={14} />
-                                    </IconButton>
-                                    <IconButton
-                                        variant={ButtonVariant.Default}
-                                        size={ButtonSize.Small}
-                                        onClick={rejectDiff}
-                                        aria-label="Reject rewrite"
-                                    >
-                                        <CrossIcon size={14} />
-                                    </IconButton>
-                                </ButtonGroup>
+                        {(!isCompactFormattable || hasPendingDiff) && (
+                            <div className={styles.feed_body_overlays}>
+                                {!isCompactFormattable && (
+                                    <Tooltip text={COMPACT_FORMATTING_WARNING} type="description" direction="w">
+                                        <span
+                                            className={styles.feed_body_format_warning}
+                                            role="status"
+                                            tabIndex={0}
+                                        >
+                                            <AlertIcon size={16} aria-hidden="true" />
+                                            <span className={styles.visually_hidden}>{COMPACT_FORMATTING_WARNING}</span>
+                                        </span>
+                                    </Tooltip>
+                                )}
+                                {hasPendingDiff && (
+                                    <div data-diff-actions>
+                                        <ButtonGroup>
+                                            <IconButton
+                                                variant={ButtonVariant.Default}
+                                                size={ButtonSize.Small}
+                                                onClick={acceptDiff}
+                                                aria-label="Accept rewrite"
+                                            >
+                                                <CheckIcon size={14} />
+                                            </IconButton>
+                                            <IconButton
+                                                variant={ButtonVariant.Default}
+                                                size={ButtonSize.Small}
+                                                onClick={rejectDiff}
+                                                aria-label="Reject rewrite"
+                                            >
+                                                <CrossIcon size={14} />
+                                            </IconButton>
+                                        </ButtonGroup>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

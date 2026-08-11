@@ -147,6 +147,19 @@ extern "C" void dashql_script_format_extended(FFIResult* result, Script* script,
     packPtr(result, std::move(new_script));
 }
 
+extern "C" uint32_t dashql_script_is_fully_formattable(Script* script, size_t dialect, size_t mode, size_t max_width,
+                                                          size_t indentation_width, bool debug_mode,
+                                                          bool lower_relational_pipes, bool parse_if_outdated) {
+    buffers::formatting::FormattingConfigT config;
+    config.dialect = static_cast<dashql::buffers::formatting::FormattingDialect>(dialect);
+    config.mode = static_cast<dashql::buffers::formatting::FormattingMode>(mode);
+    config.max_width = max_width;
+    config.indentation_width = indentation_width;
+    config.debug_mode = debug_mode;
+    config.lower_relational_pipes = lower_relational_pipes;
+    return script->IsFullyFormattable(config, parse_if_outdated) ? 1 : 0;
+}
+
 extern "C" void dashql_script_format(FFIResult* result, Script* script, size_t dialect, size_t mode, size_t max_width,
                                      size_t indentation_width, bool debug_mode, bool parse_if_outdated,
                                      Catalog* catalog) {

@@ -46,6 +46,7 @@ export interface EmscriptenModule {
     _dashql_script_get_statistics: (result: number, ptr: number) => void;
     _dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean, catalog: number) => void;
     _dashql_script_format_extended: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, lower_relational_pipes: boolean, parse_if_outdated: boolean, catalog: number) => void;
+    _dashql_script_is_fully_formattable: (ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, lower_relational_pipes: boolean, parse_if_outdated: boolean) => number;
     _dashql_catalog_new: (result: number) => void;
     _dashql_catalog_clear: (catalog_ptr: number) => void;
     _dashql_catalog_contains_entry_id: (catalog_ptr: number, external_id: number) => boolean;
@@ -104,6 +105,7 @@ interface DashQLModuleExports {
     dashql_script_get_statistics: (result: number, ptr: number) => void;
     dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean, catalog: number) => void;
     dashql_script_format_extended: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, lower_relational_pipes: boolean, parse_if_outdated: boolean, catalog: number) => void;
+    dashql_script_is_fully_formattable: (ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, lower_relational_pipes: boolean, parse_if_outdated: boolean) => number;
 
     dashql_catalog_new: (result: number) => void;
     dashql_catalog_clear: (catalog_ptr: number) => void;
@@ -241,6 +243,7 @@ export class DashQL {
             dashql_script_select_completion_catalog_object_at_cursor: module._dashql_script_select_completion_catalog_object_at_cursor,
             dashql_script_format: module._dashql_script_format,
             dashql_script_format_extended: module._dashql_script_format_extended,
+            dashql_script_is_fully_formattable: module._dashql_script_is_fully_formattable,
             dashql_catalog_new: module._dashql_catalog_new,
             dashql_catalog_contains_entry_id: module._dashql_catalog_contains_entry_id,
             dashql_catalog_describe_entries: module._dashql_catalog_describe_entries,
@@ -692,6 +695,19 @@ export class DashQLScript {
     /// Get the script id
     public getCatalogEntryId(): number {
         return this.ptr.api.instanceExports.dashql_script_get_catalog_entry_id(this.ptr.assertNotNull());
+    }
+    /// Whether formatting can complete without unsupported-node placeholders.
+    public isFullyFormattable(config: buffers.formatting.FormattingConfigT, parseIfOutdated: boolean = true): boolean {
+        return this.ptr.api.instanceExports.dashql_script_is_fully_formattable(
+            this.ptr.assertNotNull(),
+            config.dialect,
+            config.mode,
+            config.maxWidth,
+            config.indentationWidth,
+            config.debugMode,
+            config.lowerRelationalPipes,
+            parseIfOutdated,
+        ) !== 0;
     }
     /// Insert text at an offset
     public insertTextAt(offset: number, text: string) {

@@ -4,6 +4,7 @@
 #include <optional>
 
 #include "dashql/buffers/index_generated.h"
+#include "dashql/formatter/formatter.h"
 #include "dashql/parser/parse_context.h"
 #include "dashql/parser/scanner.h"
 #include "dashql/script.h"
@@ -190,6 +191,83 @@ TEST(ParserTest, ParsesRelationalPipeStages) {
         ASSERT_EQ(script->statements.size(), 1u) << input;
         EXPECT_EQ(script->statements.front().type, buffers::parser::StatementType::SELECT) << input;
     }
+}
+
+TEST(ParserTest, FormatsLogQueryWithCtesAndFunctionArguments) {
+    constexpr std::string_view input = R"SQL(WITH events AS (
+  SELECT
+    ts_new,
+    k,
+    json_extract_scalar(_event, '$.ctx["query-id"]') AS qid,
+    element_at(v, 'transfer-mode') AS transfer_mode,
+    json_extract_scalar(_event, '$.ctx.workload.name') AS workload
+  FROM noncorelogs.noncore_views.cdp_hyperdb_logs_v2
+  WHERE ts_date IN ('20260805', '20260806', '20260807', '20260808', '20260809', '20260810', '20260811')
+    AND _falcon_instance = 'aws-prod1-useast1'
+    AND _functional_domain = 'cdp1'
+    AND k IN ('query-end', 'grpc-query-info-end', 'grpc-query-end', 'query-status-written')
+    AND json_extract_scalar(_event, '$.ctx["query-id"]') IS NOT NULL
+),
+per_qid AS (
+  SELECT
+    qid,
+    max(CASE WHEN k = 'grpc-query-end' THEN transfer_mode END) AS transfer_mode,
+    max(CASE WHEN k = 'grpc-query-end' THEN workload END) AS workload,
+    max(CASE WHEN k = 'grpc-query-info-end' THEN ts_new END) AS last_info_end,
+    max(CASE WHEN k = 'query-end' THEN ts_new END) AS query_end_t,
+    max(CASE WHEN k = 'query-status-written' THEN ts_new END) AS status_written_t,
+    count_if(k = 'grpc-query-info-end') AS info_calls,
+    count_if(k = 'query-end') AS query_end_calls
+  FROM events
+  GROUP BY qid
+)
+SELECT
+  qid,
+  transfer_mode,
+  workload,
+  info_calls,
+  date_diff('millisecond', last_info_end, query_end_t) / 1000.0 AS delta_s,
+  last_info_end,
+  query_end_t,
+  status_written_t
+FROM per_qid
+WHERE query_end_calls > 0
+  AND last_info_end IS NOT NULL
+  AND last_info_end < query_end_t
+ORDER BY delta_s DESC)SQL";
+    auto script = ParseString(input);
+    buffers::formatting::FormattingConfigT config;
+    config.dialect = buffers::formatting::FormattingDialect::TRINO;
+    config.mode = buffers::formatting::FormattingMode::COMPACT;
+    config.max_width = 120;
+    config.indentation_width = 2;
+
+    Formatter formatter{*script};
+    EXPECT_EQ(formatter.Format(config), R"SQL(with events as (
+  select ts_new, k, json_extract_scalar(_event, '$.ctx["query-id"]') as qid,
+    element_at(v, 'transfer-mode') as transfer_mode, json_extract_scalar(_event, '$.ctx.workload.name') as workload
+  from noncorelogs.noncore_views.cdp_hyperdb_logs_v2
+  where ts_date in ('20260805', '20260806', '20260807', '20260808', '20260809', '20260810', '20260811')
+    and _falcon_instance = 'aws-prod1-useast1' and _functional_domain = 'cdp1'
+    and k in ('query-end', 'grpc-query-info-end', 'grpc-query-end', 'query-status-written')
+    and json_extract_scalar(_event, '$.ctx["query-id"]') is not null
+), per_qid as (
+  select qid, max(case when k = 'grpc-query-end' then transfer_mode end) as transfer_mode,
+    max(case when k = 'grpc-query-end' then workload end) as workload,
+    max(case when k = 'grpc-query-info-end' then ts_new end) as last_info_end,
+    max(case when k = 'query-end' then ts_new end) as query_end_t,
+    max(case when k = 'query-status-written' then ts_new end) as status_written_t,
+    count_if(k = 'grpc-query-info-end') as info_calls, count_if(k = 'query-end') as query_end_calls
+  from events
+  group by qid
+)
+select qid, transfer_mode, workload, info_calls,
+  date_diff('millisecond', last_info_end, query_end_t) / 1000.0 as delta_s, last_info_end, query_end_t,
+  status_written_t
+from per_qid
+where query_end_calls > 0 and last_info_end is not null and last_info_end < query_end_t
+order by delta_s desc;)SQL");
+    EXPECT_TRUE(formatter.IsFullyFormatted());
 }
 
 TEST(ParserTest, RejectsWithAsRelationalPipeStage) {
