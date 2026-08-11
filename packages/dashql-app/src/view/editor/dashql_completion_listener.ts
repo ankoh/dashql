@@ -98,43 +98,6 @@ class DashQLCompletionEventListener {
     }
 };
 
-function onEnter(view: EditorView) {
-    // Has no processor state?
-    // Then we just leave the key to CodeMirror.
-    const processor = view.state.field(DashQLProcessorPlugin);
-    if (processor == null) {
-        return false;
-    }
-
-    // `Enter` can only be used to accept the immediate candidate
-    if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
-        return false;
-    }
-    // Passive hints are not accepted by Enter — let it insert a newline
-    if (processor.scriptCompletion?.passiveHint) {
-        return false;
-    }
-
-    // Candidate valid?
-    const completion = processor.scriptCompletion.buffer.read();
-    if (processor.scriptCompletion.candidateId >= completion.candidatesLength()) {
-        return false;
-    }
-
-    // Apply the patch
-    view.dispatch({
-        changes: applyCompletion(processor.scriptCompletion.candidatePatch),
-        effects: DashQLCompletionSelectCandidateEffect.of(null),
-        selection: {
-            anchor: updateCursorWithCompletion(
-                processor.scriptCompletion.candidatePatch,
-                view.state.selection.main.anchor
-            )
-        }
-    });
-    return true;
-}
-
 function onTab(view: EditorView) {
     // Has no processor state?
     // Then we just leave the key to CodeMirror.
@@ -309,7 +272,6 @@ function onArrowLeft(view: EditorView) {
 }
 
 const KEYBINDINGS: KeyBinding[] = [
-    { key: "Enter", run: onEnter },
     { key: "Tab", run: onTab },
     { key: "Escape", run: onEsc },
     { key: "ArrowLeft", run: onArrowLeft },

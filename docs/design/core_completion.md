@@ -273,10 +273,10 @@ A completion is not a single atomic action — it progresses through up to three
 AVAILABLE → SELECTED_CANDIDATE → SELECTED_CATALOG_OBJECT → SELECTED_TEMPLATE
 ```
 
-### Step 1: Candidate selection (Enter or Tab)
+### Step 1: Candidate selection (Tab)
 
 The user sees inline hints showing the top candidate's text diff.
-Pressing **Enter** or **Tab** applies the candidate patch — replacing the target text with the candidate's completion text.
+Pressing **Tab** applies the candidate patch — replacing the target text with the candidate's completion text.
 The status advances to `SELECTED_CANDIDATE`.
 
 ### Step 2: Catalog object qualification (Tab)
@@ -297,7 +297,7 @@ For functions without templates, a default `()` snippet is inserted with the cur
 
 | Key        | AVAILABLE state                | SELECTED_CANDIDATE          | SELECTED_CATALOG_OBJECT     |
 |------------|-------------------------------|-----------------------------|-----------------------------|
-| Enter      | Accept candidate              | —                           | —                           |
+| Enter      | Insert newline                 | Insert newline              | Insert newline              |
 | Tab        | Accept candidate (+ continue) | Apply qualification         | Apply template              |
 | Arrow Up   | Previous candidate            | —                           | —                           |
 | Arrow Down | Next candidate                | —                           | —                           |
@@ -308,9 +308,11 @@ For functions without templates, a default `()` snippet is inserted with the cur
 ### Visual hints
 
 The editor renders inline decorations for pending patches:
-- **Candidate hints** — ghost text showing what Enter/Tab will insert or delete.
+- **Candidate hints** — ghost text showing what Tab will insert or delete.
 - **Catalog object hints** — ghost text showing the qualification prefix/suffix that the next Tab will add.
 - **Template hints** — ghost text showing the template snippet that the final Tab will insert.
+
+At a zero-length completion target, the editor and shell show only the best candidate as an inline hint. The candidate list appears after the user enters the first character of the prefix.
 
 Each hint category has a distinct visual style (color-coded CSS classes) and a key icon widget indicating which key activates it.
 

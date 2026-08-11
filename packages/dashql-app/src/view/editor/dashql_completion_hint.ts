@@ -123,20 +123,14 @@ class InsertPatchWidget extends WidgetType {
     }
 }
 
-export enum HintKey {
-    EnterKey = 1,
-    TabKey = 2
-}
-
 class HintKeyWidget extends WidgetType {
     constructor(
-        protected k: HintKey,
         protected n: number | null,
     ) {
         super();
     }
     eq(other: HintKeyWidget): boolean {
-        return this.k == other.k && this.n == other.n;
+        return this.n == other.n;
     }
     toDOM(): HTMLElement {
         const span = document.createElement('span');
@@ -158,8 +152,7 @@ class HintKeyWidget extends WidgetType {
         svg.setAttribute('width', '10px');
         svg.setAttribute('height', '10px');
         const svgSymbol = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-        svgSymbol.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href',
-            this.k == HintKey.TabKey ? `${symbols}#keyboard_tab_24` : `${symbols}#keyboard_tab_24`);
+        svgSymbol.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${symbols}#keyboard_tab_24`);
         svg.appendChild(svgSymbol);
 
         innerSpan.appendChild(svg);
@@ -173,14 +166,14 @@ class HintKeyWidget extends WidgetType {
     }
 }
 
-function determineHintKey(hints: CompletionHints, category: CompletionPatchTarget): [HintKey, number | null] {
+function determineHintKeyNumber(hints: CompletionHints, category: CompletionPatchTarget): number | null {
     switch (category) {
         case CompletionPatchTarget.Candidate:
-            return [HintKey.EnterKey, null];
+            return null;
         case CompletionPatchTarget.Template:
-            return [HintKey.TabKey, (hints.catalogObjectHints.length > 0) ? 2 : null];
+            return (hints.catalogObjectHints.length > 0) ? 2 : null;
         case CompletionPatchTarget.CatalogObject:
-            return [HintKey.EnterKey, (hints.templateHints.length > 0) ? 1 : null];
+            return (hints.templateHints.length > 0) ? 1 : null;
     }
 }
 
@@ -255,8 +248,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
 
                 // Insert controls after?
                 if (patch.controls && !isPassive) {
-                    const [hintKey, hintKeyNumber] = determineHintKey(hints, patch.target);
-                    const controlsWidget = new HintKeyWidget(hintKey, hintKeyNumber);
+                    const controlsWidget = new HintKeyWidget(determineHintKeyNumber(hints, patch.target));
                     const controlDeco = Decoration.widget({ widget: controlsWidget, side }).range(patch.value.at);
                     decorations.push(controlDeco);
                 }
@@ -270,8 +262,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
 
                 // Emit controls?
                 if (patch.controls && !isPassive) {
-                    const [hintKey, hintKeyNumber] = determineHintKey(hints, patch.target);
-                    const controlsWidget = new HintKeyWidget(hintKey, hintKeyNumber);
+                    const controlsWidget = new HintKeyWidget(determineHintKeyNumber(hints, patch.target));
                     const controlDeco = Decoration.widget({ widget: controlsWidget }).range(patch.value.at);
                     decorations.push(controlDeco);
                 }

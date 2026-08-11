@@ -47,7 +47,7 @@ export interface DashQLPendingDiff {
 export interface DashQLCompletionState {
     /// The status
     status: DashQLCompletionStatus;
-    /// Show as passive inline hint only (no dropdown list, no Enter acceptance)
+    /// Show as a passive inline hint only, without the dropdown list or candidate navigation.
     passiveHint: boolean;
     /// The completion buffer
     buffer: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>;
