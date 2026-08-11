@@ -3,6 +3,8 @@ namespace dashql.buffers.formatting;
 
 enum FormattingDialect: uint8 {
     DUCKDB = 0,
+    HYPER = 1,
+    TRINO = 2,
 }
 
 enum FormattingMode: uint8 {
@@ -22,4 +24,6 @@ table FormattingConfig {
     indentation_width: uint32;
     /// Emit debug comments before each inserted line break.
     debug_mode: bool;
+    /// Rewrite relational pipe stages as nested classical SQL queries.
+    lower_relational_pipes: bool;
 }

@@ -1,0 +1,236 @@
+formatter-snapshots:
+
+  - name: pipe_preserve_where_select
+    input: |-
+      from sales |> where revenue > 0 |> select region, revenue as amount
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              from sales |> where revenue > 0 |> select region, revenue as amount;
+          - mode: compact
+            expected: |-
+              from sales
+              |> where revenue > 0
+              |> select region, revenue as amount;
+          - mode: pretty
+            expected: |-
+              from sales
+              |> where revenue > 0
+              |> select region, revenue as amount;
+
+  - name: pipe_preserve_all_stages
+    input: |-
+      from sales |> extend revenue * 1.2 as adjusted |> aggregate sum(adjusted) as total group by region |> distinct |> as totals |> left join regions as r using (region) |> order by total desc |> limit 10 offset 5
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              from sales |> extend revenue * 1.2 as adjusted |> aggregate sum(adjusted) as total group by region |> distinct |> as totals |> left join regions r using (region) |> order by total desc |> limit 10 offset 5;
+          - mode: compact
+            expected: |-
+              from sales
+              |> extend revenue * 1.2 as adjusted
+              |> aggregate sum(adjusted) as total group by region
+              |> distinct
+              |> as totals
+              |> left join regions r using (region)
+              |> order by total desc
+              |> limit 10 offset 5;
+          - mode: pretty
+            expected: |-
+              from sales
+              |> extend revenue * 1.2 as adjusted
+              |> aggregate sum(adjusted) as total group by region
+              |> distinct
+              |> as totals
+              |> left join regions r using (region)
+              |> order by total desc
+              |> limit 10 offset 5;
+
+  - name: pipe_preserve_combine_with
+    input: |-
+      with archive as (select * from archived_sales) from sales |> union all (from archive), (select * from forecast_sales)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              with archive as (select * from archived_sales) from sales |> union all (from archive), (select * from forecast_sales);
+          - mode: compact
+            expected: |-
+              with archive as (select * from archived_sales)
+              from sales
+              |> union all (from archive), (select * from forecast_sales);
+          - mode: pretty
+            expected: |-
+              with archive as (
+                select *
+                from archived_sales
+              )
+              from sales
+              |> union all (from archive),
+              (
+                select *
+                from forecast_sales
+              );
+
+  - name: pipe_lower_where_select
+    input: |-
+      from sales |> where revenue > 0 |> select region, revenue as amount
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            lower-pipes: true
+            expected: |-
+              select region, revenue as amount from (select * from (select * from sales) as _dashql_pipe where revenue > 0) as _dashql_pipe;
+          - mode: compact
+            lower-pipes: true
+            expected: |-
+              select region, revenue as amount from (select * from (select * from sales) as _dashql_pipe where revenue > 0) as _dashql_pipe;
+          - mode: pretty
+            lower-pipes: true
+            expected: |-
+              select region, revenue as amount from (select * from (select * from sales) as _dashql_pipe where revenue > 0) as _dashql_pipe;
+
+  - name: pipe_lower_bare_from
+    input: |-
+      from sales
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              from sales;
+          - mode: compact
+            lower-pipes: true
+            expected: |-
+              select * from sales;
+          - mode: pretty
+            expected: |-
+              from sales;
+
+  - name: pipe_lower_alias_reference
+    input: |-
+      from sales |> as s |> left join regions as r on s.region_id = r.id
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              from sales |> as s |> left join regions r on s.region_id = r.id;
+          - mode: compact
+            lower-pipes: true
+            expected: |-
+              select * from (select * from sales) as s left join regions r on s.region_id = r.id;
+          - mode: pretty
+            expected: |-
+              from sales
+              |> as s
+              |> left join regions r on s.region_id = r.id;
+
+  - name: pipe_lower_extend_aggregate
+    input: |-
+      from sales |> extend revenue * 1.2 as adjusted |> aggregate sum(adjusted) as total group by region
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            lower-pipes: true
+            expected: |-
+              select region, sum(adjusted) as total from (select *, revenue * 1.2 as adjusted from (select * from sales) as _dashql_pipe) as _dashql_pipe group by region;
+          - mode: compact
+            lower-pipes: true
+            expected: |-
+              select region, sum(adjusted) as total from (
+                select *, revenue * 1.2 as adjusted from (select * from sales) as _dashql_pipe
+              ) as _dashql_pipe group by region;
+          - mode: pretty
+            lower-pipes: true
+            expected: |-
+              select region, sum(adjusted) as total from (
+                select *, revenue * 1.2 as adjusted from (select * from sales) as _dashql_pipe
+              ) as _dashql_pipe group by region;
+
+  - name: pipe_lower_with_join
+    input: |-
+      with regions as (select * from region_dim) from sales |> join regions using (region_id)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              with regions as (select * from region_dim) from sales |> join regions using (region_id);
+          - mode: compact
+            lower-pipes: true
+            expected: |-
+              with regions as (select * from region_dim)
+              select * from (select * from sales) as _dashql_pipe join regions using (region_id);
+          - mode: pretty
+            expected: |-
+              with regions as (
+                select *
+                from region_dim
+              )
+              from sales
+              |> join regions using (region_id);
+
+  - name: pipe_lower_union_from
+    input: |-
+      from current_sales |> union all (from archived_sales), (select * from forecast_sales)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              from current_sales |> union all (from archived_sales), (select * from forecast_sales);
+          - mode: compact
+            lower-pipes: true
+            expected: |-
+              select * from (select * from current_sales) as _dashql_pipe
+              union all
+              select * from (select * from archived_sales) as _dashql_set
+              union all
+              select * from (select * from forecast_sales) as _dashql_set;
+          - mode: pretty
+            expected: |-
+              from current_sales
+              |> union all (from archived_sales),
+              (
+                select *
+                from forecast_sales
+              );
+
+  - name: pipe_lower_dialects
+    input: |-
+      from sales |> where revenue > 0
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              from sales |> where revenue > 0;
+          - mode: compact
+            lower-pipes: true
+            expected: |-
+              select * from (select * from sales) as _dashql_pipe where revenue > 0;
+          - mode: pretty
+            expected: |-
+              from sales
+              |> where revenue > 0;
+      trino:
+        formatted:
+          - mode: inline
+            expected: |-
+              from sales |> where revenue > 0;
+          - mode: compact
+            lower-pipes: true
+            expected: |-
+              select * from (select * from sales) as _dashql_pipe where revenue > 0;
+          - mode: pretty
+            expected: |-
+              from sales
+              |> where revenue > 0;

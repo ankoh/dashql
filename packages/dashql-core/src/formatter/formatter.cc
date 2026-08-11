@@ -545,6 +545,13 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_SELECT_FROM:
         case AttributeKey::SQL_SELECT_GROUPS:
         case AttributeKey::SQL_SELECT_ORDER:
+        case AttributeKey::EXT_PIPE_FROM:
+        case AttributeKey::EXT_PIPE_SELECT_TARGETS:
+        case AttributeKey::EXT_PIPE_EXTEND_TARGETS:
+        case AttributeKey::EXT_PIPE_AGGREGATE_TARGETS:
+        case AttributeKey::EXT_PIPE_AGGREGATE_GROUPS:
+        case AttributeKey::EXT_PIPE_COMBINE_INPUTS:
+        case AttributeKey::EXT_PIPE_ORDER:
         case AttributeKey::SQL_WINDOW_FRAME_PARTITION:
         case AttributeKey::SQL_WINDOW_FRAME_ORDER:
         case AttributeKey::SQL_FUNCTION_WITHIN_GROUP:
@@ -582,6 +589,7 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_TABLE_CONSTRAINT_COLUMNS:
         case AttributeKey::SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS:
         case AttributeKey::SQL_JOIN_USING:
+        case AttributeKey::EXT_PIPE_JOIN_USING:
         case AttributeKey::SQL_FUNCTION_TRIM_INPUT:
         case AttributeKey::SQL_ALIAS_COLUMN_NAMES:
         case AttributeKey::SQL_ALIAS_COLUMN_DEFS:
@@ -2151,6 +2159,21 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatExpressionOperatorType(node);
         case NodeType::OBJECT_SQL_NARY_EXPRESSION:
             return FormatExpression(node_id);
+        case NodeType::OBJECT_EXT_PIPE:
+            return FormatPipe(node_id);
+        case NodeType::OBJECT_EXT_PIPE_FROM:
+            return FormatPipeFrom(node);
+        case NodeType::OBJECT_EXT_PIPE_WHERE:
+        case NodeType::OBJECT_EXT_PIPE_SELECT:
+        case NodeType::OBJECT_EXT_PIPE_EXTEND:
+        case NodeType::OBJECT_EXT_PIPE_AGGREGATE:
+        case NodeType::OBJECT_EXT_PIPE_DISTINCT:
+        case NodeType::OBJECT_EXT_PIPE_JOIN:
+        case NodeType::OBJECT_EXT_PIPE_COMBINE:
+        case NodeType::OBJECT_EXT_PIPE_ORDER:
+        case NodeType::OBJECT_EXT_PIPE_LIMIT:
+        case NodeType::OBJECT_EXT_PIPE_AS:
+            return FormatPipeStage(node);
         case NodeType::OBJECT_VIS_VISUALISE:
             return FormatVisualize(node_id);
         case NodeType::OBJECT_VIS_SPEC:
@@ -2275,6 +2298,26 @@ std::string Formatter::Format(const buffers::formatting::FormattingConfigT& conf
     BuildDocs();
 
     return WriteOutput();
+}
+
+std::string Formatter::FormatNodeAt(size_t node_id, const buffers::formatting::FormattingConfigT& config) {
+    if (node_id >= ast.size()) return {};
+    this->config = config;
+    fmt.Reset();
+    fmt.SetConfig(config);
+    node_states.assign(ast.size(), {});
+    PreparePrecedence();
+    for (size_t i = 0; i < ast.size(); ++i) {
+        IdentifyParentheses(ast.size() - 1 - i);
+    }
+    BuildDocs();
+    FormattingRenderOptions options{
+        .max_width = config.max_width,
+        .indentation_width = config.indentation_width,
+        .debug_mode = config.debug_mode,
+        .mode = config.mode,
+    };
+    return fmt.Render(node_states[node_id].reg, options);
 }
 
 }  // namespace dashql

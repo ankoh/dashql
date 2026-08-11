@@ -732,6 +732,13 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
 
     // Determine target location: use cursor position with zero length when between symbols (pure insertion)
     auto target_loc = between_symbols ? sx::parser::SymbolSpan(cursor.text_offset, 0) : target_symbol->symbol.location;
+    bool inside_select = false;
+    if (cursor.script.parsed_script) {
+        auto& nodes = cursor.script.parsed_script->nodes;
+        inside_select = std::ranges::any_of(cursor.ast_path_to_root, [&](auto node_id) {
+            return nodes[node_id].node_type() == buffers::parser::NodeType::OBJECT_SQL_SELECT;
+        });
+    }
 
     // First pass: collect the keyword candidates we want to probe (those with a non-empty name).
     // We also remember each one's index in the input span so we can stitch probe results back.
@@ -775,6 +782,12 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
         auto name = parser::Keyword::GetKeywordName(expected);
         if (name.empty()) continue;
         auto tags = get_score(*target_symbol, expected, name);
+        // A leading FROM is valid only for relational-pipe syntax. Do not surface it as a
+        // proactive standard-SQL suggestion; users can still opt in by typing a matching prefix.
+        if (expected == parser::Parser::symbol_kind_type::S_FROM && !inside_select &&
+            (tags & buffers::completion::CandidateTag::SUBSTRING_MATCH) == 0) {
+            continue;
+        }
         tags |= suffix_tags(i);
         Candidate candidate{
             .completion_text = name,
@@ -913,8 +926,7 @@ void Completion::FindCandidatesInInlineVisualizeSource() {
         for (size_t i = 0; i < node.children_count(); ++i) {
             auto child_id = node.children_begin_or_value() + i;
             auto& child = nodes[child_id];
-            if (child.attribute_key() != buffers::parser::AttributeKey::VIS_VISUALISE_SELECT ||
-                child.node_type() != buffers::parser::NodeType::OBJECT_SQL_SELECT) {
+            if (child.attribute_key() != buffers::parser::AttributeKey::VIS_VISUALISE_SELECT) {
                 continue;
             }
             auto scope_it = cursor.script.analyzed_script->name_scopes_by_root_node.find(child_id);

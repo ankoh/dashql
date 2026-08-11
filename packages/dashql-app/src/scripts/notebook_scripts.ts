@@ -26,7 +26,7 @@ import {
     WRITE_SCRIPT,
 } from '../platform/storage/storage_writer.js';
 import type { NotebookScriptsInput } from './notebook_scripts_registry.js';
-import { Logger, LoggableException, stringifyError } from '../platform/logger/logger.js';
+import { Logger, LoggerLike, LoggableException, stringifyError } from '../platform/logger/logger.js';
 import { ScriptAnnotations, ScriptFolder, ScriptRef, NotebookMetadata as NotebookMetadataType, createEmptyAnnotations, createScriptRef, generateScriptFileName, planScriptInsertion, normalizeScriptFolderName, formatScriptFolderOrderPrefix, normalizeScriptName, scriptOrderPrefixString, formatScriptOrderPrefix, scriptDisplayName, uniqueScriptBase } from './script_types.js';
 
 const LOG_CTX = 'notebook_scripts';
@@ -1838,42 +1838,90 @@ function deriveScriptAnnotations(
 
 /// Resolve the executable SQL text for a script.
 ///
-/// For a VISUALIZE statement this is the extracted inner query (Hyper does not
-/// understand the `visualize` keyword); for any other statement it is the raw
-/// script text.
+/// VISUALIZE statements execute their extracted source query. Ordinary relational
+/// pipes are lowered to classical SQL because database backends do not parse them.
 ///
 /// The cached `annotations.visualizeQuery.sql` is the source of truth only while
 /// the script is up to date. When outdated, analyze into fresh throwaway buffers.
 /// We must never fall back to the raw script text, which would send the terminal
 /// visualization pipe to the backend.
-export function getExecutableQueryText(notebookScripts: NotebookScripts, scriptData: ScriptData): string {
+export function getExecutableQueryText(
+    notebookScripts: NotebookScripts,
+    scriptData: ScriptData,
+    logger?: LoggerLike,
+): string {
     const scriptText = scriptData.script.toString();
+
+    const lowerRelationalPipes = () => {
+        const config = new core.buffers.formatting.FormattingConfigT(
+            core.buffers.formatting.FormattingDialect.DUCKDB,
+            core.buffers.formatting.FormattingMode.INLINE,
+            120,
+            2,
+            false,
+            true,
+        );
+        const formatted = scriptData.script.format(config, null, true);
+        try {
+            const sql = formatted.getStatementText();
+            logger?.debug('Lowered relational pipe for query execution', {
+                pipeSql: scriptText,
+                sql,
+            }, LOG_CTX);
+            return sql;
+        } finally {
+            formatted.destroy();
+        }
+    };
+
+    const rawStatementText = () => scriptData.script.getStatementText();
 
     // Fresh analyzed copy → the cached resolution still reflects the current sources.
     if (scriptData.scriptAnalysis.buffers.analyzed && !scriptData.scriptAnalysis.outdated) {
         if (scriptData.annotations.visualizeQuery != null) {
-            return scriptData.annotations.visualizeQuery.sql;
+            return statementTextFromSql(notebookScripts, scriptData.annotations.visualizeQuery.sql);
         }
-        if (isVisualizeScript(scriptData.scriptAnalysis.buffers, scriptText)) {
+        if (isVisualizeScript(scriptData.scriptAnalysis.buffers)) {
             throw unresolvedVisualizeQuery(scriptData, scriptText);
         }
-        return scriptText;
+        return hasParsedScriptFeature(
+            scriptData.scriptAnalysis.buffers,
+            core.buffers.parser.ParsedScriptFeature.RELATIONAL_PIPE,
+        ) ? lowerRelationalPipes() : rawStatementText();
     }
 
     // Outdated or never analyzed → perform fresh name resolution against the current catalog.
     const buffers = analyzeScript(scriptData.script);
     try {
-        const resolved = resolveVisualizeQuery(buffers, scriptText);
+        const resolved = resolveVisualizeQuery(buffers, scriptText, logger);
         if (resolved != null) {
-            return resolved.sql;
+            return statementTextFromSql(notebookScripts, resolved.sql);
         }
-        if (isVisualizeScript(buffers, scriptText)) {
+        if (isVisualizeScript(buffers)) {
             throw unresolvedVisualizeQuery(scriptData, scriptText);
         }
-        return scriptText;
+        return hasParsedScriptFeature(
+            buffers,
+            core.buffers.parser.ParsedScriptFeature.RELATIONAL_PIPE,
+        ) ? lowerRelationalPipes() : rawStatementText();
     } finally {
         buffers.destroy(buffers);
     }
+}
+
+function statementTextFromSql(notebookScripts: NotebookScripts, sql: string): string {
+    const script = notebookScripts.instance.createScript(notebookScripts.connectionCatalog);
+    try {
+        script.insertTextAt(0, sql);
+        return script.getStatementText();
+    } finally {
+        script.destroy();
+    }
+}
+
+function hasParsedScriptFeature(buffers: DashQLScriptBuffers, feature: core.buffers.parser.ParsedScriptFeature): boolean {
+    const flags = buffers.parsed?.read().featureFlags() ?? 0;
+    return (flags & feature) !== 0;
 }
 
 /// Resolve executable text for passive UI checks without turning an unresolved VISUALIZE reference
@@ -1889,18 +1937,8 @@ export function tryGetExecutableQueryText(notebookScripts: NotebookScripts, scri
     }
 }
 
-function isVisualizeScript(buffers: DashQLScriptBuffers, scriptText: string): boolean {
-    if (buffers.parsed) {
-        const parsed = buffers.parsed.read();
-        for (let i = 0; i < parsed.statementsLength(); ++i) {
-            if (parsed.statements(i)?.statementType() === core.buffers.parser.StatementType.VIS_VISUALISE) {
-                return true;
-            }
-        }
-    }
-    // Analysis can fail before it emits a typed statement. Keep the common malformed/unresolved
-    // form from escaping to the backend even when no parsed statement is available.
-    return /^\s*visualize\b/i.test(scriptText);
+function isVisualizeScript(buffers: DashQLScriptBuffers): boolean {
+    return hasParsedScriptFeature(buffers, core.buffers.parser.ParsedScriptFeature.VISUALIZE);
 }
 
 class UnresolvedVisualizeQueryError extends LoggableException { }

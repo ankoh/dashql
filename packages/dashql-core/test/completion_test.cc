@@ -1,5 +1,7 @@
 #include "dashql/analyzer/completion.h"
 
+#include <algorithm>
+
 #include "dashql/catalog.h"
 #include "gtest/gtest.h"
 
@@ -330,6 +332,29 @@ GROUP BY category
         EXPECT_GT(candidate.score, 59u);
     }
     EXPECT_TRUE(found);
+}
+
+TEST(CompletionTest, PipeVisualizeSourceOutputAlias) {
+    const std::string_view text = R"SQL(
+FROM sales
+|> SELECT category AS chart_category, amount AS chart_total
+|> VISUALIZE USING vegalite (
+    encoding => (y => (field => chart_t, type => quantitative))
+)
+)SQL";
+
+    Catalog catalog;
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    ASSERT_NO_THROW(script.Analyze());
+
+    script.MoveCursor(text.rfind("chart_t") + std::string_view{"chart_t"}.size());
+    auto completion = script.CompleteAtCursor();
+
+    auto found = std::find_if(completion->GetResultCandidates().begin(), completion->GetResultCandidates().end(),
+                              [](const auto& candidate) { return candidate.completion_text == "chart_total"; });
+    ASSERT_NE(found, completion->GetResultCandidates().end());
+    EXPECT_TRUE(found->candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE));
 }
 
 TEST(CompletionTest, NoCompletionInsideLineComment) {

@@ -176,6 +176,7 @@ function makeScriptData(scriptKey: number, text: string, fileName: string = '', 
         // analyzed buffer is cached, so stub the analyze surface it touches.
         script: {
             toString: () => text,
+            getStatementText: () => text,
             analyze: () => { },
             getParsed: () => null,
             getAnalyzed: () => null,

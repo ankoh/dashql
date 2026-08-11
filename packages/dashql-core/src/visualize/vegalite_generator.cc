@@ -1,5 +1,7 @@
 #include "dashql/visualize/vegalite.h"
 
+#include "dashql/formatter/formatter.h"
+
 #include <algorithm>
 #include <cctype>
 #include <string>
@@ -556,6 +558,15 @@ std::string GenerateVegaLiteSpec(const VisualizationSpec& spec, const AnalyzedSc
         writer.StartObject();
         if (source_node.node_type() == buffers::parser::NodeType::OBJECT_SQL_SELECT) {
             std::string source_text(input.substr(span.offset(), span.length()));
+            writer.Key("$sql");
+            writer.String(source_text.c_str());
+        } else if (source_node.node_type() == buffers::parser::NodeType::OBJECT_EXT_PIPE ||
+                   source_node.node_type() == buffers::parser::NodeType::OBJECT_EXT_PIPE_FROM) {
+            buffers::formatting::FormattingConfigT config;
+            config.mode = buffers::formatting::FormattingMode::INLINE;
+            config.lower_relational_pipes = true;
+            Formatter formatter{*script.parsed_script};
+            auto source_text = formatter.FormatNodeAt(*spec.source_node_id, config);
             writer.Key("$sql");
             writer.String(source_text.c_str());
         }

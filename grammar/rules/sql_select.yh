@@ -45,6 +45,7 @@
 %type <BackedUniquePtr<NodeList>> sql_rowsfrom_list;
 %type <BackedUniquePtr<NodeList>> sql_sample_count;
 %type <BackedUniquePtr<NodeList>> sql_select_clause;
+%type <BackedUniquePtr<NodeList>> sql_classical_select_no_parens;
 %type <BackedUniquePtr<NodeList>> sql_select_limit;
 %type <BackedUniquePtr<NodeList>> sql_select_no_parens;
 %type <BackedUniquePtr<NodeList>> sql_select_stmt;

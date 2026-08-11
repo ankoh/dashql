@@ -2,6 +2,7 @@ import * as core from '../core/index.js';
 
 import { AgentIntent } from '../agent/agent_prompts.js';
 import { getExecutableQueryText, NotebookScripts, ScriptData } from './notebook_scripts.js';
+import type { LoggerLike } from '../platform/logger/logger.js';
 
 /// A column of a query's output schema: its name and (best-effort) type.
 export interface OutputColumn {
@@ -27,6 +28,8 @@ export interface AgentContextInput {
     intent: AgentIntent;
     /// Resolve a script's last-execution output columns (null if never run / unavailable).
     resolveOutputColumns?: OutputColumnResolver;
+    /// Logger used when executable context requires relational-pipe lowering.
+    logger?: LoggerLike;
 }
 
 /// A context contributor returns a context fragment, or null if it has nothing to add.
@@ -107,7 +110,7 @@ export const visualizeSourceContributor: AgentContextContributor = (input) => {
     if (vis != null) {
         // Focused script is already a VISUALIZE: send its resolved source SELECT (re-resolved when
         // the analysis is outdated so a changed source is reflected) and the current chart spec.
-        const sql = getExecutableQueryText(input.notebookScripts, data).trim();
+        const sql = getExecutableQueryText(input.notebookScripts, data, input.logger).trim();
         if (sql.length > 0) parts.push(`Source query (feeds the chart):\n${sql}`);
         try {
             // Show only the surface the model is allowed to emit. The resolved spec also carries a

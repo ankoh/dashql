@@ -91,6 +91,10 @@ void FormatterSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir
                                 formatted_node.has_child("width")
                                     ? static_cast<size_t>(std::atoi(formatted_node["width"].val().str))
                                     : FORMATTING_DEFAULT_MAX_WIDTH;
+                            exp.config.lower_relational_pipes =
+                                formatted_node.has_child("lower-pipes") &&
+                                (formatted_node["lower-pipes"].val() == "true" ||
+                                 formatted_node["lower-pipes"].val() == "1");
                             if (formatted_node.has_child("expected")) {
                                 c4::csubstr v = formatted_node["expected"].val();
                                 if (v.str) {

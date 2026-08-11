@@ -107,6 +107,9 @@ struct Formatter {
     FmtReg FormatWindowFrame(const buffers::parser::Node& node);
     FmtReg FormatExpressionOperatorType(const buffers::parser::Node& node);
     FmtReg FormatExpression(size_t node_id);
+    FmtReg FormatPipe(size_t node_id);
+    FmtReg FormatPipeFrom(const buffers::parser::Node& node);
+    FmtReg FormatPipeStage(const buffers::parser::Node& node);
     FmtReg FormatVisualize(size_t node_id);
     FmtReg FormatVisPropertyList(const buffers::parser::Node& node);
     FmtReg FormatVisEnum(const buffers::parser::Node& node);
@@ -124,6 +127,7 @@ struct Formatter {
 
     size_t EstimateFormattedSize() const;
     std::string Format(const buffers::formatting::FormattingConfigT& config);
+    std::string FormatNodeAt(size_t node_id, const buffers::formatting::FormattingConfigT& config);
 };
 
 }  // namespace dashql

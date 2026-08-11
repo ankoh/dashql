@@ -56,6 +56,11 @@ sql_select_with_parens:
 //    2002-08-28 bjm
 
 sql_select_no_parens:
+    sql_classical_select_no_parens { $$ = std::move($1); }
+  | ext_pipe_query { $$ = std::move($1); }
+    ;
+
+sql_classical_select_no_parens:
     sql_simple_select { $$ = std::move($1); }
   | sql_select_clause sql_sort_clause {
         $$ = Concat(std::move($1), {
@@ -231,6 +236,7 @@ sql_into_clause:
 sql_preparable_stmt:
     sql_select_stmt                 { $$ = ctx.Object(@1, buffers::parser::NodeType::OBJECT_SQL_SELECT, std::move($1)); }
     ;
+
 
 // Redundancy here is needed to avoid shift/reduce conflicts,
 // since TEMP is not a reserved word.  See also OptTemp.

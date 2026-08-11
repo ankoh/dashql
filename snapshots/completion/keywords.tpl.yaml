@@ -35,6 +35,18 @@ completion-snapshots:
     completions:
       limit: 3
 
+  # Leading FROM remains available when the user explicitly types it.
+  - name: leading_from
+    catalog: {}
+    editor:
+      input: fr
+    cursor:
+      search:
+        text: fr
+        index: 2
+    completions:
+      limit: 3
+
   # Completion after select *
   - name: select_star
     catalog: {}

@@ -102,6 +102,40 @@ completion-snapshots:
           objects: []
       text: "sel"
 
+  - name: leading_from
+    catalog: {}
+    editor:
+      input: fr
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: fr
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 59
+          value: from
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "fr"
+          location-qualified: "fr"
+          objects: []
+        - score: 4
+          value: select
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
+          location: "fr"
+          location-qualified: "fr"
+          objects: []
+        - score: 2
+          value: set
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "fr"
+          location-qualified: "fr"
+          objects: []
+      text: "fr"
+
   - name: select_star
     catalog: {}
     editor:

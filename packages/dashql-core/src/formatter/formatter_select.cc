@@ -15,7 +15,7 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
     auto [select_all, select_distinct, select_targets, select_into, select_from, select_where, select_groups,
           select_having, select_windows, select_order, select_row_locking, select_with_ctes, select_with_recursive,
           select_offset, select_limit, select_limit_all, select_sample, select_values, combine_operation,
-          combine_modifier, combine_input] =
+          combine_modifier, combine_input, select_statement] =
         GetAttributes<AttributeKey::SQL_SELECT_ALL, AttributeKey::SQL_SELECT_DISTINCT, AttributeKey::SQL_SELECT_TARGETS,
                       AttributeKey::SQL_SELECT_INTO, AttributeKey::SQL_SELECT_FROM, AttributeKey::SQL_SELECT_WHERE,
                       AttributeKey::SQL_SELECT_GROUPS, AttributeKey::SQL_SELECT_HAVING,
@@ -25,9 +25,13 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
                       AttributeKey::SQL_SELECT_LIMIT, AttributeKey::SQL_SELECT_LIMIT_ALL,
                       AttributeKey::SQL_SELECT_SAMPLE, AttributeKey::SQL_SELECT_VALUES,
                       AttributeKey::SQL_COMBINE_OPERATION, AttributeKey::SQL_COMBINE_MODIFIER,
-                      AttributeKey::SQL_COMBINE_INPUT>(node);
+                      AttributeKey::SQL_COMBINE_INPUT, AttributeKey::SQL_SELECT_EXPRESSION_STATEMENT>(node);
 
     FmtReg query = 0;
+    if (select_statement) {
+        query = Reg(*select_statement);
+        if (query == 0) return FormatUnimplemented(node);
+    }
     if (combine_operation && combine_input) {
         auto op = static_cast<CombineOperation>(combine_operation->children_begin_or_value());
         std::string_view op_text;

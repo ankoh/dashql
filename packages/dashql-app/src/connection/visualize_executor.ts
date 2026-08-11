@@ -51,6 +51,15 @@ export function resolveVisualizeQuery(
     }
 
     if (!sql) return null;
+    const sourceSql = spec.sourceSql();
+    if (sourceSql?.trim()) {
+        const pipeSql = sql;
+        sql = sourceSql.trim();
+        logger?.debug('Lowered relational pipe for visualization execution', {
+            pipeSql,
+            sql,
+        }, LOG_CTX);
+    }
 
     // Branch on the renderer named after `USING`. Each renderer stores its own
     // spec string on the analyzed VisualizationSpec.

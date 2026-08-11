@@ -131,7 +131,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         // Scripts are analyzed eagerly at load and kept analyzed as
                         // they are edited, so the resolved VISUALIZE query / derived
                         // annotations are already present here.
-                        const queryText = getExecutableQueryText(notebookScripts, scriptData);
+                        const queryText = getExecutableQueryText(notebookScripts, scriptData, logger);
                         const [queryId, execution] = executeQuery(notebookScripts.notebookId, {
                             query: queryText,
                             analyzeResults: true,

@@ -53,6 +53,8 @@ extern "C" void dashql_script_replace_text(dashql::Script* script, const char* t
 extern "C" void dashql_script_erase_text_range(dashql::Script* script, size_t offset, size_t count);
 /// Get the script content as a string. A zero-length span selects the entire script.
 extern "C" void dashql_script_to_string(FFIResult* result, dashql::Script* script, size_t offset, size_t length);
+/// Get the first parsed statement without its separator or surrounding trivia.
+extern "C" void dashql_script_get_statement_text(FFIResult* result, dashql::Script* script, bool parse_if_outdated);
 /// Scan a script (throws exception on error)
 extern "C" void dashql_script_scan(dashql::Script* script);
 /// Parse a script (throws exception on error)
@@ -61,8 +63,13 @@ extern "C" void dashql_script_parse(dashql::Script* script);
 extern "C" void dashql_script_analyze(dashql::Script* script, bool parse_if_outdated);
 /// Get a pretty-printed version of the SQL query
 extern "C" void dashql_script_format(FFIResult* result, dashql::Script* script, size_t dialect, size_t mode,
-                                     size_t max_width, size_t indentation_width, bool debug_mode,
-                                     bool parse_if_outdated, dashql::Catalog* catalog);
+                                       size_t max_width, size_t indentation_width, bool debug_mode,
+                                       bool parse_if_outdated, dashql::Catalog* catalog);
+/// Get a pretty-printed version of the SQL query, optionally lowering relational pipes
+extern "C" void dashql_script_format_extended(FFIResult* result, dashql::Script* script, size_t dialect, size_t mode,
+                                                size_t max_width, size_t indentation_width, bool debug_mode,
+                                                bool lower_relational_pipes, bool parse_if_outdated,
+                                                dashql::Catalog* catalog);
 /// Get script id
 extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script);
 /// Get the scanned script

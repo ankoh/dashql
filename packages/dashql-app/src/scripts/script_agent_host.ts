@@ -18,6 +18,7 @@ import {
 } from './notebook_scripts.js';
 import { resolveSymbolSpan } from '../core/tokens.js';
 import { scriptDisplayName } from './script_types.js';
+import type { LoggerLike } from '../platform/logger/logger.js';
 
 /// The source clause for the generated VISUALIZE statement.
 ///
@@ -53,6 +54,8 @@ export interface NotebookScriptsAgentHostParams {
     resolveOutputColumns?: OutputColumnResolver;
     /// Optional context-contributor override (defaults to the standard chain).
     contributors?: AgentContextContributor[];
+    /// Logger used for executable-query translation diagnostics.
+    logger?: LoggerLike;
 }
 
 /// Build an `AgentHost` backed by notebook scripts. This is the notebook's adapter over the generic
@@ -60,7 +63,7 @@ export interface NotebookScriptsAgentHostParams {
 /// methods stay domain-free. All notebook knowledge (context contributors, VISUALIZE source
 /// resolution + transcode, apply-action selection, run registration) lives here.
 export function createNotebookScriptsAgentHost(params: NotebookScriptsAgentHostParams): AgentHost {
-    const { notebookScripts, contextScriptKey, modifyNotebookScripts, resolveOutputColumns, contributors } = params;
+    const { notebookScripts, contextScriptKey, modifyNotebookScripts, resolveOutputColumns, contributors, logger } = params;
     // Resolve the focused script once — every method reasons about the same context.
     const contextScriptData: ScriptData | null = contextScriptKey != null
         ? notebookScripts.scripts[contextScriptKey] ?? null
@@ -68,7 +71,7 @@ export function createNotebookScriptsAgentHost(params: NotebookScriptsAgentHostP
     return {
         buildContext(intent: AgentIntent): string {
             return buildAgentContext(
-                { notebookScripts, contextScriptData, intent, resolveOutputColumns },
+                { notebookScripts, contextScriptData, intent, resolveOutputColumns, logger },
                 contributors,
             );
         },
@@ -163,13 +166,18 @@ export function determineVisSource(_notebookScripts: NotebookScripts, contextScr
         const reused = extractVisSourceFromScript(contextScriptData);
         if (reused != null) return reused;
     }
-    const sql = contextScriptData.script.toString().trim().replace(/;\s*$/, '');
+    const sql = contextScriptData.script.getStatementText().trim();
     return sql ? { kind: 'inline-select', sql } : null;
 }
 
 /// Extract the source clause of the focused script's first VISUALIZE statement as a VisSource,
 /// mirroring the source switch in `resolveVisualizeQuery`.
 function extractVisSourceFromScript(scriptData: ScriptData): VisSource | null {
+    const resolved = scriptData.annotations.visualizeQuery;
+    if (resolved?.sql.trim()) {
+        return { kind: 'inline-select', sql: resolved.sql.trim() };
+    }
+
     const analyzedPtr = scriptData.scriptAnalysis.buffers.analyzed;
     const parsedPtr = scriptData.scriptAnalysis.buffers.parsed;
     if (!analyzedPtr || !parsedPtr) return null;
@@ -182,6 +190,10 @@ function extractVisSourceFromScript(scriptData: ScriptData): VisSource | null {
 
     switch (spec.sourceKind()) {
         case core.buffers.analyzer.VisSourceKind.INLINE_SELECT: {
+            const sourceSql = spec.sourceSql();
+            if (sourceSql?.trim()) {
+                return { kind: 'inline-select', sql: sourceSql.trim() };
+            }
             const nodeId = spec.sourceInlineSelectAstNodeId();
             const parsed = parsedPtr.read();
             const tokens = parsed.tokens();

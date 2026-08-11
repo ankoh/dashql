@@ -1,4 +1,3 @@
-SELECT *
 FROM external(
     s3_location(
         's3://dashql-data/vega-cars/v1/cars.parquet',
@@ -9,6 +8,7 @@ FROM external(
     ),
     format => 'parquet'
 )
+|> SELECT *
 |> VISUALIZE USING vegalite (
   mark => point,
   encoding => (

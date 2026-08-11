@@ -22,6 +22,7 @@ LIB_SRCS = [
     "src/formatter/formatter.cc",
     "src/formatter/formatter_create.cc",
     "src/formatter/formatter_explain.cc",
+    "src/formatter/formatter_pipe.cc",
     "src/formatter/formatter_select.cc",
     "src/formatter/formatter_vis.cc",
     "src/formatter/formatting_program.cc",

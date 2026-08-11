@@ -38,7 +38,7 @@ import {
     notebookScriptsMatchStorageSnapshot,
     replaceNotebookScriptsFromStorage,
 } from './notebook_scripts.js';
-import { createDatalessConnectorInfo } from '../connection/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, createDatalessConnectorInfo } from '../connection/connector_info.js';
 import {
     StorageWriter,
     StorageWriteTaskVariant,
@@ -1230,6 +1230,46 @@ describe('getExecutableQueryText', () => {
         expect(text.toLowerCase()).toContain('select v as a');
     });
 
+    it('lowers a relational pipe source before visualization execution', () => {
+        const state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const script = `from sales
+            |> where amount > 0
+            |> visualize using umap (
+                vector => embedding,
+                metric => euclidean,
+                neighbors => 15,
+                min_dist => 0.1
+            )`;
+        const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
+
+        const query = next.scripts[scriptKey].annotations.visualizeQuery;
+        expect(query?.renderer).toBe('umap');
+        expect(query?.sql.toLowerCase()).not.toContain('|>');
+        expect(query?.sql.toLowerCase()).toContain('select * from');
+        expect(query?.sql.toLowerCase()).toContain('where amount > 0');
+    });
+
+    it('logs pipe and lowered SQL for visualization execution', () => {
+        const state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const script = `from sales |> where amount > 0 |> visualize using umap (
+            vector => embedding,
+            metric => euclidean,
+            neighbors => 15,
+            min_dist => 0.1
+        )`;
+        const debug = vi.spyOn(logger, 'debug');
+
+        reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
+
+        expect(debug).toHaveBeenCalledWith('Lowered relational pipe for visualization execution', {
+            pipeSql: 'from sales |> where amount > 0',
+            sql: expect.stringContaining('where amount > 0'),
+        }, 'visualize_executor');
+        debug.mockRestore();
+    });
+
     it('extracts the inner SELECT when a comment precedes VISUALIZE', () => {
         const state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];
@@ -1267,6 +1307,65 @@ describe('getExecutableQueryText', () => {
 
         const text = getExecutableQueryText(state, scriptData);
         expect(text).toBe('SELECT 1 as x');
+    });
+
+    it('lowers an ordinary relational pipe before execution', () => {
+        const state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const script = `from sales |> where amount > 0 |> select category, amount`;
+        const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
+
+        const text = getExecutableQueryText(next, next.scripts[scriptKey]);
+        expect(text.toLowerCase()).not.toContain('|>');
+        expect(text.toLowerCase()).toContain('select category, amount');
+        expect(text.toLowerCase()).toContain('where amount > 0');
+    });
+
+    it('does not treat a pipe operator inside a string as relational syntax', () => {
+        const state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const script = `select '|>' as operator_text`;
+        const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
+
+        expect(getExecutableQueryText(next, next.scripts[scriptKey])).toBe(script);
+    });
+
+    it('removes the formatter semicolon before executing a relational pipe on Trino', () => {
+        const state = buildState();
+        state.connectorInfo = CONNECTOR_INFOS[ConnectorType.TRINO];
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const script = `from sales |> where amount > 0 |> select category, amount`;
+        const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
+
+        const text = getExecutableQueryText(next, next.scripts[scriptKey]);
+        expect(text.toLowerCase()).not.toContain('|>');
+        expect(text.trimEnd().endsWith(';')).toBe(false);
+    });
+
+    it('removes a Trino statement semicolon before trailing comments', () => {
+        const state = buildState();
+        state.connectorInfo = CONNECTOR_INFOS[ConnectorType.TRINO];
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const script = 'SELECT 1; -- context';
+        const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
+
+        expect(getExecutableQueryText(next, next.scripts[scriptKey])).toBe('SELECT 1');
+    });
+
+    it('logs the pipe and lowered SQL when preparing execution', () => {
+        const state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const script = `from sales |> where amount > 0 |> select category, amount`;
+        const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
+        const debug = vi.spyOn(logger, 'debug');
+
+        const sql = getExecutableQueryText(next, next.scripts[scriptKey], logger);
+
+        expect(debug).toHaveBeenCalledWith('Lowered relational pipe for query execution', {
+            pipeSql: script,
+            sql,
+        }, 'notebook_scripts');
+        debug.mockRestore();
     });
 
 });

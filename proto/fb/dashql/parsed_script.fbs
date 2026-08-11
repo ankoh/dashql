@@ -143,6 +143,21 @@ enum NodeType: uint16 {
     OBJECT_VIS_AXIS,
     OBJECT_VIS_LEGEND,
     OBJECT_VIS_UMAP_SPEC,
+
+    OBJECT_EXT_PIPE,
+    OBJECT_EXT_PIPE_FROM,
+    OBJECT_EXT_PIPE_WHERE,
+    OBJECT_EXT_PIPE_SELECT,
+    OBJECT_EXT_PIPE_EXTEND,
+    OBJECT_EXT_PIPE_AGGREGATE,
+    OBJECT_EXT_PIPE_DISTINCT,
+    OBJECT_EXT_PIPE_JOIN,
+    OBJECT_EXT_PIPE_COMBINE,
+    OBJECT_EXT_PIPE_ORDER,
+    OBJECT_EXT_PIPE_LIMIT,
+    OBJECT_EXT_PIPE_AS,
+    // Reserved for wire compatibility; WITH is no longer a pipe stage.
+    OBJECT_EXT_PIPE_WITH,
 }
 
 enum AttributeKey: uint16 {
@@ -544,6 +559,29 @@ enum AttributeKey: uint16 {
     VIS_UMAP_SPEC_METRIC,
     VIS_UMAP_SPEC_NEIGHBORS,
     VIS_UMAP_SPEC_MIN_DIST,
+
+    EXT_PIPE_SOURCE,
+    EXT_PIPE_STAGES,
+    EXT_PIPE_FROM,
+    EXT_PIPE_WHERE,
+    EXT_PIPE_SELECT_TARGETS,
+    EXT_PIPE_EXTEND_TARGETS,
+    EXT_PIPE_AGGREGATE_TARGETS,
+    EXT_PIPE_AGGREGATE_GROUPS,
+    EXT_PIPE_DISTINCT,
+    EXT_PIPE_JOIN_TYPE,
+    EXT_PIPE_JOIN_INPUT,
+    EXT_PIPE_JOIN_ON,
+    EXT_PIPE_JOIN_USING,
+    EXT_PIPE_COMBINE_OPERATION,
+    EXT_PIPE_COMBINE_MODIFIER,
+    EXT_PIPE_COMBINE_INPUTS,
+    EXT_PIPE_ORDER,
+    EXT_PIPE_LIMIT,
+    EXT_PIPE_OFFSET,
+    EXT_PIPE_ALIAS,
+    // Reserved for wire compatibility; WITH is no longer a pipe stage.
+    EXT_PIPE_WITH_CTES,
 }
 
 enum StatementType: uint8 {
@@ -556,6 +594,12 @@ enum StatementType: uint8 {
     VIS_VISUALISE,
     CREATE_FUNCTION,
     EXPLAIN,
+}
+
+enum ParsedScriptFeature: uint32 {
+    NONE = 0,
+    RELATIONAL_PIPE = 1,
+    VISUALIZE = 2,
 }
 
 struct Node {
@@ -628,4 +672,6 @@ table ParsedScript {
     tokens: ScannerTokens;
     line_breaks: [TextSpan];
     comments: [TextSpan];
+    /// Bitwise OR of ParsedScriptFeature values detected by the parser.
+    feature_flags: uint32;
 }

@@ -437,20 +437,15 @@ void Parser::ParsePrefixToTarget(ChunkBufferEntryID target_symbol_id, PrefixSnap
     DriveLALR(policy, /*init_stack=*/true);
 }
 
-// Restore a captured state stack into the parser. We push only state numbers — the stack symbols
-// carry empty semantic values, which is fine because reduction actions are no-ops in our skeleton
-// and `yy_lac_check_` only reads state numbers.
+// Restore a captured state stack into the parser. PrefixCapturePolicy stores states bottom-to-top,
+// matching yystack_'s push order; GetStackState itself indexes from the top. We push only state
+// numbers — semantic values are not needed by the no-op reductions or LAC checks.
 void Parser::RestorePrefix(const PrefixSnapshot& prefix) {
     yystack_.clear();
     if (prefix.state_stack.empty()) return;
-    {
-        symbol_type empty_la;
-        yypush_(YY_NULLPTR, 0, YY_MOVE(empty_la));
-    }
-    yystack_[0].state = prefix.state_stack.front();
-    for (size_t i = 1; i < prefix.state_stack.size(); ++i) {
+    for (auto state : prefix.state_stack) {
         stack_symbol_type stk;
-        stk.state = prefix.state_stack[i];
+        stk.state = state;
         yypush_(YY_NULLPTR, YY_MOVE(stk));
     }
     yy_lac_discard_("init");

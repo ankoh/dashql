@@ -105,4 +105,12 @@ limit 100
     dashql_delete_owner(catalog_result.owner_ptr, catalog_result.owner_deleter);
 }
 
+TEST(ApiTest, GetStatementTextExcludesSeparatorAndTrivia) {
+    Catalog catalog;
+    Script script{catalog};
+    script.InsertTextAt(0, "  SELECT ';' AS value ; -- trailing comment\n");
+
+    EXPECT_EQ(script.GetStatementText(), "SELECT ';' AS value");
+}
+
 }  // namespace

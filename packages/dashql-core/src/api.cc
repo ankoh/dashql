@@ -103,6 +103,15 @@ extern "C" void dashql_script_to_string(FFIResult* result, Script* script, size_
     result->owner_deleter = [](void* buffer) { delete reinterpret_cast<std::string*>(buffer); };
 }
 
+/// Get the first parsed statement without its separator or surrounding trivia.
+extern "C" void dashql_script_get_statement_text(FFIResult* result, Script* script, bool parse_if_outdated) {
+    auto text = std::make_unique<std::string>(script->GetStatementText(parse_if_outdated));
+    result->data_ptr = text->data();
+    result->data_length = text->length();
+    result->owner_ptr = text.release();
+    result->owner_deleter = [](void* buffer) { delete reinterpret_cast<std::string*>(buffer); };
+}
+
 /// Scan a script
 extern "C" void dashql_script_scan(Script* script) { script->Scan(); }
 /// Parse a script
@@ -110,14 +119,16 @@ extern "C" void dashql_script_parse(Script* script) { script->Parse(); }
 /// Analyze a script
 extern "C" void dashql_script_analyze(Script* script, bool parse_if_outdated) { script->Analyze(parse_if_outdated); }
 /// Format a script
-extern "C" void dashql_script_format(FFIResult* result, Script* script, size_t dialect, size_t mode, size_t max_width,
-                                     size_t indentation_width, bool debug_mode, bool parse_if_outdated, Catalog* catalog) {
+extern "C" void dashql_script_format_extended(FFIResult* result, Script* script, size_t dialect, size_t mode,
+                                               size_t max_width, size_t indentation_width, bool debug_mode,
+                                               bool lower_relational_pipes, bool parse_if_outdated, Catalog* catalog) {
     buffers::formatting::FormattingConfigT config;
     config.dialect = static_cast<dashql::buffers::formatting::FormattingDialect>(dialect);
     config.mode = static_cast<dashql::buffers::formatting::FormattingMode>(mode);
     config.max_width = max_width;
     config.indentation_width = indentation_width;
     config.debug_mode = debug_mode;
+    config.lower_relational_pipes = lower_relational_pipes;
 
     // Format the script
     auto text = script->Format(config, parse_if_outdated);
@@ -134,6 +145,13 @@ extern "C" void dashql_script_format(FFIResult* result, Script* script, size_t d
 
     // Pack the script pointer
     packPtr(result, std::move(new_script));
+}
+
+extern "C" void dashql_script_format(FFIResult* result, Script* script, size_t dialect, size_t mode, size_t max_width,
+                                     size_t indentation_width, bool debug_mode, bool parse_if_outdated,
+                                     Catalog* catalog) {
+    dashql_script_format_extended(result, script, dialect, mode, max_width, indentation_width, debug_mode, false,
+                                  parse_if_outdated, catalog);
 }
 
 /// Get the parsed script

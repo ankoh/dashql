@@ -1,5 +1,4 @@
 %type <buffers::parser::Node> vis_visualise_stmt;
-%type <buffers::parser::Node> vis_visualise_source;
 %type <std::string_view> vis_visualise_keyword;
 
 %type <BackedUniquePtr<NodeList>> vis_umap_spec_list;

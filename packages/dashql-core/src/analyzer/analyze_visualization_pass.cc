@@ -589,7 +589,9 @@ void AnalyzeVisualizationPass::Finish() {
         if (!spec.source_node_id.has_value()) continue;
         auto source_node_id = *spec.source_node_id;
         const auto& source_node = state.ast[source_node_id];
-        if (source_node.node_type() == buffers::parser::NodeType::OBJECT_SQL_SELECT) {
+        if (source_node.node_type() == buffers::parser::NodeType::OBJECT_SQL_SELECT ||
+            source_node.node_type() == buffers::parser::NodeType::OBJECT_EXT_PIPE ||
+            source_node.node_type() == buffers::parser::NodeType::OBJECT_EXT_PIPE_FROM) {
             spec.resolved_source.kind = VisSourceKind::InlineSelect;
             spec.resolved_source.inline_select_ast_node_id = source_node_id;
         }

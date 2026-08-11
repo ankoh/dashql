@@ -720,6 +720,33 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 break;
             }
 
+            case buffers::parser::NodeType::OBJECT_EXT_PIPE_FROM:
+            case buffers::parser::NodeType::OBJECT_EXT_PIPE: {
+                MergeChildStates(node_state, node);
+                auto result_targets = std::move(node_state.result_targets);
+                auto cte_defs = std::move(node_state.ctes);
+                auto& scope = CreateScope(node_state, node_id);
+                scope.result_targets.Append(std::move(result_targets));
+                for (auto& cte : cte_defs) {
+                    auto it = state.analyzed->name_scopes_by_root_node.find(cte.select_node_id);
+                    if (it == state.analyzed->name_scopes_by_root_node.end()) continue;
+                    auto& child_scope = it->second.get();
+                    ResolvedCTE def{.cte_name = cte.cte_name, .child_scope = &child_scope};
+                    if (cte.columns_count > 0) {
+                        auto& cols_node = state.ast[cte.columns_node_id];
+                        for (uint16_t ci = 0; ci < cte.columns_count; ++ci) {
+                            auto& col_node = state.ast[cols_node.children_begin_or_value() + ci];
+                            if (col_node.node_type() == buffers::parser::NodeType::NAME) {
+                                def.column_aliases.push_back(
+                                    state.scanned.GetNames().At(col_node.children_begin_or_value()));
+                            }
+                        }
+                    }
+                    scope.cte_definitions.emplace(cte.cte_name.get().text, std::move(def));
+                }
+                break;
+            }
+
             case buffers::parser::NodeType::OBJECT_VIS_VISUALISE: {
                 MergeChildStates(node_state, node);
                 CreateScope(node_state, node_id);

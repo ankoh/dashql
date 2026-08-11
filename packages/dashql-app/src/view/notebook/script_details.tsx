@@ -29,6 +29,7 @@ import { ScriptName } from './script_name.js';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
 import { createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../editor/dashql_processor.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 
 export { ScriptDetailsTab as TabKey };
 
@@ -44,6 +45,7 @@ export interface ScriptDetailsProps {
 
 export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     const config = useAppConfig();
+    const logger = useLogger();
     const showServerDetails = props.initialTab != null && props.initialTab !== ScriptDetailsTab.Editor;
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
     const [formatPending, setFormatPending] = React.useState(false);
@@ -260,8 +262,8 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         if (scriptData == null || props.connection?.connectionHealth !== ConnectionHealth.ONLINE) {
             return;
         }
-        rerunEntry(props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts);
-    }, [props.hideDetails, props.connection?.connectionHealth, props.notebookScripts, props.modifyNotebookScripts, scriptData, executeQuery]);
+        rerunEntry(props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+    }, [props.hideDetails, props.connection?.connectionHealth, props.notebookScripts, props.modifyNotebookScripts, scriptData, executeQuery, logger]);
     const handleRerun = React.useCallback(async (cacheKey: string | null) => {
         if (scriptData == null) {
             return;
@@ -271,8 +273,8 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         if (cacheKey != null) {
             await storageReader.backend.deleteQueryResultCache(props.notebookScripts.notebookId, cacheKey).catch(() => {});
         }
-        rerunEntry(props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts);
-    }, [props.notebookScripts, props.modifyNotebookScripts, scriptData, executeQuery, storageReader]);
+        rerunEntry(props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+    }, [props.notebookScripts, props.modifyNotebookScripts, scriptData, executeQuery, storageReader, logger]);
 
     const agentRunState = useAgentRunState(scriptData?.latestAgentRunId ?? null);
     const visualizeQuery = scriptData?.annotations.visualizeQuery ?? null;

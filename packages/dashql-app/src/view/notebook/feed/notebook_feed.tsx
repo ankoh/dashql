@@ -44,6 +44,7 @@ import { registerNotebookScriptQuery, rerunEntry } from '../rerun_query.js';
 import { useStorageReader } from '../../../platform/storage/storage_provider.js';
 import { STORAGE_CACHE_EXTENSION } from '../../../platform/storage/storage_backend.js';
 import { CachedResultBean, QueryResultCacheLabel, QueryResultRerunButton } from '../query_result_cache_controls.js';
+import { useLogger } from '../../../platform/logger/logger_provider.js';
 
 interface FeedScrollTarget {
     fileName: string;
@@ -529,6 +530,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
 
 export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     const config = useAppConfig();
+    const logger = useLogger();
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
     const entries = getSelectedScriptRefs(props.notebookScripts);
     const storageReader = useStorageReader();
@@ -720,7 +722,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         }
         executedAgentRunRef.current = agentState.runId;
         // Resolve against the current notebookScripts so a freshly rewritten VISUALIZE source is reflected.
-        const queryText = getExecutableQueryText(props.notebookScripts, scriptData);
+        const queryText = getExecutableQueryText(props.notebookScripts, scriptData, logger);
         if (queryText.trim().length === 0) {
             return;
         }
@@ -739,7 +741,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
             },
         });
         registerNotebookScriptQuery(scriptData, queryId, queryText, execution, props.modifyNotebookScripts);
-    }, [agentState, props.notebookScripts, props.modifyNotebookScripts, isDisconnected, executeQuery]);
+    }, [agentState, props.notebookScripts, props.modifyNotebookScripts, isDisconnected, executeQuery, logger]);
 
     const handleSend = React.useCallback((execute: boolean) => {
         pendingScrollToBottomRef.current = true;
@@ -750,7 +752,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         // The compose editor keeps the draft analyzed as it is typed, so the
         // resolved VISUALIZE query / derived annotations are already present (and
         // carried across promotion, which preserves the script key).
-        const queryText = scriptData ? getExecutableQueryText(notebookScripts, scriptData) : '';
+        const queryText = scriptData ? getExecutableQueryText(notebookScripts, scriptData, logger) : '';
         props.modifyNotebookScripts({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
         if (execute && !isDisconnected && queryText.trim().length > 0) {
             const [queryId, execution] = executeQuery(notebookScripts.notebookId, {
@@ -788,8 +790,8 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         if (cacheKey != null) {
             await storageReader.backend.deleteQueryResultCache(notebookScripts.notebookId, cacheKey).catch(() => { });
         }
-        rerunEntry(notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts);
-    }, [props.notebookScripts, props.modifyNotebookScripts, isDisconnected, executeQuery, storageReader]);
+        rerunEntry(notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+    }, [props.notebookScripts, props.modifyNotebookScripts, isDisconnected, executeQuery, storageReader, logger]);
 
     const handleExecuteEntry = React.useCallback((fileName: string) => {
         if (isDisconnected) return;
@@ -797,8 +799,8 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         const entry = notebookScripts.scriptFolders[notebookScripts.scriptFocus.folderName]?.scripts[fileName];
         const scriptData = entry != null ? notebookScripts.scripts[entry.scriptId] : undefined;
         if (scriptData == null) return;
-        rerunEntry(notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts);
-    }, [executeQuery, isDisconnected, props.modifyNotebookScripts, props.notebookScripts]);
+        rerunEntry(notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+    }, [executeQuery, isDisconnected, props.modifyNotebookScripts, props.notebookScripts, logger]);
 
     // Send the compose editor's text to the agent run as a natural-language prompt. Context is
     // explicit: no bean means a blank-draft run rather than an implicit hover-selected target.
@@ -816,6 +818,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
             contextScriptKey,
             modifyNotebookScripts: props.modifyNotebookScripts,
             resolveOutputColumns: (scriptKey) => outputColumnsForScript(props.notebookScripts, props.conn, scriptKey),
+            logger,
         });
         startAgentRun({
             notebookId: props.notebookScripts.notebookId,

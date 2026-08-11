@@ -217,6 +217,19 @@ ParsedScript::ParsedScript(std::shared_ptr<ScannedScript> scan, parser::ParseCon
       statements(std::move(ctx.statements)),
        errors(std::move(ctx.errors)),
        vis_spec_spans(std::move(ctx.vis_spec_spans)) {
+    for (const auto& node : nodes) {
+        switch (node.node_type()) {
+            case buffers::parser::NodeType::OBJECT_EXT_PIPE:
+            case buffers::parser::NodeType::OBJECT_EXT_PIPE_FROM:
+                feature_flags |= static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::RELATIONAL_PIPE);
+                break;
+            case buffers::parser::NodeType::OBJECT_VIS_VISUALISE:
+                feature_flags |= static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE);
+                break;
+            default:
+                break;
+        }
+    }
     assert(std::is_sorted(statements.begin(), statements.end(),
                            [](auto& l, auto& r) { return l.nodes_begin < r.nodes_begin; }));
 }
@@ -443,6 +456,7 @@ flatbuffers::Offset<buffers::parser::ParsedScript> ParsedScript::Pack(flatbuffer
     out.tokens = PackTokens();
     out.line_breaks = scanned_script->line_breaks;
     out.comments = scanned_script->comments;
+    out.feature_flags = feature_flags;
     return buffers::parser::ParsedScript::Pack(builder, &out);
 }
 
@@ -981,6 +995,20 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
         std::vector<flatbuffers::Offset<buffers::analyzer::VisualizationSpec>> spec_offsets;
         spec_offsets.reserve(visualization_specs.GetSize());
         visualization_specs.ForEach([&](size_t, VisualizationSpec& spec) {
+            flatbuffers::Offset<flatbuffers::String> source_sql_ofs;
+            if (spec.source_node_id.has_value() &&
+                (parsed_script->nodes[*spec.source_node_id].node_type() == buffers::parser::NodeType::OBJECT_EXT_PIPE ||
+                 parsed_script->nodes[*spec.source_node_id].node_type() == buffers::parser::NodeType::OBJECT_EXT_PIPE_FROM)) {
+                buffers::formatting::FormattingConfigT config;
+                config.mode = buffers::formatting::FormattingMode::INLINE;
+                config.lower_relational_pipes = true;
+                Formatter formatter{*parsed_script};
+                auto source_sql = formatter.FormatNodeAt(*spec.source_node_id, config);
+                if (!source_sql.empty()) {
+                    source_sql_ofs = builder.CreateString(source_sql);
+                }
+            }
+
             // Each renderer emits its own serialized spec string. The grammar rejects
             // unknown renderers, so only the branches below can produce output here.
             bool is_vegalite = spec.renderer.has_value() && *spec.renderer == "vegalite";
@@ -1022,6 +1050,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
             sb.add_renderer(renderer_ofs);
             sb.add_vegalite_spec(vegalite_ofs);
             sb.add_umap_spec(umap_ofs);
+            sb.add_source_sql(source_sql_ofs);
             spec_offsets.push_back(sb.Finish());
         });
         visualization_specs_ofs = builder.CreateVector(spec_offsets);
@@ -1149,6 +1178,22 @@ std::string Script::ToString(TextSpan span) {
         return {};
     }
     return output.substr(span.offset(), span.length());
+}
+
+/// Print the first parsed statement without its separator or surrounding trivia.
+std::string Script::GetStatementText(bool parse_if_outdated) {
+    if (parse_if_outdated &&
+        (parsed_script == nullptr || parsed_script->scanned_script->text_version != text_version)) {
+        Parse();
+    }
+    if (!parsed_script) {
+        throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
+    }
+    auto descriptions = parsed_script->AssociateDescriptions();
+    if (descriptions.empty()) {
+        return {};
+    }
+    return ToString(descriptions.front().statement_span);
 }
 
 /// Update memory statisics

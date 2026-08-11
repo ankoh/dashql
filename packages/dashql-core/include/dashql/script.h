@@ -184,6 +184,8 @@ class ParsedScript {
     std::vector<parser::ParseError> errors;
     /// Symbol-index spans (begin, end) covering the bodies of vis specs
     std::vector<std::pair<uint32_t, uint32_t>> vis_spec_spans;
+    /// Bitwise OR of ParsedScriptFeature values detected by the parser.
+    uint32_t feature_flags = 0;
 
    public:
     /// Constructor
@@ -425,6 +427,8 @@ class Script {
     std::string ToString();
     /// Print a byte span of the script as a string.
     std::string ToString(TextSpan span);
+    /// Print the first parsed statement without its separator or surrounding trivia.
+    std::string GetStatementText(bool parse_if_outdated = true);
 
     /// Scans the script unconditionally (throws Exception on error)
     void Scan();

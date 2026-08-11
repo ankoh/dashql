@@ -31,37 +31,65 @@ vis_visualise_keyword:
 // as a terminal so `USING vegalite (...)` and `USING umap (...)` branch to their
 // own spec grammar. Adding a future renderer is a new alternative here plus its spec rules.
 vis_visualise_stmt:
-    vis_visualise_source PIPE_GREATER vis_visualise_keyword USING VEGALITE LRB vis_spec_list RRB {
+    ext_pipe_source PIPE_GREATER vis_visualise_keyword USING VEGALITE LRB vis_spec_list RRB {
         if (!ctx.IsVisEnabled()) {
             error(@3, "VISUALISE syntax is disabled in this ParseContext");
             YYERROR;
         }
         ctx.MarkVisSpecSpan(@7);
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_VISUALISE, {
-            Attr(Key::VIS_VISUALISE_SELECT, $1),
+            Attr(Key::VIS_VISUALISE_SELECT, std::move($1)),
             Attr(Key::VIS_VISUALISE_USING, ctx.NameFromKeyword(@5, $5)),
             Attr(Key::VIS_VISUALISE_SPEC,
                  ctx.Object(@7, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($7), false)),
         }, false);
     }
-  | vis_visualise_source PIPE_GREATER vis_visualise_keyword USING UMAP LRB vis_umap_spec_list RRB {
+  | ext_pipe_source PIPE_GREATER vis_visualise_keyword USING UMAP LRB vis_umap_spec_list RRB {
         if (!ctx.IsVisEnabled()) {
             error(@3, "VISUALISE syntax is disabled in this ParseContext");
             YYERROR;
         }
         ctx.MarkVisSpecSpan(@7);
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_VISUALISE, {
-            Attr(Key::VIS_VISUALISE_SELECT, $1),
+            Attr(Key::VIS_VISUALISE_SELECT, std::move($1)),
             Attr(Key::VIS_VISUALISE_USING, ctx.NameFromKeyword(@5, $5)),
             Attr(Key::VIS_VISUALISE_SPEC,
                  ctx.Object(@7, buffers::parser::NodeType::OBJECT_VIS_UMAP_SPEC, std::move($7), false)),
         }, false);
     }
-    ;
-
-vis_visualise_source:
-    sql_select_stmt {
-        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_SELECT, std::move($1));
+  | ext_pipe_source ext_pipe_stages PIPE_GREATER vis_visualise_keyword USING VEGALITE LRB vis_spec_list RRB {
+        if (!ctx.IsVisEnabled()) {
+            error(@4, "VISUALISE syntax is disabled in this ParseContext");
+            YYERROR;
+        }
+        ctx.MarkVisSpecSpan(@8);
+        auto source = ctx.Object(Loc({@1, @2}), buffers::parser::NodeType::OBJECT_EXT_PIPE, {
+            Attr(Key::EXT_PIPE_SOURCE, std::move($1)),
+            Attr(Key::EXT_PIPE_STAGES, ctx.Array(@2, std::move($2))),
+        });
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_VISUALISE, {
+            Attr(Key::VIS_VISUALISE_SELECT, std::move(source)),
+            Attr(Key::VIS_VISUALISE_USING, ctx.NameFromKeyword(@6, $6)),
+            Attr(Key::VIS_VISUALISE_SPEC,
+                 ctx.Object(@8, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($8), false)),
+        }, false);
+    }
+  | ext_pipe_source ext_pipe_stages PIPE_GREATER vis_visualise_keyword USING UMAP LRB vis_umap_spec_list RRB {
+        if (!ctx.IsVisEnabled()) {
+            error(@4, "VISUALISE syntax is disabled in this ParseContext");
+            YYERROR;
+        }
+        ctx.MarkVisSpecSpan(@8);
+        auto source = ctx.Object(Loc({@1, @2}), buffers::parser::NodeType::OBJECT_EXT_PIPE, {
+            Attr(Key::EXT_PIPE_SOURCE, std::move($1)),
+            Attr(Key::EXT_PIPE_STAGES, ctx.Array(@2, std::move($2))),
+        });
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_VISUALISE, {
+            Attr(Key::VIS_VISUALISE_SELECT, std::move(source)),
+            Attr(Key::VIS_VISUALISE_USING, ctx.NameFromKeyword(@6, $6)),
+            Attr(Key::VIS_VISUALISE_SPEC,
+                 ctx.Object(@8, buffers::parser::NodeType::OBJECT_VIS_UMAP_SPEC, std::move($8), false)),
+        }, false);
     }
     ;
 

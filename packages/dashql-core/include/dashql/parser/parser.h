@@ -71,7 +71,7 @@ class Parser : public ParserBase {
     ParseContext& GetCtx() { return ctx; }
     /// Number of states on the parser stack.
     auto GetStackSize() const { return yystack_.size(); }
-    /// State number at depth `i` (0 = bottom). Used by policies that snapshot the stack.
+    /// State number at depth `i` (0 = top). Used by policies that snapshot the stack.
     state_type GetStackState(decltype(stack_type{}.size()) i) const { return yystack_[i].state; }
 
    protected:

@@ -3,6 +3,7 @@ import { QueryType } from '../../connection/query_execution_state.js';
 import { NotebookScripts, ScriptData, REGISTER_QUERY, getExecutableQueryText } from '../../scripts/notebook_scripts.js';
 import { ModifyNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
 import { projectionForVisualizeQuery } from '../../scripts/script_types.js';
+import type { LoggerLike } from '../../platform/logger/logger.js';
 
 export function registerNotebookScriptQuery(
     scriptData: ScriptData,
@@ -20,8 +21,9 @@ export function rerunEntry(
     scriptData: ScriptData,
     executeQuery: QueryExecutor,
     modifyNotebookScripts: ModifyNotebookScripts,
+    logger: LoggerLike,
 ): void {
-    const queryText = getExecutableQueryText(notebookScripts, scriptData);
+    const queryText = getExecutableQueryText(notebookScripts, scriptData, logger);
     if (queryText.trim().length === 0) {
         return;
     }

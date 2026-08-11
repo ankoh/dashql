@@ -61,4 +61,15 @@ describe('DashQL scripts', () => {
             catalog.destroy();
         });
     });
+
+    it('returns statement text without its separator or surrounding trivia', () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `  SELECT ';' AS value ; -- trailing comment\n`);
+
+        expect(script.getStatementText()).toBe(`SELECT ';' AS value`);
+
+        script.destroy();
+        catalog.destroy();
+    });
 });

@@ -634,6 +634,7 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                     struct ModeOverride {
                         size_t indent = FORMATTING_DEFAULT_INDENTATION_WIDTH;
                         size_t width = FORMATTING_DEFAULT_MAX_WIDTH;
+                        bool lower_pipes = false;
                     };
                     ModeOverride mode_overrides[3];  // [0]=Inline, [1]=Compact, [2]=Pretty
                     bool has_override[3] = {false, false, false};
@@ -661,6 +662,9 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                             mode_overrides[idx].width = fn.has_child("width")
                                                             ? static_cast<size_t>(std::atoi(fn["width"].val().str))
                                                             : FORMATTING_DEFAULT_MAX_WIDTH;
+                            mode_overrides[idx].lower_pipes =
+                                fn.has_child("lower-pipes") &&
+                                (fn["lower-pipes"].val() == "true" || fn["lower-pipes"].val() == "1");
                         }
                     }
 
@@ -682,6 +686,7 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                         if (has_override[idx]) {
                             cfg.indentation_width = mode_overrides[idx].indent;
                             cfg.max_width = mode_overrides[idx].width;
+                            cfg.lower_relational_pipes = mode_overrides[idx].lower_pipes;
                         }
                         std::string formatted = formatter.Format(cfg);
 
@@ -698,6 +703,9 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                             std::string width_str = std::to_string(cfg.max_width);
                             out_entry.append_child()
                                 << c4::yml::key("width") << out_tree.to_arena(c4::to_csubstr(width_str));
+                        }
+                        if (cfg.lower_relational_pipes) {
+                            out_entry.append_child() << c4::yml::key("lower-pipes") << "true";
                         }
                         auto expected_node = out_entry.append_child();
                         expected_node << c4::yml::key("expected");
