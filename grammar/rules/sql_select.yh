@@ -90,6 +90,7 @@
 %type <buffers::parser::Node> sql_const_datetime;
 %type <buffers::parser::Node> sql_const_typename;
 %type <buffers::parser::Node> sql_distinct_clause;
+%type <buffers::parser::Node> sql_descriptor_arg;
 %type <buffers::parser::Node> sql_extract_arg;
 %type <buffers::parser::Node> sql_filter_clause;
 %type <buffers::parser::Node> sql_for_locking_item;

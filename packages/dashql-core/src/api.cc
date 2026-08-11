@@ -49,6 +49,13 @@ static void packBuffer(FFIResult* result, std::unique_ptr<flatbuffers::DetachedB
     result->owner_deleter = [](void* buffer) { delete reinterpret_cast<flatbuffers::DetachedBuffer*>(buffer); };
 }
 
+static void packUInt32Vector(FFIResult* result, std::unique_ptr<std::vector<uint32_t>> values) {
+    result->data_ptr = values->data();
+    result->data_length = values->size() * sizeof(uint32_t);
+    result->owner_ptr = values.release();
+    result->owner_deleter = [](void* data) { delete reinterpret_cast<std::vector<uint32_t>*>(data); };
+}
+
 /// Allocate memory
 extern "C" std::byte* dashql_malloc(size_t length) { return new std::byte[length]; }
 /// Delete memory
@@ -148,8 +155,8 @@ extern "C" void dashql_script_format_extended(FFIResult* result, Script* script,
 }
 
 extern "C" uint32_t dashql_script_is_fully_formattable(Script* script, size_t dialect, size_t mode, size_t max_width,
-                                                          size_t indentation_width, bool debug_mode,
-                                                          bool lower_relational_pipes, bool parse_if_outdated) {
+                                                           size_t indentation_width, bool debug_mode,
+                                                           bool lower_relational_pipes, bool parse_if_outdated) {
     buffers::formatting::FormattingConfigT config;
     config.dialect = static_cast<dashql::buffers::formatting::FormattingDialect>(dialect);
     config.mode = static_cast<dashql::buffers::formatting::FormattingMode>(mode);
@@ -158,6 +165,20 @@ extern "C" uint32_t dashql_script_is_fully_formattable(Script* script, size_t di
     config.debug_mode = debug_mode;
     config.lower_relational_pipes = lower_relational_pipes;
     return script->IsFullyFormattable(config, parse_if_outdated) ? 1 : 0;
+}
+
+extern "C" void dashql_script_get_unformattable_nodes(
+    FFIResult* result, Script* script, size_t dialect, size_t mode, size_t max_width, size_t indentation_width,
+    bool debug_mode, bool lower_relational_pipes, bool parse_if_outdated) {
+    buffers::formatting::FormattingConfigT config;
+    config.dialect = static_cast<dashql::buffers::formatting::FormattingDialect>(dialect);
+    config.mode = static_cast<dashql::buffers::formatting::FormattingMode>(mode);
+    config.max_width = max_width;
+    config.indentation_width = indentation_width;
+    config.debug_mode = debug_mode;
+    config.lower_relational_pipes = lower_relational_pipes;
+    packUInt32Vector(result, std::make_unique<std::vector<uint32_t>>(
+                                 script->GetUnformattableNodes(config, parse_if_outdated)));
 }
 
 extern "C" void dashql_script_format(FFIResult* result, Script* script, size_t dialect, size_t mode, size_t max_width,

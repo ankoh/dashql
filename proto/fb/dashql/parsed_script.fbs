@@ -158,6 +158,7 @@ enum NodeType: uint16 {
     OBJECT_EXT_PIPE_AS,
     // Reserved for wire compatibility; WITH is no longer a pipe stage.
     OBJECT_EXT_PIPE_WITH,
+    OBJECT_SQL_DESCRIPTOR,
 }
 
 enum AttributeKey: uint16 {
@@ -582,6 +583,7 @@ enum AttributeKey: uint16 {
     EXT_PIPE_ALIAS,
     // Reserved for wire compatibility; WITH is no longer a pipe stage.
     EXT_PIPE_WITH_CTES,
+    SQL_DESCRIPTOR_COLUMNS,
 }
 
 enum StatementType: uint8 {

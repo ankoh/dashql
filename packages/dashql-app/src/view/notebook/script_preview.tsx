@@ -139,6 +139,35 @@ function compactFormattingConfig(maxWidth: number, debugMode: boolean): core.buf
     );
 }
 
+function logUnformattableNode(
+    script: core.DashQLScript,
+    nodeId: number,
+    scriptKey: number,
+    logger: Logger,
+): void {
+    let nodeType: string | undefined;
+    let attributeKey: string | undefined;
+    let parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null = null;
+    try {
+        parsed = script.getParsed();
+        const node = parsed.read().nodes(nodeId);
+        if (node != null) {
+            nodeType = core.buffers.parser.NodeType[node.nodeType()];
+            attributeKey = core.buffers.parser.AttributeKey[node.attributeKey()];
+        }
+    } catch {
+        // The node id remains useful if the parsed buffer cannot be read.
+    } finally {
+        parsed?.destroy();
+    }
+    logger.warn('Script preview is not formattable', {
+        scriptKey: scriptKey.toString(),
+        nodeId: nodeId.toString(),
+        nodeType,
+        attributeKey,
+    }, LOG_CTX);
+}
+
 /// Helper to read a script text
 function readScriptText(script: core.DashQLScript, logger: Logger, scriptKey: number, logCtx: string): string | null {
     try {
@@ -181,7 +210,7 @@ function computeCompactDiff(
         priorCatalog = instance.createCatalog();
         priorRaw = instance.createScript(priorCatalog);
         priorRaw.insertTextAt(0, priorText);
-        if (!priorRaw.isFullyFormattable(compactFormattingConfig(maxWidth, debugMode), true)) return null;
+        if (priorRaw.getUnformattableNodes(compactFormattingConfig(maxWidth, debugMode), true).length > 0) return null;
         priorFormatted = priorRaw.format(compactFormattingConfig(maxWidth, debugMode), null, true);
         // computeDiff walks the parsed AST of both scripts. `newFormatted` was already parsed by the
         // caller's `analyze()`, so only the freshly formatted prior script needs parsing here.
@@ -215,7 +244,11 @@ function formatPreviewScript(
     const formattingConfig = compactFormattingConfig(maxWidth, debugMode);
     let formattedScript: core.DashQLScript;
     try {
-        if (!sourceScript.isFullyFormattable(formattingConfig, true)) return null;
+        const unformattableNodes = sourceScript.getUnformattableNodes(formattingConfig, true);
+        if (unformattableNodes.length > 0) {
+            logUnformattableNode(sourceScript, unformattableNodes[0], scriptKey, logger);
+            return null;
+        }
         formattedScript = sourceScript.format(formattingConfig, null, false);
     } catch (e: any) {
         logger.warn('Failed to format script preview, using raw script text', {

@@ -1891,6 +1891,11 @@ sql_func_arg_expr:
             Attr(Key::SQL_FUNCTION_ARG_VALUE, ctx.Expression(std::move($1))),
         });
     }
+  | sql_descriptor_arg {
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_FUNCTION_ARG, {
+            Attr(Key::SQL_FUNCTION_ARG_VALUE, std::move($1)),
+        });
+    }
   | TABLE LRB sql_qualified_name RRB {
         auto relation = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_RELATION_EXPR, {
             Attr(Key::SQL_TABLEREF_NAME, std::move($3)),
@@ -1905,10 +1910,30 @@ sql_func_arg_expr:
             Attr(Key::SQL_FUNCTION_ARG_VALUE, ctx.Expression(std::move($3))),
         });
     }
+  | sql_param_name COLON_EQUALS sql_descriptor_arg {
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_FUNCTION_ARG, {
+            Attr(Key::SQL_FUNCTION_ARG_NAME, $1),
+            Attr(Key::SQL_FUNCTION_ARG_VALUE, std::move($3)),
+        });
+    }
   | sql_param_name EQUALS_GREATER sql_a_expr {
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_FUNCTION_ARG, {
             Attr(Key::SQL_FUNCTION_ARG_NAME, $1),
             Attr(Key::SQL_FUNCTION_ARG_VALUE, ctx.Expression(std::move($3))),
+        });
+    }
+  | sql_param_name EQUALS_GREATER sql_descriptor_arg {
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_FUNCTION_ARG, {
+            Attr(Key::SQL_FUNCTION_ARG_NAME, $1),
+            Attr(Key::SQL_FUNCTION_ARG_VALUE, std::move($3)),
+        });
+    }
+    ;
+
+sql_descriptor_arg:
+    DESCRIPTOR LRB sql_table_func_element_list RRB {
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_DESCRIPTOR, {
+            Attr(Key::SQL_DESCRIPTOR_COLUMNS, ctx.Array(@3, std::move($3))),
         });
     }
     ;

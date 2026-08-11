@@ -23,3 +23,11 @@ parser-snapshots:
   - name: explain_select_from
     input: |
       explain select a, b from t where a > 1
+  # Explain internal SQL with a descriptor-valued function argument
+  - name: explain_raw_sql_subquery_descriptor
+    input: |
+      explain (format sql, sql_dialect internal_spark_2025_12)
+      with node1 as (
+         select * from raw_sql_subquery(columns => descriptor(foo int), 'foo')
+      )
+      select * from node1

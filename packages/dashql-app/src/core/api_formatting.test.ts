@@ -81,7 +81,12 @@ describe('DashQL formatting', () => {
             2,
         );
 
-        expect(script.isFullyFormattable(config)).toBe(false);
+        const nodeIds = script.getUnformattableNodes(config);
+        expect(nodeIds.length).toBeGreaterThan(0);
+        const parsed = script.getParsed();
+        const nodeTypes = nodeIds.map(nodeId => parsed.read().nodes(nodeId)?.nodeType());
+        expect(nodeTypes).toContain(dashql.buffers.parser.NodeType.OBJECT_SQL_VIEW);
+        parsed.destroy();
     });
 
     it('formats relational pipe log queries', async () => {
@@ -116,6 +121,36 @@ describe('DashQL formatting', () => {
   and json_extract_scalar(_event, '$.ctx["query-id"]') is not null
 |> limit 10;`
         );
+    });
+
+    it('reports relational pipe visualizations as fully formattable', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `from logs
+|> extend date_trunc('day', event_timestamp) as ts
+|> where workload_name in (
+    'foo',
+    'bar'
+  )
+  and event_timestamp > current_timestamp - interval '360' day
+|> aggregate count(*) as cnt group by ts, workload_name
+|> order by ts asc, workload_name asc
+|> visualize using vegalite (
+  mark => bar,
+  encoding => (
+    x => (field => ts, type => temporal),
+    y => (field => cnt, type => quantitative, aggregate => 'sum', stack => 'normalize'),
+    color => (field => workload_name)
+  )
+)`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.TRINO,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            120,
+            2,
+        );
+
+        expect(script.isFullyFormattable(config)).toBe(true);
     });
 
     it('formats with debug settings preamble and line width comments', async () => {
@@ -318,7 +353,7 @@ describe('DashQL formatting', () => {
 
     describe('with populated TPCH catalog', () => {
         const RELATIONS_SQL =
-`-- DashQL Connection Relations.
+            `-- DashQL Connection Relations.
 -- This file is auto-generated and can only be updated through a catalog refresh.
 --
 -- Catalog Source: Demo script
@@ -419,7 +454,7 @@ create table "Region" (
 `;
 
         const FUNCTIONS_SQL =
-`-- DashQL Connection Functions.
+            `-- DashQL Connection Functions.
 -- This file is auto-generated and can only be updated through a catalog refresh.
 --
 -- Catalog Source: Demo script

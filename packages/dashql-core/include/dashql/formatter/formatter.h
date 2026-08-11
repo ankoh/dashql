@@ -33,7 +33,7 @@ struct Formatter {
     buffers::formatting::FormattingConfigT config;
     FormattingProgram fmt;
     std::vector<NodeState> node_states;
-    std::vector<bool> node_is_unimplemented;
+    std::vector<uint32_t> unformattable_nodes;
 
     NodeState& GetState(const buffers::parser::Node& node) { return node_states[&node - ast.data()]; }
     const NodeState& GetState(const buffers::parser::Node& node) const { return node_states[&node - ast.data()]; }
@@ -82,6 +82,7 @@ struct Formatter {
     FmtReg FormatColumnRef(const buffers::parser::Node& node);
     FmtReg FormatParameterRef(const buffers::parser::Node& node);
     FmtReg FormatRelationExpression(const buffers::parser::Node& node);
+    FmtReg FormatDescriptor(const buffers::parser::Node& node);
     FmtReg FormatSelectExpression(const buffers::parser::Node& node);
     FmtReg FormatColumnDef(const buffers::parser::Node& node);
     FmtReg FormatTableConstraintType(const buffers::parser::Node& node);
@@ -129,6 +130,7 @@ struct Formatter {
     size_t EstimateFormattedSize() const;
     std::string Format(const buffers::formatting::FormattingConfigT& config);
     std::string FormatNodeAt(size_t node_id, const buffers::formatting::FormattingConfigT& config);
+    const std::vector<uint32_t>& GetUnformattableNodes() const { return unformattable_nodes; }
     bool IsFullyFormatted() const;
 };
 

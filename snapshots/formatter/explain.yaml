@@ -67,3 +67,30 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               explain create table foo (id integer);
+
+  - name: explain_raw_sql_subquery_descriptor
+    input: |-
+      explain (format sql, sql_dialect internal_spark_2025_12)
+      with node1 as (
+         select * from raw_sql_subquery(columns => descriptor(foo int), 'foo')
+      )
+      select * from node1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              explain (format sql, sql_dialect internal_spark_2025_12) with node1 as (select * from raw_sql_subquery(columns => descriptor(foo integer), 'foo')) select * from node1;
+          - mode: compact
+            expected: |-
+              explain (format sql, sql_dialect internal_spark_2025_12)
+              with node1 as (select * from raw_sql_subquery(columns => descriptor(foo integer), 'foo')) select * from node1;
+          - mode: pretty
+            expected: |-
+              explain (format sql, sql_dialect internal_spark_2025_12)
+              with node1 as (
+                select *
+                from raw_sql_subquery(columns => descriptor(foo integer), 'foo')
+              )
+              select *
+              from node1;

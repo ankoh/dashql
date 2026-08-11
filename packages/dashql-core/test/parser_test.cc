@@ -75,17 +75,13 @@ TEST(ParserTest, NoHintWhenStringLiteralIsValid) {
 
 TEST(ParserTest, ParsesDollarParametersAndArraySlices) {
     constexpr std::array<std::string_view, 5> inputs = {
-        "SELECT $name",
-        "SELECT $1",
-        "SELECT values[:2]",
-        "SELECT values[1:]",
-        "SELECT values[:]",
+        "SELECT $name", "SELECT $1", "SELECT values[:2]", "SELECT values[1:]", "SELECT values[:]",
     };
 
     for (auto input : inputs) {
         auto script = ParseString(input);
-        EXPECT_TRUE(script->errors.empty()) << input << ": "
-                                           << (script->errors.empty() ? "" : script->errors.front().message);
+        EXPECT_TRUE(script->errors.empty())
+            << input << ": " << (script->errors.empty() ? "" : script->errors.front().message);
         EXPECT_EQ(script->statements.size(), 1u) << input;
     }
 }
@@ -147,8 +143,7 @@ TEST(ParserTest, StatementSpanExcludesWhitespaceBeforeSeparator) {
     ASSERT_TRUE(script->errors.empty());
     ASSERT_EQ(script->statements.size(), 1u);
     auto description = script->AssociateDescriptions().front();
-    EXPECT_EQ(text.substr(description.statement_span.offset(), description.statement_span.length()),
-              "select 'Grüße;'");
+    EXPECT_EQ(text.substr(description.statement_span.offset(), description.statement_span.length()), "select 'Grüße;'");
     EXPECT_EQ(text.substr(description.source_span.offset(), description.source_span.length()),
               "select 'Grüße;'\n  ; -- trailing");
 }
@@ -186,8 +181,8 @@ TEST(ParserTest, ParsesRelationalPipeStages) {
 
     for (auto input : inputs) {
         auto script = ParseString(input);
-        EXPECT_TRUE(script->errors.empty()) << input << ": "
-                                           << (script->errors.empty() ? "" : script->errors.front().message);
+        EXPECT_TRUE(script->errors.empty())
+            << input << ": " << (script->errors.empty() ? "" : script->errors.front().message);
         ASSERT_EQ(script->statements.size(), 1u) << input;
         EXPECT_EQ(script->statements.front().type, buffers::parser::StatementType::SELECT) << input;
     }
@@ -201,7 +196,7 @@ TEST(ParserTest, FormatsLogQueryWithCtesAndFunctionArguments) {
     json_extract_scalar(_event, '$.ctx["query-id"]') AS qid,
     element_at(v, 'transfer-mode') AS transfer_mode,
     json_extract_scalar(_event, '$.ctx.workload.name') AS workload
-  FROM noncorelogs.noncore_views.cdp_hyperdb_logs_v2
+  FROM logs
   WHERE ts_date IN ('20260805', '20260806', '20260807', '20260808', '20260809', '20260810', '20260811')
     AND _falcon_instance = 'aws-prod1-useast1'
     AND _functional_domain = 'cdp1'
@@ -246,7 +241,7 @@ ORDER BY delta_s DESC)SQL";
     EXPECT_EQ(formatter.Format(config), R"SQL(with events as (
   select ts_new, k, json_extract_scalar(_event, '$.ctx["query-id"]') as qid,
     element_at(v, 'transfer-mode') as transfer_mode, json_extract_scalar(_event, '$.ctx.workload.name') as workload
-  from noncorelogs.noncore_views.cdp_hyperdb_logs_v2
+  from logs
   where ts_date in ('20260805', '20260806', '20260807', '20260808', '20260809', '20260810', '20260811')
     and _falcon_instance = 'aws-prod1-useast1' and _functional_domain = 'cdp1'
     and k in ('query-end', 'grpc-query-info-end', 'grpc-query-end', 'query-status-written')
@@ -271,10 +266,43 @@ order by delta_s desc;)SQL");
 }
 
 TEST(ParserTest, RejectsWithAsRelationalPipeStage) {
-    auto script = ParseString(
-        "FROM sales |> WITH regions AS (SELECT * FROM region_dim) |> JOIN regions USING (region_id)");
+    auto script =
+        ParseString("FROM sales |> WITH regions AS (SELECT * FROM region_dim) |> JOIN regions USING (region_id)");
 
     EXPECT_FALSE(script->errors.empty());
+}
+
+TEST(ParserTest, FormatsRelationalPipeWithKnownFunctionsAndGroupBy) {
+    constexpr std::string_view input = R"SQL(from queries
+|> extend date_trunc('day', event_timestamp) as ts
+|> where workload_name in (
+    'foo',
+    'bar'
+  )
+  and event_timestamp > current_timestamp - interval '360' day
+|> aggregate count(*) as cnt group by ts, workload_name
+|> order by ts asc, workload_name asc
+|> visualize using vegalite (
+  mark => bar,
+  encoding => (
+    x => (field => ts, type => temporal),
+    y => (field => cnt, type => quantitative, aggregate => 'sum', stack => 'normalize'),
+    color => (field => workload_name)
+  )
+))SQL";
+    auto script = ParseString(input);
+    ASSERT_TRUE(script->errors.empty());
+    buffers::formatting::FormattingConfigT config;
+    config.dialect = buffers::formatting::FormattingDialect::TRINO;
+    config.mode = buffers::formatting::FormattingMode::COMPACT;
+    config.max_width = 120;
+    config.indentation_width = 2;
+
+    Formatter formatter{*script};
+    auto formatted = formatter.Format(config);
+
+    EXPECT_FALSE(formatted.empty());
+    EXPECT_TRUE(formatter.IsFullyFormatted()) << formatted;
 }
 
 TEST(ParserTest, ParsesRelationalPipesInSelectContexts) {
@@ -289,19 +317,17 @@ TEST(ParserTest, ParsesRelationalPipesInSelectContexts) {
 
     for (auto input : inputs) {
         auto script = ParseString(input);
-        EXPECT_TRUE(script->errors.empty()) << input << ": "
-                                           << (script->errors.empty() ? "" : script->errors.front().message);
+        EXPECT_TRUE(script->errors.empty())
+            << input << ": " << (script->errors.empty() ? "" : script->errors.front().message);
         EXPECT_EQ(script->statements.size(), 1u) << input;
     }
 }
 
 TEST(ParserTest, ParsesRelationalPipeInCte) {
-    constexpr std::string_view input =
-        "WITH filtered AS (FROM sales |> WHERE revenue > 0) SELECT * FROM filtered";
+    constexpr std::string_view input = "WITH filtered AS (FROM sales |> WHERE revenue > 0) SELECT * FROM filtered";
     auto script = ParseString(input);
 
-    EXPECT_TRUE(script->errors.empty())
-        << (script->errors.empty() ? "" : script->errors.front().message);
+    EXPECT_TRUE(script->errors.empty()) << (script->errors.empty() ? "" : script->errors.front().message);
     EXPECT_EQ(script->statements.size(), 1u);
 }
 
@@ -334,15 +360,12 @@ TEST(ParserTest, DetectsParsedScriptFeatures) {
     EXPECT_EQ(plain->feature_flags, 0u);
 
     auto pipe = ParseString("FROM sales |> WHERE revenue > 0");
-    EXPECT_EQ(pipe->feature_flags,
-              static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::RELATIONAL_PIPE));
+    EXPECT_EQ(pipe->feature_flags, static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::RELATIONAL_PIPE));
 
     auto visualize = ParseString("SELECT 1 |> VISUALIZE USING vegalite (mark => bar)");
-    EXPECT_EQ(visualize->feature_flags,
-              static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE));
+    EXPECT_EQ(visualize->feature_flags, static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE));
 
-    auto piped_visualize =
-        ParseString("FROM sales |> WHERE revenue > 0 |> VISUALIZE USING vegalite (mark => bar)");
+    auto piped_visualize = ParseString("FROM sales |> WHERE revenue > 0 |> VISUALIZE USING vegalite (mark => bar)");
     EXPECT_EQ(piped_visualize->feature_flags,
               static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::RELATIONAL_PIPE) |
                   static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE));
@@ -362,11 +385,10 @@ FROM sales
 
     auto& root = script->nodes[script->statements.front().root];
     ASSERT_EQ(root.node_type(), buffers::parser::NodeType::OBJECT_VIS_VISUALISE);
-    auto source = std::find_if(script->nodes.begin() + root.children_begin_or_value(),
-                               script->nodes.begin() + root.children_begin_or_value() + root.children_count(),
-                               [](const auto& node) {
-                                   return node.attribute_key() == buffers::parser::AttributeKey::VIS_VISUALISE_SELECT;
-                               });
+    auto source = std::find_if(
+        script->nodes.begin() + root.children_begin_or_value(),
+        script->nodes.begin() + root.children_begin_or_value() + root.children_count(),
+        [](const auto& node) { return node.attribute_key() == buffers::parser::AttributeKey::VIS_VISUALISE_SELECT; });
     ASSERT_NE(source, script->nodes.end());
     EXPECT_EQ(source->node_type(), buffers::parser::NodeType::OBJECT_EXT_PIPE);
 }

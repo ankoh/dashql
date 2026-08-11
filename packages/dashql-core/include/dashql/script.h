@@ -460,6 +460,8 @@ class Script {
 
     /// Format a script
     std::string Format(const buffers::formatting::FormattingConfigT& config, bool parse_if_outdated = true);
+    std::vector<uint32_t> GetUnformattableNodes(const buffers::formatting::FormattingConfigT& config,
+                                                bool parse_if_outdated = true);
     bool IsFullyFormattable(const buffers::formatting::FormattingConfigT& config, bool parse_if_outdated = true);
 };
 
