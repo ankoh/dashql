@@ -2,6 +2,8 @@
 import * as arrow from 'apache-arrow';
 import { instantiateTestWebDB } from './duckdb_test_worker.js';
 import { DuckDB, DuckDBConnection } from './duckdb_api.js';
+import { translateAnyRowsToArrowBatch } from '../../compute/arrow_conversion.js';
+import { TestLogger } from '../logger/test_logger.js';
 
 // Use the precompiled WASM binary injected by vitest_setup.ts
 declare const WEBDB_PRECOMPILED: Promise<Uint8Array>;
@@ -157,6 +159,21 @@ describe('WebDB Arrow IPC Insert and Query', () => {
             { id: 4, name: 'David', age: 40, score: 88.1 },
             { id: 5, name: 'Eve', age: 45, score: 95.7 },
         ]);
+    });
+
+    it('should insert a Decimal128 table via IPC for post-aggregation', async () => {
+        const decimalType = new arrow.Decimal(1, 21, 128);
+        const schema = new arrow.Schema([new arrow.Field('amount', decimalType, true)]);
+        const batch = translateAnyRowsToArrowBatch(schema, [['12345678901234567890.1']], new TestLogger());
+        const table = new arrow.Table(schema, [batch]);
+
+        await conn.insertArrowTable(table, {
+            name: 'decimal_post_aggregation',
+            create: true,
+        });
+
+        const result = await conn.query('SELECT amount::VARCHAR AS amount FROM decimal_post_aggregation');
+        expect(toPlainObjects(result)).toEqual([{ amount: '12345678901234567890.1' }]);
     });
 
     it('should handle multiple inserts to the same table', async () => {

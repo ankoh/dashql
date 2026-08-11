@@ -24,4 +24,25 @@ describe('TrinoQueryResultStream', () => {
         const schema = await stream.getSchema();
         expect(schema?.fields.map(field => field.name)).toEqual(['customer_id']);
     });
+
+    it('uses Decimal128 for Trino decimals that exceed 64-bit precision', async () => {
+        const result: TrinoQueryResult = {
+            id: 'query-id',
+            columns: [{ name: 'amount', type: 'decimal(21, 1)' }],
+            stats: { state: 'FINISHED' },
+        } as TrinoQueryResult;
+        const stream = new TrinoQueryResultStream(
+            { debug: vi.fn() } as unknown as Logger,
+            {} as TrinoApiClientInterface,
+            new TrinoApiEndpoint('https://example.com', {} as never),
+            result,
+            createQueryResponseStreamMetrics(),
+        );
+
+        const schema = await stream.getSchema();
+        const decimal = schema?.fields[0].type as import('apache-arrow').Decimal;
+        expect(decimal.precision).toBe(21);
+        expect(decimal.scale).toBe(1);
+        expect(decimal.bitWidth).toBe(128);
+    });
 });

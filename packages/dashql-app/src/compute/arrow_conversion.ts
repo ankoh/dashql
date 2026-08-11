@@ -110,6 +110,58 @@ function createInt64Data(type: arrow.Int64, values: any[], tmpIsNull: Uint8Array
     return arrow.makeData({ type, offset: 0, length: n, nullCount, data: buffer, nullBitmap: nullCount > 0 ? validityBitmap : undefined });
 }
 
+/// Create Arrow Data for Decimal128
+function createDecimalData(type: arrow.Decimal, values: any[], tmpIsNull: Uint8Array): arrow.Data<arrow.Decimal> {
+    const n = values.length;
+    const stride = type.bitWidth / 32;
+    const buffer = new Uint32Array(n * stride);
+    tmpIsNull.fill(0);
+
+    for (let i = 0; i < n; i++) {
+        const value = values[i];
+        if (value == null || value === '') {
+            tmpIsNull[i] = 1;
+            continue;
+        }
+
+        try {
+            const text = String(value).trim();
+            const match = /^([+-]?)(\d*)(?:\.(\d*))?$/.exec(text);
+            if (!match || (!match[2] && !match[3])) {
+                tmpIsNull[i] = 1;
+                continue;
+            }
+
+            const fraction = match[3] ?? '';
+            if (fraction.length > type.scale) {
+                tmpIsNull[i] = 1;
+                continue;
+            }
+            const digits = `${match[2] || '0'}${fraction.padEnd(type.scale, '0')}`.replace(/^0+(?=\d)/, '');
+            let unscaled = BigInt(digits || '0');
+            if (match[1] === '-') unscaled = -unscaled;
+
+            const maxValue = (1n << BigInt(type.bitWidth - 1)) - 1n;
+            const minValue = -(1n << BigInt(type.bitWidth - 1));
+            if (unscaled < minValue || unscaled > maxValue) {
+                tmpIsNull[i] = 1;
+                continue;
+            }
+
+            if (unscaled < 0) unscaled += 1n << BigInt(type.bitWidth);
+            for (let word = 0; word < stride; word++) {
+                buffer[i * stride + word] = Number(unscaled & 0xffffffffn);
+                unscaled >>= 32n;
+            }
+        } catch {
+            tmpIsNull[i] = 1;
+        }
+    }
+
+    const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
+    return arrow.makeData({ type, offset: 0, length: n, nullCount, data: buffer, nullBitmap: nullCount > 0 ? validityBitmap : undefined });
+}
+
 /// Create Arrow Data for DateDay (days since epoch as Int32)
 function createDateDayData(type: arrow.DateDay, values: any[], tmpIsNull: Uint8Array): arrow.Data<arrow.DateDay> {
     const n = values.length;
@@ -321,6 +373,9 @@ function createColumnData(field: arrow.Field, values: any[], tmpIsNull: Uint8Arr
 
         case arrow.Type.Int64:
             return createInt64Data(type as arrow.Int64, values, tmpIsNull);
+
+        case arrow.Type.Decimal:
+            return createDecimalData(type as arrow.Decimal, values, tmpIsNull);
 
         case arrow.Type.DateDay:
             return createDateDayData(type as arrow.DateDay, values, tmpIsNull);

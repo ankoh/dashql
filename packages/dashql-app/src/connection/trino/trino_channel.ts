@@ -275,10 +275,6 @@ function parseTrinoType(typeStr: string): arrow.DataType {
     if (decimalMatch) {
         const precision = parseInt(decimalMatch[1], 10);
         const scale = parseInt(decimalMatch[2], 10);
-        // Use 128-bit decimal for high precision, 64-bit otherwise
-        if (precision > 18) {
-            return new arrow.Decimal(scale, precision, 256);
-        }
         return new arrow.Decimal(scale, precision, 128);
     }
     if (type === "decimal") {
