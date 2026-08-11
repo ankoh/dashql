@@ -1414,12 +1414,6 @@ sql_param_ref:
           Attr(Key::SQL_PARAMETER_NAME, ctx.Array(@2, {$2})),
       });
   }
-  | COLON sql_attr_name {
-      $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_PARAMETER_REF, {
-          Attr(Key::SQL_PARAMETER_PREFIX, Operator(@1)),
-          Attr(Key::SQL_PARAMETER_NAME, ctx.Array(@2, {$2})),
-      });
-  }
   | DOLLAR ICONST {
       $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_PARAMETER_REF, {
           Attr(Key::SQL_PARAMETER_PREFIX, Operator(@1)),

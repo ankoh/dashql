@@ -214,7 +214,7 @@ parser-snapshots:
   # Parse Data Cloud TABLE relation and named bind arguments
   - name: select_functable_table_argument
     input: |
-      select * from hybrid_search(TABLE("search_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION") as v;
+      select * from hybrid_search(TABLE("search_index__dlm"), $"_SEARCH_STRING", $"_PREFILTER_EXPRESSION") as v;
   # Parse Data Cloud hybrid search query with joins and a subquery
   - name: select_functable_table_argument_full_query
     input: |-
@@ -228,8 +228,8 @@ parser-snapshots:
       FROM
           hybrid_search(
               TABLE("KnowledgeArticle_index__dlm"),
-                  :"_SEARCH_STRING",
-                  :"_PREFILTER_EXPRESSION",
+                  $"_SEARCH_STRING",
+                  $"_PREFILTER_EXPRESSION",
                   /*Integer(EED3)*/
           ) AS "v"
               INNER JOIN "KnowledgeArticle_chunk__dlm" AS "c" ON "c"."RecordId__c" = "v"."RecordId__c"
@@ -237,7 +237,7 @@ parser-snapshots:
               AND "c"."SourceRecordId__c" IN (
                   SELECT DISTINCT "kds"."ParentId__c"
                   FROM "DataCategorySelectionCustom__dlm" AS "kds"
-                  WHERE ARRAY_CONTAINS(:"CATEGORY_IDS", "kds"."DataCategoryId__c")
+                  WHERE ARRAY_CONTAINS($"CATEGORY_IDS", "kds"."DataCategoryId__c")
               )
       ORDER BY "Score" DESC
           LIMIT /*Integer(7776)*/

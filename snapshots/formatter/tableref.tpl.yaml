@@ -185,7 +185,7 @@ formatter-snapshots:
       duckdb:
 
   - name: tableref_function_table_relation_argument
-    input: select * from hybrid_search(TABLE("search_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION") as v
+    input: select * from hybrid_search(TABLE("search_index__dlm"), $"_SEARCH_STRING", $"_PREFILTER_EXPRESSION") as v
     dialects:
       duckdb:
 
@@ -201,8 +201,8 @@ formatter-snapshots:
       FROM
           hybrid_search(
               TABLE("KnowledgeArticle_index__dlm"),
-                  :"_SEARCH_STRING",
-                  :"_PREFILTER_EXPRESSION",
+                  $"_SEARCH_STRING",
+                  $"_PREFILTER_EXPRESSION",
                   /*Integer(EED3)*/
           ) AS "v"
               INNER JOIN "KnowledgeArticle_chunk__dlm" AS "c" ON "c"."RecordId__c" = "v"."RecordId__c"
@@ -210,7 +210,7 @@ formatter-snapshots:
               AND "c"."SourceRecordId__c" IN (
                   SELECT DISTINCT "kds"."ParentId__c"
                   FROM "DataCategorySelectionCustom__dlm" AS "kds"
-                  WHERE ARRAY_CONTAINS(:"CATEGORY_IDS", "kds"."DataCategoryId__c")
+                  WHERE ARRAY_CONTAINS($"CATEGORY_IDS", "kds"."DataCategoryId__c")
               )
       ORDER BY "Score" DESC
           LIMIT /*Integer(7776)*/

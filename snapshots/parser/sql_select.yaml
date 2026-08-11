@@ -3032,7 +3032,7 @@ parser-snapshots:
 
   - name: select_functable_table_argument
     input: |-
-      select * from hybrid_search(TABLE("search_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION") as v;
+      select * from hybrid_search(TABLE("search_index__dlm"), $"_SEARCH_STRING", $"_PREFILTER_EXPRESSION") as v;
     expected:
       statements:
         - type: SELECT
@@ -3098,15 +3098,15 @@ parser-snapshots:
                                               - type: NAME
                                                 text: "\"search_index__dlm\""
                                   - type: OBJECT_SQL_FUNCTION_ARG
-                                    text: ":\"_SEARCH_STRING\""
+                                    text: "$\"_SEARCH_STRING\""
                                     children:
                                       - key: SQL_FUNCTION_ARG_VALUE
                                         type: OBJECT_SQL_PARAMETER_REF
-                                        text: ":\"_SEARCH_STRING\""
+                                        text: "$\"_SEARCH_STRING\""
                                         children:
                                           - key: SQL_PARAMETER_PREFIX
                                             type: OPERATOR
-                                            text: ":"
+                                            text: "$"
                                           - key: SQL_PARAMETER_NAME
                                             type: ARRAY
                                             text: "\"_SEARCH_STRING\""
@@ -3114,15 +3114,15 @@ parser-snapshots:
                                               - type: NAME
                                                 text: "\"_SEARCH_STRING\""
                                   - type: OBJECT_SQL_FUNCTION_ARG
-                                    text: ":\"_PREFILT..XPRESSION\""
+                                    text: "$\"_PREFILT..XPRESSION\""
                                     children:
                                       - key: SQL_FUNCTION_ARG_VALUE
                                         type: OBJECT_SQL_PARAMETER_REF
-                                        text: ":\"_PREFILT..XPRESSION\""
+                                        text: "$\"_PREFILT..XPRESSION\""
                                         children:
                                           - key: SQL_PARAMETER_PREFIX
                                             type: OPERATOR
-                                            text: ":"
+                                            text: "$"
                                           - key: SQL_PARAMETER_NAME
                                             type: ARRAY
                                             text: "\"_PREFILTE..XPRESSION\""
@@ -3149,8 +3149,8 @@ parser-snapshots:
       FROM
           hybrid_search(
               TABLE("KnowledgeArticle_index__dlm"),
-                  :"_SEARCH_STRING",
-                  :"_PREFILTER_EXPRESSION",
+                  $"_SEARCH_STRING",
+                  $"_PREFILTER_EXPRESSION",
                   /*Integer(EED3)*/
           ) AS "v"
               INNER JOIN "KnowledgeArticle_chunk__dlm" AS "c" ON "c"."RecordId__c" = "v"."RecordId__c"
@@ -3158,7 +3158,7 @@ parser-snapshots:
               AND "c"."SourceRecordId__c" IN (
                   SELECT DISTINCT "kds"."ParentId__c"
                   FROM "DataCategorySelectionCustom__dlm" AS "kds"
-                  WHERE ARRAY_CONTAINS(:"CATEGORY_IDS", "kds"."DataCategoryId__c")
+                  WHERE ARRAY_CONTAINS($"CATEGORY_IDS", "kds"."DataCategoryId__c")
               )
       ORDER BY "Score" DESC
           LIMIT /*Integer(7776)*/
@@ -3420,18 +3420,18 @@ parser-snapshots:
                                                             text: "ARRAY_CONTAINS"
                                                       - key: SQL_FUNCTION_ARGUMENTS
                                                         type: ARRAY
-                                                        text: ":\"CATEGORY..goryId__c\""
+                                                        text: "$\"CATEGORY..goryId__c\""
                                                         children:
                                                           - type: OBJECT_SQL_FUNCTION_ARG
-                                                            text: ":\"CATEGORY_IDS\""
+                                                            text: "$\"CATEGORY_IDS\""
                                                             children:
                                                               - key: SQL_FUNCTION_ARG_VALUE
                                                                 type: OBJECT_SQL_PARAMETER_REF
-                                                                text: ":\"CATEGORY_IDS\""
+                                                                text: "$\"CATEGORY_IDS\""
                                                                 children:
                                                                   - key: SQL_PARAMETER_PREFIX
                                                                     type: OPERATOR
-                                                                    text: ":"
+                                                                    text: "$"
                                                                   - key: SQL_PARAMETER_NAME
                                                                     type: ARRAY
                                                                     text: "\"CATEGORY_IDS\""
@@ -3545,15 +3545,15 @@ parser-snapshots:
                                                                       - type: NAME
                                                                         text: "\"Knowledge..ndex__dlm\""
                                                           - type: OBJECT_SQL_FUNCTION_ARG
-                                                            text: ":\"_SEARCH_STRING\""
+                                                            text: "$\"_SEARCH_STRING\""
                                                             children:
                                                               - key: SQL_FUNCTION_ARG_VALUE
                                                                 type: OBJECT_SQL_PARAMETER_REF
-                                                                text: ":\"_SEARCH_STRING\""
+                                                                text: "$\"_SEARCH_STRING\""
                                                                 children:
                                                                   - key: SQL_PARAMETER_PREFIX
                                                                     type: OPERATOR
-                                                                    text: ":"
+                                                                    text: "$"
                                                                   - key: SQL_PARAMETER_NAME
                                                                     type: ARRAY
                                                                     text: "\"_SEARCH_STRING\""
@@ -3561,15 +3561,15 @@ parser-snapshots:
                                                                       - type: NAME
                                                                         text: "\"_SEARCH_STRING\""
                                                           - type: OBJECT_SQL_FUNCTION_ARG
-                                                            text: ":\"_PREFILT..XPRESSION\""
+                                                            text: "$\"_PREFILT..XPRESSION\""
                                                             children:
                                                               - key: SQL_FUNCTION_ARG_VALUE
                                                                 type: OBJECT_SQL_PARAMETER_REF
-                                                                text: ":\"_PREFILT..XPRESSION\""
+                                                                text: "$\"_PREFILT..XPRESSION\""
                                                                 children:
                                                                   - key: SQL_PARAMETER_PREFIX
                                                                     type: OPERATOR
-                                                                    text: ":"
+                                                                    text: "$"
                                                                   - key: SQL_PARAMETER_NAME
                                                                     type: ARRAY
                                                                     text: "\"_PREFILTE..XPRESSION\""

@@ -72,6 +72,23 @@ TEST(ParserTest, NoHintWhenStringLiteralIsValid) {
     EXPECT_TRUE(script->errors.empty());
 }
 
+TEST(ParserTest, ParsesDollarParametersAndArraySlices) {
+    constexpr std::array<std::string_view, 5> inputs = {
+        "SELECT $name",
+        "SELECT $1",
+        "SELECT values[:2]",
+        "SELECT values[1:]",
+        "SELECT values[:]",
+    };
+
+    for (auto input : inputs) {
+        auto script = ParseString(input);
+        EXPECT_TRUE(script->errors.empty()) << input << ": "
+                                           << (script->errors.empty() ? "" : script->errors.front().message);
+        EXPECT_EQ(script->statements.size(), 1u) << input;
+    }
+}
+
 TEST(ParserTest, HintForStringLiteralAsImplicitAlias) {
     // `select 1 'foo'` errors at SCONST because the implicit-alias rule requires IDENT (only
     // explicit AS accepts a string literal). IDENT would have been valid → hint should appear.

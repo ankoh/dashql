@@ -439,20 +439,20 @@ formatter-snapshots:
 
   - name: tableref_function_table_relation_argument
     input: |-
-      select * from hybrid_search(TABLE("search_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION") as v
+      select * from hybrid_search(TABLE("search_index__dlm"), $"_SEARCH_STRING", $"_PREFILTER_EXPRESSION") as v
     dialects:
       duckdb:
         formatted:
           - mode: inline
             expected: |-
-              select * from hybrid_search(table("search_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION") v;
+              select * from hybrid_search(table("search_index__dlm"), $"_SEARCH_STRING", $"_PREFILTER_EXPRESSION") v;
           - mode: compact
             expected: |-
-              select * from hybrid_search(table("search_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION") v;
+              select * from hybrid_search(table("search_index__dlm"), $"_SEARCH_STRING", $"_PREFILTER_EXPRESSION") v;
           - mode: pretty
             expected: |-
               select *
-              from hybrid_search(table("search_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION") v;
+              from hybrid_search(table("search_index__dlm"), $"_SEARCH_STRING", $"_PREFILTER_EXPRESSION") v;
 
   - name: tableref_function_table_relation_argument_full_query
     input: |-
@@ -466,8 +466,8 @@ formatter-snapshots:
       FROM
           hybrid_search(
               TABLE("KnowledgeArticle_index__dlm"),
-                  :"_SEARCH_STRING",
-                  :"_PREFILTER_EXPRESSION",
+                  $"_SEARCH_STRING",
+                  $"_PREFILTER_EXPRESSION",
                   /*Integer(EED3)*/
           ) AS "v"
               INNER JOIN "KnowledgeArticle_chunk__dlm" AS "c" ON "c"."RecordId__c" = "v"."RecordId__c"
@@ -475,7 +475,7 @@ formatter-snapshots:
               AND "c"."SourceRecordId__c" IN (
                   SELECT DISTINCT "kds"."ParentId__c"
                   FROM "DataCategorySelectionCustom__dlm" AS "kds"
-                  WHERE ARRAY_CONTAINS(:"CATEGORY_IDS", "kds"."DataCategoryId__c")
+                  WHERE ARRAY_CONTAINS($"CATEGORY_IDS", "kds"."DataCategoryId__c")
               )
       ORDER BY "Score" DESC
           LIMIT /*Integer(7776)*/
@@ -484,14 +484,14 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select "v"."hybrid_score__c" as "Score", "c"."Chunk__c" as "Chunk", "c"."SourceRecordId__c" as "SourceRecordId", "c"."RecordId__c" as "RecordId", "c"."DataSource__c" as "DataSource", "c"."DataSourceObject__c" as "DataSourceObject" from hybrid_search(table("KnowledgeArticle_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION", /*Integer(EED3)*/) "v" join "KnowledgeArticle_chunk__dlm" "c" on "c"."RecordId__c" = "v"."RecordId__c" join "ssot__KnowledgeArticleVersion__dlm" "kav" on "c"."SourceRecordId__c" = "kav"."ssot__Id__c" and "c"."SourceRecordId__c" in (select distinct "kds"."ParentId__c" from "DataCategorySelectionCustom__dlm" "kds" where ARRAY_CONTAINS(:"CATEGORY_IDS", "kds"."DataCategoryId__c")) order by "Score" desc limit /*Integer(7776)*/;
+              select "v"."hybrid_score__c" as "Score", "c"."Chunk__c" as "Chunk", "c"."SourceRecordId__c" as "SourceRecordId", "c"."RecordId__c" as "RecordId", "c"."DataSource__c" as "DataSource", "c"."DataSourceObject__c" as "DataSourceObject" from hybrid_search(table("KnowledgeArticle_index__dlm"), $"_SEARCH_STRING", $"_PREFILTER_EXPRESSION", /*Integer(EED3)*/) "v" join "KnowledgeArticle_chunk__dlm" "c" on "c"."RecordId__c" = "v"."RecordId__c" join "ssot__KnowledgeArticleVersion__dlm" "kav" on "c"."SourceRecordId__c" = "kav"."ssot__Id__c" and "c"."SourceRecordId__c" in (select distinct "kds"."ParentId__c" from "DataCategorySelectionCustom__dlm" "kds" where ARRAY_CONTAINS($"CATEGORY_IDS", "kds"."DataCategoryId__c")) order by "Score" desc limit /*Integer(7776)*/;
           - mode: compact
             expected: |-
               select "v"."hybrid_score__c" as "Score", "c"."Chunk__c" as "Chunk", "c"."SourceRecordId__c" as "SourceRecordId",
                 "c"."RecordId__c" as "RecordId", "c"."DataSource__c" as "DataSource",
                 "c"."DataSourceObject__c" as "DataSourceObject"
               from hybrid_search(
-                  table("KnowledgeArticle_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION", /*Integer(EED3)*/
+                  table("KnowledgeArticle_index__dlm"), $"_SEARCH_STRING", $"_PREFILTER_EXPRESSION", /*Integer(EED3)*/
                 ) "v"
                 join "KnowledgeArticle_chunk__dlm" "c" on "c"."RecordId__c" = "v"."RecordId__c"
                 join "ssot__KnowledgeArticleVersion__dlm" "kav"
@@ -499,7 +499,7 @@ formatter-snapshots:
                     and "c"."SourceRecordId__c" in (
                       select distinct "kds"."ParentId__c"
                       from "DataCategorySelectionCustom__dlm" "kds"
-                      where ARRAY_CONTAINS(:"CATEGORY_IDS", "kds"."DataCategoryId__c")
+                      where ARRAY_CONTAINS($"CATEGORY_IDS", "kds"."DataCategoryId__c")
                     )
               order by "Score" desc
               limit /*Integer(7776)*/;
@@ -512,7 +512,7 @@ formatter-snapshots:
                 "c"."DataSource__c" as "DataSource",
                 "c"."DataSourceObject__c" as "DataSourceObject"
               from hybrid_search(
-                  table("KnowledgeArticle_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION", /*Integer(EED3)*/
+                  table("KnowledgeArticle_index__dlm"), $"_SEARCH_STRING", $"_PREFILTER_EXPRESSION", /*Integer(EED3)*/
                 ) "v"
                 join "KnowledgeArticle_chunk__dlm" "c" on "c"."RecordId__c" = "v"."RecordId__c"
                 join "ssot__KnowledgeArticleVersion__dlm" "kav"
@@ -520,7 +520,7 @@ formatter-snapshots:
                     and "c"."SourceRecordId__c" in (
                       select distinct "kds"."ParentId__c"
                       from "DataCategorySelectionCustom__dlm" "kds"
-                      where ARRAY_CONTAINS(:"CATEGORY_IDS", "kds"."DataCategoryId__c")
+                      where ARRAY_CONTAINS($"CATEGORY_IDS", "kds"."DataCategoryId__c")
                     )
               order by "Score" desc
               limit /*Integer(7776)*/;
