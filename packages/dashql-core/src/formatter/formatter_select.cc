@@ -77,12 +77,8 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
     }
 
     if (query == 0) {
-        if (select_into || select_windows || select_row_locking || select_sample || select_limit_all) {
-            return FormatUnimplemented(node);
-        }
-
         std::vector<FmtReg> clauses;
-        clauses.reserve(8);
+        clauses.reserve(12);
         if (select_values) {
             auto values_reg = Reg(*select_values);
             if (values_reg == 0) return FormatUnimplemented(node);
@@ -103,9 +99,16 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
                 } else {
                     clauses.push_back(fmt.Concat({fmt.Text("select distinct "), body}));
                 }
+            } else if (select_all) {
+                clauses.push_back(fmt.Concat({fmt.Text("select all "), body}));
             } else {
                 clauses.push_back(fmt.Concat({fmt.Text("select "), body}));
             }
+        }
+        if (select_into) {
+            auto body = Reg(*select_into);
+            if (body == 0) return FormatUnimplemented(node);
+            clauses.push_back(body);
         }
         if (select_from) {
             auto body = Reg(*select_from);
@@ -123,17 +126,37 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
             auto body = Reg(*select_having);
             clauses.push_back(fmt.Concat({fmt.Text("having "), body}));
         }
+        if (select_windows) {
+            auto body = Reg(*select_windows);
+            if (body == 0) return FormatUnimplemented(node);
+            clauses.push_back(fmt.Concat({fmt.Text("window "), body}));
+        }
+        if (select_sample) {
+            auto body = Reg(*select_sample);
+            if (body == 0) return FormatUnimplemented(node);
+            clauses.push_back(body);
+        }
         if (select_order) {
             auto body = Reg(*select_order);
             clauses.push_back(fmt.Concat({fmt.Text("order by "), body}));
         }
-        if (select_limit) {
+        if (select_limit_all) {
+            clauses.push_back(fmt.Text("limit all"));
+        } else if (select_limit) {
             auto body = Reg(*select_limit);
+            if (select_limit->node_type() == NodeType::BOOL && select_limit->children_begin_or_value() != 0) {
+                body = fmt.Text("1");
+            }
             clauses.push_back(fmt.Concat({fmt.Text("limit "), body}));
         }
         if (select_offset) {
             auto body = Reg(*select_offset);
             clauses.push_back(fmt.Concat({fmt.Text("offset "), body}));
+        }
+        if (select_row_locking) {
+            auto body = Reg(*select_row_locking);
+            if (body == 0) return FormatUnimplemented(node);
+            clauses.push_back(body);
         }
 
         if (clauses.empty()) return FormatUnimplemented(node);

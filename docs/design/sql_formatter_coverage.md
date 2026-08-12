@@ -22,7 +22,7 @@ The parser corpus is the breadth gate; formatter snapshots define layout quality
 
 1. **Top-level statements**: `CREATE TABLE AS`, `CREATE VIEW`, `CREATE FUNCTION`, `CREATE AGGREGATE`, `SET`, and all
    modifiers on existing `CREATE TABLE` support.
-2. **SELECT clauses**: `INTO`, named windows, row locking, query sampling, and table sampling.
+2. **SELECT clauses**: `ALL`, `INTO`, named windows, row locking, query sampling, table sampling, and limit/fetch forms.
 3. **Expressions and types**: bit types, type tests, quantified subqueries, indirection, array subscripts, and lambdas.
 4. **FROM variants**: `ROWS FROM` items, aliases with column definitions, ordinality, and nested table-reference forms.
 5. **Dialect corpus**: run TPCH, TPCDS, SSB, Trino, and regression parser fixtures through all formatting modes.
@@ -42,3 +42,6 @@ The parser corpus is the breadth gate; formatter snapshots define layout quality
 The first implementation covers top-level statement families already present in the parser corpus: `CREATE TABLE AS`,
 `CREATE VIEW`, `CREATE FUNCTION`, `CREATE AGGREGATE`, and nested `SET` varargs. It also formats temporary/unlogged and
 `ON COMMIT` modifiers instead of rejecting otherwise supported `CREATE TABLE` statements.
+
+The second implementation covers SELECT-level `ALL`, `INTO`, named windows, every row-locking strength and blocking
+behavior, query/table sampling forms, `LIMIT ALL`, and count-less `FETCH FIRST ROW ONLY` normalization.

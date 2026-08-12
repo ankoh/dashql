@@ -1,0 +1,81 @@
+formatter-snapshots:
+
+  - name: coverage_select_all
+    input: select all value from source
+    dialects:
+      duckdb:
+
+  - name: coverage_select_into
+    input: select a into result from source
+    dialects:
+      duckdb:
+
+  - name: coverage_select_into_temporary
+    input: select a into local temporary table result from source
+    dialects:
+      duckdb:
+
+  - name: coverage_named_windows
+    input: select sum(value) over first_window from source window first_window as (partition by category rows between 1 preceding and current row), second_window as (partition by region)
+    dialects:
+      duckdb:
+
+  - name: coverage_row_locking_update
+    input: select * from source for update
+    dialects:
+      duckdb:
+
+  - name: coverage_row_locking_options
+    input: select * from source for no key update of source, other skip locked
+    dialects:
+      duckdb:
+
+  - name: coverage_row_locking_share_nowait
+    input: select * from source for share nowait
+    dialects:
+      duckdb:
+
+  - name: coverage_row_locking_key_share
+    input: select * from source for key share
+    dialects:
+      duckdb:
+
+  - name: coverage_row_locking_read_only
+    input: select * from source for read only
+    dialects:
+      duckdb:
+
+  - name: coverage_select_sample_rows
+    input: select * from source using sample 5 rows
+    dialects:
+      duckdb:
+
+  - name: coverage_select_sample_percent
+    input: select * from source using sample 10%
+    dialects:
+      duckdb:
+
+  - name: coverage_select_sample_method
+    input: select * from source using sample reservoir(50 rows) repeatable (100)
+    dialects:
+      duckdb:
+
+  - name: coverage_select_sample_seed
+    input: select * from source using sample 10% (system, 377)
+    dialects:
+      duckdb:
+
+  - name: coverage_table_sample
+    input: select * from source tablesample reservoir(20%)
+    dialects:
+      duckdb:
+
+  - name: coverage_limit_all
+    input: select * from source limit all offset 21
+    dialects:
+      duckdb:
+
+  - name: coverage_fetch_default_count
+    input: select * from source fetch first row only
+    dialects:
+      duckdb:

@@ -1,0 +1,292 @@
+formatter-snapshots:
+
+  - name: coverage_select_all
+    input: |-
+      select all value from source
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select all value from source;
+          - mode: compact
+            expected: |-
+              select all value from source;
+          - mode: pretty
+            expected: |-
+              select all value
+              from source;
+
+  - name: coverage_select_into
+    input: |-
+      select a into result from source
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a into result from source;
+          - mode: compact
+            expected: |-
+              select a into result from source;
+          - mode: pretty
+            expected: |-
+              select a
+              into result
+              from source;
+
+  - name: coverage_select_into_temporary
+    input: |-
+      select a into local temporary table result from source
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a into temporary result from source;
+          - mode: compact
+            expected: |-
+              select a into temporary result from source;
+          - mode: pretty
+            expected: |-
+              select a
+              into temporary result
+              from source;
+
+  - name: coverage_named_windows
+    input: |-
+      select sum(value) over first_window from source window first_window as (partition by category rows between 1 preceding and current row), second_window as (partition by region)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select sum(value) over (first_window) from source window first_window as (partition by category rows between 1 preceding and current row), second_window as (partition by region);
+          - mode: compact
+            expected: |-
+              select sum(value) over (first_window)
+              from source
+              window first_window as (partition by category rows between 1 preceding and current row),
+                second_window as (partition by region);
+          - mode: pretty
+            expected: |-
+              select sum(value) over (first_window)
+              from source
+              window first_window as (partition by category rows between 1 preceding and current row),
+                second_window as (partition by region);
+
+  - name: coverage_row_locking_update
+    input: |-
+      select * from source for update
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from source for update;
+          - mode: compact
+            expected: |-
+              select * from source for update;
+          - mode: pretty
+            expected: |-
+              select *
+              from source
+              for update;
+
+  - name: coverage_row_locking_options
+    input: |-
+      select * from source for no key update of source, other skip locked
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from source for no key update of source, other skip locked;
+          - mode: compact
+            expected: |-
+              select * from source for no key update of source, other skip locked;
+          - mode: pretty
+            expected: |-
+              select *
+              from source
+              for no key update of source, other skip locked;
+
+  - name: coverage_row_locking_share_nowait
+    input: |-
+      select * from source for share nowait
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from source for share nowait;
+          - mode: compact
+            expected: |-
+              select * from source for share nowait;
+          - mode: pretty
+            expected: |-
+              select *
+              from source
+              for share nowait;
+
+  - name: coverage_row_locking_key_share
+    input: |-
+      select * from source for key share
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from source for key share;
+          - mode: compact
+            expected: |-
+              select * from source for key share;
+          - mode: pretty
+            expected: |-
+              select *
+              from source
+              for key share;
+
+  - name: coverage_row_locking_read_only
+    input: |-
+      select * from source for read only
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from source for read only;
+          - mode: compact
+            expected: |-
+              select * from source for read only;
+          - mode: pretty
+            expected: |-
+              select *
+              from source
+              for read only;
+
+  - name: coverage_select_sample_rows
+    input: |-
+      select * from source using sample 5 rows
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from source using sample 5 rows;
+          - mode: compact
+            expected: |-
+              select * from source using sample 5 rows;
+          - mode: pretty
+            expected: |-
+              select *
+              from source
+              using sample 5 rows;
+
+  - name: coverage_select_sample_percent
+    input: |-
+      select * from source using sample 10%
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from source using sample 10%;
+          - mode: compact
+            expected: |-
+              select * from source using sample 10%;
+          - mode: pretty
+            expected: |-
+              select *
+              from source
+              using sample 10%;
+
+  - name: coverage_select_sample_method
+    input: |-
+      select * from source using sample reservoir(50 rows) repeatable (100)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from source using sample reservoir(50 rows) repeatable (100);
+          - mode: compact
+            expected: |-
+              select * from source using sample reservoir(50 rows) repeatable (100);
+          - mode: pretty
+            expected: |-
+              select *
+              from source
+              using sample reservoir(50 rows) repeatable (100);
+
+  - name: coverage_select_sample_seed
+    input: |-
+      select * from source using sample 10% (system, 377)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from source using sample 10% (system, 377);
+          - mode: compact
+            expected: |-
+              select * from source using sample 10% (system, 377);
+          - mode: pretty
+            expected: |-
+              select *
+              from source
+              using sample 10% (system, 377);
+
+  - name: coverage_table_sample
+    input: |-
+      select * from source tablesample reservoir(20%)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from source tablesample reservoir(20%);
+          - mode: compact
+            expected: |-
+              select * from source tablesample reservoir(20%);
+          - mode: pretty
+            expected: |-
+              select *
+              from source tablesample reservoir(20%);
+
+  - name: coverage_limit_all
+    input: |-
+      select * from source limit all offset 21
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from source limit all offset 21;
+          - mode: compact
+            expected: |-
+              select * from source limit all offset 21;
+          - mode: pretty
+            expected: |-
+              select *
+              from source
+              limit all
+              offset 21;
+
+  - name: coverage_fetch_default_count
+    input: |-
+      select * from source fetch first row only
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from source limit 1;
+          - mode: compact
+            expected: |-
+              select * from source limit 1;
+          - mode: pretty
+            expected: |-
+              select *
+              from source
+              limit 1;

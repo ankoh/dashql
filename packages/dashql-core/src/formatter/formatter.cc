@@ -30,6 +30,9 @@ using TrimDirection = buffers::parser::TrimDirection;
 using WindowBoundDirection = buffers::parser::WindowBoundDirection;
 using WindowBoundMode = buffers::parser::WindowBoundMode;
 using WindowRangeMode = buffers::parser::WindowRangeMode;
+using RowLockingStrength = buffers::parser::RowLockingStrength;
+using RowLockingBlockBehavior = buffers::parser::RowLockingBlockBehavior;
+using SampleCountUnit = buffers::parser::SampleCountUnit;
 
 namespace {
 
@@ -545,6 +548,9 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         if (parent_id < ast.size() && ast[parent_id].attribute_key() == AttributeKey::SQL_EXPRESSION_ARGS) {
             return FormatCommaList(node);
         }
+        if (parent_id < ast.size() && ast[parent_id].attribute_key() == AttributeKey::SQL_ROW_LOCKING_OF) {
+            return FormatQualifiedName(node);
+        }
         if (parent_id < ast.size() && ast[parent_id].node_type() == NodeType::OBJECT_SQL_NARY_EXPRESSION) {
             return FormatCommaList(node);
         }
@@ -574,6 +580,9 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_CREATE_AS_COLUMNS:
         case AttributeKey::SQL_VIEW_COLUMNS:
         case AttributeKey::SQL_CREATE_FUNCTION_PARAMS:
+        case AttributeKey::SQL_SELECT_WINDOWS:
+        case AttributeKey::SQL_SELECT_ROW_LOCKING:
+        case AttributeKey::SQL_ROW_LOCKING_OF:
         case AttributeKey::SQL_GROUP_BY_ITEM_ARG:
             return FormatCommaList(node);
         case AttributeKey::EXT_VARARG_FIELD_VALUE:
@@ -601,7 +610,6 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
             return fmt.Join(parts, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}), policy,
                             indent_after_breaks);
         }
-        case AttributeKey::SQL_ROW_LOCKING_OF:
         case AttributeKey::SQL_TEMP_NAME:
         case AttributeKey::SQL_CREATE_TABLE_NAME:
         case AttributeKey::SQL_FUNCTION_NAME:
@@ -633,9 +641,10 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
 }
 
 FmtReg Formatter::FormatTableRef(const buffers::parser::Node& node) {
-    auto [name, alias, table, lateral] =
+    auto [name, alias, table, lateral, sample] =
         GetAttributes<AttributeKey::SQL_TABLEREF_NAME, AttributeKey::SQL_TABLEREF_ALIAS,
-                      AttributeKey::SQL_TABLEREF_TABLE, AttributeKey::SQL_TABLEREF_LATERAL>(node);
+                      AttributeKey::SQL_TABLEREF_TABLE, AttributeKey::SQL_TABLEREF_LATERAL,
+                      AttributeKey::SQL_TABLEREF_SAMPLE>(node);
 
     FmtReg base_reg = 0;
     if (table) {
@@ -652,10 +661,115 @@ FmtReg Formatter::FormatTableRef(const buffers::parser::Node& node) {
         base_reg = fmt.Concat({fmt.Text("lateral "), base_reg});
     }
 
-    if (!alias) return base_reg;
-    auto alias_reg = Reg(*alias);
-    if (alias_reg == 0) return FormatUnimplemented(node);
-    return fmt.Concat({base_reg, fmt.Text(" "), alias_reg});
+    if (alias) {
+        auto alias_reg = Reg(*alias);
+        if (alias_reg == 0) return FormatUnimplemented(node);
+        base_reg = fmt.Concat({base_reg, fmt.Text(" "), alias_reg});
+    }
+    if (sample) {
+        auto sample_reg = Reg(*sample);
+        if (sample_reg == 0) return FormatUnimplemented(node);
+        base_reg = fmt.Concat({base_reg, fmt.Text(" "), sample_reg});
+    }
+    return base_reg;
+}
+
+FmtReg Formatter::FormatInto(const buffers::parser::Node& node) {
+    auto [temp, name] = GetAttributes<AttributeKey::SQL_TEMP_TYPE, AttributeKey::SQL_TEMP_NAME>(node);
+    if (!name) return FormatUnimplemented(node);
+
+    std::vector<FmtReg> parts{fmt.Text("into ")};
+    if (temp) {
+        auto type = static_cast<buffers::parser::TempType>(temp->children_begin_or_value());
+        if (type != buffers::parser::TempType::NONE) {
+            parts.push_back(Reg(*temp));
+            parts.push_back(fmt.Text(" "));
+        }
+    }
+    parts.push_back(Reg(*name));
+    return fmt.Concat(std::move(parts));
+}
+
+FmtReg Formatter::FormatWindowDef(const buffers::parser::Node& node) {
+    auto [name, frame] =
+        GetAttributes<AttributeKey::SQL_WINDOW_DEF_NAME, AttributeKey::SQL_WINDOW_DEF_FRAME>(node);
+    if (!name || !frame) return FormatUnimplemented(node);
+    return fmt.Concat({Reg(*name), fmt.Text(" as "), fmt.Parenthesized(Reg(*frame))});
+}
+
+FmtReg Formatter::FormatRowLockingStrength(const buffers::parser::Node& node) {
+    switch (static_cast<RowLockingStrength>(node.children_begin_or_value())) {
+        case RowLockingStrength::UPDATE:
+            return fmt.Text("for update");
+        case RowLockingStrength::NO_KEY_UPDATE:
+            return fmt.Text("for no key update");
+        case RowLockingStrength::SHARE:
+            return fmt.Text("for share");
+        case RowLockingStrength::KEY_SHARE:
+            return fmt.Text("for key share");
+        case RowLockingStrength::READ_ONLY:
+            return fmt.Text("for read only");
+    }
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatRowLockingBlockBehavior(const buffers::parser::Node& node) {
+    switch (static_cast<RowLockingBlockBehavior>(node.children_begin_or_value())) {
+        case RowLockingBlockBehavior::NOWAIT:
+            return fmt.Text("nowait");
+        case RowLockingBlockBehavior::SKIP_LOCKED:
+            return fmt.Text("skip locked");
+    }
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatRowLocking(const buffers::parser::Node& node) {
+    auto [strength, of, behavior] =
+        GetAttributes<AttributeKey::SQL_ROW_LOCKING_STRENGTH, AttributeKey::SQL_ROW_LOCKING_OF,
+                      AttributeKey::SQL_ROW_LOCKING_BLOCK_BEHAVIOR>(node);
+    if (!strength) return FormatUnimplemented(node);
+
+    std::vector<FmtReg> parts{Reg(*strength)};
+    if (of && of->children_count() > 0) {
+        parts.push_back(fmt.Text(" of "));
+        parts.push_back(Reg(*of));
+    }
+    if (behavior) {
+        parts.push_back(fmt.Text(" "));
+        parts.push_back(Reg(*behavior));
+    }
+    return fmt.Concat(std::move(parts));
+}
+
+FmtReg Formatter::FormatSampleUnit(const buffers::parser::Node& node) {
+    switch (static_cast<SampleCountUnit>(node.children_begin_or_value())) {
+        case SampleCountUnit::PERCENT:
+            return fmt.Text("%");
+        case SampleCountUnit::ROWS:
+            return fmt.Text(" rows");
+    }
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatSample(const buffers::parser::Node& node, bool table_sample) {
+    auto [value, unit, function, repeat, seed] =
+        GetAttributes<AttributeKey::SQL_SAMPLE_COUNT_VALUE, AttributeKey::SQL_SAMPLE_COUNT_UNIT,
+                      AttributeKey::SQL_SAMPLE_FUNCTION, AttributeKey::SQL_SAMPLE_REPEAT,
+                      AttributeKey::SQL_SAMPLE_SEED>(node);
+    if (!value || !unit) return FormatUnimplemented(node);
+
+    auto count = fmt.Concat({Reg(*value), Reg(*unit)});
+    FmtReg body = count;
+    if (function && seed) {
+        body = fmt.Concat({count, fmt.Text(" "), fmt.Parenthesized(
+                                                       fmt.Concat({Reg(*function), fmt.Text(", "), Reg(*seed)}))});
+    } else if (function) {
+        body = fmt.Concat({Reg(*function), fmt.Parenthesized(count)});
+    }
+    if (repeat) {
+        body = fmt.Concat({body, fmt.Text(" repeatable "), fmt.Parenthesized(Reg(*repeat))});
+    }
+    return fmt.Concat({fmt.Text(table_sample ? "tablesample " : "using sample "), body});
 }
 
 FmtReg Formatter::FormatJoinedTable(const buffers::parser::Node& node) {
@@ -2184,6 +2298,22 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatTableRef(node);
         case NodeType::OBJECT_SQL_JOINED_TABLE:
             return FormatJoinedTable(node);
+        case NodeType::OBJECT_SQL_INTO:
+            return FormatInto(node);
+        case NodeType::OBJECT_SQL_WINDOW_DEF:
+            return FormatWindowDef(node);
+        case NodeType::OBJECT_SQL_ROW_LOCKING:
+            return FormatRowLocking(node);
+        case NodeType::ENUM_SQL_ROW_LOCKING_STRENGTH:
+            return FormatRowLockingStrength(node);
+        case NodeType::ENUM_SQL_ROW_LOCKING_BLOCK_BEHAVIOR:
+            return FormatRowLockingBlockBehavior(node);
+        case NodeType::OBJECT_SQL_SELECT_SAMPLE:
+            return FormatSample(node, false);
+        case NodeType::OBJECT_SQL_TABLEREF_SAMPLE:
+            return FormatSample(node, true);
+        case NodeType::ENUM_SQL_SAMPLE_UNIT_TYPE:
+            return FormatSampleUnit(node);
         case NodeType::OBJECT_SQL_GROUP_BY_ITEM:
             return FormatGroupByItem(node);
         case NodeType::ENUM_SQL_GROUP_BY_ITEM_TYPE:

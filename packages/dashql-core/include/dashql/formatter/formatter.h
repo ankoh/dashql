@@ -85,6 +85,13 @@ struct Formatter {
     FmtReg FormatResultTarget(const buffers::parser::Node& node);
     FmtReg FormatTableRef(const buffers::parser::Node& node);
     FmtReg FormatJoinedTable(const buffers::parser::Node& node);
+    FmtReg FormatInto(const buffers::parser::Node& node);
+    FmtReg FormatWindowDef(const buffers::parser::Node& node);
+    FmtReg FormatRowLocking(const buffers::parser::Node& node);
+    FmtReg FormatRowLockingStrength(const buffers::parser::Node& node);
+    FmtReg FormatRowLockingBlockBehavior(const buffers::parser::Node& node);
+    FmtReg FormatSample(const buffers::parser::Node& node, bool table_sample);
+    FmtReg FormatSampleUnit(const buffers::parser::Node& node);
     FmtReg FormatGroupByItem(const buffers::parser::Node& node);
     FmtReg FormatOrder(const buffers::parser::Node& node);
     FmtReg FormatOrderDirection(const buffers::parser::Node& node);
