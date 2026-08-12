@@ -439,6 +439,7 @@ sh_binary(
         ":dep_protobuf",
         ":dep_jsonschema",
         ":dep_core_wasm",
+        ":dep_shell_wasm",
         ":dep_umap_wasm",
         ":dep_svg_symbols",
     ],
