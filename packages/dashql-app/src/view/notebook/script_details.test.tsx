@@ -13,6 +13,7 @@ import {
 
 const mockState = vi.hoisted(() => ({
     executeQuery: vi.fn(),
+    isFormattable: true,
     keyHandlers: [] as Array<{
         key: string;
         ctrlKey?: boolean;
@@ -77,6 +78,7 @@ function makeScriptData(scriptKey: number, text: string, fileName: string) {
                 destroy: () => { },
             }),
             analyze: () => { },
+            isFullyFormattable: () => mockState.isFormattable,
             getParsed: () => null,
             getAnalyzed: () => null,
         } as any,
@@ -135,6 +137,7 @@ describe('ScriptDetails', () => {
         mockState.keyHandlers = [];
         mockState.executeQuery.mockReset();
         mockState.executeQuery.mockReturnValue([42, Promise.resolve(null)]);
+        mockState.isFormattable = true;
     });
 
     afterEach(() => {
@@ -206,5 +209,77 @@ describe('ScriptDetails', () => {
             cacheable: true,
         }));
         expect(modifyNotebookScripts).toHaveBeenCalledWith({ type: REGISTER_QUERY, value: [102, 42] });
+    });
+
+    it('shows formatting warnings from the details card header', () => {
+        mockState.isFormattable = false;
+
+        act(() => {
+            root.render(
+                <ScriptDetails
+                    notebookScripts={createNotebookScripts()}
+                    modifyNotebookScripts={vi.fn()}
+                    connection={null}
+                    hideDetails={vi.fn()}
+                    scriptId={102}
+                />,
+            );
+        });
+
+        const diagnosticsButton = container.querySelector('[aria-label="Show script warnings"]') as HTMLButtonElement;
+        expect(diagnosticsButton).not.toBeNull();
+        act(() => diagnosticsButton.click());
+        expect(document.querySelector('[role="dialog"][aria-label="Script diagnostics"]')?.textContent)
+            .toContain('This script cannot be formatted');
+    });
+
+    it('uses the error icon when script diagnostics include errors', () => {
+        const notebookScripts = createNotebookScripts();
+        notebookScripts.scripts[102].scriptAnalysis.buffers.analyzed = {
+            read: () => ({
+                errorsLength: () => 2,
+                errors: (index: number) => ({
+                    message: () => index === 0 ? 'Unknown column' : 'Unsupported visualization key',
+                    severity: () => index === 0 ? 0 : 1,
+                    errorType: () => index === 0 ? 0 : 2,
+                    astNodeId: () => 7,
+                    textSpan: () => null,
+                    symbolSpan: () => null,
+                }),
+            }),
+        } as any;
+
+        act(() => {
+            root.render(
+                <ScriptDetails
+                    notebookScripts={notebookScripts}
+                    modifyNotebookScripts={vi.fn()}
+                    connection={null}
+                    hideDetails={vi.fn()}
+                    scriptId={102}
+                />,
+            );
+        });
+
+        const diagnosticsButton = container.querySelector('[aria-label="Show script errors"]') as HTMLButtonElement;
+        expect(diagnosticsButton).not.toBeNull();
+        act(() => diagnosticsButton.click());
+        const overlay = document.querySelector('[role="dialog"][aria-label="Script diagnostics"]');
+        expect(overlay?.textContent).toContain('1 error, 1 warning');
+        expect(overlay?.textContent).toContain('Unknown column');
+        expect(overlay?.textContent).toContain('Unsupported visualization key');
+
+        const errorDetails = document.querySelector('[aria-label="Show details: Unknown column"]') as HTMLButtonElement;
+        act(() => errorDetails.click());
+        const details = document.querySelector('[role="dialog"][aria-label="Diagnostic details"]');
+        expect(details?.textContent).toContain('source');
+        expect(details?.textContent).toContain('analyzer');
+        expect(details?.textContent).toContain('severity');
+        expect(details?.textContent).toContain('error');
+        expect(document.querySelector('[role="dialog"][aria-label="Script diagnostics"]')).toBeNull();
+
+        const closeButton = document.querySelector('[aria-label="Close diagnostic details"]') as HTMLButtonElement;
+        act(() => closeButton.click());
+        expect(document.querySelector('[role="dialog"][aria-label="Diagnostic details"]')).toBeNull();
     });
 });

@@ -73,9 +73,19 @@ vi.mock('../script_preview.js', async () => fakeScriptPreviewModule(await import
 vi.mock('../../foundations/button.js', async () => fakeButtonModule(await import('react')));
 vi.mock('../../foundations/status_indicator.js', async () => fakeStatusIndicatorModule(await import('react')));
 vi.mock('../../foundations/symbol_icon.js', async () => fakeSymbolIconModule(await import('react')));
-vi.mock('../../foundations/size_observer.js', () => ({
-    observeSize: () => ({ width: mockState.observedWidth, height: 480 }),
-}));
+vi.mock('../../foundations/size_observer.js', () => {
+    const sizes = new Map<number, { width: number; height: number }>();
+    return {
+        observeSize: () => {
+            let size = sizes.get(mockState.observedWidth);
+            if (size == null) {
+                size = { width: mockState.observedWidth, height: 480 };
+                sizes.set(mockState.observedWidth, size);
+            }
+            return size;
+        },
+    };
+});
 vi.mock('../../../utils/scrollbar.js', () => fakeScrollbarModule());
 vi.mock('../../../utils/key_events.js', () => ({
     // The real hook keeps each call site's subscribers independent (every component that calls it
@@ -311,7 +321,17 @@ describe('NotebookFeed', () => {
             const scriptId = this.closest<HTMLElement>('[data-row-script-id]')?.dataset.rowScriptId;
             const paddingTop = Number.parseFloat(this.style.paddingTop) || 0;
             const height = (scriptId === '101' ? 200 : scriptId === '102' ? 300 : 0) + paddingTop;
-            return { height } as DOMRect;
+            return {
+                x: 0,
+                y: 0,
+                width: 320,
+                height,
+                top: 0,
+                right: 320,
+                bottom: height,
+                left: 0,
+                toJSON: () => ({}),
+            };
         });
     });
 
@@ -390,12 +410,23 @@ describe('NotebookFeed', () => {
         expect(container.querySelector('[aria-label^="Open script"]')).toBeNull();
     });
 
-    it('shows a warning when compact formatting is unavailable', () => {
+    it('moves the formatting warning into the card header diagnostics overlay', () => {
         mockState.previewFormattable = false;
         renderFeed({ notebookScripts: createNotebookScripts(), modifyNotebookScripts: vi.fn(), showDetails: vi.fn() });
 
-        expect(container.querySelectorAll('[role="status"]')).toHaveLength(2);
-        expect(container.querySelectorAll('[role="status"]')[0].textContent).toBe('Compact formatting is unavailable for this statement');
+        expect(container.querySelectorAll('[aria-label="Show script warnings"]')).toHaveLength(2);
+        expect(container.querySelector('[role="status"]')).toBeNull();
+
+        act(() => (container.querySelector('[aria-label="Show script warnings"]') as HTMLButtonElement).click());
+
+        expect(document.querySelector('[role="dialog"][aria-label="Script diagnostics"]')?.textContent)
+            .toContain('This script cannot be formatted');
+
+        const detailsButton = document.querySelector('[aria-label="Show details: This script cannot be formatted"]') as HTMLButtonElement;
+        act(() => detailsButton.click());
+        const details = document.querySelector('[role="dialog"][aria-label="Diagnostic details"]');
+        expect(details?.textContent).toContain('formatter');
+        expect(details?.textContent).toContain('warning');
     });
 
     it('moves the Ctrl+E indicator to the newly focused card', () => {

@@ -30,6 +30,7 @@ import { ScriptStatisticsBar } from './script_statistics_bar.js';
 import { createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../editor/dashql_processor.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
+import { ScriptDiagnosticsButton } from './script_diagnostics.js';
 
 export { ScriptDetailsTab as TabKey };
 
@@ -49,6 +50,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     const showServerDetails = props.initialTab != null && props.initialTab !== ScriptDetailsTab.Editor;
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
     const [formatPending, setFormatPending] = React.useState(false);
+    const [isFormattable, setIsFormattable] = React.useState(true);
     const savedEditorStateRef = React.useRef<EditorState | null>(null);
     const formattedTextRef = React.useRef<string | null>(null);
     const formatPreviewBuffersRef = React.useRef<DashQLScriptBuffers | null>(null);
@@ -112,6 +114,24 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
             setFormatPending(false);
         }
     }, [notebookEntry?.scriptId]);
+
+    React.useEffect(() => {
+        if (scriptData == null) {
+            setIsFormattable(true);
+            return;
+        }
+        const formattingConfig = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingMode.PRETTY,
+            80,
+            4,
+        );
+        try {
+            setIsFormattable(scriptData.script.isFullyFormattable(formattingConfig, true));
+        } catch {
+            setIsFormattable(false);
+        }
+    }, [scriptData?.script, scriptData?.scriptAnalysis.buffers]);
 
     const handleFormat = React.useCallback(() => {
         if (editorView == null || scriptData == null) return;
@@ -393,6 +413,10 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                             </div>
                         )}
                             <div className={styles.entry_card_trailing_actions}>
+                                <ScriptDiagnosticsButton
+                                    scriptData={scriptData}
+                                    isFormattable={isFormattable}
+                                />
                                 <IconButton
                                     className={styles.entry_card_collapse_button}
                                     variant={ButtonVariant.Invisible}
