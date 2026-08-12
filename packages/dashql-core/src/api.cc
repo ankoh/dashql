@@ -13,6 +13,7 @@
 #include "dashql/exception.h"
 #include "dashql/script_diff.h"
 #include "dashql/script.h"
+#include "dashql/script_compiler.h"
 #include "dashql/view/plan_view_model.h"
 #include "dashql/visualize/vegalite.h"
 #include "rapidjson/document.h"
@@ -117,6 +118,22 @@ extern "C" void dashql_script_get_statement_text(FFIResult* result, Script* scri
     result->data_length = text->length();
     result->owner_ptr = text.release();
     result->owner_deleter = [](void* buffer) { delete reinterpret_cast<std::string*>(buffer); };
+}
+
+extern "C" void dashql_script_compile_query(FFIResult* result, Script* script, size_t dialect, size_t mode,
+                                             size_t max_width, size_t indentation_width,
+                                             bool parse_if_outdated) {
+    buffers::formatting::FormattingConfigT config;
+    config.dialect = static_cast<buffers::formatting::FormattingDialect>(dialect);
+    config.mode = static_cast<buffers::formatting::FormattingMode>(mode);
+    config.max_width = max_width;
+    config.indentation_width = indentation_width;
+    config.lower_relational_pipes = true;
+    auto compiled = script->CompileQuery(config, parse_if_outdated);
+    flatbuffers::FlatBufferBuilder fb;
+    fb.Finish(compiled.Pack(fb));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
+    packBuffer(result, std::move(detached));
 }
 
 /// Scan a script

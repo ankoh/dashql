@@ -341,6 +341,17 @@ struct ResolvedCTE {
     std::vector<std::reference_wrapper<RegisteredName>> column_aliases;
 };
 
+/// A relation exported by a preceding top-level pipeline ending in `|> AS name`.
+struct ScriptLocalRelation {
+    std::reference_wrapper<RegisteredName> relation_name;
+    uint32_t statement_id = 0;
+    uint32_t query_node_id = 0;
+    uint32_t pipe_node_id = 0;
+    uint32_t alias_node_id = 0;
+    uint32_t body_stage_count = 0;
+    size_t resolved_relation_id = 0;
+};
+
 /// An unresolved table-like source in scope.
 /// The table name is not present in the catalog, but we still register it by alias so that
 /// columns used against it can be *associated* (not resolved) for schema inference.

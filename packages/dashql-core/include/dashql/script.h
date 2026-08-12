@@ -21,6 +21,8 @@
 #include "dashql/utils/string_pool.h"
 
 namespace dashql {
+
+struct ScriptCompilationResult;
 namespace parser {
 class ParseContext;
 }  // namespace parser
@@ -214,6 +216,7 @@ class AnalyzedScript : public CatalogEntry {
     using Expression = dashql::Expression;
     using ResultTarget = dashql::ResultTarget;
     using CTEDefinition = dashql::CTEDefinition;
+    using ScriptLocalRelation = dashql::ScriptLocalRelation;
     using NameScope = dashql::NameScope;
     using ConstantExpression = dashql::ConstantExpression;
     using ColumnComputation = dashql::ColumnComputation;
@@ -276,6 +279,12 @@ class AnalyzedScript : public CatalogEntry {
     /// This index is used to quickly resolve column filters in this script through catalog ids.
     std::unordered_multimap<QualifiedCatalogObjectID, std::reference_wrapper<ColumnFilter>>
         column_filters_by_catalog_entry;
+
+    /// Relations defined by top-level pipelines ending in `|> AS name`.
+    /// Kept after the established analyzer fields so adding this feature does not shift their layout.
+    std::vector<ScriptLocalRelation> script_local_relations;
+    std::unordered_map<std::string_view, size_t> script_local_relations_by_name;
+    std::vector<ResolvedCTE> script_local_resolved_relations;
 
     /// Traverse the name scopes for a given ast node id
     void FollowPathUpwards(uint32_t ast_node_id, std::vector<uint32_t>& ast_node_path,
@@ -428,6 +437,9 @@ class Script {
     std::string ToString(TextSpan span);
     /// Print the first parsed statement without its separator or surrounding trivia.
     std::string GetStatementText(bool parse_if_outdated = true);
+    /// Compile the script into an executable query.
+    ScriptCompilationResult CompileQuery(const buffers::formatting::FormattingConfigT& config,
+                                         bool parse_if_outdated = true);
 
     /// Scans the script unconditionally (throws Exception on error)
     void Scan();

@@ -1605,6 +1605,7 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
                 case sx::parser::AttributeKey::SQL_WINDOW_DEF_NAME:
                 case sx::parser::AttributeKey::SQL_CREATE_FUNCTION_NAME:
                 case sx::parser::AttributeKey::SQL_FUNCTION_PARAM_NAME:
+                case sx::parser::AttributeKey::EXT_PIPE_ALIAS:
                     completion->at_definition = true;
                     break;
                 default:

@@ -2,6 +2,7 @@
 
 #include <span>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "dashql/buffers/index_generated.h"
@@ -10,6 +11,18 @@
 #include "dashql/utils/ast_attributes.h"
 
 namespace dashql {
+
+struct ScriptExecutionLocalRelation {
+    uint32_t alias_node_id;
+    uint32_t query_node_id;
+    uint32_t pipe_node_id;
+    uint32_t body_stage_count;
+};
+
+struct ScriptExecutionPlan {
+    std::vector<ScriptExecutionLocalRelation> local_relations;
+    uint32_t terminal_query_node_id;
+};
 
 enum class FormattingAssociativity { Left, Right, NonAssoc };
 
@@ -34,6 +47,9 @@ struct Formatter {
     FormattingProgram fmt;
     std::vector<NodeState> node_states;
     std::vector<uint32_t> unformattable_nodes;
+    std::unordered_map<uint32_t, uint32_t> pipe_stage_limits;
+    std::unordered_map<uint32_t, FmtReg> script_local_name_regs;
+    std::optional<uint32_t> select_without_with;
 
     NodeState& GetState(const buffers::parser::Node& node) { return node_states[&node - ast.data()]; }
     const NodeState& GetState(const buffers::parser::Node& node) const { return node_states[&node - ast.data()]; }
@@ -123,6 +139,7 @@ struct Formatter {
     FmtReg FormatQualifiedName(const buffers::parser::Node& node);
 
     std::string WriteOutput() const;
+    std::string Render(FmtReg reg) const;
 
    public:
     explicit Formatter(ParsedScript& parsed);
@@ -130,6 +147,8 @@ struct Formatter {
     size_t EstimateFormattedSize() const;
     std::string Format(const buffers::formatting::FormattingConfigT& config);
     std::string FormatNodeAt(size_t node_id, const buffers::formatting::FormattingConfigT& config);
+    std::string FormatExecutableQuery(const ScriptExecutionPlan& plan,
+                                      const buffers::formatting::FormattingConfigT& config);
     const std::vector<uint32_t>& GetUnformattableNodes() const { return unformattable_nodes; }
     bool IsFullyFormatted() const;
 };

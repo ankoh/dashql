@@ -2309,6 +2309,9 @@ std::string Formatter::Format(const buffers::formatting::FormattingConfigT& conf
     fmt.Reset();
     fmt.SetConfig(config);
     node_states.assign(ast.size(), {});
+    pipe_stage_limits.clear();
+    script_local_name_regs.clear();
+    select_without_with.reset();
     unformattable_nodes.clear();
     for (const auto& statement : parsed.statements) {
         if (statement.root < node_states.size()) {
@@ -2334,19 +2337,105 @@ std::string Formatter::FormatNodeAt(size_t node_id, const buffers::formatting::F
     fmt.Reset();
     fmt.SetConfig(config);
     node_states.assign(ast.size(), {});
+    pipe_stage_limits.clear();
+    script_local_name_regs.clear();
+    select_without_with.reset();
     unformattable_nodes.clear();
     PreparePrecedence();
     for (size_t i = 0; i < ast.size(); ++i) {
         IdentifyParentheses(ast.size() - 1 - i);
     }
     BuildDocs();
+    return Render(node_states[node_id].reg);
+}
+
+std::string Formatter::Render(FmtReg reg) const {
     FormattingRenderOptions options{
         .max_width = config.max_width,
         .indentation_width = config.indentation_width,
         .debug_mode = config.debug_mode,
         .mode = config.mode,
     };
-    return fmt.Render(node_states[node_id].reg, options);
+    return fmt.Render(reg, options);
+}
+
+std::string Formatter::FormatExecutableQuery(const ScriptExecutionPlan& plan,
+                                             const buffers::formatting::FormattingConfigT& input_config) {
+    if (plan.terminal_query_node_id >= ast.size()) return {};
+
+    config = input_config;
+    config.lower_relational_pipes = true;
+    config.debug_mode = false;
+    fmt.Reset();
+    fmt.SetConfig(config);
+    node_states.assign(ast.size(), {});
+    unformattable_nodes.clear();
+    pipe_stage_limits.clear();
+    script_local_name_regs.clear();
+    for (const auto& relation : plan.local_relations) {
+        pipe_stage_limits.emplace(relation.pipe_node_id, relation.body_stage_count);
+        if (relation.alias_node_id < ast.size()) {
+            script_local_name_regs.emplace(
+                relation.alias_node_id,
+                fmt.Text(scanned.ReadTextAtSymbolSpan(ast[relation.alias_node_id].symbol_span())));
+        }
+    }
+
+    const auto& terminal_query = ast[plan.terminal_query_node_id];
+    const buffers::parser::Node* existing_ctes = nullptr;
+    bool recursive = false;
+    if (terminal_query.node_type() == NodeType::OBJECT_SQL_SELECT) {
+        auto [ctes, recursive_node] = GetAttributes<AttributeKey::SQL_SELECT_WITH_CTES,
+                                                   AttributeKey::SQL_SELECT_WITH_RECURSIVE>(terminal_query);
+        existing_ctes = ctes;
+        recursive = recursive_node != nullptr;
+        if (!plan.local_relations.empty()) select_without_with = plan.terminal_query_node_id;
+    } else {
+        select_without_with.reset();
+    }
+
+    PreparePrecedence();
+    for (size_t i = 0; i < ast.size(); ++i) {
+        IdentifyParentheses(ast.size() - 1 - i);
+    }
+    BuildDocs();
+
+    auto query = node_states[plan.terminal_query_node_id].reg;
+    if (query == 0) return {};
+    if (plan.local_relations.empty()) return Render(query);
+
+    std::vector<FmtReg> cte_regs;
+    cte_regs.reserve(plan.local_relations.size() + (existing_ctes ? existing_ctes->children_count() : 0));
+    for (const auto& relation : plan.local_relations) {
+        if (relation.alias_node_id >= ast.size() || relation.query_node_id >= ast.size()) return {};
+        auto name = script_local_name_regs[relation.alias_node_id];
+        auto body_query = node_states[relation.query_node_id].reg;
+        if (name == 0 || body_query == 0) return {};
+        FmtReg body;
+        if (config.mode == buffers::formatting::FormattingMode::PRETTY) {
+            body = fmt.Concat({fmt.Text("("), fmt.Indented(fmt.Concat({fmt.Break(), body_query})),
+                               fmt.Break(), fmt.Text(")")});
+        } else {
+            body = fmt.Parenthesized(body_query);
+        }
+        cte_regs.push_back(fmt.Concat({name, fmt.Text(" as "), body}));
+    }
+    if (existing_ctes) {
+        for (auto& state : GetArrayStates(*existing_ctes)) {
+            if (state.reg == 0) return {};
+            cte_regs.push_back(state.reg);
+        }
+    }
+
+    auto ctes = fmt.Join(cte_regs, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}),
+                         config.mode == buffers::formatting::FormattingMode::PRETTY
+                             ? FormattingJoinPolicy::ForceBreak
+                             : FormattingJoinPolicy::BreakOnOverflow);
+    auto with = fmt.Concat({fmt.Text(recursive ? "with recursive " : "with "), ctes});
+    auto policy = config.mode == buffers::formatting::FormattingMode::PRETTY
+                      ? FormattingJoinPolicy::ForceBreak
+                      : FormattingJoinPolicy::BreakAllOrNone;
+    return Render(fmt.Join(std::vector<FmtReg>{with, query}, fmt.Text(" "), fmt.Break(), policy));
 }
 
 bool Formatter::IsFullyFormatted() const { return unformattable_nodes.empty(); }

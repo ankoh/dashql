@@ -1,5 +1,3 @@
-import * as core from '../core/index.js';
-
 import { AgentHost, AgentApplyPlan } from '../agent/agent_host.js';
 import { AgentIntent } from '../agent/agent_prompts.js';
 import { verifyScript, VerifyResult } from '../agent/agent_verify.js';
@@ -10,13 +8,13 @@ import {
 } from './script_agent_context.js';
 import {
     CREATE_SCRIPT_WITH_TEXT,
+    compileQuery,
     NotebookScripts,
     NotebookScriptsAction,
     REGISTER_AGENT_RUN,
     ScriptData,
     SET_SCRIPT_TEXT,
 } from './notebook_scripts.js';
-import { resolveSymbolSpan } from '../core/tokens.js';
 import { scriptDisplayName } from './script_types.js';
 import type { LoggerLike } from '../platform/logger/logger.js';
 
@@ -158,56 +156,10 @@ export function chooseApplyAction(
 ///   in-place edit keeps pointing at the same data.
 /// - Otherwise (focused is a SQL script) reference that script by its SQL script path.
 /// - If nothing usable is focused, fall back to no source (the verify pass will flag it).
-export function determineVisSource(_notebookScripts: NotebookScripts, contextScriptData: ScriptData | null): VisSource | null {
+export function determineVisSource(notebookScripts: NotebookScripts, contextScriptData: ScriptData | null): VisSource | null {
     if (contextScriptData == null) {
         return null;
     }
-    if (focusedIsVisualize(contextScriptData)) {
-        const reused = extractVisSourceFromScript(contextScriptData);
-        if (reused != null) return reused;
-    }
-    const sql = contextScriptData.script.getStatementText().trim();
+    const sql = compileQuery(notebookScripts, contextScriptData).trim();
     return sql ? { kind: 'inline-select', sql } : null;
-}
-
-/// Extract the source clause of the focused script's first VISUALIZE statement as a VisSource,
-/// mirroring the source switch in `resolveVisualizeQuery`.
-function extractVisSourceFromScript(scriptData: ScriptData): VisSource | null {
-    const resolved = scriptData.annotations.visualizeQuery;
-    if (resolved?.sql.trim()) {
-        return { kind: 'inline-select', sql: resolved.sql.trim() };
-    }
-
-    const analyzedPtr = scriptData.scriptAnalysis.buffers.analyzed;
-    const parsedPtr = scriptData.scriptAnalysis.buffers.parsed;
-    if (!analyzedPtr || !parsedPtr) return null;
-
-    const analyzed = analyzedPtr.read();
-    if (analyzed.visualizationSpecsLength() === 0) return null;
-    const tmpSpec = new core.buffers.analyzer.VisualizationSpec();
-    const spec = analyzed.visualizationSpecs(0, tmpSpec);
-    if (!spec) return null;
-
-    switch (spec.sourceKind()) {
-        case core.buffers.analyzer.VisSourceKind.INLINE_SELECT: {
-            const sourceSql = spec.sourceSql();
-            if (sourceSql?.trim()) {
-                return { kind: 'inline-select', sql: sourceSql.trim() };
-            }
-            const nodeId = spec.sourceInlineSelectAstNodeId();
-            const parsed = parsedPtr.read();
-            const tokens = parsed.tokens();
-            const node = parsed.nodes(nodeId);
-            const span = node?.symbolSpan() ?? null;
-            if (tokens && span) {
-                const ts = resolveSymbolSpan(tokens, span);
-                const scriptText = scriptData.script.toString();
-                const query = scriptText.substr(ts.offset, ts.length).trim();
-                if (query) return { kind: 'inline-select', sql: query };
-            }
-            return null;
-        }
-        default:
-            return null;
-    }
 }

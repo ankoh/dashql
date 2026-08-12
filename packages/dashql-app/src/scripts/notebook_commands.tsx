@@ -6,7 +6,7 @@ import { ConnectionHealth, printConnectionHealth } from '../connection/connectio
 import { ConnectorInfo } from '../connection/connector_info.js';
 import { KeyEventHandler, useKeyEvents } from '../utils/key_events.js';
 import { QueryType } from '../connection/query_execution_state.js';
-import { getExecutableQueryText, getSelectedScriptRef, SELECT_NEXT_SCRIPT, SELECT_NEXT_SCRIPT_FOLDER, SELECT_PREV_SCRIPT, SELECT_PREV_SCRIPT_FOLDER } from './notebook_scripts.js';
+import { compileQuery, getSelectedScriptRef, SELECT_NEXT_SCRIPT, SELECT_NEXT_SCRIPT_FOLDER, SELECT_PREV_SCRIPT, SELECT_PREV_SCRIPT_FOLDER } from './notebook_scripts.js';
 import { projectionForVisualizeQuery } from './script_types.js';
 import { useCatalogLoaderQueue } from '../connection/catalog_loader.js';
 import { useConnectionState } from '../connection/connection_registry.js';
@@ -131,7 +131,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         // Scripts are analyzed eagerly at load and kept analyzed as
                         // they are edited, so the resolved VISUALIZE query / derived
                         // annotations are already present here.
-                        const queryText = getExecutableQueryText(notebookScripts, scriptData, logger);
+                        const queryText = compileQuery(notebookScripts, scriptData, logger);
                         const [queryId, execution] = executeQuery(notebookScripts.notebookId, {
                             query: queryText,
                             analyzeResults: true,

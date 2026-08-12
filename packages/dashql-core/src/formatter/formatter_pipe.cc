@@ -151,7 +151,13 @@ FmtReg Formatter::FormatPipe(size_t node_id) {
 
     if (!config.lower_relational_pipes) {
         std::vector<FmtReg> parts{source_reg};
-        for (auto& stage : GetArrayStates(*stages)) {
+        auto stage_count = stages->children_count();
+        if (auto it = pipe_stage_limits.find(node_id); it != pipe_stage_limits.end()) {
+            stage_count = std::min<size_t>(stage_count, it->second);
+        }
+        auto stage_states = GetArrayStates(*stages);
+        for (size_t i = 0; i < stage_count; ++i) {
+            auto& stage = stage_states[i];
             if (stage.reg == 0) return FormatUnimplemented(node);
             parts.push_back(fmt.Concat({fmt.Text("|> "), stage.reg}));
         }
@@ -167,7 +173,11 @@ FmtReg Formatter::FormatPipe(size_t node_id) {
         auto alias = active_alias.value_or(fmt.Text("_dashql_pipe"));
         return fmt.Concat({fmt.Parenthesized(query), fmt.Text(" as "), alias});
     };
-    for (size_t i = 0; i < stages->children_count(); ++i) {
+    auto stage_count = stages->children_count();
+    if (auto it = pipe_stage_limits.find(node_id); it != pipe_stage_limits.end()) {
+        stage_count = std::min<size_t>(stage_count, it->second);
+    }
+    for (size_t i = 0; i < stage_count; ++i) {
         const auto& stage = ast[stages->children_begin_or_value() + i];
         auto stage_reg = Reg(stage);
         if (stage_reg == 0) return FormatUnimplemented(node);

@@ -19,6 +19,7 @@
 #include "dashql/parser/parse_context.h"
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
+#include "dashql/script_compiler.h"
 #include "dashql/visualize/vegalite.h"
 
 namespace dashql {
@@ -1194,6 +1195,11 @@ std::string Script::GetStatementText(bool parse_if_outdated) {
         return {};
     }
     return ToString(descriptions.front().statement_span);
+}
+
+ScriptCompilationResult Script::CompileQuery(const buffers::formatting::FormattingConfigT& config,
+                                             bool parse_if_outdated) {
+    return ScriptCompiler::Compile(*this, config, parse_if_outdated);
 }
 
 /// Update memory statisics

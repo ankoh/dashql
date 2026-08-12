@@ -143,7 +143,7 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
         query = fmt.Join(clauses, fmt.Text(" "), fmt.Break(), clause_policy);
     }
 
-    if (select_with_ctes) {
+    if (select_with_ctes && select_without_with != node_id) {
         auto cte_children = GetArrayStates(*select_with_ctes);
         std::vector<FmtReg> cte_regs;
         cte_regs.reserve(cte_children.size() * 2);

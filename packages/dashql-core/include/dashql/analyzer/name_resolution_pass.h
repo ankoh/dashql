@@ -50,6 +50,10 @@ struct NameResolutionPass : public PassManager::LTRPass {
     ChunkBuffer<AnalyzedScript::ResultTarget, 16> pending_result_targets;
     /// The pending CTEs
     ChunkBuffer<AnalyzedScript::CTEDefinition, 4> pending_cte_nodes;
+    /// Discover script-local terminal aliases and attach their defining query scopes.
+    void BuildScriptLocalRelations();
+    /// Return the statement that contains an AST node.
+    uint32_t FindStatementId(uint32_t ast_node_id) const;
 
     /// Register a schema
     QualifiedCatalogObjectID RegisterSchema(RegisteredName& database_name, RegisteredName& schema_name);

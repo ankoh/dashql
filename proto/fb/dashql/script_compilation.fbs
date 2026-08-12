@@ -1,0 +1,42 @@
+include "dashql/parsed_script.fbs";
+
+namespace dashql.buffers.execution;
+
+enum ScriptCompilationStatementKind: uint8 {
+    QUERY,
+    VISUALIZE,
+}
+
+enum ScriptCompilationErrorCode: uint8 {
+    SCANNER_ERROR,
+    PARSER_ERROR,
+    EMPTY_SCRIPT,
+    PREFIX_NOT_LOCAL_RELATION,
+    LAST_STATEMENT_IS_LOCAL_RELATION,
+    LAST_STATEMENT_NOT_EXECUTABLE,
+    DUPLICATE_LOCAL_RELATION,
+    VISUALIZATION_METADATA_UNAVAILABLE,
+    FORMAT_ERROR,
+}
+
+table ScriptCompilationError {
+    code: ScriptCompilationErrorCode;
+    statement_id: uint32 = 4294967295;
+    ast_node_id: uint32 = 4294967295;
+    text_span: parser.TextSpan;
+    message: string;
+}
+
+table CompiledVisualization {
+    renderer: string;
+    vegalite_spec: string;
+    umap_spec: string;
+}
+
+table ScriptCompilationResult {
+    kind: ScriptCompilationStatementKind = QUERY;
+    terminal_statement_id: uint32 = 4294967295;
+    sql: string;
+    visualization: CompiledVisualization;
+    errors: [ScriptCompilationError];
+}

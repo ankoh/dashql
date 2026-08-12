@@ -173,11 +173,16 @@ function createOnlineConnection(activeQueryIds: number[] = []): ConnectionState 
 function makeScriptData(scriptKey: number, text: string, fileName: string = '', folderName: string = '') {
     return {
         scriptKey,
-        // getExecutableQueryText falls back to re-analyzing on demand when no
-        // analyzed buffer is cached, so stub the analyze surface it touches.
         script: {
             toString: () => text,
             getStatementText: () => text,
+            compileQuery: () => ({
+                read: () => ({
+                    errorsLength: () => 0,
+                    sql: () => text,
+                }),
+                destroy: () => { },
+            }),
             analyze: () => { },
             getParsed: () => null,
             getAnalyzed: () => null,

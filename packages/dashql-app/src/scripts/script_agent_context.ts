@@ -1,7 +1,7 @@
 import * as core from '../core/index.js';
 
 import { AgentIntent } from '../agent/agent_prompts.js';
-import { getExecutableQueryText, NotebookScripts, ScriptData } from './notebook_scripts.js';
+import { compileQuery, NotebookScripts, ScriptData } from './notebook_scripts.js';
 import type { LoggerLike } from '../platform/logger/logger.js';
 
 /// A column of a query's output schema: its name and (best-effort) type.
@@ -110,7 +110,7 @@ export const visualizeSourceContributor: AgentContextContributor = (input) => {
     if (vis != null) {
         // Focused script is already a VISUALIZE: send its resolved source SELECT (re-resolved when
         // the analysis is outdated so a changed source is reflected) and the current chart spec.
-        const sql = getExecutableQueryText(input.notebookScripts, data, input.logger).trim();
+        const sql = compileQuery(input.notebookScripts, data, input.logger).trim();
         if (sql.length > 0) parts.push(`Source query (feeds the chart):\n${sql}`);
         try {
             // Show only the surface the model is allowed to emit. The resolved spec also carries a
@@ -126,8 +126,8 @@ export const visualizeSourceContributor: AgentContextContributor = (input) => {
             // A non-serializable spec is simply omitted — the source query + output schema still help.
         }
     } else {
-        // Focused script is a plain SQL query we're about to chart: its text is the source query.
-        const sql = data.script.toString().trim();
+        // Focused script is a plain SQL query we're about to chart.
+        const sql = compileQuery(input.notebookScripts, data, input.logger).trim();
         if (sql.length > 0) parts.push(`Source query (feeds the chart):\n${sql}`);
     }
     return parts.length > 0 ? parts.join('\n\n') : null;

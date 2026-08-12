@@ -69,6 +69,13 @@ function makeScriptData(scriptKey: number, text: string, fileName: string) {
         script: {
             toString: () => text,
             getStatementText: () => text,
+            compileQuery: () => ({
+                read: () => ({
+                    errorsLength: () => 0,
+                    sql: () => text,
+                }),
+                destroy: () => { },
+            }),
             analyze: () => { },
             getParsed: () => null,
             getAnalyzed: () => null,

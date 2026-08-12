@@ -20,6 +20,7 @@ CORE_WASM_EXPORTS = [
     "'_dashql_script_replace_text'",
     "'_dashql_script_to_string'",
     "'_dashql_script_get_statement_text'",
+    "'_dashql_script_compile_query'",
     "'_dashql_script_scan'",
     "'_dashql_script_parse'",
     "'_dashql_script_analyze'",

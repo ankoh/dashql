@@ -15,7 +15,7 @@ import type { RowComponentProps } from 'react-window';
 import { ButtonSize, ButtonVariant, IconButton } from '../../foundations/button.js';
 import { ButtonGroup } from '../../foundations/button_group.js';
 import { ConnectionHealth, ConnectionState } from '../../../connection/connection_state.js';
-import { getExecutableQueryText, getSelectedScriptRef, getSelectedScriptFolder, getSelectedScriptRefs, getSortedScriptFileNames, getUncommittedScriptData, tryGetExecutableQueryText, type ScriptData, NotebookScripts, SELECT_SCRIPT, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../../scripts/notebook_scripts.js';
+import { compileQuery, getSelectedScriptRef, getSelectedScriptFolder, getSelectedScriptRefs, getSortedScriptFileNames, getUncommittedScriptData, tryCompileQuery, type ScriptData, NotebookScripts, SELECT_SCRIPT, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../../scripts/notebook_scripts.js';
 import { useAIClient } from '../../../platform/ai_client_provider.js';
 import { COMPOSE_INPUT_MODE_AI, useComposeInputMode } from '../../../scripts/notebook_commands.js';
 import { useLatestAgentRunState, useAgentRunState, useStartAgentRun, useCancelAgentRun } from '../../../agent/agent_run_provider.js';
@@ -558,7 +558,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     const cacheCandidates = entries.flatMap(entry => {
         const scriptData = props.notebookScripts.scripts[entry.scriptId];
         if (scriptData == null || scriptData.latestQueryId != null) return [];
-        const queryText = tryGetExecutableQueryText(props.notebookScripts, scriptData);
+        const queryText = tryCompileQuery(props.notebookScripts, scriptData);
         return queryText != null && queryText.trim().length > 0
             ? [{ scriptKey: scriptData.scriptKey, queryText }]
             : [];
@@ -742,7 +742,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         }
         executedAgentRunRef.current = agentState.runId;
         // Resolve against the current notebookScripts so a freshly rewritten VISUALIZE source is reflected.
-        const queryText = getExecutableQueryText(props.notebookScripts, scriptData, logger);
+        const queryText = compileQuery(props.notebookScripts, scriptData, logger);
         if (queryText.trim().length === 0) {
             return;
         }
@@ -772,7 +772,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         // The compose editor keeps the draft analyzed as it is typed, so the
         // resolved VISUALIZE query / derived annotations are already present (and
         // carried across promotion, which preserves the script key).
-        const queryText = scriptData ? getExecutableQueryText(notebookScripts, scriptData, logger) : '';
+        const queryText = scriptData ? compileQuery(notebookScripts, scriptData, logger) : '';
         props.modifyNotebookScripts({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
         if (execute && !isDisconnected && queryText.trim().length > 0) {
             const [queryId, execution] = executeQuery(notebookScripts.notebookId, {
@@ -1069,7 +1069,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         if (isDisconnected) return new Set<number>();
         return new Set(entries.flatMap(entry => {
             const scriptData = props.notebookScripts.scripts[entry.scriptId];
-            return scriptData != null && (tryGetExecutableQueryText(props.notebookScripts, scriptData)?.trim().length ?? 0) > 0
+            return scriptData != null && (tryCompileQuery(props.notebookScripts, scriptData)?.trim().length ?? 0) > 0
                 ? [scriptData.scriptKey]
                 : [];
         }));
