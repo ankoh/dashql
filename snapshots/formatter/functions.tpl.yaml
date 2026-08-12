@@ -104,6 +104,54 @@ formatter-snapshots:
     dialects:
       duckdb:
 
+  - name: func_over_rows_between
+    input: select sum(x) over (order by ts rows between unbounded preceding and current row) from t
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: select sum(x) over (order by ts rows between unbounded preceding and current row) from t;
+          - mode: compact
+            expected: select sum(x) over (order by ts rows between unbounded preceding and current row) from t;
+          - mode: pretty
+            expected: |-
+              select sum(x) over (order by ts rows between unbounded preceding and current row)
+              from t;
+        validation:
+          setup: create table t (x integer, ts timestamp);
+
+  - name: func_over_range_current_row
+    input: select sum(x) over (order by ts range current row) from t
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: select sum(x) over (order by ts range current row) from t;
+          - mode: compact
+            expected: select sum(x) over (order by ts range current row) from t;
+          - mode: pretty
+            expected: |-
+              select sum(x) over (order by ts range current row)
+              from t;
+        validation:
+          setup: create table t (x integer, ts timestamp);
+
+  - name: func_over_rows_value_bounds
+    input: select sum(x) over (order by ts rows between 2 preceding and 1 following) from t
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: select sum(x) over (order by ts rows between 2 preceding and 1 following) from t;
+          - mode: compact
+            expected: select sum(x) over (order by ts rows between 2 preceding and 1 following) from t;
+          - mode: pretty
+            expected: |-
+              select sum(x) over (order by ts rows between 2 preceding and 1 following)
+              from t;
+        validation:
+          setup: create table t (x integer, ts timestamp);
+
   - name: func_filter
     input: select count(*) filter (where x > 0)
     dialects:

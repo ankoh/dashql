@@ -153,6 +153,27 @@ describe('DashQL formatting', () => {
         expect(script.isFullyFormattable(config)).toBe(true);
     });
 
+    it('formats window frame bounds in relational pipe queries', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `from events
+|> extend sum(processed_rows) over (order by ts_hour asc rows between unbounded preceding and current row) as processed_rows_running`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingMode.PRETTY,
+            80,
+            4,
+        );
+
+        expect(script.isFullyFormattable(config)).toBe(true);
+        expect(script.format(config, null, true).toString()).toEqual(
+            `from events
+|> extend sum(processed_rows) over (
+    order by ts_hour asc rows between unbounded preceding and current row
+) as processed_rows_running;`
+        );
+    });
+
     it('formats multi-statement pipe aliases feeding a visualization', async () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);

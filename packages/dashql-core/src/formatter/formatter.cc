@@ -27,6 +27,9 @@ using KnownFunction = buffers::parser::KnownFunction;
 using IntervalType = buffers::parser::IntervalType;
 using ExtractTarget = buffers::parser::ExtractTarget;
 using TrimDirection = buffers::parser::TrimDirection;
+using WindowBoundDirection = buffers::parser::WindowBoundDirection;
+using WindowBoundMode = buffers::parser::WindowBoundMode;
+using WindowRangeMode = buffers::parser::WindowRangeMode;
 
 namespace {
 
@@ -570,6 +573,14 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_CREATE_TABLE_ELEMENTS:
         case AttributeKey::SQL_GROUP_BY_ITEM_ARG:
             return FormatCommaList(node);
+        case AttributeKey::SQL_WINDOW_FRAME_BOUNDS: {
+            auto bounds = GetArrayStates(node);
+            if (bounds.size() == 1 && bounds.front().reg != 0) return bounds.front().reg;
+            if (bounds.size() == 2 && bounds.front().reg != 0 && bounds.back().reg != 0) {
+                return fmt.Concat({fmt.Text("between "), bounds.front().reg, fmt.Text(" and "), bounds.back().reg});
+            }
+            return FormatUnimplemented(node);
+        }
         case AttributeKey::SQL_SELECT_VALUES: {
             auto rows = GetArrayStates(node);
             std::vector<FmtReg> parts;
@@ -1805,14 +1816,15 @@ FmtReg Formatter::FormatWindowFrame(const buffers::parser::Node& node) {
                       AttributeKey::SQL_WINDOW_FRAME_MODE, AttributeKey::SQL_WINDOW_FRAME_BOUNDS,
                       AttributeKey::SQL_WINDOW_FRAME_EXCLUDE, AttributeKey::SQL_WINDOW_FRAME_NAME>(node);
 
-    if (mode || bounds || exclude) return FormatUnimplemented(node);
-
-    if (name) {
-        return Reg(*name);
-    }
+    if (exclude || (mode == nullptr) != (bounds == nullptr)) return FormatUnimplemented(node);
 
     std::vector<FmtReg> clauses;
-    clauses.reserve(2);
+    clauses.reserve(4);
+    if (name) {
+        auto name_reg = Reg(*name);
+        if (name_reg == 0) return FormatUnimplemented(node);
+        clauses.push_back(name_reg);
+    }
     if (partition) {
         auto part_reg = Reg(*partition);
         if (part_reg == 0) return FormatUnimplemented(node);
@@ -1823,8 +1835,72 @@ FmtReg Formatter::FormatWindowFrame(const buffers::parser::Node& node) {
         if (order_reg == 0) return FormatUnimplemented(node);
         clauses.push_back(fmt.Concat({fmt.Text("order by "), order_reg}));
     }
+    if (mode) {
+        auto mode_reg = Reg(*mode);
+        auto bounds_reg = Reg(*bounds);
+        if (mode_reg == 0 || bounds_reg == 0) return FormatUnimplemented(node);
+        clauses.push_back(fmt.Concat({mode_reg, fmt.Text(" "), bounds_reg}));
+    }
     if (clauses.empty()) return fmt.Empty();
     return fmt.Join(clauses, fmt.Text(" "), fmt.Break(), FormattingJoinPolicy::BreakOnOverflow, true);
+}
+
+FmtReg Formatter::FormatWindowBound(const buffers::parser::Node& node) {
+    auto [mode, direction, value] =
+        GetAttributes<AttributeKey::SQL_WINDOW_BOUND_MODE, AttributeKey::SQL_WINDOW_BOUND_DIRECTION,
+                      AttributeKey::SQL_WINDOW_BOUND_VALUE>(node);
+    if (!mode) return FormatUnimplemented(node);
+
+    auto mode_value = static_cast<WindowBoundMode>(mode->children_begin_or_value());
+    switch (mode_value) {
+        case WindowBoundMode::UNBOUNDED:
+            if (!direction || value) return FormatUnimplemented(node);
+            return fmt.Concat({Reg(*mode), fmt.Text(" "), Reg(*direction)});
+        case WindowBoundMode::CURRENT_ROW:
+            if (direction || value) return FormatUnimplemented(node);
+            return Reg(*mode);
+        case WindowBoundMode::VALUE:
+            if (!direction || !value) return FormatUnimplemented(node);
+            return fmt.Concat({Reg(*value), fmt.Text(" "), Reg(*direction)});
+    }
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatWindowBoundMode(const buffers::parser::Node& node) {
+    auto mode = static_cast<WindowBoundMode>(node.children_begin_or_value());
+    switch (mode) {
+        case WindowBoundMode::UNBOUNDED:
+            return fmt.Text("unbounded");
+        case WindowBoundMode::CURRENT_ROW:
+            return fmt.Text("current row");
+        case WindowBoundMode::VALUE:
+            return fmt.Empty();
+    }
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatWindowBoundDirection(const buffers::parser::Node& node) {
+    auto direction = static_cast<WindowBoundDirection>(node.children_begin_or_value());
+    switch (direction) {
+        case WindowBoundDirection::PRECEDING:
+            return fmt.Text("preceding");
+        case WindowBoundDirection::FOLLOWING:
+            return fmt.Text("following");
+    }
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatWindowRangeMode(const buffers::parser::Node& node) {
+    auto mode = static_cast<WindowRangeMode>(node.children_begin_or_value());
+    switch (mode) {
+        case WindowRangeMode::RANGE:
+            return fmt.Text("range");
+        case WindowRangeMode::ROWS:
+            return fmt.Text("rows");
+        case WindowRangeMode::GROUPS:
+            return fmt.Text("groups");
+    }
+    return FormatUnimplemented(node);
 }
 
 FmtReg Formatter::FormatAlias(const buffers::parser::Node& node) {
@@ -2176,6 +2252,14 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatFunctionTable(node);
         case NodeType::OBJECT_SQL_WINDOW_FRAME:
             return FormatWindowFrame(node);
+        case NodeType::OBJECT_SQL_WINDOW_BOUND:
+            return FormatWindowBound(node);
+        case NodeType::ENUM_SQL_WINDOW_BOUND_MODE:
+            return FormatWindowBoundMode(node);
+        case NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION:
+            return FormatWindowBoundDirection(node);
+        case NodeType::ENUM_SQL_WINDOW_RANGE_MODE:
+            return FormatWindowRangeMode(node);
         case NodeType::OBJECT_SQL_FUNCTION_ARG:
             return FormatFunctionArg(node);
         case NodeType::OBJECT_SQL_CONST_TYPE_CAST:

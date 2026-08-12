@@ -123,6 +123,10 @@ struct Formatter {
     FmtReg FormatFunctionTable(const buffers::parser::Node& node);
     FmtReg FormatFunctionArg(const buffers::parser::Node& node);
     FmtReg FormatWindowFrame(const buffers::parser::Node& node);
+    FmtReg FormatWindowBound(const buffers::parser::Node& node);
+    FmtReg FormatWindowBoundMode(const buffers::parser::Node& node);
+    FmtReg FormatWindowBoundDirection(const buffers::parser::Node& node);
+    FmtReg FormatWindowRangeMode(const buffers::parser::Node& node);
     FmtReg FormatExpressionOperatorType(const buffers::parser::Node& node);
     FmtReg FormatExpression(size_t node_id);
     FmtReg FormatPipe(size_t node_id);
