@@ -75,7 +75,8 @@ from aggregates_other
     script.InsertTextAt(0, input);
 
     ASSERT_NO_THROW(script.Analyze());
-    EXPECT_FALSE(script.errors.empty());
+    ASSERT_NE(script.GetParsedScript(), nullptr);
+    EXPECT_FALSE(script.GetParsedScript()->errors.empty());
 }
 
 TEST(ScriptTest, AnalyzingBeforeParsing) {

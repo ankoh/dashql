@@ -95,8 +95,11 @@ void IdentifyFunctionCallsPass::Visit(std::span<const buffers::parser::Node> mor
                         state.GetAttributes<AttributeKey::SQL_FUNCTION_ARG_VALUE, AttributeKey::SQL_FUNCTION_ARG_NAME>(
                             func_arg_node);
 
-                    // Always has a value, read it
-                    assert(arg_value != nullptr);
+                    // Error recovery can leave an incomplete function argument.
+                    if (!arg_value) {
+                        args[i].value_ast_node_id = func_arg_node_id;
+                        continue;
+                    }
                     args[i].value_ast_node_id = arg_value - state.ast.data();
 
                     // Has a name?
