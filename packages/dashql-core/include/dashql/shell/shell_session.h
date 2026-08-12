@@ -180,6 +180,7 @@ class ShellSession {
     void RememberPrompt(std::string_view query);
     void DestroyPendingEffects();
 
+    Catalog& catalog_;
     PromptBuffer prompt_;
     ArrowRenderer renderer_;
     std::deque<std::string> history_;

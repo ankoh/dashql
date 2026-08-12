@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "dashql/analyzer/completion.h"
+#include "dashql/script_compiler.h"
 #include "dashql/shell/vt100.h"
 #include "utf8proc/utf8proc_wrapper.hpp"
 
@@ -128,7 +129,7 @@ struct TerminalCompletionOverlay {
 thread_local std::unordered_map<ShellSession*, TerminalCompletionOverlay> terminal_completion_overlays;
 
 ShellSession::ShellSession(Catalog& catalog, uint32_t terminal_columns)
-    : prompt_{catalog}, renderer_{terminal_columns} {}
+    : catalog_{catalog}, prompt_{catalog}, renderer_{terminal_columns} {}
 
 ShellSession::~ShellSession() {
     terminal_completion_overlays.erase(this);
@@ -485,9 +486,17 @@ ShellOperation ShellSession::StartQuery(std::string_view query) {
         return {ShellStatus::kInvalidArgument, "query must not be empty"};
     }
 
+    Script script{catalog_};
+    script.InsertTextAt(0, query);
+    buffers::formatting::FormattingConfigT config;
+    auto compiled = script.CompileQuery(config, {.allow_extensions = false});
+    if (!compiled.errors.empty()) {
+        return {ShellStatus::kInvalidArgument, compiled.errors.front().message};
+    }
+
     outgoing_effect_.reset();
     completed_operation_.reset();
-    auto task = ExecuteQuery(std::string{query});
+    auto task = ExecuteQuery(std::move(compiled.sql));
     return Resume(task.Release());
 }
 

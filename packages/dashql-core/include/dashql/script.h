@@ -23,6 +23,10 @@
 namespace dashql {
 
 struct ScriptCompilationResult;
+struct ScriptCompilationOptions {
+    bool allow_extensions = true;
+    bool parse_if_outdated = true;
+};
 namespace parser {
 class ParseContext;
 }  // namespace parser
@@ -439,7 +443,7 @@ class Script {
     std::string GetStatementText(bool parse_if_outdated = true);
     /// Compile the script into an executable query.
     ScriptCompilationResult CompileQuery(const buffers::formatting::FormattingConfigT& config,
-                                         bool parse_if_outdated = true);
+                                         ScriptCompilationOptions options = {});
 
     /// Scans the script unconditionally (throws Exception on error)
     void Scan();

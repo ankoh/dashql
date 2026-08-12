@@ -33,7 +33,7 @@ export interface EmscriptenModule {
     _dashql_script_replace_text: (ptr: number, text: number, textLength: number) => void;
     _dashql_script_to_string: (result: number, ptr: number, offset: number, length: number) => void;
     _dashql_script_get_statement_text: (result: number, ptr: number, parse_if_outdated: boolean) => void;
-    _dashql_script_compile_query: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, parse_if_outdated: boolean) => void;
+    _dashql_script_compile_query: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, allow_extensions: boolean, parse_if_outdated: boolean) => void;
     _dashql_script_parse: (ptr: number) => void;
     _dashql_script_analyze: (ptr: number, parse_if_outdated: boolean) => void;
     _dashql_script_move_cursor: (result: number, ptr: number, offset: number) => void;
@@ -94,7 +94,7 @@ interface DashQLModuleExports {
     dashql_script_replace_text: (ptr: number, text: number, textLength: number) => void;
     dashql_script_to_string: (result: number, ptr: number, offset: number, length: number) => void;
     dashql_script_get_statement_text: (result: number, ptr: number, parse_if_outdated: boolean) => void;
-    dashql_script_compile_query: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, parse_if_outdated: boolean) => void;
+    dashql_script_compile_query: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, allow_extensions: boolean, parse_if_outdated: boolean) => void;
     dashql_script_parse: (ptr: number) => void;
     dashql_script_analyze: (ptr: number, parse_if_outdated: boolean) => void;
     dashql_script_move_cursor: (result: number, ptr: number, offset: number) => void;
@@ -794,6 +794,7 @@ export class DashQLScript {
     /// Compile the script into an executable query.
     public compileQuery(
         config: buffers.formatting.FormattingConfigT,
+        allowExtensions: boolean = true,
         parseIfOutdated: boolean = true,
     ): FlatBufferPtr<buffers.execution.ScriptCompilationResult> {
         const scriptPtr = this.ptr.assertNotNull();
@@ -806,6 +807,7 @@ export class DashQLScript {
                 config.mode,
                 config.maxWidth,
                 config.indentationWidth,
+                allowExtensions,
                 parseIfOutdated,
             ),
             () => new buffers.execution.ScriptCompilationResult(),

@@ -39,11 +39,12 @@ struct ScriptCompilationResult {
 };
 
 class Script;
+struct ScriptCompilationOptions;
 
 struct ScriptCompiler {
     static ScriptCompilationResult Compile(Script& script,
                                            const buffers::formatting::FormattingConfigT& config,
-                                           bool parse_if_outdated = true);
+                                           ScriptCompilationOptions options = {});
 };
 
 }  // namespace dashql

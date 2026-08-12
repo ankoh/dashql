@@ -24,6 +24,13 @@ ScriptCompilationResult Compile(std::string_view text) {
     return script.CompileQuery(ExecutionConfig());
 }
 
+ScriptCompilationResult CompileWithoutExtensions(std::string_view text) {
+    static Catalog catalog;
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    return script.CompileQuery(ExecutionConfig(), {.allow_extensions = false});
+}
+
 TEST(ScriptCompilerTest, CompilesOrderedPipelineDefinitions) {
     auto result = Compile(R"SQL(
 FROM sales |> AGGREGATE sum(amount) AS total |> AS table1;
@@ -91,6 +98,17 @@ TEST(ScriptCompilerTest, ReturnsPlainSQLVerbatim) {
     EXPECT_EQ(result.kind, buffers::execution::ScriptCompilationStatementKind::QUERY);
     EXPECT_EQ(result.terminal_statement_id, 0);
     EXPECT_EQ(result.sql, sql);
+}
+
+TEST(ScriptCompilerTest, RejectsExtensionsWhenDisabled) {
+    auto pipe = CompileWithoutExtensions("FROM sales |> WHERE amount > 0;");
+    ASSERT_EQ(pipe.errors.size(), 1);
+    EXPECT_EQ(pipe.errors.front().code, buffers::execution::ScriptCompilationErrorCode::EXTENSIONS_DISABLED);
+
+    auto visualize = CompileWithoutExtensions(
+        "SELECT 1 AS value |> VISUALIZE USING vegalite (mark => bar, encoding => (x => (field => value)));");
+    ASSERT_EQ(visualize.errors.size(), 1);
+    EXPECT_EQ(visualize.errors.front().code, buffers::execution::ScriptCompilationErrorCode::EXTENSIONS_DISABLED);
 }
 
 TEST(ScriptCompilerTest, RejectsDefinitionOnlyScript) {

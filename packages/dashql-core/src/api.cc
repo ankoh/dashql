@@ -122,6 +122,7 @@ extern "C" void dashql_script_get_statement_text(FFIResult* result, Script* scri
 
 extern "C" void dashql_script_compile_query(FFIResult* result, Script* script, size_t dialect, size_t mode,
                                              size_t max_width, size_t indentation_width,
+                                             bool allow_extensions,
                                              bool parse_if_outdated) {
     buffers::formatting::FormattingConfigT config;
     config.dialect = static_cast<buffers::formatting::FormattingDialect>(dialect);
@@ -129,7 +130,10 @@ extern "C" void dashql_script_compile_query(FFIResult* result, Script* script, s
     config.max_width = max_width;
     config.indentation_width = indentation_width;
     config.lower_relational_pipes = true;
-    auto compiled = script->CompileQuery(config, parse_if_outdated);
+    auto compiled = script->CompileQuery(config, {
+                                                     .allow_extensions = allow_extensions,
+                                                     .parse_if_outdated = parse_if_outdated,
+                                                 });
     flatbuffers::FlatBufferBuilder fb;
     fb.Finish(compiled.Pack(fb));
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());

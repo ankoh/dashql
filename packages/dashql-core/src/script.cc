@@ -1198,8 +1198,8 @@ std::string Script::GetStatementText(bool parse_if_outdated) {
 }
 
 ScriptCompilationResult Script::CompileQuery(const buffers::formatting::FormattingConfigT& config,
-                                             bool parse_if_outdated) {
-    return ScriptCompiler::Compile(*this, config, parse_if_outdated);
+                                             ScriptCompilationOptions options) {
+    return ScriptCompiler::Compile(*this, config, options);
 }
 
 /// Update memory statisics

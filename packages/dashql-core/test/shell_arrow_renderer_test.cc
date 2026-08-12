@@ -120,6 +120,29 @@ TEST(ShellSessionTest, SuspendsAndResumesQueryCoroutine) {
     EXPECT_NE(complete.data.find("alpha"), std::string::npos);
 }
 
+TEST(ShellSessionTest, CompilesPlainSQLBeforeExecution) {
+    Catalog catalog;
+    ShellSession session{catalog, 80};
+    constexpr std::string_view query = "  SELECT 42; -- context\n";
+    const auto pending = session.StartQuery(query);
+    ASSERT_EQ(pending.status, ShellStatus::kPending);
+    EXPECT_EQ(pending.data.substr(16), query);
+}
+
+TEST(ShellSessionTest, RejectsDashQLExtensions) {
+    Catalog catalog;
+    ShellSession session{catalog, 80};
+
+    const auto pipe = session.StartQuery("FROM sales |> WHERE amount > 0");
+    EXPECT_EQ(pipe.status, ShellStatus::kInvalidArgument);
+    EXPECT_NE(pipe.data.find("not executable in the shell"), std::string::npos);
+
+    const auto visualize = session.StartQuery(
+        "SELECT 1 AS value |> VISUALIZE USING vegalite (mark => bar, encoding => (x => (field => value)))");
+    EXPECT_EQ(visualize.status, ShellStatus::kInvalidArgument);
+    EXPECT_NE(visualize.data.find("not executable in the shell"), std::string::npos);
+}
+
 TEST(ShellSessionTest, RejectsConcurrentQueriesAndStaleCompletions) {
     Catalog catalog;
     ShellSession session{catalog, 80};
@@ -135,7 +158,7 @@ TEST(ShellSessionTest, RejectsConcurrentQueriesAndStaleCompletions) {
 TEST(ShellSessionTest, ConvertsQueryErrorsToOutput) {
     Catalog catalog;
     ShellSession session{catalog, 80};
-    const auto pending = session.StartQuery("broken");
+    const auto pending = session.StartQuery("SELECT * FROM missing_table");
     ASSERT_EQ(pending.status, ShellStatus::kPending);
     const std::string error = "syntax error";
     const auto complete = session.CompleteEffect(

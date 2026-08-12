@@ -57,7 +57,8 @@ extern "C" void dashql_script_to_string(FFIResult* result, dashql::Script* scrip
 extern "C" void dashql_script_get_statement_text(FFIResult* result, dashql::Script* script, bool parse_if_outdated);
 /// Compile the script into an executable query.
 extern "C" void dashql_script_compile_query(FFIResult* result, dashql::Script* script, size_t dialect, size_t mode,
-                                              size_t max_width, size_t indentation_width, bool parse_if_outdated);
+                                              size_t max_width, size_t indentation_width, bool allow_extensions,
+                                              bool parse_if_outdated);
 /// Scan a script (throws exception on error)
 extern "C" void dashql_script_scan(dashql::Script* script);
 /// Parse a script (throws exception on error)

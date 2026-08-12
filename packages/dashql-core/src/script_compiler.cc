@@ -73,10 +73,10 @@ flatbuffers::Offset<buffers::execution::ScriptCompilationResult> ScriptCompilati
 }
 
 ScriptCompilationResult ScriptCompiler::Compile(Script& script,
-                                                const buffers::formatting::FormattingConfigT& config,
-                                                bool parse_if_outdated) {
+                                                 const buffers::formatting::FormattingConfigT& config,
+                                                 ScriptCompilationOptions options) {
     ScriptCompilationResult result;
-    if (parse_if_outdated &&
+    if (options.parse_if_outdated &&
         (!script.parsed_script || script.parsed_script->scanned_script->text_version != script.text_version)) {
         script.Parse();
     }
@@ -102,6 +102,11 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script,
     constexpr auto execution_features =
         static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::RELATIONAL_PIPE) |
         static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE);
+    if (!options.allow_extensions && (parsed.feature_flags & execution_features) != 0) {
+        result.errors.push_back(MakeError(ErrorCode::EXTENSIONS_DISABLED,
+                                          "DashQL pipe and VISUALIZE syntax is not executable in the shell"));
+        return result;
+    }
     if ((parsed.feature_flags & execution_features) == 0) {
         result.kind = StatementKind::QUERY;
         result.terminal_statement_id = static_cast<uint32_t>(parsed.statements.size() - 1);
