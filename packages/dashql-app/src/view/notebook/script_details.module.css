@@ -106,6 +106,22 @@
     display: flex;
     align-items: center;
     flex-shrink: 0;
+    gap: 4px;
+}
+
+.format_menu {
+    width: 100%;
+}
+
+.format_menu_list {
+    row-gap: 2px;
+    padding: 4px 0;
+}
+
+.format_menu_item {
+    min-height: 28px;
+    margin: 0 4px;
+    padding: 2px 8px;
 }
 
 .script_body {

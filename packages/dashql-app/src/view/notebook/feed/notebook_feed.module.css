@@ -113,6 +113,11 @@
     width: 100%;
 }
 
+.compose_card_body :global(.cm-scroller) {
+    max-height: min(320px, calc(100dvh - 160px));
+    overflow-y: auto;
+}
+
 .compose_action_bar {
     width: 100%;
     display: flex;

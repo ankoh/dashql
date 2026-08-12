@@ -31,6 +31,10 @@ import { createReadonlyCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../editor/dashql_processor.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { ScriptDiagnosticsButton } from './script_diagnostics.js';
+import * as ActionList from '../foundations/action_list.js';
+import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
+import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
+import { OverlaySize } from '../foundations/overlay.js';
 
 export { ScriptDetailsTab as TabKey };
 
@@ -43,6 +47,76 @@ export interface ScriptDetailsProps {
     initialTab?: ScriptDetailsTab;
     navigateToScript?: (scriptKey: number) => void;
 }
+
+interface ScriptFormatMenuProps {
+    disabled: boolean;
+    canConvertToSQL: boolean;
+    onFormat: (mode: dashql.buffers.formatting.FormattingMode, lowerRelationalPipes: boolean) => void;
+}
+
+const ScriptFormatMenu: React.FC<ScriptFormatMenuProps> = (props) => {
+    const [isOpen, setIsOpen] = React.useState(false);
+    const triggerRef = React.useRef<HTMLButtonElement | null>(null);
+    const FormatIcon: Icon = SymbolIcon('pencil_ai_16');
+    const selectFormat = React.useCallback((
+        mode: dashql.buffers.formatting.FormattingMode,
+        lowerRelationalPipes: boolean,
+    ) => {
+        setIsOpen(false);
+        props.onFormat(mode, lowerRelationalPipes);
+    }, [props.onFormat]);
+
+    return (
+        <AnchoredOverlay
+            open={isOpen}
+            onOpen={() => setIsOpen(true)}
+            onClose={() => setIsOpen(false)}
+            side={AnchorSide.OutsideBottom}
+            align={AnchorAlignment.End}
+            anchorOffset={4}
+            width={OverlaySize.S}
+            anchorRef={triggerRef}
+            returnFocusRef={triggerRef}
+            focusZoneSettings={{ disabled: true }}
+            renderAnchor={(anchorProps) => (
+                <IconButton
+                    {...anchorProps}
+                    ref={triggerRef}
+                    variant={ButtonVariant.Invisible}
+                    size={ButtonSize.Small}
+                    aria-label="Format script"
+                    disabled={props.disabled}
+                >
+                    <FormatIcon size={16} />
+                </IconButton>
+            )}
+        >
+            <div className={styles.format_menu} role="dialog" aria-label="Script formatting">
+                <ActionList.List className={styles.format_menu_list} aria-label="Script formatting options">
+                    <ActionList.ListItem
+                        className={styles.format_menu_item}
+                        onClick={() => selectFormat(dashql.buffers.formatting.FormattingMode.PRETTY, false)}
+                    >
+                        <ActionList.ItemText>Format Pretty</ActionList.ItemText>
+                    </ActionList.ListItem>
+                    <ActionList.ListItem
+                        className={styles.format_menu_item}
+                        onClick={() => selectFormat(dashql.buffers.formatting.FormattingMode.COMPACT, false)}
+                    >
+                        <ActionList.ItemText>Format Compact</ActionList.ItemText>
+                    </ActionList.ListItem>
+                    <ActionList.ListItem
+                        className={styles.format_menu_item}
+                        disabled={!props.canConvertToSQL}
+                        onClick={() => selectFormat(dashql.buffers.formatting.FormattingMode.PRETTY, true)}
+                    >
+                        <ActionList.ItemText>Convert to SQL</ActionList.ItemText>
+                    </ActionList.ListItem>
+                </ActionList.List>
+            </div>
+        </AnchoredOverlay>
+    );
+};
 
 export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     const config = useAppConfig();
@@ -70,7 +144,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     const scriptDisplay = scriptDisplayName(scriptFileName);
 
     const PencilIcon: Icon = SymbolIcon('pencil_16');
-    const PencilAIIcon: Icon = SymbolIcon('pencil_ai_16');
     const CheckIcon: Icon = SymbolIcon('check_16');
     const FormatXIcon: Icon = SymbolIcon('x_16');
     const [isEditingName, setIsEditingName] = React.useState(false);
@@ -133,14 +206,19 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         }
     }, [scriptData?.script, scriptData?.scriptAnalysis.buffers]);
 
-    const handleFormat = React.useCallback(() => {
+    const handleFormat = React.useCallback((
+        mode: dashql.buffers.formatting.FormattingMode,
+        lowerRelationalPipes: boolean,
+    ) => {
         if (editorView == null || scriptData == null) return;
         try {
             const config = new dashql.buffers.formatting.FormattingConfigT(
                 dashql.buffers.formatting.FormattingDialect.DUCKDB,
-                dashql.buffers.formatting.FormattingMode.PRETTY,
+                mode,
                 80,
                 4,
+                false,
+                lowerRelationalPipes,
             );
             const formattedScript = scriptData.script.format(config, null);
             const formattedText = formattedScript.toString();
@@ -240,6 +318,14 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     // too, mirroring the feed's status bar. Both drive the editor-effect accept/reject path, which
     // round-trips through UPDATE_FROM_PROCESSOR to clear the pending diff.
     const hasPendingDiff = scriptData?.pendingDiff != null;
+    let canConvertToSQL = false;
+    try {
+        const parsed = scriptData?.scriptAnalysis.buffers.parsed?.read() ?? null;
+        canConvertToSQL = parsed != null &&
+            (parsed.featureFlags() & dashql.buffers.parser.ParsedScriptFeature.RELATIONAL_PIPE) !== 0;
+    } catch {
+        canConvertToSQL = false;
+    }
     const handleAcceptDiff = React.useCallback(() => {
         if (editorView != null) {
             acceptPendingDiff(editorView);
@@ -417,6 +503,11 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                                     scriptData={scriptData}
                                     isFormattable={isFormattable}
                                 />
+                                <ScriptFormatMenu
+                                    disabled={formatPending || hasPendingDiff}
+                                    canConvertToSQL={canConvertToSQL}
+                                    onFormat={handleFormat}
+                                />
                                 <IconButton
                                     className={styles.entry_card_collapse_button}
                                     variant={ButtonVariant.Invisible}
@@ -453,15 +544,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                                                 <FormatXIcon />
                                             </IconButton>
                                         </ButtonGroup>
-                                    ) : !formatPending ? (
-                                        <IconButton
-                                            variant={ButtonVariant.Invisible}
-                                            onClick={handleFormat}
-                                            aria-label="Pretty format"
-                                        >
-                                            <PencilAIIcon />
-                                        </IconButton>
-                                    ) : (
+                                    ) : formatPending ? (
                                         <ButtonGroup>
                                             <IconButton
                                                 variant={ButtonVariant.Default}
@@ -478,7 +561,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                                                 <FormatXIcon />
                                             </IconButton>
                                         </ButtonGroup>
-                                    )}
+                                    ) : null}
                                 </div>
                             </div>
                         </div>

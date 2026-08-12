@@ -13,6 +13,7 @@ import {
 
 const mockState = vi.hoisted(() => ({
     executeQuery: vi.fn(),
+    formatScript: vi.fn(),
     isFormattable: true,
     keyHandlers: [] as Array<{
         key: string;
@@ -61,6 +62,7 @@ vi.mock('../../compute/computation_registry.js', () => ({
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
 import { ConnectionHealth, type ConnectionState } from '../../connection/connection_state.js';
+import * as dashql from '../../core/index.js';
 import { REGISTER_QUERY, type NotebookScripts } from '../../scripts/notebook_scripts.js';
 import { ScriptDetails } from './script_details.js';
 
@@ -78,6 +80,7 @@ function makeScriptData(scriptKey: number, text: string, fileName: string) {
                 destroy: () => { },
             }),
             analyze: () => { },
+            format: mockState.formatScript,
             isFullyFormattable: () => mockState.isFormattable,
             getParsed: () => null,
             getAnalyzed: () => null,
@@ -137,6 +140,8 @@ describe('ScriptDetails', () => {
         mockState.keyHandlers = [];
         mockState.executeQuery.mockReset();
         mockState.executeQuery.mockReturnValue([42, Promise.resolve(null)]);
+        mockState.formatScript.mockReset();
+        mockState.formatScript.mockImplementation(() => { throw new Error('Stop after recording config'); });
         mockState.isFormattable = true;
     });
 
@@ -231,6 +236,100 @@ describe('ScriptDetails', () => {
         act(() => diagnosticsButton.click());
         expect(document.querySelector('[role="dialog"][aria-label="Script diagnostics"]')?.textContent)
             .toContain('This script cannot be formatted');
+    });
+
+    it('offers pretty and compact formatting from the details card header', () => {
+        act(() => {
+            root.render(
+                <ScriptDetails
+                    notebookScripts={createNotebookScripts()}
+                    modifyNotebookScripts={vi.fn()}
+                    connection={null}
+                    hideDetails={vi.fn()}
+                    scriptId={102}
+                />,
+            );
+        });
+
+        const formatButton = container.querySelector('[aria-label="Format script"]') as HTMLButtonElement;
+        expect(formatButton).not.toBeNull();
+
+        act(() => formatButton.click());
+        let menu = document.querySelector('[role="dialog"][aria-label="Script formatting"]') as HTMLElement;
+        const prettyButton = Array.from(menu.querySelectorAll('button'))
+            .find(button => button.textContent === 'Format Pretty') as HTMLButtonElement;
+        act(() => prettyButton.click());
+        expect(mockState.formatScript).toHaveBeenLastCalledWith(expect.objectContaining({
+            mode: dashql.buffers.formatting.FormattingMode.PRETTY,
+            lowerRelationalPipes: false,
+        }), null);
+
+        act(() => formatButton.click());
+        menu = document.querySelector('[role="dialog"][aria-label="Script formatting"]') as HTMLElement;
+        const compactButton = Array.from(menu.querySelectorAll('button'))
+            .find(button => button.textContent === 'Format Compact') as HTMLButtonElement;
+        act(() => compactButton.click());
+        expect(mockState.formatScript).toHaveBeenLastCalledWith(expect.objectContaining({
+            mode: dashql.buffers.formatting.FormattingMode.COMPACT,
+            lowerRelationalPipes: false,
+        }), null);
+    });
+
+    it('only enables SQL conversion for scripts containing relational pipes', () => {
+        const notebookScripts = createNotebookScripts();
+
+        act(() => {
+            root.render(
+                <ScriptDetails
+                    notebookScripts={notebookScripts}
+                    modifyNotebookScripts={vi.fn()}
+                    connection={null}
+                    hideDetails={vi.fn()}
+                    scriptId={102}
+                />,
+            );
+        });
+
+        let formatButton = container.querySelector('[aria-label="Format script"]') as HTMLButtonElement;
+        act(() => formatButton.click());
+        let menu = document.querySelector('[role="dialog"][aria-label="Script formatting"]') as HTMLElement;
+        let convertButton = Array.from(menu.querySelectorAll('button'))
+            .find(button => button.textContent === 'Convert to SQL') as HTMLButtonElement;
+        expect(convertButton.disabled).toBe(true);
+
+        act(() => formatButton.click());
+        notebookScripts.scripts[102].scriptAnalysis.buffers.parsed = {
+            read: () => ({
+                featureFlags: () => dashql.buffers.parser.ParsedScriptFeature.RELATIONAL_PIPE,
+                scannerErrorsLength: () => 0,
+                scannerErrors: () => null,
+                parserErrorsLength: () => 0,
+                parserErrors: () => null,
+            }),
+        } as any;
+        act(() => {
+            root.render(
+                <ScriptDetails
+                    notebookScripts={notebookScripts}
+                    modifyNotebookScripts={vi.fn()}
+                    connection={null}
+                    hideDetails={vi.fn()}
+                    scriptId={102}
+                />,
+            );
+        });
+
+        formatButton = container.querySelector('[aria-label="Format script"]') as HTMLButtonElement;
+        act(() => formatButton.click());
+        menu = document.querySelector('[role="dialog"][aria-label="Script formatting"]') as HTMLElement;
+        convertButton = Array.from(menu.querySelectorAll('button'))
+            .find(button => button.textContent === 'Convert to SQL') as HTMLButtonElement;
+        expect(convertButton.disabled).toBe(false);
+        act(() => convertButton.click());
+        expect(mockState.formatScript).toHaveBeenLastCalledWith(expect.objectContaining({
+            mode: dashql.buffers.formatting.FormattingMode.PRETTY,
+            lowerRelationalPipes: true,
+        }), null);
     });
 
     it('uses the error icon when script diagnostics include errors', () => {

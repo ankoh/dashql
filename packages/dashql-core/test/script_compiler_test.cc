@@ -47,6 +47,20 @@ FROM table1 |> UNION ALL (FROM table2) |> ORDER BY total;
     EXPECT_FALSE(result.sql.ends_with(';'));
 }
 
+TEST(ScriptCompilerTest, PreservesAggregateTargetList) {
+    auto result = Compile(R"SQL(
+FROM events
+|> EXTEND date_trunc('hour', event_timestamp) AS ts_hour
+|> AGGREGATE ts_hour, sum(processed_rows) AS processed_rows GROUP BY ts_hour
+|> SELECT sum(processed_rows) OVER (ORDER BY ts_hour ASC) AS processed_rows_running;
+)SQL");
+
+    ASSERT_TRUE(result.errors.empty()) << (result.errors.empty() ? "" : result.errors.front().message);
+    EXPECT_NE(result.sql.find("select ts_hour, sum(processed_rows) as processed_rows"), std::string::npos)
+        << result.sql;
+    EXPECT_EQ(result.sql.find("select ts_hour, ts_hour"), std::string::npos) << result.sql;
+}
+
 TEST(ScriptCompilerTest, PreservesInternalPipeAlias) {
     auto result = Compile(R"SQL(
 FROM sales |> AS s |> LEFT JOIN regions AS r ON s.region_id = r.id |> AS enriched;

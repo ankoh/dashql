@@ -234,10 +234,10 @@ FmtReg Formatter::FormatPipe(size_t node_id) {
                     GetAttributes<AttributeKey::EXT_PIPE_AGGREGATE_TARGETS,
                                   AttributeKey::EXT_PIPE_AGGREGATE_GROUPS>(stage);
                 std::vector<FmtReg> parts{fmt.Text("select ")};
-                if (groups) parts.push_back(Reg(*groups));
                 if (targets) {
-                    if (groups) parts.push_back(fmt.Text(", "));
                     parts.push_back(Reg(*targets));
+                } else if (groups) {
+                    parts.push_back(Reg(*groups));
                 }
                 parts.push_back(fmt.Concat({fmt.Text(" from "), input}));
                 if (groups) parts.push_back(fmt.Concat({fmt.Text(" group by "), Reg(*groups)}));
