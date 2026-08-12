@@ -68,7 +68,10 @@ cc_library(
     name = "dashql_core_headers",
     hdrs = glob(
         ["include/**/*.h"],
-        exclude = ["include/dashql/buffers/*.h"],
+        exclude = [
+            "include/dashql/buffers/*.h",
+            "include/dashql/shell/*.h",
+        ],
     ),
     includes = ["include"],
 )
