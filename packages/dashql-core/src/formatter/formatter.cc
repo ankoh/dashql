@@ -571,8 +571,13 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_DESCRIPTOR_COLUMNS:
         case AttributeKey::SQL_CASE_CLAUSES:
         case AttributeKey::SQL_CREATE_TABLE_ELEMENTS:
+        case AttributeKey::SQL_CREATE_AS_COLUMNS:
+        case AttributeKey::SQL_VIEW_COLUMNS:
+        case AttributeKey::SQL_CREATE_FUNCTION_PARAMS:
         case AttributeKey::SQL_GROUP_BY_ITEM_ARG:
             return FormatCommaList(node);
+        case AttributeKey::EXT_VARARG_FIELD_VALUE:
+            return fmt.Parenthesized(FormatCommaList(node));
         case AttributeKey::SQL_WINDOW_FRAME_BOUNDS: {
             auto bounds = GetArrayStates(node);
             if (bounds.size() == 1 && bounds.front().reg != 0) return bounds.front().reg;
@@ -606,6 +611,10 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_PARAMETER_NAME:
         case AttributeKey::SQL_TABLE_CONSTRAINT_REFERENCES_NAME:
         case AttributeKey::SQL_COLUMN_REF_PATH:
+        case AttributeKey::SQL_CREATE_AS_NAME:
+        case AttributeKey::SQL_VIEW_NAME:
+        case AttributeKey::SQL_CREATE_FUNCTION_NAME:
+        case AttributeKey::EXT_VARARG_FIELD_KEY:
             return FormatQualifiedName(node);
         case AttributeKey::SQL_SELECT_DISTINCT:
         case AttributeKey::SQL_SELECT_WITH_CTES:
@@ -2157,6 +2166,18 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatSelect(node_id);
         case NodeType::OBJECT_SQL_CREATE:
             return FormatCreate(node_id);
+        case NodeType::OBJECT_SQL_CREATE_AS:
+            return FormatCreateAs(node);
+        case NodeType::OBJECT_SQL_VIEW:
+            return FormatView(node);
+        case NodeType::OBJECT_SQL_CREATE_FUNCTION:
+            return FormatCreateFunction(node);
+        case NodeType::OBJECT_SQL_FUNCTION_PARAM:
+            return FormatFunctionParam(node);
+        case NodeType::OBJECT_EXT_SET:
+            return FormatSet(node);
+        case NodeType::OBJECT_EXT_VARARG_FIELD:
+            return FormatVarargField(node);
         case NodeType::OBJECT_EXT_EXPLAIN:
             return FormatExplain(node_id);
         case NodeType::OBJECT_SQL_TABLEREF:
@@ -2175,6 +2196,10 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatOrderDirection(node);
         case NodeType::ENUM_SQL_ORDER_NULL_RULE:
             return FormatOrderNullRule(node);
+        case NodeType::ENUM_SQL_TEMP_TYPE:
+            return FormatTempType(node);
+        case NodeType::ENUM_SQL_ON_COMMIT_OPTION:
+            return FormatOnCommitOption(node);
         case NodeType::OBJECT_SQL_TYPENAME:
             return FormatTypeName(node);
         case NodeType::OBJECT_SQL_INTERVAL_TYPE:

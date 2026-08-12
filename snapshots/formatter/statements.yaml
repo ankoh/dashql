@@ -1,0 +1,180 @@
+formatter-snapshots:
+
+  - name: coverage_create_table_as
+    input: |-
+      create table if not exists analytics.result as select 1 as value
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              create table if not exists analytics.result as select 1 as value;
+          - mode: compact
+            expected: |-
+              create table if not exists analytics.result as select 1 as value;
+          - mode: pretty
+            expected: |-
+              create table if not exists analytics.result as select 1 as value;
+        validation:
+          setup: |-
+            create schema analytics;
+
+  - name: coverage_create_table_as_modifiers
+    input: |-
+      create temporary table if not exists result (value) on commit preserve rows as select 1 with no data
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              create temporary table if not exists result(value) on commit preserve rows as select 1 with no data;
+          - mode: compact
+            expected: |-
+              create temporary table if not exists result(value) on commit preserve rows as select 1 with no data;
+          - mode: pretty
+            expected: |-
+              create temporary table if not exists result(value) on commit preserve rows as select 1 with no data;
+
+  - name: coverage_create_table_as_global_with_data
+    input: |-
+      create global temporary table result as select 1 with data
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              create global temporary table result as select 1 with data;
+          - mode: compact
+            expected: |-
+              create global temporary table result as select 1 with data;
+          - mode: pretty
+            expected: |-
+              create global temporary table result as select 1 with data;
+
+  - name: coverage_create_view
+    input: |-
+      create view analytics.result (value) as select 1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              create view analytics.result(value) as select 1;
+          - mode: compact
+            expected: |-
+              create view analytics.result(value) as select 1;
+          - mode: pretty
+            expected: |-
+              create view analytics.result(value) as select 1;
+
+  - name: coverage_create_temporary_view
+    input: |-
+      create temporary view result as select 1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              create temporary view result as select 1;
+          - mode: compact
+            expected: |-
+              create temporary view result as select 1;
+          - mode: pretty
+            expected: |-
+              create temporary view result as select 1;
+
+  - name: coverage_create_function
+    input: |-
+      create function analytics.render(value int, label varchar) returns varchar
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              create function analytics.render(value integer, label varchar) returns varchar;
+          - mode: compact
+            expected: |-
+              create function analytics.render(value integer, label varchar) returns varchar;
+          - mode: pretty
+            expected: |-
+              create function analytics.render(value integer, label varchar) returns varchar;
+
+  - name: coverage_create_aggregate
+    input: |-
+      create aggregate analytics.total(value int) returns int
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              create aggregate analytics.total(value integer) returns integer;
+          - mode: compact
+            expected: |-
+              create aggregate analytics.total(value integer) returns integer;
+          - mode: pretty
+            expected: |-
+              create aggregate analytics.total(value integer) returns integer;
+
+  - name: coverage_set_scalar
+    input: |-
+      SET variable = 'value'
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              set variable = 'value';
+          - mode: compact
+            expected: |-
+              set variable = 'value';
+          - mode: pretty
+            expected: |-
+              set variable = 'value';
+
+  - name: coverage_set_nested
+    input: |-
+      SET variable = ('some' = 42, 'nested' = ('enabled' = true), 'values' = [43, 44])
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              set variable = ('some' = 42, 'nested' = ('enabled' = true), 'values' = [43, 44]);
+          - mode: compact
+            expected: |-
+              set variable = ('some' = 42, 'nested' = ('enabled' = true), 'values' = [43, 44]);
+          - mode: pretty
+            expected: |-
+              set variable = ('some' = 42, 'nested' = ('enabled' = true), 'values' = [43, 44]);
+
+  - name: coverage_create_table_modifiers
+    input: |-
+      create unlogged table result (value int) on commit drop
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              create unlogged table result (value integer) on commit drop;
+          - mode: compact
+            expected: |-
+              create unlogged table result (value integer) on commit drop;
+          - mode: pretty
+            expected: |-
+              create unlogged table result (value integer) on commit drop;
+
+  - name: coverage_create_table_delete_rows
+    input: |-
+      create temporary table result (value int) on commit delete rows
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              create temporary table result (value integer) on commit delete rows;
+          - mode: compact
+            expected: |-
+              create temporary table result (value integer) on commit delete rows;
+          - mode: pretty
+            expected: |-
+              create temporary table result (value integer) on commit delete rows;

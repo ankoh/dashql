@@ -59,5 +59,6 @@ INSTANTIATE_TEST_SUITE_P(GroupBy, FormatterValidationDuckDBTestSuite, ::testing:
 INSTANTIATE_TEST_SUITE_P(OrderBy, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("order_by.yaml", "duckdb")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Functions, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("functions.yaml", "duckdb")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Comments, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("comments.yaml", "duckdb")), FormatterSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Statements, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("statements.yaml", "duckdb")), FormatterSnapshotTest::TestPrinter());
 
 } // namespace

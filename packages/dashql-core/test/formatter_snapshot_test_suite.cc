@@ -17,6 +17,7 @@ TEST_P(FormatterSnapshotTestSuite, Test) {
     auto parsed = parser::Parser::Parse(scanned);
 
     Formatter formatter{*parsed};
+    const bool require_fully_formatted = test->name.starts_with("coverage_");
     for (const auto& dialect_exp : test->dialects) {
         if (dialect_exp.skip) continue;
         for (size_t i = 0; i < dialect_exp.expectations.size(); ++i) {
@@ -28,6 +29,28 @@ TEST_P(FormatterSnapshotTestSuite, Test) {
             ASSERT_EQ(formatted, exp.formatted) << "Dialect " << dialect_exp.dialect << " expectation " << i
                                                 << " (mode=" << FormattingModeToString(exp.config.mode)
                                                 << " indent=" << exp.config.indentation_width << ")";
+            if (require_fully_formatted) {
+                ASSERT_TRUE(formatter.IsFullyFormatted())
+                    << "Dialect " << dialect_exp.dialect << " expectation " << i
+                    << " has unformattable AST node "
+                    << (formatter.GetUnformattableNodes().empty()
+                            ? "<unknown>"
+                            : std::string(buffers::parser::EnumNameNodeType(
+                                              parsed->GetNodes()[formatter.GetUnformattableNodes().front()].node_type())) +
+                                  "/" +
+                                  buffers::parser::EnumNameAttributeKey(
+                                      parsed->GetNodes()[formatter.GetUnformattableNodes().front()].attribute_key()));
+
+                rope::Rope formatted_input{1024, formatted};
+                auto formatted_scanned = parser::Scanner::Scan(formatted_input, 0, 2);
+                auto formatted_parsed = parser::Parser::Parse(formatted_scanned);
+                ASSERT_TRUE(formatted_scanned->errors.empty())
+                    << "Dialect " << dialect_exp.dialect << " expectation " << i
+                    << " produced scanner errors after formatting";
+                ASSERT_TRUE(formatted_parsed->errors.empty())
+                    << "Dialect " << dialect_exp.dialect << " expectation " << i
+                    << " produced parser errors after formatting";
+            }
         }
     }
 }
@@ -48,5 +71,6 @@ INSTANTIATE_TEST_SUITE_P(Explain, FormatterSnapshotTestSuite, ::testing::ValuesI
 INSTANTIATE_TEST_SUITE_P(Visualize, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("visualize.yaml")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Pipe, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("pipe.yaml")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Comments, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("comments.yaml")), FormatterSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Statements, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("statements.yaml")), FormatterSnapshotTest::TestPrinter());
 
 } // namespace

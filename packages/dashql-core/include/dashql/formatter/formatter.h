@@ -75,6 +75,12 @@ struct Formatter {
     FmtReg FormatArray(const buffers::parser::Node& node);
     FmtReg FormatSelect(size_t node_id);
     FmtReg FormatCreate(size_t node_id);
+    FmtReg FormatCreateAs(const buffers::parser::Node& node);
+    FmtReg FormatView(const buffers::parser::Node& node);
+    FmtReg FormatCreateFunction(const buffers::parser::Node& node);
+    FmtReg FormatFunctionParam(const buffers::parser::Node& node);
+    FmtReg FormatSet(const buffers::parser::Node& node);
+    FmtReg FormatVarargField(const buffers::parser::Node& node);
     FmtReg FormatExplain(size_t node_id);
     FmtReg FormatResultTarget(const buffers::parser::Node& node);
     FmtReg FormatTableRef(const buffers::parser::Node& node);
@@ -83,6 +89,8 @@ struct Formatter {
     FmtReg FormatOrder(const buffers::parser::Node& node);
     FmtReg FormatOrderDirection(const buffers::parser::Node& node);
     FmtReg FormatOrderNullRule(const buffers::parser::Node& node);
+    FmtReg FormatTempType(const buffers::parser::Node& node);
+    FmtReg FormatOnCommitOption(const buffers::parser::Node& node);
     FmtReg FormatTypeName(const buffers::parser::Node& node);
     FmtReg FormatIntervalType(const buffers::parser::Node& node);
     FmtReg FormatIntervalTypeEnum(const buffers::parser::Node& node);
