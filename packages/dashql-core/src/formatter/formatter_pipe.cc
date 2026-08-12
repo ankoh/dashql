@@ -10,6 +10,33 @@ using NodeType = buffers::parser::NodeType;
 
 namespace {
 
+bool PipeExpressionsEqual(const buffers::parser::Node& left, const buffers::parser::Node& right,
+                          std::span<const buffers::parser::Node> ast, const ScannedScript& scanned) {
+    if (left.node_type() != right.node_type() || left.children_count() != right.children_count()) return false;
+    switch (left.node_type()) {
+        case NodeType::NAME:
+        case NodeType::LITERAL_NULL:
+        case NodeType::LITERAL_FLOAT:
+        case NodeType::LITERAL_INTEGER:
+        case NodeType::LITERAL_INTERVAL:
+        case NodeType::LITERAL_STRING:
+        case NodeType::OPERATOR:
+            return scanned.ReadTextAtSymbolSpan(left.symbol_span()) ==
+                   scanned.ReadTextAtSymbolSpan(right.symbol_span());
+        default:
+            if (left.children_count() == 0) {
+                return left.children_begin_or_value() == right.children_begin_or_value();
+            }
+            for (size_t i = 0; i < left.children_count(); ++i) {
+                if (!PipeExpressionsEqual(ast[left.children_begin_or_value() + i],
+                                          ast[right.children_begin_or_value() + i], ast, scanned)) {
+                    return false;
+                }
+            }
+            return true;
+    }
+}
+
 std::string_view JoinText(JoinType type) {
     switch (type) {
         case JoinType::NONE:
@@ -234,11 +261,40 @@ FmtReg Formatter::FormatPipe(size_t node_id) {
                     GetAttributes<AttributeKey::EXT_PIPE_AGGREGATE_TARGETS,
                                   AttributeKey::EXT_PIPE_AGGREGATE_GROUPS>(stage);
                 std::vector<FmtReg> parts{fmt.Text("select ")};
-                if (targets) {
-                    parts.push_back(Reg(*targets));
-                } else if (groups) {
-                    parts.push_back(Reg(*groups));
+                std::vector<FmtReg> missing_groups;
+                if (groups) {
+                    for (size_t i = 0; i < groups->children_count(); ++i) {
+                        const auto& group = ast[groups->children_begin_or_value() + i];
+                        auto [group_type, group_arg] =
+                            GetAttributes<AttributeKey::SQL_GROUP_BY_ITEM_TYPE,
+                                          AttributeKey::SQL_GROUP_BY_ITEM_ARG>(group);
+                        if (!group_type || !group_arg ||
+                            static_cast<buffers::parser::GroupByItemType>(group_type->children_begin_or_value()) !=
+                                buffers::parser::GroupByItemType::EXPRESSION) {
+                            missing_groups.push_back(Reg(group));
+                            continue;
+                        }
+                        bool is_explicit_target = false;
+                        if (targets) {
+                            for (size_t j = 0; j < targets->children_count(); ++j) {
+                                const auto& target = ast[targets->children_begin_or_value() + j];
+                                auto [target_value] =
+                                    GetAttributes<AttributeKey::SQL_RESULT_TARGET_VALUE>(target);
+                                if (target_value && PipeExpressionsEqual(*target_value, *group_arg, ast, scanned)) {
+                                    is_explicit_target = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!is_explicit_target) missing_groups.push_back(Reg(*group_arg));
+                    }
                 }
+                if (!missing_groups.empty()) {
+                    parts.push_back(fmt.Join(missing_groups, fmt.Text(", "),
+                                             fmt.Concat({fmt.Text(","), fmt.Break()})));
+                    if (targets) parts.push_back(fmt.Text(", "));
+                }
+                if (targets) parts.push_back(Reg(*targets));
                 parts.push_back(fmt.Concat({fmt.Text(" from "), input}));
                 if (groups) parts.push_back(fmt.Concat({fmt.Text(" group by "), Reg(*groups)}));
                 query = fmt.Concat(std::move(parts));

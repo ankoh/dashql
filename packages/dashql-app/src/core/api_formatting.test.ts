@@ -153,6 +153,55 @@ describe('DashQL formatting', () => {
         expect(script.isFullyFormattable(config)).toBe(true);
     });
 
+    it('formats multi-statement pipe aliases feeding a visualization', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `from analytics.query_events
+|> extend date_trunc('hour', event_timestamp) as ts_hour
+|> extend (query_text like '%flagged_dataset%') as marker
+|> where tenant = 'tenant/example'
+  and event_timestamp >= current_timestamp - interval '30' day
+|> as events;
+
+from events
+|> where not marker
+|> aggregate count(*) as metric, 'other' as target group by ts_hour, marker
+|> as aggregates_other;
+
+from events
+|> where marker
+|> aggregate count(*) as metric, 'flagged' as target group by ts_hour, marker
+|> as aggregates_filtered;
+
+from aggregates_other
+|> union all (from aggregates_filtered)
+|> visualize using vegalite (
+  mark => line,
+  encoding => (
+    x => (field => ts_hour, type => temporal),
+    y => (
+      field => metric,
+      type => quantitative,
+      aggregate => 'sum',
+      axis => (title => 'queries')
+    ),
+    color => (field => target)
+  )
+)`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.TRINO,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            120,
+            2,
+        );
+
+        expect(script.isFullyFormattable(config)).toBe(true);
+        const formatted = script.format(config, null, true).toString();
+        expect(formatted).not.toContain("'<OBJECT_");
+        expect(formatted).toContain('|> union all (from aggregates_filtered)');
+        expect(formatted).toContain('|> visualize using vegalite (');
+    });
+
     it('formats with debug settings preamble and line width comments', async () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);

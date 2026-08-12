@@ -2090,6 +2090,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
         case NodeType::OBJECT_SQL_GROUP_BY_ITEM:
             return FormatGroupByItem(node);
         case NodeType::ENUM_SQL_GROUP_BY_ITEM_TYPE:
+        case NodeType::ENUM_SQL_COMBINE_MODIFIER:
+        case NodeType::ENUM_SQL_COMBINE_OPERATION:
             return fmt.Empty();
         case NodeType::OBJECT_SQL_ORDER:
             return FormatOrder(node);

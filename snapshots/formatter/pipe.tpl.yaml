@@ -50,7 +50,7 @@ formatter-snapshots:
 
   - name: pipe_lower_extend_aggregate
     input: |-
-      from sales |> extend revenue * 1.2 as adjusted |> aggregate region, sum(adjusted) as total group by region
+      from sales |> extend revenue * 1.2 as adjusted |> aggregate sum(adjusted) as total group by region
     dialects:
       duckdb:
         formatted:
@@ -59,6 +59,15 @@ formatter-snapshots:
           - mode: compact
             lower-pipes: true
           - mode: pretty
+            lower-pipes: true
+
+  - name: pipe_lower_explicit_aggregate_group
+    input: |-
+      from sales |> aggregate region, sum(revenue) as total group by region
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
             lower-pipes: true
 
   - name: pipe_lower_with_join

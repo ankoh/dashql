@@ -61,6 +61,33 @@ FROM events
     EXPECT_EQ(result.sql.find("select ts_hour, ts_hour"), std::string::npos) << result.sql;
 }
 
+TEST(ScriptCompilerTest, ProjectsImplicitAggregateGroupKeys) {
+    auto result = Compile(R"SQL(
+FROM events
+|> EXTEND date_trunc('hour', event_timestamp) AS ts_hour
+|> AGGREGATE count(*) AS cnt GROUP BY ts_hour
+|> VISUALIZE USING vegalite (
+    mark => bar,
+    encoding => (
+        x => (field => ts_hour, type => temporal),
+        y => (field => cnt, type => quantitative)
+    )
+);
+)SQL");
+
+    ASSERT_TRUE(result.errors.empty()) << (result.errors.empty() ? "" : result.errors.front().message);
+    EXPECT_NE(result.sql.find("select ts_hour, count(*) as cnt"), std::string::npos) << result.sql;
+    EXPECT_EQ(result.sql.find("visualize"), std::string::npos) << result.sql;
+    ASSERT_TRUE(result.visualization.has_value());
+}
+
+TEST(ScriptCompilerTest, MatchesFormattedExplicitAggregateGroupKeys) {
+    auto result = Compile("FROM events |> AGGREGATE ( ts_hour ) AS bucket, count(*) AS cnt GROUP BY ts_hour;");
+
+    ASSERT_TRUE(result.errors.empty()) << (result.errors.empty() ? "" : result.errors.front().message);
+    EXPECT_EQ(result.sql.find("select ts_hour, ts_hour"), std::string::npos) << result.sql;
+}
+
 TEST(ScriptCompilerTest, PreservesInternalPipeAlias) {
     auto result = Compile(R"SQL(
 FROM sales |> AS s |> LEFT JOIN regions AS r ON s.region_id = r.id |> AS enriched;
