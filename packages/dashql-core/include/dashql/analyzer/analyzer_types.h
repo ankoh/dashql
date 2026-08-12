@@ -703,6 +703,8 @@ struct VisEncodingChannel {
     uint32_t ast_node_id = 0;
     /// The resolved field expression id (from field => column_ref)
     std::optional<uint32_t> field_expression_id;
+    /// The field value AST node, used when nested visualization fields are not in the SQL expression index.
+    std::optional<uint32_t> field_node_id;
     /// The field type (nominal, ordinal, quantitative, temporal, geojson)
     std::optional<buffers::parser::VisFieldType> field_type;
     /// The aggregate function name (sum, mean, count, etc.)
@@ -720,6 +722,31 @@ struct VisEncodingChannel {
     std::optional<VisAxis> axis;
     /// The legend definition for this channel
     std::optional<VisLegend> legend;
+};
+
+/// Vega-Lite composition resolution settings.
+struct VisResolve {
+    std::optional<uint32_t> scale_node_id;
+    std::optional<uint32_t> axis_node_id;
+    std::optional<uint32_t> legend_node_id;
+};
+
+/// A recursively nested Vega-Lite unit or layered specification.
+struct VegaLiteSpec {
+    std::optional<buffers::parser::VisMarkType> mark_type;
+    std::optional<VisMark> mark;
+    std::vector<VisEncodingChannel> encoding_channels;
+    std::vector<VegaLiteSpec> layers;
+    std::optional<VisResolve> resolve;
+    std::optional<std::string_view> title;
+    std::optional<int64_t> width;
+    std::optional<int64_t> height;
+
+    VegaLiteSpec() = default;
+    VegaLiteSpec(VegaLiteSpec&&) = default;
+    VegaLiteSpec& operator=(VegaLiteSpec&&) = default;
+    VegaLiteSpec(const VegaLiteSpec&) = delete;
+    VegaLiteSpec& operator=(const VegaLiteSpec&) = delete;
 };
 
 /// The projection parameters for the umap renderer. The 2D projection itself runs
@@ -793,6 +820,10 @@ struct VisualizationSpec {
     std::optional<int64_t> width;
     /// The chart height in pixels
     std::optional<int64_t> height;
+    /// Nested Vega-Lite layer specifications.
+    std::vector<VegaLiteSpec> layers;
+    /// Vega-Lite scale/axis/legend resolution settings.
+    std::optional<VisResolve> resolve;
     /// The pretty-printed Vega-Lite JSON specification (without the `data` field).
     /// Generated lazily during AnalyzedScript::Pack.
     std::string vegalite_json;

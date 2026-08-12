@@ -21,6 +21,8 @@ void AnalyzeVisualizationPass::NodeState::Clear() {
     title.reset();
     width.reset();
     height.reset();
+    layers.clear();
+    resolve.reset();
     scale.reset();
     axis.reset();
     legend.reset();
@@ -43,6 +45,12 @@ void AnalyzeVisualizationPass::NodeState::MergeFrom(NodeState&& other) {
     }
     if (!height.has_value() && other.height.has_value()) {
         height = other.height;
+    }
+    if (layers.empty() && !other.layers.empty()) {
+        layers = std::move(other.layers);
+    }
+    if (!resolve.has_value() && other.resolve.has_value()) {
+        resolve = std::move(other.resolve);
     }
     if (!scale.has_value() && other.scale.has_value()) {
         scale = std::move(other.scale);
@@ -281,6 +289,188 @@ UmapSpec ExtractUmapSpec(AnalysisState& state, const buffers::parser::Node& node
     return spec;
 }
 
+VisEncodingChannel ExtractEncodingChannel(AnalysisState& state, const buffers::parser::Node& node) {
+    VisEncodingChannel channel;
+    channel.ast_node_id = NodeId(state, &node);
+    channel.channel_key = node.attribute_key();
+
+    if (node.node_type() == NodeType::OBJECT_SQL_COLUMN_REF) {
+        channel.field_node_id = NodeId(state, &node);
+        return channel;
+    }
+
+    auto [field_node, type_node, bin_node, aggregate_node, time_unit_node, stack_node, scale_node, axis_node,
+          legend_node] =
+        state.GetAttributes<AttributeKey::VIS_FIELD_DEF_FIELD, AttributeKey::VIS_FIELD_DEF_TYPE,
+                            AttributeKey::VIS_FIELD_DEF_BIN, AttributeKey::VIS_FIELD_DEF_AGGREGATE,
+                            AttributeKey::VIS_FIELD_DEF_TIME_UNIT, AttributeKey::VIS_FIELD_DEF_STACK,
+                            AttributeKey::VIS_FIELD_DEF_SCALE, AttributeKey::VIS_FIELD_DEF_AXIS,
+                            AttributeKey::VIS_FIELD_DEF_LEGEND>(node);
+    if (field_node) channel.field_node_id = NodeId(state, field_node);
+    if (type_node && type_node->node_type() == NodeType::ENUM_VIS_FIELD_TYPE) {
+        channel.field_type = static_cast<buffers::parser::VisFieldType>(type_node->children_begin_or_value());
+    }
+    if (bin_node) {
+        VisBin bin;
+        bin.ast_node_id = NodeId(state, bin_node);
+        channel.bin = std::move(bin);
+    }
+    if (aggregate_node) channel.aggregate = ReadTextValue(state, aggregate_node);
+    if (time_unit_node) channel.time_unit = ReadTextValue(state, time_unit_node);
+    if (stack_node) channel.stack_node_id = NodeId(state, stack_node);
+
+    // Existing level-4 extraction is state-based. Nested specs use the same AST nodes,
+    // so copy the fields directly by running the focused extractors below when present.
+    if (scale_node && scale_node->node_type() == NodeType::OBJECT_VIS_SCALE) {
+        VisScale scale;
+        scale.ast_node_id = NodeId(state, scale_node);
+        auto [type, domain, domain_min, domain_max, domain_mid, range, range_min, range_max, scheme, interpolate,
+              nice, zero, clamp, padding, padding_inner, padding_outer, reverse, round, exponent, bins, name] =
+            state.GetAttributes<AttributeKey::VIS_SCALE_TYPE, AttributeKey::VIS_SCALE_DOMAIN,
+                                AttributeKey::VIS_SCALE_DOMAIN_MIN, AttributeKey::VIS_SCALE_DOMAIN_MAX,
+                                AttributeKey::VIS_SCALE_DOMAIN_MID, AttributeKey::VIS_SCALE_RANGE,
+                                AttributeKey::VIS_SCALE_RANGE_MIN, AttributeKey::VIS_SCALE_RANGE_MAX,
+                                AttributeKey::VIS_SCALE_SCHEME, AttributeKey::VIS_SCALE_INTERPOLATE,
+                                AttributeKey::VIS_SCALE_NICE, AttributeKey::VIS_SCALE_ZERO,
+                                AttributeKey::VIS_SCALE_CLAMP, AttributeKey::VIS_SCALE_PADDING,
+                                AttributeKey::VIS_SCALE_PADDING_INNER, AttributeKey::VIS_SCALE_PADDING_OUTER,
+                                AttributeKey::VIS_SCALE_REVERSE, AttributeKey::VIS_SCALE_ROUND,
+                                AttributeKey::VIS_SCALE_EXPONENT, AttributeKey::VIS_SCALE_BINS,
+                                AttributeKey::VIS_SCALE_NAME>(*scale_node);
+        if (type && type->node_type() == NodeType::ENUM_VIS_SCALE_TYPE)
+            scale.type = static_cast<buffers::parser::VisScaleType>(type->children_begin_or_value());
+        if (domain) scale.domain_node_id = NodeId(state, domain);
+        if (domain_min) scale.domain_min_node_id = NodeId(state, domain_min);
+        if (domain_max) scale.domain_max_node_id = NodeId(state, domain_max);
+        if (domain_mid) scale.domain_mid_node_id = NodeId(state, domain_mid);
+        if (range) scale.range_node_id = NodeId(state, range);
+        if (range_min) scale.range_min_node_id = NodeId(state, range_min);
+        if (range_max) scale.range_max_node_id = NodeId(state, range_max);
+        scale.scheme = ReadTextValue(state, scheme);
+        scale.interpolate = ReadTextValue(state, interpolate);
+        scale.nice = ReadBoolValue(state, nice);
+        scale.zero = ReadBoolValue(state, zero);
+        scale.clamp = ReadBoolValue(state, clamp);
+        scale.padding = ReadNumericValue(state, padding);
+        scale.padding_inner = ReadNumericValue(state, padding_inner);
+        scale.padding_outer = ReadNumericValue(state, padding_outer);
+        scale.reverse = ReadBoolValue(state, reverse);
+        scale.round = ReadBoolValue(state, round);
+        scale.exponent = ReadNumericValue(state, exponent);
+        if (bins) scale.bins_node_id = NodeId(state, bins);
+        scale.name = ReadTextValue(state, name);
+        channel.scale = std::move(scale);
+    }
+    if (axis_node && axis_node->node_type() == NodeType::OBJECT_VIS_AXIS) {
+        VisAxis axis;
+        axis.ast_node_id = NodeId(state, axis_node);
+        auto [orient, format, format_type, grid, ticks, tick_count, tick_size, label_angle, label_font_size,
+              label_overlap, direction, offset, values, zindex, title, domain, name] =
+            state.GetAttributes<AttributeKey::VIS_AXIS_ORIENT, AttributeKey::VIS_AXIS_FORMAT,
+                                AttributeKey::VIS_AXIS_FORMAT_TYPE, AttributeKey::VIS_AXIS_GRID,
+                                AttributeKey::VIS_AXIS_TICKS, AttributeKey::VIS_AXIS_TICK_COUNT,
+                                AttributeKey::VIS_AXIS_TICK_SIZE, AttributeKey::VIS_AXIS_LABEL_ANGLE,
+                                AttributeKey::VIS_AXIS_LABEL_FONT_SIZE, AttributeKey::VIS_AXIS_LABEL_OVERLAP,
+                                AttributeKey::VIS_AXIS_DIRECTION, AttributeKey::VIS_AXIS_OFFSET,
+                                AttributeKey::VIS_AXIS_VALUES, AttributeKey::VIS_AXIS_ZINDEX,
+                                AttributeKey::VIS_AXIS_TITLE, AttributeKey::VIS_AXIS_DOMAIN,
+                                AttributeKey::VIS_AXIS_NAME>(*axis_node);
+        axis.orient = ReadTextValue(state, orient);
+        axis.format = ReadTextValue(state, format);
+        axis.format_type = ReadTextValue(state, format_type);
+        axis.grid = ReadBoolValue(state, grid);
+        axis.ticks = ReadBoolValue(state, ticks);
+        axis.tick_count = ReadNumericValue(state, tick_count);
+        axis.tick_size = ReadNumericValue(state, tick_size);
+        axis.label_angle = ReadNumericValue(state, label_angle);
+        axis.label_font_size = ReadNumericValue(state, label_font_size);
+        axis.label_overlap = ReadTextValue(state, label_overlap);
+        axis.direction = ReadTextValue(state, direction);
+        axis.offset = ReadNumericValue(state, offset);
+        if (values) axis.values_node_id = NodeId(state, values);
+        if (auto v = ReadNumericValue(state, zindex)) axis.zindex = static_cast<int32_t>(*v);
+        axis.title = ReadTextValue(state, title);
+        axis.domain = ReadBoolValue(state, domain);
+        axis.name = ReadTextValue(state, name);
+        channel.axis = std::move(axis);
+    }
+    if (legend_node && legend_node->node_type() == NodeType::OBJECT_VIS_LEGEND) {
+        VisLegend legend;
+        legend.ast_node_id = NodeId(state, legend_node);
+        auto [type, orient, format, format_type, direction, title, values, padding, offset, zindex, name] =
+            state.GetAttributes<AttributeKey::VIS_LEGEND_TYPE, AttributeKey::VIS_LEGEND_ORIENT,
+                                AttributeKey::VIS_LEGEND_FORMAT, AttributeKey::VIS_LEGEND_FORMAT_TYPE,
+                                AttributeKey::VIS_LEGEND_DIRECTION, AttributeKey::VIS_LEGEND_TITLE,
+                                AttributeKey::VIS_LEGEND_VALUES, AttributeKey::VIS_LEGEND_PADDING,
+                                AttributeKey::VIS_LEGEND_OFFSET, AttributeKey::VIS_LEGEND_ZINDEX,
+                                AttributeKey::VIS_LEGEND_NAME>(*legend_node);
+        legend.type = ReadTextValue(state, type);
+        legend.orient = ReadTextValue(state, orient);
+        legend.format = ReadTextValue(state, format);
+        legend.format_type = ReadTextValue(state, format_type);
+        legend.direction = ReadTextValue(state, direction);
+        legend.title = ReadTextValue(state, title);
+        if (values) legend.values_node_id = NodeId(state, values);
+        legend.padding = ReadNumericValue(state, padding);
+        legend.offset = ReadNumericValue(state, offset);
+        if (auto v = ReadNumericValue(state, zindex)) legend.zindex = static_cast<int32_t>(*v);
+        legend.name = ReadTextValue(state, name);
+        channel.legend = std::move(legend);
+    }
+    return channel;
+}
+
+VegaLiteSpec ExtractVegaLiteSpec(AnalysisState& state, const buffers::parser::Node& node) {
+    VegaLiteSpec spec;
+    auto [mark_node, encoding_node, layer_node, resolve_node, title_node, width_node, height_node] =
+        state.GetAttributes<AttributeKey::VIS_SPEC_MARK, AttributeKey::VIS_SPEC_ENCODING,
+                            AttributeKey::VIS_SPEC_LAYER, AttributeKey::VIS_SPEC_RESOLVE,
+                            AttributeKey::VIS_SPEC_TITLE, AttributeKey::VIS_SPEC_WIDTH,
+                            AttributeKey::VIS_SPEC_HEIGHT>(node);
+    if (mark_node && mark_node->node_type() == NodeType::ENUM_VIS_MARK_TYPE) {
+        spec.mark_type = static_cast<buffers::parser::VisMarkType>(mark_node->children_begin_or_value());
+    } else if (mark_node && mark_node->node_type() == NodeType::OBJECT_VIS_MARK) {
+        spec.mark = ExtractVisMark(state, *mark_node);
+        spec.mark_type = spec.mark->type;
+    }
+    if (encoding_node && encoding_node->node_type() == NodeType::OBJECT_VIS_ENCODING) {
+        auto children = state.ast.subspan(encoding_node->children_begin_or_value(), encoding_node->children_count());
+        for (auto& child : children) {
+            if (child.attribute_key() >= AttributeKey::VIS_ENCODING_X &&
+                child.attribute_key() <= AttributeKey::VIS_ENCODING_Y_OFFSET &&
+                (child.node_type() == NodeType::OBJECT_VIS_FIELD_DEF ||
+                 child.node_type() == NodeType::OBJECT_SQL_COLUMN_REF)) {
+                spec.encoding_channels.push_back(ExtractEncodingChannel(state, child));
+            }
+        }
+    }
+    if (layer_node && layer_node->node_type() == NodeType::OBJECT_EXT_VARARG_ARRAY) {
+        auto [values] = state.GetAttributes<AttributeKey::EXT_VARARG_ARRAY_VALUES>(*layer_node);
+        if (values && values->node_type() == NodeType::ARRAY) {
+            auto children = state.ast.subspan(values->children_begin_or_value(), values->children_count());
+            for (auto& child : children) {
+                if (child.node_type() == NodeType::OBJECT_VIS_SPEC) {
+                    spec.layers.push_back(ExtractVegaLiteSpec(state, child));
+                }
+            }
+        }
+    }
+    if (resolve_node && resolve_node->node_type() == NodeType::OBJECT_VIS_SPEC) {
+        VisResolve resolve;
+        auto [scale, axis, legend] =
+            state.GetAttributes<AttributeKey::VIS_RESOLVE_SCALE, AttributeKey::VIS_RESOLVE_AXIS,
+                                AttributeKey::VIS_RESOLVE_LEGEND>(*resolve_node);
+        if (scale) resolve.scale_node_id = NodeId(state, scale);
+        if (axis) resolve.axis_node_id = NodeId(state, axis);
+        if (legend) resolve.legend_node_id = NodeId(state, legend);
+        spec.resolve = std::move(resolve);
+    }
+    spec.title = ReadTextValue(state, title_node);
+    if (auto value = ReadNumericValue(state, width_node)) spec.width = static_cast<int64_t>(*value);
+    if (auto value = ReadNumericValue(state, height_node)) spec.height = static_cast<int64_t>(*value);
+    return spec;
+}
+
 }  // namespace
 
 void AnalyzeVisualizationPass::Prepare() {}
@@ -503,32 +693,33 @@ void AnalyzeVisualizationPass::Visit(std::span<const buffers::parser::Node> mors
             }
 
             case NodeType::OBJECT_VIS_SPEC: {
+                if (node.attribute_key() != AttributeKey::VIS_VISUALISE_SPEC) {
+                    break;
+                }
                 MergeChildStates(node_state, node);
 
-                auto [mark_node, title_node, width_node, height_node] =
-                    state.GetAttributes<AttributeKey::VIS_SPEC_MARK, AttributeKey::VIS_SPEC_TITLE,
+                auto [mark_node, layer_node, resolve_node, title_node, width_node, height_node] =
+                    state.GetAttributes<AttributeKey::VIS_SPEC_MARK, AttributeKey::VIS_SPEC_LAYER,
+                                        AttributeKey::VIS_SPEC_RESOLVE, AttributeKey::VIS_SPEC_TITLE,
                                         AttributeKey::VIS_SPEC_WIDTH, AttributeKey::VIS_SPEC_HEIGHT>(node);
                 if (mark_node && mark_node->node_type() == NodeType::ENUM_VIS_MARK_TYPE) {
                     node_state.mark_type =
                         static_cast<buffers::parser::VisMarkType>(mark_node->children_begin_or_value());
                 } else if (mark_node && mark_node->node_type() == NodeType::OBJECT_VIS_MARK) {
-                    VisMark m = ExtractVisMark(state, *mark_node);
-                    // Mirror the resolved type into mark_type so existing consumers
-                    // (analyzer snapshot dump, callers reading the bare type) keep working.
-                    node_state.mark_type = m.type;
-                    node_state.mark = std::move(m);
+                    VisMark mark = ExtractVisMark(state, *mark_node);
+                    node_state.mark_type = mark.type;
+                    node_state.mark = std::move(mark);
                 }
-                if (title_node) {
-                    node_state.title = ReadTextValue(state, title_node);
+                if (layer_node || resolve_node) {
+                    auto composed = ExtractVegaLiteSpec(state, node);
+                    node_state.layers = std::move(composed.layers);
+                    node_state.resolve = std::move(composed.resolve);
                 }
-                if (width_node) {
-                    auto v = ReadNumericValue(state, width_node);
-                    if (v) node_state.width = static_cast<int64_t>(*v);
-                }
-                if (height_node) {
-                    auto v = ReadNumericValue(state, height_node);
-                    if (v) node_state.height = static_cast<int64_t>(*v);
-                }
+                node_state.title = ReadTextValue(state, title_node);
+                if (auto value = ReadNumericValue(state, width_node))
+                    node_state.width = static_cast<int64_t>(*value);
+                if (auto value = ReadNumericValue(state, height_node))
+                    node_state.height = static_cast<int64_t>(*value);
                 break;
             }
 
@@ -550,6 +741,8 @@ void AnalyzeVisualizationPass::Visit(std::span<const buffers::parser::Node> mors
                 spec.width = node_state.width;
                 spec.height = node_state.height;
                 spec.encoding_channels = std::move(node_state.encoding_channels);
+                spec.layers = std::move(node_state.layers);
+                spec.resolve = std::move(node_state.resolve);
 
                 // The umap renderer carries an OBJECT_VIS_UMAP_SPEC spec body instead
                 // of the vega-lite encoding channels. Extract its column refs + projection here.

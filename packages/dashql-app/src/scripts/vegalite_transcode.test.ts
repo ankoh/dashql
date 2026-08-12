@@ -132,6 +132,27 @@ describe('parseVegaLiteToVisualize (WASM)', () => {
         expect(dsl).toContain("domain => ['a', 'b']");
     });
 
+    it('emits layered specs and resolve settings', () => {
+        const dsl = transcode({
+            encoding: {
+                x: { field: 'date', type: 'temporal' },
+            },
+            layer: [
+                { mark: 'line', encoding: { y: { field: 'amount', type: 'quantitative' } } },
+                { mark: 'point', encoding: { y: { field: 'target', type: 'quantitative' } } },
+            ],
+            resolve: {
+                scale: { y: 'independent' },
+                axis: { y: 'independent' },
+                legend: { color: 'shared' },
+            },
+        });
+        expect(dsl).toContain('layer => [');
+        expect(dsl).toContain('mark => line');
+        expect(dsl).toContain('mark => point');
+        expect(dsl).toContain('resolve => (scale => (y => independent), axis => (y => independent), legend => (color => shared))');
+    });
+
     it('drops unsupported keys and unknown channels', () => {
         const dsl = transcode(
             {
@@ -227,6 +248,21 @@ describe('parseVegaLiteToVisualize round-trip', () => {
             { kind: 'inline-select', sql: 'SELECT * FROM sales' },
         );
         const r = verifyAgainstSource('create table sales(ts timestamp, amount int);', dsl);
+        expect(r.parserErrors).toEqual([]);
+        expect(r.analyzerErrors).toEqual([]);
+        expect(r.visualizationSpecs).toBeGreaterThan(0);
+    });
+
+    it('produces layered DSL with resolve that parses + analyzes cleanly', () => {
+        const dsl = transcode({
+            encoding: { x: { field: 'date', type: 'temporal' } },
+            layer: [
+                { mark: 'line', encoding: { y: { field: 'amount', type: 'quantitative' } } },
+                { mark: 'point', encoding: { y: { field: 'target', type: 'quantitative' } } },
+            ],
+            resolve: { scale: { y: 'independent' } },
+        });
+        const r = verifyAgainstSource('create table sales(date timestamp, amount int, target int);', dsl);
         expect(r.parserErrors).toEqual([]);
         expect(r.analyzerErrors).toEqual([]);
         expect(r.visualizationSpecs).toBeGreaterThan(0);

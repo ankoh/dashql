@@ -265,11 +265,9 @@ This is correct — the shorthand is syntactic sugar that the analyzer resolves.
 
 | Feature | Status |
 |---------|--------|
-| `layer` (multi-layer specs) | Parsed but not emitted |
 | `transform` | Parsed but not emitted |
 | `params` / selections | Parsed but not emitted |
 | `projection` | Parsed but not emitted |
-| `resolve` | Parsed but not emitted |
 | Object-form mark | Grammar supports it; generator emits string only |
 | `condition` on encoding | Parsed but not emitted |
 
@@ -280,7 +278,6 @@ This is correct — the shorthand is syntactic sugar that the analyzer resolves.
 | `"data": { "name" }` | Rejected; no complete SQL query is available |
 | `"data": { "url" }` / `"values"` | Dropped |
 | Object-form mark | Not handled |
-| `layer` array | Not handled |
 | `hconcat` / `vconcat` / `concat` | Not handled |
 | `repeat` | Not handled |
 | `selection` / `params` | Not handled |

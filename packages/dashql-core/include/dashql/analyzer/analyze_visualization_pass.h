@@ -26,6 +26,10 @@ struct AnalyzeVisualizationPass : public PassManager::LTRPass {
         std::optional<int64_t> width;
         /// Top-level height
         std::optional<int64_t> height;
+        /// Nested Vega-Lite layers
+        std::vector<VegaLiteSpec> layers;
+        /// Vega-Lite composition resolution
+        std::optional<VisResolve> resolve;
         /// Scale/axis/legend propagated from level 4 up to level 3
         std::optional<VisScale> scale;
         std::optional<VisAxis> axis;

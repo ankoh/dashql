@@ -238,6 +238,39 @@ visualize-snapshots:
           height => 400
         );
 
+  - name: vis_layer_resolve
+    catalog:
+      script:
+        input: |-
+          create table sales (date timestamp, revenue int, target int, category text);
+    script:
+      input: |
+        SELECT * FROM sales |> VISUALIZE USING vegalite (
+          encoding => (
+            x => (field => date, type => temporal)
+          ),
+          layer => [
+            (
+              mark => line,
+              encoding => (
+                y => (field => revenue, type => quantitative),
+                color => (field => category, type => nominal)
+              )
+            ),
+            (
+              mark => point,
+              encoding => (
+                y => (field => target, type => quantitative)
+              )
+            )
+          ],
+          resolve => (
+            scale => (y => 'independent'),
+            axis => (y => 'independent'),
+            legend => (color => 'shared')
+          )
+        );
+
   - name: vis_umap_minimal
     catalog:
       script:

@@ -12,6 +12,13 @@
 %type <BackedUniquePtr<NodeList>> vis_spec_list;
 %type <buffers::parser::Node> opt_vis_spec_field;
 %type <buffers::parser::AttributeKey> vis_spec_key;
+%type <BackedUniquePtr<NodeList>> vis_layer_list;
+%type <buffers::parser::Node> vis_layer_spec;
+%type <BackedUniquePtr<NodeList>> vis_resolve_list;
+%type <buffers::parser::Node> opt_vis_resolve_field;
+%type <buffers::parser::AttributeKey> vis_resolve_key;
+%type <BackedUniquePtr<NodeList>> vis_resolve_map_list;
+%type <buffers::parser::Node> opt_vis_resolve_map_field;
 %type <buffers::parser::Node> vis_mark_value;
 %type <buffers::parser::Node> vis_mark_type;
 %type <BackedUniquePtr<NodeList>> vis_mark_list;

@@ -300,6 +300,127 @@ void AppendChannel(std::string& out, std::string_view channel_name, const rapidj
     out += ")";
 }
 
+std::optional<std::string> EmitResolveMap(const rapidjson::Value& obj) {
+    if (!obj.IsObject()) return std::nullopt;
+    std::vector<std::string> parts;
+    for (auto it = obj.MemberBegin(); it != obj.MemberEnd(); ++it) {
+        std::string_view json_key(it->name.GetString(), it->name.GetStringLength());
+        auto channel = VEGALITE_TO_CHANNEL_KEY.find(json_key);
+        if (channel == VEGALITE_TO_CHANNEL_KEY.end()) continue;
+        auto value = EmitScalar(it->value, /*as_ident=*/true);
+        if (!value) continue;
+        parts.push_back(std::string(channel->second) + " => " + *value);
+    }
+    if (parts.empty()) return std::nullopt;
+    std::string out = "(";
+    for (size_t i = 0; i < parts.size(); ++i) {
+        if (i > 0) out += ", ";
+        out += parts[i];
+    }
+    out += ")";
+    return out;
+}
+
+void AppendVegaLiteSpecLines(const rapidjson::Value& spec, std::vector<std::string>& lines, std::string_view indent) {
+    if (!spec.IsObject()) return;
+    std::string prefix(indent);
+
+    if (spec.HasMember("mark")) {
+        const auto& mark_val = spec["mark"];
+        if (mark_val.IsString()) {
+            std::string mark = mark_val.GetString();
+            for (auto& c : mark) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            lines.push_back(prefix + "mark => " + mark);
+        } else if (mark_val.IsObject()) {
+            if (mark_val.MemberCount() == 1 && mark_val.HasMember("type") && mark_val["type"].IsString()) {
+                std::string mark = mark_val["type"].GetString();
+                for (auto& c : mark) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+                lines.push_back(prefix + "mark => " + mark);
+            } else if (mark_val.MemberCount() > 0) {
+                lines.push_back(prefix + "mark => " + EmitMark(mark_val));
+            }
+        }
+    }
+
+    if (spec.HasMember("title") && spec["title"].IsString()) {
+        lines.push_back(prefix + "title => " + EmitStringLiteral(spec["title"].GetString()));
+    }
+    if (spec.HasMember("width") && spec["width"].IsNumber()) {
+        lines.push_back(prefix + "width => " + EmitNumber(spec["width"]));
+    }
+    if (spec.HasMember("height") && spec["height"].IsNumber()) {
+        lines.push_back(prefix + "height => " + EmitNumber(spec["height"]));
+    }
+
+    if (spec.HasMember("encoding") && spec["encoding"].IsObject()) {
+        const auto& encoding = spec["encoding"];
+        std::vector<std::string> channels;
+        for (auto it = encoding.MemberBegin(); it != encoding.MemberEnd(); ++it) {
+            if (!it->value.IsObject()) continue;
+            std::string_view json_key(it->name.GetString(), it->name.GetStringLength());
+            auto channel_it = VEGALITE_TO_CHANNEL_KEY.find(json_key);
+            if (channel_it == VEGALITE_TO_CHANNEL_KEY.end()) continue;
+            std::string channel = prefix + "  ";
+            AppendChannel(channel, channel_it->second, it->value);
+            channels.push_back(std::move(channel));
+        }
+        if (!channels.empty()) {
+            std::string encoding_block = prefix + "encoding => (\n";
+            for (size_t i = 0; i < channels.size(); ++i) {
+                if (i > 0) encoding_block += ",\n";
+                encoding_block += channels[i];
+            }
+            encoding_block += "\n" + prefix + ")";
+            lines.push_back(std::move(encoding_block));
+        }
+    }
+
+    if (spec.HasMember("layer") && spec["layer"].IsArray()) {
+        std::vector<std::string> layers;
+        for (const auto& layer : spec["layer"].GetArray()) {
+            if (!layer.IsObject()) continue;
+            std::vector<std::string> layer_lines;
+            AppendVegaLiteSpecLines(layer, layer_lines, std::string(indent) + "    ");
+            if (layer_lines.empty()) continue;
+            std::string block = prefix + "  (\n";
+            for (size_t i = 0; i < layer_lines.size(); ++i) {
+                if (i > 0) block += ",\n";
+                block += layer_lines[i];
+            }
+            block += "\n" + prefix + "  )";
+            layers.push_back(std::move(block));
+        }
+        if (!layers.empty()) {
+            std::string block = prefix + "layer => [\n";
+            for (size_t i = 0; i < layers.size(); ++i) {
+                if (i > 0) block += ",\n";
+                block += layers[i];
+            }
+            block += "\n" + prefix + "]";
+            lines.push_back(std::move(block));
+        }
+    }
+
+    if (spec.HasMember("resolve") && spec["resolve"].IsObject()) {
+        const auto& resolve = spec["resolve"];
+        std::vector<std::string> parts;
+        for (const char* key : {"scale", "axis", "legend"}) {
+            if (!resolve.HasMember(key)) continue;
+            auto value = EmitResolveMap(resolve[key]);
+            if (value) parts.push_back(std::string(key) + " => " + *value);
+        }
+        if (!parts.empty()) {
+            std::string block = prefix + "resolve => (";
+            for (size_t i = 0; i < parts.size(); ++i) {
+                if (i > 0) block += ", ";
+                block += parts[i];
+            }
+            block += ")";
+            lines.push_back(std::move(block));
+        }
+    }
+}
+
 /// Emit the query input before the VISUALIZE pipe from the spec's `data` member.
 ///
 /// Recognised conventions (the analyzer-driven generator emits `name` / `$sql`; the agent loop
@@ -328,61 +449,8 @@ std::string ParseVegaLiteToVisualize(const std::string& vegalite_json) {
         return "";
     }
 
-    // Collect the top-level `<key> => <value>` lines (each prefixed with 2 spaces).
     std::vector<std::string> lines;
-
-    // mark — accepts a string, a bare `{ "type": <mark> }`, or a full mark definition
-    // object (`{ "type": …, "point": {…}, "filled": …, … }`).
-    if (doc.HasMember("mark")) {
-        const auto& mark_val = doc["mark"];
-        if (mark_val.IsString()) {
-            std::string mark = mark_val.GetString();
-            for (auto& c : mark) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-            lines.push_back("  mark => " + mark);
-        } else if (mark_val.IsObject()) {
-            // A lone `type` collapses back to the bare form; anything richer keeps the object.
-            if (mark_val.MemberCount() == 1 && mark_val.HasMember("type") && mark_val["type"].IsString()) {
-                std::string mark = mark_val["type"].GetString();
-                for (auto& c : mark) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-                lines.push_back("  mark => " + mark);
-            } else if (mark_val.MemberCount() > 0) {
-                lines.push_back("  mark => " + EmitMark(mark_val));
-            }
-        }
-    }
-
-    if (doc.HasMember("title") && doc["title"].IsString()) {
-        lines.push_back("  title => " + EmitStringLiteral(doc["title"].GetString()));
-    }
-    if (doc.HasMember("width") && doc["width"].IsNumber()) {
-        lines.push_back("  width => " + EmitNumber(doc["width"]));
-    }
-    if (doc.HasMember("height") && doc["height"].IsNumber()) {
-        lines.push_back("  height => " + EmitNumber(doc["height"]));
-    }
-
-    if (doc.HasMember("encoding") && doc["encoding"].IsObject()) {
-        const auto& encoding = doc["encoding"];
-        std::vector<std::string> channels;
-        for (auto it = encoding.MemberBegin(); it != encoding.MemberEnd(); ++it) {
-            if (!it->value.IsObject()) continue;
-            std::string_view json_key(it->name.GetString(), it->name.GetStringLength());
-            auto channel_it = VEGALITE_TO_CHANNEL_KEY.find(json_key);
-            if (channel_it == VEGALITE_TO_CHANNEL_KEY.end()) continue;
-            std::string channel = "    ";
-            AppendChannel(channel, channel_it->second, it->value);
-            channels.push_back(std::move(channel));
-        }
-        if (!channels.empty()) {
-            std::string encoding_block = "  encoding => (\n";
-            for (size_t i = 0; i < channels.size(); ++i) {
-                if (i > 0) encoding_block += ",\n";
-                encoding_block += channels[i];
-            }
-            encoding_block += "\n  )";
-            lines.push_back(std::move(encoding_block));
-        }
-    }
+    AppendVegaLiteSpecLines(doc, lines, "  ");
 
     if (!doc.HasMember("data")) return "";
     auto source = EmitSource(doc["data"]);

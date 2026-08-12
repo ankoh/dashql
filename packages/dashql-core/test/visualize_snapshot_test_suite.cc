@@ -37,6 +37,13 @@ TEST_P(VisualizeSnapshotTestSuite, Test) {
     auto& spec = analyzed.visualization_specs[0];
     bool is_umap = spec.renderer.has_value() && *spec.renderer == "umap";
 
+    if (test->name == "vis_layer_resolve") {
+        EXPECT_EQ(spec.encoding_channels.size(), 1u);
+        ASSERT_EQ(spec.layers.size(), 2u);
+        EXPECT_EQ(spec.layers[0].encoding_channels.size(), 2u);
+        EXPECT_EQ(spec.layers[1].encoding_channels.size(), 1u);
+    }
+
     if (is_umap) {
         std::string umap_json = visualize::GenerateUmapSpec(spec, analyzed);
         ASSERT_FALSE(umap_json.empty());

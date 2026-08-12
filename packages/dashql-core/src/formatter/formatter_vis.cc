@@ -34,6 +34,9 @@ std::string_view GetVisAttributeKeyText(AttributeKey key) {
         case AttributeKey::VIS_SPEC_FILTER: return "filter";
         case AttributeKey::VIS_SPEC_DESCRIPTION: return "describe";
         case AttributeKey::VIS_SPEC_TYPE: return "type";
+        case AttributeKey::VIS_RESOLVE_SCALE: return "scale";
+        case AttributeKey::VIS_RESOLVE_AXIS: return "axis";
+        case AttributeKey::VIS_RESOLVE_LEGEND: return "legend";
         case AttributeKey::VIS_ENCODING_X: return "x";
         case AttributeKey::VIS_ENCODING_Y: return "y";
         case AttributeKey::VIS_ENCODING_X2: return "x2";

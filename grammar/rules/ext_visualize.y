@@ -174,6 +174,16 @@ opt_vis_spec_field:
         $$ = Attr(Key::VIS_SPEC_ENCODING,
              ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_ENCODING, std::move($4), false));
     }
+  | LAYER EQUALS_GREATER LSB vis_layer_list RSB {
+        $$ = Attr(Key::VIS_SPEC_LAYER,
+             ctx.Object(@$, buffers::parser::NodeType::OBJECT_EXT_VARARG_ARRAY, {
+                 Attr(Key::EXT_VARARG_ARRAY_VALUES, ctx.Array(@4, std::move($4))),
+             }));
+    }
+  | RESOLVE EQUALS_GREATER LRB vis_resolve_list RRB {
+        $$ = Attr(Key::VIS_SPEC_RESOLVE,
+             ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($4), false));
+    }
   | MARK EQUALS_GREATER vis_mark_value {
         $$ = Attr(Key::VIS_SPEC_MARK, $3);
     }
@@ -184,13 +194,11 @@ opt_vis_spec_field:
     ;
 
 vis_spec_key:
-    LAYER           { $$ = Key::VIS_SPEC_LAYER; }
-  | DATA_P          { $$ = Key::VIS_SPEC_DATA; }
+    DATA_P          { $$ = Key::VIS_SPEC_DATA; }
   | TRANSFORM       { $$ = Key::VIS_SPEC_TRANSFORM; }
   | PARAMS          { $$ = Key::VIS_SPEC_PARAMS; }
   | PROJECTION      { $$ = Key::VIS_SPEC_PROJECTION; }
   | AUTOSIZE        { $$ = Key::VIS_SPEC_AUTOSIZE; }
-  | RESOLVE         { $$ = Key::VIS_SPEC_RESOLVE; }
   | DATASETS        { $$ = Key::VIS_SPEC_DATASETS; }
   | VIEW            { $$ = Key::VIS_SPEC_VIEW; }
   | NAME_P          { $$ = Key::VIS_SPEC_NAME; }
@@ -202,6 +210,45 @@ vis_spec_key:
   | FILTER          { $$ = Key::VIS_SPEC_FILTER; }
   | DESCRIBE        { $$ = Key::VIS_SPEC_DESCRIPTION; }
   | TYPE_P          { $$ = Key::VIS_SPEC_TYPE; }
+    ;
+
+vis_layer_list:
+    vis_layer_list COMMA vis_layer_spec  { $1->push_back($3); $$ = std::move($1); }
+  | vis_layer_spec                       { $$ = ctx.List({$1}); }
+    ;
+
+vis_layer_spec:
+    LRB vis_spec_list RRB {
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($2), false);
+    }
+    ;
+
+vis_resolve_list:
+    vis_resolve_list COMMA opt_vis_resolve_field  { $1->push_back($3); $$ = std::move($1); }
+  | opt_vis_resolve_field                       { $$ = ctx.List({$1}); }
+    ;
+
+opt_vis_resolve_field:
+    vis_resolve_key EQUALS_GREATER LRB vis_resolve_map_list RRB {
+        $$ = Attr($1, ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($4), false));
+    }
+  | %empty { $$ = Null(); }
+    ;
+
+vis_resolve_key:
+    SCALE_P         { $$ = Key::VIS_RESOLVE_SCALE; }
+  | AXIS            { $$ = Key::VIS_RESOLVE_AXIS; }
+  | LEGEND          { $$ = Key::VIS_RESOLVE_LEGEND; }
+    ;
+
+vis_resolve_map_list:
+    vis_resolve_map_list COMMA opt_vis_resolve_map_field  { $1->push_back($3); $$ = std::move($1); }
+  | opt_vis_resolve_map_field                            { $$ = ctx.List({$1}); }
+    ;
+
+opt_vis_resolve_map_field:
+    vis_channel_key EQUALS_GREATER vis_value  { $$ = Attr($1, $3); }
+  | %empty { $$ = Null(); }
     ;
 
 // A mark value is either a bare mark type (`mark => line`) or a structured mark

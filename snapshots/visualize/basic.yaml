@@ -923,6 +923,129 @@ visualize-snapshots:
         height => 400
       );
 
+  - name: vis_layer_resolve
+    catalog:
+      script:
+        input: |-
+          create table sales (date timestamp, revenue int, target int, category text);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..gory text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+              - catalog-id: "256.65536.4294967296.3"
+                name: target
+                text: "target int"
+        errors: []
+    script:
+      input: |
+        SELECT * FROM sales |> VISUALIZE USING vegalite (
+          encoding => (
+            x => (field => date, type => temporal)
+          ),
+          layer => [
+            (
+              mark => line,
+              encoding => (
+                y => (field => revenue, type => quantitative),
+                color => (field => category, type => nominal)
+              )
+            ),
+            (
+              mark => point,
+              encoding => (
+                y => (field => target, type => quantitative)
+              )
+            )
+          ],
+          resolve => (
+            scale => (y => 'independent'),
+            axis => (y => 'independent'),
+            legend => (color => 'shared')
+          )
+        );
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT * FROM sales"
+        },
+        "encoding": {
+          "x": {
+            "field": "date",
+            "type": "temporal"
+          }
+        },
+        "resolve": {
+          "scale": {
+            "y": "independent"
+          },
+          "axis": {
+            "y": "independent"
+          },
+          "legend": {
+            "color": "shared"
+          }
+        },
+        "layer": [
+          {
+            "mark": "line",
+            "encoding": {
+              "y": {
+                "field": "revenue",
+                "type": "quantitative"
+              },
+              "color": {
+                "field": "category",
+                "type": "nominal"
+              }
+            }
+          },
+          {
+            "mark": "point",
+            "encoding": {
+              "y": {
+                "field": "target",
+                "type": "quantitative"
+              }
+            }
+          }
+        ]
+      }
+    roundtrip: |-
+      SELECT * FROM sales
+      |> VISUALIZE USING vegalite (
+        encoding => (
+          x => (field => date, type => temporal)
+        ),
+        layer => [
+          (
+            mark => line,
+            encoding => (
+              y => (field => revenue, type => quantitative),
+              color => (field => category, type => nominal)
+            )
+          ),
+          (
+            mark => point,
+            encoding => (
+              y => (field => target, type => quantitative)
+            )
+          )
+        ],
+        resolve => (scale => (y => independent), axis => (y => independent), legend => (color => shared))
+      );
+
   - name: vis_umap_minimal
     catalog:
       script:

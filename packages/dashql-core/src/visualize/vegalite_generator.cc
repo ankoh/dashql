@@ -6,6 +6,7 @@
 #include <cctype>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <unordered_map>
 
 #include "dashql/buffers/index_generated.h"
@@ -68,6 +69,13 @@ std::string ResolveFieldName(const AnalyzedScript& script, uint32_t expression_i
     }
     auto span = script.parsed_script->scanned_script->ResolveTextSpan(
         script.parsed_script->nodes[expr.ast_node_id].symbol_span());
+    auto input = script.parsed_script->scanned_script->GetInput();
+    return std::string(input.substr(span.offset(), span.length()));
+}
+
+std::string ResolveFieldNameAtNode(const AnalyzedScript& script, uint32_t node_id) {
+    const auto& node = script.parsed_script->nodes[node_id];
+    auto span = script.parsed_script->scanned_script->ResolveTextSpan(node.symbol_span());
     auto input = script.parsed_script->scanned_script->GetInput();
     return std::string(input.substr(span.offset(), span.length()));
 }
@@ -538,6 +546,142 @@ void WriteStack(W& writer, uint32_t node_id, const AnalyzedScript& script) {
     writer.String(text.c_str());
 }
 
+template <typename W>
+void WriteResolveMap(W& writer, uint32_t node_id, const AnalyzedScript& script) {
+    const auto& node = script.parsed_script->nodes[node_id];
+    writer.StartObject();
+    auto input = script.parsed_script->scanned_script->GetInput();
+    for (size_t i = 0; i < node.children_count(); ++i) {
+        const auto& child = script.parsed_script->nodes[node.children_begin_or_value() + i];
+        auto channel = CHANNEL_KEY_TO_VEGALITE.find(child.attribute_key());
+        if (channel == CHANNEL_KEY_TO_VEGALITE.end()) continue;
+        const auto* value_node = &child;
+        if (child.children_count() == 1) {
+            value_node = &script.parsed_script->nodes[child.children_begin_or_value()];
+        }
+        auto span = script.parsed_script->scanned_script->ResolveTextSpan(value_node->symbol_span());
+        std::string value(input.substr(span.offset(), span.length()));
+        if (value.size() >= 2 && value.front() == '\'' && value.back() == '\'') {
+            value = value.substr(1, value.size() - 2);
+        }
+        writer.Key(channel->second.data(), channel->second.size());
+        writer.String(value.c_str());
+    }
+    writer.EndObject();
+}
+
+template <typename W>
+void WriteEncoding(W& writer, const std::vector<VisEncodingChannel>& channels, const AnalyzedScript& script) {
+    if (channels.empty()) return;
+    writer.Key("encoding");
+    writer.StartObject();
+    auto* ft_tt = buffers::parser::VisFieldTypeTypeTable();
+    for (auto& channel : channels) {
+        auto it = CHANNEL_KEY_TO_VEGALITE.find(channel.channel_key);
+        if (it == CHANNEL_KEY_TO_VEGALITE.end()) continue;
+        writer.Key(it->second.data(), it->second.size());
+        writer.StartObject();
+
+        if (channel.field_expression_id.has_value() || channel.field_node_id.has_value()) {
+            std::string field_name = channel.field_expression_id.has_value()
+                                         ? ResolveFieldName(script, *channel.field_expression_id)
+                                         : ResolveFieldNameAtNode(script, *channel.field_node_id);
+            writer.Key("field");
+            writer.String(field_name.c_str());
+        }
+        if (channel.field_type.has_value()) {
+            writer.Key("type");
+            writer.String(ToLower(ft_tt->names[static_cast<uint8_t>(*channel.field_type)]).c_str());
+        }
+        if (channel.aggregate.has_value()) {
+            writer.Key("aggregate");
+            writer.String(channel.aggregate->data(), channel.aggregate->size());
+        }
+        if (channel.bin.has_value()) {
+            writer.Key("bin");
+            WriteBin(writer, *channel.bin);
+        }
+        if (channel.time_unit.has_value()) {
+            writer.Key("timeUnit");
+            writer.String(channel.time_unit->data(), channel.time_unit->size());
+        }
+        if (channel.stack_node_id.has_value()) {
+            writer.Key("stack");
+            WriteStack(writer, *channel.stack_node_id, script);
+        }
+        if (channel.scale.has_value()) {
+            writer.Key("scale");
+            WriteScale(writer, *channel.scale, script);
+        }
+        if (channel.axis.has_value()) {
+            writer.Key("axis");
+            WriteAxis(writer, *channel.axis);
+        }
+        if (channel.legend.has_value()) {
+            writer.Key("legend");
+            WriteLegend(writer, *channel.legend);
+        }
+
+        writer.EndObject();
+    }
+    writer.EndObject();
+}
+
+template <typename W, typename S>
+void WriteVegaLiteSpecFields(W& writer, const S& spec, const AnalyzedScript& script, bool write_layers) {
+    if (spec.mark.has_value() && spec.mark->HasProperties()) {
+        writer.Key("mark");
+        WriteMark(writer, *spec.mark, script);
+    } else if (spec.mark_type.has_value()) {
+        auto* tt = buffers::parser::VisMarkTypeTypeTable();
+        std::string mark = ToLower(tt->names[static_cast<uint8_t>(*spec.mark_type)]);
+        writer.Key("mark");
+        writer.String(mark.c_str());
+    }
+    if (spec.title.has_value()) {
+        writer.Key("title");
+        writer.String(spec.title->data(), spec.title->size());
+    }
+    if (spec.width.has_value()) {
+        writer.Key("width");
+        writer.Int64(*spec.width);
+    }
+    if (spec.height.has_value()) {
+        writer.Key("height");
+        writer.Int64(*spec.height);
+    }
+    WriteEncoding(writer, spec.encoding_channels, script);
+    if constexpr (std::is_same_v<S, VegaLiteSpec>) {
+        if (write_layers && !spec.layers.empty()) {
+            writer.Key("layer");
+            writer.StartArray();
+            for (const auto& layer : spec.layers) {
+                writer.StartObject();
+                WriteVegaLiteSpecFields(writer, layer, script, true);
+                writer.EndObject();
+            }
+            writer.EndArray();
+        }
+    }
+    if (spec.resolve.has_value()) {
+        writer.Key("resolve");
+        writer.StartObject();
+        if (spec.resolve->scale_node_id.has_value()) {
+            writer.Key("scale");
+            WriteResolveMap(writer, *spec.resolve->scale_node_id, script);
+        }
+        if (spec.resolve->axis_node_id.has_value()) {
+            writer.Key("axis");
+            WriteResolveMap(writer, *spec.resolve->axis_node_id, script);
+        }
+        if (spec.resolve->legend_node_id.has_value()) {
+            writer.Key("legend");
+            WriteResolveMap(writer, *spec.resolve->legend_node_id, script);
+        }
+        writer.EndObject();
+    }
+}
+
 }  // namespace
 
 std::string GenerateVegaLiteSpec(const VisualizationSpec& spec, const AnalyzedScript& script) {
@@ -573,82 +717,16 @@ std::string GenerateVegaLiteSpec(const VisualizationSpec& spec, const AnalyzedSc
         writer.EndObject();
     }
 
-    if (spec.mark.has_value() && spec.mark->HasProperties()) {
-        // Structured mark definition: `mark => (type => line, point => (...))`
-        writer.Key("mark");
-        WriteMark(writer, *spec.mark, script);
-    } else if (spec.mark_type.has_value()) {
-        // Bare mark type: `mark => bar` stays a plain string for compactness.
-        auto* tt = buffers::parser::VisMarkTypeTypeTable();
-        std::string mark = ToLower(tt->names[static_cast<uint8_t>(*spec.mark_type)]);
-        writer.Key("mark");
-        writer.String(mark.c_str());
-    }
-
-    if (spec.title.has_value()) {
-        writer.Key("title");
-        writer.String(spec.title->data(), spec.title->size());
-    }
-    if (spec.width.has_value()) {
-        writer.Key("width");
-        writer.Int64(*spec.width);
-    }
-    if (spec.height.has_value()) {
-        writer.Key("height");
-        writer.Int64(*spec.height);
-    }
-
-    if (!spec.encoding_channels.empty()) {
-        writer.Key("encoding");
-        writer.StartObject();
-        auto* ft_tt = buffers::parser::VisFieldTypeTypeTable();
-        for (auto& channel : spec.encoding_channels) {
-            auto it = CHANNEL_KEY_TO_VEGALITE.find(channel.channel_key);
-            if (it == CHANNEL_KEY_TO_VEGALITE.end()) continue;
-            writer.Key(it->second.data(), it->second.size());
+    WriteVegaLiteSpecFields(writer, spec, script, false);
+    if (!spec.layers.empty()) {
+        writer.Key("layer");
+        writer.StartArray();
+        for (const auto& layer : spec.layers) {
             writer.StartObject();
-
-            if (channel.field_expression_id.has_value()) {
-                std::string field_name = ResolveFieldName(script, *channel.field_expression_id);
-                writer.Key("field");
-                writer.String(field_name.c_str());
-            }
-            if (channel.field_type.has_value()) {
-                writer.Key("type");
-                writer.String(ToLower(ft_tt->names[static_cast<uint8_t>(*channel.field_type)]).c_str());
-            }
-            if (channel.aggregate.has_value()) {
-                writer.Key("aggregate");
-                writer.String(channel.aggregate->data(), channel.aggregate->size());
-            }
-            if (channel.bin.has_value()) {
-                writer.Key("bin");
-                WriteBin(writer, *channel.bin);
-            }
-            if (channel.time_unit.has_value()) {
-                writer.Key("timeUnit");
-                writer.String(channel.time_unit->data(), channel.time_unit->size());
-            }
-            if (channel.stack_node_id.has_value()) {
-                writer.Key("stack");
-                WriteStack(writer, *channel.stack_node_id, script);
-            }
-            if (channel.scale.has_value()) {
-                writer.Key("scale");
-                WriteScale(writer, *channel.scale, script);
-            }
-            if (channel.axis.has_value()) {
-                writer.Key("axis");
-                WriteAxis(writer, *channel.axis);
-            }
-            if (channel.legend.has_value()) {
-                writer.Key("legend");
-                WriteLegend(writer, *channel.legend);
-            }
-
+            WriteVegaLiteSpecFields(writer, layer, script, true);
             writer.EndObject();
         }
-        writer.EndObject();
+        writer.EndArray();
     }
 
     writer.EndObject();

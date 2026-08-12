@@ -32,6 +32,52 @@ TEST(ScriptTest, AnalyzeSpecialFunctionArguments) {
     }
 }
 
+TEST(ScriptTest, AnalyzeMalformedQueryWithFunctionArguments) {
+    constexpr std::string_view input = R"SQL(
+from analytics.events
+|> extend date_trunc('hour', event_timestamp) as ts_hour
+|> extend (query_plan like '%internal_marker%') as marker
+|> where tenant = 'example/tenant'
+       and event_timestamp >= current_timestamp - interval '30' day
+|> as events;
+
+from analytics.events
+
+with events as (
+    select *,
+      ,
+), aggregates_other as (
+    select ts_hour, count(*) as metric, 'other' as target
+    from events
+    where not marker
+    group by ts_hour, marker
+), aggregates_filtered as (
+    select ts_hour, count(*) as metric, 'filtered' as target
+    from events
+    where marker
+    group by ts_hour
+)
+from aggregates_other
+|> select *
+|> union all (from aggregates_filtered |> select *)
+|> visualize using vegalite (
+    mark => line,
+    encoding => (
+        x => (field => ts_hour, type => temporal),
+        y => (field => metric, type => quantitative, aggregate => 'sum'),
+        color => (field => target)
+    )
+);
+)SQL";
+
+    Catalog catalog;
+    Script script{catalog};
+    script.InsertTextAt(0, input);
+
+    ASSERT_NO_THROW(script.Analyze());
+    EXPECT_FALSE(script.errors.empty());
+}
+
 TEST(ScriptTest, AnalyzingBeforeParsing) {
     Catalog catalog;
     Script script{catalog};

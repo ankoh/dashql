@@ -447,6 +447,19 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
                 vl_node.append_child() << c4::yml::key("width") << *spec.width;
             if (spec.height.has_value())
                 vl_node.append_child() << c4::yml::key("height") << *spec.height;
+            if (!spec.layers.empty())
+                vl_node.append_child() << c4::yml::key("layer-count") << spec.layers.size();
+            if (spec.resolve.has_value()) {
+                auto resolve_node = vl_node.append_child();
+                resolve_node << c4::yml::key("resolve");
+                resolve_node |= c4::yml::MAP;
+                if (spec.resolve->scale_node_id.has_value())
+                    resolve_node.append_child() << c4::yml::key("scale-node-id") << *spec.resolve->scale_node_id;
+                if (spec.resolve->axis_node_id.has_value())
+                    resolve_node.append_child() << c4::yml::key("axis-node-id") << *spec.resolve->axis_node_id;
+                if (spec.resolve->legend_node_id.has_value())
+                    resolve_node.append_child() << c4::yml::key("legend-node-id") << *spec.resolve->legend_node_id;
+            }
             if (!spec.encoding_channels.empty()) {
                 auto channels_node = vl_node.append_child();
                 channels_node << c4::yml::key("encodings");
@@ -460,6 +473,9 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
                         << std::string(key_tt->names[static_cast<uint16_t>(channel.channel_key)]);
                     if (channel.field_expression_id.has_value()) {
                         ch_node.append_child() << c4::yml::key("field-expr") << *channel.field_expression_id;
+                    }
+                    if (channel.field_node_id.has_value()) {
+                        ch_node.append_child() << c4::yml::key("field-node-id") << *channel.field_node_id;
                     }
                     if (channel.field_type.has_value()) {
                         auto* ft_tt = buffers::parser::VisFieldTypeTypeTable();
