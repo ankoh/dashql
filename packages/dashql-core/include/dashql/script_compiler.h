@@ -45,6 +45,11 @@ struct ScriptCompiler {
     static ScriptCompilationResult Compile(Script& script,
                                            const buffers::formatting::FormattingConfigT& config,
                                            ScriptCompilationOptions options = {});
+    static void CompileAndPack(flatbuffers::FlatBufferBuilder& builder,
+                               Script& script,
+                               const buffers::formatting::FormattingConfigT& config,
+                               bool allow_extensions = true,
+                               bool parse_if_outdated = true);
 };
 
 }  // namespace dashql

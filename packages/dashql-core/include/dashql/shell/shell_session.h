@@ -114,7 +114,7 @@ class ShellSession {
     ShellOperation ConsumeTerminalInput(PromptInputKey key, std::string_view text = {});
     ShellOperation FinishTerminalQuery(std::string_view output, bool error = false);
     ShellOperation RenderTerminalStatus(std::string_view message);
-    PromptInputAction terminal_action() const { return terminal_action_; }
+    PromptInputAction terminal_action() const;
     ShellOperation SubmitPrompt();
     ShellOperation StartQuery(std::string_view query);
     ShellOperation CompleteEffect(uint64_t effect_id,
@@ -166,7 +166,7 @@ class ShellSession {
     ShellOperation CollectOperation(Task::Handle coroutine);
     ShellOperation EncodeOutgoingEffect();
     PromptSnapshot SnapshotPrompt(ShellStatus status = ShellStatus::kOk, std::string message = {});
-    std::string RenderTerminalPrompt();
+    std::string RenderTerminalPrompt(bool highlight = true);
     std::string OpenTerminalCompletionOverlay(std::vector<CompletionCandidate> candidates);
     std::string RefreshTerminalCompletionOverlay();
     std::string RenderTerminalCompletionHint();
@@ -194,6 +194,7 @@ class ShellSession {
     size_t terminal_prompt_length_ = 0;
     std::string_view terminal_continuation_ = "     -> ";
     size_t terminal_prompt_rows_ = 1;
+    size_t terminal_prompt_cursor_row_ = 0;
     PromptInputAction terminal_action_ = PromptInputAction::kNone;
 };
 

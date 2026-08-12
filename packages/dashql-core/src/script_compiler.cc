@@ -205,4 +205,49 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script,
     return result;
 }
 
+void ScriptCompiler::CompileAndPack(flatbuffers::FlatBufferBuilder& builder,
+                                    Script& script,
+                                    const buffers::formatting::FormattingConfigT& config,
+                                    bool allow_extensions,
+                                    bool parse_if_outdated) {
+    if (parse_if_outdated &&
+        (!script.parsed_script || script.parsed_script->scanned_script->text_version != script.text_version)) {
+        script.Parse();
+    }
+
+    ScriptCompilationResult compiled;
+    if (!script.parsed_script) {
+        compiled.errors.push_back(MakeError(ErrorCode::EMPTY_SCRIPT, "script is not parsed"));
+    } else {
+        auto& parsed = *script.parsed_script;
+        for (const auto& [span, message] : parsed.scanned_script->errors) {
+            compiled.errors.push_back(
+                MakeError(ErrorCode::SCANNER_ERROR, message, PROTO_NULL_U32, PROTO_NULL_U32, span));
+        }
+        for (const auto& error : parsed.errors) {
+            compiled.errors.push_back(MakeError(ErrorCode::PARSER_ERROR, error.message, PROTO_NULL_U32,
+                                                PROTO_NULL_U32,
+                                                parsed.scanned_script->ResolveTextSpan(error.location)));
+        }
+
+        constexpr auto execution_features =
+            static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::RELATIONAL_PIPE) |
+            static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE);
+        if (compiled.errors.empty() && parsed.statements.empty()) {
+            compiled.errors.push_back(MakeError(ErrorCode::EMPTY_SCRIPT, "script has no executable statement"));
+        } else if (compiled.errors.empty() && !allow_extensions &&
+                   (parsed.feature_flags & execution_features) != 0) {
+            compiled.errors.push_back(MakeError(ErrorCode::EXTENSIONS_DISABLED,
+                                                "DashQL pipe and VISUALIZE syntax is not executable in the shell"));
+        } else if (compiled.errors.empty() && (parsed.feature_flags & execution_features) == 0) {
+            compiled.kind = StatementKind::QUERY;
+            compiled.terminal_statement_id = static_cast<uint32_t>(parsed.statements.size() - 1);
+            compiled.sql = parsed.scanned_script->GetInput();
+        } else if (compiled.errors.empty()) {
+            compiled = Compile(script, config, {.parse_if_outdated = false});
+        }
+    }
+    builder.Finish(compiled.Pack(builder));
+}
+
 }  // namespace dashql

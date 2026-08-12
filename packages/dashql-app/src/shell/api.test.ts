@@ -73,16 +73,80 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('renders terminal highlighting in Wasm', () => {
-        expect(shell.openTerminal('db> ', false).data).toBe('\r\x1b[2Kdb> \r\x1b[4C');
+        expect(shell.openTerminal('db> ', false).data).toBe('\x1b[?7l\r\x1b[2Kdb> \r\x1b[4C');
         const output = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, "SELECT '界' FROM t").data;
         expect(output).toContain('\x1b[1;38;2;255;122;178mSELECT\x1b[0m');
         expect(output).toContain("\x1b[38;2;255;129;112m'界'\x1b[0m");
         expect(output).toContain('\x1b[38;2;107;170;159mt\x1b[0m');
     });
 
+    it('redraws a wrapped prompt from its current physical row', () => {
+        shell.resize(16);
+        shell.openTerminal('hyper> ', false);
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'SELECT 123');
+
+        const output = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, '4').data;
+        expect(output.startsWith('\x1b[1A\r\x1b[2K\x1b[1B\r\x1b[2K\x1b[1A\r'), JSON.stringify(output)).toBe(true);
+        expect(output.match(/SELECT/g)).toHaveLength(1);
+    });
+
+    it('does not scroll while clearing a long wrapped prompt', () => {
+        shell.resize(80);
+        shell.openTerminal('hyper> ', false);
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, `select '${'o'.repeat(170)}'`);
+
+        const output = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'f').data;
+        const firstPrompt = output.indexOf('hyper> ');
+        expect(firstPrompt).toBeGreaterThanOrEqual(0);
+        expect(output.substring(0, firstPrompt)).not.toContain('\r\n');
+        expect(output.match(/hyper> /g)).toHaveLength(1);
+    });
+
+    it('allocates a new row before extending a long prompt', () => {
+        shell.resize(80);
+        shell.openTerminal('hyper> ', false);
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, `select '${'o'.repeat(135)}'`);
+
+        const output = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, ' as select').data;
+        const firstPrompt = output.indexOf('hyper> ');
+        expect(firstPrompt).toBeGreaterThanOrEqual(0);
+        expect(output.substring(0, firstPrompt)).toContain('\r\n');
+        expect(output.substring(0, firstPrompt)).toContain('\x1b[2A');
+        expect(output.match(/hyper> /g)).toHaveLength(1);
+    });
+
+    it('renders an inline completion hint at the right margin with auto-wrap disabled', () => {
+        shell.resize(173);
+        shell.openTerminal('hyper> ', false);
+
+        const hinted = shell.consumeTerminalInput(
+            DashQLShellPromptInput.TEXT,
+            `select '${'o'.repeat(154)}' a`,
+        ).data;
+        expect(hinted.match(/hyper> /g)).toHaveLength(1);
+        expect(hinted).toContain('\x1b[s\x1b[90m into\x1b[0m\x1b[u');
+
+        const completed = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 's').data;
+        expect(completed.match(/hyper> /g)).toHaveLength(1);
+    });
+
     it('consumes semantic terminal controls', () => {
         shell.openTerminal('db> ', false);
-        expect(shell.consumeTerminalInput(DashQLShellPromptInput.ESCAPE).action).toBe(DashQLShellPromptAction.EXIT);
+        const exited = shell.consumeTerminalInput(DashQLShellPromptInput.ESCAPE);
+        expect(exited.action).toBe(DashQLShellPromptAction.EXIT);
+        expect(exited.data).toBe('\x1b[?7h');
+    });
+
+    it('enables auto-wrap for output and disables it for the next prompt', () => {
+        expect(shell.openTerminal('db> ').data).toMatch(/^\x1b\[\?7h[\s\S]*\x1b\[\?7l/);
+
+        const finished = shell.finishTerminalQuery('a query result').data;
+        expect(finished.indexOf('\x1b[?7h')).toBeLessThan(finished.indexOf('a query result'));
+        expect(finished.indexOf('a query result')).toBeLessThan(finished.indexOf('\x1b[?7l'));
+
+        const status = shell.renderTerminalStatus('working').data;
+        expect(status.indexOf('\x1b[?7h')).toBeLessThan(status.indexOf('working'));
+        expect(status.indexOf('working')).toBeLessThan(status.indexOf('\x1b[?7l'));
     });
 
     it('navigates, accepts, and dismisses terminal completion overlays', () => {
@@ -276,10 +340,12 @@ describe('DashQL shell Wasm', () => {
             pending.resolve = resolve;
         });
         const query = shell.executeQuery('SELECT 42');
-        const rejection = expect(query).rejects.toMatchObject({ status: DashQLShellStatus.STALE_EFFECT });
+        let rejection: unknown;
+        query.catch(error => { rejection = error; });
         await Promise.resolve();
         shell.destroy();
         pending.resolve?.(new Uint8Array());
-        await rejection;
+        await expect(query).rejects.toMatchObject({ status: DashQLShellStatus.STALE_EFFECT });
+        expect(rejection).toMatchObject({ status: DashQLShellStatus.STALE_EFFECT });
     });
 });

@@ -1,8 +1,11 @@
 #include "dashql/shell/arrow_renderer.h"
 
 #include <algorithm>
+#include <cctype>
+#include <iterator>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -20,6 +23,11 @@ namespace dashql::shell {
 namespace {
 
 enum class Alignment { kLeft, kRight };
+
+constexpr size_t CELL_PADDING = 2;
+constexpr size_t MIN_CONTENT_WIDTH = 1;
+constexpr size_t MAX_ROW_HEIGHT = 20;
+constexpr std::string_view TRUNCATION_MARKER = "...";
 
 struct Cell {
     std::string text;
@@ -138,44 +146,102 @@ arrow::Result<Table> ReadIPC(std::span<const uint8_t> data) {
     return table;
 }
 
-std::vector<std::string> WrapText(std::string_view text, size_t width) {
-    width = std::max<size_t>(width, 1);
-    std::vector<std::string> lines;
-    size_t line_begin = 0;
-    size_t line_width = 0;
-    size_t offset = 0;
-    while (offset < text.size()) {
-        if (text[offset] == '\n') {
-            lines.emplace_back(text.substr(line_begin, offset - line_begin));
-            ++offset;
-            line_begin = offset;
-            line_width = 0;
-            continue;
-        }
+struct Grapheme {
+    size_t begin;
+    size_t end;
+    size_t width;
+};
 
+std::vector<Grapheme> Graphemes(std::string_view text) {
+    std::vector<Grapheme> graphemes;
+    const bool valid_utf8 = utf8::Utf8Proc::IsValid(text);
+    for (size_t offset = 0; offset < text.size();) {
         size_t next = offset + 1;
-        size_t grapheme_width = 1;
-        if (utf8::Utf8Proc::IsValid(text)) {
+        if (valid_utf8) {
             next = utf8::Utf8Proc::NextGraphemeCluster(text, offset);
-            if (next <= offset) {
-                next = offset + 1;
-            }
-            grapheme_width = DisplayWidth(text.substr(offset, next - offset));
+            if (next <= offset) next = offset + 1;
         }
-        if (line_width != 0 && line_width + grapheme_width > width) {
-            lines.emplace_back(text.substr(line_begin, offset - line_begin));
-            line_begin = offset;
-            line_width = 0;
-        }
-        line_width += grapheme_width;
+        graphemes.push_back({offset, next, DisplayWidth(text.substr(offset, next - offset))});
         offset = next;
     }
-    lines.emplace_back(text.substr(line_begin));
+    return graphemes;
+}
+
+std::string MarkTruncated(std::string_view text, size_t width) {
+    const auto marker_width = std::min(width, TRUNCATION_MARKER.size());
+    const auto content_width = width - marker_width;
+    size_t end = 0;
+    size_t rendered = 0;
+    for (const auto& grapheme : Graphemes(text)) {
+        if (rendered + grapheme.width > content_width) break;
+        rendered += grapheme.width;
+        end = grapheme.end;
+    }
+    std::string output{text.substr(0, end)};
+    output.append(TRUNCATION_MARKER.substr(0, marker_width));
+    return output;
+}
+
+std::vector<std::string> WrapLine(std::string_view text, size_t width) {
+    width = std::max<size_t>(width, 1);
+    if (text.empty()) return {std::string{}};
+
+    const auto graphemes = Graphemes(text);
+    std::vector<std::string> lines;
+    for (size_t begin = 0; begin < graphemes.size();) {
+        size_t end = begin;
+        size_t rendered = 0;
+        std::optional<size_t> whitespace;
+        while (end < graphemes.size() && (rendered == 0 || rendered + graphemes[end].width <= width)) {
+            rendered += graphemes[end].width;
+            if (graphemes[end].end - graphemes[end].begin == 1 &&
+                std::isspace(static_cast<unsigned char>(text[graphemes[end].begin]))) {
+                whitespace = end;
+            }
+            ++end;
+        }
+        if (end < graphemes.size() && whitespace.has_value() && *whitespace >= begin) {
+            end = *whitespace + 1;
+        }
+        size_t content_end = end;
+        while (content_end > begin && graphemes[content_end - 1].end - graphemes[content_end - 1].begin == 1 &&
+               std::isspace(static_cast<unsigned char>(text[graphemes[content_end - 1].begin]))) {
+            --content_end;
+        }
+        const auto byte_begin = graphemes[begin].begin;
+        const auto byte_end = content_end > begin ? graphemes[content_end - 1].end : byte_begin;
+        lines.emplace_back(text.substr(byte_begin, byte_end - byte_begin));
+        begin = end;
+    }
     return lines;
 }
 
+std::vector<std::string> WrapText(std::string_view text, size_t width) {
+    std::vector<std::string> lines;
+    size_t begin = 0;
+    while (begin <= text.size()) {
+        const auto end = text.find('\n', begin);
+        auto wrapped = WrapLine(text.substr(begin, end - begin), width);
+        lines.insert(lines.end(), std::make_move_iterator(wrapped.begin()), std::make_move_iterator(wrapped.end()));
+        if (end == std::string_view::npos) break;
+        begin = end + 1;
+    }
+    return lines;
+}
+
+size_t FrameWidth(size_t column_count) {
+    return column_count == 0 ? 0 : (CELL_PADDING + 1) * column_count + 1;
+}
+
+size_t VisibleColumnCount(size_t column_count, size_t terminal_columns) {
+    while (column_count > 1 && FrameWidth(column_count) + column_count * MIN_CONTENT_WIDTH > terminal_columns) {
+        --column_count;
+    }
+    return column_count;
+}
+
 std::vector<size_t> ResolveColumnWidths(const Table& table, size_t terminal_columns) {
-    const size_t column_count = table.headers.size();
+    const size_t column_count = VisibleColumnCount(table.headers.size(), terminal_columns);
     std::vector<size_t> widths(column_count, 1);
     for (size_t column = 0; column < column_count; ++column) {
         widths[column] = std::max<size_t>(1, DisplayWidth(table.headers[column]));
@@ -191,19 +257,48 @@ std::vector<size_t> ResolveColumnWidths(const Table& table, size_t terminal_colu
     if (column_count == 0) {
         return widths;
     }
-    const size_t frame_width = 3 * column_count + 1;
+    const size_t frame_width = FrameWidth(column_count);
     const size_t available = terminal_columns > frame_width ? terminal_columns - frame_width : column_count;
+    if (available < column_count) {
+        return std::vector<size_t>(column_count, MIN_CONTENT_WIDTH);
+    }
     size_t total = 0;
     for (const auto width : widths) {
         total += width;
     }
+    std::vector<bool> fixed(column_count, false);
     while (total > available) {
-        auto widest = std::max_element(widths.begin(), widths.end());
-        if (widest == widths.end() || *widest <= 1) {
-            break;
+        size_t remaining_width = available;
+        size_t remaining_columns = 0;
+        for (size_t column = 0; column < column_count; ++column) {
+            if (fixed[column]) {
+                remaining_width = remaining_width > widths[column] ? remaining_width - widths[column] : 0;
+            } else {
+                ++remaining_columns;
+            }
         }
-        --(*widest);
-        --total;
+        if (remaining_columns == 0) break;
+        const auto share = std::max(MIN_CONTENT_WIDTH, remaining_width / remaining_columns);
+        bool found_small = false;
+        for (size_t column = 0; column < column_count; ++column) {
+            if (!fixed[column] && widths[column] <= share) {
+                fixed[column] = true;
+                found_small = true;
+            }
+        }
+        if (found_small) continue;
+
+        const auto base = std::max(MIN_CONTENT_WIDTH, remaining_width / remaining_columns);
+        auto excess = remaining_width > base * remaining_columns ? remaining_width - base * remaining_columns : 0;
+        total = 0;
+        for (size_t column = 0; column < column_count; ++column) {
+            if (!fixed[column]) {
+                widths[column] = base + (excess > 0 ? 1 : 0);
+                if (excess > 0) --excess;
+            }
+            total += widths[column];
+        }
+        break;
     }
     return widths;
 }
@@ -249,6 +344,10 @@ void AppendRow(std::string& output,
     for (size_t column = 0; column < widths.size(); ++column) {
         const std::string_view text = column < cells.size() ? std::string_view{cells[column].text} : std::string_view{};
         wrapped.push_back(WrapText(text, widths[column]));
+        if (wrapped.back().size() > MAX_ROW_HEIGHT) {
+            wrapped.back().resize(MAX_ROW_HEIGHT);
+            wrapped.back().back() = MarkTruncated(wrapped.back().back(), widths[column]);
+        }
         row_height = std::max(row_height, wrapped.back().size());
     }
 
@@ -279,8 +378,12 @@ std::string RenderTable(const Table& table, size_t terminal_columns) {
 
     std::vector<Cell> headers;
     headers.reserve(table.headers.size());
-    for (const auto& header : table.headers) {
-        headers.push_back(Cell{header, Alignment::kLeft});
+    for (size_t column = 0; column < widths.size(); ++column) {
+        auto header = table.headers[column];
+        if (column + 1 == widths.size() && widths.size() < table.headers.size()) {
+            header = MarkTruncated(header, widths[column]);
+        }
+        headers.push_back(Cell{std::move(header), Alignment::kLeft});
     }
     AppendRow(output, headers, widths, "│");
     AppendRule(output, "╞", "╪", "╡", "═", widths);

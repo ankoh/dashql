@@ -169,7 +169,8 @@ uint32_t InvokeTerminal(DashQLShell* shell, DashQLShellTerminalResult* result, C
     }
     try {
         auto output = callback(shell->session);
-        return StoreTerminalResult(result, std::move(output), shell->session.terminal_action());
+        const auto action = shell->session.terminal_action();
+        return StoreTerminalResult(result, std::move(output), action);
     } catch (const std::exception& error) {
         return StoreTerminalResult(result, {dashql::shell::ShellStatus::kInternalError, error.what()});
     } catch (...) {

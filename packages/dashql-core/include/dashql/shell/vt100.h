@@ -16,8 +16,11 @@ inline constexpr std::string_view kInsertCharacterCommand = "@";
 inline constexpr std::string_view kDeleteCharacterCommand = "P";
 inline constexpr std::string_view kCursorUpOne = "\x1b[1A";
 inline constexpr std::string_view kEraseEntireLine = "\x1b[2K";
+inline constexpr std::string_view kEraseLineFromCursor = "\x1b[0K";
 inline constexpr std::string_view kSaveCursor = "\x1b[s";
 inline constexpr std::string_view kRestoreCursor = "\x1b[u";
+inline constexpr std::string_view kEnableAutoWrap = "\x1b[?7h";
+inline constexpr std::string_view kDisableAutoWrap = "\x1b[?7l";
 
 inline constexpr std::string_view kResetAttributes = "\x1b[0m";
 inline constexpr std::string_view kBold = "\x1b[1m";

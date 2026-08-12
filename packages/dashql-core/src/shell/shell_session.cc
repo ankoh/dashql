@@ -9,7 +9,6 @@
 #include <utility>
 
 #include "dashql/analyzer/completion.h"
-#include "dashql/script_compiler.h"
 #include "dashql/shell/vt100.h"
 #include "utf8proc/utf8proc_wrapper.hpp"
 
@@ -55,10 +54,6 @@ void AppendCursorMove(std::string& output, size_t count, std::string_view comman
     output.append(command);
 }
 
-size_t CountLines(std::string_view text) {
-    return 1 + static_cast<size_t>(std::count(text.begin(), text.end(), '\n'));
-}
-
 size_t DisplayWidth(std::string_view text) {
     if (!utf8::Utf8Proc::IsValid(text)) return text.size();
     size_t width = 0;
@@ -68,6 +63,155 @@ size_t DisplayWidth(std::string_view text) {
         offset = next > offset ? next : offset + 1;
     }
     return width;
+}
+
+std::string TruncateDisplayText(std::string_view text, size_t width) {
+    if (DisplayWidth(text) <= width) return std::string{text};
+    constexpr std::string_view marker = "...";
+    const auto marker_width = std::min(width, marker.size());
+    const auto content_width = width - marker_width;
+    size_t rendered = 0;
+    size_t end = 0;
+    const bool valid_utf8 = utf8::Utf8Proc::IsValid(text);
+    for (size_t offset = 0; offset < text.size();) {
+        auto next = valid_utf8 ? utf8::Utf8Proc::NextGraphemeCluster(text, offset) : offset + 1;
+        if (next <= offset) next = offset + 1;
+        const auto grapheme_width = DisplayWidth(text.substr(offset, next - offset));
+        if (rendered + grapheme_width > content_width) break;
+        rendered += grapheme_width;
+        end = next;
+        offset = next;
+    }
+    std::string output{text.substr(0, end)};
+    output.append(marker.substr(0, marker_width));
+    return output;
+}
+
+struct PromptLayout {
+    size_t rows = 1;
+    size_t column = 0;
+};
+
+void AppendPromptPrefix(std::string* output, std::string_view prefix, size_t columns, PromptLayout& layout) {
+    const bool valid_utf8 = utf8::Utf8Proc::IsValid(prefix);
+    for (size_t offset = 0; offset < prefix.size();) {
+        auto next = valid_utf8 ? utf8::Utf8Proc::NextGraphemeCluster(prefix, offset) : offset + 1;
+        if (next <= offset) next = offset + 1;
+        const auto grapheme = prefix.substr(offset, next - offset);
+        const auto width = DisplayWidth(grapheme);
+        if (layout.column != 0 && layout.column + width > columns) {
+            if (output != nullptr) {
+                output->append(vt100::kCarriageReturn);
+                AppendCursorMove(*output, 1, vt100::kCursorDownCommand);
+            }
+            ++layout.rows;
+            layout.column = 0;
+        }
+        if (output != nullptr) output->append(grapheme);
+        layout.column += width;
+        offset = next;
+    }
+}
+
+void AdvancePromptPrefix(std::string_view prefix, size_t columns, PromptLayout& layout) {
+    const bool valid_utf8 = utf8::Utf8Proc::IsValid(prefix);
+    for (size_t offset = 0; offset < prefix.size();) {
+        auto next = valid_utf8 ? utf8::Utf8Proc::NextGraphemeCluster(prefix, offset) : offset + 1;
+        if (next <= offset) next = offset + 1;
+        const auto width = DisplayWidth(prefix.substr(offset, next - offset));
+        if (layout.column != 0 && layout.column + width > columns) {
+            ++layout.rows;
+            layout.column = 0;
+        }
+        layout.column += width;
+        offset = next;
+    }
+}
+
+void BreakPromptLine(std::string* output,
+                     std::string_view continuation,
+                     std::string_view active_style,
+                     size_t columns,
+                     PromptLayout& layout) {
+    if (output != nullptr) {
+        if (!active_style.empty()) output->append(vt100::kResetAttributes);
+        output->append(vt100::kCarriageReturn);
+        AppendCursorMove(*output, 1, vt100::kCursorDownCommand);
+    }
+    ++layout.rows;
+    layout.column = 0;
+    if (output != nullptr) {
+        AppendPromptPrefix(output, continuation, columns, layout);
+    } else {
+        AdvancePromptPrefix(continuation, columns, layout);
+    }
+    if (output != nullptr && !active_style.empty()) output->append(active_style);
+}
+
+PromptLayout LayoutPrompt(std::string_view text,
+                          std::string_view initial,
+                          std::string_view continuation,
+                          size_t columns) {
+    columns = std::max<size_t>(columns, 1);
+    PromptLayout layout;
+    AdvancePromptPrefix(initial, columns, layout);
+    const bool valid_utf8 = utf8::Utf8Proc::IsValid(text);
+    for (size_t offset = 0; offset < text.size();) {
+        if (text[offset] == '\n') {
+            BreakPromptLine(nullptr, continuation, {}, columns, layout);
+            ++offset;
+            continue;
+        }
+        auto next = valid_utf8 ? utf8::Utf8Proc::NextGraphemeCluster(text, offset) : offset + 1;
+        if (next <= offset) next = offset + 1;
+        const auto width = DisplayWidth(text.substr(offset, next - offset));
+        if (layout.column != 0 && layout.column + width > columns) {
+            BreakPromptLine(nullptr, continuation, {}, columns, layout);
+        }
+        layout.column += width;
+        offset = next;
+    }
+    return layout;
+}
+
+PromptLayout RenderHighlightedPrompt(std::string& output,
+                                     std::string_view highlighted,
+                                     std::string_view initial,
+                                     std::string_view continuation,
+                                     size_t columns) {
+    columns = std::max<size_t>(columns, 1);
+    PromptLayout layout;
+    AppendPromptPrefix(&output, initial, columns, layout);
+    std::string active_style;
+    const bool valid_utf8 = utf8::Utf8Proc::IsValid(highlighted);
+    for (size_t offset = 0; offset < highlighted.size();) {
+        if (highlighted[offset] == '\x1b' && offset + 1 < highlighted.size() && highlighted[offset + 1] == '[') {
+            const auto end = highlighted.find('m', offset + 2);
+            if (end != std::string_view::npos) {
+                const auto sequence = highlighted.substr(offset, end - offset + 1);
+                output.append(sequence);
+                active_style = sequence == vt100::kResetAttributes ? std::string{} : std::string{sequence};
+                offset = end + 1;
+                continue;
+            }
+        }
+        if (highlighted[offset] == '\n') {
+            BreakPromptLine(&output, continuation, active_style, columns, layout);
+            ++offset;
+            continue;
+        }
+        auto next = valid_utf8 ? utf8::Utf8Proc::NextGraphemeCluster(highlighted, offset) : offset + 1;
+        if (next <= offset) next = offset + 1;
+        const auto grapheme = highlighted.substr(offset, next - offset);
+        const auto width = DisplayWidth(grapheme);
+        if (layout.column != 0 && layout.column + width > columns) {
+            BreakPromptLine(&output, continuation, active_style, columns, layout);
+        }
+        output.append(grapheme);
+        layout.column += width;
+        offset = next;
+    }
+    return layout;
 }
 
 std::string EscapeTerminalText(std::string_view text) {
@@ -138,6 +282,10 @@ ShellSession::~ShellSession() {
 
 void ShellSession::Resize(uint32_t terminal_columns) {
     renderer_.Resize(terminal_columns);
+}
+
+PromptInputAction ShellSession::terminal_action() const {
+    return terminal_action_;
 }
 
 PromptSnapshot ShellSession::SetPrompt(std::string_view text) {
@@ -293,8 +441,10 @@ ShellOperation ShellSession::OpenTerminal(std::string_view prompt, bool welcome)
     std::copy(prompt.begin(), prompt.end(), terminal_prompt_storage_.begin());
     terminal_prompt_length_ = prompt.size();
     terminal_prompt_rows_ = 1;
+    terminal_prompt_cursor_row_ = 0;
     std::string output;
     if (welcome) {
+        output.append(vt100::kEnableAutoWrap);
         output.append(vt100::kBold);
         output.append("DashQL Shell");
         output.append(vt100::kResetAttributes);
@@ -302,6 +452,7 @@ ShellOperation ShellSession::OpenTerminal(std::string_view prompt, bool welcome)
         output.append("Terminate SQL with \";\". Tab completes. Ctrl+C cancels. Escape returns to the notebook.");
         output.append(vt100::kNewLine);
     }
+    output.append(vt100::kDisableAutoWrap);
     output.append(RenderTerminalPrompt());
     return {ShellStatus::kOk, std::move(output)};
 }
@@ -327,7 +478,7 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
     }
     if (key == PromptInputKey::kEscape) {
         terminal_action_ = PromptInputAction::kExit;
-        return {ShellStatus::kOk, {}};
+        return {ShellStatus::kOk, std::string{vt100::kEnableAutoWrap}};
     }
     std::string output_prefix;
     if (terminal_completion_overlays.contains(this)) {
@@ -342,6 +493,8 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
     if (action == PromptInputAction::kSubmit) {
         terminal_action_ = action;
         terminal_prompt_rows_ = 1;
+        terminal_prompt_cursor_row_ = 0;
+        output_prefix.append(vt100::kEnableAutoWrap);
         output_prefix.append(vt100::kNewLine);
         return {ShellStatus::kOk, std::move(output_prefix)};
     }
@@ -363,6 +516,7 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
     }
     if (key == PromptInputKey::kCancel) {
         terminal_prompt_rows_ = 1;
+        terminal_prompt_cursor_row_ = 0;
         std::string output{std::move(output_prefix)};
         output.append("^C");
         output.append(vt100::kNewLine);
@@ -380,12 +534,15 @@ ShellOperation ShellSession::FinishTerminalQuery(std::string_view output, bool e
     terminal_action_ = PromptInputAction::kNone;
     std::string rendered = ClearTerminalCompletionOverlay();
     terminal_completion_overlays.erase(this);
+    rendered.append(vt100::kEnableAutoWrap);
     if (error) rendered.append(vt100::kForegroundRed);
     rendered.append(output);
     if (error) rendered.append(vt100::kResetAttributes);
     rendered.append(vt100::kNewLine);
     prompt_.SetText("");
     terminal_prompt_rows_ = 1;
+    terminal_prompt_cursor_row_ = 0;
+    rendered.append(vt100::kDisableAutoWrap);
     rendered.append(RenderTerminalPrompt());
     return {ShellStatus::kOk, std::move(rendered)};
 }
@@ -394,12 +551,15 @@ ShellOperation ShellSession::RenderTerminalStatus(std::string_view message) {
     terminal_action_ = PromptInputAction::kNone;
     std::string output = ClearTerminalCompletionOverlay();
     terminal_completion_overlays.erase(this);
+    output.append(vt100::kEnableAutoWrap);
     output.append(vt100::kNewLine);
     output.append(vt100::kForegroundBrightBlack);
     output.append(message);
     output.append(vt100::kResetAttributes);
     output.append(vt100::kNewLine);
     terminal_prompt_rows_ = 1;
+    terminal_prompt_cursor_row_ = 0;
+    output.append(vt100::kDisableAutoWrap);
     output.append(RenderTerminalPrompt());
     return {ShellStatus::kOk, std::move(output)};
 }
@@ -488,15 +648,18 @@ ShellOperation ShellSession::StartQuery(std::string_view query) {
 
     Script script{catalog_};
     script.InsertTextAt(0, query);
-    buffers::formatting::FormattingConfigT config;
-    auto compiled = script.CompileQuery(config, {.allow_extensions = false});
-    if (!compiled.errors.empty()) {
-        return {ShellStatus::kInvalidArgument, compiled.errors.front().message};
+    script.Parse();
+    const auto& parsed = script.GetParsedScript();
+    constexpr auto extensions = static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::RELATIONAL_PIPE) |
+                                static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE);
+    if (parsed && (parsed->feature_flags & extensions) != 0) {
+        return {ShellStatus::kInvalidArgument,
+                "DashQL pipe and VISUALIZE syntax is not executable in the shell"};
     }
 
     outgoing_effect_.reset();
     completed_operation_.reset();
-    auto task = ExecuteQuery(std::move(compiled.sql));
+    auto task = ExecuteQuery(std::string{query});
     return Resume(task.Release());
 }
 
@@ -625,80 +788,85 @@ PromptSnapshot ShellSession::SnapshotPrompt(ShellStatus status, std::string mess
     };
 }
 
-std::string ShellSession::RenderTerminalPrompt() {
+std::string ShellSession::RenderTerminalPrompt(bool highlight) {
     const auto text = prompt_.Text();
     const auto terminal_prompt = terminal_prompt_length_ == 0
                                      ? std::string_view{"dashql> "}
                                      : std::string_view{terminal_prompt_storage_.data(), terminal_prompt_length_};
-    prompt_.script().Parse();
-    auto parsed = prompt_.script().GetParsedScript();
-    auto packed = parsed->PackTokens();
-    const auto& comments = parsed->scanned_script->comments;
-
     std::string highlighted;
-    highlighted.reserve(text.size() + (packed->token_offsets.size() + comments.size()) * 16);
-    size_t offset = 0;
-    size_t token_idx = 0;
-    size_t comment_idx = 0;
-    while (token_idx < packed->token_offsets.size() || comment_idx < comments.size()) {
-        const auto token_begin = token_idx < packed->token_offsets.size()
-                                     ? static_cast<size_t>(packed->token_offsets[token_idx])
-                                     : std::numeric_limits<size_t>::max();
-        const auto comment_begin = comment_idx < comments.size()
-                                       ? static_cast<size_t>(comments[comment_idx].offset())
-                                       : std::numeric_limits<size_t>::max();
-        const bool is_comment = comment_begin < token_begin;
-        const auto begin = is_comment ? comment_begin : token_begin;
-        const auto length = is_comment ? comments[comment_idx].length() : packed->token_lengths[token_idx];
-        const auto type = is_comment ? ScannerTokenType::COMMENT : packed->token_types[token_idx];
-        const auto end = begin + length;
-        if (begin > offset) highlighted.append(text.substr(offset, begin - offset));
-        const auto style = TokenStyle(type);
-        if (!style.empty()) highlighted.append(style);
-        highlighted.append(text.substr(begin, end - begin));
-        if (!style.empty()) highlighted.append(vt100::kResetAttributes);
-        offset = end;
-        if (is_comment) {
-            ++comment_idx;
-        } else {
-            ++token_idx;
+    if (highlight) {
+        prompt_.script().Parse();
+        auto parsed = prompt_.script().GetParsedScript();
+        auto packed = parsed->PackTokens();
+        const auto& comments = parsed->scanned_script->comments;
+        highlighted.reserve(text.size() + (packed->token_offsets.size() + comments.size()) * 16);
+        size_t offset = 0;
+        size_t token_idx = 0;
+        size_t comment_idx = 0;
+        while (token_idx < packed->token_offsets.size() || comment_idx < comments.size()) {
+            const auto token_begin = token_idx < packed->token_offsets.size()
+                                         ? static_cast<size_t>(packed->token_offsets[token_idx])
+                                         : std::numeric_limits<size_t>::max();
+            const auto comment_begin = comment_idx < comments.size()
+                                           ? static_cast<size_t>(comments[comment_idx].offset())
+                                           : std::numeric_limits<size_t>::max();
+            const bool is_comment = comment_begin < token_begin;
+            const auto begin = is_comment ? comment_begin : token_begin;
+            const auto length = is_comment ? comments[comment_idx].length() : packed->token_lengths[token_idx];
+            const auto type = is_comment ? ScannerTokenType::COMMENT : packed->token_types[token_idx];
+            const auto end = begin + length;
+            if (begin > offset) highlighted.append(text.substr(offset, begin - offset));
+            const auto style = TokenStyle(type);
+            if (!style.empty()) highlighted.append(style);
+            highlighted.append(text.substr(begin, end - begin));
+            if (!style.empty()) highlighted.append(vt100::kResetAttributes);
+            offset = end;
+            if (is_comment) {
+                ++comment_idx;
+            } else {
+                ++token_idx;
+            }
         }
+        highlighted.append(text.substr(offset));
+    } else {
+        highlighted = text;
     }
-    highlighted.append(text.substr(offset));
+
+    const auto terminal_columns = renderer_.terminal_columns();
+    const auto desired_layout = LayoutPrompt(text, terminal_prompt, terminal_continuation_, terminal_columns);
+    const auto previous_rows = terminal_prompt_rows_;
+    const auto rows_to_clear = std::max(previous_rows, desired_layout.rows);
 
     std::string output;
-    for (size_t i = 0; i < terminal_prompt_rows_; ++i) {
+    AppendCursorMove(output, terminal_prompt_cursor_row_, vt100::kCursorUpCommand);
+    for (size_t i = 0; i < previous_rows; ++i) {
         output.append(vt100::kCarriageReturn);
         output.append(vt100::kEraseEntireLine);
-        if (i + 1 < terminal_prompt_rows_) output.append(vt100::kCursorUpOne);
+        if (i + 1 < previous_rows) {
+            AppendCursorMove(output, 1, vt100::kCursorDownCommand);
+        }
     }
+    if (desired_layout.rows > previous_rows) {
+        for (size_t i = previous_rows; i < desired_layout.rows; ++i) output.append(vt100::kNewLine);
+    }
+    AppendCursorMove(output, rows_to_clear - 1, vt100::kCursorUpCommand);
+    if (previous_rows > 1 || desired_layout.rows > 1) output.append(vt100::kCarriageReturn);
 
-    size_t line_begin = 0;
-    size_t line = 0;
-    while (line_begin <= highlighted.size()) {
-        const auto line_end = highlighted.find('\n', line_begin);
-        output.append(line == 0 ? terminal_prompt : terminal_continuation_);
-        output.append(highlighted.substr(line_begin, line_end - line_begin));
-        if (line_end == std::string::npos) break;
-        output.append(vt100::kNewLine);
-        line_begin = line_end + 1;
-        ++line;
-    }
-    terminal_prompt_rows_ = CountLines(text);
+    const auto rendered_layout =
+        RenderHighlightedPrompt(output, highlighted, terminal_prompt, terminal_continuation_, terminal_columns);
+    terminal_prompt_rows_ = rendered_layout.rows;
 
     const auto cursor = prompt_.cursor_byte_offset();
-    const auto cursor_line = static_cast<size_t>(std::count(text.begin(), text.begin() + cursor, '\n'));
-    const auto cursor_line_begin = cursor_line == 0 ? 0 : text.rfind('\n', cursor - 1) + 1;
-    const auto cursor_prefix = cursor_line == 0 ? terminal_prompt : terminal_continuation_;
-    const auto cursor_column = utf8::Utf8Proc::RenderWidth(std::string{cursor_prefix}) +
-                               utf8::Utf8Proc::RenderWidth(text.substr(cursor_line_begin, cursor - cursor_line_begin));
-    const auto rows_up = terminal_prompt_rows_ - cursor_line - 1;
+    const auto cursor_layout =
+        LayoutPrompt(text.substr(0, cursor), terminal_prompt, terminal_continuation_, terminal_columns);
+    terminal_prompt_cursor_row_ = cursor_layout.rows - 1;
     if (auto overlay = terminal_completion_overlays.find(this); overlay != terminal_completion_overlays.end()) {
-        overlay->second.cursor_row = cursor_line;
+        overlay->second.cursor_row = terminal_prompt_cursor_row_;
     }
     output.append(vt100::kCarriageReturn);
-    AppendCursorMove(output, rows_up, vt100::kCursorUpCommand);
-    AppendCursorMove(output, cursor_column, vt100::kCursorForwardCommand);
+    AppendCursorMove(output, terminal_prompt_rows_ - 1, vt100::kCursorUpCommand);
+    AppendCursorMove(output, terminal_prompt_cursor_row_, vt100::kCursorDownCommand);
+    AppendCursorMove(output, cursor_layout.column, vt100::kCursorForwardCommand);
     return output;
 }
 
@@ -707,22 +875,32 @@ std::string ShellSession::OpenTerminalCompletionOverlay(std::vector<CompletionCa
     overlay = {};
     overlay.candidates = std::move(candidates);
     overlay.hint_only = overlay.candidates.front().target_length == 0;
-    for (auto& candidate : overlay.candidates) {
-        candidate.display_text = EscapeTerminalText(candidate.display_text);
-        overlay.content_width = std::max(overlay.content_width, DisplayWidth(candidate.display_text));
-    }
-
     const auto text = prompt_.Text();
     const auto target = std::min<size_t>(overlay.candidates.front().target_offset, text.size());
-    const auto target_line = static_cast<size_t>(std::count(text.begin(), text.begin() + target, '\n'));
-    const auto target_line_begin = target_line == 0 ? 0 : text.rfind('\n', target - 1) + 1;
     const auto terminal_prompt = terminal_prompt_length_ == 0
                                      ? std::string_view{"dashql> "}
                                      : std::string_view{terminal_prompt_storage_.data(), terminal_prompt_length_};
-    const auto target_prefix = target_line == 0 ? terminal_prompt : terminal_continuation_;
-    overlay.cursor_row = static_cast<size_t>(std::count(text.begin(), text.begin() + prompt_.cursor_byte_offset(), '\n'));
-    overlay.anchor_column = utf8::Utf8Proc::RenderWidth(std::string{target_prefix}) +
-                            utf8::Utf8Proc::RenderWidth(text.substr(target_line_begin, target - target_line_begin));
+    const auto terminal_columns = static_cast<size_t>(renderer_.terminal_columns());
+    const auto target_layout =
+        LayoutPrompt(text.substr(0, target), terminal_prompt, terminal_continuation_, terminal_columns);
+    const auto cursor_layout = LayoutPrompt(text.substr(0, prompt_.cursor_byte_offset()), terminal_prompt,
+                                            terminal_continuation_, terminal_columns);
+    overlay.cursor_row = cursor_layout.rows - 1;
+    overlay.anchor_column = target_layout.column;
+    const auto max_content_width = terminal_columns > 4 ? terminal_columns - 4 : 1;
+    if (overlay.anchor_column + 4 > terminal_columns) {
+        overlay.anchor_column = 0;
+    }
+    const auto available_content_width =
+        std::max<size_t>(1, terminal_columns > overlay.anchor_column + 4 ? terminal_columns - overlay.anchor_column - 4
+                                                                        : max_content_width);
+    for (auto& candidate : overlay.candidates) {
+        candidate.display_text = TruncateDisplayText(EscapeTerminalText(candidate.display_text), available_content_width);
+        overlay.content_width = std::max(overlay.content_width, DisplayWidth(candidate.display_text));
+    }
+    if (overlay.anchor_column + overlay.content_width + 4 > terminal_columns) {
+        overlay.anchor_column = terminal_columns > overlay.content_width + 4 ? terminal_columns - overlay.content_width - 4 : 0;
+    }
     return RenderTerminalCompletionOverlay();
 }
 
@@ -795,8 +973,7 @@ std::string ShellSession::ClearTerminalCompletionOverlay() {
 
     std::string output;
     if (overlay.hint_suffix_width > 0) {
-        output.append(overlay.hint_suffix_width, ' ');
-        AppendCursorMove(output, overlay.hint_suffix_width, vt100::kCursorBackwardCommand);
+        output.append(vt100::kEraseLineFromCursor);
         overlay.hint_suffix_width = 0;
     }
     if (overlay.hint_prefix_width > 0) {
@@ -877,10 +1054,11 @@ std::string ShellSession::RenderTerminalCompletionHint() {
         AppendCursorMove(output, overlay.hint_current_width, vt100::kCursorForwardCommand);
     }
     if (!suffix.empty()) {
+        output.append(vt100::kSaveCursor);
         output.append(vt100::kForegroundBrightBlack);
         output.append(suffix);
         output.append(vt100::kResetAttributes);
-        AppendCursorMove(output, overlay.hint_suffix_width, vt100::kCursorBackwardCommand);
+        output.append(vt100::kRestoreCursor);
     }
     return output;
 }
@@ -888,6 +1066,7 @@ std::string ShellSession::RenderTerminalCompletionHint() {
 ShellOperation ShellSession::AcceptTerminalCompletion() {
     auto output = ClearTerminalCompletionOverlay();
     auto& overlay = terminal_completion_overlays.at(this);
+    const auto hint_only = overlay.hint_only;
     const auto variant_selection = overlay.variant_selection;
     auto candidate = std::move(overlay.candidates[overlay.selection]);
     terminal_completion_overlays.erase(this);
@@ -896,12 +1075,14 @@ ShellOperation ShellSession::AcceptTerminalCompletion() {
                                    ? std::string{}
                                    : candidate.qualification_texts[std::min(variant_selection,
                                                                            candidate.qualification_texts.size() - 1)];
+    const auto prompt_text = prompt_.Text();
+    const auto prompt_changed = std::string_view{prompt_text}.substr(candidate.target_offset, candidate.target_length) !=
+                                candidate.completion_text;
     const auto snapshot = ApplyCompletion(candidate);
     if (snapshot.status != ShellStatus::kOk) return {snapshot.status, std::move(snapshot.message)};
-    output.append(RenderTerminalPrompt());
     if (!qualification.empty() && qualification != candidate.completion_text) {
-        auto& next = terminal_completion_overlays[this];
-        next = {};
+        if (prompt_changed) output.append(RenderTerminalPrompt(false));
+        TerminalCompletionOverlay next;
         next.hint_only = true;
         const auto prompt_text = prompt_.Text();
         next.cursor_row = static_cast<size_t>(
@@ -916,8 +1097,10 @@ ShellOperation ShellSession::AcceptTerminalCompletion() {
             .qualification_target_offset = candidate.qualification_target_offset,
             .qualification_target_length = static_cast<uint32_t>(candidate.completion_text.size()),
         });
+        terminal_completion_overlays.emplace(this, std::move(next));
         output.append(RenderTerminalCompletionHint());
     } else if (!continuation.empty()) {
+        output.append(RenderTerminalPrompt(false));
         auto& next = terminal_completion_overlays[this];
         next = {};
         next.hint_only = true;
@@ -935,8 +1118,11 @@ ShellOperation ShellSession::AcceptTerminalCompletion() {
             .qualification_target_length = 0,
         });
         output.append(RenderTerminalCompletionHint());
-    } else {
+    } else if (!hint_only) {
+        output.append(RenderTerminalPrompt(false));
         output.append(RefreshTerminalCompletionOverlay());
+    } else {
+        output.append(RenderTerminalPrompt(false));
     }
     return {ShellStatus::kOk, std::move(output)};
 }

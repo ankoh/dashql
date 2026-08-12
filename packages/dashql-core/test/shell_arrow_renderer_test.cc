@@ -41,6 +41,17 @@ std::shared_ptr<arrow::RecordBatch> MakeBatch() {
     return arrow::RecordBatch::Make(std::move(schema), 3, {std::move(name_array), std::move(value_array)});
 }
 
+void ExpectLinesFit(std::string_view output, size_t width) {
+    size_t line_start = 0;
+    while (line_start <= output.size()) {
+        const auto line_end = output.find('\n', line_start);
+        const auto line = output.substr(line_start, line_end - line_start);
+        EXPECT_LE(utf8::Utf8Proc::RenderWidth(std::string{line}), width) << line;
+        if (line_end == std::string_view::npos) break;
+        line_start = line_end + 1;
+    }
+}
+
 TEST(ArrowRendererTest, RendersArrowIPC) {
     const auto ipc = WriteIPC(MakeBatch());
     ArrowRenderer renderer{80};
@@ -61,16 +72,78 @@ TEST(ArrowRendererTest, ConstrainsOutputToTerminalWidth) {
     ArrowRenderer renderer{15};
     auto output = renderer.RenderIPC(std::span<const uint8_t>{ipc->data(), static_cast<size_t>(ipc->size())});
     ASSERT_TRUE(output.ok()) << output.status().ToString();
-    size_t line_start = 0;
-    while (line_start <= output->size()) {
-        const auto line_end = output->find('\n', line_start);
-        const auto line = output->substr(line_start, line_end - line_start);
-        EXPECT_LE(utf8::Utf8Proc::RenderWidth(line), 15) << line;
-        if (line_end == std::string::npos) {
-            break;
-        }
-        line_start = line_end + 1;
+    ExpectLinesFit(*output, 15);
+}
+
+TEST(ArrowRendererTest, GivesShortColumnsOnlyTheSpaceTheyNeed) {
+    arrow::StringBuilder keys;
+    EXPECT_TRUE(keys.Append("x").ok());
+    arrow::StringBuilder descriptions;
+    EXPECT_TRUE(descriptions.Append("alpha beta gamma delta").ok());
+    auto schema = arrow::schema({arrow::field("k", arrow::utf8()), arrow::field("description", arrow::utf8())});
+    const auto batch = arrow::RecordBatch::Make(
+        std::move(schema), 1, {keys.Finish().ValueOrDie(), descriptions.Finish().ValueOrDie()});
+    const auto ipc = WriteIPC(batch);
+
+    ArrowRenderer renderer{22};
+    auto output = renderer.RenderIPC(std::span<const uint8_t>{ipc->data(), static_cast<size_t>(ipc->size())});
+    ASSERT_TRUE(output.ok()) << output.status().ToString();
+    ExpectLinesFit(*output, 22);
+    EXPECT_NE(output->find("alpha beta"), std::string::npos) << *output;
+}
+
+TEST(ArrowRendererTest, WrapsAtWordBoundaries) {
+    arrow::StringBuilder values;
+    EXPECT_TRUE(values.Append("alpha beta gamma").ok());
+    auto schema = arrow::schema({arrow::field("text", arrow::utf8())});
+    const auto batch = arrow::RecordBatch::Make(std::move(schema), 1, {values.Finish().ValueOrDie()});
+    const auto ipc = WriteIPC(batch);
+
+    ArrowRenderer renderer{12};
+    auto output = renderer.RenderIPC(std::span<const uint8_t>{ipc->data(), static_cast<size_t>(ipc->size())});
+    ASSERT_TRUE(output.ok()) << output.status().ToString();
+    ExpectLinesFit(*output, 12);
+    EXPECT_NE(output->find("│ alpha    │\n│ beta     │\n│ gamma    │"), std::string::npos) << *output;
+}
+
+TEST(ArrowRendererTest, TruncatesPathologicalMultilineCells) {
+    std::string value;
+    for (size_t i = 0; i < 25; ++i) {
+        if (i > 0) value.push_back('\n');
+        value.append("line");
     }
+    arrow::StringBuilder values;
+    EXPECT_TRUE(values.Append(value).ok());
+    auto schema = arrow::schema({arrow::field("text", arrow::utf8())});
+    const auto batch = arrow::RecordBatch::Make(std::move(schema), 1, {values.Finish().ValueOrDie()});
+    const auto ipc = WriteIPC(batch);
+
+    ArrowRenderer renderer{20};
+    auto output = renderer.RenderIPC(std::span<const uint8_t>{ipc->data(), static_cast<size_t>(ipc->size())});
+    ASSERT_TRUE(output.ok()) << output.status().ToString();
+    EXPECT_NE(output->find("l..."), std::string::npos) << *output;
+    EXPECT_EQ(static_cast<size_t>(std::count(output->begin(), output->end(), '\n')), 23u);
+}
+
+TEST(ArrowRendererTest, HidesColumnsThatCannotFit) {
+    arrow::Int32Builder first;
+    arrow::Int32Builder second;
+    arrow::Int32Builder third;
+    EXPECT_TRUE(first.Append(1).ok());
+    EXPECT_TRUE(second.Append(2).ok());
+    EXPECT_TRUE(third.Append(3).ok());
+    auto schema = arrow::schema({arrow::field("first", arrow::int32()), arrow::field("second", arrow::int32()),
+                                 arrow::field("third", arrow::int32())});
+    const auto batch = arrow::RecordBatch::Make(
+        std::move(schema), 1,
+        {first.Finish().ValueOrDie(), second.Finish().ValueOrDie(), third.Finish().ValueOrDie()});
+    const auto ipc = WriteIPC(batch);
+
+    ArrowRenderer renderer{8};
+    auto output = renderer.RenderIPC(std::span<const uint8_t>{ipc->data(), static_cast<size_t>(ipc->size())});
+    ASSERT_TRUE(output.ok()) << output.status().ToString();
+    ExpectLinesFit(*output, 8);
+    EXPECT_NE(output->find("..."), std::string::npos) << *output;
 }
 
 TEST(ArrowRendererTest, EscapesTerminalControlCharacters) {
