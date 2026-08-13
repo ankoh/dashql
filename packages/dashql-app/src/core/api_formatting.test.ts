@@ -73,7 +73,7 @@ describe('DashQL formatting', () => {
     it('reports formatter placeholders as incomplete formatting', async () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);
-        script.insertTextAt(0, 'create view v as select 1');
+        script.insertTextAt(0, "select cast('1' as bit)");
         const config = new dashql.buffers.formatting.FormattingConfigT(
             dashql.buffers.formatting.FormattingDialect.DUCKDB,
             dashql.buffers.formatting.FormattingMode.COMPACT,
@@ -85,7 +85,7 @@ describe('DashQL formatting', () => {
         expect(nodeIds.length).toBeGreaterThan(0);
         const parsed = script.getParsed();
         const nodeTypes = nodeIds.map(nodeId => parsed.read().nodes(nodeId)?.nodeType());
-        expect(nodeTypes).toContain(dashql.buffers.parser.NodeType.OBJECT_SQL_VIEW);
+        expect(nodeTypes).toContain(dashql.buffers.parser.NodeType.OBJECT_SQL_BIT_TYPE);
         parsed.destroy();
     });
 
