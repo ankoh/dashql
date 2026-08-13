@@ -1,5 +1,6 @@
 import type { IDisposable, Terminal } from '@xterm/xterm';
 import type { FitAddon } from '@xterm/addon-fit';
+import type { WebglAddon } from '@xterm/addon-webgl';
 
 import { DashQLShell, DashQLShellPromptAction, DashQLShellPromptInput } from './api.js';
 import { VT100 } from './vt100.js';
@@ -52,6 +53,19 @@ export function terminalPromptInputForKey(key: string): DashQLShellPromptInput |
     }
 }
 
+export async function loadWebglRenderer(terminal: Terminal): Promise<boolean> {
+    try {
+        const { WebglAddon } = await import('@xterm/addon-webgl');
+        const webglAddon: WebglAddon = new WebglAddon();
+        terminal.loadAddon(webglAddon);
+        webglAddon.onContextLoss(() => webglAddon.dispose());
+        return true;
+    } catch {
+        // xterm's DOM renderer remains active when WebGL is unavailable.
+        return false;
+    }
+}
+
 export async function embedDashQLShell(options: BrowserShellOptions): Promise<BrowserShellController> {
     const [{ Terminal }, { FitAddon }] = await Promise.all([
         import('@xterm/xterm'),
@@ -83,6 +97,7 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
     const fitAddon: FitAddon = new FitAddon();
     terminal.loadAddon(fitAddon);
     terminal.open(options.container);
+    await loadWebglRenderer(terminal);
     const helper = options.container.querySelector<HTMLTextAreaElement>('.xterm-helper-textarea');
     helper?.setAttribute('aria-label', 'DashQL shell input');
 

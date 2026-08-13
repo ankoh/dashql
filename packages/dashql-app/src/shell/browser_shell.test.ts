@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { DashQLShellPromptInput } from './api.js';
-import { sanitizeTerminalText, terminalPromptInputForKey } from './browser_shell.js';
+import { loadWebglRenderer, sanitizeTerminalText, terminalPromptInputForKey } from './browser_shell.js';
 import { VT100, VT100Command, vt100Sequence } from './vt100.js';
 
 describe('browser shell input', () => {
@@ -28,5 +28,29 @@ describe('browser shell input', () => {
 
     it('maps Tab to completion', () => {
         expect(terminalPromptInputForKey('Tab')).toBe(DashQLShellPromptInput.TAB);
+    });
+});
+
+describe('browser shell renderer', () => {
+    it('loads the WebGL addon when the terminal accepts it', async () => {
+        let loaded = false;
+        const terminal = {
+            loadAddon: () => {
+                loaded = true;
+            },
+        };
+
+        expect(await loadWebglRenderer(terminal as never)).toBe(true);
+        expect(loaded).toBe(true);
+    });
+
+    it('keeps the DOM renderer when WebGL initialization fails', async () => {
+        const terminal = {
+            loadAddon: () => {
+                throw new Error('WebGL unavailable');
+            },
+        };
+
+        expect(await loadWebglRenderer(terminal as never)).toBe(false);
     });
 });
