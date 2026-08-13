@@ -28,6 +28,14 @@
     background-color: transparent !important;
 }
 
+.terminal :global(.xterm-viewport) {
+    scrollbar-width: none;
+}
+
+.terminal :global(.xterm-viewport::-webkit-scrollbar) {
+    display: none;
+}
+
 .status {
     position: absolute;
     top: 12px;
