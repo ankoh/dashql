@@ -584,6 +584,7 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_SELECT_ROW_LOCKING:
         case AttributeKey::SQL_ROW_LOCKING_OF:
         case AttributeKey::SQL_GROUP_BY_ITEM_ARG:
+        case AttributeKey::EXT_EXPLAIN_OPTIONS:
             return FormatCommaList(node);
         case AttributeKey::EXT_VARARG_FIELD_VALUE:
             return fmt.Parenthesized(FormatCommaList(node));

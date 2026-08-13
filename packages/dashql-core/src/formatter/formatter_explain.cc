@@ -17,16 +17,9 @@ FmtReg Formatter::FormatExplain(size_t node_id) {
     if (stmt_reg == 0) return FormatUnimplemented(node);
 
     if (options && options->children_count() > 0) {
-        std::vector<FmtReg> opt_parts;
-        opt_parts.reserve(options->children_count());
-        auto begin = options->children_begin_or_value();
-        for (size_t i = 0; i < options->children_count(); ++i) {
-            auto reg = Reg(ast[begin + i]);
-            if (reg == 0) return FormatUnimplemented(node);
-            opt_parts.push_back(reg);
-        }
-        auto opt_list = fmt.Join(opt_parts, fmt.Text(", "), fmt.Text(", "));
-        auto header = fmt.Concat({fmt.Text("explain "), fmt.Parenthesized(opt_list)});
+        auto options_reg = Reg(*options);
+        if (options_reg == 0) return FormatUnimplemented(node);
+        auto header = fmt.Concat({fmt.Text("explain "), fmt.Parenthesized(options_reg)});
         std::array<FmtReg, 2> clauses{header, stmt_reg};
         return fmt.Join(clauses, fmt.Text(" "), fmt.Break(), FormattingJoinPolicy::ForceBreak);
     }
