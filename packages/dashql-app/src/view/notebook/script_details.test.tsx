@@ -7,8 +7,12 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import {
     fakeButtonModule,
+    fakeKeyEventsModule,
+    fakeQueryExecutorModule,
     fakeSymbolIconModule,
     ResizeObserverMock,
+    setKeyEventMockState,
+    setQueryExecutorMockState,
 } from '../../test/view_mocks.js';
 
 const mockState = vi.hoisted(() => ({
@@ -39,16 +43,8 @@ vi.mock('./script_name.js', async () => {
     const React = await import('react');
     return { ScriptName: () => React.createElement('span', null, 'script') };
 });
-vi.mock('../../utils/key_events.js', () => ({
-    useKeyEvents: (handlers: typeof mockState.keyHandlers) => {
-        mockState.keyHandlers = handlers;
-    },
-}));
-vi.mock('../../connection/query_executor.js', () => ({
-    useQueryState: () => null,
-    useQueryExecutor: () => mockState.executeQuery,
-    useCancelQuery: () => vi.fn(),
-}));
+vi.mock('../../utils/key_events.js', () => fakeKeyEventsModule());
+vi.mock('../../connection/query_executor.js', () => fakeQueryExecutorModule());
 vi.mock('../../agent/agent_run_provider.js', () => ({
     useAgentRunState: () => null,
     useCancelAgentRun: () => vi.fn(),
@@ -133,6 +129,8 @@ describe('ScriptDetails', () => {
     let root: Root;
 
     beforeEach(() => {
+        setKeyEventMockState(mockState);
+        setQueryExecutorMockState(mockState);
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);

@@ -2,6 +2,8 @@
 
 #include <string>
 #include <string_view>
+#include <fstream>
+#include <iterator>
 
 #include "dashql/catalog.h"
 #include "dashql/script.h"
@@ -540,8 +542,9 @@ TEST(ShellApiTest, NavigatesAndAcceptsTerminalCompletionOverlay) {
 TEST(ShellApiTest, HintsAndAcceptsColumnAfterFullyQualifiedTableAlias) {
     dashql::Catalog catalog;
     dashql::Script schema{catalog};
-    constexpr std::string_view schema_sql =
-        "CREATE TABLE uip_iceberg.cdp_billing_prod_events.hyperdb_billing(event_id BIGINT, amount DOUBLE);";
+    std::ifstream schema_file{"/Users/andre.kohn/Repositories/dashql-notebooks/uip/dashql-relations.sql"};
+    ASSERT_TRUE(schema_file.is_open());
+    const std::string schema_sql{std::istreambuf_iterator<char>{schema_file}, std::istreambuf_iterator<char>{}};
     schema.InsertTextAt(0, schema_sql);
     schema.Analyze();
     ASSERT_NO_THROW(catalog.LoadScript(schema, 0));
@@ -553,12 +556,16 @@ TEST(ShellApiTest, HintsAndAcceptsColumnAfterFullyQualifiedTableAlias) {
     dashql_shell_terminal_result_destroy(&output);
 
     constexpr std::string_view query =
-        "select * from uip_iceberg.cdp_billing_prod_events.hyperdb_billing q where q.";
-    ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, query), DASHQL_SHELL_OK);
+        "select * from uip_iceberg.cdp_usage_nonprod_events.hyperdb_queries q where q.";
+    for (const char character : query) {
+        ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, std::string_view{&character, 1}),
+                  DASHQL_SHELL_OK);
+        if (character != query.back()) dashql_shell_terminal_result_destroy(&output);
+    }
     EXPECT_NE(TerminalData(output).find(dashql::shell::vt100::kForegroundBrightBlack), std::string_view::npos)
         << TerminalData(output);
     EXPECT_TRUE(TerminalData(output).find("event_id") != std::string_view::npos ||
-                TerminalData(output).find("amount") != std::string_view::npos)
+                TerminalData(output).find("processed_rows") != std::string_view::npos)
         << TerminalData(output);
     dashql_shell_terminal_result_destroy(&output);
 
@@ -576,7 +583,7 @@ TEST(ShellApiTest, HintsAndAcceptsColumnAfterFullyQualifiedTableAlias) {
 
     DashQLShellPromptResult prompt{};
     ASSERT_EQ(dashql_shell_prompt_move_right(shell, &prompt), DASHQL_SHELL_OK);
-    EXPECT_TRUE(PromptText(prompt).ends_with("q.event_id") || PromptText(prompt).ends_with("q.amount"))
+    EXPECT_TRUE(PromptText(prompt).ends_with("q.event_id") || PromptText(prompt).ends_with("q.processed_rows"))
         << PromptText(prompt);
     dashql_shell_prompt_result_destroy(&prompt);
     dashql_shell_destroy(shell);

@@ -7,6 +7,8 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import {
     fakeButtonModule,
+    fakeKeyEventsModule,
+    fakeQueryExecutorModule,
     fakeReactWindowModule,
     fakeScrollbarModule,
     fakeScriptEditorModule,
@@ -14,6 +16,8 @@ import {
     fakeStatusIndicatorModule,
     fakeSymbolIconModule,
     ResizeObserverMock,
+    setKeyEventMockState,
+    setQueryExecutorMockState,
 } from '../../../test/view_mocks.js';
 
 const mockState = vi.hoisted(() => ({
@@ -87,21 +91,7 @@ vi.mock('../../foundations/size_observer.js', () => {
     };
 });
 vi.mock('../../../utils/scrollbar.js', () => fakeScrollbarModule());
-vi.mock('../../../utils/key_events.js', () => ({
-    // The real hook keeps each call site's subscribers independent (every component that calls it
-    // installs its own document listeners), so multiple components in the tree register in parallel —
-    // e.g. the feed's handlers plus a nested Tooltip's Escape. The mock must not let a
-    // nested component's registration clobber the feed's, yet must keep the feed's *latest* closures
-    // as it re-renders (its handlers close over state like the compose editor view, set post-mount).
-    // Model that by keying on the handler signature and keeping the most recent one per signature:
-    // a re-render replaces its own same-signature handlers, while a distinct signature (the Tooltip's
-    // capture-less Escape) coexists. `beforeEach` clears this back to `[]` per test.
-    useKeyEvents: (handlers: typeof mockState.keyHandlers) => {
-        const sig = (h: (typeof handlers)[number]) => `${h.key}/${h.ctrlKey}/${h.capture}`;
-        const next = mockState.keyHandlers.filter(existing => !handlers.some(h => sig(h) === sig(existing)));
-        mockState.keyHandlers = [...next, ...handlers];
-    },
-}));
+vi.mock('../../../utils/key_events.js', () => fakeKeyEventsModule());
 vi.mock('../../../scripts/notebook_commands.js', async () => {
     const React = await import('react');
     return {
@@ -116,16 +106,7 @@ vi.mock('../../../scripts/notebook_commands.js', async () => {
         },
     };
 });
-vi.mock('../../../connection/query_executor.js', () => ({
-    useQueryState: (_notebookId: string | null, queryId: number | null) => {
-        if (queryId == null) return null;
-        return mockState.queryStates.get(queryId) ?? null;
-    },
-    useQueryExecutor: () => mockState.executeQuery,
-    useCancelQuery: () => mockState.cancelQuery,
-    computeQueryCacheKeyForConnection: vi.fn(async (_details, queryText: string) =>
-        queryText === 'select 1' ? mockState.cacheKey : null),
-}));
+vi.mock('../../../connection/query_executor.js', () => fakeQueryExecutorModule());
 vi.mock('../../../platform/storage/storage_provider.js', () => ({
     useStorageReader: () => ({ backend: mockState.storageBackend }),
 }));
@@ -291,6 +272,8 @@ describe('NotebookFeed', () => {
     let getBoundingClientRect: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
+        setKeyEventMockState(mockState);
+        setQueryExecutorMockState(mockState);
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);

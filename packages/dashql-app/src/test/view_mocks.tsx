@@ -62,6 +62,63 @@ export function fakeScrollbarModule() {
     };
 }
 
+export interface KeyEventMockState {
+    keyHandlers: Array<{
+        key: string;
+        ctrlKey?: boolean;
+        capture?: boolean;
+        callback: (event: KeyboardEvent) => void;
+    }>;
+}
+
+let activeKeyEventMockState: KeyEventMockState | null = null;
+
+export function setKeyEventMockState(state: KeyEventMockState) {
+    activeKeyEventMockState = state;
+}
+
+export function fakeKeyEventsModule() {
+    return {
+        useKeyEvents: (handlers: KeyEventMockState['keyHandlers']) => {
+            if (activeKeyEventMockState == null) throw new Error('Key event mock state is not configured');
+            const signature = (handler: KeyEventMockState['keyHandlers'][number]) =>
+                `${handler.key}/${handler.ctrlKey}/${handler.capture}`;
+            const next = activeKeyEventMockState.keyHandlers.filter(existing =>
+                !handlers.some(handler => signature(handler) === signature(existing)));
+            activeKeyEventMockState.keyHandlers = [...next, ...handlers];
+        },
+    };
+}
+
+export interface QueryExecutorMockState {
+    executeQuery: (...args: any[]) => any;
+    queryStates?: ReadonlyMap<number, unknown>;
+    cancelQuery?: (...args: any[]) => any;
+    cacheKey?: string | null;
+}
+
+let activeQueryExecutorMockState: QueryExecutorMockState | null = null;
+
+export function setQueryExecutorMockState(state: QueryExecutorMockState) {
+    activeQueryExecutorMockState = state;
+}
+
+export function fakeQueryExecutorModule() {
+    return {
+        useQueryState: (_notebookId: string | null, queryId: number | null) => {
+            if (queryId == null) return null;
+            return activeQueryExecutorMockState?.queryStates?.get(queryId) ?? null;
+        },
+        useQueryExecutor: () => {
+            if (activeQueryExecutorMockState == null) throw new Error('Query executor mock state is not configured');
+            return activeQueryExecutorMockState.executeQuery;
+        },
+        useCancelQuery: () => activeQueryExecutorMockState?.cancelQuery ?? (() => {}),
+        computeQueryCacheKeyForConnection: async (_details: unknown, queryText: string) =>
+            queryText === 'select 1' ? activeQueryExecutorMockState?.cacheKey ?? null : null,
+    };
+}
+
 export function fakeReactWindowModule(
     React: typeof import('react'),
     scrollToRowMock: (...args: any[]) => any,
