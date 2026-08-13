@@ -4,6 +4,7 @@
 #include <string_view>
 
 #include "dashql/catalog.h"
+#include "dashql/script.h"
 #include "dashql/shell/vt100.h"
 #include "gtest/gtest.h"
 
@@ -144,6 +145,51 @@ TEST(ShellApiTest, DrivesPromptInteractionAndHistory) {
     DashQLShellResult operation{};
     ASSERT_EQ(dashql_shell_prompt_submit(shell, &operation), DASHQL_SHELL_PENDING);
     dashql_shell_result_destroy(&operation);
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, SubmitsSemicolonTerminatedPromptWithLocalParseErrors) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+
+    DashQLShellPromptResult prompt{};
+    constexpr std::string_view query = "fooo;";
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_TEXT,
+                                          reinterpret_cast<const uint8_t*>(query.data()), query.size(), &prompt),
+              DASHQL_SHELL_OK);
+    dashql_shell_prompt_result_destroy(&prompt);
+
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_ENTER, nullptr, 0, &prompt), DASHQL_SHELL_OK);
+    EXPECT_EQ(prompt.action, DASHQL_SHELL_INPUT_SUBMIT);
+    EXPECT_EQ(PromptText(prompt), query);
+    dashql_shell_prompt_result_destroy(&prompt);
+
+    DashQLShellResult operation{};
+    ASSERT_EQ(dashql_shell_prompt_submit(shell, &operation), DASHQL_SHELL_PENDING);
+    ASSERT_GE(operation.data_length, 16u);
+    EXPECT_EQ((std::string_view{reinterpret_cast<const char*>(operation.data_ptr + 16), operation.data_length - 16}),
+              std::string_view{"fooo"});
+    dashql_shell_result_destroy(&operation);
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, ContinuesPromptWhenFinalSemicolonIsInsideUnterminatedString) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+
+    DashQLShellPromptResult prompt{};
+    constexpr std::string_view query = "SELECT ';";
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_TEXT,
+                                          reinterpret_cast<const uint8_t*>(query.data()), query.size(), &prompt),
+              DASHQL_SHELL_OK);
+    dashql_shell_prompt_result_destroy(&prompt);
+
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_ENTER, nullptr, 0, &prompt), DASHQL_SHELL_OK);
+    EXPECT_EQ(prompt.action, DASHQL_SHELL_INPUT_NONE);
+    EXPECT_EQ(PromptText(prompt), "SELECT ';\n");
+    dashql_shell_prompt_result_destroy(&prompt);
     dashql_shell_destroy(shell);
 }
 
@@ -488,6 +534,51 @@ TEST(ShellApiTest, NavigatesAndAcceptsTerminalCompletionOverlay) {
     EXPECT_EQ(PromptText(prompt), "select");
     dashql_shell_prompt_result_destroy(&prompt);
     dashql_shell_completion_result_destroy(&completions);
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, HintsAndAcceptsColumnAfterFullyQualifiedTableAlias) {
+    dashql::Catalog catalog;
+    dashql::Script schema{catalog};
+    constexpr std::string_view schema_sql =
+        "CREATE TABLE uip_iceberg.cdp_billing_prod_events.hyperdb_billing(event_id BIGINT, amount DOUBLE);";
+    schema.InsertTextAt(0, schema_sql);
+    schema.Analyze();
+    ASSERT_NO_THROW(catalog.LoadScript(schema, 0));
+
+    auto* shell = dashql_shell_new(&catalog, 160);
+    ASSERT_NE(shell, nullptr);
+    DashQLShellTerminalResult output{};
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    constexpr std::string_view query =
+        "select * from uip_iceberg.cdp_billing_prod_events.hyperdb_billing q where q.";
+    ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, query), DASHQL_SHELL_OK);
+    EXPECT_NE(TerminalData(output).find(dashql::shell::vt100::kForegroundBrightBlack), std::string_view::npos)
+        << TerminalData(output);
+    EXPECT_TRUE(TerminalData(output).find("event_id") != std::string_view::npos ||
+                TerminalData(output).find("amount") != std::string_view::npos)
+        << TerminalData(output);
+    dashql_shell_terminal_result_destroy(&output);
+
+    DashQLShellCompletionResult completions{};
+    ASSERT_EQ(dashql_shell_prompt_complete(shell, 50, &completions), DASHQL_SHELL_OK);
+    ASSERT_GT(completions.count, 0u);
+    const auto* candidates = static_cast<const DashQLShellCompletionCandidate*>(completions.candidates_ptr);
+    EXPECT_EQ(candidates[0].target_offset, query.size());
+    EXPECT_EQ(candidates[0].target_length, 0u);
+    dashql_shell_completion_result_destroy(&completions);
+
+    ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TAB, &output), DASHQL_SHELL_OK);
+    EXPECT_EQ(output.action, DASHQL_SHELL_INPUT_NONE);
+    dashql_shell_terminal_result_destroy(&output);
+
+    DashQLShellPromptResult prompt{};
+    ASSERT_EQ(dashql_shell_prompt_move_right(shell, &prompt), DASHQL_SHELL_OK);
+    EXPECT_TRUE(PromptText(prompt).ends_with("q.event_id") || PromptText(prompt).ends_with("q.amount"))
+        << PromptText(prompt);
+    dashql_shell_prompt_result_destroy(&prompt);
     dashql_shell_destroy(shell);
 }
 

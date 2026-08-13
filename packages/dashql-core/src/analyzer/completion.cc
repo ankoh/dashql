@@ -409,9 +409,12 @@ void Completion::FindCandidatesForNamePath() {
     name_path = name_path.subspan(0, name_count);
 
     // Determine text ranges to replace (text-offset-based SymbolSpans for the editor)
+    const auto script_length = static_cast<uint32_t>(cursor.script.text.GetStats().text_bytes);
+    const auto name_path_end = std::min<uint32_t>(name_path_ts.offset() + name_path_ts.length(), script_length);
     sx::parser::SymbolSpan replace_text_at{
-        truncate_at, std::max<uint32_t>(name_path_ts.offset() + name_path_ts.length(), truncate_at) - truncate_at};
-    sx::parser::SymbolSpan name_path_text_loc{name_path_ts.offset(), name_path_ts.length()};
+        truncate_at, std::max<uint32_t>(name_path_end, truncate_at) - truncate_at};
+    sx::parser::SymbolSpan name_path_text_loc{
+        name_path_ts.offset(), std::max<uint32_t>(name_path_end, name_path_ts.offset()) - name_path_ts.offset()};
 
     // Is the path empty?
     // Nothing to complete then.

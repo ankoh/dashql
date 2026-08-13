@@ -599,13 +599,19 @@ ShellOperation ShellSession::SubmitPrompt() {
 bool ShellSession::PromptIsComplete() {
     const auto text = prompt_.Text();
     if (text.find_first_not_of(" \t\r\n") == std::string::npos) return false;
+    const auto end = text.find_last_not_of(" \t\r\n");
+    if (end == std::string::npos || text[end] != ';') return false;
+
     prompt_.script().Parse();
     const auto& parsed = prompt_.script().GetParsedScript();
-    if (!parsed || !parsed->errors.empty() || !parsed->scanned_script->errors.empty() || parsed->statements.size() != 1) {
+    if (!parsed) return false;
+    const auto& symbols = parsed->scanned_script->GetSymbols();
+    if (symbols.GetSize() < 2 || symbols[symbols.GetSize() - 2].kind() != parser::Parser::symbol_kind::S_SEMICOLON) {
         return false;
     }
-    auto end = text.find_last_not_of(" \t\r\n");
-    return end != std::string::npos && text[end] == ';';
+    // The remote grammar may accept syntax that the local parser does not recognize.
+    if (!parsed->errors.empty() || !parsed->scanned_script->errors.empty()) return true;
+    return parsed->statements.size() == 1;
 }
 
 void ShellSession::ResetHistoryCursor() {
