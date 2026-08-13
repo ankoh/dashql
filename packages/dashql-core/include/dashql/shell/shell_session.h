@@ -52,6 +52,9 @@ struct CompletionCandidate {
     std::string display_text;
     std::string completion_text;
     std::string continuation_text;
+    /// Whether this candidate only preserves the token already under the cursor.
+    /// Used to choose a visible passive hint without removing the identity row from the list.
+    bool is_identity = false;
     std::vector<std::string> qualification_texts;
     uint32_t completion_cursor_offset = 0;
     uint32_t target_offset = 0;

@@ -47,11 +47,9 @@ std::string_view TokenStyle(ScannerTokenType type) {
     }
 }
 
-void AppendCursorMove(std::string& output, size_t count, std::string_view command) {
+void AppendCursorMove(std::string& output, size_t count, vt100::Command command) {
     if (count == 0) return;
-    output.append(vt100::kControlSequenceIntroducer);
-    output.append(std::to_string(count));
-    output.append(command);
+    vt100::AppendSequence(output, count, command);
 }
 
 size_t DisplayWidth(std::string_view text) {
@@ -102,7 +100,7 @@ void AppendPromptPrefix(std::string* output, std::string_view prefix, size_t col
         if (layout.column != 0 && layout.column + width > columns) {
             if (output != nullptr) {
                 output->append(vt100::kCarriageReturn);
-                AppendCursorMove(*output, 1, vt100::kCursorDownCommand);
+                AppendCursorMove(*output, 1, vt100::Command::kCursorDown);
             }
             ++layout.rows;
             layout.column = 0;
@@ -136,7 +134,7 @@ void BreakPromptLine(std::string* output,
     if (output != nullptr) {
         if (!active_style.empty()) output->append(vt100::kResetAttributes);
         output->append(vt100::kCarriageReturn);
-        AppendCursorMove(*output, 1, vt100::kCursorDownCommand);
+        AppendCursorMove(*output, 1, vt100::Command::kCursorDown);
     }
     ++layout.rows;
     layout.column = 0;
@@ -267,10 +265,32 @@ struct TerminalCompletionOverlay {
     size_t hint_prefix_width = 0;
     size_t hint_suffix_width = 0;
     size_t hint_current_width = 0;
+    bool hint_suffix_inserted = false;
     bool hint_only = false;
 };
 
 thread_local std::unordered_map<ShellSession*, TerminalCompletionOverlay> terminal_completion_overlays;
+
+void SelectTerminalCompletionHint(TerminalCompletionOverlay& overlay, std::string_view prompt_text) {
+    // Identity candidates preserve what the user typed and often rank first. Mid-buffer, that
+    // would produce no ghost text, so select the first real extension for the passive hint while
+    // retaining the normal candidate list and navigation order.
+    if (overlay.candidates.empty()) return;
+    const auto& selected = overlay.candidates[overlay.selection];
+    const auto selected_end = static_cast<size_t>(selected.target_offset) + selected.target_length;
+    if (selected_end >= prompt_text.size() || !selected.is_identity) return;
+
+    const auto current = prompt_text.substr(selected.target_offset, selected.target_length);
+    for (size_t i = 0; i < overlay.candidates.size(); ++i) {
+        const auto& candidate = overlay.candidates[i];
+        const auto target_end = static_cast<size_t>(candidate.target_offset) + candidate.target_length;
+        if (target_end == selected_end && std::string_view{candidate.completion_text}.starts_with(current) &&
+            candidate.completion_text != current) {
+            overlay.selection = i;
+            return;
+        }
+    }
+}
 
 ShellSession::ShellSession(Catalog& catalog, uint32_t terminal_columns)
     : catalog_{catalog}, prompt_{catalog}, renderer_{terminal_columns} {}
@@ -367,6 +387,7 @@ std::vector<CompletionCandidate> ShellSession::CompletePrompt(size_t limit) {
             .display_text = std::string{candidate.completion_text},
             .completion_text = std::string{completion_text},
             .continuation_text = std::string{candidate.keyword_continuation},
+            .is_identity = candidate.candidate_tags.contains(buffers::completion::CandidateTag::IDENTITY),
             .qualification_texts = std::move(qualification_texts),
             .completion_cursor_offset = static_cast<uint32_t>(completion_text.size() -
                                                                (completion_text.ends_with("()") ? 1 : 0)),
@@ -521,6 +542,7 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
     }
     const auto action = static_cast<PromptInputAction>(snapshot.action);
     if (action == PromptInputAction::kSubmit) {
+        if (!output_prefix.empty()) output_prefix.append(RenderTerminalPrompt());
         terminal_action_ = action;
         terminal_prompt_rows_ = 1;
         terminal_prompt_cursor_row_ = 0;
@@ -873,18 +895,18 @@ std::string ShellSession::RenderTerminalPrompt() {
     const auto rows_to_clear = std::max(previous_rows, desired_layout.rows);
 
     std::string output;
-    AppendCursorMove(output, terminal_prompt_cursor_row_, vt100::kCursorUpCommand);
+    AppendCursorMove(output, terminal_prompt_cursor_row_, vt100::Command::kCursorUp);
     for (size_t i = 0; i < previous_rows; ++i) {
         output.append(vt100::kCarriageReturn);
         output.append(vt100::kEraseEntireLine);
         if (i + 1 < previous_rows) {
-            AppendCursorMove(output, 1, vt100::kCursorDownCommand);
+            AppendCursorMove(output, 1, vt100::Command::kCursorDown);
         }
     }
     if (desired_layout.rows > previous_rows) {
         for (size_t i = previous_rows; i < desired_layout.rows; ++i) output.append(vt100::kNewLine);
     }
-    AppendCursorMove(output, rows_to_clear - 1, vt100::kCursorUpCommand);
+    AppendCursorMove(output, rows_to_clear - 1, vt100::Command::kCursorUp);
     if (previous_rows > 1 || desired_layout.rows > 1) output.append(vt100::kCarriageReturn);
 
     const auto rendered_layout =
@@ -899,9 +921,9 @@ std::string ShellSession::RenderTerminalPrompt() {
         overlay->second.cursor_row = terminal_prompt_cursor_row_;
     }
     output.append(vt100::kCarriageReturn);
-    AppendCursorMove(output, terminal_prompt_rows_ - 1, vt100::kCursorUpCommand);
-    AppendCursorMove(output, terminal_prompt_cursor_row_, vt100::kCursorDownCommand);
-    AppendCursorMove(output, cursor_layout.column, vt100::kCursorForwardCommand);
+    AppendCursorMove(output, terminal_prompt_rows_ - 1, vt100::Command::kCursorUp);
+    AppendCursorMove(output, terminal_prompt_cursor_row_, vt100::Command::kCursorDown);
+    AppendCursorMove(output, cursor_layout.column, vt100::Command::kCursorForward);
     return output;
 }
 
@@ -934,6 +956,7 @@ std::string ShellSession::OpenTerminalCompletionOverlay(std::vector<CompletionCa
         candidate.display_text = TruncateDisplayText(EscapeTerminalText(candidate.display_text), available_content_width);
         overlay.content_width = std::max(overlay.content_width, DisplayWidth(candidate.display_text));
     }
+    SelectTerminalCompletionHint(overlay, text);
     if (overlay.anchor_column + overlay.content_width + 4 > terminal_columns) {
         overlay.anchor_column = terminal_columns > overlay.content_width + 4 ? terminal_columns - overlay.content_width - 4 : 0;
     }
@@ -950,23 +973,27 @@ std::string ShellSession::RefreshTerminalCompletionOverlay() {
 }
 
 std::string ShellSession::RenderTerminalCompletionOverlay() {
+    // Repaints are destructive: first remove the previous hint/list, then redraw the prompt only
+    // when hint cleanup shifted characters. The list itself overpaints its rectangle without
+    // erasing whole terminal rows, so text outside the rectangle remains untouched.
     std::string output = ClearTerminalCompletionOverlay();
     auto found = terminal_completion_overlays.find(this);
     if (found == terminal_completion_overlays.end()) return output;
     auto& overlay = found->second;
+    if (overlay.rows == 0 && !output.empty()) output.append(RenderTerminalPrompt());
     output.append(RenderTerminalCompletionHint());
     if (overlay.hint_only) return output;
 
     const auto window_end = std::min(overlay.window_begin + TERMINAL_COMPLETION_ROWS, overlay.candidates.size());
     const auto candidate_rows = window_end - overlay.window_begin;
+    overlay.rows = candidate_rows + 2;
     std::string horizontal;
     horizontal.reserve((overlay.content_width + 2) * std::string_view{"─"}.size());
     for (size_t i = 0; i < overlay.content_width + 2; ++i) horizontal.append("─");
     output.append(vt100::kSaveCursor);
     output.append(vt100::kCarriageReturn);
-    AppendCursorMove(output, 1, vt100::kCursorDownCommand);
-    AppendCursorMove(output, overlay.anchor_column, vt100::kCursorForwardCommand);
-    output.append(vt100::kEraseEntireLine);
+    AppendCursorMove(output, 1, vt100::Command::kCursorDown);
+    AppendCursorMove(output, overlay.anchor_column, vt100::Command::kCursorForward);
     output.append(vt100::kForegroundBrightBlack);
     output.append("╭");
     output.append(horizontal);
@@ -974,8 +1001,7 @@ std::string ShellSession::RenderTerminalCompletionOverlay() {
     output.append(vt100::kResetAttributes);
     output.append(vt100::kNewLine);
     for (size_t i = overlay.window_begin; i < window_end; ++i) {
-        AppendCursorMove(output, overlay.anchor_column, vt100::kCursorForwardCommand);
-        output.append(vt100::kEraseEntireLine);
+        AppendCursorMove(output, overlay.anchor_column, vt100::Command::kCursorForward);
         output.append(vt100::kForegroundBrightBlack);
         output.append("│");
         output.append(vt100::kResetAttributes);
@@ -990,14 +1016,12 @@ std::string ShellSession::RenderTerminalCompletionOverlay() {
         output.append(vt100::kResetAttributes);
         output.append(vt100::kNewLine);
     }
-    AppendCursorMove(output, overlay.anchor_column, vt100::kCursorForwardCommand);
-    output.append(vt100::kEraseEntireLine);
+    AppendCursorMove(output, overlay.anchor_column, vt100::Command::kCursorForward);
     output.append(vt100::kForegroundBrightBlack);
     output.append("╰");
     output.append(horizontal);
     output.append("╯");
     output.append(vt100::kResetAttributes);
-    overlay.rows = candidate_rows + 2;
     output.append(vt100::kRestoreCursor);
     return output;
 }
@@ -1009,26 +1033,34 @@ std::string ShellSession::ClearTerminalCompletionOverlay() {
 
     std::string output;
     if (overlay.hint_suffix_width > 0) {
-        output.append(vt100::kEraseLineFromCursor);
+        // Mid-buffer hints reserve cells with ICH and must undo them with DCH. End-of-buffer hints
+        // own the remainder of the row, where erase-to-end is cheaper and cannot remove prompt text.
+        if (overlay.hint_suffix_inserted) {
+            AppendCursorMove(output, overlay.hint_suffix_width, vt100::Command::kDeleteCharacter);
+        } else {
+            output.append(vt100::kEraseLineFromCursor);
+        }
         overlay.hint_suffix_width = 0;
+        overlay.hint_suffix_inserted = false;
     }
     if (overlay.hint_prefix_width > 0) {
         AppendCursorMove(output, overlay.hint_current_width + overlay.hint_prefix_width,
-                         vt100::kCursorBackwardCommand);
-        AppendCursorMove(output, overlay.hint_prefix_width, vt100::kDeleteCharacterCommand);
-        AppendCursorMove(output, overlay.hint_current_width, vt100::kCursorForwardCommand);
+                         vt100::Command::kCursorBackward);
+        AppendCursorMove(output, overlay.hint_prefix_width, vt100::Command::kDeleteCharacter);
+        AppendCursorMove(output, overlay.hint_current_width, vt100::Command::kCursorForward);
         overlay.hint_prefix_width = 0;
         overlay.hint_current_width = 0;
     }
     if (overlay.rows == 0) return output;
+    // The list overpainted prompt rows. Clear those rows before the caller redraws the prompt;
+    // unlike IL/DL this does not move any rows or make the terminal viewport jump.
     output.append(vt100::kSaveCursor);
     output.append(vt100::kCarriageReturn);
-    AppendCursorMove(output, 1, vt100::kCursorDownCommand);
+    AppendCursorMove(output, 1, vt100::Command::kCursorDown);
     for (size_t i = 0; i < overlay.rows; ++i) {
-        AppendCursorMove(output, overlay.anchor_column, vt100::kCursorForwardCommand);
         output.append(vt100::kEraseEntireLine);
         if (i + 1 < overlay.rows) {
-            AppendCursorMove(output, 1, vt100::kCursorDownCommand);
+            AppendCursorMove(output, 1, vt100::Command::kCursorDown);
             output.append(vt100::kCarriageReturn);
         }
     }
@@ -1044,7 +1076,7 @@ std::string ShellSession::RenderTerminalCompletionHint() {
     const auto& candidate = overlay.candidates[overlay.selection];
     const auto text = prompt_.Text();
     const auto target_end = static_cast<size_t>(candidate.target_offset) + candidate.target_length;
-    if (target_end != prompt_.cursor_byte_offset() || target_end != text.size()) return {};
+    if (target_end != prompt_.cursor_byte_offset()) return {};
 
     const auto current = std::string_view{text}.substr(candidate.target_offset, candidate.target_length);
     std::string prefix;
@@ -1082,15 +1114,21 @@ std::string ShellSession::RenderTerminalCompletionHint() {
     overlay.hint_current_width = DisplayWidth(current);
     std::string output;
     if (!prefix.empty()) {
-        AppendCursorMove(output, overlay.hint_current_width, vt100::kCursorBackwardCommand);
-        AppendCursorMove(output, overlay.hint_prefix_width, vt100::kInsertCharacterCommand);
+        AppendCursorMove(output, overlay.hint_current_width, vt100::Command::kCursorBackward);
+        AppendCursorMove(output, overlay.hint_prefix_width, vt100::Command::kInsertCharacter);
         output.append(vt100::kForegroundBrightBlack);
         output.append(prefix);
         output.append(vt100::kResetAttributes);
-        AppendCursorMove(output, overlay.hint_current_width, vt100::kCursorForwardCommand);
+        AppendCursorMove(output, overlay.hint_current_width, vt100::Command::kCursorForward);
     }
     if (!suffix.empty()) {
         output.append(vt100::kSaveCursor);
+        // Inserting cells keeps all real prompt text to the right of a mid-buffer hint. Save/restore
+        // leaves the editing cursor at the completion boundary rather than after the ghost text.
+        if (target_end < text.size()) {
+            AppendCursorMove(output, overlay.hint_suffix_width, vt100::Command::kInsertCharacter);
+            overlay.hint_suffix_inserted = true;
+        }
         output.append(vt100::kForegroundBrightBlack);
         output.append(suffix);
         output.append(vt100::kResetAttributes);
@@ -1111,14 +1149,11 @@ ShellOperation ShellSession::AcceptTerminalCompletion() {
                                    ? std::string{}
                                    : candidate.qualification_texts[std::min(variant_selection,
                                                                            candidate.qualification_texts.size() - 1)];
-    const auto prompt_text = prompt_.Text();
-    const auto prompt_changed = std::string_view{prompt_text}.substr(candidate.target_offset, candidate.target_length) !=
-                                candidate.completion_text;
     const auto snapshot = ApplyCompletion(candidate);
     if (snapshot.status != ShellStatus::kOk) return {snapshot.status, std::move(snapshot.message)};
     prompt_.script().Parse();
+    output.append(RenderTerminalPrompt());
     if (!qualification.empty() && qualification != candidate.completion_text) {
-        if (prompt_changed) output.append(RenderTerminalPrompt());
         TerminalCompletionOverlay next;
         next.hint_only = true;
         const auto prompt_text = prompt_.Text();
@@ -1138,7 +1173,6 @@ ShellOperation ShellSession::AcceptTerminalCompletion() {
         terminal_completion_overlays.emplace(this, std::move(next));
         output.append(RenderTerminalCompletionHint());
     } else if (!continuation.empty()) {
-        output.append(RenderTerminalPrompt());
         auto& next = terminal_completion_overlays[this];
         next = {};
         next.hint_only = true;
@@ -1158,10 +1192,7 @@ ShellOperation ShellSession::AcceptTerminalCompletion() {
         });
         output.append(RenderTerminalCompletionHint());
     } else if (!hint_only) {
-        output.append(RenderTerminalPrompt());
         output.append(RefreshTerminalCompletionOverlay());
-    } else {
-        output.append(RenderTerminalPrompt());
     }
     return {ShellStatus::kOk, std::move(output)};
 }

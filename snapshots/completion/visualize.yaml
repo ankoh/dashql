@@ -2237,15 +2237,42 @@ completion-snapshots:
                 text: "revenue int"
         errors: []
     editor:
-      input: visualize warehouse.public.sal
+      input: select * from warehouse.public.sal |> visualize using vegalite (mark => bar)
       catalog-id: 2
       errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "warehouse...public.sal"
+      visualizations:
+        - statement-id: 0
+          source: "select * f..public.sal"
+          renderer: vegalite
+          vegalite:
+            mark: BAR
     cursor:
       search:
         text: sal
         index: 3
     completions:
       limit: 3
-      strategy: DEFAULT
-      entries: []
+      strategy: TABLE_REF
+      dot: 1
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 59
+          value: sales
+          name-tags: [TABLE_NAME]
+          candidate-tags: [DOT_RESOLUTION_TABLE,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "sal"
+          location-qualified: "warehouse...public.sal"
+          objects:
+            - score: 39
+              type: table
+              id: "256.65536.4294967296"
+              candidate-tags: [DOT_RESOLUTION_TABLE,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: warehouse.public.sales
+              qualified-idx: 2
+              prefer-qualified: 0
       text: "sal"

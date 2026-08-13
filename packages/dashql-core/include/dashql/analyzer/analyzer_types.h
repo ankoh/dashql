@@ -319,6 +319,8 @@ struct CTEDefinition : public IntrusiveListNode {
     uint32_t columns_node_id = 0;
     /// The number of column aliases
     uint16_t columns_count = 0;
+    /// The AST node id of the CTE definition
+    uint32_t ast_node_id = 0;
 };
 
 /// A resolved CTE with its associated scope and column aliases
@@ -391,6 +393,10 @@ struct NameScope : public IntrusiveListNode {
     std::unordered_map<std::string_view, size_t> output_columns_by_name;
     /// The resolved CTEs in this scope (name → resolved CTE)
     std::unordered_map<std::string_view, ResolvedCTE> cte_definitions;
+    /// The AST node ids of CTE definitions, indexed by CTE name
+    std::unordered_map<std::string_view, uint32_t> cte_definition_nodes;
+    /// Whether this scope's WITH clause is recursive
+    bool ctes_recursive = false;
     /// The named table-like sources in scope (catalog tables and CTEs brought in via FROM)
     std::unordered_map<std::string_view, ReferencedTable> referenced_tables_by_name;
 };

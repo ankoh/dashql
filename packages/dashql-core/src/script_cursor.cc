@@ -19,6 +19,8 @@ std::vector<ScriptCursor::NameComponent> ScriptCursor::ReadCursorNamePath(sx::pa
                 return std::get<AnalyzedScript::TableReference::RelationExpression>(tableref.inner)
                     .table_name.ast_node_id;
             } else if constexpr (std::is_same_v<T, ScriptCursor::ColumnRefContext>) {
+                // The sentinel represents a recovered `alias.` context with no column-ref AST node.
+                if (ctx.expression_id == std::numeric_limits<uint32_t>::max()) return std::nullopt;
                 auto& expr = script.analyzed_script->expressions[ctx.expression_id];
                 assert(std::holds_alternative<AnalyzedScript::Expression::ColumnRef>(expr.inner));
                 return std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner).column_name.ast_node_id;
@@ -97,7 +99,16 @@ std::unique_ptr<ScriptCursor> ScriptCursor::Place(const Script& script, size_t t
     // Has the script been parsed?
     if (script.parsed_script) {
         // Try to find the ast node the cursor is pointing at
-        if (auto ast_node = script.parsed_script->FindNodeAtOffset(text_offset)) {
+        auto ast_node = script.parsed_script->FindNodeAtOffset(text_offset);
+        // A trailing-dot token may span into following whitespace. Anchor lookup at the dot so
+        // the cursor remains associated with the qualifier rather than a later sibling node.
+        if (cursor->scanner_location.has_value() && cursor->scanner_location->current.symbolIsTrailingDot()) {
+            const auto dot_offset = cursor->scanner_location->current.symbol.location.offset();
+            if (auto qualifier_node = script.parsed_script->FindNodeAtOffset(dot_offset); qualifier_node.has_value()) {
+                ast_node = qualifier_node;
+            }
+        }
+        if (ast_node.has_value()) {
             // Try to find the ast node the cursor is pointing at
             cursor->statement_id = std::get<0>(*ast_node);
             cursor->ast_node_id = std::get<1>(*ast_node);
@@ -160,6 +171,53 @@ std::unique_ptr<ScriptCursor> ScriptCursor::Place(const Script& script, size_t t
                         }
                     }
                 }
+            }
+        }
+        // In incomplete multiline SQL, the parser can omit the column-ref node for `alias.` even
+        // though name resolution already registered the alias in a scope. Recover the innermost
+        // matching scope and mark a synthetic column-ref context for dot completion.
+        if (cursor->name_scopes.empty() && cursor->scanner_location.has_value() && script.analyzed_script) {
+            const auto& current = cursor->scanner_location->current;
+            const auto* dot = (current.symbolIsDot() || current.symbolIsTrailingDot())
+                                  ? &current
+                                  : cursor->scanner_location->previous.has_value() &&
+                                            (cursor->scanner_location->previous->symbolIsDot() ||
+                                             cursor->scanner_location->previous->symbolIsTrailingDot())
+                                        ? &*cursor->scanner_location->previous
+                                        : nullptr;
+            if (dot == nullptr) return cursor;
+            const auto dot_offset = static_cast<size_t>(dot->symbol.location.offset());
+            const auto& input = script.scanned_script->GetInput();
+            size_t qualifier_end = std::min(dot_offset, input.size());
+            while (qualifier_end > 0 && input[qualifier_end - 1] == '.') --qualifier_end;
+            size_t qualifier_begin = qualifier_end;
+            while (qualifier_begin > 0 &&
+                   (std::isalnum(static_cast<unsigned char>(input[qualifier_begin - 1])) ||
+                    input[qualifier_begin - 1] == '_')) {
+                --qualifier_begin;
+            }
+            const auto qualifier_text = input.substr(qualifier_begin, qualifier_end - qualifier_begin);
+            AnalyzedScript::NameScope* best_scope = nullptr;
+            size_t best_scope_length = std::numeric_limits<size_t>::max();
+            // Prefer the narrowest scope containing the cursor. The same alias can legally occur
+            // in nested queries, so choosing the first global match would leak the wrong columns.
+            script.analyzed_script->name_scopes.ForEach([&](size_t, AnalyzedScript::NameScope& scope) {
+                if (!scope.referenced_tables_by_name.contains(qualifier_text)) return;
+                const auto scope_span = script.scanned_script->ResolveTextSpan(
+                    script.parsed_script->nodes[scope.ast_node_id].symbol_span());
+                const auto scope_end = static_cast<size_t>(scope_span.offset()) + scope_span.length();
+                const bool contains_cursor = scope_span.offset() <= text_offset && text_offset <= scope_end;
+                if (contains_cursor && scope_span.length() < best_scope_length) {
+                    best_scope = &scope;
+                    best_scope_length = scope_span.length();
+                } else if (best_scope == nullptr &&
+                           (!cursor->statement_id.has_value() || scope.ast_statement_id == *cursor->statement_id)) {
+                    best_scope = &scope;
+                }
+            });
+            if (best_scope != nullptr) {
+                cursor->name_scopes.emplace_back(*best_scope);
+                cursor->context = ColumnRefContext{std::numeric_limits<uint32_t>::max()};
             }
         }
     }

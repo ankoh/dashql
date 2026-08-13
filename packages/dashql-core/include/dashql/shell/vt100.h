@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+#include <string>
 #include <string_view>
 
 namespace dashql::shell::vt100 {
@@ -8,12 +10,31 @@ inline constexpr std::string_view kControlSequenceIntroducer = "\x1b[";
 inline constexpr std::string_view kCarriageReturn = "\r";
 inline constexpr std::string_view kNewLine = "\r\n";
 
-inline constexpr std::string_view kCursorUpCommand = "A";
-inline constexpr std::string_view kCursorDownCommand = "B";
-inline constexpr std::string_view kCursorForwardCommand = "C";
-inline constexpr std::string_view kCursorBackwardCommand = "D";
-inline constexpr std::string_view kInsertCharacterCommand = "@";
-inline constexpr std::string_view kDeleteCharacterCommand = "P";
+enum class Command : char {
+    kInsertCharacter = '@',
+    kCursorUp = 'A',
+    kCursorDown = 'B',
+    kCursorForward = 'C',
+    kCursorBackward = 'D',
+    kInsertLine = 'L',
+    kDeleteLine = 'M',
+    kDeleteCharacter = 'P',
+};
+
+// Build parameterized CSI commands in one place so cursor/edit operations cannot accidentally
+// concatenate the count and command in the wrong order.
+inline void AppendSequence(std::string& output, size_t count, Command command) {
+    output.append(kControlSequenceIntroducer);
+    output.append(std::to_string(count));
+    output.push_back(static_cast<char>(command));
+}
+
+inline std::string Sequence(size_t count, Command command) {
+    std::string output;
+    AppendSequence(output, count, command);
+    return output;
+}
+
 inline constexpr std::string_view kCursorUpOne = "\x1b[1A";
 inline constexpr std::string_view kEraseEntireLine = "\x1b[2K";
 inline constexpr std::string_view kEraseLineFromCursor = "\x1b[0K";

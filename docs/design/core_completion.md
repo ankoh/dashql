@@ -143,6 +143,18 @@ Identifiers (tables, columns, functions, schemas, databases) come from the `Name
 The search walks the index with a case-insensitive prefix of the text under the cursor.
 These candidates receive a base score from the strategy-specific scoring table.
 
+### Semantic scope candidates
+
+CTEs and script-local relations are not catalog objects, so completion also enumerates them directly
+from the cursor's name scopes. In table-reference contexts, visible CTEs and preceding top-level
+`|> AS name` relations are added as local table candidates. In column-reference contexts, output
+columns from CTE-backed sources in `FROM` are added as local column candidates. These candidates
+carry `IN_NAME_SCOPE` without requiring synthetic catalog object IDs.
+
+Non-recursive CTE completion follows declaration order: a CTE suggests earlier siblings but not itself
+or later siblings. Recursive CTEs also suggest themselves. Script-local relations are visible only to
+later statements.
+
 ### Keyword candidates
 
 Keywords enter the candidate set via `AddExpectedKeywordsAsCandidates()`.
@@ -159,6 +171,9 @@ Given a name path like `a.b._`, the resolution depends on the strategy:
 **COLUMN_REF context:**
 - 1 sealed name (`a._`): resolves `a` as a table alias in the current naming scope, yielding its columns.
 - 2 sealed names (`a.b._`): resolves `a.b` as a qualified table, yielding columns.
+
+The one-name alias case supports both catalog tables and CTE-backed relations, including script-local
+relations. CTE column lists such as `WITH t(a, b) AS (...)` override the source query's output names.
 
 The cursor text after the last dot acts as a prefix filter on the resolved candidates.
 

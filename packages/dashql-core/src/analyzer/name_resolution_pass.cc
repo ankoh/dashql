@@ -189,7 +189,7 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
         auto table_name = rel_expr->table_name;
         std::string_view ref_name = table_name.table_name.get().text;
 
-        // Check if the table ref matches a CTE definition in this or any parent scope
+        // Check if the table ref matches a CTE definition in this or any parent scope.
         ResolvedCTE* matched_cte = nullptr;
         for (auto* s = &scope; s != nullptr; s = s->parent_scope) {
             auto cte_it = s->cte_definitions.find(ref_name);
@@ -753,6 +753,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                         .select_node_id = stmt_node_id,
                         .columns_node_id = cols_node_id,
                         .columns_count = cols_count,
+                        .ast_node_id = node_id,
                     });
                     node_state.ctes.PushBack(cte);
                 }
@@ -765,6 +766,10 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 auto cte_defs = std::move(node_state.ctes);
                 auto& scope = CreateScope(node_state, node_id);
                 scope.result_targets.Append(std::move(result_targets));
+                // Completion needs both declaration order and recursive visibility after the
+                // analyzer has consumed the temporary CTE nodes, so persist that metadata on scope.
+                auto [recursive_node] = state.GetAttributes<AttributeKey::SQL_SELECT_WITH_RECURSIVE>(node);
+                scope.ctes_recursive = recursive_node != nullptr;
 
                 // Collect the CTE definitions
                 for (auto& cte : cte_defs) {
@@ -783,6 +788,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                         }
                     }
                     scope.cte_definitions.emplace(cte.cte_name.get().text, std::move(def));
+                    scope.cte_definition_nodes.emplace(cte.cte_name.get().text, cte.ast_node_id);
                 }
                 break;
             }
@@ -794,6 +800,9 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 auto cte_defs = std::move(node_state.ctes);
                 auto& scope = CreateScope(node_state, node_id);
                 scope.result_targets.Append(std::move(result_targets));
+                // Keep the same visibility metadata for SELECT variants handled by this branch.
+                auto [recursive_node] = state.GetAttributes<AttributeKey::SQL_SELECT_WITH_RECURSIVE>(node);
+                scope.ctes_recursive = recursive_node != nullptr;
                 for (auto& cte : cte_defs) {
                     auto it = state.analyzed->name_scopes_by_root_node.find(cte.select_node_id);
                     if (it == state.analyzed->name_scopes_by_root_node.end()) continue;
@@ -810,6 +819,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                         }
                     }
                     scope.cte_definitions.emplace(cte.cte_name.get().text, std::move(def));
+                    scope.cte_definition_nodes.emplace(cte.cte_name.get().text, cte.ast_node_id);
                 }
                 break;
             }

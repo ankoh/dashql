@@ -219,6 +219,25 @@ static constexpr buffers::completion::CandidateTag GetKeywordPrevalence(parser::
 
 bool doNotCompleteSymbol(parser::Parser::symbol_type& sym) { return !Completion::IsSymbolKindCompletable(sym.kind_); }
 
+bool isScopeWithin(const AnalyzedScript::NameScope& scope, const AnalyzedScript::NameScope* ancestor) {
+    // Scope objects form a parent chain even when an incomplete query leaves holes in the AST.
+    // Use that semantic chain to decide CTE visibility instead of relying on text containment.
+    for (auto* current = &scope; current != nullptr; current = current->parent_scope) {
+        if (current == ancestor) return true;
+    }
+    return false;
+}
+
+template <typename Callback>
+void forEachResolvedCTEColumn(const ResolvedCTE& cte, Callback&& callback) {
+    if (!cte.child_scope) return;
+    for (size_t i = 0; i < cte.child_scope->output_columns.size(); ++i) {
+        auto& output = cte.child_scope->output_columns[i];
+        auto& name = i < cte.column_aliases.size() ? cte.column_aliases[i].get() : output.column_name.get();
+        if (!name.text.empty()) callback(name);
+    }
+}
+
 // Keyword continuation scores.
 // When a keyword or identifier has multiple valid next-tokens in the grammar,
 // we pick the uniquely highest-scored one as the suggested continuation.
@@ -352,6 +371,64 @@ std::span<std::string_view> Completion::GetQualifiedColumnName(const RegisteredN
 }
 
 void Completion::FindCandidatesForNamePath() {
+    // A trailing dot followed by more SQL may not belong to a materialized column-ref AST node.
+    // ScriptCursor marks that recovered case with a sentinel expression id. Resolve the alias
+    // directly from its recovered name scope so `q.| ...` still lists q's columns.
+    if (auto* ctx = std::get_if<ScriptCursor::ColumnRefContext>(&cursor.context);
+        ctx != nullptr && ctx->expression_id == std::numeric_limits<uint32_t>::max()) {
+        auto& scan = *cursor.script.scanned_script;
+        const auto& current = *target_scanner_symbol;
+        const auto* dot = (current.symbolIsDot() || current.symbolIsTrailingDot())
+                              ? &current
+                              : cursor.scanner_location->previous.has_value() &&
+                                        (cursor.scanner_location->previous->symbolIsDot() ||
+                                         cursor.scanner_location->previous->symbolIsTrailingDot())
+                                    ? &*cursor.scanner_location->previous
+                                    : nullptr;
+        if (dot == nullptr) return;
+
+        const auto& input = scan.GetInput();
+        size_t alias_end = std::min<size_t>(dot->symbol.location.offset(), input.size());
+        while (alias_end > 0 && input[alias_end - 1] == '.') --alias_end;
+        size_t alias_begin = alias_end;
+        while (alias_begin > 0 &&
+               (std::isalnum(static_cast<unsigned char>(input[alias_begin - 1])) || input[alias_begin - 1] == '_')) {
+            --alias_begin;
+        }
+        const auto alias_text = input.substr(alias_begin, alias_end - alias_begin);
+        const auto alias_offset = static_cast<uint32_t>(alias_begin);
+
+        // The qualifier is sealed: completion inserts only after the dot, while the qualified
+        // range includes `alias.` for callers that later need to replace the whole name path.
+        const sx::parser::SymbolSpan replace_at{static_cast<uint32_t>(cursor.text_offset), 0};
+        const sx::parser::SymbolSpan qualified_at{alias_offset,
+                                                  static_cast<uint32_t>(cursor.text_offset - alias_offset)};
+        for (auto& scope_ref : cursor.name_scopes) {
+            const auto table = scope_ref.get().referenced_tables_by_name.find(alias_text);
+            if (table == scope_ref.get().referenced_tables_by_name.end()) continue;
+            if (auto* declaration = std::get_if<std::reference_wrapper<const CatalogEntry::TableDeclaration>>(
+                    &table->second.source)) {
+                for (const auto& column : declaration->get().table_columns) {
+                    AddLocalCandidate(column.column_name.get().text,
+                                      NameTags{buffers::analyzer::NameTag::COLUMN_NAME},
+                                      CandidateTags{buffers::completion::CandidateTag::DOT_RESOLUTION_COLUMN,
+                                                    buffers::completion::CandidateTag::IN_NAME_SCOPE},
+                                      {}, replace_at, qualified_at);
+                }
+            } else if (!table->second.IsUnresolvedRelation()) {
+                const auto& cte = std::get<std::reference_wrapper<ResolvedCTE>>(table->second.source).get();
+                forEachResolvedCTEColumn(cte, [&](const RegisteredName& name) {
+                    AddLocalCandidate(name.text, NameTags{buffers::analyzer::NameTag::COLUMN_NAME},
+                                      CandidateTags{buffers::completion::CandidateTag::DOT_RESOLUTION_COLUMN,
+                                                    buffers::completion::CandidateTag::IN_NAME_SCOPE},
+                                      {}, replace_at, qualified_at);
+                });
+            }
+            return;
+        }
+        return;
+    }
+
     // The cursor location
     auto cursor_location = target_scanner_symbol->text_offset;
     // Read the name path
@@ -556,6 +633,15 @@ void Completion::FindCandidatesForNamePath() {
                                     table_decl.GetTableID().GetOrigin() != script.GetCatalogEntryId());
                                 dot_candidates.push_back(std::move(candidate));
                             }
+                        } else if (!ref_table.IsUnresolvedRelation()) {
+                            auto& cte = std::get<std::reference_wrapper<ResolvedCTE>>(ref_table.source).get();
+                            forEachResolvedCTEColumn(cte, [&](const RegisteredName& name) {
+                                AddLocalCandidate(
+                                    name.text, NameTags{buffers::analyzer::NameTag::COLUMN_NAME},
+                                    CandidateTags{buffers::completion::CandidateTag::DOT_RESOLUTION_COLUMN,
+                                                  buffers::completion::CandidateTag::IN_NAME_SCOPE},
+                                    last_text_prefix, replace_text_at, name_path_text_loc);
+                            });
                         }
                         break;
                     }
@@ -907,12 +993,129 @@ void Completion::FindCandidatesInIndexes() {
     }
 }
 
+std::string_view Completion::ReadTargetPrefix() const {
+    if (!target_scanner_symbol.has_value()) return {};
+    // Scanner symbols can extend beyond a mid-token cursor. Clamp to the symbol and expose only
+    // the text already typed, with identifier quotes removed for fuzzy matching.
+    auto& target = target_scanner_symbol.value();
+    auto symbol_ofs = target.symbol.location.offset();
+    auto safe_cursor_offset =
+        std::min(std::max<uint32_t>(symbol_ofs, cursor.text_offset), symbol_ofs + target.symbol.location.length());
+    auto symbol_text = cursor.script.scanned_script->ReadTextAtTextSpan(
+        sx::parser::TextSpan(target.symbol.location.offset(), target.symbol.location.length()));
+    auto symbol_prefix =
+        std::min<uint32_t>(std::max<uint32_t>(safe_cursor_offset, symbol_ofs) - symbol_ofs, symbol_text.size());
+    return trim_view({symbol_text.data(), symbol_prefix}, is_no_double_quote);
+}
+
+void Completion::AddLocalCandidate(std::string_view name, NameTags name_tags, CandidateTags candidate_tags,
+                                   std::string_view prefix, sx::parser::SymbolSpan target_location,
+                                   sx::parser::SymbolSpan target_location_qualified) {
+    // Local semantic names do not have catalog IDs, but they must use the same fuzzy-match tags
+    // and deduplication map as indexed catalog candidates to participate in normal scoring.
+    fuzzy_ci_string_view ci_name{name.data(), name.size()};
+    fuzzy_ci_string_view ci_prefix{prefix.data(), prefix.size()};
+    if (!ci_prefix.empty()) {
+        auto pos = ci_name.find(ci_prefix);
+        if (pos == fuzzy_ci_string_view::npos) return;
+        candidate_tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
+        if (pos == 0) {
+            candidate_tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
+            if (ci_name.size() == ci_prefix.size()) {
+                candidate_tags |= buffers::completion::CandidateTag::EXACT_MATCH;
+            }
+        }
+    }
+
+    if (auto candidate_it = candidates_by_name.find(name); candidate_it != candidates_by_name.end()) {
+        auto& candidate = candidate_it->second.get();
+        candidate.coarse_name_tags |= name_tags;
+        candidate.candidate_tags |= candidate_tags;
+        // A visible local relation shadows catalog objects with the same spelling. Keeping those
+        // objects attached would qualify a CTE column as an unrelated catalog column.
+        candidate.catalog_objects.Clear();
+        candidate.target_location = target_location;
+        candidate.target_location_qualified = target_location_qualified;
+    } else {
+        auto& candidate = candidates.PushBack(Candidate{
+            .completion_text = name,
+            .coarse_name_tags = name_tags,
+            .candidate_tags = candidate_tags,
+            .target_location = target_location,
+            .target_location_qualified = target_location_qualified,
+            .catalog_objects = {},
+        });
+        candidates_by_name.insert({name, candidate});
+    }
+}
+
+void Completion::FindCandidatesInScope() {
+    if (!target_scanner_symbol.has_value() || !cursor.script.parsed_script || !cursor.script.analyzed_script) return;
+
+    auto prefix = ReadTargetPrefix();
+    auto target_location = target_scanner_symbol->symbol.location;
+    CandidateTags tags{buffers::completion::CandidateTag::NAME_INDEX,
+                       buffers::completion::CandidateTag::IN_NAME_SCOPE};
+
+    if (strategy == buffers::completion::CompletionStrategy::TABLE_REF) {
+        // CTE visibility is positional for non-recursive WITH clauses: earlier siblings are
+        // visible, while the current CTE and later siblings are not. Recursive WITH removes
+        // both restrictions. Script-local relations similarly become visible after their statement.
+        auto& scanned = *cursor.script.scanned_script;
+        for (auto& scope_ref : cursor.name_scopes) {
+            auto& scope = scope_ref.get();
+            for (auto& [_, cte] : scope.cte_definitions) {
+                auto cte_node_it = scope.cte_definition_nodes.find(cte.cte_name.get().text);
+                if (cte_node_it == scope.cte_definition_nodes.end()) continue;
+                auto cte_text =
+                    scanned.ResolveTextSpan(cursor.script.parsed_script->nodes[cte_node_it->second].symbol_span());
+                if (!scope.ctes_recursive && cte_text.offset() >= cursor.text_offset) continue;
+                if (!scope.ctes_recursive && !cursor.name_scopes.empty() &&
+                    isScopeWithin(cursor.name_scopes.front().get(), cte.child_scope)) {
+                    continue;
+                }
+                AddLocalCandidate(cte.cte_name.get().text, NameTags{buffers::analyzer::NameTag::TABLE_NAME}, tags,
+                                  prefix, target_location, target_location);
+            }
+        }
+
+        if (cursor.statement_id.has_value()) {
+            for (auto& relation : cursor.script.analyzed_script->script_local_relations) {
+                if (relation.statement_id >= *cursor.statement_id) continue;
+                AddLocalCandidate(relation.relation_name.get().text,
+                                  NameTags{buffers::analyzer::NameTag::TABLE_NAME}, tags, prefix, target_location,
+                                  target_location);
+            }
+        }
+        return;
+    }
+
+    if (strategy != buffers::completion::CompletionStrategy::COLUMN_REF) return;
+    // Catalog columns already come from the name index. Add only CTE-backed FROM sources here,
+    // since their output schema exists solely in the analyzer's semantic scopes.
+    for (auto& scope_ref : cursor.name_scopes) {
+        for (auto& [_, table] : scope_ref.get().referenced_tables_by_name) {
+            if (table.IsUnresolvedRelation()) continue;
+            auto* cte = std::get_if<std::reference_wrapper<ResolvedCTE>>(&table.source);
+            if (!cte) continue;
+            forEachResolvedCTEColumn(cte->get(), [&](const RegisteredName& name) {
+                AddLocalCandidate(name.text, NameTags{buffers::analyzer::NameTag::COLUMN_NAME}, tags, prefix,
+                                  target_location, target_location);
+            });
+        }
+    }
+}
+
 void Completion::FindCandidatesInInlineVisualizeSource() {
     if (!target_scanner_symbol.has_value() || !cursor.script.parsed_script || !cursor.script.analyzed_script) {
         return;
     }
 
     auto& nodes = cursor.script.parsed_script->nodes;
+    bool in_visualize_spec = std::ranges::any_of(cursor.ast_path_to_root, [&](auto node_id) {
+        return nodes[node_id].attribute_key() == buffers::parser::AttributeKey::VIS_VISUALISE_SPEC;
+    });
+    if (!in_visualize_spec) return;
     const AnalyzedScript::NameScope* source_scope = nullptr;
     for (auto node_id : cursor.ast_path_to_root) {
         auto& node = nodes[node_id];
@@ -935,54 +1138,14 @@ void Completion::FindCandidatesInInlineVisualizeSource() {
     if (!source_scope) return;
 
     auto& target = target_scanner_symbol.value();
-    auto symbol_ofs = target.symbol.location.offset();
-    auto safe_cursor_offset =
-        std::min(std::max<uint32_t>(symbol_ofs, cursor.text_offset), symbol_ofs + target.symbol.location.length());
-    auto symbol_text = cursor.script.scanned_script->ReadTextAtTextSpan(
-        sx::parser::TextSpan(target.symbol.location.offset(), target.symbol.location.length()));
-    auto symbol_prefix = std::min<uint32_t>(std::max<uint32_t>(safe_cursor_offset, symbol_ofs) - symbol_ofs,
-                                            symbol_text.size());
-    auto prefix = trim_view({symbol_text.data(), symbol_prefix}, is_no_double_quote);
-    fuzzy_ci_string_view ci_prefix{prefix.data(), prefix.size()};
+    auto prefix = ReadTargetPrefix();
 
     for (auto& output : source_scope->output_columns) {
         auto& name = output.column_name.get();
-        fuzzy_ci_string_view ci_name{name.text.data(), name.text.size()};
-        if (!ci_prefix.empty() && ci_name.find(ci_prefix) == fuzzy_ci_string_view::npos) continue;
-
         CandidateTags tags{buffers::completion::CandidateTag::NAME_INDEX,
                            buffers::completion::CandidateTag::IN_NAME_SCOPE};
-        switch (target.relative_pos) {
-            case ScannedScript::LocationInfo::RelativePosition::BEGIN_OF_SYMBOL:
-            case ScannedScript::LocationInfo::RelativePosition::MID_OF_SYMBOL:
-            case ScannedScript::LocationInfo::RelativePosition::END_OF_SYMBOL:
-                tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
-                if (ci_name.starts_with(ci_prefix)) {
-                    tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
-                    if (ci_name.size() == ci_prefix.size()) {
-                        tags |= buffers::completion::CandidateTag::EXACT_MATCH;
-                    }
-                }
-                break;
-            default:
-                break;
-        }
-
-        if (auto candidate_it = candidates_by_name.find(name.text); candidate_it != candidates_by_name.end()) {
-            auto& candidate = candidate_it->second.get();
-            candidate.coarse_name_tags |= buffers::analyzer::NameTag::COLUMN_NAME;
-            candidate.candidate_tags |= tags;
-        } else {
-            auto& candidate = candidates.PushBack(Candidate{
-                .completion_text = name.text,
-                .coarse_name_tags = {buffers::analyzer::NameTag::COLUMN_NAME},
-                .candidate_tags = tags,
-                .target_location = target.symbol.location,
-                .target_location_qualified = target.symbol.location,
-                .catalog_objects = {},
-            });
-            candidates_by_name.insert({name.text, candidate});
-        }
+        AddLocalCandidate(name.text, NameTags{buffers::analyzer::NameTag::COLUMN_NAME}, tags, prefix,
+                          target.symbol.location, target.symbol.location);
     }
 }
 
@@ -1037,11 +1200,14 @@ void Completion::PromoteIdentifiersInScope() {
             }
 
             // Check directly if the the column is stored as candidate
-            auto resolved_column = colref->GetResolvedColumnIDs();
-            if (!resolved_column.has_value()) {
+            // Scope-column chains can be cyclic in incomplete CTEs, and local CTE candidates were
+            // already added above. Only direct catalog columns need object-level promotion here.
+            auto* direct_column = std::get_if<std::reference_wrapper<const CatalogEntry::TableColumn>>(
+                &colref->resolved);
+            if (!direct_column) {
                 continue;
             }
-            auto iter = candidate_objects_by_id.find(resolved_column->catalog_table_column_id);
+            auto iter = candidate_objects_by_id.find(direct_column->get().object_id);
             if (iter == candidate_objects_by_id.end()) {
                 continue;
             }
@@ -1059,10 +1225,18 @@ void Completion::PromoteTablesAndPeersForUnresolvedColumns() {
         return;
     }
     std::vector<CatalogEntry::TableColumn> tmp_columns;
+    auto& nodes = cursor.script.parsed_script->nodes;
+    bool cursor_in_visualize_source = std::ranges::any_of(cursor.ast_path_to_root, [&](auto node_id) {
+        return nodes[node_id].attribute_key() == buffers::parser::AttributeKey::VIS_VISUALISE_SELECT;
+    });
 
     // Iterate all unresolved columns in the current script
     for (auto& name_scope : cursor.name_scopes) {
         auto& scope = name_scope.get();
+        if (cursor_in_visualize_source &&
+            nodes[scope.ast_node_id].node_type() == buffers::parser::NodeType::OBJECT_VIS_VISUALISE) {
+            continue;
+        }
         for (auto& expr : scope.expressions) {
             // Is unresolved?
             if (auto* column_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
@@ -1148,8 +1322,8 @@ void Completion::SelectTopCandidates() {
 
         // Determine overall candidate score
         Completion::ScoreValueType object_score = !candidate_objects.empty()
-                                                      ? candidate_objects.back().score
-                                                      : computeCandidateScore(candidate.candidate_tags);
+                                                       ? candidate_objects.back().score
+                                                       : computeCandidateScore(candidate.candidate_tags);
         Completion::ScoreValueType candidate_score = base_score + object_score;
         candidate.score = candidate_score;
 
@@ -1646,6 +1820,7 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
             completion->strategy != sx::completion::CompletionStrategy::TABLE_REF_ALIAS) {
             // Just find all candidates in the name index
             completion->FindCandidatesInIndexes();
+            completion->FindCandidatesInScope();
             completion->FindCandidatesInInlineVisualizeSource();
             // Promote names of all tables that could resolve an unresolved column
             completion->PromoteTablesAndPeersForUnresolvedColumns();

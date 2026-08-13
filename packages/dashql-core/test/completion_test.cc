@@ -9,6 +9,13 @@ using namespace dashql;
 
 namespace {
 
+const Completion::Candidate* FindCandidate(const Completion& completion, std::string_view name) {
+    auto& candidates = completion.GetResultCandidates();
+    auto it = std::find_if(candidates.begin(), candidates.end(),
+                           [&](const auto& candidate) { return candidate.completion_text == name; });
+    return it == candidates.end() ? nullptr : &*it;
+}
+
 TEST(CompletionTest, OperatorsAreNotCompletable) {
     using Symbol = parser::Parser::symbol_kind_type;
     for (auto symbol : {Symbol::S_EQUALS, Symbol::S_Op, Symbol::S_EQUALS_GREATER, Symbol::S_PIPE_GREATER,
@@ -75,6 +82,37 @@ SELECT s_co
     std::vector<std::string> expected_names{"s_co",      "s_comment", "ps_comment", "from", "where",
                                             "group by", "order by",  "by",         "case",  "cast"};
     ASSERT_EQ(names, expected_names);
+}
+
+TEST(CompletionTest, DotCompletionBeforeLaterCteLines) {
+    Catalog catalog;
+    Script schema{catalog};
+    schema.InsertTextAt(0,
+                        "CREATE TABLE uip_iceberg.cdp_usage_nonprod_events.hyperdb_queries("
+                        "event_id BIGINT, processed_rows BIGINT);");
+    schema.Analyze();
+    ASSERT_NO_THROW(catalog.LoadScript(schema, 0));
+
+    constexpr std::string_view text =
+        "with foo as (\nselect * from uip_iceberg.cdp_usage_nonprod_events.hyperdb_queries q where q.\n\n) ";
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    script.Analyze();
+    const auto cursor_offset = text.find("q.\n") + 2;
+    const ScriptCursor* cursor = nullptr;
+    ASSERT_NO_THROW(cursor = script.MoveCursor(cursor_offset));
+    ASSERT_NE(cursor, nullptr);
+    ASSERT_TRUE(cursor->scanner_location.has_value());
+    EXPECT_TRUE(cursor->scanner_location->current.symbolIsTrailingDot() ||
+                (cursor->scanner_location->previous.has_value() &&
+                 cursor->scanner_location->previous->symbolIsTrailingDot()));
+    EXPECT_FALSE(cursor->name_scopes.empty());
+    EXPECT_TRUE(std::holds_alternative<ScriptCursor::ColumnRefContext>(cursor->context));
+
+    std::unique_ptr<Completion> completion;
+    ASSERT_NO_THROW(completion = script.CompleteAtCursor(50));
+    EXPECT_NE(FindCandidate(*completion, "event_id"), nullptr);
+    EXPECT_NE(FindCandidate(*completion, "processed_rows"), nullptr);
 }
 
 TEST(CompletionTest, KeywordContinuation_GroupBy) {
@@ -216,6 +254,149 @@ WITH fo
         }
     }
     ASSERT_TRUE(found_foo) << "Expected 'foo' candidate with 'as' continuation";
+}
+
+TEST(CompletionTest, CompletesPriorCTEInLaterFrom) {
+    constexpr std::string_view text = R"SQL(
+WITH events AS (SELECT 1 AS event_id),
+filtered AS (SELECT * FROM eve)
+SELECT * FROM filtered
+)SQL";
+
+    Catalog catalog;
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    ASSERT_NO_THROW(script.Analyze());
+    script.MoveCursor(text.find("eve)") + std::string_view{"eve"}.size());
+
+    auto completion = script.CompleteAtCursor();
+    auto* candidate = FindCandidate(*completion, "events");
+    ASSERT_NE(candidate, nullptr);
+    EXPECT_TRUE(candidate->coarse_name_tags.contains(buffers::analyzer::NameTag::TABLE_NAME));
+    EXPECT_TRUE(candidate->candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE));
+    EXPECT_GT(candidate->score, 50u);
+}
+
+TEST(CompletionTest, CompletesCTEOutputColumnInLaterCTE) {
+    constexpr std::string_view text = R"SQL(
+WITH events AS (SELECT 1 AS event_timestamp, 2 AS cpu_time),
+filtered AS (SELECT event_t FROM events)
+SELECT * FROM filtered
+)SQL";
+
+    Catalog catalog;
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    ASSERT_NO_THROW(script.Analyze());
+    script.MoveCursor(text.find("event_t FROM") + std::string_view{"event_t"}.size());
+
+    auto completion = script.CompleteAtCursor();
+    auto* candidate = FindCandidate(*completion, "event_timestamp");
+    ASSERT_NE(candidate, nullptr);
+    EXPECT_TRUE(candidate->coarse_name_tags.contains(buffers::analyzer::NameTag::COLUMN_NAME));
+    EXPECT_TRUE(candidate->candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE));
+    EXPECT_GT(candidate->score, 59u);
+}
+
+TEST(CompletionTest, CompletesCTEOutputColumnAfterDot) {
+    constexpr std::string_view text = R"SQL(
+WITH events AS (SELECT 1 AS event_timestamp, 2 AS cpu_time)
+SELECT events.event_t FROM events
+)SQL";
+
+    Catalog catalog;
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    ASSERT_NO_THROW(script.Analyze());
+    script.MoveCursor(text.find("event_t FROM") + std::string_view{"event_t"}.size());
+
+    auto completion = script.CompleteAtCursor();
+    auto* candidate = FindCandidate(*completion, "event_timestamp");
+    ASSERT_NE(candidate, nullptr);
+    EXPECT_TRUE(candidate->candidate_tags.contains(buffers::completion::CandidateTag::DOT_RESOLUTION_COLUMN));
+    EXPECT_TRUE(candidate->candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE));
+}
+
+TEST(CompletionTest, LocalCTEColumnShadowsCatalogObjects) {
+    constexpr std::string_view text = R"SQL(
+WITH events AS (SELECT 1 AS event_timestamp)
+SELECT event_t FROM events
+)SQL";
+
+    Catalog catalog;
+    Script catalog_script{catalog};
+    catalog_script.InsertTextAt(0, "CREATE TABLE unrelated(event_timestamp int);");
+    ASSERT_NO_THROW(catalog_script.Analyze());
+    ASSERT_NO_THROW(catalog.LoadScript(catalog_script, 0));
+
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    ASSERT_NO_THROW(script.Analyze());
+    script.MoveCursor(text.find("event_t FROM") + std::string_view{"event_t"}.size());
+
+    auto completion = script.CompleteAtCursor();
+    auto* candidate = FindCandidate(*completion, "event_timestamp");
+    ASSERT_NE(candidate, nullptr);
+    EXPECT_TRUE(candidate->candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE));
+    EXPECT_TRUE(candidate->catalog_objects.IsEmpty());
+}
+
+TEST(CompletionTest, DoesNotCompleteLaterOrSelfCTE) {
+    constexpr std::string_view text = R"SQL(
+WITH first AS (SELECT * FROM la),
+later AS (SELECT 1 AS value)
+SELECT * FROM first
+)SQL";
+
+    Catalog catalog;
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    ASSERT_NO_THROW(script.Analyze());
+    script.MoveCursor(text.find("la)") + std::string_view{"la"}.size());
+
+    auto completion = script.CompleteAtCursor();
+    auto* candidate = FindCandidate(*completion, "later");
+    if (candidate) {
+        EXPECT_FALSE(candidate->candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE));
+    }
+}
+
+TEST(CompletionTest, CompletesSelfCTEOnlyWhenRecursive) {
+    for (auto [query, expect_in_scope] : {
+             std::pair{std::string_view{"WITH items AS (SELECT * FROM ite) SELECT * FROM items"}, false},
+             std::pair{std::string_view{"WITH RECURSIVE items AS (SELECT * FROM ite) SELECT * FROM items"}, true},
+         }) {
+        Catalog catalog;
+        Script script{catalog};
+        script.InsertTextAt(0, query);
+        ASSERT_NO_THROW(script.Analyze());
+        script.MoveCursor(query.find("ite)") + std::string_view{"ite"}.size());
+
+        auto completion = script.CompleteAtCursor();
+        auto* candidate = FindCandidate(*completion, "items");
+        ASSERT_NE(candidate, nullptr);
+        EXPECT_EQ(candidate->candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE),
+                  expect_in_scope);
+    }
+}
+
+TEST(CompletionTest, CompletesPrecedingScriptLocalRelation) {
+    constexpr std::string_view text = R"SQL(
+FROM sales |> SELECT amount |> AS local_sales;
+SELECT * FROM local_s
+)SQL";
+
+    Catalog catalog;
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    ASSERT_NO_THROW(script.Analyze());
+    script.MoveCursor(text.rfind("local_s") + std::string_view{"local_s"}.size());
+
+    auto completion = script.CompleteAtCursor();
+    auto* candidate = FindCandidate(*completion, "local_sales");
+    ASSERT_NE(candidate, nullptr);
+    EXPECT_TRUE(candidate->coarse_name_tags.contains(buffers::analyzer::NameTag::TABLE_NAME));
+    EXPECT_TRUE(candidate->candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE));
 }
 
 TEST(CompletionTest, PassiveHint_SelectStar) {
@@ -383,6 +564,87 @@ FROM sales
                               [](const auto& candidate) { return candidate.completion_text == "chart_total"; });
     ASSERT_NE(found, completion->GetResultCandidates().end());
     EXPECT_TRUE(found->candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE));
+}
+
+TEST(CompletionTest, CTEVisualizeSourceOutputAlias) {
+    constexpr std::string_view text = R"SQL(
+WITH events AS (
+    SELECT 1 AS ts_hour, 2 AS cpu_time, true AS marker
+), filtered AS (
+    SELECT * FROM events
+), aggregates_other AS (
+    SELECT ts_hour, SUM(cpu_time) AS metric, 'other' AS marker
+    FROM filtered
+    WHERE NOT marker
+    GROUP BY ts_hour
+)
+SELECT * FROM aggregates_other
+|> VISUALIZE USING vegalite (
+    mark => bar,
+    encoding => (y => (field => met, type => quantitative))
+)
+)SQL";
+
+    Catalog catalog;
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    ASSERT_NO_THROW(script.Analyze());
+    script.MoveCursor(text.rfind("met") + std::string_view{"met"}.size());
+
+    auto completion = script.CompleteAtCursor();
+    auto* candidate = FindCandidate(*completion, "metric");
+    ASSERT_NE(candidate, nullptr);
+    EXPECT_TRUE(candidate->candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE));
+    EXPECT_GT(candidate->score, 59u);
+}
+
+TEST(CompletionTest, VisualizeOutputsDoNotLeakIntoSource) {
+    constexpr std::string_view text = R"SQL(
+SELECT amount AS chart_total
+FROM chart_t
+|> VISUALIZE USING vegalite (
+    encoding => (y => (field => chart_total))
+)
+)SQL";
+
+    Catalog catalog;
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    ASSERT_NO_THROW(script.Analyze());
+    script.MoveCursor(text.find("chart_t\n") + std::string_view{"chart_t"}.size());
+
+    auto completion = script.CompleteAtCursor();
+    auto* candidate = FindCandidate(*completion, "chart_total");
+    if (candidate) {
+        EXPECT_FALSE(candidate->candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE));
+    }
+}
+
+TEST(CompletionTest, VisualizeFieldsDoNotPromoteTablesInSource) {
+    constexpr std::string_view text = R"SQL(
+SELECT amount
+FROM chart_t
+|> VISUALIZE USING vegalite (
+    encoding => (y => (field => chart_total))
+)
+)SQL";
+
+    Catalog catalog;
+    Script catalog_script{catalog};
+    catalog_script.InsertTextAt(0, "CREATE TABLE measurements(chart_total int, spec_only_peer int);");
+    ASSERT_NO_THROW(catalog_script.Analyze());
+    ASSERT_NO_THROW(catalog.LoadScript(catalog_script, 0));
+
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    ASSERT_NO_THROW(script.Analyze());
+    script.MoveCursor(text.find("chart_t\n") + std::string_view{"chart_t"}.size());
+
+    auto completion = script.CompleteAtCursor();
+    auto* candidate = FindCandidate(*completion, "chart_total");
+    if (candidate) {
+        EXPECT_FALSE(candidate->candidate_tags.contains(buffers::completion::CandidateTag::UNRESOLVED_PEER));
+    }
 }
 
 TEST(CompletionTest, NoCompletionInsideLineComment) {

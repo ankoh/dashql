@@ -145,8 +145,16 @@ struct Completion {
     void FindCandidatesForNamePath();
     /// Find the candidates in completion indexes
     void FindCandidatesInIndexes();
+    /// Add CTEs, script-local relations, and their output columns from the current semantic scope.
+    void FindCandidatesInScope();
     /// Add output columns from the inline SELECT source of the surrounding VISUALIZE statement.
     void FindCandidatesInInlineVisualizeSource();
+    /// Add or merge a non-catalog candidate using the supplied typed prefix and replacement range.
+    void AddLocalCandidate(std::string_view name, NameTags name_tags, CandidateTags candidate_tags,
+                           std::string_view prefix, sx::parser::SymbolSpan target_location,
+                           sx::parser::SymbolSpan target_location_qualified);
+    /// Read the identifier prefix to the left of the cursor in the current scanner symbol.
+    std::string_view ReadTargetPrefix() const;
     /// Promote identifiers that are in the current name scope of in the same statement
     void PromoteIdentifiersInScope();
     /// Promote tables that contain column names that are still unresolved in the current statement

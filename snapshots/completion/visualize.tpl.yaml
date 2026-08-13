@@ -755,7 +755,7 @@ completion-snapshots:
       script:
         input: create table warehouse.public.sales(revenue int, region text);
     editor:
-      input: visualize warehouse.public.sal
+      input: select * from warehouse.public.sal |> visualize using vegalite (mark => bar)
     cursor:
       search:
         text: sal
