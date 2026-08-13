@@ -242,5 +242,19 @@ TEST(ShellSessionTest, ConvertsQueryErrorsToOutput) {
     EXPECT_EQ(complete.data, error);
 }
 
+TEST(ShellSessionTest, AlignsContinuationMarkerWithPromptMarker) {
+    Catalog catalog;
+
+    ShellSession short_session{catalog, 80};
+    ASSERT_EQ(short_session.OpenTerminal("hyper> ", false).status, ShellStatus::kOk);
+    const auto short_output = short_session.ConsumeTerminalInput(PromptInputKey::kEnter);
+    EXPECT_NE(short_output.data.find("    -> "), std::string::npos);
+
+    ShellSession long_session{catalog, 80};
+    ASSERT_EQ(long_session.OpenTerminal("long-connection> ", false).status, ShellStatus::kOk);
+    const auto long_output = long_session.ConsumeTerminalInput(PromptInputKey::kEnter);
+    EXPECT_NE(long_output.data.find("              -> "), std::string::npos);
+}
+
 }  // namespace
 }  // namespace dashql::shell

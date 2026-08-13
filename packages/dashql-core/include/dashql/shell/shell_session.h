@@ -198,7 +198,7 @@ class ShellSession {
     std::optional<ShellOperation> completed_operation_;
     std::array<char, 256> terminal_prompt_storage_ = {};
     size_t terminal_prompt_length_ = 0;
-    std::string_view terminal_continuation_ = "     -> ";
+    std::string terminal_continuation_ = "     -> ";
     size_t terminal_prompt_rows_ = 1;
     size_t terminal_prompt_cursor_row_ = 0;
     PromptInputAction terminal_action_ = PromptInputAction::kNone;

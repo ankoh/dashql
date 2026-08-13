@@ -487,6 +487,13 @@ ShellOperation ShellSession::OpenTerminal(std::string_view prompt, bool welcome)
     }
     std::copy(prompt.begin(), prompt.end(), terminal_prompt_storage_.begin());
     terminal_prompt_length_ = prompt.size();
+    const auto rendered_prompt = prompt.empty() ? std::string_view{"dashql> "} : prompt;
+    const auto prompt_marker = rendered_prompt.rfind('>');
+    const auto marker_column = prompt_marker == std::string_view::npos
+                                   ? DisplayWidth(rendered_prompt)
+                                   : DisplayWidth(rendered_prompt.substr(0, prompt_marker));
+    terminal_continuation_.assign(marker_column > 0 ? marker_column - 1 : 0, ' ');
+    terminal_continuation_.append("-> ");
     terminal_prompt_rows_ = 1;
     terminal_prompt_cursor_row_ = 0;
     std::string output;
