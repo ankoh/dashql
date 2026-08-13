@@ -38,7 +38,7 @@
 
 .list {
     margin: 0;
-    padding: 4px 0;
+    padding: 4px 8px;
     overflow-y: auto;
     list-style: none;
 }
@@ -50,8 +50,9 @@
     grid-template-columns: 16px minmax(0, 1fr);
     align-items: start;
     gap: 8px;
-    padding: 8px 16px;
-    border: 0;
+    padding: 8px 12px;
+    border: 1px solid transparent;
+    border-radius: var(--border_radius);
     color: inherit;
     background: transparent;
     text-align: left;
@@ -61,7 +62,8 @@
 }
 
 .item:hover {
-    background-color: var(--base_color_neutral_1);
+    background-color: rgba(208,215,222,0.32);
+    border-color: var(--border_color_primary);
 }
 
 .item:focus-visible {
