@@ -3,15 +3,16 @@ import { describe, expect, it } from 'vitest';
 
 import { DashQLShellPromptInput } from './api.js';
 import { sanitizeTerminalText, terminalPromptInputForKey } from './browser_shell.js';
+import { VT100, VT100Command, vt100Sequence } from './vt100.js';
 
 describe('browser shell input', () => {
     it('rejects terminal key sequences from the text channel', () => {
         expect(sanitizeTerminalText('\t')).toBe('');
         expect(sanitizeTerminalText('\r')).toBe('');
         expect(sanitizeTerminalText('\x03')).toBe('');
-        expect(sanitizeTerminalText('\x1b')).toBe('');
-        expect(sanitizeTerminalText('\x1b[B')).toBe('');
-        expect(sanitizeTerminalText('\x1b[3~')).toBe('');
+        expect(sanitizeTerminalText(VT100.ESCAPE)).toBe('');
+        expect(sanitizeTerminalText(vt100Sequence(1, VT100Command.CURSOR_DOWN))).toBe('');
+        expect(sanitizeTerminalText(`${VT100.CSI}3~`)).toBe('');
     });
 
     it('preserves pasted and composed text', () => {

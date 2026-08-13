@@ -2,6 +2,7 @@ import type { IDisposable, Terminal } from '@xterm/xterm';
 import type { FitAddon } from '@xterm/addon-fit';
 
 import { DashQLShell, DashQLShellPromptAction, DashQLShellPromptInput } from './api.js';
+import { VT100 } from './vt100.js';
 
 export interface BrowserShellOptions {
     container: HTMLElement;
@@ -18,7 +19,7 @@ export interface BrowserShellController {
 }
 
 export function sanitizeTerminalText(data: string): string {
-    const escape = data.indexOf('\x1b');
+    const escape = data.indexOf(VT100.ESCAPE);
     if (escape >= 0) data = data.substring(0, escape);
     if (data.length === 1 && (data.charCodeAt(0) < 0x20 || data.charCodeAt(0) === 0x7f)) return '';
     return data

@@ -4,6 +4,7 @@ import { createDuckDBShellEnvironment } from './duckdb_shell_environment.js';
 import { instantiateTestWebDB } from '../platform/duckdb/duckdb_test_worker.js';
 import { DuckDB, DuckDBConnection } from '../platform/duckdb/duckdb_api.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../connection/catalog_update_state.js';
+import { VT100, VT100Command, vt100Sequence } from './vt100.js';
 
 declare const DASHQL_SHELL_PRECOMPILED: Promise<Uint8Array>;
 declare const WEBDB_PRECOMPILED: Promise<Uint8Array>;
@@ -73,11 +74,14 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('renders terminal highlighting in Wasm', () => {
-        expect(shell.openTerminal('db> ', false).data).toBe('\x1b[?7l\r\x1b[2Kdb> \r\x1b[4C');
+        expect(shell.openTerminal('db> ', false).data).toBe(
+            VT100.DISABLE_AUTO_WRAP + VT100.CARRIAGE_RETURN + VT100.ERASE_ENTIRE_LINE +
+            'db> ' + VT100.CARRIAGE_RETURN + vt100Sequence(4, VT100Command.CURSOR_FORWARD),
+        );
         const output = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, "SELECT '界' FROM t").data;
-        expect(output).toContain('\x1b[1;38;2;255;122;178mSELECT\x1b[0m');
-        expect(output).toContain("\x1b[38;2;255;129;112m'界'\x1b[0m");
-        expect(output).toContain('\x1b[38;2;107;170;159mt\x1b[0m');
+        expect(output).toContain(VT100.BOLD_FOREGROUND_PINK + 'SELECT' + VT100.RESET_ATTRIBUTES);
+        expect(output).toContain(VT100.FOREGROUND_CORAL + "'界'" + VT100.RESET_ATTRIBUTES);
+        expect(output).toContain(VT100.FOREGROUND_TEAL + 't' + VT100.RESET_ATTRIBUTES);
     });
 
     it('redraws a wrapped prompt from its current physical row', () => {
@@ -86,7 +90,11 @@ describe('DashQL shell Wasm', () => {
         shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'SELECT 123');
 
         const output = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, '4').data;
-        expect(output.startsWith('\x1b[1A\r\x1b[2K\x1b[1B\r\x1b[2K\x1b[1A\r'), JSON.stringify(output)).toBe(true);
+        const cursorUp = vt100Sequence(1, VT100Command.CURSOR_UP);
+        const cursorDown = vt100Sequence(1, VT100Command.CURSOR_DOWN);
+        const clearedRows = cursorUp + VT100.CARRIAGE_RETURN + VT100.ERASE_ENTIRE_LINE +
+            cursorDown + VT100.CARRIAGE_RETURN + VT100.ERASE_ENTIRE_LINE + cursorUp + VT100.CARRIAGE_RETURN;
+        expect(output.startsWith(clearedRows), JSON.stringify(output)).toBe(true);
         expect(output.match(/SELECT/g)).toHaveLength(1);
     });
 
@@ -111,7 +119,7 @@ describe('DashQL shell Wasm', () => {
         const firstPrompt = output.indexOf('hyper> ');
         expect(firstPrompt).toBeGreaterThanOrEqual(0);
         expect(output.substring(0, firstPrompt)).toContain('\r\n');
-        expect(output.substring(0, firstPrompt)).toContain('\x1b[2A');
+        expect(output.substring(0, firstPrompt)).toContain(vt100Sequence(2, VT100Command.CURSOR_UP));
         expect(output.match(/hyper> /g)).toHaveLength(1);
     });
 
@@ -124,7 +132,10 @@ describe('DashQL shell Wasm', () => {
             `select '${'o'.repeat(154)}' a`,
         ).data;
         expect(hinted.match(/hyper> /g)).toHaveLength(1);
-        expect(hinted).toContain('\x1b[s\x1b[90m into\x1b[0m\x1b[u');
+        expect(hinted).toContain(
+            VT100.SAVE_CURSOR + VT100.FOREGROUND_BRIGHT_BLACK + ' into' +
+            VT100.RESET_ATTRIBUTES + VT100.RESTORE_CURSOR,
+        );
 
         const completed = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 's').data;
         expect(completed.match(/hyper> /g)).toHaveLength(1);
@@ -134,19 +145,21 @@ describe('DashQL shell Wasm', () => {
         shell.openTerminal('db> ', false);
         const exited = shell.consumeTerminalInput(DashQLShellPromptInput.ESCAPE);
         expect(exited.action).toBe(DashQLShellPromptAction.EXIT);
-        expect(exited.data).toBe('\x1b[?7h');
+        expect(exited.data).toBe(VT100.ENABLE_AUTO_WRAP);
     });
 
     it('enables auto-wrap for output and disables it for the next prompt', () => {
-        expect(shell.openTerminal('db> ').data).toMatch(/^\x1b\[\?7h[\s\S]*\x1b\[\?7l/);
+        const opened = shell.openTerminal('db> ').data;
+        expect(opened.startsWith(VT100.ENABLE_AUTO_WRAP)).toBe(true);
+        expect(opened).toContain(VT100.DISABLE_AUTO_WRAP);
 
         const finished = shell.finishTerminalQuery('a query result').data;
-        expect(finished.indexOf('\x1b[?7h')).toBeLessThan(finished.indexOf('a query result'));
-        expect(finished.indexOf('a query result')).toBeLessThan(finished.indexOf('\x1b[?7l'));
+        expect(finished.indexOf(VT100.ENABLE_AUTO_WRAP)).toBeLessThan(finished.indexOf('a query result'));
+        expect(finished.indexOf('a query result')).toBeLessThan(finished.indexOf(VT100.DISABLE_AUTO_WRAP));
 
         const status = shell.renderTerminalStatus('working').data;
-        expect(status.indexOf('\x1b[?7h')).toBeLessThan(status.indexOf('working'));
-        expect(status.indexOf('working')).toBeLessThan(status.indexOf('\x1b[?7l'));
+        expect(status.indexOf(VT100.ENABLE_AUTO_WRAP)).toBeLessThan(status.indexOf('working'));
+        expect(status.indexOf('working')).toBeLessThan(status.indexOf(VT100.DISABLE_AUTO_WRAP));
     });
 
     it('navigates, accepts, and dismisses terminal completion overlays', () => {
@@ -159,20 +172,26 @@ describe('DashQL shell Wasm', () => {
         expect(selectIndex).toBeGreaterThanOrEqual(0);
 
         expect(opened.action).toBe(DashQLShellPromptAction.NONE);
-        expect(opened.data).toContain('\x1b[7m');
-        expect(opened.data).toContain('\x1b[1B\x1b[4C\x1b[2K\x1b[90m╭');
-        expect(opened.data).toContain('\x1b[90m╰');
-        expect(opened.data).not.toContain('\x1b[2K> ');
+        expect(opened.data).toContain(VT100.REVERSE_VIDEO);
+        expect(opened.data).toContain(
+            vt100Sequence(1, VT100Command.CURSOR_DOWN) + vt100Sequence(4, VT100Command.CURSOR_FORWARD) +
+            VT100.FOREGROUND_BRIGHT_BLACK + '╭',
+        );
+        expect(opened.data).not.toContain(
+            vt100Sequence(4, VT100Command.CURSOR_FORWARD) + VT100.ERASE_ENTIRE_LINE,
+        );
+        expect(opened.data).toContain(VT100.FOREGROUND_BRIGHT_BLACK + '╰');
+        expect(opened.data).not.toContain(VT100.ERASE_ENTIRE_LINE + '> ');
         let selected = opened;
         for (let i = 0; i < selectIndex; ++i) selected = shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_NEXT);
-        expect(selected.data).toContain('\x1b[90mect');
+        expect(selected.data).toContain(VT100.FOREGROUND_BRIGHT_BLACK + 'ect');
         const accepted = shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
         expect(accepted.action).toBe(DashQLShellPromptAction.NONE);
-        expect(accepted.data).toContain('\x1b[1;38;2;255;122;178mselect\x1b[0m');
+        expect(accepted.data).toContain(VT100.BOLD_FOREGROUND_PINK + 'select' + VT100.RESET_ATTRIBUTES);
         expect(shell.movePromptRight().text).toBe('select');
 
         shell.consumeTerminalInput(DashQLShellPromptInput.CANCEL);
-        expect(shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'sel').data).toContain('\x1b[7m');
+        expect(shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'sel').data).toContain(VT100.REVERSE_VIDEO);
         expect(shell.consumeTerminalInput(DashQLShellPromptInput.ESCAPE).action).toBe(DashQLShellPromptAction.NONE);
         expect(shell.consumeTerminalInput(DashQLShellPromptInput.ESCAPE).action).toBe(DashQLShellPromptAction.EXIT);
     });
@@ -181,13 +200,13 @@ describe('DashQL shell Wasm', () => {
         shell.openTerminal('db> ', false);
         const hinted = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, ' ');
 
-        expect(hinted.data).toContain('\x1b[90m');
+        expect(hinted.data).toContain(VT100.FOREGROUND_BRIGHT_BLACK);
         expect(hinted.data).not.toContain('╭');
-        expect(hinted.data).not.toContain('\x1b[7m');
+        expect(hinted.data).not.toContain(VT100.REVERSE_VIDEO);
 
         const listed = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 's');
         expect(listed.data).toContain('╭');
-        expect(listed.data).toContain('\x1b[7m');
+        expect(listed.data).toContain(VT100.REVERSE_VIDEO);
 
         shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
         expect(shell.movePromptRight().text.length).toBeGreaterThan(2);
@@ -223,10 +242,10 @@ describe('DashQL shell Wasm', () => {
         for (let i = 0; i < groupIndex; ++i) shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_NEXT);
 
         const firstStep = shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
-        expect(firstStep.data).toContain('\x1b[1;38;2;255;122;178mSELECT\x1b[0m');
-        expect(firstStep.data).toContain('\x1b[38;2;107;170;159msupplier\x1b[0m');
-        expect(firstStep.data).toContain('\x1b[1;38;2;255;122;178mgroup\x1b[0m');
-        expect(firstStep.data).toContain('\x1b[90m by');
+        expect(firstStep.data).toContain(VT100.BOLD_FOREGROUND_PINK + 'SELECT' + VT100.RESET_ATTRIBUTES);
+        expect(firstStep.data).toContain(VT100.FOREGROUND_TEAL + 'supplier' + VT100.RESET_ATTRIBUTES);
+        expect(firstStep.data).toContain(VT100.BOLD_FOREGROUND_PINK + 'group' + VT100.RESET_ATTRIBUTES);
+        expect(firstStep.data).toContain(VT100.FOREGROUND_BRIGHT_BLACK + ' by');
         expect(shell.movePromptRight().text).toBe('SELECT * FROM supplier group');
 
         shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
@@ -239,8 +258,14 @@ describe('DashQL shell Wasm', () => {
         for (let i = 0; i < '\nFROM supplier'.length; ++i) shell.movePromptLeft();
         shell.consumeTerminalInput(DashQLShellPromptInput.RIGHT);
         const output = shell.consumeTerminalInput(DashQLShellPromptInput.LEFT);
-        expect(output.data).not.toContain('\x1b[9L');
-        expect(output.data).toContain('\x1b[1B\x1b[4C\x1b[2K\x1b[90m╭');
+        expect(output.data).not.toContain(vt100Sequence(9, VT100Command.INSERT_LINE));
+        expect(output.data).toContain(
+            vt100Sequence(1, VT100Command.CURSOR_DOWN) + vt100Sequence(4, VT100Command.CURSOR_FORWARD) +
+            VT100.FOREGROUND_BRIGHT_BLACK + '╭',
+        );
+        expect(output.data).not.toContain(
+            vt100Sequence(4, VT100Command.CURSOR_FORWARD) + VT100.ERASE_ENTIRE_LINE,
+        );
     });
 
     it('shows qualification inline before accepting the candidate', () => {
@@ -258,9 +283,9 @@ describe('DashQL shell Wasm', () => {
         } else {
             for (let i = 1; i < candidateIndex; ++i) selected = shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_NEXT);
         }
-        expect(selected.data).toContain('\x1b[');
+        expect(selected.data).toContain(VT100.CSI);
         expect(selected.data).toContain('@');
-        expect(selected.data).toContain('\x1b[90m');
+        expect(selected.data).toContain(VT100.FOREGROUND_BRIGHT_BLACK);
     });
 
     it('cycles inline qualification hints with Left and Right', () => {

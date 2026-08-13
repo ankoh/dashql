@@ -99,7 +99,9 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
 
     return (
         <main className={styles.page} aria-label="DashQL shell">
-            <div ref={containerRef} className={styles.terminal} />
+            <div className={styles.terminal}>
+                <div ref={containerRef} className={styles.terminalHost} />
+            </div>
             {status && (
                 <div className={styles.status} role="status" aria-live="polite">
                     <strong>[ RUN ]</strong> {status}
