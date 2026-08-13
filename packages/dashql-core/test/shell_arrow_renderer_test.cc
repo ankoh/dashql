@@ -61,9 +61,9 @@ TEST(ArrowRendererTest, RendersArrowIPC) {
                "╭───────┬───────╮\n"
               "│ name  │ value │\n"
               "╞═══════╪═══════╡\n"
-              "│ alpha ┆     1 │\n"
-              "│ 界    ┆    20 │\n"
-              "│       ┆   300 │\n"
+              "│ alpha │     1 │\n"
+              "│ 界    │    20 │\n"
+              "│       │   300 │\n"
                "╰───────┴───────╯");
 }
 

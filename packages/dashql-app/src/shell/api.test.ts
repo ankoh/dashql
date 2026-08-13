@@ -239,6 +239,7 @@ describe('DashQL shell Wasm', () => {
         for (let i = 0; i < '\nFROM supplier'.length; ++i) shell.movePromptLeft();
         shell.consumeTerminalInput(DashQLShellPromptInput.RIGHT);
         const output = shell.consumeTerminalInput(DashQLShellPromptInput.LEFT);
+        expect(output.data).not.toContain('\x1b[9L');
         expect(output.data).toContain('\x1b[1B\x1b[4C\x1b[2K\x1b[90m╭');
     });
 
@@ -327,9 +328,9 @@ describe('DashQL shell Wasm', () => {
                 '╭───────┬───────╮\n' +
                 '│ value │ name  │\n' +
                 '╞═══════╪═══════╡\n' +
-                '│     1 ┆ alpha │\n' +
-                '│    20 ┆ 界    │\n' +
-                '│   300 ┆       │\n' +
+                '│     1 │ alpha │\n' +
+                '│    20 │ 界    │\n' +
+                '│   300 │       │\n' +
                 '╰───────┴───────╯',
             );
         } finally {

@@ -388,7 +388,7 @@ std::string RenderTable(const Table& table, size_t terminal_columns) {
     AppendRow(output, headers, widths, "│");
     AppendRule(output, "╞", "╪", "╡", "═", widths);
     for (const auto& row : table.rows) {
-        AppendRow(output, row, widths, "┆");
+        AppendRow(output, row, widths, "│");
     }
     AppendRule(output, "╰", "┴", "╯", "─", widths);
     if (!output.empty()) {
