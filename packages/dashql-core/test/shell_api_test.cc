@@ -2,8 +2,6 @@
 
 #include <string>
 #include <string_view>
-#include <fstream>
-#include <iterator>
 
 #include "dashql/catalog.h"
 #include "dashql/script.h"
@@ -542,9 +540,8 @@ TEST(ShellApiTest, NavigatesAndAcceptsTerminalCompletionOverlay) {
 TEST(ShellApiTest, HintsAndAcceptsColumnAfterFullyQualifiedTableAlias) {
     dashql::Catalog catalog;
     dashql::Script schema{catalog};
-    std::ifstream schema_file{"/Users/andre.kohn/Repositories/dashql-notebooks/uip/dashql-relations.sql"};
-    ASSERT_TRUE(schema_file.is_open());
-    const std::string schema_sql{std::istreambuf_iterator<char>{schema_file}, std::istreambuf_iterator<char>{}};
+    constexpr std::string_view schema_sql =
+        "CREATE TABLE uip_iceberg.cdp_usage_nonprod_events.hyperdb_queries(event_id BIGINT, processed_rows BIGINT);";
     schema.InsertTextAt(0, schema_sql);
     schema.Analyze();
     ASSERT_NO_THROW(catalog.LoadScript(schema, 0));

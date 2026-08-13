@@ -120,27 +120,28 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
 
     terminal.attachCustomKeyEventHandler(event => {
         if (event.type !== 'keydown') return true;
-        const handled = () => {
-            event.preventDefault();
-            event.stopPropagation();
-            return false;
-        };
         if (event.ctrlKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === 'c') {
             if (activeQuery != null) activeQuery.abort();
             else consume(DashQLShellPromptInput.CANCEL);
-            return handled();
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
         }
         let key = terminalPromptInputForKey(event.key);
         if (event.key === 'Enter') {
             if (event.ctrlKey || event.metaKey) key = DashQLShellPromptInput.FORCE_SUBMIT;
             else if (event.shiftKey) {
                 if (activeQuery == null) consume(DashQLShellPromptInput.TEXT, '\n');
-                return handled();
+                event.preventDefault();
+                event.stopPropagation();
+                return false;
             }
         }
         if (key == null) return true;
         if (activeQuery == null) consume(key);
-        return handled();
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
     });
 
     const dataSubscription: IDisposable = terminal.onData(data => {

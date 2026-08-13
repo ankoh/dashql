@@ -24,4 +24,8 @@ describe('browser shell input', () => {
         expect(terminalPromptInputForKey('ArrowUp')).toBe(DashQLShellPromptInput.UP);
         expect(terminalPromptInputForKey('ArrowDown')).toBe(DashQLShellPromptInput.DOWN);
     });
+
+    it('maps Tab to completion', () => {
+        expect(terminalPromptInputForKey('Tab')).toBe(DashQLShellPromptInput.TAB);
+    });
 });
