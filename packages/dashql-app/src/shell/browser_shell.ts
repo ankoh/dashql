@@ -26,6 +26,31 @@ export function sanitizeTerminalText(data: string): string {
         .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
 }
 
+export function terminalPromptInputForKey(key: string): DashQLShellPromptInput | null {
+    switch (key) {
+        case 'Enter':
+            return DashQLShellPromptInput.ENTER;
+        case 'Tab':
+            return DashQLShellPromptInput.TAB;
+        case 'Backspace':
+            return DashQLShellPromptInput.BACKSPACE;
+        case 'Delete':
+            return DashQLShellPromptInput.DELETE;
+        case 'ArrowLeft':
+            return DashQLShellPromptInput.LEFT;
+        case 'ArrowRight':
+            return DashQLShellPromptInput.RIGHT;
+        case 'ArrowUp':
+            return DashQLShellPromptInput.UP;
+        case 'ArrowDown':
+            return DashQLShellPromptInput.DOWN;
+        case 'Escape':
+            return DashQLShellPromptInput.ESCAPE;
+        default:
+            return null;
+    }
+}
+
 export async function embedDashQLShell(options: BrowserShellOptions): Promise<BrowserShellController> {
     const [{ Terminal }, { FitAddon }] = await Promise.all([
         import('@xterm/xterm'),
@@ -105,25 +130,15 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
             else consume(DashQLShellPromptInput.CANCEL);
             return handled();
         }
-        let key: DashQLShellPromptInput | null = null;
-        switch (event.key) {
-            case 'Enter':
-                if (event.ctrlKey || event.metaKey) key = DashQLShellPromptInput.FORCE_SUBMIT;
-                else if (event.shiftKey) {
-                    if (activeQuery == null) consume(DashQLShellPromptInput.TEXT, '\n');
-                    return handled();
-                } else key = DashQLShellPromptInput.ENTER;
-                break;
-            case 'Tab': key = DashQLShellPromptInput.TAB; break;
-            case 'Backspace': key = DashQLShellPromptInput.BACKSPACE; break;
-            case 'Delete': key = DashQLShellPromptInput.DELETE; break;
-            case 'ArrowLeft': key = DashQLShellPromptInput.LEFT; break;
-            case 'ArrowRight': key = DashQLShellPromptInput.RIGHT; break;
-            case 'ArrowUp': key = DashQLShellPromptInput.HISTORY_PREVIOUS; break;
-            case 'ArrowDown': key = DashQLShellPromptInput.HISTORY_NEXT; break;
-            case 'Escape': key = DashQLShellPromptInput.ESCAPE; break;
-            default: return true;
+        let key = terminalPromptInputForKey(event.key);
+        if (event.key === 'Enter') {
+            if (event.ctrlKey || event.metaKey) key = DashQLShellPromptInput.FORCE_SUBMIT;
+            else if (event.shiftKey) {
+                if (activeQuery == null) consume(DashQLShellPromptInput.TEXT, '\n');
+                return handled();
+            }
         }
+        if (key == null) return true;
         if (activeQuery == null) consume(key);
         return handled();
     });

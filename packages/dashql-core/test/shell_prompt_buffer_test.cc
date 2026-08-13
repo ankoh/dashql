@@ -45,6 +45,22 @@ TEST_F(PromptBufferTest, MovesAcrossExtendedGraphemeClusters) {
     EXPECT_FALSE(prompt.MoveRight());
 }
 
+TEST_F(PromptBufferTest, MovesVerticallyAcrossLinesByGraphemeColumn) {
+    ASSERT_TRUE(prompt.SetText("ab界\nx\n1234"));
+
+    EXPECT_TRUE(prompt.MoveUp());
+    EXPECT_EQ(prompt.cursor_byte_offset(), std::string{"ab界\nx"}.size());
+    EXPECT_TRUE(prompt.MoveUp());
+    EXPECT_EQ(prompt.cursor_byte_offset(), 1u);
+    EXPECT_FALSE(prompt.MoveUp());
+
+    EXPECT_TRUE(prompt.MoveDown());
+    EXPECT_EQ(prompt.cursor_byte_offset(), std::string{"ab界\nx"}.size());
+    EXPECT_TRUE(prompt.MoveDown());
+    EXPECT_EQ(prompt.cursor_byte_offset(), std::string{"ab界\nx\n1"}.size());
+    EXPECT_FALSE(prompt.MoveDown());
+}
+
 TEST_F(PromptBufferTest, InsertsAndDeletesWholeGraphemeClusters) {
     ASSERT_TRUE(prompt.SetText("ac"));
     ASSERT_TRUE(prompt.MoveLeft());

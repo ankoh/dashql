@@ -150,6 +150,8 @@ export enum DashQLShellPromptInput {
     HISTORY_NEXT = 9,
     CANCEL = 10,
     ESCAPE = 11,
+    UP = 12,
+    DOWN = 13,
 }
 
 export enum DashQLShellPromptAction {

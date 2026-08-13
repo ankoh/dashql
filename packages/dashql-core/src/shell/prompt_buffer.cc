@@ -1,5 +1,7 @@
 #include "dashql/shell/prompt_buffer.h"
 
+#include <algorithm>
+
 #include "utf8proc/utf8proc_wrapper.hpp"
 
 namespace dashql::shell {
@@ -45,6 +47,43 @@ bool PromptBuffer::MoveRight() {
         return false;
     }
     ++cursor_grapheme_offset_;
+    return true;
+}
+
+bool PromptBuffer::MoveUp() {
+    const auto text = script_.text.ToString();
+    const auto cursor = cursor_byte_offset();
+    const auto line_begin = cursor == 0 ? std::string::npos : text.rfind('\n', cursor - 1);
+    if (line_begin == std::string::npos) {
+        return false;
+    }
+    const auto previous_line_end = line_begin;
+    const auto previous_line_break = previous_line_end == 0 ? std::string::npos : text.rfind('\n', previous_line_end - 1);
+    const auto previous_line_begin = previous_line_break == std::string::npos ? 0 : previous_line_break + 1;
+    const auto column = cursor_grapheme_offset_ - script_.text.ResolveGraphemeBoundary(line_begin + 1)->grapheme_clusters;
+    const auto previous_line_column = script_.text.ResolveGraphemeBoundary(previous_line_begin)->grapheme_clusters;
+    const auto previous_line_length = script_.text.ResolveGraphemeBoundary(previous_line_end)->grapheme_clusters -
+                                      previous_line_column;
+    cursor_grapheme_offset_ = previous_line_column + std::min(column, previous_line_length);
+    return true;
+}
+
+bool PromptBuffer::MoveDown() {
+    const auto text = script_.text.ToString();
+    const auto cursor = cursor_byte_offset();
+    const auto next_line_break = text.find('\n', cursor);
+    if (next_line_break == std::string::npos) {
+        return false;
+    }
+    const auto line_begin_break = cursor == 0 ? std::string::npos : text.rfind('\n', cursor - 1);
+    const auto line_begin = line_begin_break == std::string::npos ? 0 : line_begin_break + 1;
+    const auto next_line_begin = next_line_break + 1;
+    const auto next_line_end = text.find('\n', next_line_begin);
+    const auto column = cursor_grapheme_offset_ - script_.text.ResolveGraphemeBoundary(line_begin)->grapheme_clusters;
+    const auto next_line_column = script_.text.ResolveGraphemeBoundary(next_line_begin)->grapheme_clusters;
+    const auto next_line_length = script_.text.ResolveGraphemeBoundary(
+        next_line_end == std::string::npos ? text.size() : next_line_end)->grapheme_clusters - next_line_column;
+    cursor_grapheme_offset_ = next_line_column + std::min(column, next_line_length);
     return true;
 }
 

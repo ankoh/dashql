@@ -297,7 +297,7 @@ uint32_t dashql_shell_prompt_consume(DashQLShell* shell,
                                      const uint8_t* text,
                                      size_t text_length,
                                      DashQLShellPromptResult* result) {
-    if (key > DASHQL_SHELL_INPUT_ESCAPE || (text == nullptr && text_length != 0)) {
+    if (key > DASHQL_SHELL_INPUT_DOWN || (text == nullptr && text_length != 0)) {
         if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
         ResetPromptResult(result);
         return StorePromptResult(result,
@@ -358,7 +358,7 @@ uint32_t dashql_shell_terminal_consume(DashQLShell* shell,
                                        const uint8_t* text,
                                        size_t text_length,
                                        DashQLShellTerminalResult* result) {
-    if (key > DASHQL_SHELL_INPUT_ESCAPE || (text == nullptr && text_length != 0)) {
+    if (key > DASHQL_SHELL_INPUT_DOWN || (text == nullptr && text_length != 0)) {
         if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
         ResetTerminalResult(result);
         return StoreTerminalResult(result,

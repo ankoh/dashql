@@ -82,6 +82,8 @@ enum class PromptInputKey : uint32_t {
     kHistoryNext = 9,
     kCancel = 10,
     kEscape = 11,
+    kUp = 12,
+    kDown = 13,
 };
 
 enum class PromptInputAction : uint32_t {

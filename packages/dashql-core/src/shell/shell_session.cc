@@ -413,6 +413,9 @@ PromptSnapshot ShellSession::ConsumePromptInput(PromptInputKey key, std::string_
         case PromptInputKey::kRight:
             prompt_.MoveRight();
             break;
+        case PromptInputKey::kUp:
+            if (prompt_.MoveUp()) break;
+            [[fallthrough]];
         case PromptInputKey::kHistoryPrevious:
             if (!history_.empty() && history_cursor_ > 0) {
                 if (history_cursor_ == history_.size()) history_draft_ = prompt_.Text();
@@ -420,6 +423,9 @@ PromptSnapshot ShellSession::ConsumePromptInput(PromptInputKey key, std::string_
                 prompt_.SetText(history_[history_cursor_]);
             }
             break;
+        case PromptInputKey::kDown:
+            if (prompt_.MoveDown()) break;
+            [[fallthrough]];
         case PromptInputKey::kHistoryNext:
             if (history_cursor_ < history_.size()) {
                 ++history_cursor_;
@@ -472,8 +478,12 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
         const auto& overlay = terminal_completion_overlays.at(this);
         if (!overlay.hint_only) {
             const auto variant_count = overlay.candidates[overlay.selection].qualification_texts.size();
-            if (key == PromptInputKey::kHistoryPrevious) return MoveTerminalCompletion(-1);
-            if (key == PromptInputKey::kHistoryNext) return MoveTerminalCompletion(1);
+            if (key == PromptInputKey::kHistoryPrevious || key == PromptInputKey::kUp) {
+                return MoveTerminalCompletion(-1);
+            }
+            if (key == PromptInputKey::kHistoryNext || key == PromptInputKey::kDown) {
+                return MoveTerminalCompletion(1);
+            }
             if (variant_count > 1 && key == PromptInputKey::kLeft) return MoveTerminalCompletionVariant(-1);
             if (variant_count > 1 && key == PromptInputKey::kRight) return MoveTerminalCompletionVariant(1);
         }

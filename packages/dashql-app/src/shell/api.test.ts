@@ -305,6 +305,13 @@ describe('DashQL shell Wasm', () => {
         expect(shell.consumePromptInput(DashQLShellPromptInput.HISTORY_PREVIOUS).text).toBe('SELECT 42\n;');
     });
 
+    it('navigates between lines with Up and Down', () => {
+        shell.consumePromptInput(DashQLShellPromptInput.TEXT, 'SELECT ab\nFROM table');
+
+        expect(shell.consumePromptInput(DashQLShellPromptInput.UP).cursorByteOffset).toBe('SELECT ab'.length);
+        expect(shell.consumePromptInput(DashQLShellPromptInput.DOWN).cursorByteOffset).toBe('SELECT ab\nFROM tabl'.length);
+    });
+
     it('runs the asynchronous query workflow through a C++ coroutine', async () => {
         let database: DuckDB | null = null;
         let connection: DuckDBConnection | null = null;
