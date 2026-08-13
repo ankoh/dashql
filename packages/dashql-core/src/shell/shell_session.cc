@@ -91,6 +91,7 @@ struct PromptLayout {
 };
 
 void AppendPromptPrefix(std::string* output, std::string_view prefix, size_t columns, PromptLayout& layout) {
+    if (output != nullptr && !prefix.empty()) output->append(vt100::kBold);
     const bool valid_utf8 = utf8::Utf8Proc::IsValid(prefix);
     for (size_t offset = 0; offset < prefix.size();) {
         auto next = valid_utf8 ? utf8::Utf8Proc::NextGraphemeCluster(prefix, offset) : offset + 1;
@@ -109,6 +110,7 @@ void AppendPromptPrefix(std::string* output, std::string_view prefix, size_t col
         layout.column += width;
         offset = next;
     }
+    if (output != nullptr && !prefix.empty()) output->append(vt100::kResetAttributes);
 }
 
 void AdvancePromptPrefix(std::string_view prefix, size_t columns, PromptLayout& layout) {
