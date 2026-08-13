@@ -584,6 +584,7 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_SELECT_ROW_LOCKING:
         case AttributeKey::SQL_ROW_LOCKING_OF:
         case AttributeKey::SQL_GROUP_BY_ITEM_ARG:
+        case AttributeKey::SQL_NUMERIC_TYPE_MODIFIERS:
         case AttributeKey::EXT_EXPLAIN_OPTIONS:
             return FormatCommaList(node);
         case AttributeKey::EXT_VARARG_FIELD_VALUE:
@@ -627,6 +628,7 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
             return FormatQualifiedName(node);
         case AttributeKey::SQL_SELECT_DISTINCT:
         case AttributeKey::SQL_SELECT_WITH_CTES:
+        case AttributeKey::SQL_COMBINE_INPUT:
         case AttributeKey::SQL_JOIN_INPUT:
         case AttributeKey::SQL_TABLE_CONSTRAINT_COLUMNS:
         case AttributeKey::SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS:

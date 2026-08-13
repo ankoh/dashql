@@ -239,7 +239,9 @@ TEST(ShellApiTest, RendersHighlightedTerminalPrompt) {
     expected.append(dashql::shell::vt100::kDisableAutoWrap);
     expected.append(dashql::shell::vt100::kCarriageReturn);
     expected.append(dashql::shell::vt100::kEraseEntireLine);
+    expected.append(dashql::shell::vt100::kBold);
     expected.append("db> ");
+    expected.append(dashql::shell::vt100::kResetAttributes);
     expected.append(dashql::shell::vt100::kCarriageReturn);
     expected.append(dashql::shell::vt100::Sequence(4, dashql::shell::vt100::Command::kCursorForward));
     EXPECT_EQ((std::string_view{reinterpret_cast<const char*>(output.data_ptr), output.data_length}), expected);
@@ -335,7 +337,8 @@ TEST(ShellApiTest, ReflowsLongPromptWithoutRepeatingPreviousRender) {
 
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, "SELECT 123456789"), DASHQL_SHELL_OK);
     EXPECT_NE(TerminalData(output).find(dashql::shell::vt100::Sequence(1, dashql::shell::vt100::Command::kCursorDown) +
-                                        "     -> "),
+                                         std::string{dashql::shell::vt100::kBold} + "     -> " +
+                                         std::string{dashql::shell::vt100::kResetAttributes}),
               std::string_view::npos);
     dashql_shell_terminal_result_destroy(&output);
 

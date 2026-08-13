@@ -1,6 +1,6 @@
-parser-snapshots:
+formatter-snapshots:
   # Canonical TPC-DS queries from DuckDB extension/tpcds/dsdgen/queries.
-  - name: tpcds_01
+  - name: coverage_tpcds_01
     input: |-
       WITH customer_total_return AS
         (SELECT sr_customer_sk AS ctr_customer_sk,
@@ -25,7 +25,9 @@ parser-snapshots:
         AND ctr1.ctr_customer_sk = c_customer_sk
       ORDER BY c_customer_id
       LIMIT 100;
-  - name: tpcds_02
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_02
     input: |-
       WITH wscs AS
         (SELECT sold_date_sk,
@@ -106,7 +108,9 @@ parser-snapshots:
            AND d_year = 2001+1) z
       WHERE d_week_seq1 = d_week_seq2-53
       ORDER BY d_week_seq1 NULLS FIRST;
-  - name: tpcds_03
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_03
     input: |-
       SELECT dt.d_year,
              item.i_brand_id brand_id,
@@ -126,7 +130,9 @@ parser-snapshots:
                sum_agg DESC,
                brand_id
       LIMIT 100;
-  - name: tpcds_04
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_04
     input: |-
       WITH year_total AS
         (SELECT c_customer_id customer_id,
@@ -247,7 +253,9 @@ parser-snapshots:
                t_s_secyear.customer_last_name NULLS FIRST,
                t_s_secyear.customer_preferred_cust_flag NULLS FIRST
       LIMIT 100;
-  - name: tpcds_05
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_05
     input: |-
       WITH ssr AS
         (SELECT s_store_id,
@@ -361,7 +369,9 @@ parser-snapshots:
       ORDER BY channel NULLS FIRST,
                id NULLS FIRST
       LIMIT 100;
-  - name: tpcds_06
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_06
     input: |-
       SELECT a.ca_state state,
              count(*) cnt
@@ -388,7 +398,9 @@ parser-snapshots:
       ORDER BY cnt NULLS FIRST,
                a.ca_state NULLS FIRST
       LIMIT 100;
-  - name: tpcds_07
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_07
     input: |-
       SELECT i_item_id,
              avg(ss_quantity) agg1,
@@ -413,7 +425,9 @@ parser-snapshots:
       GROUP BY i_item_id
       ORDER BY i_item_id
       LIMIT 100;
-  - name: tpcds_08
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_08
     input: |-
       SELECT s_store_name,
              sum(ss_net_profit)
@@ -842,7 +856,9 @@ parser-snapshots:
       GROUP BY s_store_name
       ORDER BY s_store_name
       LIMIT 100;
-  - name: tpcds_09
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_09
     input: |-
 
       SELECT CASE
@@ -912,7 +928,9 @@ parser-snapshots:
              END bucket5
       FROM reason
       WHERE r_reason_sk = 1 ;
-  - name: tpcds_10
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_10
     input: |-
       SELECT cd_gender,
              cd_marital_status,
@@ -979,7 +997,9 @@ parser-snapshots:
                cd_dep_employed_count,
                cd_dep_college_count
       LIMIT 100;
-  - name: tpcds_11
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_11
     input: |-
       WITH year_total AS
         (SELECT c_customer_id customer_id,
@@ -1061,7 +1081,9 @@ parser-snapshots:
                t_s_secyear.customer_last_name NULLS FIRST,
                t_s_secyear.customer_preferred_cust_flag NULLS FIRST
       LIMIT 100;
-  - name: tpcds_12
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_12
     input: |-
       SELECT i_item_id,
              i_item_desc,
@@ -1090,7 +1112,9 @@ parser-snapshots:
                i_item_desc,
                revenueratio
       LIMIT 100;
-  - name: tpcds_13
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_13
     input: |-
 
       SELECT avg(ss_quantity) avg1,
@@ -1134,7 +1158,9 @@ parser-snapshots:
                                                                  AND ca_country = 'United States'
                                                                  AND ca_state IN ('VA', 'TX', 'MS')
                                                                  AND ss_net_profit BETWEEN 50 AND 250)) ;
-  - name: tpcds_14
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_14
     input: |-
       WITH cross_items AS
         (SELECT i_item_sk ss_item_sk
@@ -1270,7 +1296,9 @@ parser-snapshots:
                i_class_id NULLS FIRST,
                i_category_id NULLS FIRST
       LIMIT 100;
-  - name: tpcds_15
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_15
     input: |-
       SELECT ca_zip,
              sum(cs_sales_price)
@@ -1299,7 +1327,9 @@ parser-snapshots:
       GROUP BY ca_zip
       ORDER BY ca_zip NULLS FIRST
       LIMIT 100;
-  - name: tpcds_16
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_16
     input: |-
       SELECT count(DISTINCT cs_order_number) AS "order count",
              sum(cs_ext_ship_cost) AS "total shipping cost",
@@ -1325,7 +1355,9 @@ parser-snapshots:
            WHERE cs1.cs_order_number = cr1.cr_order_number)
       ORDER BY count(DISTINCT cs_order_number)
       LIMIT 100;
-  - name: tpcds_17
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_17
     input: |-
       SELECT i_item_id,
              i_item_desc,
@@ -1374,7 +1406,9 @@ parser-snapshots:
                i_item_desc NULLS FIRST,
                s_state NULLS FIRST
       LIMIT 100;
-  - name: tpcds_18
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_18
     input: |-
       SELECT i_item_id,
              ca_country,
@@ -1428,7 +1462,9 @@ parser-snapshots:
           grouping (ca_state) NULLS FIRST,
           grouping (ca_county) NULLS FIRST
       LIMIT 100;
-  - name: tpcds_19
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_19
     input: |-
       SELECT i_brand_id brand_id,
              i_brand brand,
@@ -1460,7 +1496,9 @@ parser-snapshots:
                i_manufact_id,
                i_manufact
       LIMIT 100 ;
-  - name: tpcds_20
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_20
     input: |-
 
       SELECT i_item_id ,
@@ -1490,7 +1528,9 @@ parser-snapshots:
                i_item_desc NULLS FIRST,
                revenueratio NULLS FIRST
       LIMIT 100;
-  - name: tpcds_21
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_21
     input: |-
       SELECT *
       FROM
@@ -1522,7 +1562,9 @@ parser-snapshots:
       ORDER BY w_warehouse_name NULLS FIRST,
                i_item_id NULLS FIRST
       LIMIT 100;
-  - name: tpcds_22
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_22
     input: |-
       SELECT i_product_name ,
              i_brand ,
@@ -1542,7 +1584,9 @@ parser-snapshots:
                i_class NULLS FIRST,
                i_category NULLS FIRST
       LIMIT 100;
-  - name: tpcds_23
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_23
     input: |-
       WITH frequent_ss_items AS
         (SELECT itemdesc,
@@ -1626,7 +1670,9 @@ parser-snapshots:
                c_first_name NULLS FIRST,
                sales NULLS FIRST
       LIMIT 100;
-  - name: tpcds_24
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_24
     input: |-
       WITH ssales AS
         (SELECT c_last_name,
@@ -1680,7 +1726,9 @@ parser-snapshots:
       ORDER BY c_last_name,
                c_first_name,
                s_store_name ;
-  - name: tpcds_25
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_25
     input: |-
 
       SELECT i_item_id ,
@@ -1723,7 +1771,9 @@ parser-snapshots:
                s_store_id ,
                s_store_name
       LIMIT 100;
-  - name: tpcds_26
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_26
     input: |-
       SELECT i_item_id,
              avg(cs_quantity) agg1,
@@ -1748,7 +1798,9 @@ parser-snapshots:
       GROUP BY i_item_id
       ORDER BY i_item_id
       LIMIT 100;
-  - name: tpcds_27
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_27
     input: |-
       WITH results AS
         (SELECT i_item_id,
@@ -1810,7 +1862,9 @@ parser-snapshots:
       ORDER BY i_item_id NULLS FIRST,
                s_state NULLS FIRST
       LIMIT 100;
-  - name: tpcds_28
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_28
     input: |-
       SELECT *
       FROM
@@ -1863,7 +1917,9 @@ parser-snapshots:
                 OR ss_coupon_amt BETWEEN 7326 AND 7326+1000
                 OR ss_wholesale_cost BETWEEN 7 AND 7+20)) B6
       LIMIT 100;
-  - name: tpcds_29
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_29
     input: |-
       SELECT i_item_id,
              i_item_desc,
@@ -1906,7 +1962,9 @@ parser-snapshots:
                s_store_id,
                s_store_name
       LIMIT 100;
-  - name: tpcds_30
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_30
     input: |-
       WITH customer_total_return AS
         (SELECT wr_returning_customer_sk AS ctr_customer_sk,
@@ -1957,7 +2015,9 @@ parser-snapshots:
                c_last_review_date_sk NULLS FIRST,
                ctr_total_return NULLS FIRST
       LIMIT 100;
-  - name: tpcds_31
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_31
     input: |-
       WITH ss AS
         (SELECT ca_county,
@@ -2029,7 +2089,9 @@ parser-snapshots:
                       ELSE NULL
                   END
       ORDER BY ss1.ca_county;
-  - name: tpcds_32
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_32
     input: |-
       SELECT sum(cs_ext_discount_amt) AS "excess discount amount"
       FROM catalog_sales ,
@@ -2047,7 +2109,9 @@ parser-snapshots:
              AND d_date BETWEEN '2000-01-27' AND cast('2000-04-26' AS date)
              AND d_date_sk = cs_sold_date_sk )
       LIMIT 100;
-  - name: tpcds_33
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_33
     input: |-
       WITH ss AS
         ( SELECT i_manufact_id,
@@ -2115,7 +2179,9 @@ parser-snapshots:
       GROUP BY i_manufact_id
       ORDER BY total_sales
       LIMIT 100;
-  - name: tpcds_34
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_34
     input: |-
       SELECT c_last_name ,
              c_first_name ,
@@ -2157,7 +2223,9 @@ parser-snapshots:
                c_salutation NULLS FIRST,
                c_preferred_cust_flag DESC NULLS FIRST,
                ss_ticket_number NULLS FIRST;
-  - name: tpcds_35
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_35
     input: |-
       SELECT ca_state,
              cd_gender,
@@ -2219,7 +2287,9 @@ parser-snapshots:
                cd_dep_employed_count NULLS FIRST,
                cd_dep_college_count NULLS FIRST
       LIMIT 100;
-  - name: tpcds_36
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_36
     input: |-
       WITH results AS
         (SELECT sum(ss_net_profit) AS ss_net_profit,
@@ -2279,7 +2349,9 @@ parser-snapshots:
                END NULLS FIRST,
                rank_within_parent NULLS FIRST
       LIMIT 100;
-  - name: tpcds_37
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_37
     input: |-
       SELECT i_item_id,
              i_item_desc,
@@ -2303,7 +2375,9 @@ parser-snapshots:
                i_current_price
       ORDER BY i_item_id
       LIMIT 100;
-  - name: tpcds_38
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_38
     input: |-
       SELECT count(*)
       FROM
@@ -2333,7 +2407,9 @@ parser-snapshots:
            AND web_sales.ws_bill_customer_sk = customer.c_customer_sk
            AND d_month_seq BETWEEN 1200 AND 1200 + 11 ) hot_cust
       LIMIT 100;
-  - name: tpcds_39
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_39
     input: |-
       WITH inv AS
         (SELECT w_warehouse_name,
@@ -2393,7 +2469,9 @@ parser-snapshots:
                inv2.d_moy NULLS FIRST,
                inv2.mean NULLS FIRST,
                inv2.cov NULLS FIRST;
-  - name: tpcds_40
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_40
     input: |-
       SELECT w_state,
              i_item_id,
@@ -2420,7 +2498,9 @@ parser-snapshots:
       ORDER BY w_state,
                i_item_id
       LIMIT 100;
-  - name: tpcds_41
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_41
     input: |-
       SELECT distinct(i_product_name)
       FROM item i1
@@ -2488,7 +2568,9 @@ parser-snapshots:
                                OR i_size = 'extra large'))))) > 0
       ORDER BY i_product_name
       LIMIT 100;
-  - name: tpcds_42
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_42
     input: |-
       SELECT dt.d_year,
              item.i_category_id,
@@ -2509,7 +2591,9 @@ parser-snapshots:
                                             item.i_category_id,
                                             item.i_category
       LIMIT 100 ;
-  - name: tpcds_43
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_43
     input: |-
 
       SELECT s_store_name,
@@ -2561,7 +2645,9 @@ parser-snapshots:
                fri_sales,
                sat_sales
       LIMIT 100;
-  - name: tpcds_44
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_44
     input: |-
       SELECT asceding.rnk,
              i1.i_product_name best_performing,
@@ -2612,7 +2698,9 @@ parser-snapshots:
           i1.i_product_name desc,
           i2.i_product_name desc
       LIMIT 100;
-  - name: tpcds_45
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_45
     input: |-
       SELECT ca_zip,
              ca_city,
@@ -2655,7 +2743,9 @@ parser-snapshots:
       ORDER BY ca_zip,
                ca_city
       LIMIT 100;
-  - name: tpcds_46
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_46
     input: |-
 
       SELECT c_last_name,
@@ -2704,7 +2794,9 @@ parser-snapshots:
                bought_city NULLS FIRST,
                ss_ticket_number NULLS FIRST
       LIMIT 100;
-  - name: tpcds_47
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_47
     input: |-
       WITH v1 AS
         (SELECT i_category,
@@ -2777,7 +2869,9 @@ parser-snapshots:
             END > 0.1
       ORDER BY sum_sales - avg_monthly_sales, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
       LIMIT 100;
-  - name: tpcds_48
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_48
     input: |-
       SELECT SUM (ss_quantity)
       FROM store_sales,
@@ -2818,7 +2912,9 @@ parser-snapshots:
                                   'CA',
                                   'MS')
                  AND ss_net_profit BETWEEN 50 AND 25000)) ;
-  - name: tpcds_49
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_49
     input: |-
 
       SELECT channel,
@@ -2922,7 +3018,9 @@ parser-snapshots:
                5 NULLS FIRST,
                2 NULLS FIRST
       LIMIT 100;
-  - name: tpcds_50
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_50
     input: |-
       SELECT s_store_name,
              s_company_id,
@@ -2991,7 +3089,9 @@ parser-snapshots:
                s_state,
                s_zip
       LIMIT 100;
-  - name: tpcds_51
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_51
     input: |-
       WITH web_v1 AS
         (SELECT ws_item_sk item_sk,
@@ -3045,7 +3145,9 @@ parser-snapshots:
       ORDER BY item_sk NULLS FIRST,
                d_date NULLS FIRST
       LIMIT 100;
-  - name: tpcds_52
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_52
     input: |-
       SELECT dt.d_year,
              item.i_brand_id brand_id,
@@ -3066,7 +3168,9 @@ parser-snapshots:
                ext_price DESC,
                brand_id
       LIMIT 100 ;
-  - name: tpcds_53
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_53
     input: |-
       SELECT *
       FROM
@@ -3115,7 +3219,9 @@ parser-snapshots:
                sum_sales,
                i_manufact_id
       LIMIT 100;
-  - name: tpcds_54
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_54
     input: |-
       WITH my_customers AS
         (SELECT DISTINCT c_customer_sk,
@@ -3174,7 +3280,9 @@ parser-snapshots:
                num_customers NULLS FIRST,
                segment_base
       LIMIT 100;
-  - name: tpcds_55
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_55
     input: |-
       SELECT i_brand_id brand_id,
              i_brand brand,
@@ -3192,7 +3300,9 @@ parser-snapshots:
       ORDER BY ext_price DESC,
                i_brand_id
       LIMIT 100 ;
-  - name: tpcds_56
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_56
     input: |-
       WITH ss AS
         (SELECT i_item_id,
@@ -3267,7 +3377,9 @@ parser-snapshots:
       ORDER BY total_sales  NULLS FIRST,
                i_item_id NULLS FIRST
       LIMIT 100;
-  - name: tpcds_57
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_57
     input: |-
       WITH v1 AS
         (SELECT i_category,
@@ -3333,7 +3445,9 @@ parser-snapshots:
             END > 0.1
       ORDER BY sum_sales - avg_monthly_sales NULLS FIRST, 1, 2, 3, 4, 5, 6, 7, 8, 9
       LIMIT 100;
-  - name: tpcds_58
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_58
     input: |-
       WITH ss_items AS
         (SELECT i_item_id item_id,
@@ -3405,7 +3519,9 @@ parser-snapshots:
       ORDER BY ss_items.item_id NULLS FIRST,
                ss_item_rev NULLS FIRST
       LIMIT 100;
-  - name: tpcds_59
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_59
     input: |-
       WITH wss AS
         (SELECT d_week_seq,
@@ -3492,7 +3608,9 @@ parser-snapshots:
                s_store_id1 NULLS FIRST,
                d_week_seq1 NULLS FIRST
       LIMIT 100;
-  - name: tpcds_60
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_60
     input: |-
       WITH ss AS
         (SELECT i_item_id,
@@ -3561,7 +3679,9 @@ parser-snapshots:
       ORDER BY i_item_id,
                total_sales
       LIMIT 100;
-  - name: tpcds_61
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_61
     input: |-
       SELECT promotions,
              total,
@@ -3609,7 +3729,9 @@ parser-snapshots:
       ORDER BY promotions,
                total
       LIMIT 100;
-  - name: tpcds_62
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_62
     input: |-
       SELECT w_substr,
              sm_type,
@@ -3656,7 +3778,9 @@ parser-snapshots:
                2 NULLS FIRST,
                3 NULLS FIRST
       LIMIT 100;
-  - name: tpcds_63
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_63
     input: |-
 
       SELECT *
@@ -3706,7 +3830,9 @@ parser-snapshots:
                avg_monthly_sales,
                sum_sales
       LIMIT 100;
-  - name: tpcds_64
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_64
     input: |-
       WITH cs_ui AS
         (SELECT cs_item_sk,
@@ -3832,7 +3958,9 @@ parser-snapshots:
                cs2.cnt,
                cs1.s1,
                cs2.s1;
-  - name: tpcds_65
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_65
     input: |-
       SELECT s_store_name,
              i_item_desc,
@@ -3873,7 +4001,9 @@ parser-snapshots:
                s_store_sk NULLS FIRST,
                i_item_sk NULLS FIRST
       LIMIT 100;
-  - name: tpcds_66
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_66
     input: |-
       select
                w_warehouse_name
@@ -4092,7 +4222,9 @@ parser-snapshots:
              ,year_
        order by w_warehouse_name NULLS FIRST
       LIMIT 100;
-  - name: tpcds_67
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_67
     input: |-
       SELECT *
       FROM
@@ -4138,7 +4270,9 @@ parser-snapshots:
                sumsales NULLS FIRST,
                rk NULLS FIRST
       LIMIT 100;
-  - name: tpcds_68
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_68
     input: |-
       SELECT c_last_name,
              c_first_name,
@@ -4184,7 +4318,9 @@ parser-snapshots:
       ORDER BY c_last_name NULLS FIRST,
                ss_ticket_number NULLS FIRST
       LIMIT 100;
-  - name: tpcds_69
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_69
     input: |-
       SELECT cd_gender,
              cd_marital_status,
@@ -4237,7 +4373,9 @@ parser-snapshots:
                cd_purchase_estimate,
                cd_credit_rating
       LIMIT 100;
-  - name: tpcds_70
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_70
     input: |-
       SELECT sum(ss_net_profit) AS total_sum,
              s_state,
@@ -4275,7 +4413,9 @@ parser-snapshots:
                END ,
                rank_within_parent
       LIMIT 100;
-  - name: tpcds_71
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_71
     input: |-
       SELECT i_brand_id brand_id,
              i_brand brand,
@@ -4324,7 +4464,9 @@ parser-snapshots:
                i_brand_id NULLS FIRST,
                t_hour NULLS FIRST,
                t_minute NULLS FIRST;
-  - name: tpcds_72
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_72
     input: |-
       SELECT i_item_desc,
              w_warehouse_name,
@@ -4364,9 +4506,11 @@ parser-snapshots:
                w_warehouse_name NULLS FIRST,
                d1.d_week_seq NULLS FIRST
       LIMIT 100;
-  - name: tpcds_73
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_73
     input: |-
-      
+
       SELECT c_last_name,
              c_first_name,
              c_salutation,
@@ -4408,7 +4552,9 @@ parser-snapshots:
                c_last_name ASC,
                ss_ticket_number ASC,
                ss_customer_sk ASC;
-  - name: tpcds_74
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_74
     input: |-
       WITH year_total AS
         (SELECT c_customer_id customer_id,
@@ -4474,7 +4620,9 @@ parser-snapshots:
                   END
       ORDER BY 1 NULLS FIRST
       LIMIT 100;
-  - name: tpcds_75
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_75
     input: |-
       WITH all_sales AS
         ( SELECT d_year ,
@@ -4551,7 +4699,9 @@ parser-snapshots:
       ORDER BY sales_cnt_diff,
                sales_amt_diff
       LIMIT 100;
-  - name: tpcds_76
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_76
     input: |-
       SELECT channel,
              col_name,
@@ -4608,7 +4758,9 @@ parser-snapshots:
                d_qoy NULLS FIRST,
                i_category NULLS FIRST
       LIMIT 100;
-  - name: tpcds_77
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_77
     input: |-
       WITH ss AS
         (SELECT s_store_sk,
@@ -4705,7 +4857,9 @@ parser-snapshots:
                id NULLS FIRST,
                returns_ DESC
       LIMIT 100;
-  - name: tpcds_78
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_78
     input: |-
       WITH ws AS
         (SELECT d_year AS ws_sold_year,
@@ -4783,7 +4937,9 @@ parser-snapshots:
                other_chan_sales_price,
                ratio
       LIMIT 100;
-  - name: tpcds_79
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_79
     input: |-
       SELECT c_last_name,
              c_first_name,
@@ -4823,7 +4979,9 @@ parser-snapshots:
                profit NULLS FIRST,
                ss_ticket_number
       LIMIT 100;
-  - name: tpcds_80
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_80
     input: |-
       WITH ssr AS
         (SELECT s_store_id AS store_id,
@@ -4911,7 +5069,9 @@ parser-snapshots:
       ORDER BY channel NULLS FIRST,
                id NULLS FIRST
       LIMIT 100;
-  - name: tpcds_81
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_81
     input: |-
       WITH customer_total_return AS
         (SELECT cr_returning_customer_sk AS ctr_customer_sk ,
@@ -4968,9 +5128,11 @@ parser-snapshots:
                ca_location_type,
                ctr_total_return
       LIMIT 100;
-  - name: tpcds_82
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_82
     input: |-
-      
+
       SELECT i_item_id ,
              i_item_desc ,
              i_current_price
@@ -4993,7 +5155,9 @@ parser-snapshots:
                i_current_price
       ORDER BY i_item_id
       LIMIT 100;
-  - name: tpcds_83
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_83
     input: |-
       WITH sr_items AS
         (SELECT i_item_id item_id,
@@ -5065,7 +5229,9 @@ parser-snapshots:
       ORDER BY sr_items.item_id NULLS FIRST,
                sr_item_qty NULLS FIRST
       LIMIT 100;
-  - name: tpcds_84
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_84
     input: |-
       SELECT c_customer_id AS customer_id ,
              concat(concat(coalesce(c_last_name, '') , ', '), coalesce(c_first_name, '')) AS customername
@@ -5085,7 +5251,9 @@ parser-snapshots:
         AND sr_cdemo_sk = cd_demo_sk
       ORDER BY c_customer_id NULLS FIRST
       LIMIT 100;
-  - name: tpcds_85
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_85
     input: |-
 
       SELECT SUBSTRING(r_reason_desc,1,20) ,
@@ -5145,7 +5313,9 @@ parser-snapshots:
                avg(wr_refunded_cash) ,
                avg(wr_fee)
       LIMIT 100;
-  - name: tpcds_86
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_86
     input: |-
       SELECT sum(ws_net_paid) AS total_sum ,
              i_category ,
@@ -5169,7 +5339,9 @@ parser-snapshots:
                END NULLS FIRST,
                rank_within_parent NULLS FIRST
       LIMIT 100;
-  - name: tpcds_87
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_87
     input: |-
       SELECT count(*)
       FROM ((SELECT DISTINCT c_last_name,
@@ -5201,7 +5373,9 @@ parser-snapshots:
                WHERE web_sales.ws_sold_date_sk = date_dim.d_date_sk
                  AND web_sales.ws_bill_customer_sk = customer.c_customer_sk
                  AND d_month_seq BETWEEN 1200 AND 1200+11)) cool_cust ;
-  - name: tpcds_88
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_88
     input: |-
       SELECT *
       FROM
@@ -5341,7 +5515,9 @@ parser-snapshots:
                 OR (household_demographics.hd_dep_count = 0
                     AND household_demographics.hd_vehicle_count<=0+2))
            AND store.s_store_name = 'ese') s8 ;
-  - name: tpcds_89
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_89
     input: |-
 
       SELECT * from
@@ -5363,7 +5539,9 @@ parser-snapshots:
       ORDER BY sum_sales - avg_monthly_sales,
                s_store_name, 1, 2, 3, 5, 6, 7, 8
       LIMIT 100;
-  - name: tpcds_90
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_90
     input: |-
       SELECT case when pmc=0 then null else cast(amc AS decimal(15,4))/cast(pmc AS decimal(15,4)) end am_pm_ratio
       FROM
@@ -5391,7 +5569,9 @@ parser-snapshots:
            AND web_page.wp_char_count BETWEEN 5000 AND 5200) pt
       ORDER BY am_pm_ratio
       LIMIT 100;
-  - name: tpcds_91
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_91
     input: |-
       SELECT cc_call_center_id Call_Center,
              cc_name Call_Center_Name,
@@ -5423,7 +5603,9 @@ parser-snapshots:
                cd_marital_status,
                cd_education_status
       ORDER BY sum(cr_net_loss) DESC;
-  - name: tpcds_92
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_92
     input: |-
       SELECT sum(ws_ext_discount_amt) AS "Excess Discount Amount"
       FROM web_sales,
@@ -5442,7 +5624,9 @@ parser-snapshots:
              AND d_date_sk = ws_sold_date_sk )
       ORDER BY sum(ws_ext_discount_amt)
       LIMIT 100;
-  - name: tpcds_93
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_93
     input: |-
       SELECT ss_customer_sk,
              sum(act_sales) sumsales
@@ -5463,9 +5647,11 @@ parser-snapshots:
       ORDER BY sumsales NULLS FIRST,
                ss_customer_sk NULLS FIRST
       LIMIT 100;
-  - name: tpcds_94
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_94
     input: |-
-      
+
       SELECT count(DISTINCT ws_order_number) AS "order count" ,
              sum(ws_ext_ship_cost) AS "total shipping cost" ,
              sum(ws_net_profit) AS "total net profit"
@@ -5490,7 +5676,9 @@ parser-snapshots:
            WHERE ws1.ws_order_number = wr1.wr_order_number)
       ORDER BY count(DISTINCT ws_order_number)
       LIMIT 100;
-  - name: tpcds_95
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_95
     input: |-
       WITH ws_wh AS
         (SELECT ws1.ws_order_number,
@@ -5523,7 +5711,9 @@ parser-snapshots:
            WHERE wr_order_number = ws_wh.ws_order_number)
       ORDER BY count(DISTINCT ws_order_number)
       LIMIT 100;
-  - name: tpcds_96
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_96
     input: |-
       SELECT count(*)
       FROM store_sales ,
@@ -5539,7 +5729,9 @@ parser-snapshots:
         AND store.s_store_name = 'ese'
       ORDER BY count(*)
       LIMIT 100;
-  - name: tpcds_97
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_97
     input: |-
       WITH ssci AS
         (SELECT ss_customer_sk customer_sk ,
@@ -5575,7 +5767,9 @@ parser-snapshots:
       FULL OUTER JOIN csci ON (ssci.customer_sk=csci.customer_sk
                                AND ssci.item_sk = csci.item_sk)
       LIMIT 100;
-  - name: tpcds_98
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_98
     input: |-
       SELECT i_item_id ,
              i_item_desc,
@@ -5603,7 +5797,9 @@ parser-snapshots:
                i_item_id  NULLS FIRST,
                i_item_desc  NULLS FIRST,
                revenueratio NULLS FIRST;
-  - name: tpcds_99
+    dialects:
+      duckdb:
+  - name: coverage_tpcds_99
     input: |-
       SELECT w_substr ,
              sm_type ,
@@ -5649,3 +5845,5 @@ parser-snapshots:
                sm_type  NULLS FIRST,
               cc_name NULLS FIRST
       LIMIT 100;
+    dialects:
+      duckdb:

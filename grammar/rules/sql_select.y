@@ -2348,6 +2348,7 @@ sql_col_id_or_string:
 sql_type_function_name:
     IDENT                       { $$ = NameFromIdentifier(@1, $1); }
   | sql_unreserved_keywords     { $$ = ctx.NameFromKeyword(@1, $1); }
+  | GROUPING                    { $$ = ctx.NameFromKeyword(@1, "grouping"); }
   | sql_type_func_keywords      { $$ = ctx.NameFromKeyword(@1, $1); }
   | vis_unreserved_keywords     { $$ = ctx.NameFromKeyword(@1, $1); }
     ;

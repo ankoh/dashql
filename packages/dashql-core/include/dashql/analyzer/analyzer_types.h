@@ -265,25 +265,45 @@ struct ScopeColumn {
     std::variant<std::reference_wrapper<Expression>, std::reference_wrapper<const TableColumn>> source;
 
     /// Get the resolved catalog IDs (reads live state from the source)
-    std::optional<Expression::ResolvedColumnIDs> GetResolvedIDs() const {
-        if (auto* expr_ref = std::get_if<std::reference_wrapper<Expression>>(&source)) {
-            if (auto* col_ref = std::get_if<Expression::ColumnRef>(&expr_ref->get().inner)) {
-                if (auto* tc = std::get_if<std::reference_wrapper<const TableColumn>>(&col_ref->resolved)) {
-                    auto& col = tc->get();
-                    auto& table = col.table->get();
-                    return Expression::ResolvedColumnIDs{
-                        .catalog_schema_id = table.catalog_schema_id,
-                        .catalog_table_column_id = col.object_id,
-                        .referenced_catalog_version = table.catalog_version,
-                    };
-                }
-                if (auto* sc = std::get_if<std::reference_wrapper<const ScopeColumn>>(&col_ref->resolved)) {
-                    return sc->get().GetResolvedIDs();
-                }
-            }
-            return std::nullopt;
+    std::optional<Expression::ResolvedColumnIDs> GetResolvedIDs() const;
+};
+
+inline std::optional<Expression::ResolvedColumnIDs> Expression::ColumnRef::GetResolvedColumnIDs() const {
+    auto* current = &resolved;
+    for (size_t depth = 0; depth < 256; ++depth) {
+        if (auto* tc = std::get_if<std::reference_wrapper<const TableColumn>>(current)) {
+            auto& col = tc->get();
+            auto& table = col.table->get();
+            return ResolvedColumnIDs{
+                .catalog_schema_id = table.catalog_schema_id,
+                .catalog_table_column_id = col.object_id,
+                .referenced_catalog_version = table.catalog_version,
+            };
         }
-        auto& col = std::get<std::reference_wrapper<const TableColumn>>(source).get();
+        auto* scope_ref = std::get_if<std::reference_wrapper<const ScopeColumn>>(current);
+        if (!scope_ref) return std::nullopt;
+
+        auto* scope = &scope_ref->get();
+        if (auto* tc = std::get_if<std::reference_wrapper<const TableColumn>>(&scope->source)) {
+            auto& col = tc->get();
+            auto& table = col.table->get();
+            return ResolvedColumnIDs{
+                .catalog_schema_id = table.catalog_schema_id,
+                .catalog_table_column_id = col.object_id,
+                .referenced_catalog_version = table.catalog_version,
+            };
+        }
+        auto& expression = std::get<std::reference_wrapper<Expression>>(scope->source).get();
+        auto* column_ref = std::get_if<ColumnRef>(&expression.inner);
+        if (!column_ref) return std::nullopt;
+        current = &column_ref->resolved;
+    }
+    return std::nullopt;
+}
+
+inline std::optional<Expression::ResolvedColumnIDs> ScopeColumn::GetResolvedIDs() const {
+    if (auto* table_ref = std::get_if<std::reference_wrapper<const TableColumn>>(&source)) {
+        auto& col = table_ref->get();
         auto& table = col.table->get();
         return Expression::ResolvedColumnIDs{
             .catalog_schema_id = table.catalog_schema_id,
@@ -291,20 +311,9 @@ struct ScopeColumn {
             .referenced_catalog_version = table.catalog_version,
         };
     }
-};
-
-inline std::optional<Expression::ResolvedColumnIDs> Expression::ColumnRef::GetResolvedColumnIDs() const {
-    if (auto* tc = std::get_if<std::reference_wrapper<const TableColumn>>(&resolved)) {
-        auto& col = tc->get();
-        auto& table = col.table->get();
-        return ResolvedColumnIDs{
-            .catalog_schema_id = table.catalog_schema_id,
-            .catalog_table_column_id = col.object_id,
-            .referenced_catalog_version = table.catalog_version,
-        };
-    }
-    if (auto* s = std::get_if<std::reference_wrapper<const ScopeColumn>>(&resolved)) return s->get().GetResolvedIDs();
-    return std::nullopt;
+    auto& expression = std::get<std::reference_wrapper<Expression>>(source).get();
+    auto* column_ref = std::get_if<Expression::ColumnRef>(&expression.inner);
+    return column_ref ? column_ref->GetResolvedColumnIDs() : std::nullopt;
 }
 
 struct NameScope;

@@ -256,5 +256,16 @@ TEST(ShellSessionTest, AlignsContinuationMarkerWithPromptMarker) {
     EXPECT_NE(long_output.data.find("              -> "), std::string::npos);
 }
 
+TEST(ShellSessionTest, RendersShellPrefixesInBold) {
+    Catalog catalog;
+    ShellSession session{catalog, 80};
+    const auto initial = session.OpenTerminal("dashql> ", false);
+    ASSERT_EQ(initial.status, ShellStatus::kOk);
+    EXPECT_NE(initial.data.find("\x1b[1mdashql> \x1b[0m"), std::string::npos);
+
+    const auto continuation = session.ConsumeTerminalInput(PromptInputKey::kEnter);
+    EXPECT_NE(continuation.data.find("\x1b[1m     -> \x1b[0m"), std::string::npos);
+}
+
 }  // namespace
 }  // namespace dashql::shell
