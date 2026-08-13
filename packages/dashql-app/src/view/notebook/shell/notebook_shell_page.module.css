@@ -44,6 +44,11 @@
     display: none;
 }
 
+.terminal :global(.xterm-scrollable-element > .scrollbar.vertical > .slider) {
+    left: 4px !important;
+    width: 6px !important;
+}
+
 .status {
     position: absolute;
     top: 12px;
