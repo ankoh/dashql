@@ -6,7 +6,7 @@ It spans two layers: a C++ core that computes and scores candidates, and a TypeS
 ## Compute pipeline summary
 
 ```
-Completion::Compute(cursor, k, registry)
+Completion::Compute(cursor, k)
 │
 ├─ Validate cursor has scanner location
 ├─ Select target symbol (current vs. previous)
@@ -30,13 +30,10 @@ Completion::Compute(cursor, k, registry)
 │     └─ PromoteTablesAndPeersForUnresolvedColumns()
 │
 ├─ PromoteIdentifiersInScope()
-├─ PromoteIdentifiersInScripts(registry)
 ├─ SelectTopCandidates()          → top-k heap
 ├─ QualifyTopCandidates()         → derive qualified names
 │
-├─ [if identifier context && !at_definition]
-│  └─ FindIdentifierSnippetsForTopCandidates(registry)   (write front only)
-├─ DeriveKeywordSnippetsForTopCandidates(prefix snapshot)
+├─ DeriveKeywordContinuationsForTopCandidates(prefix snapshot)
 │   └─ ProbeSuffixSequenceFromSnapshot() — keep continuation if suffix still parses (mid-statement)
 │
 └─ Pack() → FlatBuffer result to frontend
@@ -199,13 +196,11 @@ Accepting a passive hint is not interactive; the user simply starts typing the s
 
 ## Promotion passes
 
-After initial candidate collection, three promotion passes tag candidates with additional context:
+After initial candidate collection, two promotion passes tag candidates with additional context:
 
 1. **PromoteTablesAndPeersForUnresolvedColumns** — If the current statement has unresolved column references, tables containing those columns get `RESOLVING_TABLE` (+5). Sibling columns of unresolved ones get `UNRESOLVED_PEER` (+1).
 
 2. **PromoteIdentifiersInScope** — Walks the cursor's naming scopes (innermost first) and tags reachable candidates with `IN_NAME_SCOPE` (+10).
-
-3. **PromoteIdentifiersInScripts** — Uses the script registry to find candidates referenced in the same statement, same script, or other scripts. Tags with `IN_SAME_STATEMENT` (+1), `IN_SAME_SCRIPT` (+1), `IN_OTHER_SCRIPT` (+1).
 
 ## Scoring and ranking
 
@@ -220,37 +215,12 @@ Ties are broken lexicographically (case-insensitive, smaller name wins).
 `SelectTopCandidates()` extracts the top-k candidates from the scored heap.
 `QualifyTopCandidates()` derives qualified names for the winners (e.g. `schema.table` instead of just `table`) when the catalog object prefers qualification.
 
-## Snippets
-
-### Script registry integration
-
-The `ScriptRegistry` indexes computations and filters across all analyzed scripts.
-It is orthogonal to the catalog: the catalog stores identifiers, the registry stores how those identifiers are *used*.
-
-#### What it indexes
-
-- **Column filters** — WHERE-clause predicates referencing a specific column (e.g. `WHERE status = 'active'`).
-- **Column computations** — expressions that transform a column (e.g. `DATE_TRUNC('month', created_at)`).
-
-Both are indexed by `QualifiedCatalogObjectID` (database + schema + table + column) in btree sets for prefix search.
-
-#### How it participates in completion
-
-1. **Promotion** (`PromoteIdentifiersInScripts`): The registry tells the scoring system which candidates appear in other scripts, boosting their rank with `IN_SAME_SCRIPT` / `IN_OTHER_SCRIPT` tags.
-
-2. **Snippets** (`FindIdentifierSnippetsForTopCandidates`): After top-k selection, the engine queries the registry for filter and computation snippets associated with each winning catalog object. These become the templates offered in step 3 of multi-step completion. Snippets are attached only at the write front (`has_post_cursor_token` false): a template splices a multi-token snippet with a value placeholder (e.g. `a = <value>`), which can't be cleanly replayed through the parser like a keyword continuation, so mid-statement the snippet is suppressed rather than suffix-checked.
-
-#### Lazy cleanup
-
-The registry uses lazy invalidation: when a script is modified, stale entries are cleaned up on the next lookup rather than eagerly.
-This means the btree may temporarily contain references to outdated script analyses, but false positives are harmless — they are detected and removed when accessed.
-
-### Keyword continuations
+## Keyword continuations
 
 When a keyword candidate is selected, the engine computes a *continuation* — the most likely keyword that follows it.
 For example, `group` gets continuation `by`, `order` gets `by`, `inner` gets `join`.
 
-`DeriveKeywordSnippetsForTopCandidates` runs `Parser::ParseUntilAfter` to simulate feeding the candidate keyword and inspecting what the grammar expects next.
+`DeriveKeywordContinuationsForTopCandidates` runs `Parser::ParseUntilAfter` to simulate feeding the candidate keyword and inspecting what the grammar expects next.
 The `find_continuation` heuristic picks a continuation when:
 - Exactly one keyword/operator is expected after the feed, OR
 - One keyword has a uniquely highest `getKeywordContinuationScore` (a hardcoded priority for keywords like BY, AS, ON, TABLE, SET).
@@ -259,18 +229,18 @@ When many unreserved keywords are expected (because IDENT is valid and all unres
 
 Identifier candidates also receive a continuation: the engine feeds `IDENT` once and finds the best keyword continuation for the generic identifier case (e.g. identifiers in CTE position get `as`).
 
-A chosen continuation is then validated against the post-cursor stream. At the write front it is always kept; mid-statement, `DeriveKeywordSnippetsForTopCandidates` runs the [sequence probe](#sequence-probe-continuations) on `[candidate, continuation]` and keeps the continuation only if the real suffix still parses. This drops continuations that would collide with trailing text (e.g. `into` before `from`, or a `by` that a reserved `where` follows) while keeping valid mid-statement ones — replacing an earlier blanket "write front only" gate that suppressed all mid-statement continuations. Note the probe uses the parser's k=1 test, so an unreserved keyword that follows (e.g. a column literally named `by`) leaves the continuation compatible.
+A chosen continuation is then validated against the post-cursor stream. At the write front it is always kept; mid-statement, `DeriveKeywordContinuationsForTopCandidates` runs the [sequence probe](#sequence-probe-continuations) on `[candidate, continuation]` and keeps the continuation only if the real suffix still parses. This drops continuations that would collide with trailing text (e.g. `into` before `from`, or a `by` that a reserved `where` follows) while keeping valid mid-statement ones. Note the probe uses the parser's k=1 test, so an unreserved keyword that follows (e.g. a column literally named `by`) leaves the continuation compatible.
 
 The frontend renders the continuation as additional ghost text after the candidate insertion (e.g. typing `gro` shows `group by` as the inline hint).
 
 ## Multi-step completion
 
-A completion is not a single atomic action — it progresses through up to three steps, each activated by a keypress.
+A completion can progress through candidate selection and catalog-object qualification, each activated by a keypress.
 
 ### Completion status progression
 
 ```
-AVAILABLE → SELECTED_CANDIDATE → SELECTED_CATALOG_OBJECT → SELECTED_TEMPLATE
+AVAILABLE → SELECTED_CANDIDATE → SELECTED_CATALOG_OBJECT
 ```
 
 ### Step 1: Candidate selection (Tab)
@@ -286,19 +256,12 @@ If the selected candidate has multiple catalog objects (e.g. a column name that 
 After accepting a candidate, if the winning catalog object prefers qualification (e.g. `schema.table` instead of just `table`), **Tab** applies the qualification patch — inserting the prefix/suffix around the already-inserted name.
 The status advances to `SELECTED_CATALOG_OBJECT`.
 
-### Step 3: Template insertion (Tab)
-
-If the catalog object has script templates (filters or computations found in the script registry), another **Tab** press inserts the template snippet around the qualified name.
-The status advances to `SELECTED_TEMPLATE`.
-
-For functions without templates, a default `()` snippet is inserted with the cursor placed between the parentheses.
-
 ### Keyboard bindings
 
 | Key        | AVAILABLE state                | SELECTED_CANDIDATE          | SELECTED_CATALOG_OBJECT     |
 |------------|-------------------------------|-----------------------------|-----------------------------|
 | Enter      | Insert newline                 | Insert newline              | Insert newline              |
-| Tab        | Accept candidate (+ continue) | Apply qualification         | Apply template              |
+| Tab        | Accept candidate (+ continue) | Apply qualification         | —                           |
 | Arrow Up   | Previous candidate            | —                           | —                           |
 | Arrow Down | Next candidate                | —                           | —                           |
 | Arrow Left | Previous catalog object       | —                           | —                           |
@@ -310,7 +273,6 @@ For functions without templates, a default `()` snippet is inserted with the cur
 The editor renders inline decorations for pending patches:
 - **Candidate hints** — ghost text showing what Tab will insert or delete.
 - **Catalog object hints** — ghost text showing the qualification prefix/suffix that the next Tab will add.
-- **Template hints** — ghost text showing the template snippet that the final Tab will insert.
 
 At a zero-length completion target, the editor and shell show only the best candidate as an inline hint. The candidate list appears after the user enters the first character of the prefix.
 
@@ -319,7 +281,7 @@ Each hint category has a distinct visual style (color-coded CSS classes) and a k
 ## SelectCandidate / SelectQualifiedCandidate
 
 After the user accepts a candidate, the frontend calls back into the core via `SelectCandidate`.
-This re-resolves the cursor's name path at the new text state to produce updated target locations for the qualification and template patches.
+This re-resolves the cursor's name path at the new text state to produce updated target locations for qualification.
 If the user accepted a specific catalog object (e.g. picked a particular table for an ambiguous column), `SelectQualifiedCandidate` narrows the result to that single object.
 
 ## Frontend rendering
@@ -335,9 +297,8 @@ The TypeScript layer is split into four CodeMirror plugins:
 
 ### Patch computation
 
-`computePatches` derives three arrays of text operations (insert/delete) from the FlatBuffer completion result:
+`computePatches` derives text operations (insert/delete) from the FlatBuffer completion result:
 - `candidatePatch` — diff between current text at target location and the candidate's completion text.
 - `catalogObjectPatch` — diff for the qualification prefix/suffix.
-- `templatePatch` — diff for the template snippet.
 
 The `completionDiff(at, have, want)` function produces minimal patches: if `have` is a substring of `want`, it emits targeted inserts before/after; otherwise it emits a delete + insert.

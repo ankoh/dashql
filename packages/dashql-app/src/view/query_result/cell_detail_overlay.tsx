@@ -175,7 +175,6 @@ function SqlTextView(props: SqlTextViewProps) {
                 changes,
                 effects: [
                     DashQLUpdateEffect.of({
-                        scriptRegistry: null,
                         scriptKey: activeScript.getCatalogEntryId(),
                         script: activeScript,
                         scriptBuffers: buffers,

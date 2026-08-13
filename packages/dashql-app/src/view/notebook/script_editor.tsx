@@ -137,7 +137,6 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
     // Notify the CodeMirror extension
     effects.push(
         DashQLUpdateEffect.of({
-            scriptRegistry: scripts.scriptRegistry,
             scriptKey: scriptData.scriptKey,
             script: scriptData.script,
             scriptBuffers: scriptData.scriptAnalysis.buffers,

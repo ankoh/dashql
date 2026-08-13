@@ -1,6 +1,6 @@
 # Core Analyzer
 
-The analyzer transforms a `ParsedScript` (a flat post-order AST buffer) into an `AnalyzedScript` enriched with semantic information: resolved names, expression types, column computations, filters, and visualization specs.
+The analyzer transforms a `ParsedScript` (a flat post-order AST buffer) into an `AnalyzedScript` enriched with semantic information such as resolved names, expression types, constants, and visualization specs.
 
 ## AST Layout and Left-to-Right Traversal
 
@@ -45,11 +45,9 @@ All passes execute in a single sweep in this order:
 | 1 | NameResolutionPass | Resolve table and column references |
 | 2 | IdentifyFunctionCallsPass | Map function call expressions |
 | 3 | ConstantPropagationPass | Identify constant sub-expressions |
-| 4 | IdentifyColumnComputationsPass | Detect single-column projections |
-| 5 | IdentifyColumnFiltersPass | Detect column filter predicates |
-| 6 | AnalyzeVisualizationPass | Extract visualization specs |
+| 4 | AnalyzeVisualizationPass | Extract visualization specs |
 
-Passes 3-5 depend on results from pass 1 (resolved column refs) via the shared `ExpressionIndex`. Because the morsel loop runs passes sequentially within each morsel, pass N sees the output of pass N-1 for the same morsel.
+Later passes can depend on results from earlier passes via the shared `ExpressionIndex`. Because the morsel loop runs passes sequentially within each morsel, pass N sees the output of pass N-1 for the same morsel.
 
 ### 1. Name Resolution
 
@@ -89,23 +87,7 @@ Bottom-up identification of constant expressions:
 - A cast or function call is constant if all its arguments are constant
 - During Finish, collects non-redundant constant roots (roots whose parent is not also constant)
 
-### 4. Identify Column Computations
-
-Detects expressions that transform a single column, like `json_value(col, '$.key')` or `regexp_extract(col, pattern)`:
-- The expression is a function call or cast
-- Exactly one argument is a column reference (or nested column computation)
-- All other arguments are constant expressions
-- Marks such expressions with `is_column_computation = true`
-
-### 5. Identify Column Filters
-
-Detects comparison predicates on a single (optionally projected) column:
-- The expression is an n-ary expression with a comparison operator (`=`, `!=`, `<`, `>`, `<=`, `>=`)
-- One side is a column computation or column ref
-- The other side is a constant expression
-- Marks such expressions with `is_column_filter = true`
-
-### 6. Analyze Visualization
+### 4. Analyze Visualization
 
 Processes DashQL visualization AST nodes, extracting:
 - The complete, self-contained classical `SELECT` query on the left side of
@@ -136,8 +118,6 @@ The `AnalyzedScript` contains:
 - `table_references` / `table_declarations` — resolved table refs and DDL tables
 - `expressions` — all semantic expressions (column refs, literals, comparisons, functions, etc.)
 - `constant_expressions` — identified constant roots
-- `column_computations` — single-column transformations
-- `column_filters` — single-column filter predicates
 - `visualization_specs` — extracted visualization configurations
 - `node_markers` — parallel vector tagging AST nodes with their semantic role
 - `errors` — analyzer diagnostics (ambiguous refs, duplicates, etc.)

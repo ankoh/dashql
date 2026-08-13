@@ -332,9 +332,14 @@ std::vector<CompletionCandidate> ShellSession::CompletePrompt(size_t limit) {
     candidates.reserve(completion->GetResultCandidates().size());
     for (const auto& candidate : completion->GetResultCandidates()) {
         std::string quoted;
-        const auto completion_text = candidate.completion_text_is_verbatim
-                                         ? candidate.completion_text
-                                         : quote_anyupper_fuzzy(candidate.completion_text, quoted);
+        std::string completion_text{candidate.completion_text_is_verbatim
+                                        ? candidate.completion_text
+                                        : quote_anyupper_fuzzy(candidate.completion_text, quoted)};
+        bool is_function = false;
+        for (const auto& object : candidate.catalog_objects) {
+            is_function |= object.catalog_object.GetObjectType() == CatalogObjectType::FunctionDeclaration;
+        }
+        if (is_function) completion_text.append("()");
         std::vector<std::string> qualification_texts;
         for (const auto& object : candidate.catalog_objects) {
             if (object.prefer_qualified && !object.qualified_name.empty()) {
@@ -343,6 +348,7 @@ std::vector<CompletionCandidate> ShellSession::CompletePrompt(size_t limit) {
                     if (i > 0) qualification_text.push_back('.');
                     qualification_text.append(object.qualified_name[i]);
                 }
+                if (is_function) qualification_text.append("()");
                 qualification_texts.push_back(std::move(qualification_text));
             }
         }
@@ -351,6 +357,8 @@ std::vector<CompletionCandidate> ShellSession::CompletePrompt(size_t limit) {
             .completion_text = std::string{completion_text},
             .continuation_text = std::string{candidate.keyword_continuation},
             .qualification_texts = std::move(qualification_texts),
+            .completion_cursor_offset = static_cast<uint32_t>(completion_text.size() -
+                                                               (completion_text.ends_with("()") ? 1 : 0)),
             .target_offset = candidate.target_location.offset(),
             .target_length = candidate.target_location.length(),
             .qualification_target_offset = candidate.target_location_qualified.offset(),
@@ -364,6 +372,7 @@ PromptSnapshot ShellSession::ApplyCompletion(const CompletionCandidate& candidat
     if (!prompt_.ReplaceByteRange(candidate.target_offset, candidate.target_length, candidate.completion_text)) {
         return SnapshotPrompt(ShellStatus::kInvalidArgument, "completion target is not on prompt boundaries");
     }
+    prompt_.MoveToByteOffset(candidate.target_offset + candidate.completion_cursor_offset);
     return SnapshotPrompt();
 }
 
@@ -1092,6 +1101,7 @@ ShellOperation ShellSession::AcceptTerminalCompletion() {
             .completion_text = qualification,
             .continuation_text = continuation,
             .qualification_texts = {},
+            .completion_cursor_offset = static_cast<uint32_t>(qualification.size()),
             .target_offset = candidate.qualification_target_offset,
             .target_length = static_cast<uint32_t>(candidate.completion_text.size()),
             .qualification_target_offset = candidate.qualification_target_offset,
@@ -1112,6 +1122,7 @@ ShellOperation ShellSession::AcceptTerminalCompletion() {
             .completion_text = " " + continuation,
             .continuation_text = {},
             .qualification_texts = {},
+            .completion_cursor_offset = static_cast<uint32_t>(continuation.size() + 1),
             .target_offset = static_cast<uint32_t>(prompt_.cursor_byte_offset()),
             .target_length = 0,
             .qualification_target_offset = static_cast<uint32_t>(prompt_.cursor_byte_offset()),

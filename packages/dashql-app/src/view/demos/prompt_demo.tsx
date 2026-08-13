@@ -60,10 +60,8 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
     const logger = useLogger();
     const setupCore = useDashQLCoreSetup();
 
-    // Core instance and script registry
-    const [core, setCore] = React.useState<dashql.DashQL | null>(null);
+    // Core instance and script
     const [catalog, setCatalog] = React.useState<dashql.DashQLCatalog | null>(null);
-    const [registry, setRegistry] = React.useState<dashql.DashQLScriptRegistry | null>(null);
     const [script, setScript] = React.useState<dashql.DashQLScript | null>(null);
 
     // Editor DOM node and view
@@ -76,11 +74,8 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
             try {
                 const instance = await setupCore(LOG_CTX);
                 const cat = instance.createCatalog();
-                const reg = instance.createScriptRegistry();
                 const scr = instance.createScript(cat);
-                setCore(instance);
                 setCatalog(cat);
-                setRegistry(reg);
                 setScript(scr);
                 logger.info("prompt editor initialized", {}, LOG_CTX);
             } catch (e) {
@@ -91,7 +86,6 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
         // Cleanup on unmount
         return () => {
             if (script) script.destroy();
-            if (registry) registry.destroy();
             if (catalog) catalog.destroy();
         };
     }, []);
@@ -118,7 +112,7 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
 
     // Wire CodeMirror with dashql-core when both are ready
     React.useEffect(() => {
-        if (editorView == null || script == null || registry == null) {
+        if (editorView == null || script == null) {
             return;
         }
 
@@ -135,7 +129,6 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
         const initialBuffers = analyzeScript(script);
         const effects: StateEffect<any>[] = [
             DashQLUpdateEffect.of({
-                scriptRegistry: registry,
                 scriptKey: 0,
                 script: script,
                 scriptBuffers: initialBuffers,
@@ -148,7 +141,7 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
         ];
         editorView.dispatch({ effects });
 
-    }, [editorView, script, registry]);
+    }, [editorView, script]);
 
     // Handle Cmd/Ctrl+Enter to submit
     React.useEffect(() => {

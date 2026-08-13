@@ -37,7 +37,6 @@ export function createDefaultNotebookScripts(
     logger: Logger,
     mainScriptText: string,
 ): NotebookScripts {
-    const registry = conn.instance.createScriptRegistry();
     const mainScript = conn.instance.createScript(conn.catalog);
 
     mainScript.replaceText(mainScriptText);
@@ -49,7 +48,6 @@ export function createDefaultNotebookScripts(
     // Initial analyze: only the main script exists, so cross-script references can't resolve yet.
     mainScriptData = analyzeScriptData(
         mainScriptData,
-        registry,
         conn.catalog,
         logger,
     );
@@ -66,7 +64,6 @@ export function createDefaultNotebookScripts(
         },
         connectorInfo: conn.connectorInfo,
         connectionCatalog: conn.catalog,
-        scriptRegistry: registry,
         scripts: {
             [mainScriptData.scriptKey]: mainScriptData,
             [uncommittedKey]: uncommittedData,

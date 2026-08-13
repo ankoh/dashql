@@ -3,7 +3,6 @@ import * as dashql from '../../core/index.js';
 import { ChangeSpec, Text } from '@codemirror/state';
 import { VariantKind } from '../../utils/index.js';
 import { DashQLCompletionState } from './dashql_processor.js';
-import { readColumnIdentifierSnippet } from '../../view/snippet/script_template_snippet.js';
 
 export const PATCH_INSERT_TEXT = Symbol("INSERT_TEXT");
 export const PATCH_DELETE_TEXT = Symbol("REMOVE_TEXT");
@@ -11,7 +10,6 @@ export const PATCH_DELETE_TEXT = Symbol("REMOVE_TEXT");
 export enum CompletionPatchTarget {
     Candidate = 1,
     CatalogObject = 2,
-    Template = 3
 }
 
 export type CompletionPatchVariant =
@@ -100,7 +98,6 @@ function copyLazily(nextState: DashQLCompletionState, prevState: DashQLCompletio
 export enum UpdatePatchStartingFrom {
     Candidate = 0,
     CatalogObject = 1,
-    Template = 2
 }
 
 export function computePatches(prevState: DashQLCompletionState, text: Text, cursor: number = 0, updateFrom: UpdatePatchStartingFrom = UpdatePatchStartingFrom.Candidate): DashQLCompletionState {
@@ -121,18 +118,21 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
         return nextState;
     }
     const targetFrom = targetLoc.offset();
-    const targetTo = targetFrom + targetLoc.length();
+    const candidateText = candidate.completionText()!;
+    const targetTo = updateFrom <= UpdatePatchStartingFrom.Candidate
+        ? targetFrom + targetLoc.length()
+        : targetFrom + candidateText.length;
     const qualifiedFrom = qualifiedLoc.offset();
-    const qualifiedTo = qualifiedFrom + qualifiedLoc.length();
+    const qualifiedTo = updateFrom <= UpdatePatchStartingFrom.Candidate
+        ? qualifiedFrom + qualifiedLoc.length()
+        : qualifiedFrom + qualifiedLoc.length() + candidateText.length - targetLoc.length();
 
     // Update candidate patch?
     if (updateFrom <= UpdatePatchStartingFrom.Candidate) {
         nextState = copyLazily(nextState, prevState);
         nextState.candidatePatch = [];
         nextState.catalogObjectPatch = [];
-        nextState.templatePatch = [];
 
-        const candidateText = candidate.completionText()!;
         const currentText = text.sliceString(targetFrom, targetTo);
         nextState.candidatePatch = completionDiff(targetFrom, currentText, candidateText, CompletionPatchTarget.Candidate, cursor);
     }
@@ -141,7 +141,6 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
     const keywordContinuation = candidate.keywordContinuation();
     if (keywordContinuation && updateFrom <= UpdatePatchStartingFrom.CatalogObject) {
         nextState = copyLazily(nextState, prevState);
-        const candidateText = candidate.completionText()!;
         const insertAt = updateFrom <= UpdatePatchStartingFrom.Candidate
             ? targetTo
             : targetFrom + candidateText.length;
@@ -150,7 +149,6 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
             type: PATCH_INSERT_TEXT,
             value: { at: insertAt, text: " " + keywordContinuation, textAnchor: TextAnchor.Left },
         }];
-        nextState.templatePatch = [];
         return nextState;
     }
 
@@ -165,7 +163,6 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
     if (updateFrom <= UpdatePatchStartingFrom.CatalogObject && catalogObject.preferQualified()) {
         nextState = copyLazily(nextState, prevState);
         nextState.catalogObjectPatch = [];
-        nextState.templatePatch = [];
 
         // Qualification prefix
         let name = unpackQualifiedObjectName(catalogObject);
@@ -187,57 +184,6 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
         }
     }
 
-    const templateId = prevState.templateId;
-    if (templateId >= catalogObject.scriptTemplatesLength()) {
-        if (updateFrom <= UpdatePatchStartingFrom.Template
-            && catalogObject.objectType() == dashql.buffers.completion.CompletionCandidateObjectType.FUNCTION) {
-            nextState = copyLazily(nextState, prevState);
-            nextState.templatePatch = [
-                {
-                    target: CompletionPatchTarget.Template,
-                    type: PATCH_INSERT_TEXT,
-                    value: { at: qualifiedTo, text: "()", textAnchor: TextAnchor.Left },
-                },
-            ];
-            nextState.templateCursorOffset = qualifiedTo + 1;
-        }
-        return nextState;
-    }
-    const template = catalogObject.scriptTemplates(templateId)!;
-
-    // Update template patch?
-    if (updateFrom <= UpdatePatchStartingFrom.Template) {
-        nextState = copyLazily(nextState, prevState);
-        nextState.templatePatch = [];
-
-        const tmpNode = new dashql.buffers.parser.Node();
-        if (template.snippetsLength() > 0) {
-            const snippet = template.snippets(0)!;
-            const snippetModel = readColumnIdentifierSnippet(snippet, tmpNode);
-            if (snippetModel.textBefore.length > 0) {
-                nextState.templatePatch.push({
-                    target: CompletionPatchTarget.Template,
-                    type: PATCH_INSERT_TEXT,
-                    value: {
-                        at: qualifiedFrom,
-                        text: snippetModel.textBefore,
-                        textAnchor: TextAnchor.Right,
-                    }
-                });
-            }
-            if (snippetModel.textAfter.length > 0) {
-                nextState.templatePatch.push({
-                    target: CompletionPatchTarget.Template,
-                    type: PATCH_INSERT_TEXT,
-                    value: {
-                        at: qualifiedTo,
-                        text: snippetModel.textAfter,
-                        textAnchor: TextAnchor.Left,
-                    }
-                });
-            }
-        }
-    }
     return nextState;
 }
 

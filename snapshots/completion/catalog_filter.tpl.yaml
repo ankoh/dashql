@@ -1,6 +1,6 @@
 completion-snapshots:
-  # Completion with registry script filtering catalog
-  - name: registry_filter_1
+  # Completion for a catalog column prefix.
+  - name: catalog_filter_1
     catalog:
       script:
         input: |-

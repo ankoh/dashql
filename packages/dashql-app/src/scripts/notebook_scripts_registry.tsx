@@ -97,9 +97,9 @@ export function removeNotebookScriptsFromRegistry(reg: NotebookScriptsRegistry, 
 
 /// Delete a notebook's scripts and free their Wasm.
 ///
-/// Notebook scripts share the connection's catalog by reference (see notebook_scripts_setup) but exclusively
-/// owns its script registry and every script in it. destroyNotebookScripts() drops those scripts from the
-/// shared catalog and then frees them — so it MUST run while that catalog is still alive, i.e.
+/// Notebook scripts share the connection's catalog by reference (see notebook_scripts_setup) and own every
+/// script they create. destroyNotebookScripts() drops those scripts from the shared catalog and then frees
+/// them, so it MUST run while that catalog is still alive, i.e.
 /// *before* the connection is deleted (DELETE_CONNECTION destroys the catalog). We therefore tear
 /// the Wasm down synchronously here, in the event handler, and keep the registry-map removal a
 /// pure updater (safe to run more than once). Callers must invoke this before dispatching

@@ -241,6 +241,34 @@ TEST(CompletionTest, PassiveHint_SelectStar) {
     ASSERT_EQ(results[0].completion_text, "from");
 }
 
+TEST(CompletionTest, FunctionCallIsAtomic) {
+    Catalog catalog;
+    Script schema{catalog};
+    schema.InsertTextAt(0, "create function mysum(x int) returns int;");
+    schema.Analyze();
+    catalog.LoadScript(schema, 0);
+
+    Script script{catalog};
+    script.InsertTextAt(0, "select mys");
+    script.Analyze();
+    script.MoveCursor(script.scanned_script->GetInput().size());
+
+    auto completion = script.CompleteAtCursor(10);
+    flatbuffers::FlatBufferBuilder builder;
+    builder.Finish(completion->Pack(builder));
+    auto* packed = flatbuffers::GetRoot<buffers::completion::Completion>(builder.GetBufferPointer());
+    const buffers::completion::CompletionCandidate* candidate = nullptr;
+    for (auto* value : *packed->candidates()) {
+        if (value->display_text()->string_view() == "mysum") {
+            candidate = value;
+            break;
+        }
+    }
+    ASSERT_NE(candidate, nullptr);
+    EXPECT_EQ(candidate->completion_text()->string_view(), "mysum()");
+    EXPECT_EQ(candidate->completion_cursor_offset(), std::string_view{"mysum("}.size());
+}
+
 TEST(CompletionTest, PassiveHint_SuppressAfterFrom) {
     const std::string_view main_script_text = "select * from ";
 

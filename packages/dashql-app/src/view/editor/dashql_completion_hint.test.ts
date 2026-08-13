@@ -20,20 +20,18 @@ afterEach(async () => {
 describe('Completion Hint', () => {
     it('candidate hint quoting', async () => {
         const catalog = dql!.createCatalog();
-        const registry = dql!.createScriptRegistry();
         const schemaScriptPtr = dql!.createScript(catalog);
         const scriptPtr = dql!.createScript(catalog);
 
         schemaScriptPtr.insertTextAt(0, "create table tableA(\"attrA\" int)")
         schemaScriptPtr.analyze();
-        registry.addScript(schemaScriptPtr);
         catalog.loadScript(schemaScriptPtr, 0);
 
         const text = "select * from tableA where attr";
         scriptPtr.insertTextAt(0, text);
         scriptPtr.analyze();
         const cursor = scriptPtr.moveCursor(text.length);
-        const completionPtr = scriptPtr.completeAtCursor(10, registry);
+        const completionPtr = scriptPtr.completeAtCursor(10);
 
         const completionReader = completionPtr.read()
         expect(completionReader.candidatesLength()).toEqual(10);
@@ -50,9 +48,7 @@ describe('Completion Hint', () => {
             candidatePatch: [],
             catalogObjectId: 0,
             catalogObjectPatch: [],
-            templateId: 0,
-            templatePatch: [],
-            templateCursorOffset: null,
+            catalogObjectCursorOffset: null,
         };
         completionState = computePatches(completionState, textBuffer, cursor.read().textOffset());
         const hints = deriveCompletionHints(completionState);
@@ -83,20 +79,18 @@ describe('Completion Hint', () => {
 
     it('candidate qualification', async () => {
         const catalog = dql!.createCatalog();
-        const registry = dql!.createScriptRegistry();
         const schemaScriptPtr = dql!.createScript(catalog);
         const scriptPtr = dql!.createScript(catalog);
 
         schemaScriptPtr.insertTextAt(0, "create table db0.schema0.\"tableA\"(\"attrA\" int)")
         schemaScriptPtr.analyze();
-        registry.addScript(schemaScriptPtr);
         catalog.loadScript(schemaScriptPtr, 0);
 
         const text = "select * from tab";
         scriptPtr.insertTextAt(0, text);
         scriptPtr.analyze();
         const cursor = scriptPtr.moveCursor(text.search(" tab") + 4);
-        const completionPtr = scriptPtr.completeAtCursor(10, registry);
+        const completionPtr = scriptPtr.completeAtCursor(10);
 
         const completionReader = completionPtr.read()
         expect(completionReader.candidatesLength()).toEqual(10);
@@ -113,9 +107,7 @@ describe('Completion Hint', () => {
             candidatePatch: [],
             catalogObjectId: 0,
             catalogObjectPatch: [],
-            templateId: 0,
-            templatePatch: [],
-            templateCursorOffset: null,
+            catalogObjectCursorOffset: null,
         };
         completionState = computePatches(completionState, textBuffer, cursor.read().textOffset());
         const hints = deriveCompletionHints(completionState);
@@ -151,20 +143,18 @@ describe('Completion Hint', () => {
 
     it.skip('use candidate as is', async () => {
         const catalog = dql!.createCatalog();
-        const registry = dql!.createScriptRegistry();
         const schemaScriptPtr = dql!.createScript(catalog);
         const scriptPtr = dql!.createScript(catalog);
 
         schemaScriptPtr.insertTextAt(0, "create table db0.schema0.\"tableA\"(\"attrA\" int)")
         schemaScriptPtr.analyze();
-        registry.addScript(schemaScriptPtr);
         catalog.loadScript(schemaScriptPtr, 0);
 
         const text = "select * from \"tableA\"";
         scriptPtr.insertTextAt(0, text);
         scriptPtr.analyze();
         const cursor = scriptPtr.moveCursor(text.search("\"tableA\"") + 4);
-        const completionPtr = scriptPtr.completeAtCursor(10, registry);
+        const completionPtr = scriptPtr.completeAtCursor(10);
 
         const completionReader = completionPtr.read()
         expect(completionReader.candidatesLength()).toEqual(10);
@@ -181,9 +171,7 @@ describe('Completion Hint', () => {
             candidatePatch: [],
             catalogObjectId: 0,
             catalogObjectPatch: [],
-            templateId: 0,
-            templatePatch: [],
-            templateCursorOffset: null,
+            catalogObjectCursorOffset: null,
         };
         completionState = computePatches(completionState, textBuffer, cursor.read().textOffset());
         const hints = deriveCompletionHints(completionState);
@@ -206,4 +194,3 @@ describe('Completion Hint', () => {
         });
     });
 });
-

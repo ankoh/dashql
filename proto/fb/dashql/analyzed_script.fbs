@@ -14,9 +14,6 @@ enum SemanticNodeMarkerType: uint8 {
     LITERAL_INTERVAL = 9,
     CONSTANT_EXPRESSION = 10,
     CONSTANT_EXPRESSION_ROOT = 11,
-    COLUMN_TRANSFORM = 12,
-    COLUMN_TRANSFORM_ROOT = 13,
-    COLUMN_RESTRICTION = 14,
     TABLE_REFERENCE = 15,
     RESULT_TARGET = 16,
 }
@@ -170,32 +167,6 @@ struct ConstantExpression {
     symbol_span: parser.SymbolSpan;
     /// The filter expression
     expression_id: uint32;
-}
-
-struct ColumnFilter {
-    // The id of the AST node that created this table reference
-    ast_node_id: uint32;
-    // The id of the statement that contains the table reference
-    ast_statement_id: uint32;
-    // The location
-    symbol_span: parser.SymbolSpan;
-    /// The root expression id
-    root_expression_id: uint32;
-    /// The column reference expression id
-    column_reference_expression_id: uint32;
-}
-
-struct ColumnComputation {
-    // The id of the AST node that created this table reference
-    ast_node_id: uint32;
-    // The id of the statement that contains the table reference
-    ast_statement_id: uint32;
-    // The location
-    symbol_span: parser.SymbolSpan;
-    /// The root expression id
-    root_expression_id: uint32;
-    /// The column reference expression id
-    column_reference_expression_id: uint32;
 }
 
 struct IndexedTableReference {
@@ -356,7 +327,7 @@ table AnalyzedScript {
     ///
     /// Script markers annotate ast nodes with lightweight semantic tags.
     /// We, for example, remember which ast nodes store a column ref, literals or constant expressions.
-    /// These markers are preserved for Script Snippets and can be used in the UI for hints and highlighting.
+    /// These markers can be used in the UI for hints and highlighting.
     node_markers: [SemanticNodeMarkerType];
 
     /// The tables
@@ -377,25 +348,6 @@ table AnalyzedScript {
     /// The constant expressions.
     /// We track constant expressions in the AST and emit an entry for the expression root.
     constant_expressions: [ConstantExpression];
-    /// The column computations.
-    /// We track projections of unaggregated base table columns in otherwise simple constant expressions.
-    ///
-    /// Examples:
-    ///   `<column_ref> + 1`
-    ///   `json_value(<column_ref>, <path literal>)`
-    ///   `date_trunc('day', <column_ref>)`
-    ///   `to_char(<column_ref>, 'format')`
-    ///
-    column_computations: [ColumnComputation];
-    /// The column filters.
-    /// We only track filters where single table columns are compared with simple constant expressions.
-    ///
-    /// Examples:
-    ///   `<table_ref> = <simple constant expression>`
-    ///   `<table_ref> != <simple constant expression>`
-    ///
-    column_filters: [ColumnFilter];
-
     /// The name scopes
     name_scopes: [NameScope];
     /// The statement root scopes

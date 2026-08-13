@@ -1,5 +1,4 @@
 include "dashql/parsed_script.fbs";
-include "dashql/script_snippet.fbs";
 
 namespace dashql.buffers.completion;
 
@@ -24,15 +23,7 @@ table CompletionCandidateObject {
     /// The column idx
     table_column_id: uint32;
     /// The referenced catalog version of this particular candidate.
-    /// Note that this is not the *global* catalog version but the version of this particular catalog entry.
-    ///
-    /// Example:
-    ///   Assume a schema script in the catalog exists in versions 1, 2.
-    ///   Scripts now resolve column refs against this schema script in versions 1 and 2.
-    ///   When searching in the script registry for column refs, we compare this catalog version with the version
-    ///   found through the registry. If it differs, we know the registry ref is outdated and can ignore it.
-    ///   (Without, we would end up returning column filters for unrelated columns)
-    ///
+    /// Note that this is not the global catalog version but the version of this catalog entry.
     referenced_catalog_version: uint32;
     /// The candidate tags
     candidate_tags: uint32;
@@ -46,8 +37,6 @@ table CompletionCandidateObject {
     qualified_name_target_idx: uint32;
     /// Prefer the qualification
     prefer_qualified: bool;
-    /// The script templates
-    script_templates: [snippet.ScriptTemplate];
 }
 
 enum CandidateTag: uint32 {
@@ -84,10 +73,6 @@ enum CandidateTag: uint32 {
     IN_NAME_SCOPE = 16384,
     // Candidate is already in same name statement
     IN_SAME_STATEMENT = 32768,
-    // Candidate is already in same name script
-    IN_SAME_SCRIPT = 65536,
-    // Candidate is already in other name script
-    IN_OTHER_SCRIPT = 131072,
     // Candidate exactly matches the user input
     EXACT_MATCH = 262144,
     // Candidate IS the user input
@@ -120,6 +105,8 @@ table CompletionCandidate {
     score: uint32;
     /// Keyword continuation text (e.g. " by" after "group", " =>" after "mark")
     keyword_continuation: string;
+    /// Cursor offset relative to the start of the inserted completion text.
+    completion_cursor_offset: uint32;
 }
 
 enum CompletionStrategy: uint8 {

@@ -1721,45 +1721,8 @@ completion-snapshots:
         - expression-idx: 5
           type: function
           name: sum
-          computation: 1
           statement-id: 0
           text: "sum(raw_amount)"
-      column-computations:
-        - expression: 5
-          snippet:
-            signature-template: 7459937480860943044
-            signature-raw: 9311430213574171797
-            text: sum(raw_amount)
-            ast:
-              ast-nodes: 8
-              ast-bytes: 192
-              ast:
-                type: OBJECT_SQL_FUNCTION_EXPRESSION
-                text: "sum(raw_amount)"
-                children:
-                  - key: SQL_FUNCTION_NAME
-                    type: ARRAY
-                    text: "sum"
-                    children:
-                      - type: NAME
-                        text: "sum"
-                  - key: SQL_FUNCTION_ARGUMENTS
-                    type: ARRAY
-                    text: "raw_amount"
-                    children:
-                      - type: OBJECT_SQL_FUNCTION_ARG
-                        text: "raw_amount"
-                        children:
-                          - key: SQL_FUNCTION_ARG_VALUE
-                            type: OBJECT_SQL_COLUMN_REF
-                            text: "raw_amount"
-                            children:
-                              - key: SQL_COLUMN_REF_PATH
-                                type: ARRAY
-                                text: "raw_amount"
-                                children:
-                                  - type: NAME
-                                    text: "raw_amount"
       visualizations:
         - statement-id: 0
           source: "select\n  r..w_category"
@@ -1856,45 +1819,8 @@ completion-snapshots:
         - expression-idx: 5
           type: function
           name: sum
-          computation: 1
           statement-id: 0
           text: "sum(raw_amount)"
-      column-computations:
-        - expression: 5
-          snippet:
-            signature-template: 7459937480860943044
-            signature-raw: 9311430213574171797
-            text: sum(raw_amount)
-            ast:
-              ast-nodes: 8
-              ast-bytes: 192
-              ast:
-                type: OBJECT_SQL_FUNCTION_EXPRESSION
-                text: "sum(raw_amount)"
-                children:
-                  - key: SQL_FUNCTION_NAME
-                    type: ARRAY
-                    text: "sum"
-                    children:
-                      - type: NAME
-                        text: "sum"
-                  - key: SQL_FUNCTION_ARGUMENTS
-                    type: ARRAY
-                    text: "raw_amount"
-                    children:
-                      - type: OBJECT_SQL_FUNCTION_ARG
-                        text: "raw_amount"
-                        children:
-                          - key: SQL_FUNCTION_ARG_VALUE
-                            type: OBJECT_SQL_COLUMN_REF
-                            text: "raw_amount"
-                            children:
-                              - key: SQL_COLUMN_REF_PATH
-                                type: ARRAY
-                                text: "raw_amount"
-                                children:
-                                  - type: NAME
-                                    text: "raw_amount"
       visualizations:
         - statement-id: 0
           source: "select\n  r..w_category"

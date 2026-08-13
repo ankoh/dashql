@@ -949,32 +949,6 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
                                                   root.location.value(), root.expression_id);
     });
 
-    // Pack column filters
-    buffers::analyzer::ColumnFilter* column_filter_writer;
-    auto column_filters_ofs =
-        builder.CreateUninitializedVectorOfStructs(column_filters.GetSize(), &column_filter_writer);
-    column_filters.ForEach([&](size_t i, const AnalyzedScript::ColumnFilter& filter) {
-        auto& root = filter.root.get();
-        auto& column_ref = filter.column_ref.get();
-        assert(root.location.has_value());
-        column_filter_writer[i] =
-            buffers::analyzer::ColumnFilter(root.ast_node_id, root.ast_statement_id.value_or(PROTO_NULL_U32),
-                                            root.location.value(), root.expression_id, column_ref.expression_id);
-    });
-
-    // Pack column computations
-    buffers::analyzer::ColumnComputation* column_computation_writer;
-    auto column_computations_ofs =
-        builder.CreateUninitializedVectorOfStructs(column_computations.GetSize(), &column_computation_writer);
-    column_computations.ForEach([&](size_t i, const AnalyzedScript::ColumnComputation& computation) {
-        auto& root = computation.root.get();
-        auto& column_ref = computation.column_ref.get();
-        assert(root.location.has_value());
-        column_computation_writer[i] =
-            buffers::analyzer::ColumnComputation(root.ast_node_id, root.ast_statement_id.value_or(PROTO_NULL_U32),
-                                                 root.location.value(), root.expression_id, column_ref.expression_id);
-    });
-
     // Pack function declarations
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<buffers::analyzer::FunctionDeclaration>>>
         func_decls_ofs;
@@ -1109,8 +1083,6 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     out.add_expressions(expressions_ofs);
     out.add_resolved_column_references_by_id(resolved_column_refs_by_id_ofs);
     out.add_constant_expressions(constant_expressions_ofs);
-    out.add_column_filters(column_filters_ofs);
-    out.add_column_computations(column_computations_ofs);
     out.add_name_scopes(name_scopes_ofs);
     out.add_function_declarations(func_decls_ofs);
     out.add_visualization_specs(visualization_specs_ofs);
@@ -1322,7 +1294,7 @@ const ScriptCursor* Script::MoveCursor(size_t text_offset) {
     return cursor.get();
 }
 /// Complete at the cursor
-std::unique_ptr<Completion> Script::CompleteAtCursor(size_t limit, ScriptRegistry* registry) const {
+std::unique_ptr<Completion> Script::CompleteAtCursor(size_t limit) const {
     // Fail if the user forgot to move the cursor
     if (cursor == nullptr) {
         throw Exception(buffers::status::StatusCode::COMPLETION_MISSES_CURSOR);
@@ -1332,40 +1304,8 @@ std::unique_ptr<Completion> Script::CompleteAtCursor(size_t limit, ScriptRegistr
         throw Exception(buffers::status::StatusCode::COMPLETION_MISSES_SCANNER_TOKEN);
     }
     // Compute the completion
-    return Completion::Compute(*cursor, limit, registry);  // throws on error
+    return Completion::Compute(*cursor, limit);  // throws on error
 }
-/// Complete at the cursor after selecting a candidate of a previous completion
-CompletionPtr Script::SelectCompletionCandidateAtCursor(flatbuffers::FlatBufferBuilder& builder,
-                                                        const buffers::completion::Completion& completion,
-                                                        size_t candidate_idx) const {
-    // Fail if the user forgot to move the cursor
-    if (cursor == nullptr) {
-        throw Exception(buffers::status::StatusCode::COMPLETION_MISSES_CURSOR);
-    }
-    // Fail if the scanner is not associated with a scanner token
-    if (!cursor->scanner_location.has_value()) {
-        throw Exception(buffers::status::StatusCode::COMPLETION_MISSES_SCANNER_TOKEN);
-    }
-    // Compute the completion
-    return Completion::SelectCandidate(builder, *cursor, completion, candidate_idx);  // throws on error
-}
-/// Complete at the cursor after qualifying a candidate of a previous completion
-CompletionPtr Script::SelectCompletionCatalogObjectAtCursor(flatbuffers::FlatBufferBuilder& builder,
-                                                            const buffers::completion::Completion& completion,
-                                                            size_t candidate_idx, size_t catalog_object_idx) const {
-    // Fail if the user forgot to move the cursor
-    if (cursor == nullptr) {
-        throw Exception(buffers::status::StatusCode::COMPLETION_MISSES_CURSOR);
-    }
-    // Fail if the scanner is not associated with a scanner token
-    if (!cursor->scanner_location.has_value()) {
-        throw Exception(buffers::status::StatusCode::COMPLETION_MISSES_SCANNER_TOKEN);
-    }
-    // Compute the completion
-    return Completion::SelectQualifiedCandidate(builder, *cursor, completion, candidate_idx,
-                                                catalog_object_idx);  // throws on error
-}
-
 /// Format a script
 std::string Script::Format(const buffers::formatting::FormattingConfigT& config, bool parse_if_outdated) {
     if (parse_if_outdated) {

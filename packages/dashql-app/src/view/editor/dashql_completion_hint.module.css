@@ -70,24 +70,3 @@
     opacity: 0.7;
     background-color: rgba(128, 128, 128, 0.07);
 }
-
-.hint_template_insert {
-    color: #888 !important;
-    opacity: 0.7;
-    font-style: italic;
-    user-select: none;
-    pointer-events: none;
-    background: transparent;
-    display: inline;
-}
-.hint_template_insert:not(:empty) {
-    background-color: rgba(128, 128, 128, 0.07);
-    border-radius: 2px;
-    padding: 0 1px;
-}
-.hint_template_delete {
-    text-decoration: line-through;
-    color: #888 !important;
-    opacity: 0.7;
-    background-color: rgba(128, 128, 128, 0.07);
-}

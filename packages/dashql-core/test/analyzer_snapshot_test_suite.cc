@@ -37,15 +37,12 @@ TEST_P(AnalyzerSnapshotTestSuite, Test) {
 // clang-format off
 INSTANTIATE_TEST_SUITE_P(Basic, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("basic.yaml")), AnalyzerSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Constants, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("constants.yaml")), AnalyzerSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(Restrictions, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("filters.yaml")), AnalyzerSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(Transforms, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("computations.yaml")), AnalyzerSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Functions, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("functions.yaml")), AnalyzerSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Names, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("names.yaml")), AnalyzerSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Multiple, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("multiple.yaml")), AnalyzerSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(TPCH, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("tpch.yaml")), AnalyzerSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(CrossDB, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("crossdb.yaml")), AnalyzerSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Trino, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("trino.yaml")), AnalyzerSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(Snippets, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("snippets.yaml")), AnalyzerSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(VisStatement, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("vis_statement.yaml")), AnalyzerSnapshotTest::TestPrinter());
 
 }

@@ -7,7 +7,6 @@
 #include "c4/yml/std/std.hpp"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
-#include "dashql/testing/registry_snapshot_test.h"
 #include "dashql/testing/runfiles_dir.h"
 #include "dashql/testing/yaml_tests.h"
 #include "dashql/text/names.h"
@@ -181,26 +180,6 @@ void CompletionSnapshotTest::EncodeCompletion(c4::yml::NodeRef root, const Compl
                 yml_obj.append_child() << c4::yml::key("qualified-idx") << co.qualified_name_target_idx;
                 yml_obj.append_child() << c4::yml::key("prefer-qualified") << co.prefer_qualified;
             }
-            if (co.script_snippets.has_value()) {
-                auto& snippets = co.script_snippets->get();
-                if (!snippets.filter_snippets.empty() || !snippets.computation_snippets.empty()) {
-                    auto templates_entry = yml_obj.append_child();
-                    templates_entry << c4::yml::key("templates");
-                    templates_entry |= c4::yml::MAP;
-                    // EncodeScriptTemplates marks its target as a SEQ, so give each group its own
-                    // keyed child instead of aliasing one node (which would be marked SEQ twice).
-                    if (!snippets.filter_snippets.empty()) {
-                        auto filters_node = templates_entry.append_child();
-                        filters_node << c4::yml::key("filters");
-                        RegistrySnapshotTest::EncodeScriptTemplates(filters_node, snippets.filter_snippets);
-                    }
-                    if (!snippets.computation_snippets.empty()) {
-                        auto computations_node = templates_entry.append_child();
-                        computations_node << c4::yml::key("computations");
-                        RegistrySnapshotTest::EncodeScriptTemplates(computations_node, snippets.computation_snippets);
-                    }
-                }
-            }
         }
     }
 }
@@ -248,17 +227,6 @@ void CompletionSnapshotTest::LoadTests(const std::filesystem::path& snapshots_di
                 entry.tree = &file.tree;
                 entry.node_id = script_node.id();
             }
-            if (test_node.has_child("registry")) {
-                for (auto entry_item : test_node["registry"].children()) {
-                    if (!entry_item.has_child("script")) continue;
-                    auto script_node = entry_item["script"];
-                    test.registry_scripts.emplace_back();
-                    auto& entry = test.registry_scripts.back();
-                    entry.ReadFrom(script_node);
-                    entry.tree = &file.tree;
-                    entry.node_id = script_node.id();
-                }
-            }
             if (test_node.has_child("editor")) {
                 auto script_node = test_node["editor"];
                 test.script.ReadFrom(script_node);
@@ -292,7 +260,6 @@ void CompletionSnapshotTest::LoadTests(const std::filesystem::path& snapshots_di
         for (auto& t : it->second.tests) {
             t.script.tree = &it->second.tree;
             for (auto& e : t.catalog_scripts) e.tree = &it->second.tree;
-            for (auto& e : t.registry_scripts) e.tree = &it->second.tree;
             t.completions_tree = &it->second.tree;
         }
     }

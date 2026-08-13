@@ -54,9 +54,6 @@ After the base score, tags contribute additive modifiers:
 | `THROUGH_CATALOG`                                    | +2       | Candidate reached through the catalog (vs. local-only)       |
 | `DOT_RESOLUTION_*`                                   | +2       | Candidate reached through dot-completion (schema/table/col)  |
 | `KEYWORD_C`                                          | +2       | Keyword in the third prevalence tier                         |
-| `IN_SAME_STATEMENT`                                  | +1       | Candidate referenced elsewhere in the same statement         |
-| `IN_SAME_SCRIPT`                                     | +1       | Candidate referenced in the same script                      |
-| `IN_OTHER_SCRIPT`                                    | +1       | Candidate referenced in another script in the registry       |
 | `UNRESOLVED_PEER`                                    | +1       | Column that shares a table with an unresolved column         |
 | `SUFFIX_DEPTH_MANY`                                  | +1       | Candidate + post-cursor suffix shifts ≥2 real tokens or parses to EOF |
 | `SUFFIX_DEPTH_ONE`                                   | 0        | Candidate + suffix shifts exactly 1 real post-cursor token   |
@@ -95,9 +92,6 @@ These are enforced at compile time via `static_assert`:
 - An unlikely name that is a substring match outweighs a likely name that isn't (`10 + 30 > 20`).
 - Being in scope outweighs being a prefix (`10 > 5`).
 - An exact match outweighs being in scope (`15 > 10`).
-- Substring match outweighs all cross-reference bonuses combined (`30 > 1+1+1`).
-- Being in scope outweighs all cross-reference bonuses combined (`10 > 1+1+1`).
-- Resolving unresolved columns outweighs all cross-reference bonuses combined (`5 > 1+1+1`).
 - A likely catalog name with `THROUGH_CATALOG` outranks an expected keyword with substring bonus alone (`20+2 > 20`).
 
 ## Worked examples
@@ -193,8 +187,6 @@ The full completion pipeline in `Completion::Compute`:
    c. `FindCandidatesInIndexes` — find all name-index matches (skipped at definition positions).
 4. `PromoteTablesAndPeersForUnresolvedColumns` — boost tables that resolve missing columns.
 5. `PromoteIdentifiersInScope` — tag candidates reachable through naming scopes.
-6. `PromoteIdentifiersInScripts` — tag candidates referenced in other scripts.
-7. `SelectTopCandidates` — compute final scores, select top-k via a min-heap.
-8. `QualifyTopCandidates` — derive qualified names for the winners.
-9. `FindIdentifierSnippetsForTopCandidates` — attach code snippets from the script registry (write front only).
-10. `DeriveKeywordSnippetsForTopCandidates` — attach keyword continuations, suffix-checked mid-statement (see `core_completion.md`).
+6. `SelectTopCandidates` — compute final scores, select top-k via a min-heap.
+7. `QualifyTopCandidates` — derive qualified names for the winners.
+8. `DeriveKeywordContinuationsForTopCandidates` — attach keyword continuations, suffix-checked mid-statement (see `core_completion.md`).

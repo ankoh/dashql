@@ -38,10 +38,6 @@ interface VirtualCandidate {
     totalObjectCount: number;
     /// The selected catalog object
     selectedCatalogObject: number | null;
-    /// The total templates
-    totalTemplateCount: number;
-    /// The selected templates
-    selectedTemplate: number | null;
 }
 
 class CandidateRenderer {
@@ -54,10 +50,6 @@ class CandidateRenderer {
     objectContainerVisible: boolean;
     /// Selected object index visible?
     objectSelectionVisible: boolean;
-    /// Selected template count visible?
-    templateContainerVisible: boolean;
-    /// Selected template index visible?
-    templateSelectionVisible: boolean;
 
     /// The entry element
     public readonly rootElement: HTMLDivElement;
@@ -80,12 +72,6 @@ class CandidateRenderer {
     readonly objectSelectedSpan: HTMLSpanElement;
     /// The span for the catalog object count
     readonly objectTotalSpan: HTMLSpanElement;
-    /// The container for the template count
-    readonly templateContainerElement: HTMLDivElement;
-    /// The span for the selected template
-    readonly templateSelectedSpan: HTMLSpanElement;
-    /// The span for the template count 
-    readonly templateTotalSpan: HTMLSpanElement;
 
     constructor(candidate: VirtualCandidate) {
         this.rendered = null;
@@ -96,8 +82,6 @@ class CandidateRenderer {
         this.infoVisible = true;
         this.objectContainerVisible = true;
         this.objectSelectionVisible = true;
-        this.templateContainerVisible = true;
-        this.templateSelectionVisible = true;
 
         this.navContainerElement = document.createElement('div');
         this.navArrowLeftElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -120,24 +104,12 @@ class CandidateRenderer {
         this.objectSelectedSpan.classList.add(styles.info_selected_count);
         this.objectTotalSpan = document.createElement('span');
 
-        this.templateContainerElement = document.createElement('div');
-        this.templateSelectedSpan = document.createElement('span');
-        this.templateSelectedSpan.classList.add(styles.info_selected_count);
-        this.templateTotalSpan = document.createElement('div');
-
         const objectLogoSVG = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         const objectLogoUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
         objectLogoSVG.setAttribute('width', '12px');
         objectLogoSVG.setAttribute('height', '12px');
         objectLogoUse.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#versions_16`);
         objectLogoSVG.appendChild(objectLogoUse);
-
-        const templateLogoSVG = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        const templateLogoUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-        templateLogoSVG.setAttribute('width', '12px');
-        templateLogoSVG.setAttribute('height', '12px');
-        templateLogoUse.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#sparkle_16`);
-        templateLogoSVG.appendChild(templateLogoUse);
 
         // Set up containers
         this.rootElement.classList.add(styles.candidate_container);
@@ -148,7 +120,6 @@ class CandidateRenderer {
         this.navArrowLeftElement.classList.add(styles.info_nav_left);
         this.navArrowRightElement.classList.add(styles.info_nav_right);
         this.objectContainerElement.classList.add(styles.info_object_container);
-        this.templateContainerElement.classList.add(styles.info_template_container);
 
         this.iconElement.textContent = getCandidateTypeSymbolText(candidate.candidateType ?? 0);
         this.iconElement.style.backgroundColor = getCandidateTypeSymbolColor(candidate.candidateType ?? 0);
@@ -159,12 +130,8 @@ class CandidateRenderer {
         this.objectContainerElement.appendChild(objectLogoSVG);
         this.objectContainerElement.appendChild(this.objectSelectedSpan);
         this.objectContainerElement.appendChild(this.objectTotalSpan);
-        this.templateContainerElement.appendChild(templateLogoSVG);
-        this.templateContainerElement.appendChild(this.templateSelectedSpan);
-        this.templateContainerElement.appendChild(this.templateTotalSpan);
         this.infoElement.appendChild(this.navContainerElement);
         this.infoElement.appendChild(this.objectContainerElement);
-        this.infoElement.appendChild(this.templateContainerElement);
         this.rootElement.appendChild(this.iconElement);
         this.rootElement.appendChild(this.nameElement);
         this.rootElement.appendChild(this.infoElement);
@@ -198,21 +165,6 @@ class CandidateRenderer {
             this.objectContainerVisible = false;
         }
     }
-    /// Helper to hide the template selection (if not already hidden)
-    protected hideSelectedTemplate() {
-        if (this.templateSelectionVisible) {
-            this.templateSelectedSpan.classList.add(styles.hidden);
-            this.templateSelectionVisible = false;
-        }
-    }
-    /// Helper to hide the template container (if not already hidden)
-    protected hideTemplateContainer() {
-        if (this.templateContainerVisible) {
-            this.templateContainerElement.classList.add(styles.hidden);
-            this.templateContainerVisible = false;
-        }
-    }
-
     /// Helper to show the candidate info (if not already hidden)
     protected showInfoContainer() {
         if (!this.infoVisible) {
@@ -234,21 +186,6 @@ class CandidateRenderer {
             this.objectContainerVisible = true;
         }
     }
-    /// Helper to hide the template selection (if not already hidden)
-    protected showSelectedTemplate() {
-        if (!this.templateSelectionVisible) {
-            this.templateSelectedSpan.classList.remove(styles.hidden);
-            this.templateSelectionVisible = true;
-        }
-    }
-    /// Helper to show the template container (if not already hidden)
-    protected showTemplateContainer() {
-        if (!this.templateContainerVisible) {
-            this.templateContainerElement.classList.remove(styles.hidden);
-            this.templateContainerVisible = true;
-        }
-    }
-
     public render(candidate: VirtualCandidate) {
         // Is the element selected?
         if (candidate.isSelected != this.rendered?.isSelected) {
@@ -268,7 +205,7 @@ class CandidateRenderer {
             this.iconElement.style.backgroundColor = getCandidateTypeSymbolColor(candidate.candidateType ?? 0);
         }
         // Is selected and has selectable?
-        const anySelectable = candidate.totalObjectCount > 0 || candidate.totalTemplateCount > 0;
+        const anySelectable = candidate.totalObjectCount > 0;
         if (candidate.isSelected && anySelectable) {
             this.showInfoContainer();
         } else {
@@ -281,17 +218,6 @@ class CandidateRenderer {
             this.showSelectedObject();
             this.objectSelectedSpan.textContent = (candidate.selectedCatalogObject + 1).toString();
         }
-        // Update selected template?
-        if (candidate.selectedTemplate == null) {
-            this.hideSelectedTemplate();
-        } else if (candidate.selectedTemplate != this.rendered?.selectedTemplate) {
-            this.showSelectedTemplate();
-            this.templateSelectedSpan.textContent = (candidate.selectedTemplate + 1).toString();
-        }
-        // Update the total template count
-        if (candidate.totalTemplateCount != this.rendered?.totalTemplateCount) {
-            this.templateTotalSpan.textContent = candidate.totalTemplateCount.toString();
-        }
         // Update the total object count
         if (candidate.totalObjectCount != this.rendered?.totalObjectCount) {
             this.objectTotalSpan.textContent = candidate.totalObjectCount.toString();
@@ -301,12 +227,6 @@ class CandidateRenderer {
             this.showObjectContainer();
         } else {
             this.hideObjectContainer();
-        }
-        // Show template totals
-        if (candidate.totalTemplateCount > 0) {
-            this.showTemplateContainer();
-        } else {
-            this.hideTemplateContainer();
         }
         this.rendered = candidate;
     }
@@ -467,7 +387,7 @@ class CompletionList {
     }
 
     /// Collect the candidates
-    collectCandidates(completion: dashql.buffers.completion.Completion, selectedCandidate: number, selectedCatalogObject: number | null, selectedTemplate: number | null): VirtualCandidate[] {
+    collectCandidates(completion: dashql.buffers.completion.Completion, selectedCandidate: number, selectedCatalogObject: number | null): VirtualCandidate[] {
         const out: VirtualCandidate[] = [];
         const tmpCandidate = new dashql.buffers.completion.CompletionCandidate();
         const tmpCatalogObject = new dashql.buffers.completion.CompletionCandidateObject();
@@ -476,11 +396,6 @@ class CompletionList {
         for (let i = 0; i < completion.candidatesLength(); ++i) {
             const ca = completion.candidates(i, tmpCandidate)!;
             let totalObjects = ca.catalogObjectsLength();
-            let totalTemplates = 0;
-            for (let j = 0; j < ca.catalogObjectsLength(); ++j) {
-                const co = ca.catalogObjects(j, tmpCatalogObject)!;
-                totalTemplates += co.scriptTemplatesLength();
-            }
             let candidateType: CompletionCandidateType;
             if (ca.candidateTags()! & dashql.buffers.completion.CandidateTag.IDENTITY) {
                 candidateType = CompletionCandidateType.IDENTITY;
@@ -496,8 +411,6 @@ class CompletionList {
                 isSelected: false,
                 totalObjectCount: totalObjects,
                 selectedCatalogObject: null,
-                totalTemplateCount: totalTemplates,
-                selectedTemplate: null,
             });
         }
 
@@ -517,9 +430,7 @@ class CompletionList {
                 ? null
                 : (ot as number) as CompletionCandidateType;
             o.isSelected = true;
-            o.selectedTemplate = selectedTemplate;
             o.totalObjectCount = ca.catalogObjectsLength();
-            o.totalTemplateCount = co.scriptTemplatesLength();
         }
         return out;
     }
@@ -549,7 +460,6 @@ class CompletionList {
         }
         const selectedCandidate = processor.scriptCompletion.candidateId;
         const selectedCatalogObject = processor.scriptCompletion.catalogObjectId ?? null;
-        const selectedTemplate = processor.scriptCompletion.templateId ?? null;
 
         // Invalid candidate?
         const completion = processor.scriptCompletion;
@@ -566,7 +476,7 @@ class CompletionList {
         const candidateLocOffset = candidateLoc.offset();
 
         // Collect all candidates
-        const pending = this.collectCandidates(completionBuffer, selectedCandidate, selectedCatalogObject, selectedTemplate);
+        const pending = this.collectCandidates(completionBuffer, selectedCandidate, selectedCatalogObject);
 
         // Update the container position
         view.requestMeasure<(Position | null)>({

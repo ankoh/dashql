@@ -5,14 +5,11 @@
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog_object.h"
 #include "dashql/script.h"
-#include "dashql/script_registry.h"
 #include "dashql/text/names.h"
 #include "dashql/utils/enum_bitset.h"
 #include "dashql/utils/topk.h"
 
 namespace dashql {
-
-class ScriptRegistry;
 
 struct Completion {
     /// A score value
@@ -22,21 +19,6 @@ struct Completion {
         EnumBitset<uint32_t, buffers::completion::CandidateTag, buffers::completion::CandidateTag::MAX>;
 
     struct Candidate;
-
-    /// The snippets for a catalog object.
-    /// We keep them separate as we're only resolving snippets for catalog objects of top candidates
-    struct CatalogObjectSnippets {
-        /// The column filter snippets
-        ScriptRegistry::SnippetMap filter_snippets;
-        /// The column computation snippets
-        ScriptRegistry::SnippetMap computation_snippets;
-
-        /// Pack the snippets
-        flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>> Pack(
-            flatbuffers::FlatBufferBuilder& builder,
-            std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>& tmp_templates,
-            std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>>& tmp_snippets) const;
-    };
 
     /// A catalog object referenced by a completion candidate
     struct CandidateCatalogObject : public IntrusiveListNode {
@@ -56,8 +38,6 @@ struct Completion {
         size_t qualified_name_target_idx = 0;
         /// Prefer qualification
         bool prefer_qualified = false;
-        /// The script snippets (if resolved)
-        std::optional<std::reference_wrapper<CatalogObjectSnippets>> script_snippets;
     };
     static_assert(std::is_trivially_destructible_v<CandidateCatalogObject>,
                   "Candidate objects must be trivially destructable");
@@ -88,7 +68,7 @@ struct Completion {
         ScoreValueType score = 0;
         /// The keyword symbol (set for keyword candidates)
         std::optional<parser::Parser::symbol_kind_type> keyword_symbol;
-        /// The keyword continuation text (e.g. "by"), set by DeriveKeywordSnippetsForTopCandidates
+        /// The keyword continuation text (e.g. "by"), set by DeriveKeywordContinuationsForTopCandidates
         std::string_view keyword_continuation;
         /// Is less in the min-heap?
         /// We want to kick a candidate A before candidate B if
@@ -122,9 +102,6 @@ struct Completion {
     /// Is the cursor between symbols (whitespace after a token)?
     bool between_symbols = false;
     /// Is there a real token after the cursor's feed point?
-    /// False ⇒ the cursor is at the write front (nothing but EOF follows). Multi-step
-    /// suggestions (keyword continuations, template snippets) are only offered at the write
-    /// front, since a real post-cursor token could conflict with what they'd insert.
     bool has_post_cursor_token = false;
     /// The symbol that we are completing.
     /// Note that we sometimes have a choice here between the current and the previous symbol.
@@ -134,8 +111,6 @@ struct Completion {
     ChunkBuffer<Candidate, 16> candidates;
     /// The candidate object buffer
     ChunkBuffer<CandidateCatalogObject, 16> candidate_objects;
-    /// The script snippets for candidate objects
-    ChunkBuffer<CatalogObjectSnippets, 16> candidate_object_snippets;
     /// The candidates by name
     std::unordered_map<std::string_view, std::reference_wrapper<Candidate>> candidates_by_name;
     /// The candidate objects by object.
@@ -143,8 +118,7 @@ struct Completion {
     /// This currently assumes that a catalog object can be added to at most a single candidate.
     ///
     /// We *could* use a btree here if we want to prefix-search for candidate columns of a table.
-    /// However, `PromoteIdentifiersInScripts` probes this hash map with all identifiers that we can find
-    /// through the script registry. Having a hash-map there outweighs resolving scope columns without prefix.
+    /// A hash map keeps object promotion lookups cheap.
     std::unordered_map<QualifiedCatalogObjectID, std::reference_wrapper<CandidateCatalogObject>>
         candidate_objects_by_id;
 
@@ -175,8 +149,6 @@ struct Completion {
     void FindCandidatesInInlineVisualizeSource();
     /// Promote identifiers that are in the current name scope of in the same statement
     void PromoteIdentifiersInScope();
-    /// Promote identifiers that were used before
-    void PromoteIdentifiersInScripts(ScriptRegistry& registry);
     /// Promote tables that contain column names that are still unresolved in the current statement
     void PromoteTablesAndPeersForUnresolvedColumns();
     /// Add expected keywords in the grammar directly to the result heap.
@@ -190,13 +162,11 @@ struct Completion {
                                          const parser::Parser::PrefixSnapshot& prefix);
     /// Flush pending candidates and finish the results
     void SelectTopCandidates();
-    /// Find identifier snippets for results (after flushing)
-    void FindIdentifierSnippetsForTopCandidates(ScriptRegistry& registry);
-    /// Derive keyword snippets for results (e.g. group >by<, partition >by<, create >table<, inner >join<)
+    /// Derive keyword continuations for results (e.g. group >by<, create >table<, inner >join<)
     /// `prefix` is the LALR state snapshot from `ParseUntilWithSnapshot`, reused to probe whether a
     /// continuation stays compatible with the post-cursor token stream (so mid-statement
     /// continuations that would conflict with trailing text are dropped, but valid ones kept).
-    void DeriveKeywordSnippetsForTopCandidates(const parser::Parser::PrefixSnapshot& prefix);
+    void DeriveKeywordContinuationsForTopCandidates(const parser::Parser::PrefixSnapshot& prefix);
     /// Make sure top-candidates are qualified
     void QualifyTopCandidates();
 
@@ -225,17 +195,8 @@ struct Completion {
     flatbuffers::Offset<buffers::completion::Completion> Pack(flatbuffers::FlatBufferBuilder& builder);
 
     // Compute completion at a cursor (throws Exception on error)
-    static std::unique_ptr<Completion> Compute(const ScriptCursor& cursor, size_t k,
-                                                ScriptRegistry* registry = nullptr);
+    static std::unique_ptr<Completion> Compute(const ScriptCursor& cursor, size_t k);
 
-    // Update completion at a cursor after selecting a candidate of a previous completion (throws Exception on error)
-    static CompletionPtr SelectCandidate(flatbuffers::FlatBufferBuilder& builder, const ScriptCursor& cursor,
-                                         const buffers::completion::Completion& _completion, size_t _candidate_idx,
-                                         std::optional<size_t> _catalog_object_idx = std::nullopt);
-    // Update completion at a cursor after qualifying a candidate of a previous completion (throws Exception on error)
-    static CompletionPtr SelectQualifiedCandidate(flatbuffers::FlatBufferBuilder& builder, const ScriptCursor& cursor,
-                                                   const buffers::completion::Completion& _completion,
-                                                   size_t _candidate_idx, size_t catalog_object_idx);
 };
 
 }  // namespace dashql

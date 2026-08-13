@@ -1,6 +1,6 @@
 completion-snapshots:
 
-  - name: registry_filter_1
+  - name: catalog_filter_1
     catalog:
       script:
         input: |-

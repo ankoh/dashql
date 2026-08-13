@@ -5,7 +5,6 @@
 
 #include "dashql/catalog.h"
 #include "dashql/script.h"
-#include "dashql/script_registry.h"
 #include "dashql/view/plan_view_model.h"
 
 namespace console {
@@ -97,15 +96,7 @@ extern "C" void dashql_script_get_statistics(FFIResult* result, dashql::Script* 
 /// Move the cursor in a script to a position
 extern "C" void dashql_script_move_cursor(FFIResult* result, dashql::Script* script, size_t text_offset);
 /// Complete at a cursor in the script
-extern "C" void dashql_script_complete_at_cursor(FFIResult* result, dashql::Script* script, size_t limit,
-                                                 dashql::ScriptRegistry* registry);
-/// Complete at a cursor in the script after selecting a candidate of a previous completion
-extern "C" void dashql_script_select_completion_candidate_at_cursor(FFIResult* result, dashql::Script* script,
-                                                                    const void* completion, size_t candidateId);
-/// Complete at a cursor in the script after selecting a catalog object of a previous completion
-extern "C" void dashql_script_select_completion_catalog_object_at_cursor(FFIResult* result, dashql::Script* script,
-                                                                         const void* completion, size_t candidateId,
-                                                                         size_t catalogObjectIdx);
+extern "C" void dashql_script_complete_at_cursor(FFIResult* result, dashql::Script* script, size_t limit);
 
 // -----------------------------------------------------------------------------
 
@@ -131,21 +122,6 @@ extern "C" void dashql_catalog_get_statistics(FFIResult* result, dashql::Catalog
 /// Transcode a (constrained) Vega-Lite JSON spec into a VISUALIZE statement.
 /// The result string is owned by the FFIResult and must be released via dashql_delete_owner.
 extern "C" void dashql_parse_vegalite_to_visualize(FFIResult* result, const char* json_ptr, size_t json_length);
-
-// -----------------------------------------------------------------------------
-
-/// Create a script registry
-extern "C" void dashql_script_registry_new(FFIResult* result);
-/// Clear a registry
-extern "C" void dashql_script_registry_clear(dashql::ScriptRegistry* registry);
-/// Load a script (throws exception on error)
-extern "C" void dashql_script_registry_add_script(dashql::ScriptRegistry* registry, dashql::Script* script);
-/// Drop a script
-extern "C" void dashql_script_registry_drop_script(dashql::ScriptRegistry* registry, dashql::Script* script);
-/// Lookup column info
-extern "C" void dashql_script_registry_find_column(FFIResult* result, dashql::ScriptRegistry* registry,
-                                                   size_t table_context_id, size_t table_object_id, size_t column_id,
-                                                   ssize_t target_catalog_version);
 
 // -----------------------------------------------------------------------------
 

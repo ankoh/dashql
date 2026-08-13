@@ -273,47 +273,12 @@ extern "C" void dashql_script_move_cursor(FFIResult* result, dashql::Script* scr
     packBuffer(result, std::move(detached));
 }
 
-extern "C" void dashql_script_complete_at_cursor(FFIResult* result, dashql::Script* script, size_t limit,
-                                                 dashql::ScriptRegistry* registry) {
-    auto completion = script->CompleteAtCursor(limit, registry);
+extern "C" void dashql_script_complete_at_cursor(FFIResult* result, dashql::Script* script, size_t limit) {
+    auto completion = script->CompleteAtCursor(limit);
 
     // Pack the completion
     flatbuffers::FlatBufferBuilder fb;
     fb.Finish(completion->Pack(fb));
-
-    // Store the buffer
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    packBuffer(result, std::move(detached));
-}
-
-extern "C" void dashql_script_select_completion_candidate_at_cursor(FFIResult* result, dashql::Script* script,
-                                                                    const void* prev_completion_bytes,
-                                                                    size_t candidate_id) {
-    // Read the previous completion
-    auto* prev_completion = flatbuffers::GetRoot<buffers::completion::Completion>(prev_completion_bytes);
-
-    // Select the completion candidate
-    flatbuffers::FlatBufferBuilder fb;
-    auto completion = script->SelectCompletionCandidateAtCursor(fb, *prev_completion, candidate_id);
-    fb.Finish(completion);
-
-    // Store the buffer
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    packBuffer(result, std::move(detached));
-}
-
-extern "C" void dashql_script_select_completion_catalog_object_at_cursor(FFIResult* result, dashql::Script* script,
-                                                                         const void* prev_completion_bytes,
-                                                                         size_t candidate_id,
-                                                                         size_t catalog_object_idx) {
-    // Read the previous completion
-    auto* prev_completion = flatbuffers::GetRoot<buffers::completion::Completion>(prev_completion_bytes);
-
-    // Select the completion candidate
-    flatbuffers::FlatBufferBuilder fb;
-    auto completion =
-        script->SelectCompletionCatalogObjectAtCursor(fb, *prev_completion, candidate_id, catalog_object_idx);
-    fb.Finish(completion);
 
     // Store the buffer
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
@@ -397,39 +362,6 @@ extern "C" void dashql_parse_vegalite_to_visualize(FFIResult* result, const char
     result->data_length = text->length();
     result->owner_ptr = text.release();
     result->owner_deleter = [](void* buffer) { delete reinterpret_cast<std::string*>(buffer); };
-}
-
-/// Create a script registry
-extern "C" void dashql_script_registry_new(FFIResult* result) {
-    packPtr(result, std::make_unique<dashql::ScriptRegistry>());
-}
-
-/// Clear a registry
-extern "C" void dashql_script_registry_clear(dashql::ScriptRegistry* registry) { registry->Clear(); }
-
-/// Load a script
-extern "C" void dashql_script_registry_add_script(dashql::ScriptRegistry* registry, dashql::Script* script) {
-    registry->AddScript(*script);
-}
-
-/// Drop a script
-extern "C" void dashql_script_registry_drop_script(dashql::ScriptRegistry* registry, dashql::Script* script) {
-    registry->DropScript(*script);
-}
-
-/// Lookup a column ref
-extern "C" void dashql_script_registry_find_column(FFIResult* result, dashql::ScriptRegistry* registry,
-                                                   size_t table_context_id, size_t table_object_id, size_t column_idx,
-                                                   ssize_t target_catalog_version) {
-    ExternalObjectID table_id{static_cast<uint32_t>(table_context_id), static_cast<uint32_t>(table_object_id)};
-    auto column_id = QualifiedCatalogObjectID::TableColumn(table_id, column_idx);
-
-    flatbuffers::FlatBufferBuilder fb;
-    auto version = target_catalog_version < 0 ? std::nullopt : std::optional{target_catalog_version};
-    auto templates = registry->FindColumnInfo(fb, column_id, version);
-    fb.Finish(templates);
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    packBuffer(result, std::move(detached));
 }
 
 /// Create a plan view model

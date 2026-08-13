@@ -58,8 +58,6 @@ async function restoreNotebookScripts(
     notebookMetadata: any,
     logger: Logger
 ): Promise<NotebookScripts> {
-    logger.info("Creating script registry", { notebookId }, LOG_CTX);
-    const scriptRegistry = core.createScriptRegistry();
     const scripts: Record<number, ScriptData> = {};
 
     try {
@@ -174,7 +172,6 @@ async function restoreNotebookScripts(
             notebookMetadata,
             connectorInfo,
             connectionCatalog,
-            scriptRegistry,
             scripts,
             scriptFolders,
             uncommittedScriptId: uncommittedKey,
@@ -188,7 +185,6 @@ async function restoreNotebookScripts(
             scriptData.scriptAnalysis.buffers.destroy(scriptData.scriptAnalysis.buffers);
             scriptData.script.destroy();
         }
-        scriptRegistry.destroy();
         throw error;
     }
 }

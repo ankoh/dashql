@@ -17,7 +17,6 @@
 #include "dashql/parser/scanner.h"
 #include "dashql/script.h"
 #include "dashql/script_diff.h"
-#include "dashql/script_registry.h"
 #include "dashql/testing/analyzer_snapshot_test.h"
 #include "dashql/testing/completion_snapshot_test.h"
 #include "dashql/testing/diff_snapshot_test.h"
@@ -35,7 +34,7 @@ using namespace dashql::testing;
 DEFINE_string(source_dir, "", "Source directory");
 DEFINE_string(
     filter, "",
-    "Snapshot category to update (parser, analyzer, completion, registry, formatter, plan_view_model, visualize, diff). Empty = all.");
+    "Snapshot category to update (parser, analyzer, completion, formatter, plan_view_model, visualize, diff). Empty = all.");
 
 static void generate_parser_snapshots(const std::filesystem::path& snapshot_dir) {
     for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
@@ -243,72 +242,6 @@ static void generate_analyzer_snapshots(const std::filesystem::path& snapshot_di
     }
 }
 
-static void generate_registry_snapshots(const std::filesystem::path& snapshot_dir) {
-    for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
-        auto path = p.path();
-        if (path.extension() != ".yaml") continue;
-        if (path.stem().extension() != ".tpl") continue;
-
-        auto out = path;
-        out.replace_extension();
-        out.replace_extension(".yaml");
-
-        std::ifstream in(path, std::ios::in | std::ios::binary);
-        if (!in) {
-            std::cout << "[" << path.filename().string() << "] failed to read file" << std::endl;
-            continue;
-        }
-        std::stringstream buf;
-        buf << in.rdbuf();
-        std::string content = buf.str();
-
-        c4::yml::Tree tree;
-        c4::yml::parse_in_arena(c4::to_csubstr(content), &tree);
-        auto root = tree.rootref();
-        if (!root.has_child("registry-snapshots")) continue;
-
-        std::cout << "FILE " << out << std::endl;
-        auto snapshots = root["registry-snapshots"];
-        for (auto test_node : snapshots.children()) {
-            if (!test_node.has_child("name")) continue;
-            c4::csubstr name_v = test_node["name"].val();
-            std::string name = name_v.str ? std::string(name_v.str, name_v.len) : std::string();
-            std::cout << "  TEST " << name << std::endl;
-
-            std::unique_ptr<Catalog> catalog;
-            std::vector<std::unique_ptr<Script>> catalog_scripts;
-            if (test_node.has_child("catalog")) {
-                auto catalog_node = tree.ref(test_node["catalog"].id());
-                catalog = read_catalog_yml(tree, catalog_node, catalog_scripts);
-            } else {
-                catalog = std::make_unique<Catalog>();
-            }
-
-            if (!test_node.has_child("registry")) continue;
-            auto registry_node = tree.ref(test_node["registry"].id());
-            std::vector<std::unique_ptr<Script>> registry_scripts;
-            for (auto entry_item : registry_node.children()) {
-                if (!entry_item.has_child("script")) continue;
-                auto script_node = entry_item["script"];
-                auto script = read_script_yml(script_node, *catalog);
-                if (script) {
-                    auto script_ref = tree.ref(script_node.id());
-                    script_ref.clear_val();
-                    script_ref |= c4::yml::MAP;  // add MAP (keep KEY); EncodeScript needs a container
-                    AnalyzerSnapshotTest::EncodeScript(script_ref, *script->analyzed_script, false);
-                    registry_scripts.push_back(std::move(script));
-                }
-            }
-        }
-
-        c4::yml::NodeRef to_emit = tree.ref(tree.first_child(tree.root_id()));
-        std::string emitted = c4::yml::emitrs_yaml<std::string>(to_emit, c4::yml::EmitOptions().max_depth(128));
-        InjectBlankLinesInSnapshot(emitted);
-        std::ofstream outs(out, std::ofstream::out | std::ofstream::trunc);
-        outs << emitted;
-    }
-}
-
 static void generate_completion_snapshots(const std::filesystem::path& snapshot_dir) {
     for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
         auto path = p.path();
@@ -348,25 +281,6 @@ static void generate_completion_snapshots(const std::filesystem::path& snapshot_
                 catalog = read_catalog_yml(tree, catalog_node, catalog_scripts);
             } else {
                 catalog = std::make_unique<Catalog>();
-            }
-
-            ScriptRegistry registry;
-            std::vector<std::unique_ptr<Script>> registry_scripts;
-            if (test_node.has_child("registry")) {
-                auto registry_node = tree.ref(test_node["registry"].id());
-                for (auto entry_item : registry_node.children()) {
-                    if (!entry_item.has_child("script")) continue;
-                    auto script_node = entry_item["script"];
-                    auto script = read_script_yml(script_node, *catalog);
-                    if (script) {
-                        auto script_ref = tree.ref(script_node.id());
-                        script_ref.clear_val();
-                        script_ref |= c4::yml::MAP;  // was scalar (script text); EncodeScript needs a container
-                        AnalyzerSnapshotTest::EncodeScript(script_ref, *script->analyzed_script, false);
-                        registry.AddScript(*script);
-                        registry_scripts.push_back(std::move(script));
-                    }
-                }
             }
 
             if (!test_node.has_child("editor")) continue;
@@ -414,7 +328,7 @@ static void generate_completion_snapshots(const std::filesystem::path& snapshot_
 
             editor_script->MoveCursor(cursor_pos);
             try {
-                auto completion = editor_script->CompleteAtCursor(limit, &registry);
+                auto completion = editor_script->CompleteAtCursor(limit);
                 CompletionSnapshotTest::EncodeCompletion(completions_node, *completion);
                 EncodeLocationText(completions_node, completion->GetTargetSymbol()->symbol.location, target_text,
                                    "text");
@@ -944,7 +858,6 @@ int main(int argc, char* argv[]) {
     if (f.empty() || f == "parser") generate_parser_snapshots(source_dir / "snapshots" / "parser");
     if (f.empty() || f == "analyzer") generate_analyzer_snapshots(source_dir / "snapshots" / "analyzer");
     if (f.empty() || f == "completion") generate_completion_snapshots(source_dir / "snapshots" / "completion");
-    if (f.empty() || f == "registry") generate_registry_snapshots(source_dir / "snapshots" / "registry");
     if (f.empty() || f == "formatter") generate_formatter_snapshots(source_dir / "snapshots" / "formatter");
     if (f.empty() || f == "hyper_plan")
         generate_hyper_plan_snapshots(source_dir / "snapshots" / "plans" / "hyper" / "tests");

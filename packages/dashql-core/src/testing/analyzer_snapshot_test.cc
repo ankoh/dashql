@@ -8,8 +8,6 @@
 #include "c4/yml/std/std.hpp"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
-#include "dashql/script_snippet.h"
-#include "dashql/testing/parser_snapshot_test.h"
 #include "dashql/testing/runfiles_dir.h"
 #include "dashql/testing/yaml_tests.h"
 #include "dashql/utils/string_trimming.h"
@@ -137,10 +135,7 @@ void AnalyzerSnapshotTest::TestScriptSnapshot(const ScriptAnalysisSnapshot& snap
 
     if (snap.tree && snap.node_id != c4::yml::NONE) {
         auto expected = snap.tree->ref(snap.node_id);
-        const char* keys[] = {"errors",        "tables",
-                              "table-refs",     "expressions",
-                              "constants",      "column-computations",
-                              "column-filters", "inferred-tables"};
+        const char* keys[] = {"errors", "tables", "table-refs", "expressions", "constants", "inferred-tables"};
         for (const char* key : keys) {
             if (!expected.has_child(key)) continue;
             auto have = node[key];
@@ -152,31 +147,6 @@ void AnalyzerSnapshotTest::TestScriptSnapshot(const ScriptAnalysisSnapshot& snap
 }
 
 void operator<<(std::ostream& out, const AnalyzerSnapshotTest& p) { out << p.name; }
-
-void AnalyzerSnapshotTest::EncodeSnippet(c4::yml::NodeRef parent, const AnalyzedScript& analyzed, size_t root_node_id) {
-    auto& parsed = *analyzed.parsed_script;
-    auto& scanned = *parsed.scanned_script;
-    auto& script_text = scanned.text_buffer;
-    auto& script_ast = parsed.GetNodes();
-    auto& script_markers = analyzed.node_markers;
-
-    auto snippet = ScriptSnippet::Extract(script_text, scanned, script_ast, script_markers, root_node_id, scanned.name_registry);
-    auto sig_masked = snippet.ComputeSignature(true);
-    auto sig_unmasked = snippet.ComputeSignature(false);
-
-    auto out_snippet = parent.append_child();
-    out_snippet << c4::yml::key("snippet");
-    out_snippet |= c4::yml::MAP;
-    out_snippet.append_child() << c4::yml::key("signature-template") << sig_masked;
-    out_snippet.append_child() << c4::yml::key("signature-raw") << std::to_string(sig_unmasked);
-    out_snippet.append_child() << c4::yml::key("text") << std::string{snippet.text};
-    auto out_nodes = out_snippet.append_child();
-    out_nodes << c4::yml::key("ast");
-    out_nodes |= c4::yml::MAP;
-    out_nodes.append_child() << c4::yml::key("ast-nodes") << snippet.nodes.size();
-    out_nodes.append_child() << c4::yml::key("ast-bytes") << (snippet.nodes.size() * sizeof(buffers::parser::Node));
-    ParserSnapshotTest::EncodeAST(out_nodes, snippet.text, snippet.nodes, snippet.root_node_id);
-}
 
 void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScript& script, bool is_main) {
     out.append_child() << c4::yml::key("catalog-id") << script.GetCatalogEntryId();
@@ -351,12 +321,6 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
             if (ref.is_constant_expression) {
                 yml_ref.append_child() << c4::yml::key("is-const") << c4::fmt::boolalpha(ref.is_constant_expression);
             }
-            if (ref.is_column_filter && ref.target_expression_id.has_value()) {
-                yml_ref.append_child() << c4::yml::key("restriction-target") << ref.target_expression_id.value();
-            }
-            if (ref.is_column_computation && ref.target_expression_id.has_value()) {
-                yml_ref.append_child() << c4::yml::key("computation") << ref.target_expression_id.value();
-            }
             if (ref.ast_statement_id.has_value()) {
                 yml_ref.append_child() << c4::yml::key("statement-id") << *ref.ast_statement_id;
             }
@@ -380,33 +344,6 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
                                script.parsed_script->scanned_script->ResolveTextSpan(
                                    script.parsed_script->nodes[constant.root.get().ast_node_id].symbol_span()),
                                script.parsed_script->scanned_script->GetInput());
-            if (!constant.root.get().IsLiteral()) {
-                EncodeSnippet(yml_ref, script, constant.root.get().ast_node_id);
-            }
-        });
-    }
-    // Write computations
-    if (!script.column_computations.IsEmpty()) {
-        auto list_node = out.append_child();
-        list_node << c4::yml::key("column-computations");
-        list_node |= c4::yml::SEQ;
-        script.column_computations.ForEach([&](size_t _i, const AnalyzedScript::ColumnComputation& computation) {
-            auto yml_ref = list_node.append_child();
-            yml_ref.set_type(c4::yml::MAP);
-            yml_ref.append_child() << c4::yml::key("expression") << computation.root.get().expression_id;
-            EncodeSnippet(yml_ref, script, computation.root.get().ast_node_id);
-        });
-    }
-    // Write filters
-    if (!script.column_filters.IsEmpty()) {
-        auto list_node = out.append_child();
-        list_node << c4::yml::key("column-filters");
-        list_node |= c4::yml::SEQ;
-        script.column_filters.ForEach([&](size_t _i, const AnalyzedScript::ColumnFilter& filter) {
-            auto yml_ref = list_node.append_child();
-            yml_ref.set_type(c4::yml::MAP);
-            yml_ref.append_child() << c4::yml::key("expression") << filter.root.get().expression_id;
-            EncodeSnippet(yml_ref, script, filter.root.get().ast_node_id);
         });
     }
     // Write visualization specs

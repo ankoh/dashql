@@ -73,7 +73,6 @@ describe('restoreAppState', () => {
 
         // Mock DashQL WASM instance
         let scriptIdCounter = 0;
-        const analyzedScripts = new WeakSet<object>();
         mockCore = {
             createCatalog: vi.fn(() => ({
                 dropScript: vi.fn(),
@@ -86,7 +85,6 @@ describe('restoreAppState', () => {
                     replaceText: vi.fn(),
                     analyze: vi.fn(() => {
                         if (scriptAnalysisError) throw scriptAnalysisError;
-                        analyzedScripts.add(script);
                     }),
                     toString: vi.fn(() => ''),
                     // Methods exercised by Phase 4 eager analysis (analyzeNotebookScript):
@@ -98,14 +96,6 @@ describe('restoreAppState', () => {
                 };
                 return script;
             }),
-            createScriptRegistry: vi.fn(() => ({
-                addScript: vi.fn((script) => {
-                    if (!analyzedScripts.has(script)) {
-                        throw new Error('Script is not analyzed');
-                    }
-                }),
-                destroy: vi.fn(),
-            })),
         } as any;
 
         logger = new NullLogger();
@@ -828,8 +818,6 @@ describe('restoreAppState', () => {
         expect(liveSignatures.size).toBe(0);
         const catalog = vi.mocked(mockCore.createCatalog).mock.results[0].value as any;
         expect(catalog.destroy).toHaveBeenCalledOnce();
-        const scriptRegistry = vi.mocked(mockCore.createScriptRegistry).mock.results[0].value as any;
-        expect(scriptRegistry.destroy).toHaveBeenCalledOnce();
     });
 
     it('releases the signature when connection construction fails', async () => {

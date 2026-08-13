@@ -108,7 +108,6 @@ function createNotebookScripts(): NotebookScripts {
         notebookMetadata: {} as any,
         connectorInfo: {} as any,
         connectionCatalog: {} as any,
-        scriptRegistry: {} as any,
         scripts: {
             101: makeScriptData(101, 'select 1', '01-first.sql'),
             102: makeScriptData(102, 'select 2', '02-second.sql'),

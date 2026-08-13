@@ -179,48 +179,9 @@ completion-snapshots:
           is-const: true
           statement-id: 0
           text: "1"
-        - expression-idx: 2
-          type: comparison
-          op: EQUAL
-          arg-left: 0
-          arg-right: 1
-          restriction-target: 0
-          statement-id: 0
-          text: "x = 1"
       constants:
         - expression: 1
           text: "1"
-      column-filters:
-        - expression: 2
-          snippet:
-            signature-template: 1794172684583472092
-            signature-raw: 4302291419645736910
-            text: x = 1
-            ast:
-              ast-nodes: 7
-              ast-bytes: 168
-              ast:
-                type: OBJECT_SQL_NARY_EXPRESSION
-                text: "x = 1"
-                children:
-                  - key: SQL_EXPRESSION_OPERATOR
-                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                    value: EQUAL
-                  - key: SQL_EXPRESSION_ARGS
-                    type: ARRAY
-                    text: "x = 1"
-                    children:
-                      - type: OBJECT_SQL_COLUMN_REF
-                        text: "x"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "x"
-                            children:
-                              - type: NAME
-                                text: "x"
-                      - type: LITERAL_INTEGER
-                        text: "1"
       inferred-tables:
         - name: foo
           confidence: confident
@@ -259,48 +220,9 @@ completion-snapshots:
           is-const: true
           statement-id: 0
           text: "1"
-        - expression-idx: 2
-          type: comparison
-          op: EQUAL
-          arg-left: 0
-          arg-right: 1
-          restriction-target: 0
-          statement-id: 0
-          text: "x = 1"
       constants:
         - expression: 1
           text: "1"
-      column-filters:
-        - expression: 2
-          snippet:
-            signature-template: 1794172684583472092
-            signature-raw: 4302291419645736910
-            text: x = 1
-            ast:
-              ast-nodes: 7
-              ast-bytes: 168
-              ast:
-                type: OBJECT_SQL_NARY_EXPRESSION
-                text: "x = 1"
-                children:
-                  - key: SQL_EXPRESSION_OPERATOR
-                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                    value: EQUAL
-                  - key: SQL_EXPRESSION_ARGS
-                    type: ARRAY
-                    text: "x = 1"
-                    children:
-                      - type: OBJECT_SQL_COLUMN_REF
-                        text: "x"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "x"
-                            children:
-                              - type: NAME
-                                text: "x"
-                      - type: LITERAL_INTEGER
-                        text: "1"
       inferred-tables:
         - name: foo
           confidence: confident

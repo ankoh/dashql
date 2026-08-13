@@ -12,7 +12,6 @@ export function useNotebookScriptsSetup(): NotebookScriptsSetup {
     const allocateNotebookScripts = useNotebookScriptsAllocator();
 
     return React.useCallback((conn: ConnectionState) => {
-        const registry = conn.instance.createScriptRegistry();
         const mainScript = conn.instance.createScript(conn.catalog);
         const folderName = 'main';
         const fileName = generateScriptFileName({});
@@ -49,7 +48,6 @@ export function useNotebookScriptsSetup(): NotebookScriptsSetup {
             connectorInfo: conn.connectorInfo,
             notebookId: conn.notebookId,
             connectionCatalog: conn.catalog,
-            scriptRegistry: registry,
             scripts: {
                 [mainScriptData.scriptKey]: mainScriptData,
                 [uncommittedKey]: uncommittedData,

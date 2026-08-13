@@ -12,8 +12,6 @@ LIB_SRCS = [
     "src/analyzer/analyzer.cc",
     "src/analyzer/completion.cc",
     "src/analyzer/constant_propagation_pass.cc",
-    "src/analyzer/identify_column_filters_pass.cc",
-    "src/analyzer/identify_column_computations_pass.cc",
     "src/analyzer/identify_function_calls_pass.cc",
     "src/analyzer/name_resolution_pass.cc",
     "src/analyzer/pass_manager.cc",
@@ -34,14 +32,10 @@ LIB_SRCS = [
     "src/parser/parser.cc",
     "src/parser/scanner.cc",
     "src/script.cc",
-    "src/script_comparison.cc",
     "src/script_cursor.cc",
     "src/script_diff.cc",
     "src/script_compiler.cc",
     "src/script_local_relation.cc",
-    "src/script_registry.cc",
-    "src/script_signature.cc",
-    "src/script_snippet.cc",
     "src/text/names.cc",
     "src/utils/murmur3.cc",
     "src/utils/rope.cc",
@@ -317,7 +311,6 @@ test_utils_SRCS = [
     "src/testing/formatter_snapshot_test.cc",
     "src/testing/parser_snapshot_test.cc",
     "src/testing/plan_view_model_snapshot_test.cc",
-    "src/testing/registry_snapshot_test.cc",
     "src/testing/visualize_snapshot_test.cc",
     "src/testing/yaml_tests.cc",
 ]
@@ -355,7 +348,6 @@ TEST_SRCS = [
     "test/parser_snapshot_test_suite.cc",
     "test/parser_test.cc",
     "test/pmh_unordered_map.cc",
-    "test/registry_snapshot_test_suite.cc",
     "test/rope_test.cc",
     "test/scanner_test.cc",
     "test/script_test.cc",
@@ -472,16 +464,6 @@ cc_test(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS + ["//bazel:duckdb"],
-    visibility = ["//visibility:public"]
-)
-cc_test(
-    name = "registry_tests",
-    size = "small",
-    srcs = ["test/registry_snapshot_test_suite.cc"],
-    data = ["//snapshots/registry:files"],
-    copts = DASHQL_COPTS,
-    linkopts = DASHQL_LINKOPTS,
-    deps = CORE_TEST_DEPS,
     visibility = ["//visibility:public"]
 )
 cc_test(

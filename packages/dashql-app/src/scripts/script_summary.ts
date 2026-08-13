@@ -3,20 +3,15 @@ import {
     formatQualifiedTableName,
     formatQualifiedColumnName,
     formatQualifiedFunctionName,
-    columnFilterFromText,
-    type ColumnFilterSummary,
 } from '../core/index.js';
 
 import type { DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
-
-export type { ColumnFilterSummary };
 
 /// Compact summary of an analyzed script for display in collapsed cards.
 export interface ScriptSummary {
     tableRefs: string[];
     columnRefs: string[];
     tableDefs: string[];
-    columnFilters: ColumnFilterSummary[];
     functionRefs: string[];
 }
 
@@ -24,13 +19,11 @@ const EMPTY_SUMMARY: ScriptSummary = {
     tableRefs: [],
     columnRefs: [],
     tableDefs: [],
-    columnFilters: [],
     functionRefs: [],
 };
 
-/// Build a compact summary from script processed buffers and script text.
-/// scriptText is used to read filter expressions from the AST; pass null to omit column filters.
-export function buildScriptSummary(processed: DashQLScriptBuffers, scriptText: string | null): ScriptSummary {
+/// Build a compact summary from script processed buffers.
+export function buildScriptSummary(processed: DashQLScriptBuffers): ScriptSummary {
     const analyzedPtr = processed.analyzed;
     if (!analyzedPtr) return EMPTY_SUMMARY;
 
@@ -43,7 +36,6 @@ export function buildScriptSummary(processed: DashQLScriptBuffers, scriptText: s
     const tmpExpr = new dashql.buffers.algebra.Expression();
     const tmpFuncRef = new dashql.buffers.analyzer.FunctionReference();
     const tmpQualFunc = new dashql.buffers.analyzer.QualifiedFunctionName();
-    const tmpFilter = new dashql.buffers.analyzer.ColumnFilter();
 
     const tableRefs = new Set<string>();
     for (let i = 0; i < analyzed.tableReferencesLength(); ++i) {
@@ -78,17 +70,6 @@ export function buildScriptSummary(processed: DashQLScriptBuffers, scriptText: s
         }
     }
 
-    const columnFilters: ColumnFilterSummary[] = [];
-    const parsedPtr = processed.parsed;
-    if (scriptText != null && scriptText.length > 0 && parsedPtr != null) {
-        const parsed = parsedPtr.read();
-        for (let i = 0; i < analyzed.columnFiltersLength(); ++i) {
-            const filter = analyzed.columnFilters(i, tmpFilter)!;
-            const one = columnFilterFromText(scriptText, parsed, analyzed, filter, tmpExpr);
-            if (one) columnFilters.push(one);
-        }
-    }
-
     const functionRefs = new Set<string>();
     for (let i = 0; i < analyzed.functionReferencesLength(); ++i) {
         const ref = analyzed.functionReferences(i, tmpFuncRef)!;
@@ -103,7 +84,6 @@ export function buildScriptSummary(processed: DashQLScriptBuffers, scriptText: s
         tableRefs: [...tableRefs].sort(),
         columnRefs: [...columnRefs].sort(),
         tableDefs: [...tableDefs].sort(),
-        columnFilters,
         functionRefs: [...functionRefs].sort(),
     };
 }

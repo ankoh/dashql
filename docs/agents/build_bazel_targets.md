@@ -116,7 +116,6 @@ bazel run //snapshots/parser:update
 bazel run //snapshots/analyzer:update
 bazel run //snapshots/formatter:update
 bazel run //snapshots/completion:update
-bazel run //snapshots/registry:update
 bazel run //snapshots/plans/hyper/tests:update
 ```
 

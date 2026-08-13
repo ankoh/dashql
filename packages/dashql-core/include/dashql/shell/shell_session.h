@@ -53,6 +53,7 @@ struct CompletionCandidate {
     std::string completion_text;
     std::string continuation_text;
     std::vector<std::string> qualification_texts;
+    uint32_t completion_cursor_offset = 0;
     uint32_t target_offset = 0;
     uint32_t target_length = 0;
     uint32_t qualification_target_offset = 0;

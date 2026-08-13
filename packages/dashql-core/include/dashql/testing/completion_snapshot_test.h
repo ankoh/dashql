@@ -23,8 +23,6 @@ struct CompletionSnapshotTest {
     std::string name;
     /// The catalog scripts
     std::vector<AnalyzerSnapshotTest::ScriptAnalysisSnapshot> catalog_scripts;
-    /// The registry scripts
-    std::vector<AnalyzerSnapshotTest::ScriptAnalysisSnapshot> registry_scripts;
     /// The editor script
     AnalyzerSnapshotTest::ScriptAnalysisSnapshot script;
     /// The search string for the cursor

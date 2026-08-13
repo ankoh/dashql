@@ -126,7 +126,6 @@ const MAIN_FOLDER = 'Main';
 // containing one committed script and a separate uncommitted script.
 function buildState(): NotebookScripts {
     const catalog = dql!.createCatalog();
-    const registry = dql!.createScriptRegistry();
     const [committedKey, committedData] = createEmptyScriptData(dql!, catalog);
     const [uncommittedKey, uncommittedData] = createEmptyScriptData(dql!, catalog);
     const notebookId = crypto.randomUUID();
@@ -137,7 +136,6 @@ function buildState(): NotebookScripts {
         notebookMetadata: createEmptyMetadata(),
         connectorInfo: createDatalessConnectorInfo(true),
         connectionCatalog: catalog,
-        scriptRegistry: registry,
         scripts: {
             [committedKey]: { ...committedData, folderName: MAIN_FOLDER, fileName: initialFile },
             [uncommittedKey]: uncommittedData,
@@ -248,7 +246,7 @@ describe('SELECT_SCRIPT_FOLDER', () => {
     it('clears semanticUserFocus', () => {
         const state: NotebookScripts = {
             ...buildState(),
-            semanticUserFocus: { registryColumnInfo: null } as any,
+            semanticUserFocus: {} as any,
         };
         const next = reduce(state, { type: SELECT_SCRIPT_FOLDER, value: MAIN_FOLDER });
         expect(next.semanticUserFocus).toBeNull();
@@ -1693,13 +1691,11 @@ describe('destroyNotebookScripts', () => {
         return ptr.resultPtr != null && dql!.registeredMemory.has(ptr.resultPtr);
     }
 
-    it('frees the script registry and every owned script', () => {
+    it('frees every owned script', () => {
         const state = buildState();
         const scriptPtrs = Object.values(state.scripts).map(s => s.script.ptr);
-        const registryPtr = state.scriptRegistry.ptr!;
 
         // Everything is alive before teardown.
-        expect(isAlive(registryPtr)).toBe(true);
         for (const p of scriptPtrs) {
             expect(isAlive(p)).toBe(true);
         }
@@ -1707,7 +1703,6 @@ describe('destroyNotebookScripts', () => {
         destroyNotebookScripts(state);
 
         // The notebook-owned Wasm is gone.
-        expect(isAlive(registryPtr)).toBe(false);
         for (const p of scriptPtrs) {
             expect(isAlive(p)).toBe(false);
         }

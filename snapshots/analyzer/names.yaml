@@ -49,48 +49,9 @@ analyzer-snapshots:
           is-const: true
           statement-id: 0
           text: "2"
-        - expression-idx: 2
-          type: comparison
-          op: EQUAL
-          arg-left: 0
-          arg-right: 1
-          restriction-target: 0
-          statement-id: 0
-          text: "a = 2"
       constants:
         - expression: 1
           text: "2"
-      column-filters:
-        - expression: 2
-          snippet:
-            signature-template: 1794172684583472092
-            signature-raw: 16614441357703179308
-            text: a = 2
-            ast:
-              ast-nodes: 7
-              ast-bytes: 168
-              ast:
-                type: OBJECT_SQL_NARY_EXPRESSION
-                text: "a = 2"
-                children:
-                  - key: SQL_EXPRESSION_OPERATOR
-                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                    value: EQUAL
-                  - key: SQL_EXPRESSION_ARGS
-                    type: ARRAY
-                    text: "a = 2"
-                    children:
-                      - type: OBJECT_SQL_COLUMN_REF
-                        text: "a"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "a"
-                            children:
-                              - type: NAME
-                                text: "a"
-                      - type: LITERAL_INTEGER
-                        text: "2"
 
   - name: names_columnref_ambiguous_scope_overrules
     catalog:
@@ -139,48 +100,9 @@ analyzer-snapshots:
           is-const: true
           statement-id: 0
           text: "2"
-        - expression-idx: 2
-          type: comparison
-          op: EQUAL
-          arg-left: 0
-          arg-right: 1
-          restriction-target: 0
-          statement-id: 0
-          text: "a = 2"
       constants:
         - expression: 1
           text: "2"
-      column-filters:
-        - expression: 2
-          snippet:
-            signature-template: 1794172684583472092
-            signature-raw: 16614441357703179308
-            text: a = 2
-            ast:
-              ast-nodes: 7
-              ast-bytes: 168
-              ast:
-                type: OBJECT_SQL_NARY_EXPRESSION
-                text: "a = 2"
-                children:
-                  - key: SQL_EXPRESSION_OPERATOR
-                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                    value: EQUAL
-                  - key: SQL_EXPRESSION_ARGS
-                    type: ARRAY
-                    text: "a = 2"
-                    children:
-                      - type: OBJECT_SQL_COLUMN_REF
-                        text: "a"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "a"
-                            children:
-                              - type: NAME
-                                text: "a"
-                      - type: LITERAL_INTEGER
-                        text: "2"
 
   - name: names_columnref_ambiguous_correctly_scoped
     catalog:
@@ -239,88 +161,11 @@ analyzer-snapshots:
           is-const: true
           statement-id: 0
           text: "3"
-        - expression-idx: 4
-          type: comparison
-          op: EQUAL
-          arg-left: 0
-          arg-right: 2
-          restriction-target: 0
-          statement-id: 0
-          text: "a = 2"
-        - expression-idx: 5
-          type: comparison
-          op: EQUAL
-          arg-left: 1
-          arg-right: 3
-          restriction-target: 1
-          statement-id: 0
-          text: "a = 3"
       constants:
         - expression: 2
           text: "2"
         - expression: 3
           text: "3"
-      column-filters:
-        - expression: 4
-          snippet:
-            signature-template: 1794172684583472092
-            signature-raw: 16614441357703179308
-            text: a = 2
-            ast:
-              ast-nodes: 7
-              ast-bytes: 168
-              ast:
-                type: OBJECT_SQL_NARY_EXPRESSION
-                text: "a = 2"
-                children:
-                  - key: SQL_EXPRESSION_OPERATOR
-                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                    value: EQUAL
-                  - key: SQL_EXPRESSION_ARGS
-                    type: ARRAY
-                    text: "a = 2"
-                    children:
-                      - type: OBJECT_SQL_COLUMN_REF
-                        text: "a"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "a"
-                            children:
-                              - type: NAME
-                                text: "a"
-                      - type: LITERAL_INTEGER
-                        text: "2"
-        - expression: 5
-          snippet:
-            signature-template: 1794172684583472092
-            signature-raw: 3070665208392945829
-            text: a = 3
-            ast:
-              ast-nodes: 7
-              ast-bytes: 168
-              ast:
-                type: OBJECT_SQL_NARY_EXPRESSION
-                text: "a = 3"
-                children:
-                  - key: SQL_EXPRESSION_OPERATOR
-                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                    value: EQUAL
-                  - key: SQL_EXPRESSION_ARGS
-                    type: ARRAY
-                    text: "a = 3"
-                    children:
-                      - type: OBJECT_SQL_COLUMN_REF
-                        text: "a"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "a"
-                            children:
-                              - type: NAME
-                                text: "a"
-                      - type: LITERAL_INTEGER
-                        text: "3"
 
   - name: names_duplicate_tableref
     catalog:
@@ -455,50 +300,9 @@ analyzer-snapshots:
           is-const: true
           statement-id: 0
           text: "1"
-        - expression-idx: 2
-          type: comparison
-          op: EQUAL
-          arg-left: 0
-          arg-right: 1
-          restriction-target: 0
-          statement-id: 0
-          text: "foo.a = 1"
       constants:
         - expression: 1
           text: "1"
-      column-filters:
-        - expression: 2
-          snippet:
-            signature-template: 10922374919875496751
-            signature-raw: 14006504229082707590
-            text: foo.a = 1
-            ast:
-              ast-nodes: 8
-              ast-bytes: 192
-              ast:
-                type: OBJECT_SQL_NARY_EXPRESSION
-                text: "foo.a = 1"
-                children:
-                  - key: SQL_EXPRESSION_OPERATOR
-                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                    value: EQUAL
-                  - key: SQL_EXPRESSION_ARGS
-                    type: ARRAY
-                    text: "foo.a = 1"
-                    children:
-                      - type: OBJECT_SQL_COLUMN_REF
-                        text: "foo.a"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "foo.a"
-                            children:
-                              - type: NAME
-                                text: "foo"
-                              - type: NAME
-                                text: "a"
-                      - type: LITERAL_INTEGER
-                        text: "1"
 
   - name: names_tablename_as_alias_with_cross_join
     catalog:
@@ -538,50 +342,9 @@ analyzer-snapshots:
           is-const: true
           statement-id: 0
           text: "1"
-        - expression-idx: 2
-          type: comparison
-          op: EQUAL
-          arg-left: 0
-          arg-right: 1
-          restriction-target: 0
-          statement-id: 0
-          text: "foo.a = 1"
       constants:
         - expression: 1
           text: "1"
-      column-filters:
-        - expression: 2
-          snippet:
-            signature-template: 10922374919875496751
-            signature-raw: 14006504229082707590
-            text: foo.a = 1
-            ast:
-              ast-nodes: 8
-              ast-bytes: 192
-              ast:
-                type: OBJECT_SQL_NARY_EXPRESSION
-                text: "foo.a = 1"
-                children:
-                  - key: SQL_EXPRESSION_OPERATOR
-                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                    value: EQUAL
-                  - key: SQL_EXPRESSION_ARGS
-                    type: ARRAY
-                    text: "foo.a = 1"
-                    children:
-                      - type: OBJECT_SQL_COLUMN_REF
-                        text: "foo.a"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "foo.a"
-                            children:
-                              - type: NAME
-                                text: "foo"
-                              - type: NAME
-                                text: "a"
-                      - type: LITERAL_INTEGER
-                        text: "1"
 
   - name: names_tablename_as_alias_but_duplicate
     catalog:
@@ -628,50 +391,9 @@ analyzer-snapshots:
           is-const: true
           statement-id: 0
           text: "1"
-        - expression-idx: 2
-          type: comparison
-          op: EQUAL
-          arg-left: 0
-          arg-right: 1
-          restriction-target: 0
-          statement-id: 0
-          text: "foo.a = 1"
       constants:
         - expression: 1
           text: "1"
-      column-filters:
-        - expression: 2
-          snippet:
-            signature-template: 10922374919875496751
-            signature-raw: 14006504229082707590
-            text: foo.a = 1
-            ast:
-              ast-nodes: 8
-              ast-bytes: 192
-              ast:
-                type: OBJECT_SQL_NARY_EXPRESSION
-                text: "foo.a = 1"
-                children:
-                  - key: SQL_EXPRESSION_OPERATOR
-                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                    value: EQUAL
-                  - key: SQL_EXPRESSION_ARGS
-                    type: ARRAY
-                    text: "foo.a = 1"
-                    children:
-                      - type: OBJECT_SQL_COLUMN_REF
-                        text: "foo.a"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "foo.a"
-                            children:
-                              - type: NAME
-                                text: "foo"
-                              - type: NAME
-                                text: "a"
-                      - type: LITERAL_INTEGER
-                        text: "1"
 
   - name: names_unresolved_tablename_as_alias_with_tableref_alias
     catalog:
@@ -706,47 +428,6 @@ analyzer-snapshots:
           is-const: true
           statement-id: 0
           text: "1"
-        - expression-idx: 2
-          type: comparison
-          op: EQUAL
-          arg-left: 0
-          arg-right: 1
-          restriction-target: 0
-          statement-id: 0
-          text: "foo.a = 1"
       constants:
         - expression: 1
           text: "1"
-      column-filters:
-        - expression: 2
-          snippet:
-            signature-template: 10922374919875496751
-            signature-raw: 14006504229082707590
-            text: foo.a = 1
-            ast:
-              ast-nodes: 8
-              ast-bytes: 192
-              ast:
-                type: OBJECT_SQL_NARY_EXPRESSION
-                text: "foo.a = 1"
-                children:
-                  - key: SQL_EXPRESSION_OPERATOR
-                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                    value: EQUAL
-                  - key: SQL_EXPRESSION_ARGS
-                    type: ARRAY
-                    text: "foo.a = 1"
-                    children:
-                      - type: OBJECT_SQL_COLUMN_REF
-                        text: "foo.a"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "foo.a"
-                            children:
-                              - type: NAME
-                                text: "foo"
-                              - type: NAME
-                                text: "a"
-                      - type: LITERAL_INTEGER
-                        text: "1"

@@ -19,17 +19,3 @@ analyzer-snapshots:
       constants:
         - expression: 1
           text: "interval '30 days'"
-          snippet:
-            signature-template: 46082571324905491
-            signature-raw: 3005809175370113497
-            text: interval '30 days'
-            ast:
-              ast-nodes: 2
-              ast-bytes: 48
-              ast:
-                type: OBJECT_SQL_CONST_INTERVAL_CAST
-                text: "interval '30 days'"
-                children:
-                  - key: SQL_CONST_CAST_VALUE
-                    type: LITERAL_STRING
-                    text: "'30 days'"

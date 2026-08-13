@@ -179,50 +179,9 @@ analyzer-snapshots:
           is-const: true
           statement-id: 0
           text: "1"
-        - expression-idx: 4
-          type: comparison
-          op: EQUAL
-          arg-left: 2
-          arg-right: 3
-          restriction-target: 2
-          statement-id: 0
-          text: "f.id = 1"
       constants:
         - expression: 3
           text: "1"
-      column-filters:
-        - expression: 4
-          snippet:
-            signature-template: 10922374919875496751
-            signature-raw: 12311314193987265820
-            text: f.id = 1
-            ast:
-              ast-nodes: 8
-              ast-bytes: 192
-              ast:
-                type: OBJECT_SQL_NARY_EXPRESSION
-                text: "f.id = 1"
-                children:
-                  - key: SQL_EXPRESSION_OPERATOR
-                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                    value: EQUAL
-                  - key: SQL_EXPRESSION_ARGS
-                    type: ARRAY
-                    text: "f.id = 1"
-                    children:
-                      - type: OBJECT_SQL_COLUMN_REF
-                        text: "f.id"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "f.id"
-                            children:
-                              - type: NAME
-                                text: "f"
-                              - type: NAME
-                                text: "id"
-                      - type: LITERAL_INTEGER
-                        text: "1"
       inferred-tables:
         - name: foo
           confidence: confident

@@ -28,7 +28,7 @@ struct ParserSnapshotTest {
     /// Encode AST nodes into a YAML parent (resolves token-index SymbolSpans through scanned script)
     static void EncodeAST(c4::yml::NodeRef parent, std::string_view text, const ScannedScript& scanned,
                           std::span<const buffers::parser::Node> ast, size_t root_node_id);
-    /// Encode AST nodes where SymbolSpans are already text-offset-based (e.g. snippets)
+    /// Encode AST nodes where SymbolSpans are already text-offset-based.
     static void EncodeAST(c4::yml::NodeRef parent, std::string_view text,
                           std::span<const buffers::parser::Node> ast, size_t root_node_id);
     /// Encode script result into a YAML map (statements, scanner-errors, parser-errors, line-breaks, comments)

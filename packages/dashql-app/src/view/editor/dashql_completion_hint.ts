@@ -1,6 +1,6 @@
 import * as dashql from '../../core/index.js';
 
-import { Range, Text } from '@codemirror/state';
+import { Range } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
 import { DashQLCompletionState, DashQLProcessorPlugin } from './dashql_processor.js';
@@ -23,8 +23,6 @@ interface CompletionHints {
     candidateHints: Hint[];
     /// The qualifier for the candidate
     catalogObjectHints: Hint[];
-    /// The extended template completion hint
-    templateHints: Hint[];
 }
 
 function selectControls(hints: Hint[], preferFirst: boolean) {
@@ -77,23 +75,19 @@ export function deriveCompletionHints(state: DashQLCompletionState): CompletionH
     const hints: CompletionHints = {
         candidateHints: state.candidatePatch.map(p => ({ ...p, controls: false })),
         catalogObjectHints: state.catalogObjectPatch.map(p => ({ ...p, controls: false })),
-        templateHints: state.templatePatch.map(p => ({ ...p, controls: false })),
     };
     selectControls(hints.candidateHints, false);
     selectControls(hints.catalogObjectHints, true);
-    selectControls(hints.templateHints, false);
     return hints;
 }
 
 const INSERT_CLASSNAMES = [
     styles.hint_candidate_insert,
     styles.hint_qualification_insert,
-    styles.hint_template_insert,
 ];
 const DELETE_CLASSNAMES = [
     styles.hint_candidate_delete,
     styles.hint_qualification_delete,
-    styles.hint_template_delete,
 ];
 function getInsertClassNameForCategory(category: CompletionPatchTarget): string {
     return INSERT_CLASSNAMES[category as number - 1];
@@ -166,18 +160,6 @@ class HintKeyWidget extends WidgetType {
     }
 }
 
-function determineHintKeyNumber(hints: CompletionHints, category: CompletionPatchTarget): number | null {
-    switch (category) {
-        case CompletionPatchTarget.Candidate:
-            return null;
-        case CompletionPatchTarget.Template:
-            return (hints.catalogObjectHints.length > 0) ? 2 : null;
-        case CompletionPatchTarget.CatalogObject:
-            return (hints.templateHints.length > 0) ? 1 : null;
-    }
-}
-
-
 function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet {
     const processor = viewUpdate.state.field(DashQLProcessorPlugin);
 
@@ -205,7 +187,6 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
     // Codemirror requires Decorations to be ordered by `at` & `side`
     const mergedPatches = [
         ...hints.candidateHints,
-        ...hints.templateHints,
         ...hints.catalogObjectHints
     ];
     mergedPatches.sort((l, r) => {
@@ -248,7 +229,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
 
                 // Insert controls after?
                 if (patch.controls && !isPassive) {
-                    const controlsWidget = new HintKeyWidget(determineHintKeyNumber(hints, patch.target));
+                    const controlsWidget = new HintKeyWidget(null);
                     const controlDeco = Decoration.widget({ widget: controlsWidget, side }).range(patch.value.at);
                     decorations.push(controlDeco);
                 }
@@ -262,7 +243,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
 
                 // Emit controls?
                 if (patch.controls && !isPassive) {
-                    const controlsWidget = new HintKeyWidget(determineHintKeyNumber(hints, patch.target));
+                    const controlsWidget = new HintKeyWidget(null);
                     const controlDeco = Decoration.widget({ widget: controlsWidget }).range(patch.value.at);
                     decorations.push(controlDeco);
                 }

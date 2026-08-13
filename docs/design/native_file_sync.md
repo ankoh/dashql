@@ -120,8 +120,7 @@ Notebook scripts reconciliation stays in
 - `notebookScriptsMatchStorageSnapshot` detects content and page-structure differences.
 - `replaceNotebookScriptsFromStorage` applies a complete snapshot without persistence side effects.
 - Scripts at unchanged page/file paths retain their WASM script identity and query history.
-- Added scripts allocate new WASM state; removed scripts are detached from the catalog and registry
-  before destruction.
+- Added scripts allocate new WASM state; removed scripts are detached from the catalog before destruction.
 - Changed script text clears stale completion and pending-diff buffers.
 - Existing page/script focus is retained when that path still exists; otherwise focus falls back to
   the first sorted entry.

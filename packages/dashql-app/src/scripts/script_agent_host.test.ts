@@ -104,8 +104,6 @@ class MockAIClient implements AgentAIClient {
 /// driver's modifyNotebookScripts can update the state and readers see the latest.
 function buildNotebookScripts(focusedSql: string): { state: NotebookScripts; focusedKey: number } {
     const catalog = dql!.createCatalog();
-    const registry = dql!.createScriptRegistry();
-
     // Seed the catalog with a `sales` table via a schema script.
     const schemaScript = dql!.createScript(catalog);
     schemaScript.replaceText('create table sales(category text, amount int, ts timestamp);');
@@ -123,7 +121,6 @@ function buildNotebookScripts(focusedSql: string): { state: NotebookScripts; foc
         notebookMetadata: createEmptyMetadata(),
         connectorInfo: createDatalessConnectorInfo(true),
         connectionCatalog: catalog,
-        scriptRegistry: registry,
         scripts: {
             [committedKey]: { ...committedData, folderName: MAIN_FOLDER, fileName: file },
         },

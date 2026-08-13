@@ -225,14 +225,8 @@ struct Expression : public IntrusiveListNode {
     std::variant<std::monostate, ColumnRef, Literal, Comparison, BinaryExpression, FunctionCallExpression,
                  ConstIntervalCast>
         inner;
-    /// The expression id of the subtree that contains the target column ref
-    std::optional<uint32_t> target_expression_id = std::nullopt;
     /// Is the expression a constant?
     bool is_constant_expression = false;
-    /// Is the expression a column computation?
-    bool is_column_computation = false;
-    /// Is the expression a filter?
-    bool is_column_filter = false;
 
     /// Constructor
     Expression() : inner(std::monostate{}) {}
@@ -242,10 +236,6 @@ struct Expression : public IntrusiveListNode {
     inline bool IsLiteral() const { return std::holds_alternative<Literal>(inner); }
     // Check if the expression is a constant
     inline bool IsConstantExpression() const { return is_constant_expression; }
-    // Check if the expression is a column computation
-    inline bool IsColumnComputation() const { return is_column_computation; }
-    // Check if the expression is a column filter
-    inline bool IsColumnFilter() const { return is_column_filter; }
     /// Pack as FlatBuffer
     flatbuffers::Offset<buffers::algebra::Expression> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 };
@@ -455,22 +445,6 @@ struct InferredTableSchema {
 struct ConstantExpression {
     /// The root expression
     std::reference_wrapper<Expression> root;
-};
-
-/// A column computation
-struct ColumnComputation {
-    /// The root expression
-    std::reference_wrapper<Expression> root;
-    /// The column ref expression
-    std::reference_wrapper<Expression> column_ref;
-};
-
-/// A column filter
-struct ColumnFilter {
-    /// The root expression
-    std::reference_wrapper<Expression> root;
-    /// The column ref expression
-    std::reference_wrapper<Expression> column_ref;
 };
 
 /// Binning parameters for a quantitative field

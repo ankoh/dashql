@@ -3,7 +3,6 @@
 #include "dashql/catalog.h"
 #include "dashql/script.h"
 #include "dashql/testing/completion_snapshot_test.h"
-#include "dashql/testing/registry_snapshot_test.h"
 #include "dashql/testing/yaml_tests.h"
 #include "gtest/gtest.h"
 #include "ryml.hpp"
@@ -24,9 +23,6 @@ TEST_P(CompletionSnapshotTestSuite, Test) {
     auto catalog_node = out_root.append_child();
     catalog_node << c4::yml::key("catalog");
     catalog_node |= c4::yml::MAP;
-    auto registry_node = out_root.append_child();
-    registry_node << c4::yml::key("registry");
-    registry_node |= c4::yml::SEQ;
     auto editor_node = out_root.append_child();
     editor_node << c4::yml::key("editor");
     editor_node |= c4::yml::MAP;
@@ -35,11 +31,6 @@ TEST_P(CompletionSnapshotTestSuite, Test) {
     std::vector<std::unique_ptr<Script>> catalog_scripts;
     ASSERT_NO_FATAL_FAILURE(
         AnalyzerSnapshotTest::TestCatalogSnapshot(test->catalog_scripts, catalog_node, catalog, catalog_scripts));
-
-    ScriptRegistry registry;
-    std::vector<std::unique_ptr<Script>> registry_scripts;
-    ASSERT_NO_FATAL_FAILURE(RegistrySnapshotTest::TestRegistrySnapshot(test->registry_scripts, registry_node, catalog,
-                                                                       registry, registry_scripts));
 
     Script editor_script{catalog};
     ASSERT_NO_FATAL_FAILURE(AnalyzerSnapshotTest::TestScriptSnapshot(test->script, editor_node, editor_script, true));
@@ -51,7 +42,7 @@ TEST_P(CompletionSnapshotTestSuite, Test) {
     ASSERT_LE(cursor_pos, target_text.size());
 
     editor_script.MoveCursor(cursor_pos);
-    auto completion = editor_script.CompleteAtCursor(test->completion_limit, &registry);
+    auto completion = editor_script.CompleteAtCursor(test->completion_limit);
     ASSERT_NE(completion, nullptr);
 
     auto completions_node = out_root.append_child();
@@ -80,7 +71,7 @@ INSTANTIATE_TEST_SUITE_P(ResolvingTables, CompletionSnapshotTestSuite, ::testing
 INSTANTIATE_TEST_SUITE_P(ResolvingColumns, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("resolving_columns.yaml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Casing, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("casing.yaml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(ExpectedSymbols, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("expected_symbols.yaml")), CompletionSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(Registry, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("registry.yaml")), CompletionSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(CatalogFilter, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("catalog_filter.yaml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Trino, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("trino.yaml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Bugs, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("bugs.yaml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(KeywordContinuations, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("keyword_continuations.yaml")), CompletionSnapshotTest::TestPrinter());

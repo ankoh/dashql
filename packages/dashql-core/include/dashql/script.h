@@ -32,7 +32,6 @@ class ParseContext;
 }  // namespace parser
 
 class NameSuffixIndex;
-class ScriptRegistry;
 struct Analyzer;
 struct Completion;
 
@@ -223,8 +222,6 @@ class AnalyzedScript : public CatalogEntry {
     using ScriptLocalRelation = dashql::ScriptLocalRelation;
     using NameScope = dashql::NameScope;
     using ConstantExpression = dashql::ConstantExpression;
-    using ColumnComputation = dashql::ColumnComputation;
-    using ColumnFilter = dashql::ColumnFilter;
     using VisEncodingChannel = dashql::VisEncodingChannel;
     using VisualizationSpec = dashql::VisualizationSpec;
     using InferenceConstraint = dashql::InferenceConstraint;
@@ -240,7 +237,7 @@ class AnalyzedScript : public CatalogEntry {
     /// The node markers.
     /// Semantic node markers annotate the ast with lightweight semantic tags.
     /// For example, we remember which ast nodes store a column ref, literals or constant expressions.
-    /// These markers are preserved for Script Snippets and can be used in the UI for hints and highlighting.
+    /// These markers can be used in the UI for hints and highlighting.
     std::vector<buffers::analyzer::SemanticNodeMarkerType> node_markers;
 
     /// The table references
@@ -258,11 +255,6 @@ class AnalyzedScript : public CatalogEntry {
 
     /// The constant expressions in the script
     ChunkBuffer<ConstantExpression, 16> constant_expressions;
-    /// The column computations in the script
-    ChunkBuffer<ColumnComputation, 16> column_computations;
-    /// The column filters in the script
-    ChunkBuffer<ColumnFilter, 16> column_filters;
-
     /// The visualization specs in the script
     ChunkBuffer<VisualizationSpec, 4> visualization_specs;
 
@@ -274,15 +266,6 @@ class AnalyzedScript : public CatalogEntry {
     /// The inferred table schemas indexed by normalized (db, schema, table) name.
     std::unordered_map<CatalogEntry::QualifiedTableName::Key, std::reference_wrapper<InferredTableSchema>, TupleHasher>
         inferred_table_schemas_by_name;
-
-    /// The column computations indexed by the catalog entry.
-    /// This index is used to quickly resolve column computations in this script through catalog ids.
-    std::unordered_multimap<QualifiedCatalogObjectID, std::reference_wrapper<ColumnComputation>>
-        column_computations_by_catalog_entry;
-    /// The column filters indexed by the catalog entry
-    /// This index is used to quickly resolve column filters in this script through catalog ids.
-    std::unordered_multimap<QualifiedCatalogObjectID, std::reference_wrapper<ColumnFilter>>
-        column_filters_by_catalog_entry;
 
     /// Relations defined by top-level pipelines ending in `|> AS name`.
     /// Kept after the established analyzer fields so adding this feature does not shift their layout.
@@ -307,8 +290,6 @@ class AnalyzedScript : public CatalogEntry {
         n.ast_statement_id = std::nullopt;
         n.location = location;
         n.is_constant_expression = false;
-        n.is_column_computation = false;
-        n.is_column_filter = false;
         n.inner = std::move(inner);
         return n;
     }
@@ -456,21 +437,7 @@ class Script {
     /// Move the cursor (throws Exception on error)
     const ScriptCursor* MoveCursor(size_t text_offset);
     /// Complete at the cursor (throws Exception on error)
-    std::unique_ptr<Completion> CompleteAtCursor(size_t limit = 10, ScriptRegistry* registry = nullptr) const;
-    /// Complete at the cursor after selecting a candidate of a previous completion (throws Exception on error)
-    /// If applicable, returns a new completion that scopes the previous completion down to the candidate.
-    ///
-    /// TODO This assumes that candidate casing is not mixed, check that
-    CompletionPtr SelectCompletionCandidateAtCursor(flatbuffers::FlatBufferBuilder& builder,
-                                                    const buffers::completion::Completion& completion,
-                                                    size_t candidate_idx) const;
-    /// Complete at the cursor after selecting a catalog object of a previous completion (throws Exception on error)
-    /// If applicable, returns a new completion that scopes the previous completion down to the qualified candidate.
-    ///
-    /// Use this to cycle through potential candidate templates after qualifying.
-    CompletionPtr SelectCompletionCatalogObjectAtCursor(flatbuffers::FlatBufferBuilder& builder,
-                                                        const buffers::completion::Completion& completion,
-                                                        size_t candidate_idx, size_t catalog_object_idx) const;
+    std::unique_ptr<Completion> CompleteAtCursor(size_t limit = 10) const;
     /// Get statisics
     std::unique_ptr<buffers::statistics::ScriptStatisticsT> GetStatistics();
 

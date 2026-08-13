@@ -43,8 +43,6 @@ struct AnalyzerSnapshotTest {
     /// Test main script and compare to expected
     static void TestScriptSnapshot(const ScriptAnalysisSnapshot& snap, c4::yml::NodeRef node, Script& script,
                                    bool is_main);
-    /// Encode a snippet to YAML
-    static void EncodeSnippet(c4::yml::NodeRef parent, const AnalyzedScript& analyzed, size_t root_node_id);
     /// Encode a script to YAML
     static void EncodeScript(c4::yml::NodeRef out, const AnalyzedScript& script, bool is_main);
     /// Get the grammar tests

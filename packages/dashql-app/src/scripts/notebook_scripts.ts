@@ -61,8 +61,6 @@ export interface NotebookScripts {
     connectorInfo: ConnectorInfo;
     /// The connection catalog
     connectionCatalog: core.DashQLCatalog;
-    /// The script registry
-    scriptRegistry: core.DashQLScriptRegistry;
     /// The scripts
     scripts: ScriptDataMap;
     /// The notebook pages keyed by folder name. View order is by name.
@@ -756,16 +754,13 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             let semanticUserFocus: SemanticUserFocus | null = prevFocus;
             switch (focusUpdate) {
                 case FocusUpdate.Clear:
-                    destroySemanticUserFocus(state.semanticUserFocus);
                     semanticUserFocus = null;
                     break;
                 case FocusUpdate.UpdateFromCursor:
-                    destroySemanticUserFocus(state.semanticUserFocus);
-                    semanticUserFocus = deriveFocusFromScriptCursor(state.scriptRegistry, update.scriptKey, nextScript);
+                    semanticUserFocus = deriveFocusFromScriptCursor(update.scriptKey, nextScript);
                     break;
                 case FocusUpdate.UpdateFromCompletion:
-                    destroySemanticUserFocus(state.semanticUserFocus);
-                    semanticUserFocus = deriveFocusFromCompletionCandidates(state.scriptRegistry, update.scriptKey, nextScript);
+                    semanticUserFocus = deriveFocusFromCompletionCandidates(update.scriptKey, nextScript);
                     break;
             }
             let nextState: NotebookScripts = {
@@ -776,9 +771,6 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 },
                 semanticUserFocus,
             };
-
-            // Update the script in the registry
-            state.scriptRegistry.addScript(nextScript.script);
 
             // Re-load the catalog and mark scripts outdated when the analysis actually changed.
             const buffersChanged = prevScript.scriptAnalysis.buffers !== update.scriptBuffers;
@@ -1041,9 +1033,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 if (renamed) {
                     // Re-analyze through the path-aware helper so the analyzer picks up the new notebook
                     // path and reloads the script into the catalog under its new name.
-                    newScripts[scriptId] = analyzeScriptData(
-                        renamedScriptData, state.scriptRegistry, state.connectionCatalog, logger,
-                    );
+                    newScripts[scriptId] = analyzeScriptData(renamedScriptData, state.connectionCatalog, logger);
                     // The catalog entry changed name; mark all other scripts outdated so cross-script
                     // references (qualified-name table refs, VISUALIZE script refs) re-resolve.
                     for (const key in newScripts) {
@@ -1127,7 +1117,6 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                     };
                     newScripts[entry.scriptId] = analyzeScriptData(
                         renamedScriptData,
-                        state.scriptRegistry,
                         state.connectionCatalog,
                         logger,
                     );
@@ -1397,7 +1386,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             scriptData.script.replaceText(text);
             // Re-analyze through the path-aware helper (destroys the stale buffers, refreshes
             // buffers + annotations incl. visualizeQuery, reloads the script into the catalog)
-            const nextScriptData = analyzeScriptData(scriptData, state.scriptRegistry, state.connectionCatalog, logger);
+            const nextScriptData = analyzeScriptData(scriptData, state.connectionCatalog, logger);
             nextScriptData.pendingDiff = pendingDiff;
 
             const nextState: NotebookScripts = {
@@ -1469,7 +1458,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             scriptData.pendingDiff.diffBuffer.destroy();
             // Rewrite the script text in-place and re-analyze through the path-aware helper.
             scriptData.script.replaceText(priorText);
-            const nextScriptData = analyzeScriptData(scriptData, state.scriptRegistry, state.connectionCatalog, logger);
+            const nextScriptData = analyzeScriptData(scriptData, state.connectionCatalog, logger);
             nextScriptData.pendingDiff = null;
 
             const nextState: NotebookScripts = {
@@ -1555,7 +1544,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             const newScripts: ScriptDataMap = { ...repadded.scripts, [scriptKey]: scriptData };
 
             // Analyze before persisting so derived annotations are ready.
-            scriptData = analyzeScriptData(scriptData, state.scriptRegistry, state.connectionCatalog, logger);
+            scriptData = analyzeScriptData(scriptData, state.connectionCatalog, logger);
             newScripts[scriptKey] = scriptData;
 
             const next: NotebookScripts = {
@@ -1575,15 +1564,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
     }
 }
 
-export function destroySemanticUserFocus(focus: SemanticUserFocus | null) {
-    if (focus?.registryColumnInfo) {
-        focus.registryColumnInfo.destroy();
-    }
-}
 export function clearSemanticUserFocus<V extends NotebookScriptsInput>(state: V): V {
-    if (state.semanticUserFocus?.registryColumnInfo) {
-        state.semanticUserFocus.registryColumnInfo.destroy();
-    }
     return { ...state, semanticUserFocus: null };
 }
 export function replaceCursorIfChanged(state: ScriptData, cursor: core.FlatBufferPtr<core.buffers.cursor.ScriptCursor>): ScriptData {
@@ -1605,18 +1586,12 @@ function destroyScriptData(data: ScriptData) {
 }
 
 export function destroyNotebookScripts(state: NotebookScripts): NotebookScripts {
-    // Clear the semantic user focus
-    if (state.semanticUserFocus?.registryColumnInfo) {
-        state.semanticUserFocus?.registryColumnInfo.destroy();
-    }
     // Drop the script from the connection catalog
     for (const scriptData of Object.values(state.scripts)) {
         if (scriptData.script) {
             state.connectionCatalog.dropScript(scriptData.script);
         }
     }
-    // Destroy the script registry
-    state.scriptRegistry.destroy();
     // Destroy all the script data
     for (const key in state.scripts) {
         const script = state.scripts[key];
@@ -1685,7 +1660,6 @@ export function replaceNotebookScriptsFromStorage(
         } catch {
             // The script may not have completed analysis and therefore may not be in the catalog.
         }
-        state.scriptRegistry.dropScript(removed.script);
         destroyScriptData(removed);
         contentChanged = true;
     }
@@ -1773,7 +1747,6 @@ function destroyDeadScripts(state: NotebookScripts): NotebookScripts {
     for (const [k, v] of deadScripts) {
         if (v.script) {
             state.connectionCatalog.dropScript(v.script);
-            state.scriptRegistry.dropScript(v.script);
         }
         destroyScriptData(v);
         delete cleanedScripts[k];
@@ -1949,15 +1922,17 @@ function computePendingDiff(
     }
 }
 
-export function analyzeScriptData(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, logger: Logger): ScriptData {
+export function analyzeScriptData(scriptData: ScriptData, _catalog: core.DashQLCatalog, logger: Logger): ScriptData {
     const next: ScriptData = { ...scriptData };
     next.scriptAnalysis.buffers.destroy(next.scriptAnalysis.buffers);
 
     // Analyze the script
-    next.scriptAnalysis = {
-        buffers: analyzeScript(next.script),
-        outdated: false,
+    const buffers = analyzeScript(next.script);
+    if (buffers.analyzed == null) {
+        buffers.destroy(buffers);
+        throw new Error("Failed to analyze script");
     }
+    next.scriptAnalysis = { buffers, outdated: false };
     // Rotate the script statistics
     next.statistics = rotateScriptStatistics(next.statistics, next.script.getStatistics() ?? null);
     // Derive script annotations (incl. resolved VISUALIZE query)
@@ -1966,9 +1941,6 @@ export function analyzeScriptData(scriptData: ScriptData, registry: core.DashQLS
         next.script,
         logger,
     );
-
-    // Update the script in the registry
-    registry.addScript(next.script);
 
     // Update the cursor?
     if (next.cursor != null) {
@@ -1986,7 +1958,7 @@ export function analyzeOutdatedScript<V extends NotebookScriptsInput>(state: V, 
         return state;
     }
     // Create the next notebook scripts state
-    const nextScriptData = analyzeScriptData(scriptData, state.scriptRegistry, state.connectionCatalog, logger);
+    const nextScriptData = analyzeScriptData(scriptData, state.connectionCatalog, logger);
     const next = {
         ...clearSemanticUserFocus(state),
         scripts: {
@@ -1997,7 +1969,7 @@ export function analyzeOutdatedScript<V extends NotebookScriptsInput>(state: V, 
 
     // Re-derive the semantic user focus if there is still a cursor
     if (nextScriptData.cursor != null) {
-        next.semanticUserFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, nextScriptData);
+        next.semanticUserFocus = deriveFocusFromScriptCursor(scriptKey, nextScriptData);
     }
     return next;
 }
@@ -2070,7 +2042,7 @@ export function analyzeAllScripts<V extends NotebookScriptsInput>(state: V, logg
     for (const scriptKey of orderedKeys) {
         let ok = false;
         try {
-            scripts[scriptKey] = analyzeScriptData(scripts[scriptKey], state.scriptRegistry, state.connectionCatalog, logger);
+            scripts[scriptKey] = analyzeScriptData(scripts[scriptKey], state.connectionCatalog, logger);
             ok = true;
         } catch (e) {
             logger.warn("Failed to analyze notebook script", { scriptKey: scriptKey.toString(), error: stringifyError(e) }, LOG_CTX);

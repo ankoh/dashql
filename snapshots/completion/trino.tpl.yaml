@@ -1,6 +1,6 @@
 completion-snapshots:
   # Trino completion with registry and iceberg schema
-  - name: registry_filter_1
+  - name: trino_filter_1
     catalog:
       script:
         input: |-

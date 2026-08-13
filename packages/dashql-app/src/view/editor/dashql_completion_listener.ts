@@ -2,7 +2,7 @@ import { EditorState, Prec } from '@codemirror/state';
 import { EditorView, keymap, KeyBinding, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { insertTab } from '@codemirror/commands';
 
-import { DashQLCompletionAbortEffect, DashQLCompletionNextCandidateEffect, DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectCatalogObjectEffect, DashQLCompletionSelectTemplateEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
+import { DashQLCompletionAbortEffect, DashQLCompletionNextCandidateEffect, DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectCatalogObjectEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
 import { applyCompletion, updateCursorWithCompletion } from './dashql_completion_patches.js';
 
 type EventListener = (event: Event) => void;
@@ -84,7 +84,6 @@ class DashQLCompletionEventListener {
             case DashQLCompletionStatus.AVAILABLE:
             case DashQLCompletionStatus.SELECTED_CANDIDATE:
             case DashQLCompletionStatus.SELECTED_CATALOG_OBJECT:
-            case DashQLCompletionStatus.SELECTED_TEMPLATE:
                 this.startListening(update.view);
                 break;
             default:
@@ -113,11 +112,18 @@ function onTab(view: EditorView) {
         case DashQLCompletionStatus.AVAILABLE: {
             // Try to complete the candidate object
             if (processor.scriptCompletion.candidatePatch.length > 0) {
+                const candidate = processor.scriptCompletion.buffer.read().candidates(
+                    processor.scriptCompletion.candidateId,
+                );
+                const target = candidate?.targetLocation();
+                const cursorOverride = target == null
+                    ? null
+                    : target.offset() + (candidate?.completionCursorOffset() ?? target.length());
                 view.dispatch({
                     changes: applyCompletion(processor.scriptCompletion.candidatePatch),
                     effects: DashQLCompletionSelectCandidateEffect.of(null),
                     selection: {
-                        anchor: updateCursorWithCompletion(
+                        anchor: cursorOverride ?? updateCursorWithCompletion(
                             processor.scriptCompletion.candidatePatch,
                             view.state.selection.main.anchor
                         )
@@ -130,11 +136,12 @@ function onTab(view: EditorView) {
         case DashQLCompletionStatus.SELECTED_CANDIDATE: {
             // Try to complete the catalog object
             if (processor.scriptCompletion.catalogObjectPatch.length > 0) {
+                const cursorOverride = processor.scriptCompletion.catalogObjectCursorOffset;
                 view.dispatch({
                     changes: applyCompletion(processor.scriptCompletion.catalogObjectPatch),
                     effects: DashQLCompletionSelectCatalogObjectEffect.of(null),
                     selection: {
-                        anchor: updateCursorWithCompletion(
+                        anchor: cursorOverride ?? updateCursorWithCompletion(
                             processor.scriptCompletion.catalogObjectPatch,
                             view.state.selection.main.anchor
                         )
@@ -145,24 +152,6 @@ function onTab(view: EditorView) {
             // Fall through to next case
         }
         case DashQLCompletionStatus.SELECTED_CATALOG_OBJECT: {
-            // Try to complete the template
-            if (processor.scriptCompletion.templatePatch.length > 0) {
-                const cursorOverride = processor.scriptCompletion.templateCursorOffset;
-                view.dispatch({
-                    changes: applyCompletion(processor.scriptCompletion.templatePatch),
-                    effects: DashQLCompletionSelectTemplateEffect.of(null),
-                    selection: {
-                        anchor: cursorOverride ?? updateCursorWithCompletion(
-                            processor.scriptCompletion.templatePatch,
-                            view.state.selection.main.anchor
-                        )
-                    }
-                });
-                return true;
-            }
-            return insertTab(view);
-        }
-        case DashQLCompletionStatus.SELECTED_TEMPLATE: {
             return insertTab(view);
         }
         default:

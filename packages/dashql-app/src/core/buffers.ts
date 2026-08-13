@@ -6,8 +6,6 @@ export * as cursor from '@ankoh/dashql-flatbuf/dashql/buffers/cursor.js';
 export * as diff from '@ankoh/dashql-flatbuf/dashql/buffers/diff.js';
 export * as execution from '@ankoh/dashql-flatbuf/dashql/buffers/execution.js';
 export * as parser from '@ankoh/dashql-flatbuf/dashql/buffers/parser.js';
-export * as registry from '@ankoh/dashql-flatbuf/dashql/buffers/registry.js';
-export * as snippet from '@ankoh/dashql-flatbuf/dashql/buffers/snippet.js';
 export * as statistics from '@ankoh/dashql-flatbuf/dashql/buffers/statistics.js';
 export * as status from '@ankoh/dashql-flatbuf/dashql/buffers/status.js';
 export * as view from '@ankoh/dashql-flatbuf/dashql/buffers/view.js';

@@ -266,48 +266,9 @@ analyzer-snapshots:
           is-const: true
           statement-id: 0
           text: "42"
-        - expression-idx: 8
-          type: comparison
-          op: EQUAL
-          arg-left: 6
-          arg-right: 7
-          restriction-target: 6
-          statement-id: 0
-          text: "d = 42"
       constants:
         - expression: 7
           text: "42"
-      column-filters:
-        - expression: 8
-          snippet:
-            signature-template: 1794172684583472092
-            signature-raw: 16768430420018381044
-            text: d = 42
-            ast:
-              ast-nodes: 7
-              ast-bytes: 168
-              ast:
-                type: OBJECT_SQL_NARY_EXPRESSION
-                text: "d = 42"
-                children:
-                  - key: SQL_EXPRESSION_OPERATOR
-                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                    value: EQUAL
-                  - key: SQL_EXPRESSION_ARGS
-                    type: ARRAY
-                    text: "d = 42"
-                    children:
-                      - type: OBJECT_SQL_COLUMN_REF
-                        text: "d"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "d"
-                            children:
-                              - type: NAME
-                                text: "d"
-                      - type: LITERAL_INTEGER
-                        text: "42"
 
   - name: edges_3
     catalog:
@@ -367,48 +328,9 @@ analyzer-snapshots:
           is-const: true
           statement-id: 0
           text: "42"
-        - expression-idx: 3
-          type: binary
-          op: PLUS
-          arg-left: 0
-          arg-right: 2
-          computation: 0
-          statement-id: 0
-          text: "d + 42"
       constants:
         - expression: 2
           text: "42"
-      column-computations:
-        - expression: 3
-          snippet:
-            signature-template: 2290193904433782263
-            signature-raw: 18345785965285993418
-            text: d + 42
-            ast:
-              ast-nodes: 7
-              ast-bytes: 168
-              ast:
-                type: OBJECT_SQL_NARY_EXPRESSION
-                text: "d + 42"
-                children:
-                  - key: SQL_EXPRESSION_OPERATOR
-                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                    value: PLUS
-                  - key: SQL_EXPRESSION_ARGS
-                    type: ARRAY
-                    text: "d + 42"
-                    children:
-                      - type: OBJECT_SQL_COLUMN_REF
-                        text: "d"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "d"
-                            children:
-                              - type: NAME
-                                text: "d"
-                      - type: LITERAL_INTEGER
-                        text: "42"
 
   - name: edges_4
     catalog:
@@ -807,45 +729,8 @@ analyzer-snapshots:
         - expression-idx: 4
           type: function
           name: sum
-          computation: 1
           statement-id: 0
           text: "sum(o_totalprice)"
-      column-computations:
-        - expression: 4
-          snippet:
-            signature-template: 7459937480860943044
-            signature-raw: 14591283797067347668
-            text: sum(o_totalprice)
-            ast:
-              ast-nodes: 8
-              ast-bytes: 192
-              ast:
-                type: OBJECT_SQL_FUNCTION_EXPRESSION
-                text: "sum(o_totalprice)"
-                children:
-                  - key: SQL_FUNCTION_NAME
-                    type: ARRAY
-                    text: "sum"
-                    children:
-                      - type: NAME
-                        text: "sum"
-                  - key: SQL_FUNCTION_ARGUMENTS
-                    type: ARRAY
-                    text: "o_totalprice"
-                    children:
-                      - type: OBJECT_SQL_FUNCTION_ARG
-                        text: "o_totalprice"
-                        children:
-                          - key: SQL_FUNCTION_ARG_VALUE
-                            type: OBJECT_SQL_COLUMN_REF
-                            text: "o_totalprice"
-                            children:
-                              - key: SQL_COLUMN_REF_PATH
-                                type: ARRAY
-                                text: "o_totalprice"
-                                children:
-                                  - type: NAME
-                                    text: "o_totalprice"
 
   - name: nesting_correlated_deep
     catalog:
@@ -988,7 +873,6 @@ analyzer-snapshots:
         - expression-idx: 6
           type: function
           name: sum
-          computation: 3
           statement-id: 0
           text: "sum(amount)"
         - expression-idx: 7
@@ -996,84 +880,9 @@ analyzer-snapshots:
           is-const: true
           statement-id: 0
           text: "100"
-        - expression-idx: 8
-          type: comparison
-          op: GREATER_THAN
-          arg-left: 5
-          arg-right: 7
-          restriction-target: 5
-          statement-id: 0
-          text: "total > 100"
       constants:
         - expression: 7
           text: "100"
-      column-computations:
-        - expression: 6
-          snippet:
-            signature-template: 7459937480860943044
-            signature-raw: 7349171517081095692
-            text: sum(amount)
-            ast:
-              ast-nodes: 8
-              ast-bytes: 192
-              ast:
-                type: OBJECT_SQL_FUNCTION_EXPRESSION
-                text: "sum(amount)"
-                children:
-                  - key: SQL_FUNCTION_NAME
-                    type: ARRAY
-                    text: "sum"
-                    children:
-                      - type: NAME
-                        text: "sum"
-                  - key: SQL_FUNCTION_ARGUMENTS
-                    type: ARRAY
-                    text: "amount"
-                    children:
-                      - type: OBJECT_SQL_FUNCTION_ARG
-                        text: "amount"
-                        children:
-                          - key: SQL_FUNCTION_ARG_VALUE
-                            type: OBJECT_SQL_COLUMN_REF
-                            text: "amount"
-                            children:
-                              - key: SQL_COLUMN_REF_PATH
-                                type: ARRAY
-                                text: "amount"
-                                children:
-                                  - type: NAME
-                                    text: "amount"
-      column-filters:
-        - expression: 8
-          snippet:
-            signature-template: 2279910941344984120
-            signature-raw: 7742624175559992902
-            text: total > 100
-            ast:
-              ast-nodes: 7
-              ast-bytes: 168
-              ast:
-                type: OBJECT_SQL_NARY_EXPRESSION
-                text: "total > 100"
-                children:
-                  - key: SQL_EXPRESSION_OPERATOR
-                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                    value: GREATER_THAN
-                  - key: SQL_EXPRESSION_ARGS
-                    type: ARRAY
-                    text: "total > 100"
-                    children:
-                      - type: OBJECT_SQL_COLUMN_REF
-                        text: "total"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "total"
-                            children:
-                              - type: NAME
-                                text: "total"
-                      - type: LITERAL_INTEGER
-                        text: "100"
 
   - name: cte_basic
     catalog:
@@ -1136,45 +945,8 @@ analyzer-snapshots:
         - expression-idx: 5
           type: function
           name: sum
-          computation: 1
           statement-id: 0
           text: "sum(amount)"
-      column-computations:
-        - expression: 5
-          snippet:
-            signature-template: 7459937480860943044
-            signature-raw: 7349171517081095692
-            text: sum(amount)
-            ast:
-              ast-nodes: 8
-              ast-bytes: 192
-              ast:
-                type: OBJECT_SQL_FUNCTION_EXPRESSION
-                text: "sum(amount)"
-                children:
-                  - key: SQL_FUNCTION_NAME
-                    type: ARRAY
-                    text: "sum"
-                    children:
-                      - type: NAME
-                        text: "sum"
-                  - key: SQL_FUNCTION_ARGUMENTS
-                    type: ARRAY
-                    text: "amount"
-                    children:
-                      - type: OBJECT_SQL_FUNCTION_ARG
-                        text: "amount"
-                        children:
-                          - key: SQL_FUNCTION_ARG_VALUE
-                            type: OBJECT_SQL_COLUMN_REF
-                            text: "amount"
-                            children:
-                              - key: SQL_COLUMN_REF_PATH
-                                type: ARRAY
-                                text: "amount"
-                                children:
-                                  - type: NAME
-                                    text: "amount"
 
   - name: cte_column_aliases
     catalog:
@@ -1237,45 +1009,8 @@ analyzer-snapshots:
         - expression-idx: 5
           type: function
           name: sum
-          computation: 1
           statement-id: 0
           text: "sum(amount)"
-      column-computations:
-        - expression: 5
-          snippet:
-            signature-template: 7459937480860943044
-            signature-raw: 7349171517081095692
-            text: sum(amount)
-            ast:
-              ast-nodes: 8
-              ast-bytes: 192
-              ast:
-                type: OBJECT_SQL_FUNCTION_EXPRESSION
-                text: "sum(amount)"
-                children:
-                  - key: SQL_FUNCTION_NAME
-                    type: ARRAY
-                    text: "sum"
-                    children:
-                      - type: NAME
-                        text: "sum"
-                  - key: SQL_FUNCTION_ARGUMENTS
-                    type: ARRAY
-                    text: "amount"
-                    children:
-                      - type: OBJECT_SQL_FUNCTION_ARG
-                        text: "amount"
-                        children:
-                          - key: SQL_FUNCTION_ARG_VALUE
-                            type: OBJECT_SQL_COLUMN_REF
-                            text: "amount"
-                            children:
-                              - key: SQL_COLUMN_REF_PATH
-                                type: ARRAY
-                                text: "amount"
-                                children:
-                                  - type: NAME
-                                    text: "amount"
 
   - name: cte_chained
     catalog:
@@ -1360,7 +1095,6 @@ analyzer-snapshots:
         - expression-idx: 8
           type: function
           name: sum
-          computation: 4
           statement-id: 0
           text: "sum(amount)"
         - expression-idx: 9
@@ -1368,81 +1102,6 @@ analyzer-snapshots:
           is-const: true
           statement-id: 0
           text: "'done'"
-        - expression-idx: 10
-          type: comparison
-          op: EQUAL
-          arg-left: 2
-          arg-right: 9
-          restriction-target: 2
-          statement-id: 0
-          text: "status = 'done'"
       constants:
         - expression: 9
           text: "'done'"
-      column-computations:
-        - expression: 8
-          snippet:
-            signature-template: 7459937480860943044
-            signature-raw: 7349171517081095692
-            text: sum(amount)
-            ast:
-              ast-nodes: 8
-              ast-bytes: 192
-              ast:
-                type: OBJECT_SQL_FUNCTION_EXPRESSION
-                text: "sum(amount)"
-                children:
-                  - key: SQL_FUNCTION_NAME
-                    type: ARRAY
-                    text: "sum"
-                    children:
-                      - type: NAME
-                        text: "sum"
-                  - key: SQL_FUNCTION_ARGUMENTS
-                    type: ARRAY
-                    text: "amount"
-                    children:
-                      - type: OBJECT_SQL_FUNCTION_ARG
-                        text: "amount"
-                        children:
-                          - key: SQL_FUNCTION_ARG_VALUE
-                            type: OBJECT_SQL_COLUMN_REF
-                            text: "amount"
-                            children:
-                              - key: SQL_COLUMN_REF_PATH
-                                type: ARRAY
-                                text: "amount"
-                                children:
-                                  - type: NAME
-                                    text: "amount"
-      column-filters:
-        - expression: 10
-          snippet:
-            signature-template: 7878761948638513151
-            signature-raw: 548650992509396699
-            text: status = 'done'
-            ast:
-              ast-nodes: 7
-              ast-bytes: 168
-              ast:
-                type: OBJECT_SQL_NARY_EXPRESSION
-                text: "status = 'done'"
-                children:
-                  - key: SQL_EXPRESSION_OPERATOR
-                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                    value: EQUAL
-                  - key: SQL_EXPRESSION_ARGS
-                    type: ARRAY
-                    text: "status = 'done'"
-                    children:
-                      - type: OBJECT_SQL_COLUMN_REF
-                        text: "status"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "status"
-                            children:
-                              - type: NAME
-                                text: "status"
-                      - type: LITERAL_STRING
-                        text: "'done'"

@@ -45,7 +45,6 @@ SELECT * FROM read_parquet('vega_cars.parquet') |> VISUALIZE USING vegalite (
         expect(scriptCursor.read().scannerSymbolCompletable()).toBe(true);
 
         const processorState: DashQLProcessorUpdateIn = {
-            scriptRegistry: null,
             scriptKey: 1,
             script,
             scriptBuffers,
@@ -85,7 +84,6 @@ SELECT * FROM read_parquet('vega_cars.parquet') |> VISUALIZE USING vegalite (
         expect(scriptCursor.read().scannerSymbolCompletable()).toBe(true);
 
         const processorState: DashQLProcessorUpdateIn = {
-            scriptRegistry: null,
             scriptKey: 1,
             script,
             scriptBuffers,
@@ -117,7 +115,6 @@ SELECT * FROM read_parquet('vega_cars.parquet') |> VISUALIZE USING vegalite (
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, text);
         const processorState: DashQLProcessorUpdateIn = {
-            scriptRegistry: null,
             scriptKey: 1,
             script,
             scriptBuffers: analyzeScript(script),
@@ -145,11 +142,9 @@ SELECT * FROM read_parquet('vega_cars.parquet') |> VISUALIZE USING vegalite (
 
     it('does not start completion when typing at the beginning of a token', () => {
         const catalog = dql!.createCatalog();
-        const registry = dql!.createScriptRegistry();
         const schemaScript = dql!.createScript(catalog);
         schemaScript.insertTextAt(0, 'create table tableA("attrA" int)');
         schemaScript.analyze();
-        registry.addScript(schemaScript);
         catalog.loadScript(schemaScript, 0);
 
         const text = 'select * from tableA where ttr';
@@ -164,7 +159,6 @@ SELECT * FROM read_parquet('vega_cars.parquet') |> VISUALIZE USING vegalite (
         expect(scriptCursor.read().scannerSymbolCompletable()).toBe(true);
 
         const processorState: DashQLProcessorUpdateIn = {
-            scriptRegistry: registry,
             scriptKey: 1,
             script,
             scriptBuffers,
@@ -198,7 +192,6 @@ SELECT * FROM read_parquet('vega_cars.parquet') |> VISUALIZE USING vegalite (
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, text);
         const processorState: DashQLProcessorUpdateIn = {
-            scriptRegistry: null,
             scriptKey: 1,
             script,
             scriptBuffers: analyzeScript(script),
@@ -225,11 +218,9 @@ SELECT * FROM read_parquet('vega_cars.parquet') |> VISUALIZE USING vegalite (
 
     it('dismisses an active completion when typing at the beginning of another token', () => {
         const catalog = dql!.createCatalog();
-        const registry = dql!.createScriptRegistry();
         const schemaScript = dql!.createScript(catalog);
         schemaScript.insertTextAt(0, 'create table tableA("attrA" int)');
         schemaScript.analyze();
-        registry.addScript(schemaScript);
         catalog.loadScript(schemaScript, 0);
 
         const text = 'select * from tableA where att ttr';
@@ -238,9 +229,8 @@ SELECT * FROM read_parquet('vega_cars.parquet') |> VISUALIZE USING vegalite (
         const scriptBuffers = analyzeScript(script);
         const firstCursor = text.indexOf('att') + 3;
         script.moveCursor(firstCursor).destroy();
-        const completionBuffer = script.completeAtCursor(10, registry);
+        const completionBuffer = script.completeAtCursor(10);
         const processorState: DashQLProcessorUpdateIn = {
-            scriptRegistry: registry,
             scriptKey: 1,
             script,
             scriptBuffers,
@@ -253,9 +243,7 @@ SELECT * FROM read_parquet('vega_cars.parquet') |> VISUALIZE USING vegalite (
                 candidatePatch: [],
                 catalogObjectId: 0,
                 catalogObjectPatch: [],
-                templateId: 0,
-                templatePatch: [],
-                templateCursorOffset: null,
+                catalogObjectCursorOffset: null,
             },
             scriptPendingDiff: null,
             derivedFocus: null,
@@ -282,11 +270,9 @@ SELECT * FROM read_parquet('vega_cars.parquet') |> VISUALIZE USING vegalite (
 
     it('does not restore a completion dismissed with Escape from a stale update', () => {
         const catalog = dql!.createCatalog();
-        const registry = dql!.createScriptRegistry();
         const schemaScript = dql!.createScript(catalog);
         schemaScript.insertTextAt(0, 'create table tableA("attrA" int)');
         schemaScript.analyze();
-        registry.addScript(schemaScript);
         catalog.loadScript(schemaScript, 0);
 
         const text = 'select * from tableA where att';
@@ -294,7 +280,6 @@ SELECT * FROM read_parquet('vega_cars.parquet') |> VISUALIZE USING vegalite (
         script.insertTextAt(0, text);
         const scriptBuffers = analyzeScript(script);
         const processorState: DashQLProcessorUpdateIn = {
-            scriptRegistry: registry,
             scriptKey: 1,
             script,
             scriptBuffers,

@@ -26,7 +26,6 @@ export enum DashQLCompletionStatus {
     AVAILABLE,
     SELECTED_CANDIDATE,
     SELECTED_CATALOG_OBJECT,
-    SELECTED_TEMPLATE,
 }
 
 /// A pending, staged script rewrite (e.g. an agent suggestion) shown as an in-place diff.
@@ -61,13 +60,8 @@ export interface DashQLCompletionState {
     catalogObjectId: number;
     /// The patches to apply the catalog object
     catalogObjectPatch: CompletionPatch[];
-    /// The currently selected template id
-    /// 0 if there are no templates.
-    templateId: number;
-    /// The patches to apply the template
-    templatePatch: CompletionPatch[];
-    /// Override cursor position after applying template patch (absolute position in post-patch text)
-    templateCursorOffset: number | null;
+    /// Override cursor position after applying qualification/function-call patches.
+    catalogObjectCursorOffset: number | null;
 }
 
 /// A state that is pushed from the processor to the outside
@@ -87,8 +81,6 @@ export interface DashQLProcessorUpdateOut {
 };
 /// A state that is propagated from the outside into processor
 export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
-    /// The registry script retirstry
-    scriptRegistry: dashql.DashQLScriptRegistry | null;
     /// The derive focus info
     derivedFocus: SemanticUserFocus | null;
 
@@ -145,8 +137,6 @@ export const DashQLCompletionPreviewCandidateEffect: StateEffectType<number> = S
 export const DashQLCompletionSelectCandidateEffect: StateEffectType<null> = StateEffect.define<null>();
 /// Effect to select a catalog object
 export const DashQLCompletionSelectCatalogObjectEffect: StateEffectType<null> = StateEffect.define<null>();
-/// Effect to select a template
-export const DashQLCompletionSelectTemplateEffect: StateEffectType<null> = StateEffect.define<null>();
 
 /// Effect to select the next candidate
 export const DashQLCompletionNextCandidateEffect: StateEffectType<null> = StateEffect.define<null>();
@@ -173,7 +163,6 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
     create: () => {
         // By default, the DashQL script is not configured
         const config: DashQLProcessorState = {
-            scriptRegistry: null,
             scriptKey: 0,
             script: null,
             scriptBuffers: {
@@ -318,9 +307,7 @@ function tryStartCompletion(state: DashQLProcessorState, prevState: DashQLProces
             candidatePatch: [],
             catalogObjectId: 0,
             catalogObjectPatch: [],
-            templateId: 0,
-            templatePatch: [],
-            templateCursorOffset: null,
+            catalogObjectCursorOffset: null,
         };
         state.scriptCompletion = computePatches(state.scriptCompletion, text, cursor, UpdatePatchStartingFrom.Candidate);
     }
@@ -386,7 +373,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
     // Check additional completion effects
     for (const effect of transaction.effects) {
         if (effect.is(DashQLCompletionStartEffect)) {
-            const buffer = state.script!.tryCompleteAtCursor(DASHQL_COMPLETION_LIMIT, state.scriptRegistry);
+            const buffer = state.script!.tryCompleteAtCursor(DASHQL_COMPLETION_LIMIT);
             state = tryStartCompletion(state, prevState, buffer, transaction.newDoc, cursorOffset);
             continue;
 
@@ -481,28 +468,15 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                 resetCompletion();
                 break;
             }
-            // Try to select a completion candidate at a cursor
-            const buffer = state.script!.trySelectCompletionCandidateAtCursor(
-                state.scriptCompletion.buffer,
-                state.scriptCompletion.candidateId,
-            );
-            if (buffer) {
-                state = copyLazily(state, prevState);
-                state.scriptCompletion = {
-                    ...state.scriptCompletion!,
-                    status: DashQLCompletionStatus.SELECTED_CANDIDATE,
-                    buffer: buffer,
-                    candidateId: 0,
-                    candidatePatch: [],
-                    catalogObjectPatch: [],
-                    templatePatch: [],
-                    templateCursorOffset: null,
-                };
-                state.scriptCompletion = computePatches(state.scriptCompletion, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.CatalogObject);
-            } else {
-                resetCompletion();
-                break;
-            }
+            state = copyLazily(state, prevState);
+            state.scriptCompletion = {
+                ...state.scriptCompletion!,
+                status: DashQLCompletionStatus.SELECTED_CANDIDATE,
+                candidatePatch: [],
+                catalogObjectPatch: [],
+                catalogObjectCursorOffset: null,
+            };
+            state.scriptCompletion = computePatches(state.scriptCompletion, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.CatalogObject);
 
         } else if (effect.is(DashQLCompletionSelectCatalogObjectEffect)) {
             // Clear completion if the candidate index is invalid
@@ -517,59 +491,15 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                 break;
             }
 
-            // Effect to select a qualified completion candidate
-            const buffer = state.script!.trySelectCompletionCatalogObjectAtCursor(
-                state.scriptCompletion.buffer,
-                state.scriptCompletion.candidateId,
-                state.scriptCompletion.catalogObjectId,
-            );
-            if (buffer) {
-                state = copyLazily(state, prevState);
-                state.scriptCompletion = {
-                    ...state.scriptCompletion!,
-                    status: DashQLCompletionStatus.SELECTED_CATALOG_OBJECT,
-                    buffer: buffer,
-                    candidateId: 0,
-                    candidatePatch: [],
-                    catalogObjectId: 0,
-                    catalogObjectPatch: [],
-                    templatePatch: [],
-                    templateCursorOffset: null,
-                };
-                state.scriptCompletion = computePatches(state.scriptCompletion, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.Template);
-            } else {
-                resetCompletion();
-                break;
-            }
-
-        } else if (effect.is(DashQLCompletionSelectTemplateEffect)) {
-            // Clear completion if the candidate index is invalid
-            if (state.scriptCompletion.candidateId >= completionBuffer.candidatesLength()) {
-                resetCompletion();
-                break;
-            }
-            // Clear completion if the catalog object is invalid
-            const ca = completionBuffer.candidates(state.scriptCompletion.candidateId)!;
-            if (state.scriptCompletion.catalogObjectId >= ca.catalogObjectsLength()) {
-                resetCompletion();
-                break;
-            }
-            // Clear completion if the template is invalid
-            const co = ca.catalogObjects(state.scriptCompletion.catalogObjectId)!;
-            if (state.scriptCompletion.templateId >= co.scriptTemplatesLength()) {
-                resetCompletion();
-                break;
-            }
-            // Effect to select a candidate template
             state = copyLazily(state, prevState);
             state.scriptCompletion = {
                 ...state.scriptCompletion!,
-                status: DashQLCompletionStatus.SELECTED_TEMPLATE,
+                status: DashQLCompletionStatus.SELECTED_CATALOG_OBJECT,
                 candidatePatch: [],
                 catalogObjectPatch: [],
-                templatePatch: [],
-                templateCursorOffset: null,
+                catalogObjectCursorOffset: null,
             };
+
         }
     }
 
@@ -589,7 +519,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
         // Get a completion going.
         const noActiveCompletion = !state.scriptCompletion || state.scriptCompletion.status != DashQLCompletionStatus.AVAILABLE;
         if (noActiveCompletion && userEventCanStartCompletion(transaction, prevState.scriptCursor)) {
-            const buffer = state.script!.tryCompleteAtCursor(DASHQL_COMPLETION_LIMIT, state.scriptRegistry);
+            const buffer = state.script!.tryCompleteAtCursor(DASHQL_COMPLETION_LIMIT);
             state = tryStartCompletion(state, prevState, buffer, transaction.newDoc, cursorOffset);
         }
 
@@ -610,7 +540,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                         state.scriptCompletion = null;
                         break;
                     }
-                    const buffer = state.script!.tryCompleteAtCursor(DASHQL_COMPLETION_LIMIT, state.scriptRegistry);
+                    const buffer = state.script!.tryCompleteAtCursor(DASHQL_COMPLETION_LIMIT);
                     state = tryStartCompletion(state, prevState, buffer, transaction.newDoc, cursorOffset);
                     break;
                 default:
