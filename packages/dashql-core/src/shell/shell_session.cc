@@ -797,49 +797,48 @@ PromptSnapshot ShellSession::SnapshotPrompt(ShellStatus status, std::string mess
     };
 }
 
-std::string ShellSession::RenderTerminalPrompt(bool highlight) {
+std::string ShellSession::RenderTerminalPrompt() {
     const auto text = prompt_.Text();
     const auto terminal_prompt = terminal_prompt_length_ == 0
                                      ? std::string_view{"dashql> "}
                                      : std::string_view{terminal_prompt_storage_.data(), terminal_prompt_length_};
     std::string highlighted;
-    if (highlight) {
+    if (prompt_.script().GetParsedScript() == nullptr ||
+        prompt_.script().GetParsedScript()->scanned_script->text_version != prompt_.script().text_version) {
         prompt_.script().Parse();
-        auto parsed = prompt_.script().GetParsedScript();
-        auto packed = parsed->PackTokens();
-        const auto& comments = parsed->scanned_script->comments;
-        highlighted.reserve(text.size() + (packed->token_offsets.size() + comments.size()) * 16);
-        size_t offset = 0;
-        size_t token_idx = 0;
-        size_t comment_idx = 0;
-        while (token_idx < packed->token_offsets.size() || comment_idx < comments.size()) {
-            const auto token_begin = token_idx < packed->token_offsets.size()
-                                         ? static_cast<size_t>(packed->token_offsets[token_idx])
-                                         : std::numeric_limits<size_t>::max();
-            const auto comment_begin = comment_idx < comments.size()
-                                           ? static_cast<size_t>(comments[comment_idx].offset())
-                                           : std::numeric_limits<size_t>::max();
-            const bool is_comment = comment_begin < token_begin;
-            const auto begin = is_comment ? comment_begin : token_begin;
-            const auto length = is_comment ? comments[comment_idx].length() : packed->token_lengths[token_idx];
-            const auto type = is_comment ? ScannerTokenType::COMMENT : packed->token_types[token_idx];
-            const auto end = begin + length;
-            if (begin > offset) highlighted.append(text.substr(offset, begin - offset));
-            const auto style = TokenStyle(type);
-            if (!style.empty()) highlighted.append(style);
-            highlighted.append(text.substr(begin, end - begin));
-            if (!style.empty()) highlighted.append(vt100::kResetAttributes);
-            offset = end;
-            if (is_comment) {
-                ++comment_idx;
-            } else {
-                ++token_idx;
-            }
-        }
-        highlighted.append(text.substr(offset));
-    } else {
-        highlighted = text;
     }
+    auto parsed = prompt_.script().GetParsedScript();
+    auto packed = parsed->PackTokens();
+    const auto& comments = parsed->scanned_script->comments;
+    highlighted.reserve(text.size() + (packed->token_offsets.size() + comments.size()) * 16);
+    size_t offset = 0;
+    size_t token_idx = 0;
+    size_t comment_idx = 0;
+    while (token_idx < packed->token_offsets.size() || comment_idx < comments.size()) {
+        const auto token_begin = token_idx < packed->token_offsets.size()
+                                     ? static_cast<size_t>(packed->token_offsets[token_idx])
+                                     : std::numeric_limits<size_t>::max();
+        const auto comment_begin = comment_idx < comments.size()
+                                       ? static_cast<size_t>(comments[comment_idx].offset())
+                                       : std::numeric_limits<size_t>::max();
+        const bool is_comment = comment_begin < token_begin;
+        const auto begin = is_comment ? comment_begin : token_begin;
+        const auto length = is_comment ? comments[comment_idx].length() : packed->token_lengths[token_idx];
+        const auto type = is_comment ? ScannerTokenType::COMMENT : packed->token_types[token_idx];
+        const auto end = begin + length;
+        if (begin > offset) highlighted.append(text.substr(offset, begin - offset));
+        const auto style = TokenStyle(type);
+        if (!style.empty()) highlighted.append(style);
+        highlighted.append(text.substr(begin, end - begin));
+        if (!style.empty()) highlighted.append(vt100::kResetAttributes);
+        offset = end;
+        if (is_comment) {
+            ++comment_idx;
+        } else {
+            ++token_idx;
+        }
+    }
+    highlighted.append(text.substr(offset));
 
     const auto terminal_columns = renderer_.terminal_columns();
     const auto desired_layout = LayoutPrompt(text, terminal_prompt, terminal_continuation_, terminal_columns);
@@ -1089,8 +1088,9 @@ ShellOperation ShellSession::AcceptTerminalCompletion() {
                                 candidate.completion_text;
     const auto snapshot = ApplyCompletion(candidate);
     if (snapshot.status != ShellStatus::kOk) return {snapshot.status, std::move(snapshot.message)};
+    prompt_.script().Parse();
     if (!qualification.empty() && qualification != candidate.completion_text) {
-        if (prompt_changed) output.append(RenderTerminalPrompt(false));
+        if (prompt_changed) output.append(RenderTerminalPrompt());
         TerminalCompletionOverlay next;
         next.hint_only = true;
         const auto prompt_text = prompt_.Text();
@@ -1110,7 +1110,7 @@ ShellOperation ShellSession::AcceptTerminalCompletion() {
         terminal_completion_overlays.emplace(this, std::move(next));
         output.append(RenderTerminalCompletionHint());
     } else if (!continuation.empty()) {
-        output.append(RenderTerminalPrompt(false));
+        output.append(RenderTerminalPrompt());
         auto& next = terminal_completion_overlays[this];
         next = {};
         next.hint_only = true;
@@ -1130,10 +1130,10 @@ ShellOperation ShellSession::AcceptTerminalCompletion() {
         });
         output.append(RenderTerminalCompletionHint());
     } else if (!hint_only) {
-        output.append(RenderTerminalPrompt(false));
+        output.append(RenderTerminalPrompt());
         output.append(RefreshTerminalCompletionOverlay());
     } else {
-        output.append(RenderTerminalPrompt(false));
+        output.append(RenderTerminalPrompt());
     }
     return {ShellStatus::kOk, std::move(output)};
 }

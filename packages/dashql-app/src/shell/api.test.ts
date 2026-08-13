@@ -166,7 +166,9 @@ describe('DashQL shell Wasm', () => {
         let selected = opened;
         for (let i = 0; i < selectIndex; ++i) selected = shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_NEXT);
         expect(selected.data).toContain('\x1b[90mect');
-        expect(shell.consumeTerminalInput(DashQLShellPromptInput.TAB).action).toBe(DashQLShellPromptAction.NONE);
+        const accepted = shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
+        expect(accepted.action).toBe(DashQLShellPromptAction.NONE);
+        expect(accepted.data).toContain('\x1b[1;38;2;255;122;178mselect\x1b[0m');
         expect(shell.movePromptRight().text).toBe('select');
 
         shell.consumeTerminalInput(DashQLShellPromptInput.CANCEL);
@@ -221,6 +223,9 @@ describe('DashQL shell Wasm', () => {
         for (let i = 0; i < groupIndex; ++i) shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_NEXT);
 
         const firstStep = shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
+        expect(firstStep.data).toContain('\x1b[1;38;2;255;122;178mSELECT\x1b[0m');
+        expect(firstStep.data).toContain('\x1b[38;2;107;170;159msupplier\x1b[0m');
+        expect(firstStep.data).toContain('\x1b[1;38;2;255;122;178mgroup\x1b[0m');
         expect(firstStep.data).toContain('\x1b[90m by');
         expect(shell.movePromptRight().text).toBe('SELECT * FROM supplier group');
 

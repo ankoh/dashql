@@ -445,6 +445,10 @@ TEST(ShellApiTest, NavigatesAndAcceptsTerminalCompletionOverlay) {
 
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TAB, &output), DASHQL_SHELL_OK);
     EXPECT_EQ(output.action, DASHQL_SHELL_INPUT_NONE);
+    EXPECT_NE(TerminalData(output).find(std::string{dashql::shell::vt100::kBoldForegroundPink} + "select" +
+                                        std::string{dashql::shell::vt100::kResetAttributes}),
+              std::string_view::npos)
+        << TerminalData(output);
     dashql_shell_terminal_result_destroy(&output);
 
     DashQLShellPromptResult prompt{};
@@ -635,6 +639,18 @@ TEST(ShellApiTest, AppliesKeywordCompletionInMultipleSteps) {
     }
 
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TAB, &output), DASHQL_SHELL_OK);
+    EXPECT_NE(TerminalData(output).find(std::string{dashql::shell::vt100::kBoldForegroundPink} + "SELECT" +
+                                        std::string{dashql::shell::vt100::kResetAttributes}),
+              std::string_view::npos)
+        << TerminalData(output);
+    EXPECT_NE(TerminalData(output).find(std::string{dashql::shell::vt100::kForegroundTeal} + "supplier" +
+                                        std::string{dashql::shell::vt100::kResetAttributes}),
+              std::string_view::npos)
+        << TerminalData(output);
+    EXPECT_NE(TerminalData(output).find(std::string{dashql::shell::vt100::kBoldForegroundPink} + "group" +
+                                        std::string{dashql::shell::vt100::kResetAttributes}),
+              std::string_view::npos)
+        << TerminalData(output);
     EXPECT_NE(TerminalData(output).find(std::string{dashql::shell::vt100::kForegroundBrightBlack} + " by"),
               std::string_view::npos)
         << TerminalData(output);

@@ -167,7 +167,7 @@ class ShellSession {
     ShellOperation CollectOperation(Task::Handle coroutine);
     ShellOperation EncodeOutgoingEffect();
     PromptSnapshot SnapshotPrompt(ShellStatus status = ShellStatus::kOk, std::string message = {});
-    std::string RenderTerminalPrompt(bool highlight = true);
+    std::string RenderTerminalPrompt();
     std::string OpenTerminalCompletionOverlay(std::vector<CompletionCandidate> candidates);
     std::string RefreshTerminalCompletionOverlay();
     std::string RenderTerminalCompletionHint();
