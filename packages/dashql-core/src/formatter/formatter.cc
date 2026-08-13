@@ -627,6 +627,7 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
             return FormatQualifiedName(node);
         case AttributeKey::SQL_SELECT_DISTINCT:
         case AttributeKey::SQL_SELECT_WITH_CTES:
+        case AttributeKey::SQL_JOIN_INPUT:
         case AttributeKey::SQL_TABLE_CONSTRAINT_COLUMNS:
         case AttributeKey::SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS:
         case AttributeKey::SQL_JOIN_USING:
@@ -2299,6 +2300,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatTableRef(node);
         case NodeType::OBJECT_SQL_JOINED_TABLE:
             return FormatJoinedTable(node);
+        case NodeType::ENUM_SQL_JOIN_TYPE:
+            return fmt.Empty();
         case NodeType::OBJECT_SQL_INTO:
             return FormatInto(node);
         case NodeType::OBJECT_SQL_WINDOW_DEF:
@@ -2402,6 +2405,14 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatCTE(node);
         case NodeType::OBJECT_SQL_FUNCTION_EXPRESSION:
             return FormatFunctionExpression(node);
+        case NodeType::OBJECT_SQL_FUNCTION_CAST_ARGS:
+        case NodeType::OBJECT_SQL_FUNCTION_EXTRACT_ARGS:
+        case NodeType::OBJECT_SQL_FUNCTION_OVERLAY_ARGS:
+        case NodeType::OBJECT_SQL_FUNCTION_POSITION_ARGS:
+        case NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS:
+        case NodeType::OBJECT_SQL_FUNCTION_TREAT_ARGS:
+        case NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS:
+            return fmt.Empty();
         case NodeType::ENUM_SQL_KNOWN_FUNCTION:
             return fmt.Empty();
         case NodeType::OBJECT_SQL_FUNCTION_TABLE:

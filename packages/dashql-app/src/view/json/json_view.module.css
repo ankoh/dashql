@@ -54,7 +54,7 @@
 }
 
 .object_entries_line {
-
+    position: relative;
 }
 .object_close {
     padding-left: 4px;
@@ -81,12 +81,15 @@
 }
 
 .copy_button {
+    position: absolute;
+    top: 0.2em;
+    right: 0;
+    z-index: 1;
     height: 1em;
     width: 1em;
     cursor: pointer;
-    vertical-align: middle;
-    margin-left: 5px;
     display: inline-flex;
+    background-color: var(--w-rjv-background-color, #fff);
 }
 
 .copy_button_copied {
@@ -102,6 +105,7 @@
 }
 
 .value_container {
+    position: relative;
     line-height: 1.4;
     font-family: Menlo, monospace;
     color: #002b36;
