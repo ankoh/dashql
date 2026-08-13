@@ -537,7 +537,7 @@ TEST(ShellApiTest, NavigatesAndAcceptsTerminalCompletionOverlay) {
     dashql_shell_destroy(shell);
 }
 
-TEST(ShellApiTest, HintsAndAcceptsColumnAfterFullyQualifiedTableAlias) {
+TEST(ShellApiTest, ListsHintsAndAcceptsColumnAfterFullyQualifiedTableAlias) {
     dashql::Catalog catalog;
     dashql::Script schema{catalog};
     constexpr std::string_view schema_sql =
@@ -564,6 +564,9 @@ TEST(ShellApiTest, HintsAndAcceptsColumnAfterFullyQualifiedTableAlias) {
     EXPECT_TRUE(TerminalData(output).find("event_id") != std::string_view::npos ||
                 TerminalData(output).find("processed_rows") != std::string_view::npos)
         << TerminalData(output);
+    EXPECT_NE(TerminalData(output).find("╭"), std::string_view::npos) << TerminalData(output);
+    EXPECT_NE(TerminalData(output).find(dashql::shell::vt100::kReverseVideo), std::string_view::npos)
+        << TerminalData(output);
     dashql_shell_terminal_result_destroy(&output);
 
     DashQLShellCompletionResult completions{};
@@ -580,7 +583,8 @@ TEST(ShellApiTest, HintsAndAcceptsColumnAfterFullyQualifiedTableAlias) {
 
     DashQLShellPromptResult prompt{};
     ASSERT_EQ(dashql_shell_prompt_move_right(shell, &prompt), DASHQL_SHELL_OK);
-    EXPECT_TRUE(PromptText(prompt).ends_with("q.event_id") || PromptText(prompt).ends_with("q.processed_rows"))
+    EXPECT_TRUE(PromptText(prompt) == std::string{query} + "event_id" ||
+                PromptText(prompt) == std::string{query} + "processed_rows")
         << PromptText(prompt);
     dashql_shell_prompt_result_destroy(&prompt);
     dashql_shell_destroy(shell);

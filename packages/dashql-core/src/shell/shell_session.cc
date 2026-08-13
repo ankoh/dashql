@@ -328,6 +328,7 @@ std::vector<CompletionCandidate> ShellSession::CompletePrompt(size_t limit) {
     prompt_.script().Analyze();
     prompt_.script().MoveCursor(prompt_.cursor_byte_offset());
     const auto completion = prompt_.script().CompleteAtCursor(limit);
+    const auto prompt_text = prompt_.Text();
     std::vector<CompletionCandidate> candidates;
     candidates.reserve(completion->GetResultCandidates().size());
     for (const auto& candidate : completion->GetResultCandidates()) {
@@ -349,7 +350,17 @@ std::vector<CompletionCandidate> ShellSession::CompletePrompt(size_t limit) {
                     qualification_text.append(object.qualified_name[i]);
                 }
                 if (is_function) qualification_text.append("()");
-                qualification_texts.push_back(std::move(qualification_text));
+                const auto qualification_offset = candidate.target_location_qualified.offset();
+                const auto target_offset = candidate.target_location.offset();
+                const bool qualifier_already_present = qualification_offset <= target_offset &&
+                                                       target_offset <= prompt_text.size() &&
+                                                       qualification_text ==
+                                                           prompt_text.substr(qualification_offset,
+                                                                              target_offset - qualification_offset) +
+                                                               completion_text;
+                if (!qualifier_already_present) {
+                    qualification_texts.push_back(std::move(qualification_text));
+                }
             }
         }
         candidates.push_back({
@@ -898,9 +909,10 @@ std::string ShellSession::OpenTerminalCompletionOverlay(std::vector<CompletionCa
     auto& overlay = terminal_completion_overlays[this];
     overlay = {};
     overlay.candidates = std::move(candidates);
-    overlay.hint_only = overlay.candidates.front().target_length == 0;
     const auto text = prompt_.Text();
     const auto target = std::min<size_t>(overlay.candidates.front().target_offset, text.size());
+    overlay.hint_only = overlay.candidates.front().target_length == 0 &&
+                        (target == 0 || text[target - 1] != '.');
     const auto terminal_prompt = terminal_prompt_length_ == 0
                                      ? std::string_view{"dashql> "}
                                      : std::string_view{terminal_prompt_storage_.data(), terminal_prompt_length_};
