@@ -12,13 +12,17 @@ import * as styles from './shell_page.module.css';
 
 const LOG_CTX = 'standalone_shell';
 
+interface ShellPageProps {
+    onEngineVersion: (version: string) => void;
+}
+
 function formatInstantiationProgress(bytesLoaded: number, bytesTotal: number): string {
     if (bytesTotal <= 0) return `Loading ${Math.round(bytesLoaded / 1000)} kB`;
     const blocks = Math.max(0, Math.min(10, Math.floor(bytesLoaded / bytesTotal * 10)));
     return `Loading [${'#'.repeat(blocks)}${'-'.repeat(10 - blocks)}]`;
 }
 
-export const ShellPage: React.FC = () => {
+export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const logger = useLogger();
     const setupDuckDB = useDuckDBSetup();
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -34,6 +38,13 @@ export const ShellPage: React.FC = () => {
 
         const setup = async () => {
             const database = await setupDuckDB(LOG_CTX);
+            void database.getVersion()
+                .then(version => {
+                    if (!cancelled) props.onEngineVersion(version);
+                })
+                .catch(error => {
+                    logger.warn('Failed to load engine version', { error: stringifyError(error) }, LOG_CTX);
+                });
             const nextConnection = await database.connect();
             if (cancelled) {
                 await nextConnection.close();
@@ -91,7 +102,7 @@ export const ShellPage: React.FC = () => {
             shell?.destroy();
             void connection?.close();
         };
-    }, [logger, setupDuckDB]);
+    }, [logger, props.onEngineVersion, setupDuckDB]);
 
     return (
         <main className={styles.page} aria-label="HyperDB Shell">

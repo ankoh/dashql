@@ -2,40 +2,70 @@ import * as React from 'react';
 
 import { AnchorAlignment, AnchorSide } from '../shared/ui/foundations/anchored_position.js';
 import { DASHQL_VERSION } from '../shared/globals.js';
-import { useVersionCheck } from '../shared/platform/version/version_check.js';
-import { VersionCheckIndicator, VersionInfoOverlay } from '../shared/ui/version/version_viewer.js';
+import { AnchoredOverlay } from '../shared/ui/foundations/anchored_overlay.js';
+import { ButtonVariant, IconButton } from '../shared/ui/foundations/button.js';
 import { ShellInternals } from './internals.js';
 
+import { XIcon } from '@primer/octicons-react';
 import symbols from '@ankoh/dashql-svg-symbols';
 import * as styles from './shell_navbar.module.css';
 
-const VersionButton: React.FC = () => {
+interface VersionButtonProps {
+    engineVersion: string | null;
+}
+
+const VersionButton: React.FC<VersionButtonProps> = (props: VersionButtonProps) => {
     const [isOpen, setIsOpen] = React.useState(false);
-    const versionCheck = useVersionCheck();
 
     return (
-        <VersionInfoOverlay
-            isOpen={isOpen}
+        <AnchoredOverlay
+            open={isOpen}
             onOpen={() => setIsOpen(true)}
             onClose={() => setIsOpen(false)}
             side={AnchorSide.OutsideBottom}
             align={AnchorAlignment.End}
             anchorOffset={16}
-            renderAnchor={(props: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+            renderAnchor={(anchorProps: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
                 <button
-                    {...props}
+                    {...anchorProps}
                     type="button"
                     className={styles.actionButton}
+                    aria-label={props.engineVersion == null ? 'Hyper version' : `Hyper version ${props.engineVersion}`}
                 >
-                    <VersionCheckIndicator status={versionCheck} />
-                    <span className={styles.actionLabel}>{DASHQL_VERSION}</span>
+                    <svg className={styles.actionIcon} width="16px" height="16px" aria-hidden="true">
+                        <use xlinkHref={`${symbols}#package`} />
+                    </svg>
+                    <span className={styles.actionLabel}>{props.engineVersion ?? 'Hyper'}</span>
                 </button>
             )}
-        />
+        >
+            <div className={styles.versionOverlay}>
+                <div className={styles.versionHeader}>
+                    <div className={styles.versionTitle}>Version</div>
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        aria-label="Close"
+                        onClick={() => setIsOpen(false)}
+                    >
+                        <XIcon />
+                    </IconButton>
+                </div>
+                <div className={styles.versionInfo}>
+                    <div>Hyper Version</div>
+                    <div>{props.engineVersion ?? 'Loading...'}</div>
+                    <div>Shell Version</div>
+                    <div>{DASHQL_VERSION}</div>
+                </div>
+            </div>
+        </AnchoredOverlay>
     );
 };
 
-export const ShellNavBar: React.FC = () => (
+interface ShellNavBarProps {
+    engineVersion: string | null;
+}
+
+export const ShellNavBar: React.FC<ShellNavBarProps> = (props: ShellNavBarProps) => (
     <header className={styles.navbar}>
         <div className={styles.brand}>
             <svg className={styles.brand_logo} width="100%" height="100%">
@@ -44,7 +74,7 @@ export const ShellNavBar: React.FC = () => (
         </div>
         <nav className={styles.actions} aria-label="Shell utilities">
             <ShellInternals />
-            <VersionButton />
+            <VersionButton engineVersion={props.engineVersion} />
         </nav>
     </header>
 );
