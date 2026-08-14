@@ -85,6 +85,7 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
                 controllerRef.current = await embedDashQLShell({
                     container: containerRef.current,
                     shell: nextShell,
+                    greeter: ['DashQL Shell', 'Enter .help for usage hints.'],
                     prompt: `${connection.connectorInfo.names.displayShort.toLowerCase()}> `,
                     onExit: () => setMode(NotebookViewMode.Notebook),
                     onQueryResult: setResultQueryId,

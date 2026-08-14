@@ -113,7 +113,7 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('renders terminal highlighting in Wasm', () => {
-        expect(shell.openTerminal('db> ', false).data).toBe(
+        expect(shell.openTerminal('db> ').data).toBe(
             VT100.DISABLE_AUTO_WRAP + VT100.CARRIAGE_RETURN + VT100.ERASE_ENTIRE_LINE +
             VT100.BOLD + 'db> ' + VT100.RESET_ATTRIBUTES + VT100.CARRIAGE_RETURN +
             vt100Sequence(4, VT100Command.CURSOR_FORWARD),
@@ -135,12 +135,12 @@ describe('DashQL shell Wasm', () => {
             },
         } as TextDecoder;
 
-        expect(shell.openTerminal('db> ', false).data).toContain('db> ');
+        expect(shell.openTerminal('db> ').data).toContain('db> ');
     });
 
     it('redraws a wrapped prompt from its current physical row', () => {
         shell.resize(16);
-        shell.openTerminal('hyper> ', false);
+        shell.openTerminal('hyper> ');
         shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'SELECT 123');
 
         const output = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, '4').data;
@@ -154,7 +154,7 @@ describe('DashQL shell Wasm', () => {
 
     it('does not scroll while clearing a long wrapped prompt', () => {
         shell.resize(80);
-        shell.openTerminal('hyper> ', false);
+        shell.openTerminal('hyper> ');
         shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, `select '${'o'.repeat(170)}'`);
 
         const output = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'f').data;
@@ -166,7 +166,7 @@ describe('DashQL shell Wasm', () => {
 
     it('allocates a new row before extending a long prompt', () => {
         shell.resize(80);
-        shell.openTerminal('hyper> ', false);
+        shell.openTerminal('hyper> ');
         shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, `select '${'o'.repeat(135)}'`);
 
         const output = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, ' as select').data;
@@ -179,7 +179,7 @@ describe('DashQL shell Wasm', () => {
 
     it('renders an inline completion hint at the right margin with auto-wrap disabled', () => {
         shell.resize(173);
-        shell.openTerminal('hyper> ', false);
+        shell.openTerminal('hyper> ');
 
         const hinted = shell.consumeTerminalInput(
             DashQLShellPromptInput.TEXT,
@@ -196,14 +196,14 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('consumes semantic terminal controls', () => {
-        shell.openTerminal('db> ', false);
+        shell.openTerminal('db> ');
         const exited = shell.consumeTerminalInput(DashQLShellPromptInput.ESCAPE);
         expect(exited.action).toBe(DashQLShellPromptAction.EXIT);
         expect(exited.data).toBe(VT100.ENABLE_AUTO_WRAP);
     });
 
     it('executes built-in dot commands without SQL terminators', async () => {
-        shell.openTerminal('db> ', false);
+        shell.openTerminal('db> ');
 
         const hinted = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, '.hel');
         expect(hinted.data).toContain(VT100.FOREGROUND_BRIGHT_BLACK + 'p');
@@ -273,8 +273,7 @@ describe('DashQL shell Wasm', () => {
 
     it('enables auto-wrap for output and disables it for the next prompt', () => {
         const opened = shell.openTerminal('db> ').data;
-        expect(opened.startsWith(VT100.ENABLE_AUTO_WRAP)).toBe(true);
-        expect(opened).toContain(VT100.DISABLE_AUTO_WRAP);
+        expect(opened.startsWith(VT100.DISABLE_AUTO_WRAP)).toBe(true);
 
         const finished = shell.finishTerminalQuery('a query result').data;
         expect(finished.indexOf(VT100.ENABLE_AUTO_WRAP)).toBeLessThan(finished.indexOf('a query result'));
@@ -287,7 +286,7 @@ describe('DashQL shell Wasm', () => {
 
     it('renders and clears query progress in the shell core', () => {
         shell.resize(20);
-        shell.openTerminal('db> ', false);
+        shell.openTerminal('db> ');
 
         const first = shell.renderTerminalQueryProgress('  Executing\nquery\tbatch  ').data;
         expect(first).toContain('⠋ Executing query...');
@@ -303,7 +302,7 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('navigates, accepts, and dismisses terminal completion overlays', () => {
-        shell.openTerminal('db> ', false);
+        shell.openTerminal('db> ');
         const opened = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'sel');
 
         const candidates = shell.completePrompt(50);
@@ -337,7 +336,7 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('shows only an inline hint before the completion prefix', () => {
-        shell.openTerminal('db> ', false);
+        shell.openTerminal('db> ');
         const hinted = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, ' ');
 
         expect(hinted.data).toContain(VT100.FOREGROUND_BRIGHT_BLACK);
@@ -353,7 +352,7 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('does not cycle completion candidates with Left and Right', () => {
-        shell.openTerminal('db> ', false);
+        shell.openTerminal('db> ');
         shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'sel');
         const candidates = shell.completePrompt(50);
         expect(candidates.length).toBeGreaterThan(1);
@@ -366,7 +365,7 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('keeps Enter available for a newline while completion is open', () => {
-        shell.openTerminal('db> ', false);
+        shell.openTerminal('db> ');
         shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'sel');
 
         expect(shell.consumeTerminalInput(DashQLShellPromptInput.ENTER).action).toBe(DashQLShellPromptAction.NONE);
@@ -374,7 +373,7 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('accepts keyword completion and its inline continuation in steps', () => {
-        shell.openTerminal('db> ', false);
+        shell.openTerminal('db> ');
         shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'SELECT * FROM supplier gro');
         const candidates = shell.completePrompt(50);
         const groupIndex = candidates.findIndex(candidate => candidate.completionText === 'group');
@@ -393,7 +392,7 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('anchors completion below an earlier cursor line', () => {
-        shell.openTerminal('db> ', false);
+        shell.openTerminal('db> ');
         shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'sel\nFROM supplier');
         for (let i = 0; i < '\nFROM supplier'.length; ++i) shell.movePromptLeft();
         shell.consumeTerminalInput(DashQLShellPromptInput.RIGHT);
@@ -409,7 +408,7 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('shows qualification inline before accepting the candidate', () => {
-        shell.openTerminal('db> ', false);
+        shell.openTerminal('db> ');
         shell.consumeTerminalInput(DashQLShellPromptInput.TEXT,
             'CREATE TABLE orders(customer_id BIGINT); CREATE TABLE customers(customer_id BIGINT); ' +
             'SELECT customer_id FROM orders o JOIN customers c ON o.customer_id = c.customer_id WHERE customer_id',
@@ -429,7 +428,7 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('cycles inline qualification hints with Left and Right', () => {
-        shell.openTerminal('db> ', false);
+        shell.openTerminal('db> ');
         shell.consumeTerminalInput(DashQLShellPromptInput.TEXT,
             'CREATE TABLE orders(customer_id BIGINT); CREATE TABLE customers(customer_id BIGINT); ' +
             'SELECT customer_id FROM orders o JOIN customers c ON o.customer_id = c.customer_id WHERE customer_id',

@@ -120,7 +120,7 @@ class ShellSession {
     std::vector<CompletionCandidate> CompletePrompt(size_t limit);
     PromptSnapshot ApplyCompletion(const CompletionCandidate& candidate);
     PromptSnapshot ConsumePromptInput(PromptInputKey key, std::string_view text = {});
-    ShellOperation OpenTerminal(std::string_view prompt, bool welcome = true);
+    ShellOperation OpenTerminal(std::string_view prompt);
     ShellOperation ConsumeTerminalInput(PromptInputKey key, std::string_view text = {});
     ShellOperation FinishTerminalQuery(std::string_view output, bool error = false);
     ShellOperation RenderTerminalQueryProgress(std::string_view message = {}, bool advance_frame = false);

@@ -53,7 +53,7 @@ export interface DashQLShellModule extends EmscriptenModule {
     _dashql_shell_prompt_submit(shell: number, result: number): number;
     _dashql_shell_prompt_result_destroy(result: number): void;
     _dashql_shell_completion_result_destroy(result: number): void;
-    _dashql_shell_terminal_open(shell: number, prompt: number, promptLength: number, welcome: boolean, result: number): number;
+    _dashql_shell_terminal_open(shell: number, prompt: number, promptLength: number, result: number): number;
     _dashql_shell_terminal_consume(shell: number, key: number, text: number, textLength: number, result: number): number;
     _dashql_shell_terminal_finish_query(shell: number, output: number, outputLength: number, error: boolean, result: number): number;
     _dashql_shell_terminal_query_progress(shell: number, message: number, messageLength: number, advanceFrame: boolean, result: number): number;
@@ -463,9 +463,9 @@ export class DashQLShell {
         });
     }
 
-    openTerminal(prompt = 'dashql> ', welcome = true): DashQLShellTerminalOutput {
+    openTerminal(prompt = 'dashql> '): DashQLShellTerminalOutput {
         return this.invokeTerminal(this.textEncoder.encode(prompt), (input, inputLength, result) => {
-            this.module._dashql_shell_terminal_open(this.shell, input, inputLength, welcome, result);
+            this.module._dashql_shell_terminal_open(this.shell, input, inputLength, result);
         });
     }
 

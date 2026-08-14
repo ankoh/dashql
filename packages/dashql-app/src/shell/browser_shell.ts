@@ -47,6 +47,7 @@ export class TerminalQueryProgress {
 export interface BrowserShellOptions {
     container: HTMLElement;
     shell: DashQLShell;
+    greeter?: readonly string[];
     prompt?: string;
     onExit?: () => void;
     onQueryResult?: (queryId: number) => void;
@@ -63,6 +64,12 @@ export interface BrowserShellController {
 
 export function formatQueryCompletion(rowCount: number): string {
     return `Query completed (${rowCount} ${rowCount === 1 ? 'row' : 'rows'})`;
+}
+
+export function formatTerminalGreeter(lines: readonly string[]): string {
+    if (lines.length === 0) return '';
+    return VT100.ENABLE_AUTO_WRAP + VT100.BOLD + lines[0] + VT100.RESET_ATTRIBUTES + VT100.NEW_LINE +
+        lines.slice(1).join(VT100.NEW_LINE) + VT100.NEW_LINE + VT100.NEW_LINE;
 }
 
 export function sanitizeTerminalText(data: string): string {
@@ -249,7 +256,9 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
         if (text.length > 0) consume(DashQLShellPromptInput.TEXT, text);
     });
 
-    terminal.write(shell.openTerminal(prompt).data);
+    terminal.write(options.greeter == null
+        ? shell.openTerminal(prompt).data
+        : formatTerminalGreeter(options.greeter) + shell.openTerminal(prompt).data);
     requestAnimationFrame(() => {
         syncSize();
         terminal.focus();
@@ -264,7 +273,7 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
             activeQuery?.abort();
             shell = nextShell;
             shell.importHistory(history);
-            terminal.write(shell.openTerminal(prompt, false).data);
+            terminal.write(shell.openTerminal(prompt).data);
             syncSize();
         },
         writeStatus(message) {

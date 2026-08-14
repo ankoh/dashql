@@ -157,7 +157,6 @@ DASHQL_SHELL_EXPORT uint32_t dashql_shell_terminal_open(
     DashQLShell* shell,
     const uint8_t* prompt,
     size_t prompt_length,
-    bool welcome,
     DashQLShellTerminalResult* result);
 DASHQL_SHELL_EXPORT uint32_t dashql_shell_terminal_consume(
     DashQLShell* shell,

@@ -223,7 +223,7 @@ TEST(ShellSessionTest, RendersInlineDotCommandHint) {
     Catalog catalog;
     ShellSession session{catalog};
     ASSERT_EQ(session.SetCommands("clear\nhelp"), ShellStatus::kOk);
-    session.OpenTerminal("db> ", false);
+    session.OpenTerminal("db> ");
 
     const auto output = session.ConsumeTerminalInput(PromptInputKey::kText, ".hel");
     EXPECT_NE(output.data.find(std::string{vt100::kForegroundBrightBlack} + "p"), std::string::npos) << output.data;
@@ -283,12 +283,12 @@ TEST(ShellSessionTest, AlignsContinuationMarkerWithPromptMarker) {
     Catalog catalog;
 
     ShellSession short_session{catalog, 80};
-    ASSERT_EQ(short_session.OpenTerminal("hyper> ", false).status, ShellStatus::kOk);
+    ASSERT_EQ(short_session.OpenTerminal("hyper> ").status, ShellStatus::kOk);
     const auto short_output = short_session.ConsumeTerminalInput(PromptInputKey::kEnter);
     EXPECT_NE(short_output.data.find("    -> "), std::string::npos);
 
     ShellSession long_session{catalog, 80};
-    ASSERT_EQ(long_session.OpenTerminal("long-connection> ", false).status, ShellStatus::kOk);
+    ASSERT_EQ(long_session.OpenTerminal("long-connection> ").status, ShellStatus::kOk);
     const auto long_output = long_session.ConsumeTerminalInput(PromptInputKey::kEnter);
     EXPECT_NE(long_output.data.find("              -> "), std::string::npos);
 }
@@ -296,7 +296,7 @@ TEST(ShellSessionTest, AlignsContinuationMarkerWithPromptMarker) {
 TEST(ShellSessionTest, RendersShellPrefixesInBold) {
     Catalog catalog;
     ShellSession session{catalog, 80};
-    const auto initial = session.OpenTerminal("dashql> ", false);
+    const auto initial = session.OpenTerminal("dashql> ");
     ASSERT_EQ(initial.status, ShellStatus::kOk);
     EXPECT_NE(initial.data.find("\x1b[1mdashql> \x1b[0m"), std::string::npos);
 

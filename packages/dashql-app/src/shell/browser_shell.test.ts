@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DashQLShellPromptInput } from './api.js';
 import {
     formatQueryCompletion,
+    formatTerminalGreeter,
     loadWebglRenderer,
     sanitizeTerminalText,
     TerminalQueryProgress,
@@ -52,6 +53,17 @@ describe('browser shell input', () => {
 });
 
 describe('browser shell renderer', () => {
+    it('formats a custom greeter with a blank line before the prompt', () => {
+        expect(formatTerminalGreeter(['Hyper Web Shell', 'Enter .help for usage hints.'])).toBe(
+            VT100.ENABLE_AUTO_WRAP + VT100.BOLD + 'Hyper Web Shell' + VT100.RESET_ATTRIBUTES + VT100.NEW_LINE +
+            'Enter .help for usage hints.' + VT100.NEW_LINE + VT100.NEW_LINE,
+        );
+        expect(formatTerminalGreeter(['DashQL Shell', 'Enter .help for usage hints.'])).toBe(
+            VT100.ENABLE_AUTO_WRAP + VT100.BOLD + 'DashQL Shell' + VT100.RESET_ATTRIBUTES + VT100.NEW_LINE +
+            'Enter .help for usage hints.' + VT100.NEW_LINE + VT100.NEW_LINE,
+        );
+    });
+
     it('formats compact query completion summaries', () => {
         expect(formatQueryCompletion(0)).toBe('Query completed (0 rows)');
         expect(formatQueryCompletion(1)).toBe('Query completed (1 row)');

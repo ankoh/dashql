@@ -350,7 +350,6 @@ void dashql_shell_completion_result_destroy(DashQLShellCompletionResult* result)
 uint32_t dashql_shell_terminal_open(DashQLShell* shell,
                                     const uint8_t* prompt,
                                     size_t prompt_length,
-                                    bool welcome,
                                     DashQLShellTerminalResult* result) {
     if (prompt == nullptr && prompt_length != 0) {
         if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
@@ -359,7 +358,7 @@ uint32_t dashql_shell_terminal_open(DashQLShell* shell,
                                    {dashql::shell::ShellStatus::kInvalidArgument, "invalid terminal prompt"});
     }
     const std::string_view value{reinterpret_cast<const char*>(prompt), prompt_length};
-    return InvokeTerminal(shell, result, [=](auto& session) { return session.OpenTerminal(value, welcome); });
+    return InvokeTerminal(shell, result, [=](auto& session) { return session.OpenTerminal(value); });
 }
 
 uint32_t dashql_shell_terminal_consume(DashQLShell* shell,

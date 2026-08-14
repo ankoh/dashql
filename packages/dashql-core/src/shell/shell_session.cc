@@ -565,7 +565,7 @@ PromptSnapshot ShellSession::ConsumePromptInput(PromptInputKey key, std::string_
     return snapshot;
 }
 
-ShellOperation ShellSession::OpenTerminal(std::string_view prompt, bool welcome) {
+ShellOperation ShellSession::OpenTerminal(std::string_view prompt) {
     terminal_action_ = PromptInputAction::kNone;
     terminal_completion_overlays.erase(this);
     if (!utf8::Utf8Proc::IsValid(prompt)) {
@@ -586,17 +586,6 @@ ShellOperation ShellSession::OpenTerminal(std::string_view prompt, bool welcome)
     terminal_prompt_rows_ = 1;
     terminal_prompt_cursor_row_ = 0;
     std::string output;
-    if (welcome) {
-        output.append(vt100::kEnableAutoWrap);
-        output.append(vt100::kBold);
-        output.append("DashQL Shell");
-        output.append(vt100::kResetAttributes);
-        output.append(vt100::kNewLine);
-        output.append(
-            "Terminate SQL with \";\". Type .help for commands. Tab completes. Ctrl+C cancels. Escape returns to "
-            "the notebook.");
-        output.append(vt100::kNewLine);
-    }
     output.append(vt100::kDisableAutoWrap);
     output.append(RenderTerminalPrompt());
     return {ShellStatus::kOk, std::move(output)};

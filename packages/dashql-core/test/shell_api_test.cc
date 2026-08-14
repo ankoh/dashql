@@ -214,7 +214,7 @@ TEST(ShellApiTest, NavigatesMultilinePromptWithUpAndDown) {
     dashql_shell_prompt_result_destroy(&prompt);
 
     DashQLShellTerminalResult output{};
-    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_UP, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
@@ -254,7 +254,7 @@ TEST(ShellApiTest, RendersHighlightedTerminalPrompt) {
 
     DashQLShellTerminalResult output{};
     const std::string prompt = "db> ";
-    ASSERT_EQ(dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(), false,
+    ASSERT_EQ(dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(),
                                          &output),
               DASHQL_SHELL_OK);
     std::string expected;
@@ -293,7 +293,7 @@ TEST(ShellApiTest, ConsumesSemanticTerminalInput) {
     ASSERT_NE(shell, nullptr);
 
     DashQLShellTerminalResult output{};
-    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     const std::string query = "SELECT 1;";
@@ -319,10 +319,9 @@ TEST(ShellApiTest, ScopesAutoWrapToTerminalOutput) {
     ASSERT_NE(shell, nullptr);
 
     DashQLShellTerminalResult output{};
-    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, true, &output), DASHQL_SHELL_OK);
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     const auto opened = TerminalData(output);
-    EXPECT_TRUE(opened.starts_with(dashql::shell::vt100::kEnableAutoWrap)) << opened;
-    EXPECT_NE(opened.rfind(dashql::shell::vt100::kDisableAutoWrap), std::string_view::npos) << opened;
+    EXPECT_TRUE(opened.starts_with(dashql::shell::vt100::kDisableAutoWrap)) << opened;
     dashql_shell_terminal_result_destroy(&output);
 
     constexpr std::string_view query_output = "a query result";
@@ -354,7 +353,7 @@ TEST(ShellApiTest, RendersAndClearsSingleLineQueryProgress) {
     ASSERT_NE(shell, nullptr);
 
     DashQLShellTerminalResult output{};
-    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     constexpr std::string_view message = "  Executing\nquery\tbatch  ";
@@ -390,7 +389,7 @@ TEST(ShellApiTest, ReflowsLongPromptWithoutRepeatingPreviousRender) {
     ASSERT_NE(shell, nullptr);
 
     DashQLShellTerminalResult output{};
-    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, "SELECT 123456789"), DASHQL_SHELL_OK);
@@ -416,7 +415,7 @@ TEST(ShellApiTest, ReflowsLongPromptFromContinuationRow) {
     ASSERT_NE(shell, nullptr);
 
     DashQLShellTerminalResult output{};
-    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, "SELECT 12"), DASHQL_SHELL_OK);
@@ -450,7 +449,7 @@ TEST(ShellApiTest, RedrawsLongStringWithoutScrollingDuringCleanup) {
     DashQLShellTerminalResult output{};
     constexpr std::string_view prompt = "hyper> ";
     ASSERT_EQ(dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(),
-                                         false, &output),
+                                         &output),
               DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
@@ -478,7 +477,7 @@ TEST(ShellApiTest, AllocatesNewRowsBeforeRedrawingLongPrompt) {
     DashQLShellTerminalResult output{};
     constexpr std::string_view prompt = "hyper> ";
     ASSERT_EQ(dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(),
-                                         false, &output),
+                                         &output),
               DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
@@ -509,7 +508,7 @@ TEST(ShellApiTest, RendersInlineCompletionHintAtRightMarginWithAutoWrapDisabled)
     DashQLShellTerminalResult output{};
     constexpr std::string_view prompt = "hyper> ";
     ASSERT_EQ(dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(),
-                                         false, &output),
+                                         &output),
               DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
@@ -536,7 +535,7 @@ TEST(ShellApiTest, KeepsCompletionOverlayInsideRightBorder) {
     ASSERT_NE(shell, nullptr);
 
     DashQLShellTerminalResult output{};
-    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, " sel"), DASHQL_SHELL_OK);
@@ -559,7 +558,7 @@ TEST(ShellApiTest, NavigatesAndAcceptsTerminalCompletionOverlay) {
     ASSERT_NE(shell, nullptr);
 
     DashQLShellTerminalResult output{};
-    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     const std::string query = "sel";
@@ -637,7 +636,7 @@ TEST(ShellApiTest, ListsHintsAndAcceptsColumnAfterFullyQualifiedTableAlias) {
     auto* shell = dashql_shell_new(&catalog, 160);
     ASSERT_NE(shell, nullptr);
     DashQLShellTerminalResult output{};
-    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     constexpr std::string_view query =
@@ -692,7 +691,7 @@ TEST(ShellApiTest, ListsColumnsAfterQualifiedAliasBeforeLaterPromptLines) {
     DashQLShellTerminalResult output{};
     constexpr std::string_view terminal_prompt = "trino> ";
     ASSERT_EQ(dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(terminal_prompt.data()),
-                                         terminal_prompt.size(), false, &output),
+                                         terminal_prompt.size(), &output),
               DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
@@ -743,7 +742,7 @@ TEST(ShellApiTest, ShowsOnlyInlineHintBeforeCompletionPrefix) {
     ASSERT_NE(shell, nullptr);
 
     DashQLShellTerminalResult output{};
-    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, " "), DASHQL_SHELL_OK);
@@ -773,7 +772,7 @@ TEST(ShellApiTest, KeepsEnterAvailableForNewlineWhileCompletionIsOpen) {
     ASSERT_NE(shell, nullptr);
 
     DashQLShellTerminalResult output{};
-    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, "sel"), DASHQL_SHELL_OK);
@@ -796,7 +795,7 @@ TEST(ShellApiTest, DoesNotCycleTerminalCandidatesWithLeftAndRight) {
     ASSERT_NE(shell, nullptr);
 
     DashQLShellTerminalResult output{};
-    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     const std::string query = "sel";
@@ -835,7 +834,7 @@ TEST(ShellApiTest, CyclesInlineQualificationHintsWithLeftAndRight) {
     ASSERT_NE(shell, nullptr);
 
     DashQLShellTerminalResult output{};
-    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     const std::string query = "CREATE TABLE orders(customer_id BIGINT); CREATE TABLE customers(customer_id BIGINT); "
@@ -892,7 +891,7 @@ TEST(ShellApiTest, AppliesKeywordCompletionInMultipleSteps) {
     ASSERT_NE(shell, nullptr);
 
     DashQLShellTerminalResult output{};
-    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     const std::string query = "SELECT * FROM supplier gro";
@@ -955,7 +954,7 @@ TEST(ShellApiTest, AnchorsCompletionBelowCursorInMultilinePrompt) {
     ASSERT_NE(shell, nullptr);
 
     DashQLShellTerminalResult output{};
-    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     const std::string query = "sel\nFROM supplier";
@@ -1003,7 +1002,7 @@ TEST(ShellApiTest, RendersInlineCompletionHintBeforeLaterPromptLines) {
 
     DashQLShellTerminalResult output{};
     constexpr std::string_view prompt = "trino> ";
-    ASSERT_EQ(dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(), false,
+    ASSERT_EQ(dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(),
                                          &output),
               DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
@@ -1039,7 +1038,7 @@ TEST(ShellApiTest, RendersAndAcceptsQualificationHintBeforeCursor) {
     ASSERT_NE(shell, nullptr);
 
     DashQLShellTerminalResult output{};
-    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     const std::string query = "SELECT customer_id FROM orders o JOIN customers c ON o.customer_id = c.customer_id "
@@ -1102,7 +1101,7 @@ TEST(ShellApiTest, EscapeDismissesTerminalCompletionBeforeExiting) {
     ASSERT_NE(shell, nullptr);
 
     DashQLShellTerminalResult output{};
-    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, false, &output), DASHQL_SHELL_OK);
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     const std::string query = "sel";
