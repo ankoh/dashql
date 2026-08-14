@@ -17,7 +17,7 @@
     padding: 12px;
     overflow: hidden;
     border-radius: 12px;
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--shell_background_color);
 }
 
 .terminal_host {

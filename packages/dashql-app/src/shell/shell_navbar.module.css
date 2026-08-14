@@ -47,7 +47,7 @@
 
 .action_button:hover {
     border-color: rgba(0, 0, 0, 0.2);
-    background: rgba(0, 0, 0, 0.45);
+    background: var(--navbar_hover_background_color);
 }
 
 .action_button:focus-visible {

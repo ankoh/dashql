@@ -95,7 +95,7 @@
 }
 
 .notebook_bar_close:hover {
-    background-color: rgba(0, 0, 0, 0.45);
+    background-color: var(--navbar_hover_background_color);
 }
 
 .notebook_bar_close:focus-visible {
@@ -228,7 +228,7 @@
 }
 .tab:hover,
 .tab.active {
-    background-color: rgba(0, 0, 0, 0.45);
+    background-color: var(--navbar_hover_background_color);
     border: var(--nav_border_active) !important;
 }
 
