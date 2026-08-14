@@ -12,6 +12,7 @@ export enum HoverMode {
 }
 
 type LinkProps = {
+    'aria-label'?: string;
     className?: string;
     to: string;
     hover?: HoverMode;
@@ -19,10 +20,12 @@ type LinkProps = {
     children?: React.ReactElement;
     newWindow?: boolean;
     state: RouteContext;
+    title?: string;
 };
 
 export const NavBarLink: React.FC<LinkProps> = (props: LinkProps) => (
     <Link
+        aria-label={props['aria-label']}
         className={classNames(props.className, {
             [styles.button]: props.invert === undefined || !props.invert,
             [styles.button_inverted]: props.invert,
@@ -33,6 +36,7 @@ export const NavBarLink: React.FC<LinkProps> = (props: LinkProps) => (
         to={props.to}
         target={props.newWindow ? '_blank' : undefined}
         state={props.state}
+        title={props.title}
     >
         {props.children}
     </Link>

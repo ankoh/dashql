@@ -29,20 +29,17 @@ const LOG_CTX = "navbar";
 const OpenIn = (props: { url?: string | null; alt?: string; icon?: string; label: string, newWindow?: boolean, state: RouteContext }) => (
     <div className={styles.tab}>
         <NavBarLink
+            aria-label={props.label}
             className={styles.tab_button}
             to={props.url ?? ""}
             hover={HoverMode.Darken}
             newWindow={props.newWindow}
             state={props.state}
+            title={props.label}
         >
-            <>
-                {props.icon &&
-                    <svg width="16px" height="16px">
-                        <use xlinkHref={props.icon} />
-                    </svg>
-                }
-                <span className={styles.tab_button_text}>{props.label}</span>
-            </>
+            <svg width="16px" height="16px" aria-hidden="true">
+                <use xlinkHref={props.icon} />
+            </svg>
         </NavBarLink>
     </div>
 );
