@@ -852,7 +852,7 @@ function createShellCommands(extensions: readonly DashQLShellCommand[]): Map<str
         'List available dot commands',
         () => {
             const width = Math.max(...Array.from(commands.keys(), name => name.length)) + 3;
-            return Array.from(commands.values(), command => `.${command[0]}`.padEnd(width) + command[1]).join('\r\n');
+            return Array.from(commands.values(), command => `.${command[0]}`.padEnd(width) + command[1]).join('\r\n') + '\r\n';
         },
     ]);
     for (const command of extensions) register(command);

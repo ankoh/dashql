@@ -5,6 +5,8 @@ import { DASHQL_VERSION } from '../shared/globals.js';
 import { useVersionCheck } from '../shared/platform/version/version_check.js';
 import { VersionCheckIndicator, VersionInfoOverlay } from '../shared/ui/version/version_viewer.js';
 import { ShellInternals } from './internals.js';
+
+import symbols from '@ankoh/dashql-svg-symbols';
 import * as styles from './shell_navbar.module.css';
 
 const VersionButton: React.FC = () => {
@@ -35,8 +37,10 @@ const VersionButton: React.FC = () => {
 
 export const ShellNavBar: React.FC = () => (
     <header className={styles.navbar}>
-        <div className={styles.brand} aria-label="HyperDB">
-            hyperdb
+        <div className={styles.brand}>
+            <svg className={styles.brand_logo} width="100%" height="100%">
+                <use xlinkHref={`${symbols}#hyper_banner`} />
+            </svg>
         </div>
         <nav className={styles.actions} aria-label="Shell utilities">
             <ShellInternals />

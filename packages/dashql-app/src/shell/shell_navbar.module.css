@@ -1,18 +1,24 @@
 .navbar {
     display: grid;
     grid-template-columns: minmax(0, 1fr) max-content;
+    grid-template-rows: 100%;
     align-items: center;
     height: 40px;
     color: white;
 }
 
 .brand {
+    display: flex;
+    align-items: center;
     min-width: 0;
     margin-left: 20px;
-    font-family: 'Roboto Mono';
-    font-size: 0.9rem;
-    font-weight: 500;
-    letter-spacing: 0.02em;
+    height: 100%;
+}
+
+.brand_logo {
+    display: block;
+    width: 80px;
+    height: 100%;
 }
 
 .actions {

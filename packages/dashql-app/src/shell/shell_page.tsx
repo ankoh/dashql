@@ -62,7 +62,11 @@ export const ShellPage: React.FC = () => {
             const nextController = await embedDashQLShell({
                 container: containerRef.current,
                 shell,
-                greeter: ['HyperDB Web Shell', 'Enter .help for usage hints.'],
+                greeter: [
+                    'HyperDB Web Shell',
+                    'This is an embedded version of the Hyper Database Engine.',
+                    'Enter .help for usage hints.'
+                ],
                 prompt: 'hyperdb> ',
                 inputAriaLabel: 'HyperDB shell input',
             });
@@ -90,7 +94,7 @@ export const ShellPage: React.FC = () => {
     }, [logger, setupDuckDB]);
 
     return (
-        <main className={styles.page} aria-label="HyperDB Web Shell">
+        <main className={styles.page} aria-label="HyperDB Shell">
             <div className={styles.terminal}>
                 <div ref={containerRef} className={styles.terminalHost} />
             </div>

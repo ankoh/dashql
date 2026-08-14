@@ -221,8 +221,9 @@ describe('DashQL shell Wasm', () => {
         expect(help).toContain('Clear the terminal screen');
         expect(help).toContain('.help');
         expect(help).toContain('List available dot commands');
+        expect(help.endsWith(VT100.NEW_LINE)).toBe(true);
 
-        shell.finishTerminalQuery(help);
+        expect(shell.finishTerminalQuery(help).data).toContain(VT100.NEW_LINE + VT100.NEW_LINE);
         shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, '.clear');
         shell.consumeTerminalInput(DashQLShellPromptInput.ENTER);
         const cleared = shell.finishTerminalQuery(await shell.submitPrompt()).data;

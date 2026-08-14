@@ -50,10 +50,7 @@ export function VerticalTabs<TabProps extends VerticalTabProps>(props: Props<Tab
     const [isDragging, setIsDragging] = React.useState(false);
     const containerRef = React.useRef<HTMLDivElement>(null);
 
-    const selectTab = React.useCallback((elem: React.MouseEvent) => {
-        const target = elem.currentTarget as HTMLDivElement;
-        const tabId = Number.parseInt(target.dataset.tab ?? '0');
-
+    const selectTab = React.useCallback((tabId: number) => {
         if (props.splitModeEnabled) {
             // In split mode, clicking primary tab does nothing
             if (tabId === props.primaryTabKey) {
@@ -125,7 +122,6 @@ export function VerticalTabs<TabProps extends VerticalTabProps>(props: Props<Tab
                     [styles.stacked_tab_active]: isActive,
                 })}
                 data-tab={tabProps.tabId}
-                onClick={tabProps.disabled ? undefined : selectTab}
             >
                 <IconButton
                     className={classNames(styles.stacked_tab_icon, {
@@ -133,8 +129,10 @@ export function VerticalTabs<TabProps extends VerticalTabProps>(props: Props<Tab
                     })}
                     variant={ButtonVariant.Invisible}
                     aria-label={ariaLabel}
+                    aria-current={isActive ? 'page' : undefined}
                     description={tooltipText}
                     disabled={tabProps.disabled}
+                    onClick={() => selectTab(tabProps.tabId)}
                 >
                     {showSplitIndicator ? (
                         <>
@@ -183,7 +181,6 @@ export function VerticalTabs<TabProps extends VerticalTabProps>(props: Props<Tab
                             className={classNames(styles.split_toggle, {
                                 [styles.split_toggle_active]: props.splitModeEnabled,
                             })}
-                            onClick={canEnableSplit ? props.onToggleSplitMode : undefined}
                         >
                             <IconButton
                                 className={styles.split_toggle_icon}
@@ -191,6 +188,7 @@ export function VerticalTabs<TabProps extends VerticalTabProps>(props: Props<Tab
                                 aria-label="Toggle split"
                                 description="Toggle split"
                                 disabled={!canEnableSplit}
+                                onClick={props.onToggleSplitMode}
                             >
                                 <svg width="18px" height="16px">
                                     <use xlinkHref={`${icons}#vsplit_24`} />

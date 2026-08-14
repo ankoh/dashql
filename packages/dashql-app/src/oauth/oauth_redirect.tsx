@@ -1,13 +1,11 @@
 import * as React from 'react';
-import * as buf from "@bufbuild/protobuf";
 import symbols from '@ankoh/dashql-svg-symbols';
 import * as baseStyles from '../shared/ui/banner/banner_page.module.css';
 import * as styles from './oauth_redirect.module.css';
 
-import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 
-import type { OAuthState, OAuthRedirectData, AppEventData } from '../shared/oauth_types.js';
+import type { OAuthState, AppEventData } from '../shared/oauth_types.js';
 
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes, useSearchParams } from 'react-router-dom';
