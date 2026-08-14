@@ -11,7 +11,7 @@ import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH } from '../../router.
 import { NotebookFeedPage } from './feed/notebook_feed_page.js';
 import { NotebookViewMode, useNotebookViewMode } from '../../scripts/notebook_commands.js';
 
-const NotebookShellPage = React.lazy(() => import('./shell/notebook_shell_page.js'));
+const NotebookShellPage = React.lazy(() => import('../../app/notebook/shell/notebook_shell_page.js'));
 
 const LOG_CTX = 'notebook_page';
 

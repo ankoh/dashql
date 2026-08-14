@@ -1,8 +1,8 @@
 import * as arrow from 'apache-arrow';
 
-import { CancelQuery, QueryExecutor } from '../connection/query_executor.js';
-import { QueryType } from '../connection/query_execution_state.js';
-import type { DashQLShellCommand, DashQLShellEnvironment } from './api.js';
+import { CancelQuery, QueryExecutor } from '../../../connection/query_executor.js';
+import { QueryType } from '../../../connection/query_execution_state.js';
+import type { DashQLShellCommand, DashQLShellEnvironment } from '../../../shell/api.js';
 
 const EMPTY_RESULT_IPC = arrow.tableToIPC(arrow.tableFromArrays({}), 'file');
 export const NOTEBOOK_SHELL_AUTO_OVERLAY_ROW_LIMIT = 100;

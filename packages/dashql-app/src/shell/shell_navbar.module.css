@@ -1,0 +1,56 @@
+.navbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    align-items: center;
+    height: 40px;
+    color: white;
+}
+
+.brand {
+    min-width: 0;
+    margin-left: 20px;
+    font-family: 'Roboto Mono';
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: 8px;
+}
+
+.action_button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid transparent;
+    border-radius: var(--border_radius);
+    background: transparent;
+    color: white;
+    fill: currentColor;
+    font-family: 'Roboto';
+    font-size: 0.9rem;
+    font-weight: 300;
+    cursor: pointer;
+}
+
+.action_button:hover {
+    border-color: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.action_button:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 1px;
+}
+
+@media (max-width: 600px) {
+    .action_label {
+        display: none;
+    }
+}

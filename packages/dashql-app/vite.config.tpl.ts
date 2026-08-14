@@ -72,7 +72,7 @@ export default vite.defineConfig(({ mode, command }) => {
             // follows them during input resolution, causing vite:build-html to compute the
             // output fileName as a deep ../../execroot/... traversal, which Rolldown rejects.
             // Intercept absolute HTML resolution and return the id unchanged to preserve the
-            // sandbox symlink path; path.relative(config.root, sandboxHtmlPath) = "oauth.html".
+            // sandbox symlink path.
             ...(!isTest ? [{
                 name: 'bazel-preserve-html-entry-symlinks',
                 enforce: 'pre' as const,
@@ -94,6 +94,7 @@ export default vite.defineConfig(({ mode, command }) => {
             rolldownOptions: {
                 input: {
                     app: path.resolve(rootDir, "index.html"),
+                    shell: path.resolve(rootDir, "shell.html"),
                     oauth_redirect: path.resolve(rootDir, "oauth.html"),
                 },
                 external: (id) => {

@@ -286,6 +286,7 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
 
 type VersionInfoOverlayProps = {
     isOpen: boolean;
+    onOpen?: () => void;
     onClose: () => void;
     renderAnchor: (p: object) => React.ReactElement;
     side?: AnchorSide;
@@ -296,6 +297,7 @@ export function VersionInfoOverlay(props: VersionInfoOverlayProps) {
     return (
         <AnchoredOverlay
             open={props.isOpen}
+            onOpen={props.onOpen}
             onClose={props.onClose}
             renderAnchor={props.renderAnchor}
             side={props.side}

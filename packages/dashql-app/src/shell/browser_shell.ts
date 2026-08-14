@@ -51,6 +51,7 @@ export interface BrowserShellOptions {
     onExit?: () => void;
     onQueryResult?: (queryId: number) => void;
     onTerminalResize?: (columns: number) => void;
+    inputAriaLabel?: string;
 }
 
 export interface BrowserShellController {
@@ -157,7 +158,7 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
     terminal.open(options.container);
     await loadWebglRenderer(terminal);
     const helper = options.container.querySelector<HTMLTextAreaElement>('.xterm-helper-textarea');
-    helper?.setAttribute('aria-label', 'DashQL shell input');
+    helper?.setAttribute('aria-label', options.inputAriaLabel ?? 'DashQL shell input');
 
     const syncSize = () => {
         if (disposed || options.container.clientWidth === 0 || options.container.clientHeight === 0) return;

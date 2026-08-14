@@ -285,6 +285,7 @@ copy_to_bin(
         "utils/**/*.ts",
         "index.html",
         "oauth.html",
+        "shell.html",
         "static/**/*.css",
         "static/**/*.svg",
         "static/**/*.ttf",

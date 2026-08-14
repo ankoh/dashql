@@ -7,13 +7,15 @@ import { NotebookViewMode, useNotebookViewMode } from '../../../scripts/notebook
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
 import {
-    createNotebookShell,
+    DashQLShell,
+} from '../../../shell/api.js';
+import type { BrowserShellController } from '../../../shell/browser_shell.js';
+import { createNotebookShell } from './notebook_shell_catalog.js';
+import {
     createNotebookShellEnvironment,
     createNotebookShellResultCommand,
-    DashQLShell,
     type NotebookShellResultMode,
-} from '../../../shell/index.js';
-import type { BrowserShellController } from '../../../shell/browser_shell.js';
+} from './notebook_shell_environment.js';
 import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
 
 const LOG_CTX = 'notebook_shell_page';

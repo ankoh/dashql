@@ -3,6 +3,11 @@ import { DashQLShellEnvironment } from './api.js';
 
 export function createDuckDBShellEnvironment(connection: DuckDBConnection): DashQLShellEnvironment {
     return {
-        executeQuery: query => connection.queryArrowIPC(query),
+        executeQuery: async (query, signal) => {
+            signal?.throwIfAborted();
+            const queryResult = await connection.queryArrowIPC(query);
+            signal?.throwIfAborted();
+            return queryResult;
+        },
     };
 }

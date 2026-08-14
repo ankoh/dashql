@@ -1,7 +1,7 @@
 // @vitest-environment node
 import * as arrow from 'apache-arrow';
 
-import { QueryExecutor } from '../connection/query_executor.js';
+import { QueryExecutor } from '../../../connection/query_executor.js';
 import {
     createNotebookShellEnvironment,
     createNotebookShellResultCommand,

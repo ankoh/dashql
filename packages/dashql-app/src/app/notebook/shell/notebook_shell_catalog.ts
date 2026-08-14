@@ -1,5 +1,5 @@
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../connection/catalog_update_state.js';
-import { DashQLShell, DashQLShellEnvironment, DashQLShellOptions } from './api.js';
+import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../../../connection/catalog_update_state.js';
+import { DashQLShell, DashQLShellEnvironment, DashQLShellOptions } from '../../../shell/api.js';
 
 export interface NotebookShellCatalog {
     relationsSql: string;
