@@ -49,6 +49,8 @@ export interface BrowserShellOptions {
     shell: DashQLShell;
     prompt?: string;
     onExit?: () => void;
+    onQueryResult?: (queryId: number) => void;
+    onTerminalResize?: (columns: number) => void;
 }
 
 export interface BrowserShellController {
@@ -56,6 +58,10 @@ export interface BrowserShellController {
     replaceShell(shell: DashQLShell): void;
     writeStatus(message: string): void;
     dispose(): void;
+}
+
+export function formatQueryCompletion(rowCount: number): string {
+    return `Query completed (${rowCount} ${rowCount === 1 ? 'row' : 'rows'})`;
 }
 
 export function sanitizeTerminalText(data: string): string {
@@ -156,7 +162,9 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
     const syncSize = () => {
         if (disposed || options.container.clientWidth === 0 || options.container.clientHeight === 0) return;
         fitAddon.fit();
-        shell.resize(Math.max(1, terminal.cols));
+        const columns = Math.max(1, terminal.cols);
+        shell.resize(columns);
+        options.onTerminalResize?.(columns);
     };
     const resizeObserver = new ResizeObserver(syncSize);
     resizeObserver.observe(options.container);
@@ -167,15 +175,28 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
         const executingShell = shell;
         const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
         const progress = new TerminalQueryProgress(executingShell, data => terminal.write(data), reducedMotion);
+        const queryResult: { value: { queryId: number; rowCount: number } | null } = { value: null };
         activeQuery = abort;
         activeProgress = progress;
         try {
-            const output = await executingShell.submitPrompt(abort.signal, message => {
-                if (!disposed && shell === executingShell && activeQuery === abort) progress.update(message);
-            });
+            const output = await executingShell.submitPrompt(
+                abort.signal,
+                message => {
+                    if (!disposed && shell === executingShell && activeQuery === abort) progress.update(message);
+                },
+                (queryId, rowCount) => {
+                    if (!disposed && shell === executingShell && activeQuery === abort) {
+                        queryResult.value = { queryId, rowCount };
+                    }
+                },
+            );
             if (!disposed && shell === executingShell) {
                 progress.stop();
-                terminal.write(executingShell.finishTerminalQuery(output).data);
+                const completedResult = queryResult.value;
+                terminal.write(executingShell.finishTerminalQuery(
+                    completedResult == null ? output : formatQueryCompletion(completedResult.rowCount),
+                ).data);
+                if (completedResult != null) options.onQueryResult?.(completedResult.queryId);
             }
         } catch (error) {
             if (!disposed && shell === executingShell) {

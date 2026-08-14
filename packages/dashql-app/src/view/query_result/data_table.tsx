@@ -33,6 +33,8 @@ interface Props {
     columnHeader?: TableColumnHeader;
     cellBackground?: string;
     onShowTable?: () => void;
+    fitHeight?: boolean;
+    maxHeight?: number;
 }
 
 const MIN_GRID_HEIGHT = 200;
@@ -366,9 +368,12 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         : COLUMN_HEADER_HEIGHT;
     const scrollbarHeight = useScrollbarHeight();
     const needsHorizontalScroll = totalColumnsWidth > gridContainerWidth;
-    const gridContainerHeight = props.maxRows != null
-        ? headerHeight + dataRowCount * ROW_HEIGHT + (needsHorizontalScroll ? scrollbarHeight : 0)
-        : Math.max(gridContainerSize?.height ?? 0, MIN_GRID_HEIGHT);
+    const contentHeight = headerHeight + dataRowCount * ROW_HEIGHT + (needsHorizontalScroll ? scrollbarHeight : 0);
+    const gridContainerHeight = props.fitHeight
+        ? Math.min(contentHeight, props.maxHeight ?? Number.POSITIVE_INFINITY)
+        : props.maxRows != null
+            ? contentHeight
+            : Math.max(gridContainerSize?.height ?? 0, MIN_GRID_HEIGHT);
     const firstRenderedColumn = gridLayout.columnCount > 1
         ? Math.max(1, Math.min(renderedCells.columnStart, gridLayout.columnCount - 1))
         : 1;
@@ -603,12 +608,19 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         <div
             className={classNames(styles.root, props.className)}
             data-tauri-drag-region="false"
-            style={props.cellBackground ? { '--data_table_bg': props.cellBackground } as React.CSSProperties : undefined}
+            style={{
+                ...(props.cellBackground ? { '--data_table_bg': props.cellBackground } : {}),
+                ...(props.fitHeight ? { height: gridContainerHeight } : {}),
+            } as React.CSSProperties}
         >
             <div className={styles.grid_container} ref={gridContainerElement}>
                 <Grid
                     gridRef={setGridApi}
-                    style={{ width: gridContainerWidth, height: gridContainerHeight, overflowY: props.maxRows != null ? 'hidden' : undefined }}
+                    style={{
+                        width: gridContainerWidth,
+                        height: gridContainerHeight,
+                        overflowY: props.maxRows != null ? 'hidden' : undefined,
+                    }}
                     columnCount={gridLayout.columnCount}
                     columnWidth={getColumnWidth}
                     rowCount={dataRowCount}

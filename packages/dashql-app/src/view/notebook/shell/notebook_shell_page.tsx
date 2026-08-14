@@ -2,12 +2,19 @@ import * as React from 'react';
 import * as styles from './notebook_shell_page.module.css';
 
 import type { ConnectionState } from '../../../connection/connection_state.js';
-import { useCancelQuery, useQueryExecutor } from '../../../connection/query_executor.js';
+import { useCancelQuery, useQueryExecutor, useQueryState } from '../../../connection/query_executor.js';
 import { NotebookViewMode, useNotebookViewMode } from '../../../scripts/notebook_commands.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
-import { createNotebookShell, createNotebookShellEnvironment, DashQLShell } from '../../../shell/index.js';
+import {
+    createNotebookShell,
+    createNotebookShellEnvironment,
+    createNotebookShellResultCommand,
+    DashQLShell,
+    type NotebookShellResultMode,
+} from '../../../shell/index.js';
 import type { BrowserShellController } from '../../../shell/browser_shell.js';
+import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
 
 const LOG_CTX = 'notebook_shell_page';
 
@@ -31,7 +38,11 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
     const controllerRef = React.useRef<BrowserShellController | null>(null);
     const shellRef = React.useRef<DashQLShell | null>(null);
     const generationRef = React.useRef(0);
+    const resultModeRef = React.useRef<NotebookShellResultMode>('auto');
+    const terminalColumnsRef = React.useRef(100);
     const [status, setStatus] = React.useState('Instantiating Shell');
+    const [resultQueryId, setResultQueryId] = React.useState<number | null>(null);
+    const resultQuery = useQueryState(connection?.notebookId ?? null, resultQueryId);
     const relationsSql = connection?.catalogRelationScript.toString() ?? '';
     const functionsSql = connection?.catalogFunctionScript.toString() ?? '';
 
@@ -39,9 +50,20 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
         if (connection == null || containerRef.current == null) return;
         const generation = ++generationRef.current;
         let cancelled = false;
-        const environment = createNotebookShellEnvironment(connection.notebookId, executeQuery, cancelQuery);
+        const getResultMode = () => resultModeRef.current;
+        const environment = createNotebookShellEnvironment(
+            connection.notebookId,
+            executeQuery,
+            cancelQuery,
+            getResultMode,
+            () => terminalColumnsRef.current,
+        );
+        const resultCommand = createNotebookShellResultCommand(getResultMode, mode => {
+            resultModeRef.current = mode;
+        });
         setStatus(shellRef.current == null ? 'Instantiating Shell' : 'Refreshing shell catalog');
         void createNotebookShell({ relationsSql, functionsSql }, environment, {
+            commands: [resultCommand],
             onProgress: progress => {
                 if (!cancelled && generation === generationRef.current) {
                     setStatus(`Instantiating Shell: ${formatInstantiationProgress(progress.bytesLoaded, progress.bytesTotal)}`);
@@ -63,6 +85,8 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
                     shell: nextShell,
                     prompt: `${connection.connectorInfo.names.displayShort.toLowerCase()}> `,
                     onExit: () => setMode(NotebookViewMode.Notebook),
+                    onQueryResult: setResultQueryId,
+                    onTerminalResize: columns => { terminalColumnsRef.current = columns; },
                 });
             } else {
                 controllerRef.current.replaceShell(nextShell);
@@ -89,6 +113,10 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
         if (active) controllerRef.current?.focus();
     }, [active]);
 
+    React.useEffect(() => {
+        setResultQueryId(null);
+    }, [connection?.notebookId]);
+
     React.useEffect(() => () => {
         ++generationRef.current;
         controllerRef.current?.dispose();
@@ -106,6 +134,9 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
                 <div className={styles.status} role="status" aria-live="polite">
                     <strong>[ RUN ]</strong> {status}
                 </div>
+            )}
+            {resultQuery != null && (
+                <ShellQueryResultOverlay query={resultQuery} onClose={() => setResultQueryId(null)} />
             )}
         </main>
     );

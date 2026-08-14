@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { DashQLShellPromptInput } from './api.js';
 import {
+    formatQueryCompletion,
     loadWebglRenderer,
     sanitizeTerminalText,
     TerminalQueryProgress,
@@ -51,6 +52,12 @@ describe('browser shell input', () => {
 });
 
 describe('browser shell renderer', () => {
+    it('formats compact query completion summaries', () => {
+        expect(formatQueryCompletion(0)).toBe('Query completed (0 rows)');
+        expect(formatQueryCompletion(1)).toBe('Query completed (1 row)');
+        expect(formatQueryCompletion(42)).toBe('Query completed (42 rows)');
+    });
+
     it('loads the WebGL addon when the terminal accepts it', async () => {
         let loaded = false;
         const terminal = {

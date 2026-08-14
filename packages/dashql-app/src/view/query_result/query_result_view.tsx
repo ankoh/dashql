@@ -5,6 +5,7 @@ import { QueryExecutionState } from '../../connection/query_execution_state.js';
 import { DataTable } from './data_table.js';
 import { TableColumnHeader } from './data_table_cell.js';
 import { useComputationRegistry } from '../../compute/computation_registry.js';
+import { classNames } from '../../utils/classnames.js';
 
 interface Props {
     query: QueryExecutionState | null;
@@ -13,6 +14,8 @@ interface Props {
     columnHeader?: TableColumnHeader;
     cellBackground?: string;
     onShowTable?: () => void;
+    fitHeight?: boolean;
+    maxHeight?: number;
 }
 
 export function QueryResultView(props: Props) {
@@ -29,7 +32,7 @@ export function QueryResultView(props: Props) {
     }
     // Toggle data info
     return (
-        <div className={styles.root}>
+        <div className={classNames(styles.root, { [styles.root_fit_height]: props.fitHeight })}>
             <DataTable
                 className={styles.data_table}
                 table={tableComputation}
@@ -39,6 +42,8 @@ export function QueryResultView(props: Props) {
                 columnHeader={props.columnHeader}
                 cellBackground={props.cellBackground}
                 onShowTable={props.onShowTable}
+                fitHeight={props.fitHeight}
+                maxHeight={props.maxHeight}
             />
         </div>
     );

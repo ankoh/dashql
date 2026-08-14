@@ -12,3 +12,11 @@
     min-height: 0;
     width: 100%;
 }
+
+.root_fit_height {
+    height: auto;
+}
+
+.body_fit_height {
+    flex: none;
+}

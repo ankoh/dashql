@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { DashQLShell, DashQLShellError, DashQLShellPromptAction, DashQLShellPromptInput, DashQLShellStatus } from './api.js';
+import * as arrow from 'apache-arrow';
 import { createDuckDBShellEnvironment } from './duckdb_shell_environment.js';
 import { instantiateTestWebDB } from '../platform/duckdb/duckdb_test_worker.js';
 import { DuckDB, DuckDBConnection } from '../platform/duckdb/duckdb_api.js';
@@ -79,6 +80,25 @@ describe('DashQL shell Wasm', () => {
 
         await expect(shell.submitPrompt(undefined, progress)).resolves.toBe('expected');
         expect(progress).toHaveBeenCalledWith('Executing query');
+    });
+
+    it('forwards successful query result handles through the asynchronous effect interface', async () => {
+        const result = vi.fn();
+        shell.destroy();
+        shell = await DashQLShell.create({
+            environment: {
+                executeQuery: async (_query, _signal, _onProgress, onResult) => {
+                    onResult?.(42, 1);
+                    return arrow.tableToIPC(arrow.tableFromArrays({}), 'file');
+                },
+            },
+            terminalColumns: 80,
+            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+        });
+        shell.setPrompt('SELECT 42;');
+
+        await shell.submitPrompt(undefined, undefined, result);
+        expect(result).toHaveBeenCalledWith(42, 1);
     });
 
     it('strips only the trailing shell terminator before execution', async () => {

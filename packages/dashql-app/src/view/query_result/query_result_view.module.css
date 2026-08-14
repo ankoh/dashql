@@ -5,6 +5,11 @@
     grid-template-rows: 100%;
 }
 
+.root_fit_height {
+    height: auto;
+    grid-template-rows: auto;
+}
+
 .data_table {
     grid-row: 1;
     grid-column: 1;
@@ -29,4 +34,3 @@
     background-color: hsl(208.5deg, 24.69%, 31.76%);
     border-radius: 8px;
 }
-
