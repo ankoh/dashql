@@ -124,6 +124,20 @@ describe('DashQL shell Wasm', () => {
         expect(output).toContain(VT100.FOREGROUND_TEAL + 't' + VT100.RESET_ATTRIBUTES);
     });
 
+    it('copies terminal output from shared Wasm memory before decoding it', () => {
+        const decoder = new TextDecoder();
+        (shell as any).textDecoder = {
+            decode(input?: AllowSharedBufferSource) {
+                if (ArrayBuffer.isView(input) && input.buffer instanceof SharedArrayBuffer) {
+                    throw new TypeError('The provided ArrayBufferView value must not be shared');
+                }
+                return decoder.decode(input);
+            },
+        } as TextDecoder;
+
+        expect(shell.openTerminal('db> ', false).data).toContain('db> ');
+    });
+
     it('redraws a wrapped prompt from its current physical row', () => {
         shell.resize(16);
         shell.openTerminal('hyper> ', false);

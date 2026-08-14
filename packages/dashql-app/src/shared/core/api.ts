@@ -275,13 +275,15 @@ export class DashQL {
         if (textBegin == 0) {
             throw new Error(`failed to allocate a string of size ${text.length}`);
         }
-        // Encode as UTF-8 using Emscripten's heap view
-        const textBuffer = this.module.HEAPU8.subarray(textBegin, textBegin + bufferSize);
-        const textEncoded = this.encoder.encodeInto(text, textBuffer);
+        // TextEncoder rejects views backed by SharedArrayBuffer, as used by pthread Wasm modules.
+        const encodedBuffer = new Uint8Array(bufferSize);
+        const textEncoded = this.encoder.encodeInto(text, encodedBuffer);
         if (textEncoded.written == undefined || textEncoded.written == 0) {
             this.instanceExports.dashql_free(textBegin);
             throw new Error(`failed to encode a string of size ${text.length}`);
         }
+        const textBuffer = this.module.HEAPU8.subarray(textBegin, textBegin + bufferSize);
+        textBuffer.set(encodedBuffer.subarray(0, textEncoded.written));
         // Write zero-terminator to be safe
         textBuffer[textEncoded.written] = 0;
         return [textBegin, textEncoded.written];
@@ -414,7 +416,7 @@ export class DashQL {
     }
 
     public readString(dataPtr: number, dataLength: number): string {
-        const dataArray = this.module.HEAPU8.subarray(dataPtr, dataPtr + dataLength);
+        const dataArray = new Uint8Array(this.module.HEAPU8.subarray(dataPtr, dataPtr + dataLength));
         return this.decoder.decode(dataArray);
     }
 
@@ -430,7 +432,9 @@ export class DashQL {
 
     public readStringResult(fn: (resultPtr: number) => void): string {
         const result = this.callSRet(fn);
-        const dataArray = this.module.HEAPU8.subarray(result.data_ptr, result.data_ptr + result.data_length);
+        const dataArray = new Uint8Array(
+            this.module.HEAPU8.subarray(result.data_ptr, result.data_ptr + result.data_length),
+        );
         const text = this.decoder.decode(dataArray);
         // Clean up the owner
         this.instanceExports.dashql_delete_owner(result.owner_ptr, result.owner_deleter);

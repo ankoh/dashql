@@ -650,7 +650,9 @@ export class DashQLShell {
     }
 
     protected readText(pointer: number, length: number): string {
-        return length === 0 ? '' : this.textDecoder.decode(this.module.HEAPU8.subarray(pointer, pointer + length));
+        if (length === 0) return '';
+        const data = new Uint8Array(this.module.HEAPU8.subarray(pointer, pointer + length));
+        return this.textDecoder.decode(data);
     }
 
     protected async runEffect(
