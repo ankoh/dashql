@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import type { QueryExecutionState } from '../../../connection/query_execution_state.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../../../view/foundations/button.js';
-import { useFocusTrap } from '../../../view/foundations/focus.js';
-import { Overlay, OverlaySize } from '../../../view/foundations/overlay.js';
-import { SymbolIcon } from '../../../view/foundations/symbol_icon.js';
-import { QueryResultDetails } from '../../../view/query_result/query_result_details.js';
+import type { QueryExecutionState } from '../connections/query_execution_state.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../../../shared/ui/foundations/button.js';
+import { useFocusTrap } from '../../../shared/ui/foundations/focus.js';
+import { Overlay, OverlaySize } from '../../../shared/ui/foundations/overlay.js';
+import { SymbolIcon } from '../../../shared/ui/foundations/symbol_icon.js';
+import { QueryResultDetails } from '../compute/ui/query_result/query_result_details.js';
 import * as styles from './shell_query_result_overlay.module.css';
 
 interface Props {

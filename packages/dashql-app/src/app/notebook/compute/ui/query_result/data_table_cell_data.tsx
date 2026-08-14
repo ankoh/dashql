@@ -1,0 +1,127 @@
+import * as arrow from 'apache-arrow';
+import * as React from 'react';
+import * as styles from './data_table.module.css';
+
+import type { CellComponentProps } from 'react-window';
+
+import { ArrowTableFormatter } from './arrow_formatter.js';
+import { ColumnGroup } from '../../computation_types.js';
+import { DataTableLayout } from './data_table_layout.js';
+import { peekFormat } from './format_peek.js';
+
+/// ---------------------------------------------------------------------------
+/// Data Cell
+/// ---------------------------------------------------------------------------
+
+export interface DataCellData {
+    columnGroups: ColumnGroup[];
+    visibleRowIds: arrow.Vector<arrow.Int> | null;
+    focusedField: number | null;
+    focusedRow: number | null;
+    gridLayout: DataTableLayout;
+    hideRowHeader: boolean;
+    table: arrow.Table;
+    tableFormatter: ArrowTableFormatter;
+    rightmostVisibleColumn: number;
+    onMouseEnter: (event: React.PointerEvent<HTMLDivElement>) => void;
+    onMouseLeave: (event: React.PointerEvent<HTMLDivElement>) => void;
+    onClick: (event: React.MouseEvent<HTMLDivElement>) => void;
+}
+
+export function DataCell(props: CellComponentProps<DataCellData>): React.ReactElement | null {
+    if (props.columnIndex >= props.gridLayout.arrowFieldByColumnIndex.length) {
+        return <div style={props.style} />;
+    }
+    const fieldId = props.gridLayout.arrowFieldByColumnIndex[props.columnIndex];
+    let dataRow = props.rowIndex;
+
+    if (props.columnIndex === 0 && props.hideRowHeader) {
+        return null;
+    }
+
+    // Translate the row index through the visible row ids, if an indirection table is active
+    if (props.visibleRowIds != null) {
+        dataRow = Math.max(Number(props.visibleRowIds.get(dataRow)), 1) - 1;
+    }
+
+    // Abort if no formatter is available
+    if (!props.tableFormatter) {
+        return (
+            <div
+                className={styles.data_cell}
+                style={props.style}
+                data-table-col={fieldId}
+                data-table-row={dataRow}
+                onMouseEnter={props.onMouseEnter}
+                onMouseLeave={props.onMouseLeave}
+            />
+        );
+    }
+
+    // Format the value
+    const formatted = props.tableFormatter.getValue(dataRow, fieldId);
+    const focusedRow = props.focusedRow;
+    const isRowFocused = dataRow === focusedRow;
+
+    if (props.columnIndex == 0) {
+        // Row number column - inline class computation to avoid object allocation
+        const className = isRowFocused
+            ? `${styles.row_header_cell} ${styles.data_cell_focused_secondary}`
+            : styles.row_header_cell;
+        return (
+            <div className={className} style={props.style}>
+                {formatted ?? ""}
+            </div>
+        );
+    } else {
+        // Compute class name inline to avoid object allocation in classNames()
+        const focusedField = props.focusedField;
+        const isMetadata = props.gridLayout.isSystemColumn[props.columnIndex] === 1;
+        const isNull = formatted == null;
+        const isRightmost = props.columnIndex === props.rightmostVisibleColumn;
+
+        // Build class string directly - avoids object creation and iteration
+        let className: string;
+        if (isNull) {
+            className = `${styles.data_cell} ${styles.data_cell_null}`;
+        } else {
+            className = styles.data_cell;
+        }
+        if (isRowFocused) {
+            className += fieldId === focusedField
+                ? ` ${styles.data_cell_focused_primary}`
+                : ` ${styles.data_cell_focused_secondary}`;
+        }
+        if (isMetadata) {
+            className += ` ${styles.data_cell_metadata}`;
+        }
+        if (isRightmost) {
+            className += ` ${styles.data_cell_rightmost}`;
+        }
+
+        const hint = !isNull && props.gridLayout.isTextColumn[props.columnIndex] === 1
+            ? peekFormat(formatted)
+            : null;
+
+        return (
+            <div
+                className={className}
+                style={props.style}
+                data-table-col={fieldId}
+                data-table-row={dataRow}
+                onMouseEnter={props.onMouseEnter}
+                onMouseLeave={props.onMouseLeave}
+                onClick={props.onClick}
+            >
+                {hint != null ? (
+                    <>
+                        <span className={styles.data_cell_text}>{formatted}</span>
+                        <span className={styles.format_bean}>{hint}</span>
+                    </>
+                ) : (
+                    isNull ? "NULL" : formatted
+                )}
+            </div>
+        );
+    }
+}

@@ -1,4 +1,4 @@
-import { DuckDBConnection } from '../platform/duckdb/duckdb_api.js';
+import { DuckDBConnection } from '../shared/platform/duckdb/duckdb_api.js';
 import { DashQLShellEnvironment } from './api.js';
 
 export function createDuckDBShellEnvironment(connection: DuckDBConnection): DashQLShellEnvironment {

@@ -1,0 +1,38 @@
+import * as dashql from '../../../../shared/core/index.js';
+
+import { DynamicConnectionDispatch } from "../connection_registry.js";
+import { CATALOG_UPDATE_SCHEMA_SCRIPT } from "../connection_state.js";
+import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from "../catalog_update_state.js";
+import { generateCatalogScriptHeader, CatalogSource } from "../catalog_sql_generator.js";
+import { fetchPrefetchedHyperFunctions, loadPrefetchedHyperFunctions } from "../prefetched_hyper_functions.js";
+
+const demo_schema_url = new URL('../../../static/examples/demo/schema.sql', import.meta.url);
+
+export async function updateDemoSchemaCatalog(
+    notebookId: string,
+    connectionDispatch: DynamicConnectionDispatch,
+    updateId: number,
+    catalog: dashql.DashQLCatalog,
+    _dql: dashql.DashQL,
+    catalogRelationScript: dashql.DashQLScript,
+    catalogFunctionScript: dashql.DashQLScript,
+): Promise<void> {
+    const [schemaResponse, functionsResponse] = await Promise.all([
+        fetch(demo_schema_url),
+        fetchPrefetchedHyperFunctions(),
+    ]);
+    const catalogSQL = await schemaResponse.text();
+    const functionsSQL = functionsResponse;
+
+    connectionDispatch(notebookId, {
+        type: CATALOG_UPDATE_SCHEMA_SCRIPT,
+        value: [updateId],
+    });
+
+    const schemaHeader = generateCatalogScriptHeader(CatalogSource.DemoScript);
+    catalogRelationScript.replaceText(`${schemaHeader}${catalogSQL}`);
+    catalogRelationScript.analyze();
+    catalog.loadScript(catalogRelationScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+
+    loadPrefetchedHyperFunctions(catalog, catalogFunctionScript, functionsSQL);
+}

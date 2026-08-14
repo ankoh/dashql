@@ -1,0 +1,174 @@
+import * as dashql from '../../../shared/core/index.js';
+import type * as app_notebook from '@ankoh/dashql-jsonschema/app_notebook.js';
+
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR, ConnectorInfo, createDatalessConnectorInfo } from './connector_info.js';
+import { ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus, createConnectionMetrics } from './connection_state.js';
+import { computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant } from './connection_state_details.js';
+import { createDatalessConnectionStateDetails } from './dataless/dataless_connection_state.js';
+import { createHyperConnectionParamsSignature } from './hyper/hyper_connection_params.js';
+import { createHyperConnectionStateDetails } from './hyper/hyper_connection_state.js';
+import { createSalesforceConnectionParamsSignature } from './salesforce/salesforce_connection_params.js';
+import { createSalesforceConnectionStateDetails } from './salesforce/salesforce_connection_state.js';
+import { createDatalessConnectionParamsSignature } from './dataless/dataless_connection_params.js';
+import { createTrinoConnectionParamsSignature } from './trino/trino_connection_params.js';
+import { createTrinoConnectionStateDetails } from './trino/trino_connection_state.js';
+import { newConnectionSignature, ConnectionSignatureMap } from './connection_signature.js';
+import { generateCatalogScriptHeader, CatalogSource } from './catalog_sql_generator.js';
+import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
+import { isNativePlatform } from '../../../shared/platform/native_globals.js';
+
+// Re-export connection param types from JSON Schema
+export type ConnectionParams = app_notebook.ConnectionParams;
+export type HyperConnectionParams = app_notebook.HyperConnectionParams;
+export type SalesforceConnectionParams = app_notebook.SalesforceConnectionParams;
+export type TrinoConnectionParams = app_notebook.TrinoConnectionParams;
+export type DatalessParams = app_notebook.DatalessParams;
+
+export function getConnectionInfoFromParams(params: ConnectionParams) {
+    if ('dataless' in params) {
+        const demoConnector = (params.dataless as any)?.demoConnector ?? false;
+        return createDatalessConnectorInfo(demoConnector);
+    }
+    if ('trino' in params) return CONNECTOR_INFOS[ConnectorType.TRINO];
+    if ('hyper' in params) return CONNECTOR_INFOS[ConnectorType.HYPER];
+    if ('salesforce' in params) return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
+    return undefined;
+}
+
+export function getConnectionStateDetailsFromParams(params: ConnectionParams): ConnectionStateDetailsVariant | null {
+    if ('dataless' in params) return { type: DATALESS_CONNECTOR, value: createDatalessConnectionStateDetails(params.dataless as any) };
+    if ('trino' in params) return { type: TRINO_CONNECTOR, value: createTrinoConnectionStateDetails(params.trino as any) };
+    if ('hyper' in params) return { type: HYPER_CONNECTOR, value: createHyperConnectionStateDetails(params.hyper as any) };
+    if ('salesforce' in params) return { type: SALESFORCE_DATA_CLOUD_CONNECTOR, value: createSalesforceConnectionStateDetails(params.salesforce as any) };
+    return null;
+}
+
+export function getConnectionParamsFromStateDetails(params: ConnectionStateDetailsVariant): ConnectionParams | null {
+    switch (params.type) {
+        case DATALESS_CONNECTOR:
+            return { dataless: params.value.proto?.setupParams ?? {} };
+        case TRINO_CONNECTOR:
+            if (!params.value.proto.setupParams) return null;
+            return { trino: params.value.proto.setupParams };
+        case HYPER_CONNECTOR:
+            if (!params.value.proto.setupParams) return null;
+            return { hyper: params.value.proto.setupParams };
+        case SALESFORCE_DATA_CLOUD_CONNECTOR:
+            if (!params.value.proto.setupParams) return null;
+            return { salesforce: params.value.proto.setupParams };
+    }
+}
+
+/// Strip sensitive credentials from connection params before they are encoded into a shared
+/// link or file. Identity/hint fields (instance urls, consumer keys, usernames, login hints)
+/// are preserved so a recipient can be prompted with a prefilled sign-in, but no secret that
+/// would grant access on its own is included. This is always applied when connection info is
+/// shared — sharing raw secrets is never intended.
+///
+/// The login hint (the resolved account username / login) identifies the sharer personally, so
+/// it is only carried when `withLoginHint` is true. When false it is cleared while the rest of
+/// the (non-secret) connection identity is preserved.
+export function sanitizeConnectionParamsForSharing(params: ConnectionParams, withLoginHint: boolean = true): ConnectionParams {
+    if ('salesforce' in params && params.salesforce) {
+        // Keep instanceUrl, appConsumerKey and the login hint; drop the connected-app secret.
+        return { salesforce: { ...params.salesforce, appConsumerSecret: "", ...(withLoginHint ? {} : { login: "" }) } };
+    }
+    if ('trino' in params && params.trino) {
+        // Keep endpoint, catalog and the basic-auth username; drop the basic-auth secret /
+        // access token. OAuth params (client id + urls) carry no secret and are left as-is.
+        // The basic-auth username doubles as the login hint here.
+        const trino = params.trino;
+        return {
+            trino: {
+                ...trino,
+                auth: {
+                    ...trino.auth,
+                    ...(trino.auth?.basic ? { basic: { ...trino.auth.basic, secret: "", ...(withLoginHint ? {} : { username: "" }) } } : {}),
+                },
+            },
+        };
+    }
+    if ('hyper' in params && params.hyper) {
+        // Keep endpoint and protocol; drop local TLS key/cert/ca file paths.
+        return {
+            hyper: {
+                ...params.hyper,
+                tls: { clientKeyPath: "", clientCertPath: "", caCertsPath: "" },
+            },
+        };
+    }
+    // Dataless carries no secrets.
+    return params;
+}
+
+/// Whether the connection params carry a login hint (the resolved account username / login) that
+/// could be shared. Used to decide if the "share login hint" toggle should be offered at all.
+export function connectionParamsHaveLoginHint(params: ConnectionParams | null): boolean {
+    if (!params) return false;
+    if ('salesforce' in params && params.salesforce) {
+        return !!params.salesforce.login;
+    }
+    if ('trino' in params && params.trino) {
+        return !!params.trino.auth?.basic?.username;
+    }
+    return false;
+}
+
+export function createConnectionParamsSignature(params: ConnectionParams): any {
+    if ('dataless' in params) return createDatalessConnectionParamsSignature(params.dataless);
+    if ('trino' in params) return createTrinoConnectionParamsSignature(params.trino);
+    if ('hyper' in params) return createHyperConnectionParamsSignature(params.hyper);
+    if ('salesforce' in params) return createSalesforceConnectionParamsSignature(params.salesforce);
+    return null;
+}
+
+export function createConnectionStateFromParams(dql: dashql.DashQL, params: ConnectionParams, connSigs: ConnectionSignatureMap): ConnectionStateWithoutId {
+    const info = getConnectionInfoFromParams(params)!;
+    const details = getConnectionStateDetailsFromParams(params)!;
+    const sig = computeNewConnectionSignatureFromDetails(details);
+
+    const catalog = dql.createCatalog();
+    const catalogRelationScript = dql.createScript(catalog);
+    catalogRelationScript.replaceText(generateCatalogScriptHeader(CatalogSource.Unknown));
+    const catalogFunctionScript = dql.createScript(catalog);
+    catalogFunctionScript.replaceText(generateFunctionScriptHeader(CatalogSource.Unknown));
+    return {
+        instance: dql,
+        name: null,
+        active: false,
+        connectionStatus: ConnectionStatus.NOT_STARTED,
+        connectionHealth: ConnectionHealth.NOT_STARTED,
+        connectorInfo: info,
+        connectionSignature: newConnectionSignature(sig, connSigs, null),
+        metrics: createConnectionMetrics(),
+        details,
+        catalog,
+        catalogUpdates: {
+            tasksRunning: new Map(),
+            tasksFinished: new Map(),
+            currentFullRefresh: null,
+            lastFullRefresh: null,
+            restoredAt: null,
+        },
+        catalogRelationScript,
+        catalogFunctionScript,
+        snapshotQueriesActiveFinished: 1,
+        queriesActive: new Map(),
+        queriesActiveOrdered: [],
+        queriesFinished: new Map(),
+        queriesFinishedOrdered: [],
+    };
+}
+
+export function createDefaultConnectionParamsForConnector(connector: ConnectorInfo): ConnectionParams {
+    switch (connector.connectorType) {
+        case ConnectorType.DATALESS:
+            return { dataless: {} };
+        case ConnectorType.HYPER:
+            return { hyper: { protocol: isNativePlatform() ? 'V3_DOCKER' : 'V3_HTTP', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } };
+        case ConnectorType.SALESFORCE_DATA_CLOUD:
+            return { salesforce: { hyperProtocol: 'V3_HTTP', instanceUrl: '', appConsumerKey: '', appConsumerSecret: '', login: '' } };
+        case ConnectorType.TRINO:
+            return { trino: { endpoint: '', catalogName: '', auth: { authType: 'AUTH_BASIC' } } };
+    }
+}

@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import { AnchorAlignment, AnchorSide } from '../view/foundations/anchored_position.js';
-import { DASHQL_VERSION } from '../globals.js';
-import { useVersionCheck } from '../platform/version/version_check.js';
-import { VersionCheckIndicator, VersionInfoOverlay } from '../view/version_viewer.js';
+import { AnchorAlignment, AnchorSide } from '../shared/ui/foundations/anchored_position.js';
+import { DASHQL_VERSION } from '../shared/globals.js';
+import { useVersionCheck } from '../shared/platform/version/version_check.js';
+import { VersionCheckIndicator, VersionInfoOverlay } from '../shared/ui/version/version_viewer.js';
 import { ShellInternals } from './internals.js';
 import * as styles from './shell_navbar.module.css';
 

@@ -1,10 +1,8 @@
 import * as React from 'react';
 import symbols from '@ankoh/dashql-svg-symbols';
 
-import { AnchorAlignment, AnchorSide } from '../view/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../view/foundations/anchored_overlay.js';
-import { OverlaySize } from '../view/foundations/overlay.js';
-import { LogViewer } from '../view/internals/log_viewer.js';
+import { AnchorAlignment, AnchorSide } from '../shared/ui/foundations/anchored_position.js';
+import { LogsOverlay } from '../shared/ui/logs_overlay.js';
 import * as styles from './shell_navbar.module.css';
 
 export const ShellInternals: React.FC = () => {
@@ -12,17 +10,13 @@ export const ShellInternals: React.FC = () => {
     const close = React.useCallback(() => setIsOpen(false), []);
 
     return (
-        <AnchoredOverlay
-            open={isOpen}
+        <LogsOverlay
+            isOpen={isOpen}
             onOpen={() => setIsOpen(true)}
             onClose={close}
             side={AnchorSide.OutsideBottom}
             align={AnchorAlignment.End}
             anchorOffset={16}
-            overlayProps={{
-                width: OverlaySize.XL,
-                height: OverlaySize.L,
-            }}
             renderAnchor={(props: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
                 <button
                     {...props}
@@ -35,8 +29,6 @@ export const ShellInternals: React.FC = () => {
                     <span className={styles.actionLabel}>Internals</span>
                 </button>
             )}
-        >
-            <LogViewer onClose={close} />
-        </AnchoredOverlay>
+        />
     );
 };

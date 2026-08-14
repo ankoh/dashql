@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import type { DuckDBConnection } from '../platform/duckdb/duckdb_api.js';
-import { useDuckDBSetup } from '../platform/duckdb/duckdb_provider.js';
-import { stringifyError } from '../platform/logger/logger.js';
-import { useLogger } from '../platform/logger/logger_provider.js';
+import type { DuckDBConnection } from '../shared/platform/duckdb/duckdb_api.js';
+import { useDuckDBSetup } from '../shared/platform/duckdb/duckdb_provider.js';
+import { stringifyError } from '../shared/platform/logger/logger.js';
+import { useLogger } from '../shared/platform/logger/logger_provider.js';
 import { createDashQLShell, type DashQLShell } from './api.js';
 import type { BrowserShellController } from './browser_shell.js';
 import { createDuckDBShellEnvironment } from './duckdb_shell_environment.js';

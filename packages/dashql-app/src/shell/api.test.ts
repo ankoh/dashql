@@ -2,9 +2,9 @@
 import { DashQLShell, DashQLShellError, DashQLShellPromptAction, DashQLShellPromptInput, DashQLShellStatus } from './api.js';
 import * as arrow from 'apache-arrow';
 import { createDuckDBShellEnvironment } from './duckdb_shell_environment.js';
-import { instantiateTestWebDB } from '../platform/duckdb/duckdb_test_worker.js';
-import { DuckDB, DuckDBConnection } from '../platform/duckdb/duckdb_api.js';
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../connection/catalog_update_state.js';
+import { instantiateTestWebDB } from '../shared/platform/duckdb/duckdb_test_worker.js';
+import { DuckDB, DuckDBConnection } from '../shared/platform/duckdb/duckdb_api.js';
+import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../shared/catalog.js';
 import { VT100, VT100Command, vt100Sequence } from './vt100.js';
 
 declare const DASHQL_SHELL_PRECOMPILED: Promise<Uint8Array>;

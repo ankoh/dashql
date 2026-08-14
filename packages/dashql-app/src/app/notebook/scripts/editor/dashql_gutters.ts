@@ -1,0 +1,89 @@
+import * as dashql from '../../../../shared/core/index.js';
+
+import { gutter, GutterMarker } from '@codemirror/view';
+import { Transaction, StateField } from '@codemirror/state';
+
+import { DashQLProcessorPlugin, DashQLScriptBuffers, DashQLScriptKey } from './dashql_processor.js';
+
+import icons from '@ankoh/dashql-svg-symbols';
+
+import './dashql_gutters.css';
+
+class ErrorMarker extends GutterMarker {
+    toDOM() {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'dashql-gutter-error');
+        svg.setAttribute('width', '14px');
+        svg.setAttribute('height', '14px');
+        const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#close_circle`);
+        svg.appendChild(use);
+        return svg;
+    }
+}
+
+interface State {
+    scriptKey: DashQLScriptKey | null;
+    scriptBuffers: DashQLScriptBuffers | null;
+    errorLines: Set<number>;
+}
+
+const GutterState: StateField<State> = StateField.define<State>({
+    // Create the initial state
+    create: () => ({
+        scriptKey: null,
+        scriptBuffers: null,
+        errorLines: new Set(),
+    }),
+    update: (state: State, transaction: Transaction) => {
+        // Program untouched?
+        const processor = transaction.state.field(DashQLProcessorPlugin);
+        if (
+            processor.scriptKey === state.scriptKey &&
+            processor.scriptBuffers.parsed === state.scriptBuffers?.parsed &&
+            processor.scriptBuffers.analyzed === state.scriptBuffers?.analyzed
+        ) {
+            return state;
+        }
+
+        const collectErrors = (
+            getError: (index: number, obj?: dashql.buffers.parser.Error) => dashql.buffers.parser.Error | null,
+            count: number,
+            out: Set<number>,
+        ) => {
+            const tmp = new dashql.buffers.parser.Error();
+            for (let i = 0; i < count; ++i) {
+                const error = getError(i, tmp)!;
+                const loc = error.textSpan()!;
+                const line = transaction.state.doc.lineAt(loc.offset());
+                out.add(line.from);
+            }
+        };
+        const errorLines: Set<number> = new Set();
+        if (processor.scriptBuffers.parsed) {
+            const parsed = processor.scriptBuffers.parsed.read();
+            collectErrors((i, t) => parsed.scannerErrors(i, t), parsed.scannerErrorsLength(), errorLines);
+            collectErrors((i, t) => parsed.parserErrors(i, t), parsed.parserErrorsLength(), errorLines);
+        }
+        return {
+            scriptKey: processor.scriptKey,
+            scriptBuffers: processor.scriptBuffers,
+            errorLines,
+        };
+    },
+});
+
+const GutterExtension = gutter({
+    lineMarker(view, line) {
+        const gutters = view.state.field(GutterState);
+        if (gutters.errorLines.has(line.from)) {
+            return new ErrorMarker();
+        }
+        return null;
+    },
+    initialSpacer() {
+        return new ErrorMarker();
+    },
+});
+
+export const DashQLGutterPlugin = [GutterState, GutterExtension];

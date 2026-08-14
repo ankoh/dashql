@@ -1,0 +1,176 @@
+import * as dashql from '../../shared/core/index.js';
+import * as React from 'react';
+
+import { useLogger } from '../../shared/platform/logger/logger_provider.js';
+import { TracedLogger, stringifyError } from '../../shared/platform/logger/logger.js';
+import { createTrace } from '../../shared/platform/logger/trace_context.js';
+
+// Asset import: dedicated alias so WASM resolves independently from API (Bazel: DASHQL_CORE_WASM_PATH; local: core dist).
+// eslint-disable-next-line import/no-unresolved -- resolved by bundler
+import coreWasmUrl from '@ankoh/dashql-core-wasm?url';
+const DASHQL_WASM_URL = typeof coreWasmUrl === 'string' ? coreWasmUrl : new URL(coreWasmUrl as string, import.meta.url).href;
+
+export function logCoreStderr(traced: TracedLogger, text: string): void {
+    // Emscripten prints an "Aborted(...)" line immediately before it throws the same failure. The
+    // operation that invoked Wasm logs the thrown exception with context, so treating this duplicate
+    // stderr line as an error only produces a context-free toast (often just "Aborted()").
+    if (text === 'Aborted()') {
+        traced.warn(text, {}, "core");
+    } else {
+        traced.error(text, {}, "core");
+    }
+}
+
+export interface InstantiationProgress {
+    startedAt: Date;
+    updatedAt: Date;
+    bytesTotal: bigint;
+    bytesLoaded: bigint;
+}
+
+const INSTANTIATOR_CONTEXT = React.createContext<((context: string) => Promise<dashql.DashQL>) | null>(null);
+const PROGRESS_CONTEXT = React.createContext<InstantiationProgress | null>(null);
+
+interface Props {
+    children: React.ReactElement;
+}
+
+export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
+    const logger = useLogger();
+    const instantiation = React.useRef<Promise<dashql.DashQL> | null>(null);
+    const [progress, setProgress] = React.useState<InstantiationProgress | null>(null);
+
+    const instantiator = React.useCallback(async (context: string): Promise<dashql.DashQL> => {
+        /// Already instantiated?
+        if (instantiation.current != null) {
+            return await instantiation.current;
+        }
+
+        // Create instantiation progress
+        const now = new Date();
+        const internal: InstantiationProgress = {
+            startedAt: now,
+            updatedAt: now,
+            bytesTotal: BigInt(0),
+            bytesLoaded: BigInt(0),
+        };
+
+        // Fetch an url with progress tracking (url is string from ?url import or URL)
+        const fetchWithProgress = async (url: string | URL, traced: TracedLogger) => {
+            traced.info("Fetching core wasm", { "context": context }, "core");
+
+            // Try to determine file size
+            const request = new Request(url);
+            const response = await fetch(request);
+            const contentLengthHdr = response.headers.get('content-length');
+            const contentLength = contentLengthHdr ? parseInt(contentLengthHdr, 10) || 0 : 0;
+
+            const now = new Date();
+            internal.startedAt = now;
+            internal.updatedAt = now;
+            internal.bytesTotal = BigInt(contentLength) || BigInt(0);
+            internal.bytesLoaded = BigInt(0);
+
+            const tracker = {
+                transform(chunk: Uint8Array, ctrl: TransformStreamDefaultController) {
+                    const prevUpdate = internal.updatedAt;
+                    internal.updatedAt = new Date();
+                    internal.bytesLoaded += BigInt(chunk.byteLength);
+                    if (internal.updatedAt.getTime() - prevUpdate.getTime() > 20) {
+                        setProgress(_ => ({ ...internal }));
+                    }
+                    ctrl.enqueue(chunk);
+                },
+            };
+            const ts = new TransformStream(tracker);
+            const progressResponse = new Response(response.clone().body?.pipeThrough(ts), response);
+            const progressDone = progressResponse.arrayBuffer().then(() => undefined);
+            return {
+                response,
+                progressDone,
+            };
+        };
+
+        const instantiate = async (): Promise<dashql.DashQL> => {
+            const traced = logger.withTrace(createTrace());
+            const initStart = performance.now();
+            try {
+                // With JS glue code, we can intercept instantiation for progress tracking
+                const instance = await dashql.DashQL.create({
+                    // Optional: Console output handlers
+                    print: (text: string) => traced.info(text, {}, "core"),
+                    printErr: (text: string) => logCoreStderr(traced, text),
+
+                    // Override WASM instantiation to add progress tracking
+                    instantiateWasm: async (imports, successCallback) => {
+                        traced.info("Instantiating core", { "context": context }, "core");
+
+                        // Fetch WASM with progress
+                        const { response, progressDone } = await fetchWithProgress(DASHQL_WASM_URL, traced);
+
+                        // Instantiate with streaming compilation
+                        const result = await WebAssembly.instantiateStreaming(response, imports);
+                        await progressDone;
+
+                        // Notify Emscripten of successful instantiation
+                        successCallback(result.instance, result.module);
+
+                        // Return empty object (Emscripten expects this)
+                        return {};
+                    },
+                });
+
+                const initEnd = performance.now();
+                traced.info("Instantiated core", {
+                    "context": context,
+                    "duration": Math.floor(initEnd - initStart).toString()
+                }, "core");
+
+                setProgress(_ => ({
+                    ...internal,
+                    updatedAt: new Date(),
+                }));
+
+                return instance;
+            } catch (e: any) {
+                const initEnd = performance.now();
+                traced.error("Failed to instantiate core", {
+                    "error": stringifyError(e),
+                    "duration": Math.floor(initEnd - initStart).toString()
+                }, "core");
+                throw e;
+            }
+        };
+        // Start the instantiation
+        instantiation.current = instantiate();
+        // Await the instantiation
+        return await instantiation.current;
+
+    }, [logger, setProgress]);
+
+    React.useEffect(() => {
+        return () => {
+            const pending = instantiation.current;
+            instantiation.current = null;
+            // Swallow any instantiation rejection - nothing to clean up in that case.
+            // Dropping the ref lets the WASM module become GC-eligible so a remount
+            // (e.g. from Vite HMR) does not stack multiple live core instances.
+            pending?.catch(() => { /* noop */ });
+        };
+    }, []);
+
+    return (
+        <INSTANTIATOR_CONTEXT.Provider value={instantiator}>
+            <PROGRESS_CONTEXT.Provider value={progress}>
+                {props.children}
+            </PROGRESS_CONTEXT.Provider>
+        </INSTANTIATOR_CONTEXT.Provider>
+    );
+};
+
+export const useDashQLCoreSetupProgress = (): InstantiationProgress | null => React.useContext(PROGRESS_CONTEXT);
+
+export type DashQLSetupFn = (context: string) => Promise<dashql.DashQL>;
+export function useDashQLCoreSetup(): DashQLSetupFn {
+    return React.useContext(INSTANTIATOR_CONTEXT)!;
+};
