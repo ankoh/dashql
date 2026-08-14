@@ -29,6 +29,18 @@ describe('browser shell input', () => {
     it('maps Tab to completion', () => {
         expect(terminalPromptInputForKey('Tab')).toBe(DashQLShellPromptInput.TAB);
     });
+
+    it('maps Home and End to prompt boundaries', () => {
+        expect(terminalPromptInputForKey('Home')).toBe(DashQLShellPromptInput.START);
+        expect(terminalPromptInputForKey('End')).toBe(DashQLShellPromptInput.END);
+    });
+
+    it('maps shell convenience shortcuts to prompt boundaries', () => {
+        expect(terminalPromptInputForKey('a', true)).toBe(DashQLShellPromptInput.START);
+        expect(terminalPromptInputForKey('A', true)).toBe(DashQLShellPromptInput.START);
+        expect(terminalPromptInputForKey('e', true)).toBe(DashQLShellPromptInput.END);
+        expect(terminalPromptInputForKey('a')).toBeNull();
+    });
 });
 
 describe('browser shell renderer', () => {

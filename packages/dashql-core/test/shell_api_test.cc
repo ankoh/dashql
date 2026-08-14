@@ -225,6 +225,28 @@ TEST(ShellApiTest, NavigatesMultilinePromptWithUpAndDown) {
     dashql_shell_destroy(shell);
 }
 
+TEST(ShellApiTest, NavigatesToPromptStartAndEnd) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+
+    DashQLShellPromptResult prompt{};
+    constexpr std::string_view query = "SELECT 👩‍💻";
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_TEXT,
+                                          reinterpret_cast<const uint8_t*>(query.data()), query.size(), &prompt),
+              DASHQL_SHELL_OK);
+    dashql_shell_prompt_result_destroy(&prompt);
+
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_START, nullptr, 0, &prompt), DASHQL_SHELL_OK);
+    EXPECT_EQ(prompt.cursor_byte_offset, 0u);
+    dashql_shell_prompt_result_destroy(&prompt);
+
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_END, nullptr, 0, &prompt), DASHQL_SHELL_OK);
+    EXPECT_EQ(prompt.cursor_byte_offset, query.size());
+    dashql_shell_prompt_result_destroy(&prompt);
+    dashql_shell_destroy(shell);
+}
+
 TEST(ShellApiTest, RendersHighlightedTerminalPrompt) {
     dashql::Catalog catalog;
     auto* shell = dashql_shell_new(&catalog, 80);

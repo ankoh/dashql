@@ -170,6 +170,8 @@ export enum DashQLShellPromptInput {
     ESCAPE = 11,
     UP = 12,
     DOWN = 13,
+    START = 14,
+    END = 15,
 }
 
 export enum DashQLShellPromptAction {

@@ -48,6 +48,8 @@ enum DashQLShellPromptInputKey : uint32_t {
     DASHQL_SHELL_INPUT_ESCAPE = 11,
     DASHQL_SHELL_INPUT_UP = 12,
     DASHQL_SHELL_INPUT_DOWN = 13,
+    DASHQL_SHELL_INPUT_START = 14,
+    DASHQL_SHELL_INPUT_END = 15,
 };
 
 enum DashQLShellPromptInputAction : uint32_t {

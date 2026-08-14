@@ -88,6 +88,8 @@ enum class PromptInputKey : uint32_t {
     kEscape = 11,
     kUp = 12,
     kDown = 13,
+    kStart = 14,
+    kEnd = 15,
 };
 
 enum class PromptInputAction : uint32_t {

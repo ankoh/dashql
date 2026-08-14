@@ -18,6 +18,8 @@ class PromptBuffer {
     bool Insert(std::string_view text);
     bool MoveLeft();
     bool MoveRight();
+    bool MoveToStart();
+    bool MoveToEnd();
     bool MoveUp();
     bool MoveDown();
     bool MoveToByteOffset(size_t byte_offset);

@@ -28,7 +28,15 @@ export function sanitizeTerminalText(data: string): string {
         .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
 }
 
-export function terminalPromptInputForKey(key: string): DashQLShellPromptInput | null {
+export function terminalPromptInputForKey(key: string, primaryModifier = false): DashQLShellPromptInput | null {
+    if (primaryModifier) {
+        switch (key.toLowerCase()) {
+            case 'a':
+                return DashQLShellPromptInput.START;
+            case 'e':
+                return DashQLShellPromptInput.END;
+        }
+    }
     switch (key) {
         case 'Enter':
             return DashQLShellPromptInput.ENTER;
@@ -46,6 +54,10 @@ export function terminalPromptInputForKey(key: string): DashQLShellPromptInput |
             return DashQLShellPromptInput.UP;
         case 'ArrowDown':
             return DashQLShellPromptInput.DOWN;
+        case 'Home':
+            return DashQLShellPromptInput.START;
+        case 'End':
+            return DashQLShellPromptInput.END;
         case 'Escape':
             return DashQLShellPromptInput.ESCAPE;
         default:
@@ -143,7 +155,7 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
             event.stopPropagation();
             return false;
         }
-        let key = terminalPromptInputForKey(event.key);
+        let key = terminalPromptInputForKey(event.key, (event.ctrlKey || event.metaKey) && !event.altKey);
         if (event.key === 'Enter') {
             if (event.ctrlKey || event.metaKey) key = DashQLShellPromptInput.FORCE_SUBMIT;
             else if (event.shiftKey) {

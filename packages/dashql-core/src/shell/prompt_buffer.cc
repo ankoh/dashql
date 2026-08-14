@@ -50,6 +50,23 @@ bool PromptBuffer::MoveRight() {
     return true;
 }
 
+bool PromptBuffer::MoveToStart() {
+    if (cursor_grapheme_offset_ == 0) {
+        return false;
+    }
+    cursor_grapheme_offset_ = 0;
+    return true;
+}
+
+bool PromptBuffer::MoveToEnd() {
+    const auto end = grapheme_count();
+    if (cursor_grapheme_offset_ == end) {
+        return false;
+    }
+    cursor_grapheme_offset_ = end;
+    return true;
+}
+
 bool PromptBuffer::MoveUp() {
     const auto text = script_.text.ToString();
     const auto cursor = cursor_byte_offset();

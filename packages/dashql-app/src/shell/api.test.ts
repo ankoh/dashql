@@ -408,6 +408,15 @@ describe('DashQL shell Wasm', () => {
         expect(shell.consumePromptInput(DashQLShellPromptInput.DOWN).cursorByteOffset).toBe('SELECT ab\nFROM tabl'.length);
     });
 
+    it('navigates to the prompt start and end', () => {
+        const query = 'SELECT 👩‍💻';
+        shell.consumePromptInput(DashQLShellPromptInput.TEXT, query);
+
+        expect(shell.consumePromptInput(DashQLShellPromptInput.START).cursorByteOffset).toBe(0);
+        expect(shell.consumePromptInput(DashQLShellPromptInput.END).cursorByteOffset)
+            .toBe(new TextEncoder().encode(query).byteLength);
+    });
+
     it('runs the asynchronous query workflow through a C++ coroutine', async () => {
         let database: DuckDB | null = null;
         let connection: DuckDBConnection | null = null;

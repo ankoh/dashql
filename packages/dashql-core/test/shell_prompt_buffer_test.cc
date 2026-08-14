@@ -45,6 +45,18 @@ TEST_F(PromptBufferTest, MovesAcrossExtendedGraphemeClusters) {
     EXPECT_FALSE(prompt.MoveRight());
 }
 
+TEST_F(PromptBufferTest, MovesToPromptStartAndEnd) {
+    ASSERT_TRUE(prompt.SetText("a👩‍💻é"));
+
+    EXPECT_TRUE(prompt.MoveToStart());
+    EXPECT_EQ(prompt.cursor_byte_offset(), 0u);
+    EXPECT_FALSE(prompt.MoveToStart());
+
+    EXPECT_TRUE(prompt.MoveToEnd());
+    EXPECT_EQ(prompt.cursor_byte_offset(), prompt.Text().size());
+    EXPECT_FALSE(prompt.MoveToEnd());
+}
+
 TEST_F(PromptBufferTest, MovesVerticallyAcrossLinesByGraphemeColumn) {
     ASSERT_TRUE(prompt.SetText("ab界\nx\n1234"));
 

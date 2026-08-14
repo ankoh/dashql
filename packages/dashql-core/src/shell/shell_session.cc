@@ -496,6 +496,12 @@ PromptSnapshot ShellSession::ConsumePromptInput(PromptInputKey key, std::string_
         case PromptInputKey::kRight:
             prompt_.MoveRight();
             break;
+        case PromptInputKey::kStart:
+            prompt_.MoveToStart();
+            break;
+        case PromptInputKey::kEnd:
+            prompt_.MoveToEnd();
+            break;
         case PromptInputKey::kUp:
             if (prompt_.MoveUp()) break;
             [[fallthrough]];
