@@ -123,6 +123,8 @@ class ShellSession {
     ShellOperation OpenTerminal(std::string_view prompt, bool welcome = true);
     ShellOperation ConsumeTerminalInput(PromptInputKey key, std::string_view text = {});
     ShellOperation FinishTerminalQuery(std::string_view output, bool error = false);
+    ShellOperation RenderTerminalQueryProgress(std::string_view message = {}, bool advance_frame = false);
+    ShellOperation ClearTerminalQueryProgress();
     ShellOperation RenderTerminalStatus(std::string_view message);
     PromptInputAction terminal_action() const;
     ShellOperation SubmitPrompt();
@@ -183,6 +185,7 @@ class ShellSession {
     std::string RenderTerminalCompletionHint();
     std::string RenderTerminalCompletionOverlay();
     std::string ClearTerminalCompletionOverlay();
+    std::string ClearTerminalQueryProgressOutput();
     ShellOperation AcceptTerminalCompletion();
     ShellOperation MoveTerminalCompletion(int direction);
     ShellOperation MoveTerminalCompletionVariant(int direction);

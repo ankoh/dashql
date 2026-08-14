@@ -10,12 +10,13 @@ export function createNotebookShellEnvironment(
     cancelQuery: CancelQuery,
 ): DashQLShellEnvironment {
     return {
-        async executeQuery(query, signal) {
+        async executeQuery(query, signal, onProgress) {
             const [queryId, execution] = executeQuery(notebookId, {
                 query,
                 analyzeResults: false,
                 cacheable: false,
                 throwOnError: true,
+                onLog: onProgress,
                 metadata: {
                     queryType: QueryType.USER_PROVIDED,
                     title: 'Shell Query',

@@ -56,6 +56,8 @@ export interface DashQLShellModule extends EmscriptenModule {
     _dashql_shell_terminal_open(shell: number, prompt: number, promptLength: number, welcome: boolean, result: number): number;
     _dashql_shell_terminal_consume(shell: number, key: number, text: number, textLength: number, result: number): number;
     _dashql_shell_terminal_finish_query(shell: number, output: number, outputLength: number, error: boolean, result: number): number;
+    _dashql_shell_terminal_query_progress(shell: number, message: number, messageLength: number, advanceFrame: boolean, result: number): number;
+    _dashql_shell_terminal_query_progress_clear(shell: number, result: number): number;
     _dashql_shell_terminal_status(shell: number, message: number, messageLength: number, result: number): number;
     _dashql_shell_terminal_result_destroy(result: number): void;
     _dashql_shell_history_export(shell: number, result: number): number;
@@ -80,7 +82,7 @@ export interface DashQLShellModule extends EmscriptenModule {
 }
 
 export interface DashQLShellEnvironment {
-    executeQuery(query: string, signal?: AbortSignal): Promise<Uint8Array>;
+    executeQuery(query: string, signal?: AbortSignal, onProgress?: (message: string) => void): Promise<Uint8Array>;
 }
 
 export interface DashQLShellCommandContext {
@@ -474,6 +476,24 @@ export class DashQLShell {
         });
     }
 
+    renderTerminalQueryProgress(message = '', advanceFrame = false): DashQLShellTerminalOutput {
+        return this.invokeTerminal(this.textEncoder.encode(message), (input, inputLength, result) => {
+            this.module._dashql_shell_terminal_query_progress(
+                this.shell,
+                input,
+                inputLength,
+                advanceFrame,
+                result,
+            );
+        });
+    }
+
+    clearTerminalQueryProgress(): DashQLShellTerminalOutput {
+        return this.invokeTerminal(new Uint8Array(), (_input, _inputLength, result) => {
+            this.module._dashql_shell_terminal_query_progress_clear(this.shell, result);
+        });
+    }
+
     renderTerminalStatus(message: string): DashQLShellTerminalOutput {
         return this.invokeTerminal(this.textEncoder.encode(message), (input, inputLength, result) => {
             this.module._dashql_shell_terminal_status(this.shell, input, inputLength, result);
@@ -497,20 +517,24 @@ export class DashQLShell {
         this.requireComplete(operation);
     }
 
-    async submitPrompt(signal?: AbortSignal): Promise<string> {
+    async submitPrompt(signal?: AbortSignal, onProgress?: (message: string) => void): Promise<string> {
         this.assertAlive();
         return await this.executeOperation(() => this.invoke(new Uint8Array(), (_input, _inputLength, result) => {
             this.module._dashql_shell_prompt_submit(this.shell, result);
-        }), signal);
+        }), signal, onProgress);
     }
 
-    async executeQuery(query: string, signal?: AbortSignal): Promise<string> {
+    async executeQuery(query: string, signal?: AbortSignal, onProgress?: (message: string) => void): Promise<string> {
         return await this.executeOperation(() => this.invoke(this.textEncoder.encode(query), (input, inputLength, result) => {
             this.module._dashql_shell_start_query(this.shell, input, inputLength, result);
-        }), signal);
+        }), signal, onProgress);
     }
 
-    protected async executeOperation(start: () => DashQLShellOperation, signal?: AbortSignal): Promise<string> {
+    protected async executeOperation(
+        start: () => DashQLShellOperation,
+        signal?: AbortSignal,
+        onProgress?: (message: string) => void,
+    ): Promise<string> {
         this.assertAlive();
         if (this.activeExecution != null) {
             throw new DashQLShellError(DashQLShellStatus.BUSY, 'the shell already has an active operation');
@@ -525,7 +549,7 @@ export class DashQLShell {
             let operation = start();
             while (operation.status === DashQLShellStatus.PENDING) {
                 const effect = this.requireEffect(operation);
-                const completion = await this.runEffect(effect, executionAbort.signal);
+                const completion = await this.runEffect(effect, executionAbort.signal, onProgress);
                 if (this.shell === 0) {
                     throw new DashQLShellError(DashQLShellStatus.STALE_EFFECT, 'DashQL shell was destroyed');
                 }
@@ -617,6 +641,7 @@ export class DashQLShell {
     protected async runEffect(
         effect: DashQLShellEffect,
         signal?: AbortSignal,
+        onProgress?: (message: string) => void,
     ): Promise<DashQLShellEffectResult> {
         if (
             effect.type !== DashQLShellEffectType.EXECUTE_QUERY &&
@@ -650,7 +675,7 @@ export class DashQLShell {
             Promise.resolve()
                 .then(async () => {
                     if (effect.type === DashQLShellEffectType.EXECUTE_QUERY) {
-                        return await this.environment.executeQuery(effectInput, signal);
+                        return await this.environment.executeQuery(effectInput, signal, onProgress);
                     }
                     const command = await this.executeCommand(effectInput, signal);
                     const output = this.textEncoder.encode(command.output);

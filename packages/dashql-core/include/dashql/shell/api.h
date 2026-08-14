@@ -171,6 +171,15 @@ DASHQL_SHELL_EXPORT uint32_t dashql_shell_terminal_finish_query(
     size_t output_length,
     bool error,
     DashQLShellTerminalResult* result);
+DASHQL_SHELL_EXPORT uint32_t dashql_shell_terminal_query_progress(
+    DashQLShell* shell,
+    const uint8_t* message,
+    size_t message_length,
+    bool advance_frame,
+    DashQLShellTerminalResult* result);
+DASHQL_SHELL_EXPORT uint32_t dashql_shell_terminal_query_progress_clear(
+    DashQLShell* shell,
+    DashQLShellTerminalResult* result);
 DASHQL_SHELL_EXPORT uint32_t dashql_shell_terminal_status(
     DashQLShell* shell,
     const uint8_t* message,

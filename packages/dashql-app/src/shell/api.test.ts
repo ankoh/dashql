@@ -62,6 +62,25 @@ describe('DashQL shell Wasm', () => {
         await expect(shell.submitPrompt()).resolves.toBe('backend unavailable');
     });
 
+    it('forwards query progress through the asynchronous effect interface', async () => {
+        const progress = vi.fn();
+        shell.destroy();
+        shell = await DashQLShell.create({
+            environment: {
+                executeQuery: async (_query, _signal, onProgress) => {
+                    onProgress?.('Executing query');
+                    throw new Error('expected');
+                },
+            },
+            terminalColumns: 80,
+            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+        });
+        shell.setPrompt('SELECT 42;');
+
+        await expect(shell.submitPrompt(undefined, progress)).resolves.toBe('expected');
+        expect(progress).toHaveBeenCalledWith('Executing query');
+    });
+
     it('strips only the trailing shell terminator before execution', async () => {
         executeQuery = async query => {
             expect(query).toBe("SELECT ';' AS value");
@@ -230,6 +249,23 @@ describe('DashQL shell Wasm', () => {
         const status = shell.renderTerminalStatus('working').data;
         expect(status.indexOf(VT100.ENABLE_AUTO_WRAP)).toBeLessThan(status.indexOf('working'));
         expect(status.indexOf('working')).toBeLessThan(status.indexOf(VT100.DISABLE_AUTO_WRAP));
+    });
+
+    it('renders and clears query progress in the shell core', () => {
+        shell.resize(20);
+        shell.openTerminal('db> ', false);
+
+        const first = shell.renderTerminalQueryProgress('  Executing\nquery\tbatch  ').data;
+        expect(first).toContain('⠋ Executing query...');
+        expect(first).not.toContain('\nquery');
+        expect(first).toContain(VT100.DISABLE_AUTO_WRAP);
+
+        const next = shell.renderTerminalQueryProgress('', true).data;
+        expect(next).toContain('⠙ Executing query...');
+
+        const cleared = shell.clearTerminalQueryProgress().data;
+        expect(cleared).toBe(VT100.CARRIAGE_RETURN + VT100.ERASE_ENTIRE_LINE + VT100.ENABLE_AUTO_WRAP);
+        expect(shell.clearTerminalQueryProgress().data).toBe('');
     });
 
     it('navigates, accepts, and dismisses terminal completion overlays', () => {

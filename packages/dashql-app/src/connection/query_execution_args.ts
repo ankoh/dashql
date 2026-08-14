@@ -8,6 +8,9 @@ import { TrinoChannelInterface } from "./trino/trino_channel.js";
 export interface QueryExecutionArgs {
     query: string;
     analyzeResults?: boolean;
+    /// Receives trace-scoped query execution log messages as they are emitted. Intended for
+    /// transient progress surfaces such as the notebook shell.
+    onLog?: (message: string) => void;
     /// Computation from the previous execution of the same notebook entry. It can be retired before
     /// analyzing this result so its temporary DuckDB tables do not accumulate across reruns.
     replaceComputationId?: number | null;

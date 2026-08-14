@@ -394,6 +394,28 @@ uint32_t dashql_shell_terminal_finish_query(DashQLShell* shell,
     return InvokeTerminal(shell, result, [=](auto& session) { return session.FinishTerminalQuery(value, error); });
 }
 
+uint32_t dashql_shell_terminal_query_progress(DashQLShell* shell,
+                                              const uint8_t* message,
+                                              size_t message_length,
+                                              bool advance_frame,
+                                              DashQLShellTerminalResult* result) {
+    if (message == nullptr && message_length != 0) {
+        if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
+        ResetTerminalResult(result);
+        return StoreTerminalResult(
+            result, {dashql::shell::ShellStatus::kInvalidArgument, "invalid terminal query progress"});
+    }
+    const std::string_view value{reinterpret_cast<const char*>(message), message_length};
+    return InvokeTerminal(shell, result, [=](auto& session) {
+        return session.RenderTerminalQueryProgress(value, advance_frame);
+    });
+}
+
+uint32_t dashql_shell_terminal_query_progress_clear(DashQLShell* shell,
+                                                    DashQLShellTerminalResult* result) {
+    return InvokeTerminal(shell, result, [](auto& session) { return session.ClearTerminalQueryProgress(); });
+}
+
 uint32_t dashql_shell_terminal_status(DashQLShell* shell,
                                       const uint8_t* message,
                                       size_t message_length,

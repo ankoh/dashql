@@ -21,6 +21,9 @@ constexpr uint32_t EFFECT_ENVELOPE_VERSION = 1;
 constexpr size_t EFFECT_ENVELOPE_HEADER_SIZE = 16;
 constexpr size_t HISTORY_LIMIT = 1000;
 constexpr size_t TERMINAL_COMPLETION_ROWS = 10;
+constexpr std::array<std::string_view, 10> TERMINAL_QUERY_SPINNER_FRAMES = {
+    "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏",
+};
 
 std::string_view TokenStyle(ScannerTokenType type) {
     switch (type) {
@@ -233,6 +236,27 @@ std::string EscapeTerminalText(std::string_view text) {
     return output;
 }
 
+std::string NormalizeTerminalProgressMessage(std::string_view message) {
+    std::string output;
+    output.reserve(message.size());
+    bool pending_space = false;
+    for (const auto byte : message) {
+        const auto value = static_cast<uint8_t>(byte);
+        if (value == 0x1b) break;
+        if (value == ' ' || value == '\t' || value == '\r' || value == '\n') {
+            pending_space = !output.empty();
+            continue;
+        }
+        if (value < 0x20 || value == 0x7f) continue;
+        if (pending_space) {
+            output.push_back(' ');
+            pending_space = false;
+        }
+        output.push_back(byte);
+    }
+    return output;
+}
+
 void AppendU32(std::string& output, uint32_t value) {
     for (size_t i = 0; i < sizeof(value); ++i) {
         output.push_back(static_cast<char>((value >> (i * 8)) & 0xff));
@@ -271,7 +295,14 @@ struct TerminalCompletionOverlay {
     bool hint_only = false;
 };
 
+struct TerminalQueryProgressState {
+    size_t frame = 0;
+    std::string message;
+    bool active = false;
+};
+
 thread_local std::unordered_map<ShellSession*, TerminalCompletionOverlay> terminal_completion_overlays;
+thread_local std::unordered_map<ShellSession*, TerminalQueryProgressState> terminal_query_progress_states;
 
 void SelectTerminalCompletionHint(TerminalCompletionOverlay& overlay, std::string_view prompt_text) {
     // Identity candidates preserve what the user typed and often rank first. Mid-buffer, that
@@ -299,6 +330,7 @@ ShellSession::ShellSession(Catalog& catalog, uint32_t terminal_columns)
 
 ShellSession::~ShellSession() {
     terminal_completion_overlays.erase(this);
+    terminal_query_progress_states.erase(this);
     DestroyPendingEffects();
 }
 
@@ -652,6 +684,7 @@ ShellOperation ShellSession::FinishTerminalQuery(std::string_view output, bool e
     terminal_action_ = PromptInputAction::kNone;
     std::string rendered = ClearTerminalCompletionOverlay();
     terminal_completion_overlays.erase(this);
+    rendered.append(ClearTerminalQueryProgressOutput());
     rendered.append(vt100::kEnableAutoWrap);
     if (clear_terminal_after_command_) {
         rendered.append(vt100::kClearScreen);
@@ -670,10 +703,57 @@ ShellOperation ShellSession::FinishTerminalQuery(std::string_view output, bool e
     return {ShellStatus::kOk, std::move(rendered)};
 }
 
+ShellOperation ShellSession::RenderTerminalQueryProgress(std::string_view message, bool advance_frame) {
+    terminal_action_ = PromptInputAction::kNone;
+    if (!utf8::Utf8Proc::IsValid(message)) {
+        return {ShellStatus::kInvalidArgument, "terminal query progress must contain valid UTF-8"};
+    }
+    auto& progress = terminal_query_progress_states[this];
+    const auto normalized = NormalizeTerminalProgressMessage(message);
+    if (!normalized.empty()) progress.message = normalized;
+    if (!progress.active) {
+        progress.active = true;
+        progress.frame = 0;
+        if (progress.message.empty()) progress.message = "Executing query";
+    } else if (advance_frame) {
+        progress.frame = (progress.frame + 1) % TERMINAL_QUERY_SPINNER_FRAMES.size();
+    }
+
+    std::string line;
+    line.append(TERMINAL_QUERY_SPINNER_FRAMES[progress.frame]);
+    line.push_back(' ');
+    line.append(progress.message);
+    line = TruncateDisplayText(line, std::max<size_t>(renderer_.terminal_columns(), 1));
+
+    std::string output;
+    output.append(vt100::kDisableAutoWrap);
+    output.append(vt100::kCarriageReturn);
+    output.append(vt100::kEraseEntireLine);
+    output.append(line);
+    return {ShellStatus::kOk, std::move(output)};
+}
+
+ShellOperation ShellSession::ClearTerminalQueryProgress() {
+    terminal_action_ = PromptInputAction::kNone;
+    return {ShellStatus::kOk, ClearTerminalQueryProgressOutput()};
+}
+
+std::string ShellSession::ClearTerminalQueryProgressOutput() {
+    const auto found = terminal_query_progress_states.find(this);
+    if (found == terminal_query_progress_states.end() || !found->second.active) return {};
+    terminal_query_progress_states.erase(found);
+    std::string output;
+    output.append(vt100::kCarriageReturn);
+    output.append(vt100::kEraseEntireLine);
+    output.append(vt100::kEnableAutoWrap);
+    return output;
+}
+
 ShellOperation ShellSession::RenderTerminalStatus(std::string_view message) {
     terminal_action_ = PromptInputAction::kNone;
     std::string output = ClearTerminalCompletionOverlay();
     terminal_completion_overlays.erase(this);
+    output.append(ClearTerminalQueryProgressOutput());
     output.append(vt100::kEnableAutoWrap);
     output.append(vt100::kNewLine);
     output.append(vt100::kForegroundBrightBlack);

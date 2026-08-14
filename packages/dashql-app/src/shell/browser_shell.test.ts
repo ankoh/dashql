@@ -1,9 +1,16 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { DashQLShellPromptInput } from './api.js';
-import { loadWebglRenderer, sanitizeTerminalText, terminalPromptInputForKey } from './browser_shell.js';
+import {
+    loadWebglRenderer,
+    sanitizeTerminalText,
+    TerminalQueryProgress,
+    terminalPromptInputForKey,
+} from './browser_shell.js';
 import { VT100, VT100Command, vt100Sequence } from './vt100.js';
+
+afterEach(() => vi.useRealTimers());
 
 describe('browser shell input', () => {
     it('rejects terminal key sequences from the text channel', () => {
@@ -64,5 +71,69 @@ describe('browser shell renderer', () => {
         };
 
         expect(await loadWebglRenderer(terminal as never)).toBe(false);
+    });
+
+    it('replaces one progress line while cycling through the requested spinner frames', () => {
+        vi.useFakeTimers();
+        const write = vi.fn();
+        const shell = {
+            renderTerminalQueryProgress: vi.fn((message: string, advanceFrame: boolean) => ({
+                data: advanceFrame ? 'next frame' : `progress: ${message}`,
+            })),
+            clearTerminalQueryProgress: vi.fn(() => ({ data: 'clear progress' })),
+        };
+        const progress = new TerminalQueryProgress(shell as never, write);
+
+        progress.update('Executing query');
+        expect(shell.renderTerminalQueryProgress).toHaveBeenLastCalledWith('Executing query');
+        expect(write).toHaveBeenLastCalledWith('progress: Executing query');
+
+        vi.advanceTimersByTime(80);
+        expect(shell.renderTerminalQueryProgress).toHaveBeenLastCalledWith('', true);
+        expect(write).toHaveBeenLastCalledWith('next frame');
+
+        progress.update('Received result batch');
+        expect(shell.renderTerminalQueryProgress).toHaveBeenLastCalledWith('Received result batch');
+        expect(write).toHaveBeenLastCalledWith('progress: Received result batch');
+        progress.clear();
+        expect(shell.clearTerminalQueryProgress).toHaveBeenCalledOnce();
+        expect(write).toHaveBeenLastCalledWith('clear progress');
+        const callsAfterClear = write.mock.calls.length;
+        vi.advanceTimersByTime(160);
+        expect(write).toHaveBeenCalledTimes(callsAfterClear);
+    });
+
+    it('can stop animation without clearing C++ terminal progress state', () => {
+        vi.useFakeTimers();
+        const write = vi.fn();
+        const shell = {
+            renderTerminalQueryProgress: vi.fn((message: string) => ({ data: `progress: ${message}` })),
+            clearTerminalQueryProgress: vi.fn(() => ({ data: 'clear progress' })),
+        };
+        const progress = new TerminalQueryProgress(shell as never, write);
+
+        progress.update('Executing query');
+        progress.stop();
+        vi.advanceTimersByTime(160);
+
+        expect(shell.clearTerminalQueryProgress).not.toHaveBeenCalled();
+        expect(write).toHaveBeenCalledOnce();
+    });
+
+    it('uses a static spinner when reduced motion is requested', () => {
+        vi.useFakeTimers();
+        const write = vi.fn();
+        const shell = {
+            renderTerminalQueryProgress: vi.fn((message: string) => ({ data: `progress: ${message}` })),
+            clearTerminalQueryProgress: vi.fn(() => ({ data: 'clear progress' })),
+        };
+        const progress = new TerminalQueryProgress(shell as never, write, true);
+
+        progress.update('Executing query');
+        vi.advanceTimersByTime(800);
+
+        expect(write).toHaveBeenCalledOnce();
+        expect(shell.renderTerminalQueryProgress).toHaveBeenCalledOnce();
+        progress.clear();
     });
 });

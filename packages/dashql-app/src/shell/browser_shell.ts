@@ -5,6 +5,45 @@ import type { WebglAddon } from '@xterm/addon-webgl';
 import { DashQLShell, DashQLShellPromptAction, DashQLShellPromptInput } from './api.js';
 import { VT100 } from './vt100.js';
 
+const QUERY_SPINNER_INTERVAL_MS = 80;
+
+export class TerminalQueryProgress {
+    private active = false;
+    private timer: ReturnType<typeof setInterval> | null = null;
+
+    constructor(
+        private readonly shell: DashQLShell,
+        private readonly write: (data: string) => void,
+        private readonly reducedMotion = false,
+    ) { }
+
+    update(message: string): void {
+        const output = this.shell.renderTerminalQueryProgress(message);
+        if (output.data.length === 0) return;
+        this.active = true;
+        this.write(output.data);
+        if (this.timer == null && !this.reducedMotion) {
+            this.timer = setInterval(() => {
+                this.write(this.shell.renderTerminalQueryProgress('', true).data);
+            }, QUERY_SPINNER_INTERVAL_MS);
+        }
+    }
+
+    stop(): void {
+        if (this.timer != null) {
+            clearInterval(this.timer);
+            this.timer = null;
+        }
+    }
+
+    clear(): void {
+        this.stop();
+        if (!this.active) return;
+        this.active = false;
+        this.write(this.shell.clearTerminalQueryProgress().data);
+    }
+}
+
 export interface BrowserShellOptions {
     container: HTMLElement;
     shell: DashQLShell;
@@ -87,6 +126,7 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
 
     let shell = options.shell;
     let activeQuery: AbortController | null = null;
+    let activeProgress: TerminalQueryProgress | null = null;
     let disposed = false;
     const prompt = options.prompt ?? 'dashql> ';
     const terminal: Terminal = new Terminal({
@@ -125,17 +165,26 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
         if (activeQuery != null) return;
         const abort = new AbortController();
         const executingShell = shell;
+        const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+        const progress = new TerminalQueryProgress(executingShell, data => terminal.write(data), reducedMotion);
         activeQuery = abort;
+        activeProgress = progress;
         try {
-            const output = await executingShell.submitPrompt(abort.signal);
+            const output = await executingShell.submitPrompt(abort.signal, message => {
+                if (!disposed && shell === executingShell && activeQuery === abort) progress.update(message);
+            });
             if (!disposed && shell === executingShell) {
+                progress.stop();
                 terminal.write(executingShell.finishTerminalQuery(output).data);
             }
         } catch (error) {
             if (!disposed && shell === executingShell) {
+                progress.stop();
                 terminal.write(executingShell.finishTerminalQuery(error instanceof Error ? error.message : String(error), true).data);
             }
         } finally {
+            progress.stop();
+            if (activeProgress === progress) activeProgress = null;
             if (activeQuery === abort) activeQuery = null;
         }
     };
@@ -188,6 +237,8 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
         focus: () => terminal.focus(),
         replaceShell(nextShell) {
             const history = shell.exportHistory();
+            activeProgress?.clear();
+            activeProgress = null;
             activeQuery?.abort();
             shell = nextShell;
             shell.importHistory(history);
@@ -199,6 +250,8 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
         },
         dispose() {
             if (disposed) return;
+            activeProgress?.clear();
+            activeProgress = null;
             disposed = true;
             activeQuery?.abort();
             dataSubscription.dispose();

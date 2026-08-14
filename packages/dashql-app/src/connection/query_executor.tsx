@@ -35,7 +35,7 @@ import { getConnectionParamsFromStateDetails, createConnectionParamsSignature } 
 import { ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { computeQueryResultCacheKey } from './query_result_cache_key.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { createTrace } from '../platform/logger/trace_context.js';
+import { createTrace, type TraceContext } from '../platform/logger/trace_context.js';
 import { QueryExecutionArgs } from './query_execution_args.js';
 import { executeTrinoQuery } from './trino/trino_query_execution.js';
 import { executeSalesforceQuery } from './salesforce/salesforce_query_execution.js';
@@ -43,6 +43,7 @@ import { executeHyperQuery } from './hyper/hyper_query_execution.js';
 import { executeDemoQuery } from './dataless/dataless_demo_query_execution.js';
 import { AsyncConsumerLambdas } from '../utils/async_consumer.js';
 import { LoggableException, stringifyError } from '../platform/logger/logger.js';
+import type { LogRecord } from '../platform/logger/log_buffer.js';
 
 const LOG_CTX = 'query_executor';
 
@@ -106,9 +107,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     const queryRuntimes = React.useRef(new Map<number, QueryExecutionRuntime>());
 
     // Execute a query with pre-allocated query id
-    const executeImpl = React.useCallback(async (notebookId: string, args: QueryExecutionArgs, queryId: number, runtime: QueryExecutionRuntime): Promise<arrow.Table | null> => {
-        // Start a new trace for this query execution
-        const trace = createTrace();
+    const executeImpl = React.useCallback(async (notebookId: string, args: QueryExecutionArgs, queryId: number, runtime: QueryExecutionRuntime, trace: TraceContext): Promise<arrow.Table | null> => {
         const traced = logger.withTrace(trace);
         if (!computeDb) {
             throw new Error(`Compute database is not yet ready`);
@@ -441,16 +440,28 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     // Allocate the next query id and start the execution
     const execute = React.useCallback<QueryExecutor>((notebookId: string, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] => {
         const queryId = NEXT_QUERY_ID++;
+        const trace = createTrace();
         const runtime: QueryExecutionRuntime = {
             cancellation: new AbortController(),
             resultStream: null,
         };
         queryRuntimes.current.set(queryId, runtime);
-        const execution = executeImpl(notebookId, args, queryId, runtime);
-        const removeRuntime = () => queryRuntimes.current.delete(queryId);
+        const logObserver = args.onLog == null ? null : (record: LogRecord) => {
+            try {
+                args.onLog?.(record.message);
+            } catch {
+                // A progress surface must never interrupt query execution or logger delivery.
+            }
+        };
+        if (logObserver != null) logger.buffer.subscribeTrace(trace.traceId, logObserver);
+        const execution = executeImpl(notebookId, args, queryId, runtime, trace);
+        const removeRuntime = () => {
+            queryRuntimes.current.delete(queryId);
+            if (logObserver != null) logger.buffer.unsubscribeTrace(trace.traceId, logObserver);
+        };
         void execution.then(removeRuntime, removeRuntime);
         return [queryId, execution];
-    }, [executeImpl]);
+    }, [executeImpl, logger]);
 
     const cancel = React.useCallback<CancelQuery>((notebookId, queryId) => {
         const runtime = queryRuntimes.current.get(queryId);
