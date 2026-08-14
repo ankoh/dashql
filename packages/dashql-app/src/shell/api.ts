@@ -25,6 +25,7 @@ export enum DashQLShellStatus {
 
 export enum DashQLShellEffectType {
     EXECUTE_QUERY = 1,
+    EXECUTE_COMMAND = 2,
 }
 
 enum DashQLShellEffectCompletionStatus {
@@ -39,6 +40,7 @@ export interface DashQLShellModule extends EmscriptenModule {
     _dashql_shell_new(catalog: number, terminalColumns: number): number;
     _dashql_shell_destroy(shell: number): void;
     _dashql_shell_resize(shell: number, terminalColumns: number): void;
+    _dashql_shell_commands_set(shell: number, commands: number, commandsLength: number): number;
     _dashql_shell_prompt_set(shell: number, text: number, textLength: number, result: number): number;
     _dashql_shell_prompt_insert(shell: number, text: number, textLength: number, result: number): number;
     _dashql_shell_prompt_move_left(shell: number, result: number): number;
@@ -81,6 +83,21 @@ export interface DashQLShellEnvironment {
     executeQuery(query: string, signal?: AbortSignal): Promise<Uint8Array>;
 }
 
+export interface DashQLShellCommandContext {
+    readonly signal?: AbortSignal;
+}
+
+export type DashQLShellCommandFunction = (
+    args: readonly string[],
+    context: DashQLShellCommandContext,
+) => string | void | Promise<string | void>;
+
+export type DashQLShellCommand = readonly [
+    name: string,
+    description: string,
+    execute: DashQLShellCommandFunction,
+];
+
 interface DashQLShellOperation {
     status: DashQLShellStatus;
     data: Uint8Array;
@@ -99,6 +116,7 @@ interface DashQLShellEffectResult {
 
 export interface DashQLShellOptions {
     environment: DashQLShellEnvironment;
+    commands?: readonly DashQLShellCommand[];
     terminalColumns?: number;
     instantiateWasm?: DashQLModuleOptions['instantiateWasm'];
     onProgress?: (progress: DashQLShellInstantiationProgress) => void;
@@ -185,6 +203,7 @@ export class DashQLShell {
     protected readonly lifecycleAbort = new AbortController();
     protected activeExecution: AbortController | null = null;
     protected readonly catalogScripts: DashQLScript[] = [];
+    protected readonly commands: Map<string, DashQLShellCommand>;
 
     protected constructor(
         protected readonly module: DashQLShellModule,
@@ -192,14 +211,39 @@ export class DashQLShell {
         public readonly catalog: DashQLCatalog,
         protected readonly environment: DashQLShellEnvironment,
         terminalColumns: number,
+        commands: Map<string, DashQLShellCommand>,
     ) {
+        this.commands = commands;
         this.shell = module._dashql_shell_new(catalog.ptr.assertNotNull(), terminalColumns);
         if (this.shell === 0) {
             throw new DashQLShellError(DashQLShellStatus.INTERNAL_ERROR, 'failed to create DashQL shell');
         }
+        const commandNames = this.textEncoder.encode(Array.from(commands.keys()).join('\n'));
+        const commandNamesPointer = this.module._dashql_malloc(commandNames.byteLength);
+        if (commandNamesPointer === 0) {
+            this.module._dashql_shell_destroy(this.shell);
+            this.shell = 0;
+            throw new DashQLShellError(DashQLShellStatus.INTERNAL_ERROR, 'failed to allocate shell commands');
+        }
+        try {
+            this.module.HEAPU8.set(commandNames, commandNamesPointer);
+            const status = this.module._dashql_shell_commands_set(
+                this.shell,
+                commandNamesPointer,
+                commandNames.byteLength,
+            ) as DashQLShellStatus;
+            if (status !== DashQLShellStatus.OK) {
+                this.module._dashql_shell_destroy(this.shell);
+                this.shell = 0;
+                throw new DashQLShellError(status, 'failed to configure shell commands');
+            }
+        } finally {
+            this.module._dashql_free(commandNamesPointer);
+        }
     }
 
     static async create(options: DashQLShellOptions): Promise<DashQLShell> {
+        const commands = createShellCommands(options.commands ?? []);
         const wasmUrl = options.wasmUrl?.toString() ?? shellWasmUrl;
         const instantiateModule = async (
             onProgress: ((progress: DashQLShellInstantiationProgress) => void) | undefined,
@@ -270,7 +314,14 @@ export class DashQLShell {
         }
         const core = new DashQL(module);
         const catalog = core.createCatalog();
-        return new DashQLShell(module, core, catalog, options.environment, options.terminalColumns ?? 100);
+        return new DashQLShell(
+            module,
+            core,
+            catalog,
+            options.environment,
+            options.terminalColumns ?? 100,
+            commands,
+        );
     }
 
     loadCatalogScript(text: string, rank: number): DashQLScript {
@@ -565,7 +616,10 @@ export class DashQLShell {
         effect: DashQLShellEffect,
         signal?: AbortSignal,
     ): Promise<DashQLShellEffectResult> {
-        if (effect.type !== DashQLShellEffectType.EXECUTE_QUERY) {
+        if (
+            effect.type !== DashQLShellEffectType.EXECUTE_QUERY &&
+            effect.type !== DashQLShellEffectType.EXECUTE_COMMAND
+        ) {
             return {
                 status: DashQLShellEffectCompletionStatus.ERROR,
                 data: this.textEncoder.encode(`unsupported shell effect ${effect.type}`),
@@ -590,9 +644,19 @@ export class DashQLShell {
             }
             signal?.addEventListener('abort', onAbort, { once: true });
 
-            const effectQuery = this.textDecoder.decode(effect.payload);
+            const effectInput = this.textDecoder.decode(effect.payload);
             Promise.resolve()
-                .then(() => this.environment.executeQuery(effectQuery, signal))
+                .then(async () => {
+                    if (effect.type === DashQLShellEffectType.EXECUTE_QUERY) {
+                        return await this.environment.executeQuery(effectInput, signal);
+                    }
+                    const command = await this.executeCommand(effectInput, signal);
+                    const output = this.textEncoder.encode(command.output);
+                    const encoded = new Uint8Array(output.byteLength + 1);
+                    encoded[0] = command.clearTerminal ? 1 : 0;
+                    encoded.set(output, 1);
+                    return encoded;
+                })
                 .then(
                     data => finish({
                         status: DashQLShellEffectCompletionStatus.SUCCESS,
@@ -604,6 +668,19 @@ export class DashQLShell {
                     }),
                 );
         });
+    }
+
+    protected async executeCommand(
+        input: string,
+        signal?: AbortSignal,
+    ): Promise<{ output: string; clearTerminal: boolean }> {
+        const [name, ...args] = input.trim().substring(1).split(/\s+/);
+        const command = this.commands.get(name.toLowerCase());
+        if (command == null) throw new Error(`unknown command: .${name}`);
+        return {
+            output: await command[2](args, { signal }) ?? '',
+            clearTerminal: name.toLowerCase() === 'clear',
+        };
     }
 
     protected invoke(
@@ -714,6 +791,27 @@ export class DashQLShell {
             throw new DashQLShellError(DashQLShellStatus.INVALID_ARGUMENT, 'DashQL shell has been destroyed');
         }
     }
+}
+
+function createShellCommands(extensions: readonly DashQLShellCommand[]): Map<string, DashQLShellCommand> {
+    const commands = new Map<string, DashQLShellCommand>();
+    const register = (command: DashQLShellCommand) => {
+        const name = command[0].toLowerCase();
+        if (!/^[a-z][a-z0-9_-]*$/.test(name)) throw new Error(`invalid shell command name: ${command[0]}`);
+        if (commands.has(name)) throw new Error(`duplicate shell command: .${name}`);
+        commands.set(name, [name, command[1], command[2]]);
+    };
+    register(['clear', 'Clear the terminal screen', () => undefined]);
+    register([
+        'help',
+        'List available dot commands',
+        () => {
+            const width = Math.max(...Array.from(commands.keys(), name => name.length)) + 3;
+            return Array.from(commands.values(), command => `.${command[0]}`.padEnd(width) + command[1]).join('\r\n');
+        },
+    ]);
+    for (const command of extensions) register(command);
+    return commands;
 }
 
 export async function createDashQLShell(options: DashQLShellOptions): Promise<DashQLShell> {

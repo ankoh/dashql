@@ -9,6 +9,9 @@ export {
 } from './api.js';
 export type {
     DashQLShellCompletionCandidate,
+    DashQLShellCommand,
+    DashQLShellCommandContext,
+    DashQLShellCommandFunction,
     DashQLShellEnvironment,
     DashQLShellOptions,
     DashQLShellPrompt,

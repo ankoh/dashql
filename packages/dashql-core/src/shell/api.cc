@@ -204,6 +204,14 @@ void dashql_shell_resize(DashQLShell* shell, uint32_t terminal_columns) {
     }
 }
 
+uint32_t dashql_shell_commands_set(DashQLShell* shell, const uint8_t* commands, size_t commands_length) {
+    if (shell == nullptr || (commands == nullptr && commands_length != 0)) {
+        return DASHQL_SHELL_INVALID_ARGUMENT;
+    }
+    return static_cast<uint32_t>(
+        shell->session.SetCommands({reinterpret_cast<const char*>(commands), commands_length}));
+}
+
 uint32_t dashql_shell_prompt_set(DashQLShell* shell,
                                  const uint8_t* text,
                                  size_t text_length,

@@ -19,6 +19,7 @@ declare module '@ankoh/dashql-shell-js' {
         _dashql_shell_new(catalog: number, terminalColumns: number): number;
         _dashql_shell_destroy(shell: number): void;
         _dashql_shell_resize(shell: number, terminalColumns: number): void;
+        _dashql_shell_commands_set(shell: number, commands: number, commandsLength: number): number;
         _dashql_shell_prompt_set(shell: number, text: number, textLength: number, result: number): number;
         _dashql_shell_prompt_insert(shell: number, text: number, textLength: number, result: number): number;
         _dashql_shell_prompt_move_left(shell: number, result: number): number;

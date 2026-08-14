@@ -306,6 +306,28 @@ void ShellSession::Resize(uint32_t terminal_columns) {
     renderer_.Resize(terminal_columns);
 }
 
+ShellStatus ShellSession::SetCommands(std::string_view commands) {
+    if (!utf8::Utf8Proc::IsValid(commands)) return ShellStatus::kInvalidArgument;
+    std::vector<std::string> parsed;
+    size_t begin = 0;
+    while (begin < commands.size()) {
+        const auto end = commands.find('\n', begin);
+        const auto name = commands.substr(begin, end - begin);
+        if (name.empty() || name.front() == '.' ||
+            !std::all_of(name.begin(), name.end(), [](unsigned char character) {
+                return (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9') ||
+                       character == '_' || character == '-';
+            })) {
+            return ShellStatus::kInvalidArgument;
+        }
+        parsed.emplace_back(name);
+        if (end == std::string_view::npos) break;
+        begin = end + 1;
+    }
+    commands_ = std::move(parsed);
+    return ShellStatus::kOk;
+}
+
 PromptInputAction ShellSession::terminal_action() const {
     return terminal_action_;
 }
@@ -347,10 +369,37 @@ PromptSnapshot ShellSession::DeletePromptForward() {
 }
 
 std::vector<CompletionCandidate> ShellSession::CompletePrompt(size_t limit) {
+    const auto prompt_text = prompt_.Text();
+    const auto cursor = prompt_.cursor_byte_offset();
+    const auto command_begin = prompt_text.find_first_not_of(" \t");
+    if (command_begin != std::string::npos && prompt_text[command_begin] == '.' && cursor > command_begin &&
+        prompt_text.find_first_of("\r\n", command_begin) == std::string::npos) {
+        const auto command_end = prompt_text.find_first_of(" \t", command_begin);
+        const auto target_end = command_end == std::string::npos ? prompt_text.size() : command_end;
+        if (cursor <= target_end) {
+            const auto prefix = std::string_view{prompt_text}.substr(command_begin + 1, cursor - command_begin - 1);
+            std::vector<CompletionCandidate> candidates;
+            candidates.reserve(std::min(limit, commands_.size()));
+            for (const auto& command : commands_) {
+                if (!std::string_view{command}.starts_with(prefix)) continue;
+                const auto completion = "." + command;
+                candidates.push_back({
+                    .display_text = completion,
+                    .completion_text = completion,
+                    .completion_cursor_offset = static_cast<uint32_t>(completion.size()),
+                    .target_offset = static_cast<uint32_t>(command_begin),
+                    .target_length = static_cast<uint32_t>(target_end - command_begin),
+                    .qualification_target_offset = static_cast<uint32_t>(command_begin),
+                    .qualification_target_length = static_cast<uint32_t>(target_end - command_begin),
+                });
+                if (candidates.size() == limit) break;
+            }
+            return candidates;
+        }
+    }
     prompt_.script().Analyze();
     prompt_.script().MoveCursor(prompt_.cursor_byte_offset());
     const auto completion = prompt_.script().CompleteAtCursor(limit);
-    const auto prompt_text = prompt_.Text();
     std::vector<CompletionCandidate> candidates;
     candidates.reserve(completion->GetResultCandidates().size());
     for (const auto& candidate : completion->GetResultCandidates()) {
@@ -505,7 +554,9 @@ ShellOperation ShellSession::OpenTerminal(std::string_view prompt, bool welcome)
         output.append("DashQL Shell");
         output.append(vt100::kResetAttributes);
         output.append(vt100::kNewLine);
-        output.append("Terminate SQL with \";\". Tab completes. Ctrl+C cancels. Escape returns to the notebook.");
+        output.append(
+            "Terminate SQL with \";\". Type .help for commands. Tab completes. Ctrl+C cancels. Escape returns to "
+            "the notebook.");
         output.append(vt100::kNewLine);
     }
     output.append(vt100::kDisableAutoWrap);
@@ -596,10 +647,15 @@ ShellOperation ShellSession::FinishTerminalQuery(std::string_view output, bool e
     std::string rendered = ClearTerminalCompletionOverlay();
     terminal_completion_overlays.erase(this);
     rendered.append(vt100::kEnableAutoWrap);
-    if (error) rendered.append(vt100::kForegroundRed);
-    rendered.append(output);
-    if (error) rendered.append(vt100::kResetAttributes);
-    rendered.append(vt100::kNewLine);
+    if (clear_terminal_after_command_) {
+        rendered.append(vt100::kClearScreen);
+        clear_terminal_after_command_ = false;
+    } else {
+        if (error) rendered.append(vt100::kForegroundRed);
+        rendered.append(output);
+        if (error) rendered.append(vt100::kResetAttributes);
+        rendered.append(vt100::kNewLine);
+    }
     prompt_.SetText("");
     terminal_prompt_rows_ = 1;
     terminal_prompt_cursor_row_ = 0;
@@ -631,6 +687,11 @@ ShellOperation ShellSession::SubmitPrompt() {
         return {ShellStatus::kInvalidArgument, "query must not be empty"};
     }
     RememberPrompt(query);
+    const auto query_begin = query.find_first_not_of(" \t\r\n");
+    if (query_begin != std::string::npos && query[query_begin] == '.') {
+        auto task = ExecuteCommand(std::string{query}.substr(query_begin));
+        return Resume(task.Release());
+    }
     auto query_end = query.find_last_not_of(" \t\r\n");
     if (query_end != std::string::npos && query[query_end] == ';') {
         return StartQuery(std::string_view{query}.substr(0, query_end));
@@ -641,7 +702,11 @@ ShellOperation ShellSession::SubmitPrompt() {
 bool ShellSession::PromptIsComplete() {
     const auto text = prompt_.Text();
     if (text.find_first_not_of(" \t\r\n") == std::string::npos) return false;
+    const auto begin = text.find_first_not_of(" \t\r\n");
     const auto end = text.find_last_not_of(" \t\r\n");
+    if (text[begin] == '.') {
+        return text.find_first_of("\r\n", begin) == std::string::npos;
+    }
     if (end == std::string::npos || text[end] != ';') return false;
 
     prompt_.script().Parse();
@@ -769,6 +834,29 @@ Task ShellSession::ExecuteQuery(std::string query) {
     switch (completion.status) {
         case EffectCompletionStatus::kSuccess:
             completed_operation_ = RenderArrowIPC(completion.data);
+            break;
+        case EffectCompletionStatus::kError:
+            completed_operation_ = ShellOperation{ShellStatus::kOk, NormalizeError(completion.data)};
+            break;
+        case EffectCompletionStatus::kCancelled:
+            completed_operation_ = ShellOperation{ShellStatus::kOk, "Cancelled"};
+            break;
+    }
+}
+
+Task ShellSession::ExecuteCommand(std::string command) {
+    auto completion = co_await EffectAwaiter{*this, EffectType::kExecuteCommand, std::move(command)};
+    switch (completion.status) {
+        case EffectCompletionStatus::kSuccess:
+            if (completion.data.empty()) {
+                completed_operation_ = ShellOperation{ShellStatus::kInternalError, "invalid shell command result"};
+                break;
+            }
+            clear_terminal_after_command_ = (completion.data.front() & 1) != 0;
+            completed_operation_ = ShellOperation{
+                ShellStatus::kOk,
+                std::string{reinterpret_cast<const char*>(completion.data.data() + 1), completion.data.size() - 1},
+            };
             break;
         case EffectCompletionStatus::kError:
             completed_operation_ = ShellOperation{ShellStatus::kOk, NormalizeError(completion.data)};
@@ -942,8 +1030,9 @@ std::string ShellSession::OpenTerminalCompletionOverlay(std::vector<CompletionCa
     overlay.candidates = std::move(candidates);
     const auto text = prompt_.Text();
     const auto target = std::min<size_t>(overlay.candidates.front().target_offset, text.size());
-    overlay.hint_only = overlay.candidates.front().target_length == 0 &&
-                        (target == 0 || text[target - 1] != '.');
+    overlay.hint_only = overlay.candidates.size() == 1 ||
+                        (overlay.candidates.front().target_length == 0 &&
+                         (target == 0 || text[target - 1] != '.'));
     const auto terminal_prompt = terminal_prompt_length_ == 0
                                      ? std::string_view{"dashql> "}
                                      : std::string_view{terminal_prompt_storage_.data(), terminal_prompt_length_};

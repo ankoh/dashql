@@ -42,6 +42,7 @@ inline constexpr std::string_view kSaveCursor = "\x1b[s";
 inline constexpr std::string_view kRestoreCursor = "\x1b[u";
 inline constexpr std::string_view kEnableAutoWrap = "\x1b[?7h";
 inline constexpr std::string_view kDisableAutoWrap = "\x1b[?7l";
+inline constexpr std::string_view kClearScreen = "\x1b[2J\x1b[H";
 
 inline constexpr std::string_view kResetAttributes = "\x1b[0m";
 inline constexpr std::string_view kBold = "\x1b[1m";

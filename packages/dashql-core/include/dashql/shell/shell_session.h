@@ -30,6 +30,7 @@ enum class ShellStatus : uint32_t {
 
 enum class EffectType : uint32_t {
     kExecuteQuery = 1,
+    kExecuteCommand = 2,
 };
 
 enum class EffectCompletionStatus : uint32_t {
@@ -105,6 +106,7 @@ class ShellSession {
     ShellSession& operator=(const ShellSession&) = delete;
 
     void Resize(uint32_t terminal_columns);
+    ShellStatus SetCommands(std::string_view commands);
     PromptBuffer& prompt() { return prompt_; }
     const PromptBuffer& prompt() const { return prompt_; }
     PromptSnapshot SetPrompt(std::string_view text);
@@ -163,6 +165,7 @@ class ShellSession {
     };
 
     Task ExecuteQuery(std::string query);
+    Task ExecuteCommand(std::string command);
     ShellOperation RenderArrowIPC(std::span<const uint8_t> data) const;
     void SuspendEffect(EffectType type,
                        std::string payload,
@@ -196,6 +199,8 @@ class ShellSession {
     std::unordered_map<uint64_t, PendingEffect> pending_effects_;
     std::optional<OutgoingEffect> outgoing_effect_;
     std::optional<ShellOperation> completed_operation_;
+    bool clear_terminal_after_command_ = false;
+    std::vector<std::string> commands_;
     std::array<char, 256> terminal_prompt_storage_ = {};
     size_t terminal_prompt_length_ = 0;
     std::string terminal_continuation_ = "     -> ";

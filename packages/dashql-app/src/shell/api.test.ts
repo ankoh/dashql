@@ -76,7 +76,8 @@ describe('DashQL shell Wasm', () => {
     it('renders terminal highlighting in Wasm', () => {
         expect(shell.openTerminal('db> ', false).data).toBe(
             VT100.DISABLE_AUTO_WRAP + VT100.CARRIAGE_RETURN + VT100.ERASE_ENTIRE_LINE +
-            'db> ' + VT100.CARRIAGE_RETURN + vt100Sequence(4, VT100Command.CURSOR_FORWARD),
+            VT100.BOLD + 'db> ' + VT100.RESET_ATTRIBUTES + VT100.CARRIAGE_RETURN +
+            vt100Sequence(4, VT100Command.CURSOR_FORWARD),
         );
         const output = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, "SELECT '界' FROM t").data;
         expect(output).toContain(VT100.BOLD_FOREGROUND_PINK + 'SELECT' + VT100.RESET_ATTRIBUTES);
@@ -146,6 +147,75 @@ describe('DashQL shell Wasm', () => {
         const exited = shell.consumeTerminalInput(DashQLShellPromptInput.ESCAPE);
         expect(exited.action).toBe(DashQLShellPromptAction.EXIT);
         expect(exited.data).toBe(VT100.ENABLE_AUTO_WRAP);
+    });
+
+    it('executes built-in dot commands without SQL terminators', async () => {
+        shell.openTerminal('db> ', false);
+
+        const hinted = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, '.hel');
+        expect(hinted.data).toContain(VT100.FOREGROUND_BRIGHT_BLACK + 'p');
+        expect(shell.completePrompt()).toContainEqual(expect.objectContaining({
+            displayText: '.help',
+            completionText: '.help',
+            targetOffset: 0,
+            targetLength: 4,
+        }));
+        shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
+        expect(shell.movePromptRight().text).toBe('.help');
+        expect(shell.consumeTerminalInput(DashQLShellPromptInput.ENTER).action).toBe(DashQLShellPromptAction.SUBMIT);
+        const help = await shell.submitPrompt();
+        expect(help).toContain('.clear');
+        expect(help).toContain('Clear the terminal screen');
+        expect(help).toContain('.help');
+        expect(help).toContain('List available dot commands');
+
+        shell.finishTerminalQuery(help);
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, '.clear');
+        shell.consumeTerminalInput(DashQLShellPromptInput.ENTER);
+        const cleared = shell.finishTerminalQuery(await shell.submitPrompt()).data;
+        expect(cleared).toContain(VT100.CLEAR_SCREEN);
+        expect(cleared).not.toContain(VT100.CLEAR_SCREEN + VT100.NEW_LINE);
+    });
+
+    it('registers JavaScript dot commands when creating the shell', async () => {
+        shell.destroy();
+        const execute = vi.fn((args: readonly string[]) => `logged in as ${args[0]}`);
+        shell = await DashQLShell.create({
+            environment: { executeQuery: (query, signal) => executeQuery(query, signal) },
+            commands: [['login', 'Log in to the service', execute]],
+            terminalColumns: 80,
+            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+        });
+        shell.setPrompt('.login alice');
+
+        await expect(shell.submitPrompt()).resolves.toBe('logged in as alice');
+        expect(execute).toHaveBeenCalledWith(['alice'], expect.objectContaining({ signal: expect.any(AbortSignal) }));
+
+        shell.setPrompt('.help');
+        await expect(shell.submitPrompt()).resolves.toContain('.login');
+    });
+
+    it('reports unknown dot commands without executing SQL', async () => {
+        shell.setPrompt('.missing');
+        await expect(shell.submitPrompt()).resolves.toBe('unknown command: .missing');
+    });
+
+    it('rejects duplicate and invalid dot command registrations', async () => {
+        await expect(DashQLShell.create({
+            environment: { executeQuery: (query, signal) => executeQuery(query, signal) },
+            commands: [['help', 'Replace help', () => undefined]],
+            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+        })).rejects.toThrow('duplicate shell command: .help');
+        await expect(DashQLShell.create({
+            environment: { executeQuery: (query, signal) => executeQuery(query, signal) },
+            commands: [['bad command', 'Invalid', () => undefined]],
+            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+        })).rejects.toThrow('invalid shell command name: bad command');
+        await expect(DashQLShell.create({
+            environment: { executeQuery: (query, signal) => executeQuery(query, signal) },
+            commands: [['.login', 'Invalid', () => undefined]],
+            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+        })).rejects.toThrow('invalid shell command name: .login');
     });
 
     it('enables auto-wrap for output and disables it for the next prompt', () => {

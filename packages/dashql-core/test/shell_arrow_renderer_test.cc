@@ -10,6 +10,7 @@
 #include "arrow/io/memory.h"
 #include "arrow/ipc/writer.h"
 #include "dashql/catalog.h"
+#include "dashql/shell/vt100.h"
 #include "gtest/gtest.h"
 #include "utf8proc/utf8proc_wrapper.hpp"
 
@@ -191,6 +192,42 @@ TEST(ShellSessionTest, SuspendsAndResumesQueryCoroutine) {
         std::span<const uint8_t>{ipc->data(), static_cast<size_t>(ipc->size())});
     ASSERT_EQ(complete.status, ShellStatus::kOk);
     EXPECT_NE(complete.data.find("alpha"), std::string::npos);
+}
+
+TEST(ShellSessionTest, SuspendsDotCommandAsEffect) {
+    Catalog catalog;
+    ShellSession session{catalog};
+    session.SetPrompt(".help");
+
+    const auto pending = session.SubmitPrompt();
+    ASSERT_EQ(pending.status, ShellStatus::kPending);
+    EXPECT_EQ(ReadU32(pending.data, 4), static_cast<uint32_t>(EffectType::kExecuteCommand));
+    EXPECT_EQ(pending.data.substr(16), ".help");
+}
+
+TEST(ShellSessionTest, CompletesDotCommandPrefixes) {
+    Catalog catalog;
+    ShellSession session{catalog};
+    ASSERT_EQ(session.SetCommands("clear\nhelp\nlogin"), ShellStatus::kOk);
+    session.SetPrompt(".hel");
+
+    const auto candidates = session.CompletePrompt(10);
+    ASSERT_EQ(candidates.size(), 1);
+    EXPECT_EQ(candidates[0].display_text, ".help");
+    EXPECT_EQ(candidates[0].completion_text, ".help");
+    EXPECT_EQ(candidates[0].target_offset, 0);
+    EXPECT_EQ(candidates[0].target_length, 4);
+}
+
+TEST(ShellSessionTest, RendersInlineDotCommandHint) {
+    Catalog catalog;
+    ShellSession session{catalog};
+    ASSERT_EQ(session.SetCommands("clear\nhelp"), ShellStatus::kOk);
+    session.OpenTerminal("db> ", false);
+
+    const auto output = session.ConsumeTerminalInput(PromptInputKey::kText, ".hel");
+    EXPECT_NE(output.data.find(std::string{vt100::kForegroundBrightBlack} + "p"), std::string::npos) << output.data;
+    EXPECT_EQ(output.data.find("╭"), std::string::npos) << output.data;
 }
 
 TEST(ShellSessionTest, CompilesPlainSQLBeforeExecution) {

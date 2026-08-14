@@ -47,6 +47,7 @@ SHELL_WASM_EXPORTS = [
     "'_dashql_shell_new'",
     "'_dashql_shell_destroy'",
     "'_dashql_shell_resize'",
+    "'_dashql_shell_commands_set'",
     "'_dashql_shell_prompt_set'",
     "'_dashql_shell_prompt_insert'",
     "'_dashql_shell_prompt_move_left'",
