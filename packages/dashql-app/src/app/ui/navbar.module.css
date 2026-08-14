@@ -38,7 +38,7 @@
     padding: 0;
     border: 1px solid transparent;
     border-radius: var(--border_radius);
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: rgba(0, 0, 0, 0.2);
     color: var(--nav_tab_fg);
     overflow: hidden;
 }
@@ -270,7 +270,7 @@
 .tab_button_count {
     font-weight: 400 !important;
     font-size: 0.8rem;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.2);
     padding: 2px 6px;
     border-radius: var(--border_radius);
 }
