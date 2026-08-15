@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import type { DuckDBConnection } from '../shared/platform/duckdb/duckdb_api.js';
-import { useDuckDBSetup } from '../shared/platform/duckdb/duckdb_provider.js';
+import type { EmbeddedConnection } from '../shared/platform/database/embedded_database.js';
+import { useEmbeddedDatabaseSetup } from '../shared/platform/database/embedded_database_provider.js';
 import { stringifyError } from '../shared/platform/logger/logger.js';
 import { useLogger } from '../shared/platform/logger/logger_provider.js';
 import { createDashQLShell, type DashQLShell } from './api.js';
 import type { BrowserShellController } from './browser_shell.js';
-import { createDuckDBShellEnvironment } from './duckdb_shell_environment.js';
+import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { loginCommand } from './commands/login.js';
 import type { ShellQueryExecutionTracker } from './query_execution.js';
 import * as styles from './shell_page.module.css';
@@ -26,7 +26,7 @@ function formatInstantiationProgress(bytesLoaded: number, bytesTotal: number): s
 
 export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const logger = useLogger();
-    const setupDuckDB = useDuckDBSetup();
+    const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
     const containerRef = React.useRef<HTMLDivElement>(null);
     const [status, setStatus] = React.useState('Instantiating database');
 
@@ -34,12 +34,12 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
         if (containerRef.current == null) return;
 
         let cancelled = false;
-        let connection: DuckDBConnection | null = null;
+        let connection: EmbeddedConnection | null = null;
         let shell: DashQLShell | null = null;
         let controller: BrowserShellController | null = null;
 
         const setup = async () => {
-            const database = await setupDuckDB(LOG_CTX);
+            const database = await setupEmbeddedDatabase(LOG_CTX);
             void database.getVersion()
                 .then(version => {
                     if (!cancelled) props.onEngineVersion(version);
@@ -56,7 +56,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
 
             setStatus('Instantiating shell');
             const nextShell = await createDashQLShell({
-                environment: createDuckDBShellEnvironment(connection, props.queryExecutions),
+                environment: createEmbeddedDatabaseShellEnvironment(connection, props.queryExecutions),
                 commands: [loginCommand],
                 onProgress: progress => {
                     if (!cancelled) {
@@ -104,7 +104,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             shell?.destroy();
             void connection?.close();
         };
-    }, [logger, props.onEngineVersion, props.queryExecutions, setupDuckDB]);
+    }, [logger, props.onEngineVersion, props.queryExecutions, setupEmbeddedDatabase]);
 
     return (
         <main className={styles.page} aria-label="HyperDB Shell">

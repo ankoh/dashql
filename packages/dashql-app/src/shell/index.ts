@@ -17,4 +17,4 @@ export type {
     DashQLShellPrompt,
     DashQLShellTerminalOutput,
 } from './api.js';
-export { createDuckDBShellEnvironment } from './duckdb_shell_environment.js';
+export { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';

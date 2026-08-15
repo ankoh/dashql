@@ -1,7 +1,10 @@
 import * as arrow from 'apache-arrow';
 
 import { Logger } from '../../../shared/platform/logger/logger.js';
-import { DuckDB, DuckDBConnection } from '../../../shared/platform/duckdb/duckdb_api.js';
+import type {
+    EmbeddedComputeDatabase,
+    EmbeddedTableImportConnection,
+} from '../../../shared/platform/database/embedded_database.js';
 
 const LOG_CTX = "data_frame";
 
@@ -12,16 +15,16 @@ export function generateTableName(prefix: string = "__df"): string {
 }
 
 export class DataFrame {
-    readonly duckdb: DuckDB;
+    readonly database: EmbeddedComputeDatabase;
     readonly tableName: string;
 
-    constructor(duckdb: DuckDB, tableName: string) {
-        this.duckdb = duckdb;
+    constructor(database: EmbeddedComputeDatabase, tableName: string) {
+        this.database = database;
         this.tableName = tableName;
     }
 
-    static async withConnection<T>(duckdb: DuckDB, fn: (conn: DuckDBConnection) => Promise<T>): Promise<T> {
-        const conn = await duckdb.connect();
+    static async withConnection<T>(database: EmbeddedComputeDatabase, fn: (conn: EmbeddedTableImportConnection) => Promise<T>): Promise<T> {
+        const conn = await database.connect();
         try {
             return await fn(conn);
         } finally {
@@ -29,22 +32,22 @@ export class DataFrame {
         }
     }
 
-    async withConnection<T>(fn: (conn: DuckDBConnection) => Promise<T>): Promise<T> {
-        return await DataFrame.withConnection(this.duckdb, fn);
+    async withConnection<T>(fn: (conn: EmbeddedTableImportConnection) => Promise<T>): Promise<T> {
+        return await DataFrame.withConnection(this.database, fn);
     }
 
-    static async fromArrowTable(duckdb: DuckDB, table: arrow.Table, tableName: string): Promise<DataFrame> {
-        await DataFrame.withConnection(duckdb, async conn => {
+    static async fromArrowTable(database: EmbeddedComputeDatabase, table: arrow.Table, tableName: string): Promise<DataFrame> {
+        await DataFrame.withConnection(database, async conn => {
             await conn.insertArrowTable(table, { name: tableName, create: true });
         });
-        return new DataFrame(duckdb, tableName);
+        return new DataFrame(database, tableName);
     }
 
-    static async fromSQL(duckdb: DuckDB, sql: string, tableName: string): Promise<DataFrame> {
-        await DataFrame.withConnection(duckdb, async conn => {
+    static async fromSQL(database: EmbeddedComputeDatabase, sql: string, tableName: string): Promise<DataFrame> {
+        await DataFrame.withConnection(database, async conn => {
             await conn.query(`CREATE TABLE "${tableName}" AS ${sql}`);
         });
-        return new DataFrame(duckdb, tableName);
+        return new DataFrame(database, tableName);
     }
 
     async readTable(): Promise<arrow.Table> {

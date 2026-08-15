@@ -14,15 +14,15 @@ import {
     QueryType,
     type QueryExecutionTracker,
 } from '../app/notebook/connections/query_execution_state.js';
-import { DuckDBConnection } from '../shared/platform/duckdb/duckdb_api.js';
+import type { EmbeddedConnection } from '../shared/platform/database/embedded_database.js';
 import { LoggableException, stringifyError } from '../shared/platform/logger/logger.js';
 import { createTrace } from '../shared/platform/logger/trace_context.js';
 import { DashQLShellEnvironment } from './api.js';
 
 let NEXT_QUERY_ID = 1;
 
-export function createDuckDBShellEnvironment(
-    connection: DuckDBConnection,
+export function createEmbeddedDatabaseShellEnvironment(
+    connection: EmbeddedConnection,
     queryExecutions?: QueryExecutionTracker,
 ): DashQLShellEnvironment {
     return {

@@ -12,8 +12,8 @@ const mockState = vi.hoisted(() => ({
         warn: vi.fn(),
         error: vi.fn(),
     },
-    nativeDb: { kind: 'native' } as any,
-    webDb: { kind: 'web' } as any,
+    nativeDb: { kind: 'native', terminate: vi.fn() } as any,
+    webDb: { kind: 'web', terminate: vi.fn() } as any,
     setupNativeDuckDB: vi.fn(),
     setupWebDuckDB: vi.fn(),
 }));
@@ -24,24 +24,24 @@ vi.mock('../logger/logger_provider.js', () => ({
 vi.mock('../native_globals.js', () => ({
     isNativePlatform: () => mockState.isNative,
 }));
-vi.mock('./duckdb_provider_native.js', () => ({
+vi.mock('../duckdb/duckdb_provider_native.js', () => ({
     setupNativeDuckDB: (...args: any[]) => mockState.setupNativeDuckDB(...args),
 }));
-vi.mock('./duckdb_provider_web.js', () => ({
+vi.mock('../duckdb/duckdb_provider_web.js', () => ({
     setupWebDuckDB: (...args: any[]) => mockState.setupWebDuckDB(...args),
 }));
 
-import { DuckDBProvider, useDuckDBSetup } from './duckdb_provider.js';
+import { EmbeddedDatabaseProvider, useEmbeddedDatabaseSetup } from './embedded_database_provider.js';
 
 function SetupConsumer(props: { context: string; onReady: (db: any) => void }) {
-    const setup = useDuckDBSetup();
+    const setup = useEmbeddedDatabaseSetup();
     React.useEffect(() => {
         void setup(props.context).then(props.onReady);
     }, [props.context, props.onReady, setup]);
     return null;
 }
 
-describe('DuckDBProvider', () => {
+describe('EmbeddedDatabaseProvider', () => {
     let container: HTMLDivElement;
     let root: Root;
 
@@ -55,6 +55,8 @@ describe('DuckDBProvider', () => {
         mockState.logger.info.mockReset();
         mockState.logger.warn.mockReset();
         mockState.logger.error.mockReset();
+        mockState.nativeDb.terminate.mockReset();
+        mockState.webDb.terminate.mockReset();
         mockState.setupNativeDuckDB.mockReset().mockResolvedValue(mockState.nativeDb);
         mockState.setupWebDuckDB.mockReset().mockResolvedValue(mockState.webDb);
     });
@@ -74,9 +76,9 @@ describe('DuckDBProvider', () => {
 
         await act(async () => {
             root.render(
-                <DuckDBProvider>
+                <EmbeddedDatabaseProvider>
                     <SetupConsumer context={context} onReady={(db) => resolveDb?.(db)} />
-                </DuckDBProvider>
+                </EmbeddedDatabaseProvider>
             );
         });
 

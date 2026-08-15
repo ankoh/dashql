@@ -9,10 +9,10 @@ import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, ComputationSt
 import { LoggableException } from '../../../shared/platform/logger/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from './computation_scheduler.js';
 import { TestLogger } from '../../../shared/platform/logger/test_logger.js';
-import { DuckDB } from '../../../shared/platform/duckdb/duckdb_api.js';
+import type { EmbeddedComputeDatabase } from '../../../shared/platform/database/embedded_database.js';
 
 function createMockDataFrame(tableName: string): DataFrame {
-    return new DataFrame({} as DuckDB, tableName);
+    return new DataFrame({} as EmbeddedComputeDatabase, tableName);
 }
 
 function createOrdinalAggregate(

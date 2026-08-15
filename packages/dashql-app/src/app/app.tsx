@@ -41,7 +41,7 @@ import { NotebookScriptsRegistryProvider } from './notebook/scripts/notebook_scr
 import { AgentRunProvider } from './notebook/agent/agent_run_provider.js';
 import { getGlobalLogger, LoggerProvider } from '../shared/platform/logger/logger_provider.js';
 import { stringifyError } from '../shared/platform/logger/logger.js';
-import { DuckDBProvider } from '../shared/platform/duckdb/duckdb_provider.js';
+import { EmbeddedDatabaseProvider } from '../shared/platform/database/embedded_database_provider.js';
 import { isDebugBuild } from '../shared/globals.js';
 import { NativeNotebookSync } from './notebook/persistence/native_notebook_sync_react.js';
 
@@ -99,13 +99,13 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                                 <AIClientProvider>
                                                     <HyperDatabaseClientProvider>
                                                         <DashQLCoreProvider>
-                                                            <DuckDBProvider>
+                                                            <EmbeddedDatabaseProvider>
                                                                 <ComputeConnectionProvider>
                                                                     <NotebookProviders>
                                                                         {props.children}
                                                                     </NotebookProviders>
                                                                 </ComputeConnectionProvider>
-                                                            </DuckDBProvider>
+                                                            </EmbeddedDatabaseProvider>
                                                         </DashQLCoreProvider>
                                                     </HyperDatabaseClientProvider>
                                                 </AIClientProvider>

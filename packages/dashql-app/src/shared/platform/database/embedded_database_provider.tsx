@@ -1,30 +1,30 @@
 import * as React from 'react';
 
-import { DuckDB } from './duckdb_api.js';
+import type { EmbeddedComputeDatabase } from './embedded_database.js';
 import { useLogger } from '../logger/logger_provider.js';
 import { isNativePlatform } from '../native_globals.js';
 
-const SETUP_CTX = React.createContext<((context: string) => Promise<DuckDB>) | null>(null);
+const SETUP_CTX = React.createContext<EmbeddedDatabaseSetupFn | null>(null);
 
 interface Props {
     children: React.ReactElement;
 }
 
-export const DuckDBProvider: React.FC<Props> = (props: Props) => {
+export const EmbeddedDatabaseProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
-    const instantiation = React.useRef<Promise<DuckDB> | null>(null);
+    const instantiation = React.useRef<Promise<EmbeddedComputeDatabase> | null>(null);
 
-    const setup = React.useCallback(async (context: string): Promise<DuckDB> => {
+    const setup = React.useCallback(async (context: string): Promise<EmbeddedComputeDatabase> => {
         if (instantiation.current != null) {
             return await instantiation.current;
         }
 
-        const instantiate = async (): Promise<DuckDB> => {
+        const instantiate = async (): Promise<EmbeddedComputeDatabase> => {
             if (process.env.DASHQL_NATIVE_BUILD === 'true' || isNativePlatform()) {
-                const { setupNativeDuckDB } = await import('./duckdb_provider_native.js');
+                const { setupNativeDuckDB } = await import('../duckdb/duckdb_provider_native.js');
                 return await setupNativeDuckDB(context, logger);
             }
-            const { setupWebDuckDB } = await import('./duckdb_provider_web.js');
+            const { setupWebDuckDB } = await import('../duckdb/duckdb_provider_web.js');
             return await setupWebDuckDB(context, logger);
         };
 
@@ -38,7 +38,7 @@ export const DuckDBProvider: React.FC<Props> = (props: Props) => {
             instantiation.current = null;
             if (pending) {
                 pending
-                    .then(webdb => { webdb.terminate(); })
+                    .then(database => database.terminate())
                     .catch(() => { /* instantiation failed - nothing to terminate */ });
             }
         };
@@ -51,7 +51,7 @@ export const DuckDBProvider: React.FC<Props> = (props: Props) => {
     );
 };
 
-export type DuckDBSetupFn = (context: string) => Promise<DuckDB>;
-export function useDuckDBSetup(): DuckDBSetupFn {
+export type EmbeddedDatabaseSetupFn = (context: string) => Promise<EmbeddedComputeDatabase>;
+export function useEmbeddedDatabaseSetup(): EmbeddedDatabaseSetupFn {
     return React.useContext(SETUP_CTX)!;
 }

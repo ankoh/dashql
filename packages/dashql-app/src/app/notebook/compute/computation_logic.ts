@@ -10,7 +10,7 @@ import { Dispatch, VariantKind } from '../../../shared/utils/variant.js';
 import { LoggableException, LoggerLike, stringifyError } from '../../../shared/platform/logger/logger.js';
 import { assert } from '../../../shared/utils/assert.js';
 import { SQLFrame } from './sql/sqlframe_builder.js';
-import { DuckDB } from '../../../shared/platform/duckdb/duckdb_api.js';
+import type { EmbeddedComputeDatabase } from '../../../shared/platform/database/embedded_database.js';
 import { UmapRequest, projectWithUMAP } from './umap/umap_projection.js';
 import { extractEmbeddingMatrix } from './umap/umap_extraction.js';
 
@@ -75,7 +75,7 @@ function isTemporalType(typeId: arrow.Type): boolean {
 ///     Whenever a user updates a cross-filter (by brushing or selecting a distinct value), we just recompute the column summaries
 ///     with the new set of cross-filters and update the UI.
 ///
-export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, duckdb: DuckDB, logger: LoggerLike, projection?: UmapRequest): Promise<void> {
+export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, database: EmbeddedComputeDatabase, logger: LoggerLike, projection?: UmapRequest): Promise<void> {
     let gridColumnGroups = buildGridColumnGroups(table!);
     const computeAbortCtrl = new AbortController();
     dispatch({
@@ -84,7 +84,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
     });
 
     const inputTableName = generateTableName("__input");
-    let dataFrame = await DataFrame.fromArrowTable(duckdb, table, inputTableName);
+    let dataFrame = await DataFrame.fromArrowTable(database, table, inputTableName);
     dispatch({
         type: CREATED_DATA_FRAME,
         value: [tableId, dataFrame]
@@ -121,7 +121,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
         // identifier / frequent-value / distinct-count computations are very expensive
         // (full-vector sort/hash) and buy nothing — no summary histogram is rendered for
         // them. We keep the LIST_COLUMN group (UMAP still attaches its projection to it),
-        // but skip all of its DuckDB aggregation work.
+        // but skip all of its embedded-database aggregation work.
         const columnType = gridColumnGroups[columnId].type;
         if (columnType == SKIPPED_COLUMN || columnType == ROWNUMBER_COLUMN || columnType == LIST_COLUMN) {
             continue;
@@ -148,7 +148,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
 
     // Compute the UMAP projection (only for a resolved `'umap'` visualize spec).
     // Runs last: it appends `x`/`y` coordinate columns to both the arrow table and the
-    // DuckDB data frame, and records their field names on the embedding column's group.
+    // embedded data frame, and records their field names on the embedding column's group.
     // Blocking — the query stays in QUERY_PROCESSING_RESULTS until the projection finishes.
     if (projection != null) {
         [newTable, newDataFrame, gridColumnGroups] = await computeUmapProjection(
@@ -160,7 +160,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
 /// Compute the UMAP projection as a post-processing step and fold the resulting
 /// `x`/`y` coordinates into BOTH representations of the analyzed table:
 ///   - the main-thread arrow `dataTable` (row-aligned, for the scatter renderer), and
-///   - the DuckDB-backed `dataFrame` (so the coordinates are queryable — a plain
+///   - the embedded-database-backed `dataFrame` (so the coordinates are queryable — a plain
 ///     `{rownum, x, y}` arrow table is inserted and joined on the row-number key).
 /// The generated coordinate field names are recorded on the embedding column's own
 /// LIST_COLUMN group (as `umapProjection`), like the value-identifier meta field. On
@@ -176,7 +176,7 @@ async function computeUmapProjection(
     dispatch: Dispatch<ComputationAction>,
     logger: LoggerLike,
 ): Promise<[arrow.Table, DataFrame, ColumnGroup[]]> {
-    // The row-number column identifies rows across the arrow table and the DuckDB
+    // The row-number column identifies rows across the arrow table and the embedded
     // data frame; it was appended by the system-columns step.
     let rowNumberFieldName: string | null = null;
     for (const group of columnGroups) {
@@ -235,22 +235,22 @@ async function computeUmapProjection(
     // extracted from it in row order), so a direct column assign is correct.
     const outputTable = inputTable.assign(new arrow.Table({ [xFieldName]: xVector, [yFieldName]: yVector }));
 
-    // DuckDB side: stream the coordinates back by inserting a small keyed
+    // Embedded-database side: stream the coordinates back by inserting a small keyed
     // `{rownum, x, y}` table and joining it onto the data frame on the row number.
-    const duckdb = inputDataFrame.duckdb;
+    const database = inputDataFrame.database;
     const coordTable = new arrow.Table({
         [rowNumberFieldName]: inputTable.getChild(rowNumberFieldName)!,
         [xFieldName]: xVector,
         [yFieldName]: yVector,
     });
-    const coordFrame = await DataFrame.fromArrowTable(duckdb, coordTable, generateTableName("__umap_coords"));
+    const coordFrame = await DataFrame.fromArrowTable(database, coordTable, generateTableName("__umap_coords"));
     let outputDataFrame: DataFrame;
     try {
         const joinSQL =
             `SELECT base.*, coords."${xFieldName}", coords."${yFieldName}" ` +
             `FROM "${inputDataFrame.tableName}" base ` +
             `JOIN "${coordFrame.tableName}" coords USING ("${rowNumberFieldName}")`;
-        outputDataFrame = await DataFrame.fromSQL(duckdb, joinSQL, generateTableName("__umap"));
+        outputDataFrame = await DataFrame.fromSQL(database, joinSQL, generateTableName("__umap"));
     } finally {
         await coordFrame.destroy();
     }
@@ -315,7 +315,7 @@ export async function computeSystemColumns(task: SystemColumnComputationTask, lo
         const transformStart = performance.now();
         const tableName = generateTableName("__syscols");
         const sql = sqlFrame.toSQL();
-        const transformed = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
+        const transformed = await DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName);
         const transformEnd = performance.now();
         const transformedTable = await transformed.readTable();
         logger.info("Computed system columns", {
@@ -562,7 +562,7 @@ export async function sortTable(task: TableOrderingTask, logger: LoggerLike): Pr
 
         const sortStart = performance.now();
         const tableName = generateTableName("__ordered");
-        const transformed = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
+        const transformed = await DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName);
         const sortEnd = performance.now();
         const orderedTable = await transformed.readTable();
         logger.info("Sorted table", {
@@ -622,7 +622,7 @@ export async function filterTable(task: TableFilteringTask, logger: LoggerLike):
         }, LOG_CTX);
         const filterStart = performance.now();
         const tableName = generateTableName("__filter");
-        const transformed = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
+        const transformed = await DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName);
         const filterEnd = performance.now();
         const filterResultTable = await transformed.readTable();
 
@@ -676,7 +676,7 @@ export async function computeTableAggregates(task: TableAggregationTask, logger:
         }, LOG_CTX);
         const summaryStart = performance.now();
         const tableName = generateTableName("__tbl_agg");
-        const transformedDataFrame = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
+        const transformedDataFrame = await DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName);
         const summaryEnd = performance.now();
         logger.info("Aggregated table", {
             "version": task.tableVersion.toString(),
@@ -925,7 +925,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
     try {
         const transformStart = performance.now();
         const tableName = generateTableName("__col_agg");
-        const aggregateDataFrame = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
+        const aggregateDataFrame = await DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName);
         const transformEnd = performance.now();
         logger.debug("Aggregated table column", {
             "version": task.tableVersion.toString(),
@@ -1075,7 +1075,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
         }, LOG_CTX);
         const transformStart = performance.now();
         const tableName = generateTableName("__filt_col_agg");
-        const aggregateDataFrame = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
+        const aggregateDataFrame = await DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName);
         const transformEnd = performance.now();
         logger.info("Aggregated filtered table column", {
             "version": task.tableVersion.toString(),

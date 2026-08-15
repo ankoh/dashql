@@ -2,22 +2,22 @@
 import * as arrow from 'apache-arrow';
 
 import { QueryExecutionStatus } from '../app/notebook/connections/query_execution_state.js';
-import { createDuckDBShellEnvironment } from './duckdb_shell_environment.js';
+import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { ShellQueryExecutionTracker } from './query_execution.js';
 
-describe('DuckDB shell environment', () => {
+describe('embedded database shell environment', () => {
     it('executes against the provided connection', async () => {
         const result = new Uint8Array([1, 2, 3]);
         const queryArrowIPC = vi.fn().mockResolvedValue(result);
-        const environment = createDuckDBShellEnvironment({ queryArrowIPC } as any);
+        const environment = createEmbeddedDatabaseShellEnvironment({ queryArrowIPC } as any);
 
         await expect(environment.executeQuery('SELECT 42')).resolves.toBe(result);
         expect(queryArrowIPC).toHaveBeenCalledWith('SELECT 42');
     });
 
-    it('rejects an already cancelled query before reaching DuckDB', async () => {
+    it('rejects an already cancelled query before reaching the database', async () => {
         const queryArrowIPC = vi.fn();
-        const environment = createDuckDBShellEnvironment({ queryArrowIPC } as any);
+        const environment = createEmbeddedDatabaseShellEnvironment({ queryArrowIPC } as any);
         const abort = new AbortController();
         abort.abort();
 
@@ -29,7 +29,7 @@ describe('DuckDB shell environment', () => {
         const result = arrow.tableToIPC(arrow.tableFromArrays({ value: [1, 2, 3] }), 'file');
         const queryArrowIPC = vi.fn().mockResolvedValue(result);
         const tracker = new ShellQueryExecutionTracker();
-        const environment = createDuckDBShellEnvironment({ queryArrowIPC } as any, tracker);
+        const environment = createEmbeddedDatabaseShellEnvironment({ queryArrowIPC } as any, tracker);
 
         await expect(environment.executeQuery('SELECT * FROM values')).resolves.toBe(result);
 
@@ -46,7 +46,7 @@ describe('DuckDB shell environment', () => {
     it('tracks failed queries', async () => {
         const queryArrowIPC = vi.fn().mockRejectedValue(new Error('syntax error'));
         const tracker = new ShellQueryExecutionTracker();
-        const environment = createDuckDBShellEnvironment({ queryArrowIPC } as any, tracker);
+        const environment = createEmbeddedDatabaseShellEnvironment({ queryArrowIPC } as any, tracker);
 
         await expect(environment.executeQuery('SELEC 1')).rejects.toThrow('syntax error');
 
@@ -61,7 +61,7 @@ describe('DuckDB shell environment', () => {
     it('tracks cancelled queries', async () => {
         const queryArrowIPC = vi.fn();
         const tracker = new ShellQueryExecutionTracker();
-        const environment = createDuckDBShellEnvironment({ queryArrowIPC } as any, tracker);
+        const environment = createEmbeddedDatabaseShellEnvironment({ queryArrowIPC } as any, tracker);
         const abort = new AbortController();
         abort.abort();
 

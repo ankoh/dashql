@@ -12,7 +12,7 @@ export interface QueryExecutionArgs {
     /// transient progress surfaces such as the notebook shell.
     onLog?: (message: string) => void;
     /// Computation from the previous execution of the same notebook entry. It can be retired before
-    /// analyzing this result so its temporary DuckDB tables do not accumulate across reruns.
+    /// analyzing this result so its temporary embedded-database tables do not accumulate across reruns.
     replaceComputationId?: number | null;
     metadata: QueryMetadata;
     /// When true, the executor consults the file-based query result cache: it serves a matching

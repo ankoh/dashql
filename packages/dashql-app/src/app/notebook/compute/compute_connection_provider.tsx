@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import { DuckDB } from '../../../shared/platform/duckdb/duckdb_api.js';
-import { useDuckDBSetup } from '../../../shared/platform/duckdb/duckdb_provider.js';
+import type { EmbeddedComputeDatabase } from '../../../shared/platform/database/embedded_database.js';
+import { useEmbeddedDatabaseSetup } from '../../../shared/platform/database/embedded_database_provider.js';
 import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
 import { stringifyError } from '../../../shared/platform/logger/logger.js';
 
-const COMPUTE_DB_CTX = React.createContext<DuckDB | null>(null);
+const COMPUTE_DB_CTX = React.createContext<EmbeddedComputeDatabase | null>(null);
 
 interface Props {
     children?: React.ReactElement;
@@ -13,16 +13,16 @@ interface Props {
 
 export const ComputeConnectionProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
-    const setupWebDB = useDuckDBSetup();
-    const [duckdb, setDuckdb] = React.useState<DuckDB | null>(null);
+    const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
+    const [database, setDatabase] = React.useState<EmbeddedComputeDatabase | null>(null);
 
     React.useEffect(() => {
         let cancelled = false;
         const init = async () => {
             try {
-                const webdb = await setupWebDB("compute");
+                const embeddedDatabase = await setupEmbeddedDatabase("compute");
                 if (!cancelled) {
-                    setDuckdb(webdb);
+                    setDatabase(embeddedDatabase);
                 }
             } catch (e: any) {
                 logger.warn("Failed to create compute database", { error: stringifyError(e) }, "compute");
@@ -30,15 +30,15 @@ export const ComputeConnectionProvider: React.FC<Props> = (props: Props) => {
         };
         init();
         return () => { cancelled = true; };
-    }, [setupWebDB, logger]);
+    }, [setupEmbeddedDatabase, logger]);
 
     return (
-        <COMPUTE_DB_CTX.Provider value={duckdb}>
+        <COMPUTE_DB_CTX.Provider value={database}>
             {props.children}
         </COMPUTE_DB_CTX.Provider>
     );
 };
 
-export function useComputeDatabase(): DuckDB | null {
+export function useComputeDatabase(): EmbeddedComputeDatabase | null {
     return React.useContext(COMPUTE_DB_CTX);
 }

@@ -1,5 +1,11 @@
 import * as arrow from 'apache-arrow';
 
+import type {
+    EmbeddedDatabase,
+    EmbeddedTableImportConnection,
+    EmbeddedTableInsertOptions,
+} from '../database/embedded_database.js';
+
 export interface DuckDBOpenOptions {
     path?: string;
     maximumThreads?: number;
@@ -12,11 +18,7 @@ export interface DuckDBOpenOptions {
     };
 }
 
-export interface DuckDBInsertOptions {
-    schema?: string;
-    name: string;
-    create?: boolean;
-}
+export type DuckDBInsertOptions = EmbeddedTableInsertOptions;
 
 // Backward-compatible aliases while consumers migrate away from the old web-specific names.
 export type WebDBOpenOptions = DuckDBOpenOptions;
@@ -31,7 +33,7 @@ export function encodeArrowTable(table: arrow.Table): Uint8Array {
     return arrow.tableToIPC(table, 'stream');
 }
 
-export abstract class DuckDB {
+export abstract class DuckDB implements EmbeddedDatabase<DuckDBConnection> {
     public abstract detach(): void;
     public abstract terminate(): void;
     public abstract ping(): Promise<void>;
@@ -41,7 +43,7 @@ export abstract class DuckDB {
     public abstract connect(): Promise<DuckDBConnection>;
 }
 
-export abstract class DuckDBConnection {
+export abstract class DuckDBConnection implements EmbeddedTableImportConnection {
     protected closed = false;
 
     protected checkClosed(): void {

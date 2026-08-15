@@ -417,7 +417,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
         }
         case UMAP_COMPUTATION_SUCCEEDED: {
             // The projection appends `x`/`y` coordinate columns to BOTH representations:
-            // the main-thread arrow table (for the scatter renderer) and the DuckDB-backed
+            // the main-thread arrow table (for the scatter renderer) and the embedded-database-backed
             // data frame (so the coordinates are queryable, e.g. future cross-filter /
             // ordering); the coordinate field names are recorded on the embedding
             // column's group (`umapProjection`).

@@ -22,7 +22,7 @@ import { useAppConfig } from '../config/app_config.js';
 import { useStorage } from '../notebook/persistence/storage_provider.js';
 import { useNotebookScriptsRegistry } from '../notebook/scripts/notebook_scripts_registry.js';
 import { useDemoNotebookScriptsSetup } from '../notebook/connections/dataless/dataless_notebook.js';
-import { useDuckDBSetup } from '../../shared/platform/duckdb/duckdb_provider.js';
+import { useEmbeddedDatabaseSetup } from '../../shared/platform/database/embedded_database_provider.js';
 import { InvalidNotebook } from '../notebook/persistence/notebook_validation.js';
 
 async function loadFonts(): Promise<void> {
@@ -53,7 +53,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const connDispatch = useDynamicConnectionDispatch()[1];
     const [notebookScriptsRegistry, setNotebookScriptsRegistry] = useNotebookScriptsRegistry();
     const setupDemoNotebookScripts = useDemoNotebookScriptsSetup();
-    const setupWebDB = useDuckDBSetup();
+    const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
 
     const appEvents = usePlatformEventListener();
     const abortDefaultNotebookSwitch = React.useRef(new AbortController());
@@ -176,7 +176,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
 
             const [core] = await Promise.all([
                 setupCore("app_setup"),
-                setupWebDB("app_setup"),
+                setupEmbeddedDatabase("app_setup"),
                 loadFonts(),
             ]);
 

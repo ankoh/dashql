@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { DashQLShell, DashQLShellError, DashQLShellPromptAction, DashQLShellPromptInput, DashQLShellStatus } from './api.js';
 import * as arrow from 'apache-arrow';
-import { createDuckDBShellEnvironment } from './duckdb_shell_environment.js';
+import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { instantiateTestWebDB } from '../shared/platform/duckdb/duckdb_test_worker.js';
 import { DuckDB, DuckDBConnection } from '../shared/platform/duckdb/duckdb_api.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../shared/catalog.js';
@@ -494,7 +494,7 @@ describe('DashQL shell Wasm', () => {
             database = await instantiateTestWebDB(await WEBDB_PRECOMPILED);
             await database.open({ maximumThreads: 1 });
             connection = await database.connect();
-            executeQuery = createDuckDBShellEnvironment(connection).executeQuery;
+            executeQuery = createEmbeddedDatabaseShellEnvironment(connection).executeQuery;
 
             await expect(shell.executeQuery(
                 "SELECT * FROM (VALUES (1, 'alpha'), (20, '界'), (300, NULL)) AS t(value, name)",

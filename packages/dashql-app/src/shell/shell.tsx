@@ -5,7 +5,7 @@ import { FileDownloaderProvider } from '../shared/platform/file/file_downloader_
 import { LoggerProvider } from '../shared/platform/logger/logger_provider.js';
 import { PlatformTypeProvider } from '../shared/platform/platform_type.js';
 import { ProcessProvider } from '../shared/platform/process.js';
-import { DuckDBProvider } from '../shared/platform/duckdb/duckdb_provider.js';
+import { EmbeddedDatabaseProvider } from '../shared/platform/database/embedded_database_provider.js';
 import { GitHubTheme } from '../shared/theme/github_theme.js';
 import { LoggerToast } from '../shared/ui/logger/logger_toast.js';
 import { ShellNavBar } from './shell_navbar.js';
@@ -28,14 +28,14 @@ export const Shell: React.FC = () => {
                     <LoggerToast />
                     <FileDownloaderProvider>
                         <ProcessProvider>
-                            <DuckDBProvider>
+                            <EmbeddedDatabaseProvider>
                                 <GitHubTheme>
                                     <div className={styles.root}>
                                         <ShellNavBar engineVersion={engineVersion} queryExecutions={queryExecutions} />
                                         <ShellPage onEngineVersion={setEngineVersion} queryExecutions={queryExecutions} />
                                     </div>
                                 </GitHubTheme>
-                            </DuckDBProvider>
+                            </EmbeddedDatabaseProvider>
                         </ProcessProvider>
                     </FileDownloaderProvider>
                 </>
