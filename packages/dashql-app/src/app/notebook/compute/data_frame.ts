@@ -45,7 +45,7 @@ export class DataFrame {
 
     static async fromSQL(database: EmbeddedComputeDatabase, sql: string, tableName: string): Promise<DataFrame> {
         await DataFrame.withConnection(database, async conn => {
-            await conn.query(`CREATE TABLE "${tableName}" AS ${sql}`);
+            await conn.createTableAs(tableName, sql);
         });
         return new DataFrame(database, tableName);
     }

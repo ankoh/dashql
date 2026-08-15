@@ -1,0 +1,155 @@
+// @vitest-environment node
+import * as arrow from 'apache-arrow';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+import { DataFrame, generateTableName } from '../../../app/notebook/compute/data_frame.js';
+import { HyperDB, type HyperDBEngineClient, type HyperDBResult } from './hyperdb_wasm.js';
+
+function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
+    return table.toArray().map(row => Object.fromEntries(Object.keys(row).map(key => [key, row[key]])));
+}
+
+class CountingClient implements HyperDBEngineClient {
+    connectCount = 0;
+    disconnectCount = 0;
+
+    constructor(private readonly client: HyperDBEngineClient) {}
+
+    ready(): Promise<void> {
+        return this.client.ready();
+    }
+
+    connect(): Promise<HyperDBResult> {
+        this.connectCount++;
+        return this.client.connect();
+    }
+
+    disconnect(connection: number): Promise<HyperDBResult> {
+        this.disconnectCount++;
+        return this.client.disconnect(connection);
+    }
+
+    startQuery(connection: number, sql: string): Promise<HyperDBResult> {
+        return this.client.startQuery(connection, sql);
+    }
+
+    insertArrowIPCFromPath(
+        connection: number,
+        path: string,
+        name: string,
+        schema: string | null,
+        create: boolean,
+        internal: boolean,
+    ): Promise<HyperDBResult> {
+        return this.client.insertArrowIPCFromPath(connection, path, name, schema, create, internal);
+    }
+
+    createTemporaryFile(bytes: Uint8Array): Promise<HyperDBResult> {
+        return this.client.createTemporaryFile(bytes);
+    }
+
+    removeFile(path: string): Promise<HyperDBResult> {
+        return this.client.removeFile(path);
+    }
+
+    pollQuery(query: number): Promise<HyperDBResult> {
+        return this.client.pollQuery(query);
+    }
+
+    cancelQuery(query: number): Promise<HyperDBResult> {
+        return this.client.cancelQuery(query);
+    }
+
+    releaseQuery(query: number): Promise<HyperDBResult> {
+        return this.client.releaseQuery(query);
+    }
+
+    terminate(): Promise<void> {
+        return this.client.terminate();
+    }
+}
+
+describe('HyperDB embedded database integration', () => {
+    let client: CountingClient;
+    let database: HyperDB;
+
+    beforeEach(async () => {
+        const raw = await import('hyperdb-wasm/raw') as unknown as {
+            createNodeClient(): HyperDBEngineClient;
+        };
+        client = new CountingClient(raw.createNodeClient());
+        database = await HyperDB.create(client);
+    }, 30_000);
+
+    afterEach(async () => {
+        await database.terminate();
+    });
+
+    it('queries Hyper through Arrow IPC using the DashQL Arrow runtime', async () => {
+        const connection = await database.connect();
+        const result = await connection.query("SELECT 42::INTEGER AS answer, 'hyper'::TEXT AS engine");
+
+        expect(toPlainObjects(result)).toEqual([{ answer: 42, engine: 'hyper' }]);
+        expect(await database.getVersion()).toContain('hyper version');
+
+        await connection.close();
+    });
+
+    it('keeps temporary tables visible across logical DataFrame connections', async () => {
+        const inputName = generateTableName('__hyper_input');
+        const summaryName = generateTableName('__hyper_summary');
+        const input = await DataFrame.fromArrowTable(database, arrow.tableFromArrays({
+            id: new Int32Array([1, 2, 3]),
+            label: ['alpha', 'beta', 'gamma'],
+        }), inputName);
+
+        const [firstRead, secondRead] = await Promise.all([
+            input.readTable(),
+            input.readTable(),
+        ]);
+        expect(toPlainObjects(firstRead)).toEqual([
+            { id: 1, label: 'alpha' },
+            { id: 2, label: 'beta' },
+            { id: 3, label: 'gamma' },
+        ]);
+        expect(toPlainObjects(secondRead)).toEqual(toPlainObjects(firstRead));
+
+        const summary = await DataFrame.fromSQL(
+            database,
+            `SELECT COUNT(*)::INTEGER AS row_count FROM "${inputName}"`,
+            summaryName,
+        );
+        expect(toPlainObjects(await summary.readTable())).toEqual([{ row_count: 3 }]);
+        expect(client.connectCount).toBe(1);
+        expect(client.disconnectCount).toBe(0);
+
+        await summary.destroy();
+        await expect(summary.readTable()).rejects.toThrow();
+        await input.destroy();
+        await expect(input.readTable()).rejects.toThrow();
+    });
+
+    it('appends Arrow batches to a temporary table', async () => {
+        const first = await database.connect();
+        await first.insertArrowTable(arrow.tableFromArrays({ value: new Int32Array([1, 2]) }), {
+            name: 'hyper_append_rows',
+        });
+        await first.close();
+
+        const second = await database.connect();
+        await second.insertArrowTable(arrow.tableFromArrays({ value: new Int32Array([3, 4]) }), {
+            name: 'hyper_append_rows',
+            create: false,
+        });
+        await second.close();
+
+        const reader = await database.connect();
+        expect(toPlainObjects(await reader.query('SELECT value FROM hyper_append_rows ORDER BY value'))).toEqual([
+            { value: 1 },
+            { value: 2 },
+            { value: 3 },
+            { value: 4 },
+        ]);
+        await reader.close();
+    });
+});

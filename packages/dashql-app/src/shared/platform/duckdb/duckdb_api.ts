@@ -105,6 +105,11 @@ export abstract class DuckDBConnection implements EmbeddedTableImportConnection 
         await this.insertArrowIPCImpl(encodeArrowTable(table), options);
     }
 
+    public async createTableAs(name: string, query: string): Promise<void> {
+        this.checkClosed();
+        await this.queryArrowIPCImpl(`CREATE TABLE ${quoteIdentifier(name)} AS ${query}`);
+    }
+
     protected abstract closeImpl(): Promise<void>;
     protected abstract queryArrowIPCImpl(query: string): Promise<Uint8Array>;
     protected abstract queryPendingImpl(query: string, allowStreamResult: boolean): Promise<arrow.Table>;
@@ -113,6 +118,10 @@ export abstract class DuckDBConnection implements EmbeddedTableImportConnection 
     protected abstract fetchResultsImpl(): Promise<arrow.Table>;
     protected abstract prepareImpl(query: string): Promise<DuckDBPreparedStatement>;
     protected abstract insertArrowIPCImpl(buffer: Uint8Array, options: DuckDBInsertOptions): Promise<void>;
+}
+
+function quoteIdentifier(value: string): string {
+    return `"${value.replace(/"/g, '""')}"`;
 }
 
 export abstract class DuckDBPreparedStatement {

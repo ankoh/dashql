@@ -403,6 +403,7 @@ vitest_bin.vitest_test(
     name = "test",
     size = "small",
     args = ["run", "--config", "vite.config.generated.ts"],
+    node_options = ["--experimental-wasm-exnref"],
     tags = [],
     chdir = "packages/dashql-app",
     data = _vite_web_deps + [":tsc_typecheck", "//packages/dashql-native:ipc_bridge"],

@@ -14,6 +14,7 @@ export interface EmbeddedConnection {
 
 export interface EmbeddedTableImportConnection extends EmbeddedConnection {
     insertArrowTable(table: arrow.Table, options: EmbeddedTableInsertOptions): Promise<void>;
+    createTableAs(name: string, query: string): Promise<void>;
 }
 
 export interface EmbeddedDatabase<Connection extends EmbeddedConnection = EmbeddedConnection> {
