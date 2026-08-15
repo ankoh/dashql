@@ -4,10 +4,10 @@ import * as React from 'react';
 import { useConnectionState, useDynamicConnectionDispatch } from './connection_registry.js';
 import {
     createQueryResponseStreamMetrics,
+    createQueryExecutionState,
     QueryExecutionProgress,
     QueryExecutionResponseStream,
-    QueryExecutionState,
-    QueryExecutionStatus,
+    QueryExecutionTracker,
 } from './query_execution_state.js';
 import { useSalesforceAPI } from './salesforce/salesforce_connector.js';
 import { DATALESS_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
@@ -92,6 +92,12 @@ export function useQueryState(notebookId: string | null, queryId: number | null)
     return connReg?.queriesActive.get(queryId) ?? connReg?.queriesFinished.get(queryId) ?? null;
 }
 
+function createNotebookQueryExecutionTracker(notebookId: string, dispatch: ReturnType<typeof useDynamicConnectionDispatch>[1]): QueryExecutionTracker {
+    return {
+        dispatch: action => dispatch(notebookId, action),
+    };
+}
+
 export function QueryExecutorProvider(props: { children?: React.ReactElement }) {
     const logger = useLogger();
     const sfApi = useSalesforceAPI();
@@ -118,6 +124,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             traced.error("Connection not configured", { notebookId, "query": queryId.toString() }, LOG_CTX);
             throw new Error(`Couldn't find a connection with notebook id ${notebookId}`);
         }
+        const queryTracker = createNotebookQueryExecutionTracker(notebookId, connDispatch);
         traced.info("Executing query", {
             notebookId,
             "query": queryId.toString(),
@@ -125,45 +132,13 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         }, LOG_CTX);
 
         // Accept the query and clear the request
-        const initialState: QueryExecutionState = {
+        const initialState = createQueryExecutionState(
             queryId,
-            traceId: trace.traceId,
-            queryText: args.query,
-            queryMetadata: args.metadata,
-            status: QueryExecutionStatus.REQUESTED,
-            cancellation: runtime.cancellation,
-            resultStream: null,
-            error: null,
-            metrics: {
-                textLength: args.query.length,
-                queryRequestedAt: new Date(),
-                queryPreparingStartedAt: null,
-                querySendingStartedAt: null,
-                queryQueuedStartedAt: null,
-                queryRunningStartedAt: null,
-                receivedFirstBatchAt: null,
-                receivedLastBatchAt: null,
-                receivedAllBatchesAt: null,
-                processingResultsStartedAt: null,
-                processedResultsAt: null,
-                querySucceededAt: null,
-                queryFailedAt: null,
-                queryCancelledAt: null,
-                lastUpdatedAt: null,
-                progressUpdatesReceived: 0,
-                queryDurationMs: null,
-                streamMetrics: createQueryResponseStreamMetrics(),
-            },
-            latestProgressUpdate: null,
-            resultMetadata: null,
-            resultSchema: null,
-            resultBatches: [],
-            resultTable: null,
-            cacheKey: null,
-            servedFromCache: false,
-            cacheDeleted: false,
-            cachedAt: null,
-        };
+            trace.traceId,
+            args.query,
+            args.metadata,
+            runtime.cancellation,
+        );
 
         // Compute the cache key up front for cacheable queries. This is best-effort: if the
         // connection has no recoverable params/signature (e.g. before setup completes) we simply skip
@@ -173,7 +148,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             cacheHash = await computeQueryCacheKeyForConnection(conn.details, args.query);
         }
 
-        connDispatch(notebookId, {
+        queryTracker.dispatch({
             type: EXECUTE_QUERY,
             value: [queryId, initialState],
         });
@@ -218,13 +193,13 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         "cachedAt": new Date(cached.cachedAtMs).toISOString(),
                     }, LOG_CTX);
                     // No live stream, so synthesize empty metadata and zeroed stream metrics.
-                    connDispatch(notebookId, {
+                    queryTracker.dispatch({
                         type: QUERY_RECEIVED_ALL_BATCHES,
                         value: [queryId, table, new Map<string, string>(), createQueryResponseStreamMetrics()],
                     });
                     // Record the cache key and the entry's write time so the UI can show how old the
                     // cached result is and offer to delete it.
-                    connDispatch(notebookId, {
+                    queryTracker.dispatch({
                         type: QUERY_CACHE_RECORDED,
                         value: [queryId, cacheHash, true, cached.cachedAtMs],
                     });
@@ -232,7 +207,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             }
 
             if (!servedFromCache) {
-                connDispatch(notebookId, {
+                queryTracker.dispatch({
                     type: QUERY_SENDING,
                     value: [queryId],
                 });
@@ -259,7 +234,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
 
                 if (resultStream != null) {
                     runtime.resultStream = resultStream;
-                    connDispatch(notebookId, {
+                    queryTracker.dispatch({
                         type: QUERY_RUNNING,
                         value: [queryId, resultStream],
                     });
@@ -267,7 +242,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     // Helper to forward progress updates
                     const consumeProgress = new AsyncConsumerLambdas<QueryExecutionResponseStream, QueryExecutionProgress>(
                         (_: QueryExecutionResponseStream, progress: QueryExecutionProgress) => {
-                            connDispatch(notebookId, {
+                            queryTracker.dispatch({
                                 type: QUERY_PROGRESS_UPDATED,
                                 value: [queryId, progress],
                             });
@@ -286,7 +261,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                                 "batchColumns": batch.numCols.toString(),
                                 "batchRows": batch.numRows.toString(),
                             }, LOG_CTX);
-                            connDispatch(notebookId, {
+                            queryTracker.dispatch({
                                 type: QUERY_RECEIVED_BATCH,
                                 value: [queryId, batch, ctx.getMetrics()],
                             });
@@ -311,7 +286,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
 
                     // Is there any metadata?
                     const metadata = resultStream.getMetadata();
-                    connDispatch(notebookId, {
+                    queryTracker.dispatch({
                         type: QUERY_RECEIVED_ALL_BATCHES,
                         value: [queryId, table!, metadata, resultStream!.getMetrics()],
                     });
@@ -328,7 +303,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     query: queryId.toString(),
                     notebookId
                 }, LOG_CTX);
-                connDispatch(notebookId, {
+                queryTracker.dispatch({
                     type: QUERY_CANCELLED,
                     value: [queryId, cancellationError, resultStream?.getMetrics() ?? null],
                 });
@@ -342,7 +317,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         raw: stringifyError(e),
                     }, LOG_CTX);
                 }
-                connDispatch(notebookId, {
+                queryTracker.dispatch({
                     type: QUERY_FAILED,
                     value: [queryId, e, resultStream?.getMetrics() ?? null],
                 });
@@ -363,7 +338,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         value: [args.replaceComputationId],
                     });
                 }
-                connDispatch(notebookId, {
+                queryTracker.dispatch({
                     type: QUERY_PROCESSING_RESULTS,
                     value: [queryId],
                 });
@@ -371,7 +346,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 await analyzeTable(queryId, table!, computeDispatch, computeDb, traced, args.projection);
                 initialState.cancellation.signal.throwIfAborted();
 
-                connDispatch(notebookId, {
+                queryTracker.dispatch({
                     type: QUERY_PROCESSED_RESULTS,
                     value: [queryId],
                 });
@@ -384,7 +359,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         query: queryId.toString(),
                         notebookId,
                     }, LOG_CTX);
-                    connDispatch(notebookId, {
+                    queryTracker.dispatch({
                         type: QUERY_CANCELLED,
                         value: [queryId, cancellationError, resultStream?.getMetrics() ?? null],
                     });
@@ -401,7 +376,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     error: processingError.message,
                     ...processingError.keyValues,
                 }, LOG_CTX);
-                connDispatch(notebookId, {
+                queryTracker.dispatch({
                     type: QUERY_FAILED,
                     value: [queryId, processingError, null],
                 });
@@ -410,7 +385,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         }
 
         // Mark as succeeded
-        connDispatch(notebookId, {
+        queryTracker.dispatch({
             type: QUERY_SUCCEEDED,
             value: [queryId],
         });
@@ -424,7 +399,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 // The write landed: record the key (but not servedFromCache — this run hit the
                 // backend) so the UI can offer to delete the freshly-cached entry. The "cached at"
                 // time is the write we just made; a later hit reads the precise mtime from disk.
-                connDispatch(notebookId, {
+                queryTracker.dispatch({
                     type: QUERY_CACHE_RECORDED,
                     value: [queryId, cacheHash, false, null],
                 });

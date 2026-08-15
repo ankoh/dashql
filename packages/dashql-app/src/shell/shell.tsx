@@ -10,6 +10,7 @@ import { GitHubTheme } from '../shared/theme/github_theme.js';
 import { LoggerToast } from '../shared/ui/logger/logger_toast.js';
 import { ShellNavBar } from './shell_navbar.js';
 import { ShellPage } from './shell_page.js';
+import { ShellQueryExecutionTracker } from './query_execution.js';
 import * as styles from './shell.module.css';
 
 import '../../static/fonts/fonts.css';
@@ -18,6 +19,7 @@ import '../shared/styles/globals.css';
 
 export const Shell: React.FC = () => {
     const [engineVersion, setEngineVersion] = React.useState<string | null>(null);
+    const [queryExecutions] = React.useState(() => new ShellQueryExecutionTracker());
 
     return (
         <PlatformTypeProvider>
@@ -29,8 +31,8 @@ export const Shell: React.FC = () => {
                             <DuckDBProvider>
                                 <GitHubTheme>
                                     <div className={styles.root}>
-                                        <ShellNavBar engineVersion={engineVersion} />
-                                        <ShellPage onEngineVersion={setEngineVersion} />
+                                        <ShellNavBar engineVersion={engineVersion} queryExecutions={queryExecutions} />
+                                        <ShellPage onEngineVersion={setEngineVersion} queryExecutions={queryExecutions} />
                                     </div>
                                 </GitHubTheme>
                             </DuckDBProvider>

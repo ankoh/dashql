@@ -6,13 +6,36 @@ import { AnchoredOverlay } from '../shared/ui/foundations/anchored_overlay.js';
 import { OverlaySize } from '../shared/ui/foundations/overlay.js';
 import { VerticalTabs, VerticalTabVariant } from '../shared/ui/foundations/vertical_tabs.js';
 import { LogViewer } from '../shared/ui/logs/log_viewer.js';
+import { QueryHistoryViewer, type QueryEntry } from '../app/notebook/connections/ui/query_viewer.js';
+import type { ShellQueryExecutionTracker } from './query_execution.js';
 import * as styles from './shell_navbar.module.css';
 
 enum TabKey {
     LogViewer = 0,
+    QueryViewer = 1,
 }
 
-export const ShellInternalsViewer: React.FC<{ onClose: () => void }> = props => {
+interface ShellInternalsViewerProps {
+    onClose: () => void;
+    queryExecutions: ShellQueryExecutionTracker;
+}
+
+const ShellQueryViewer: React.FC<ShellInternalsViewerProps> = props => {
+    const executions = React.useSyncExternalStore(
+        props.queryExecutions.subscribe,
+        props.queryExecutions.getSnapshot,
+        props.queryExecutions.getSnapshot,
+    );
+    const entries: QueryEntry[] = executions.map(query => ({
+        connectionId: 'shell',
+        connectorName: 'Hyper',
+        queryId: query.queryId,
+        query,
+    }));
+    return <QueryHistoryViewer entries={entries} onClose={props.onClose} />;
+};
+
+export const ShellInternalsViewer: React.FC<ShellInternalsViewerProps> = props => {
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.LogViewer);
 
     return (
@@ -29,16 +52,27 @@ export const ShellInternalsViewer: React.FC<{ onClose: () => void }> = props => 
                     description: 'View application logs',
                     disabled: false,
                 },
+                [TabKey.QueryViewer]: {
+                    tabId: TabKey.QueryViewer,
+                    icon: `${icons}#database`,
+                    labelShort: 'Queries',
+                    ariaLabel: 'Query history',
+                    description: 'View query execution history',
+                    disabled: false,
+                },
             }}
-            tabKeys={[TabKey.LogViewer]}
+            tabKeys={[TabKey.LogViewer, TabKey.QueryViewer]}
             tabRenderers={{
                 [TabKey.LogViewer]: () => <LogViewer onClose={props.onClose} />,
+                [TabKey.QueryViewer]: () => (
+                    <ShellQueryViewer {...props} />
+                ),
             }}
         />
     );
 };
 
-export const ShellInternals: React.FC = () => {
+export const ShellInternals: React.FC<{ queryExecutions: ShellQueryExecutionTracker }> = props => {
     const [isOpen, setIsOpen] = React.useState(false);
     const close = React.useCallback(() => setIsOpen(false), []);
 
@@ -64,7 +98,7 @@ export const ShellInternals: React.FC = () => {
                 </button>
             )}
         >
-            <ShellInternalsViewer onClose={close} />
+            <ShellInternalsViewer onClose={close} queryExecutions={props.queryExecutions} />
         </AnchoredOverlay>
     );
 };

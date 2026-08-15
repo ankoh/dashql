@@ -292,7 +292,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
         case QUERY_FAILED:
         case QUERY_CACHE_RECORDED:
         case QUERY_CACHE_DELETED:
-            return reduceQueryAction(state, action, storage);
+            return reduceQueryAction(state, action);
 
         // RESET_CONNECTION is a bit special since we want to clean up our details as well
         case RESET_CONNECTION: {

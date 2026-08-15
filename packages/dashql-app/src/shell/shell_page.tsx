@@ -8,12 +8,14 @@ import { createDashQLShell, type DashQLShell } from './api.js';
 import type { BrowserShellController } from './browser_shell.js';
 import { createDuckDBShellEnvironment } from './duckdb_shell_environment.js';
 import { loginCommand } from './commands/login.js';
+import type { ShellQueryExecutionTracker } from './query_execution.js';
 import * as styles from './shell_page.module.css';
 
 const LOG_CTX = 'standalone_shell';
 
 interface ShellPageProps {
     onEngineVersion: (version: string) => void;
+    queryExecutions: ShellQueryExecutionTracker;
 }
 
 function formatInstantiationProgress(bytesLoaded: number, bytesTotal: number): string {
@@ -54,7 +56,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
 
             setStatus('Instantiating shell');
             const nextShell = await createDashQLShell({
-                environment: createDuckDBShellEnvironment(connection),
+                environment: createDuckDBShellEnvironment(connection, props.queryExecutions),
                 commands: [loginCommand],
                 onProgress: progress => {
                     if (!cancelled) {
@@ -102,7 +104,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             shell?.destroy();
             void connection?.close();
         };
-    }, [logger, props.onEngineVersion, setupDuckDB]);
+    }, [logger, props.onEngineVersion, props.queryExecutions, setupDuckDB]);
 
     return (
         <main className={styles.page} aria-label="HyperDB Shell">

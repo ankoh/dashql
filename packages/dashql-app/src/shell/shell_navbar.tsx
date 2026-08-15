@@ -5,6 +5,7 @@ import { DASHQL_VERSION } from '../shared/globals.js';
 import { AnchoredOverlay } from '../shared/ui/foundations/anchored_overlay.js';
 import { ButtonVariant, IconButton } from '../shared/ui/foundations/button.js';
 import { ShellInternals } from './internals.js';
+import type { ShellQueryExecutionTracker } from './query_execution.js';
 
 import { XIcon } from '@primer/octicons-react';
 import symbols from '@ankoh/dashql-svg-symbols';
@@ -63,6 +64,7 @@ const VersionButton: React.FC<VersionButtonProps> = (props: VersionButtonProps) 
 
 interface ShellNavBarProps {
     engineVersion: string | null;
+    queryExecutions: ShellQueryExecutionTracker;
 }
 
 export const ShellNavBar: React.FC<ShellNavBarProps> = (props: ShellNavBarProps) => (
@@ -73,7 +75,7 @@ export const ShellNavBar: React.FC<ShellNavBarProps> = (props: ShellNavBarProps)
             </svg>
         </div>
         <nav className={styles.actions} aria-label="Shell utilities">
-            <ShellInternals />
+            <ShellInternals queryExecutions={props.queryExecutions} />
             <VersionButton engineVersion={props.engineVersion} />
         </nav>
     </header>

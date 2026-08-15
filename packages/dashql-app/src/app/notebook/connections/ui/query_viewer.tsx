@@ -17,7 +17,7 @@ import { useKeyEvents } from '../../../../shared/utils/key_events.js';
 
 export const ROW_HEIGHT = 32;
 
-interface QueryEntry {
+export interface QueryEntry {
     connectionId: string;
     connectorName: string;
     queryId: number;
@@ -110,47 +110,8 @@ export const QueryRow = (props: RowComponentProps<QueryRowProps>) => {
     );
 };
 
-export function QueryViewer(props: { onClose: () => void }) {
-    const [connReg] = useConnectionRegistry();
-
-    // Snapshot-based change detection (same pattern as QueryInfoListView)
-    const snapshots = React.useRef<Uint32Array>(new Uint32Array());
-    const [entries, setEntries] = React.useState<QueryEntry[]>([]);
-
-    React.useEffect(() => {
-        const snaps = new Uint32Array(connReg.connectionMap.size);
-        let i = 0;
-        for (const [, conn] of connReg.connectionMap) {
-            snaps[i++] = conn.snapshotQueriesActiveFinished;
-        }
-
-        let changed = snaps.length !== snapshots.current.length;
-        if (!changed) {
-            for (let j = 0; j < snaps.length; j++) {
-                if (snaps[j] !== snapshots.current[j]) { changed = true; break; }
-            }
-        }
-        if (!changed) return;
-        snapshots.current = snaps;
-
-        // Build flat entry list, oldest-first so newest is at the bottom
-        // finished queries are older, active are newer — iterate both oldest-first (forward)
-        const next: QueryEntry[] = [];
-        for (const [cid, conn] of connReg.connectionMap) {
-            const name = conn.connectorInfo.names.displayShort;
-            for (const qs of [conn.queriesFinishedOrdered, conn.queriesActiveOrdered]) {
-                for (let k = 0; k < qs.length; k++) {
-                    const qid = qs[k];
-                    const query = conn.queriesActive.get(qid) ?? conn.queriesFinished.get(qid);
-                    if (query) {
-                        next.push({ connectionId: cid, connectorName: name, queryId: qid, query });
-                    }
-                }
-            }
-        }
-        setEntries(next);
-    });
-
+export function QueryHistoryViewer(props: { entries: QueryEntry[]; onClose: () => void }) {
+    const { entries } = props;
     // Container dimensions
     const containerRef = React.useRef<HTMLDivElement>(null);
     const containerSize = observeSize(containerRef);
@@ -307,4 +268,48 @@ export function QueryViewer(props: { onClose: () => void }) {
             </AnchoredOverlay>
         </>
     );
+}
+
+export function QueryViewer(props: { onClose: () => void }) {
+    const [connReg] = useConnectionRegistry();
+
+    // Snapshot-based change detection (same pattern as QueryInfoListView)
+    const snapshots = React.useRef<Uint32Array>(new Uint32Array());
+    const [entries, setEntries] = React.useState<QueryEntry[]>([]);
+
+    React.useEffect(() => {
+        const snaps = new Uint32Array(connReg.connectionMap.size);
+        let i = 0;
+        for (const [, conn] of connReg.connectionMap) {
+            snaps[i++] = conn.snapshotQueriesActiveFinished;
+        }
+
+        let changed = snaps.length !== snapshots.current.length;
+        if (!changed) {
+            for (let j = 0; j < snaps.length; j++) {
+                if (snaps[j] !== snapshots.current[j]) { changed = true; break; }
+            }
+        }
+        if (!changed) return;
+        snapshots.current = snaps;
+
+        // Build flat entry list, oldest-first so newest is at the bottom
+        // finished queries are older, active are newer — iterate both oldest-first (forward)
+        const next: QueryEntry[] = [];
+        for (const [cid, conn] of connReg.connectionMap) {
+            const name = conn.connectorInfo.names.displayShort;
+            for (const qs of [conn.queriesFinishedOrdered, conn.queriesActiveOrdered]) {
+                for (let k = 0; k < qs.length; k++) {
+                    const qid = qs[k];
+                    const query = conn.queriesActive.get(qid) ?? conn.queriesFinished.get(qid);
+                    if (query) {
+                        next.push({ connectionId: cid, connectorName: name, queryId: qid, query });
+                    }
+                }
+            }
+        }
+        setEntries(next);
+    });
+
+    return <QueryHistoryViewer entries={entries} onClose={props.onClose} />;
 }
