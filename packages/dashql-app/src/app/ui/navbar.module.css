@@ -72,8 +72,8 @@
     outline: none;
 }
 
-/* The close button, right-aligned within the pill. */
-.notebook_bar_close {
+/* Compact notebook actions, right-aligned within the pill. */
+.notebook_bar_action {
     -webkit-appearance: none;
     appearance: none;
     border: none;
@@ -92,13 +92,14 @@
     fill: currentColor;
     cursor: pointer;
     transition: background-color 0.1s ease-in-out;
+    text-decoration: none;
 }
 
-.notebook_bar_close:hover {
+.notebook_bar_action:hover {
     background-color: var(--navbar_hover_background_color);
 }
 
-.notebook_bar_close:focus-visible {
+.notebook_bar_action:focus-visible {
     outline: none;
     border: var(--nav_border_active);
 }

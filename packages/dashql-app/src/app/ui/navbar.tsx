@@ -5,7 +5,7 @@ import symbols from '@ankoh/dashql-svg-symbols';
 import { XIcon } from '@primer/octicons-react';
 
 import { AnchorAlignment, AnchorSide } from '../../shared/ui/foundations/anchored_position.js';
-import { HoverMode, NavBarButton, NavBarButtonWithRef, NavBarLink } from './navbar_button.js';
+import { HoverMode, NavBarButton, NavBarButtonWithRef } from './navbar_button.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { NotebookStorageOverlay } from '../notebook/persistence/ui/notebook_storage_overlay.js';
 import { PlatformType, usePlatformType } from '../../shared/platform/platform_type.js';
@@ -21,28 +21,10 @@ import { useLogger } from '../../shared/platform/logger/logger_provider.js';
 import { RouteContext, useRouteContext, useRouterNavigate, CHANGE_NOTEBOOK } from '../router/router.js';
 import { useVersionCheck } from '../../shared/platform/version/version_check.js';
 import { useNotebookScripts } from '../notebook/scripts/notebook_scripts_registry.js';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { NotebookViewMode, useNotebookViewMode } from '../notebook/scripts/notebook_commands.js';
 
 const LOG_CTX = "navbar";
-
-const OpenIn = (props: { url?: string | null; alt?: string; icon?: string; label: string, newWindow?: boolean, state: RouteContext }) => (
-    <div className={styles.tab}>
-        <NavBarLink
-            aria-label={props.label}
-            className={styles.tab_button}
-            to={props.url ?? ""}
-            hover={HoverMode.Darken}
-            newWindow={props.newWindow}
-            state={props.state}
-            title={props.label}
-        >
-            <svg width="16px" height="16px" aria-hidden="true">
-                <use xlinkHref={props.icon} />
-            </svg>
-        </NavBarLink>
-    </div>
-);
 
 const InternalsButton = (props: { notebookId: string | null }) => {
     const [showInternalsViewerOverlay, setInternalsViewerOverlay] = React.useState<boolean>(false);
@@ -106,7 +88,14 @@ const NotebookBarButton = React.forwardRef<HTMLButtonElement, {
     );
 });
 
-const NotebookBar = (props: { notebookId: string | null; notebookName: string | null; notebookPath: string; onClose: () => void }) => {
+const NotebookBar = (props: {
+    notebookId: string | null;
+    notebookName: string | null;
+    notebookPath: string;
+    openInAppUrl?: string | null;
+    route: RouteContext;
+    onClose: () => void;
+}) => {
     const [showStorageOverlay, setShowStorageOverlay] = React.useState<boolean>(false);
 
     return (
@@ -128,9 +117,22 @@ const NotebookBar = (props: { notebookId: string | null; notebookName: string | 
                     align={AnchorAlignment.Start}
                     anchorOffset={8}
                 />
+                {props.openInAppUrl !== undefined && (
+                    <Link
+                        aria-label="Open notebook in desktop app"
+                        className={styles.notebook_bar_action}
+                        to={props.openInAppUrl ?? ""}
+                        state={props.route}
+                        title="Open notebook in desktop app"
+                    >
+                        <svg width="14px" height="14px" aria-hidden="true">
+                            <use xlinkHref={`${symbols}#download_desktop`} />
+                        </svg>
+                    </Link>
+                )}
                 <button
                     type="button"
-                    className={styles.notebook_bar_close}
+                    className={styles.notebook_bar_action}
                     title="Close Notebook"
                     aria-label="Close Notebook"
                     onClick={props.onClose}
@@ -270,15 +272,19 @@ export const NavBar = (): React.ReactElement => {
         >
             {isBrowser && <BrandLogo onClose={handleCloseNotebook} />}
             <div className={styles.tabs}>
-                <NotebookBar notebookId={notebookId} notebookName={connection?.name ?? null} notebookPath={notebookPath} onClose={handleCloseNotebook} />
+                <NotebookBar
+                    notebookId={notebookId}
+                    notebookName={connection?.name ?? null}
+                    notebookPath={notebookPath}
+                    openInAppUrl={isBrowser ? setupUrl?.toString() ?? null : undefined}
+                    route={route}
+                    onClose={handleCloseNotebook}
+                />
             </div>
             <div className={styles.navbar_actions}>
                 {notebookId != null && <NotebookShellButton />}
                 <InternalsButton notebookId={notebookId} />
                 <VersionButton />
-                {isBrowser &&
-                    <OpenIn label="Open in App" url={setupUrl?.toString()} icon={`${symbols}#download_desktop`} newWindow={false} state={route} />
-                }
             </div>
         </div>
     );
