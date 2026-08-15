@@ -1,3 +1,5 @@
+#include <limits>
+
 #include <hyperapi/hyperapi.hpp>
 
 #include <cstdlib>

@@ -2,6 +2,8 @@
 #include "dashql/parser/scanner.h"
 #include "dashql/testing/formatter_snapshot_test.h"
 
+#include <limits>
+
 #include <hyperapi/hyperapi.hpp>
 
 #include <cstdlib>
