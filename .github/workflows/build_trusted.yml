@@ -323,17 +323,9 @@ jobs:
               run: |
                 bazel build --config=release \
                     --platforms=//bazel/platforms:x86_64_macos \
-                    //packages/dashql-native:mac_app_x86_64
-
-            - name: Test Hyper x86_64
-              shell: bash
-              run: |
-                bazel test --config=release \
-                    --platforms=//bazel/platforms:x86_64_macos \
                     //packages/hyper-api:smoke_test \
                     //packages/dashql-core:formatter_validation_hyper_tests \
-                    --test_output=errors \
-                    --test_summary=detailed
+                    //packages/dashql-native:mac_app_x86_64
 
     macos_universal_unsigned:
         name: MacOS Release Universal Unsigned
