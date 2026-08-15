@@ -10,7 +10,7 @@ namespace {
 buffers::formatting::FormattingConfigT ExecutionConfig() {
     buffers::formatting::FormattingConfigT config;
     config.mode = buffers::formatting::FormattingMode::INLINE;
-    config.dialect = buffers::formatting::FormattingDialect::DUCKDB;
+    config.dialect = buffers::formatting::FormattingDialect::HYPER;
     config.max_width = 120;
     config.indentation_width = 2;
     config.lower_relational_pipes = true;

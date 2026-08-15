@@ -18,7 +18,7 @@ describe('DashQL formatting', () => {
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, `select 1 +b from foo`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.COMPACT,
             20,
             4,
@@ -37,7 +37,7 @@ describe('DashQL formatting', () => {
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, `select 1 +b from foo`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.COMPACT,
             20,
             4,
@@ -56,7 +56,7 @@ describe('DashQL formatting', () => {
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, `select 1 +b from foo`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.COMPACT,
             20,
             4,
@@ -75,7 +75,7 @@ describe('DashQL formatting', () => {
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, "select cast('1' as bit)");
         const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.COMPACT,
             80,
             2,
@@ -159,7 +159,7 @@ describe('DashQL formatting', () => {
         script.insertTextAt(0, `from events
 |> extend sum(processed_rows) over (order by ts_hour asc rows between unbounded preceding and current row) as processed_rows_running`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.PRETTY,
             80,
             4,
@@ -228,7 +228,7 @@ from aggregates_other
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, `select 1 +b from foo`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.COMPACT,
             20,
             4,
@@ -248,7 +248,7 @@ from aggregates_other
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, `select long, list, of, multiple, columns, exceeding, 42, without, line, break`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.COMPACT,
             42,
             2,
@@ -266,7 +266,7 @@ from aggregates_other
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, `/* A comment block with enough text to wrap across lines. */\nselect 1`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.COMPACT,
             24,
             2,
@@ -284,7 +284,7 @@ from aggregates_other
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, `select 1 from memory.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.COMPACT,
             20,
             2,
@@ -304,7 +304,7 @@ from aggregates_other
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, `select 1111111111+2222222222+3333333333`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.COMPACT,
             20,
             2,
@@ -323,7 +323,7 @@ from aggregates_other
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, `select a, b from t order by a desc nulls last, b`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.COMPACT,
             80,
             2,
@@ -340,7 +340,7 @@ from aggregates_other
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, `select interval '30 days'`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.COMPACT,
             80,
             2,
@@ -357,7 +357,7 @@ from aggregates_other
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, `select interval '90' day`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.COMPACT,
             80,
             2,
@@ -374,7 +374,7 @@ from aggregates_other
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, `select * from hybrid_search(TABLE("search_index__dlm"), $"_SEARCH_STRING") as v`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.COMPACT,
             120,
             2,
@@ -391,7 +391,7 @@ from aggregates_other
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, `select * from part`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.COMPACT,
             120,
             2,
@@ -409,7 +409,7 @@ from aggregates_other
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, `select * from part`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.COMPACT,
             120,
             2,
@@ -556,7 +556,7 @@ create function days_between(start_date date, end_date date) returns integer;
             const script = dql!.createScript(catalog);
             script.insertTextAt(0, `select * from part`);
             const config = new dashql.buffers.formatting.FormattingConfigT(
-                dashql.buffers.formatting.FormattingDialect.DUCKDB,
+                dashql.buffers.formatting.FormattingDialect.HYPER,
                 dashql.buffers.formatting.FormattingMode.COMPACT,
                 120,
                 2,
@@ -571,7 +571,7 @@ create function days_between(start_date date, end_date date) returns integer;
             const script = dql!.createScript(catalog);
             script.insertTextAt(0, `select * from part`);
             const config = new dashql.buffers.formatting.FormattingConfigT(
-                dashql.buffers.formatting.FormattingDialect.DUCKDB,
+                dashql.buffers.formatting.FormattingDialect.HYPER,
                 dashql.buffers.formatting.FormattingMode.COMPACT,
                 120,
                 2,
@@ -587,7 +587,7 @@ create function days_between(start_date date, end_date date) returns integer;
             script.insertTextAt(0, `select * from part`);
             script.analyze();
             const config = new dashql.buffers.formatting.FormattingConfigT(
-                dashql.buffers.formatting.FormattingDialect.DUCKDB,
+                dashql.buffers.formatting.FormattingDialect.HYPER,
                 dashql.buffers.formatting.FormattingMode.COMPACT,
                 120,
                 2,
@@ -602,7 +602,7 @@ create function days_between(start_date date, end_date date) returns integer;
             const script = dql!.createScript(catalog);
             script.insertTextAt(0, `select * from part`);
             const config = new dashql.buffers.formatting.FormattingConfigT(
-                dashql.buffers.formatting.FormattingDialect.DUCKDB,
+                dashql.buffers.formatting.FormattingDialect.HYPER,
                 dashql.buffers.formatting.FormattingMode.COMPACT,
                 10,
                 2,
@@ -617,7 +617,7 @@ create function days_between(start_date date, end_date date) returns integer;
             const script = dql!.createScript(catalog);
             script.insertTextAt(0, RELATIONS_SQL);
             const config = new dashql.buffers.formatting.FormattingConfigT(
-                dashql.buffers.formatting.FormattingDialect.DUCKDB,
+                dashql.buffers.formatting.FormattingDialect.HYPER,
                 dashql.buffers.formatting.FormattingMode.COMPACT,
                 120,
                 2,
@@ -634,7 +634,7 @@ create function days_between(start_date date, end_date date) returns integer;
             script.insertTextAt(0, q2);
             script.analyze();
             const config = new dashql.buffers.formatting.FormattingConfigT(
-                dashql.buffers.formatting.FormattingDialect.DUCKDB,
+                dashql.buffers.formatting.FormattingDialect.HYPER,
                 dashql.buffers.formatting.FormattingMode.COMPACT,
                 80,
                 2,
@@ -658,7 +658,7 @@ create function days_between(start_date date, end_date date) returns integer;
                 dashql.buffers.formatting.FormattingMode.PRETTY,
             ]) {
                 const config = new dashql.buffers.formatting.FormattingConfigT(
-                    dashql.buffers.formatting.FormattingDialect.DUCKDB,
+                    dashql.buffers.formatting.FormattingDialect.HYPER,
                     mode,
                     120,
                     2,

@@ -41,23 +41,20 @@ inline constexpr std::string_view FormattingModeToString(buffers::formatting::Fo
 
 /// Parse formatting dialect from string
 inline constexpr buffers::formatting::FormattingDialect ParseFormattingDialect(std::string_view value) {
-    if (value == "duckdb") return buffers::formatting::FormattingDialect::DUCKDB;
     if (value == "hyper") return buffers::formatting::FormattingDialect::HYPER;
     if (value == "trino") return buffers::formatting::FormattingDialect::TRINO;
-    return buffers::formatting::FormattingDialect::DUCKDB;
+    return buffers::formatting::FormattingDialect::HYPER;
 }
 
 /// Return the string name for a formatting dialect
 inline constexpr std::string_view FormattingDialectToString(buffers::formatting::FormattingDialect dialect) {
     switch (dialect) {
-        case buffers::formatting::FormattingDialect::DUCKDB:
-            return "duckdb";
         case buffers::formatting::FormattingDialect::HYPER:
             return "hyper";
         case buffers::formatting::FormattingDialect::TRINO:
             return "trino";
     }
-    return "duckdb";
+    return "hyper";
 }
 
 using FmtReg = uint32_t;

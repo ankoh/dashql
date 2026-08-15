@@ -2,8 +2,7 @@
 namespace dashql.buffers.formatting;
 
 enum FormattingDialect: uint8 {
-    DUCKDB = 0,
-    HYPER = 1,
+    HYPER = 0,
     TRINO = 2,
 }
 

@@ -1837,7 +1837,7 @@ export function compileQuery(
 
 function executionFormattingConfig(): core.buffers.formatting.FormattingConfigT {
     return new core.buffers.formatting.FormattingConfigT(
-        core.buffers.formatting.FormattingDialect.DUCKDB,
+        core.buffers.formatting.FormattingDialect.HYPER,
         core.buffers.formatting.FormattingMode.INLINE,
         120,
         2,

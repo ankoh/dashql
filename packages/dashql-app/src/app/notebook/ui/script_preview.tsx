@@ -131,7 +131,7 @@ function buildUnformattedPreview(scriptData: ScriptData, logger: Logger): Previe
 /// diff's target offsets index the exact string the preview renders.
 function compactFormattingConfig(maxWidth: number, debugMode: boolean): core.buffers.formatting.FormattingConfigT {
     return new core.buffers.formatting.FormattingConfigT(
-        core.buffers.formatting.FormattingDialect.DUCKDB,
+        core.buffers.formatting.FormattingDialect.HYPER,
         core.buffers.formatting.FormattingMode.COMPACT,
         maxWidth,
         PREVIEW_INDENTATION_WIDTH,

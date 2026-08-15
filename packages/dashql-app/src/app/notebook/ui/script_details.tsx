@@ -194,7 +194,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
             return;
         }
         const formattingConfig = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.PRETTY,
             80,
             4,
@@ -213,7 +213,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         if (editorView == null || scriptData == null) return;
         try {
             const config = new dashql.buffers.formatting.FormattingConfigT(
-                dashql.buffers.formatting.FormattingDialect.DUCKDB,
+                dashql.buffers.formatting.FormattingDialect.HYPER,
                 mode,
                 80,
                 4,

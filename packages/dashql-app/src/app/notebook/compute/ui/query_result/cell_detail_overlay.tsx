@@ -79,7 +79,7 @@ function detectFormats(core: dashql.DashQL | null, value: string | null): Detect
             let formattedText: string | null = null;
             try {
                 const config = new dashql.buffers.formatting.FormattingConfigT(
-                    dashql.buffers.formatting.FormattingDialect.DUCKDB,
+                    dashql.buffers.formatting.FormattingDialect.HYPER,
                     dashql.buffers.formatting.FormattingMode.PRETTY,
                     80,
                     4,
