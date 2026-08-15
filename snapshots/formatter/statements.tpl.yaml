@@ -3,56 +3,56 @@ formatter-snapshots:
   - name: coverage_create_table_as
     input: create table if not exists analytics.result as select 1 as value
     dialects:
-      duckdb:
+      hyper:
         validation:
-          setup: create schema analytics;
+          setup: create schema memory.analytics;
 
   - name: coverage_create_table_as_modifiers
     input: create temporary table if not exists result (value) on commit preserve rows as select 1 with no data
     dialects:
-      duckdb:
+      hyper:
 
   - name: coverage_create_table_as_global_with_data
     input: create global temporary table result as select 1 with data
     dialects:
-      duckdb:
+      hyper:
 
   - name: coverage_create_view
     input: create view analytics.result (value) as select 1
     dialects:
-      duckdb:
+      hyper:
 
   - name: coverage_create_temporary_view
     input: create temporary view result as select 1
     dialects:
-      duckdb:
+      hyper:
 
   - name: coverage_create_function
     input: create function analytics.render(value int, label varchar) returns varchar
     dialects:
-      duckdb:
+      hyper:
 
   - name: coverage_create_aggregate
     input: create aggregate analytics.total(value int) returns int
     dialects:
-      duckdb:
+      hyper:
 
   - name: coverage_set_scalar
     input: SET variable = 'value'
     dialects:
-      duckdb:
+      hyper:
 
   - name: coverage_set_nested
     input: SET variable = ('some' = 42, 'nested' = ('enabled' = true), 'values' = [43, 44])
     dialects:
-      duckdb:
+      hyper:
 
   - name: coverage_create_table_modifiers
     input: create unlogged table result (value int) on commit drop
     dialects:
-      duckdb:
+      hyper:
 
   - name: coverage_create_table_delete_rows
     input: create temporary table result (value int) on commit delete rows
     dialects:
-      duckdb:
+      hyper:

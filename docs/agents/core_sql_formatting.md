@@ -28,8 +28,8 @@ To add a new category:
 3. Add multiple focused test cases with:
    - `name`
    - `input`
-   - `dialects.duckdb`
-4. Prefer adding `validation.setup` for DuckDB-validatable SQL so formatted outputs can be executed in validation tests.
+   - `dialects.hyper`
+4. Prefer adding `validation.setup` for Hyper-validatable SQL so formatted outputs can be executed in validation tests.
 5. Add per-mode overrides in `formatted` only when needed (for example, custom `width` in compact mode).
 
 ## 3) Generate snapshots from templates
@@ -53,12 +53,12 @@ File:
 Add an `INSTANTIATE_TEST_SUITE_P(...)` entry using:
 - `FormatterSnapshotTest::GetTests("<category>.yaml")`
 
-### DuckDB validation suite
+### Hyper validation suite
 File:
-- `packages/dashql-core/test/formatter_validation_duckdb_test_suite.cc`
+- `packages/dashql-core/test/formatter_validation_hyper_test_suite.cc`
 
 Add an `INSTANTIATE_TEST_SUITE_P(...)` entry using:
-- `FormatterSnapshotTest::GetTestsWithValidation("<category>.yaml", "duckdb")`
+- `FormatterSnapshotTest::GetTestsWithValidation("<category>.yaml", "hyper")`
 
 This ensures both textual snapshot checks and executable SQL validation are covered.
 
@@ -95,7 +95,7 @@ If failures occur:
 - [ ] New/updated `.tpl.yaml` tests added
 - [ ] Snapshots regenerated via `//snapshots/formatter:update`
 - [ ] Snapshot suite registration updated
-- [ ] DuckDB validation suite registration updated (if validatable)
+- [ ] Hyper validation suite registration updated (if validatable)
 - [ ] JS API formatting test added/updated
 - [ ] `bazel test //packages/dashql-core:all` passes
 - [ ] `bazel test //packages/dashql-app:all` passes

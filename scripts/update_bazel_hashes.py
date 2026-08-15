@@ -7,9 +7,9 @@
 #   python3 scripts/update_bazel_hashes.py bazel/core_dependencies.bzl
 #   python3 scripts/update_bazel_hashes.py bazel/external_tableauhyperapi.bzl
 import hashlib
-import json
 import os
 import re
+import subprocess
 import sys
 import urllib.request
 from pathlib import Path
@@ -26,8 +26,6 @@ DEPS = [
     ("c4core",                      "_C4CORE_VERSION",      "https://github.com/biojppm/c4core/archive/refs/tags/v{VERSION}.zip"),
     ("rapidyaml",                   "_RAPIDYAML_VERSION",   "https://github.com/biojppm/rapidyaml/archive/refs/tags/v{VERSION}.zip"),
     ("com_google_benchmark",        "_BENCHMARK_VERSION",   "https://github.com/google/benchmark/archive/refs/tags/v{VERSION}.zip"),
-    ("duckdb_prebuilt_osx",         "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/releases/download/v{VERSION}/libduckdb-osx-universal.zip"),
-    ("duckdb_prebuilt_linux_amd64", "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/releases/download/v{VERSION}/libduckdb-linux-amd64.zip"),
     ("duckdb_cli_osx",              "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/releases/download/v{VERSION}/duckdb_cli-osx-universal.zip"),
     ("duckdb_cli_linux_amd64",      "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/releases/download/v{VERSION}/duckdb_cli-linux-amd64.zip"),
     ("duckdb_source",               "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/archive/refs/tags/v{VERSION}.tar.gz"),
@@ -44,6 +42,16 @@ def get_version(content: str, varname: str) -> str:
 
 def compute_sha256(url: str) -> str:
     print(f"  Downloading: {url}", flush=True)
+    if "downloads.tableau.com" in url:
+        digest = hashlib.sha256()
+        process = subprocess.Popen(["curl", "-fsSL", "--retry", "3", url], stdout=subprocess.PIPE)
+        assert process.stdout is not None
+        while chunk := process.stdout.read(1024 * 1024):
+            digest.update(chunk)
+        if process.wait() != 0:
+            raise RuntimeError(f"Failed to download {url} with curl")
+        return digest.hexdigest()
+
     req = urllib.request.Request(url, headers={"User-Agent": "update_bazel_hashes/1.0"})
     with urllib.request.urlopen(req) as resp:
         data = resp.read()
@@ -124,10 +132,10 @@ def update_core_dependencies(filepath: Path, workspace: Path, force: bool = Fals
 # Handler: bazel/external_tableauhyperapi.bzl
 # ---------------------------------------------------------------------------
 
-_WHEEL_PLATFORMS = {
-    "linux_x86_64": "manylinux2014_x86_64.whl",
-    "macos_x86_64": "macosx_10_11_x86_64.whl",
-    "macos_arm64": "macosx_13_0_arm64.whl",
+_HYPER_CXX_PLATFORMS = {
+    "linux_x86_64": "linux-x86_64",
+    "macos_x86_64": "macos-x86_64",
+    "macos_arm64": "macos-arm64",
 }
 
 
@@ -140,43 +148,32 @@ def update_tableauhyperapi_hashes(filepath: Path, workspace: Path, force: bool =
     content = filepath.read_text()
     version = get_version(content, "TABLEAUHYPERAPI_VERSION")
 
-    meta_url = f"https://pypi.org/pypi/tableauhyperapi/{version}/json"
     print(f"[tableauhyperapi] version={version}")
-    print(f"  Fetching PyPI metadata: {meta_url}", flush=True)
-    req = urllib.request.Request(meta_url, headers={"User-Agent": "update_bazel_hashes/1.0"})
+    releases_url = "https://tableau.github.io/hyper-db/docs/releases"
+    req = urllib.request.Request(releases_url, headers={"User-Agent": "update_bazel_hashes/1.0"})
     with urllib.request.urlopen(req) as resp:
-        meta = json.loads(resp.read())
+        releases = resp.read().decode()
 
-    new_hashes = {}
-    for platform_key, wheel_suffix in _WHEEL_PLATFORMS.items():
-        wheel_url = None
-        for entry in meta["urls"]:
-            if entry["filename"].endswith(wheel_suffix):
-                wheel_url = entry["url"]
-                break
+    for platform_key, archive_platform in _HYPER_CXX_PLATFORMS.items():
+        pattern = rf'https://downloads\.tableau\.com/tssoftware/+tableauhyperapi-cxx-{archive_platform}-release-[^"<]+?\.zip'
+        urls = [url for url in re.findall(pattern, releases) if f".{version}." in url]
+        if not urls:
+            raise ValueError(f"No C++ archive found for {platform_key} and tableauhyperapi {version}")
 
-        if wheel_url is None:
-            raise ValueError(f"No {wheel_suffix} wheel found for tableauhyperapi {version}")
-
-        sha = compute_sha256(wheel_url)
+        url = urls[0].replace("/tssoftware//", "/tssoftware/")
+        sha = compute_sha256(url)
         print(f"  [{platform_key}] sha256={sha}")
-        new_hashes[platform_key] = sha
-
-    def replace_sha256_dict(m: re.Match) -> str:
-        dict_content = m.group(1)
-        for platform_key, sha in new_hashes.items():
-            dict_content = re.sub(
-                r'("' + re.escape(platform_key) + r'":\s*")[^"]*(")',
-                lambda inner, s=sha: inner.group(1) + s + inner.group(2),
-                dict_content,
-            )
-        return dict_content
-
-    content = re.sub(
-        r'(_WHEEL_SHA256\s*=\s*\{[^}]*\})',
-        replace_sha256_dict,
-        content,
-    )
+        block_pattern = rf'("{platform_key}":\s*\{{.*?"url":\s*")[^"]+(".*?"sha256":\s*")[^"]+(".*?"strip_prefix":\s*")[^"]+(".*?\}})'
+        strip_prefix = Path(url).stem
+        content, count = re.subn(
+            block_pattern,
+            lambda m: m.group(1) + url + m.group(2) + sha + m.group(3) + strip_prefix + m.group(4),
+            content,
+            count=1,
+            flags=re.DOTALL,
+        )
+        if count != 1:
+            raise ValueError(f"Could not update archive metadata for {platform_key}")
 
     filepath.write_text(content)
     print("Done.")

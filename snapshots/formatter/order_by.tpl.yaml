@@ -3,7 +3,7 @@ formatter-snapshots:
   - name: order_by_single_desc
     input: select a from test order by a desc
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test (a int, b int, c int);
@@ -11,7 +11,7 @@ formatter-snapshots:
   - name: order_by_single_asc
     input: select a from test order by a asc
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test (a int, b int, c int);
@@ -19,7 +19,7 @@ formatter-snapshots:
   - name: order_by_nulls_first
     input: select a from test order by a nulls first
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test (a int, b int, c int);
@@ -27,7 +27,7 @@ formatter-snapshots:
   - name: order_by_nulls_last
     input: select a from test order by a nulls last
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test (a int, b int, c int);
@@ -35,7 +35,7 @@ formatter-snapshots:
   - name: order_by_desc_nulls_last
     input: select a from test order by a desc nulls last
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test (a int, b int, c int);
@@ -43,7 +43,7 @@ formatter-snapshots:
   - name: order_by_multiple_items
     input: select a, b, c from test order by a desc, b nulls first, c
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test (a int, b int, c int);
@@ -51,7 +51,7 @@ formatter-snapshots:
   - name: order_by_long_list_wraps
     input: select a, b, c, d from test order by first_really_long_column_name desc, second_really_long_column_name nulls first, third_really_long_column_name
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: compact
             width: 70

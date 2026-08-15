@@ -7,7 +7,7 @@ load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 # ---------------------------------------------------------------------------
 
 # The hyperd binary comes from @hyperd_image (see version.bzl): the pinned
-# tableauhyperapi wheel by default, or a one-off binary when HYPERD_BINARY is
+# Tableau Hyper API C++ archive by default, or a one-off binary when HYPERD_BINARY is
 # set. hyperd is self-contained -- its only NEEDED libs are stock glibc
 # (libc/libpthread/libm/libdl/librt/ld-linux). It does NOT link
 # libtableauhyperapi.so -- that is the client library, irrelevant to the
@@ -29,10 +29,19 @@ pkg_files(
     tags = ["manual"],
 )
 
+pkg_files(
+    name = "license_files",
+    srcs = ["//packages/hyper-api:licenses_linux_x86_64"],
+    strip_prefix = strip_prefix.files_only(),
+    prefix = "/opt/hyper/share/licenses",
+    tags = ["manual"],
+)
+
 pkg_tar(
     name = "hyper_layer_tar",
     srcs = [
         ":hyperd_bin_files",
+        ":license_files",
         ":run_script_files",
     ],
     tags = ["manual"],

@@ -26,7 +26,7 @@ formatter-snapshots:
       ORDER BY c_customer_id
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_02
     input: |-
       WITH wscs AS
@@ -109,7 +109,7 @@ formatter-snapshots:
       WHERE d_week_seq1 = d_week_seq2-53
       ORDER BY d_week_seq1 NULLS FIRST;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_03
     input: |-
       SELECT dt.d_year,
@@ -131,7 +131,7 @@ formatter-snapshots:
                brand_id
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_04
     input: |-
       WITH year_total AS
@@ -254,7 +254,7 @@ formatter-snapshots:
                t_s_secyear.customer_preferred_cust_flag NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_05
     input: |-
       WITH ssr AS
@@ -370,7 +370,7 @@ formatter-snapshots:
                id NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_06
     input: |-
       SELECT a.ca_state state,
@@ -399,7 +399,7 @@ formatter-snapshots:
                a.ca_state NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_07
     input: |-
       SELECT i_item_id,
@@ -426,7 +426,7 @@ formatter-snapshots:
       ORDER BY i_item_id
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_08
     input: |-
       SELECT s_store_name,
@@ -857,7 +857,7 @@ formatter-snapshots:
       ORDER BY s_store_name
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_09
     input: |-
 
@@ -929,7 +929,7 @@ formatter-snapshots:
       FROM reason
       WHERE r_reason_sk = 1 ;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_10
     input: |-
       SELECT cd_gender,
@@ -998,7 +998,7 @@ formatter-snapshots:
                cd_dep_college_count
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_11
     input: |-
       WITH year_total AS
@@ -1082,7 +1082,7 @@ formatter-snapshots:
                t_s_secyear.customer_preferred_cust_flag NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_12
     input: |-
       SELECT i_item_id,
@@ -1113,7 +1113,7 @@ formatter-snapshots:
                revenueratio
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_13
     input: |-
 
@@ -1159,7 +1159,7 @@ formatter-snapshots:
                                                                  AND ca_state IN ('VA', 'TX', 'MS')
                                                                  AND ss_net_profit BETWEEN 50 AND 250)) ;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_14
     input: |-
       WITH cross_items AS
@@ -1297,7 +1297,7 @@ formatter-snapshots:
                i_category_id NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_15
     input: |-
       SELECT ca_zip,
@@ -1328,7 +1328,7 @@ formatter-snapshots:
       ORDER BY ca_zip NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_16
     input: |-
       SELECT count(DISTINCT cs_order_number) AS "order count",
@@ -1356,7 +1356,7 @@ formatter-snapshots:
       ORDER BY count(DISTINCT cs_order_number)
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_17
     input: |-
       SELECT i_item_id,
@@ -1407,7 +1407,7 @@ formatter-snapshots:
                s_state NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_18
     input: |-
       SELECT i_item_id,
@@ -1463,7 +1463,7 @@ formatter-snapshots:
           grouping (ca_county) NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_19
     input: |-
       SELECT i_brand_id brand_id,
@@ -1497,7 +1497,7 @@ formatter-snapshots:
                i_manufact
       LIMIT 100 ;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_20
     input: |-
 
@@ -1529,7 +1529,7 @@ formatter-snapshots:
                revenueratio NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_21
     input: |-
       SELECT *
@@ -1563,7 +1563,7 @@ formatter-snapshots:
                i_item_id NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_22
     input: |-
       SELECT i_product_name ,
@@ -1585,7 +1585,7 @@ formatter-snapshots:
                i_category NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_23
     input: |-
       WITH frequent_ss_items AS
@@ -1671,7 +1671,7 @@ formatter-snapshots:
                sales NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_24
     input: |-
       WITH ssales AS
@@ -1727,7 +1727,7 @@ formatter-snapshots:
                c_first_name,
                s_store_name ;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_25
     input: |-
 
@@ -1772,7 +1772,7 @@ formatter-snapshots:
                s_store_name
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_26
     input: |-
       SELECT i_item_id,
@@ -1799,7 +1799,7 @@ formatter-snapshots:
       ORDER BY i_item_id
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_27
     input: |-
       WITH results AS
@@ -1863,7 +1863,7 @@ formatter-snapshots:
                s_state NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_28
     input: |-
       SELECT *
@@ -1918,7 +1918,7 @@ formatter-snapshots:
                 OR ss_wholesale_cost BETWEEN 7 AND 7+20)) B6
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_29
     input: |-
       SELECT i_item_id,
@@ -1963,7 +1963,7 @@ formatter-snapshots:
                s_store_name
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_30
     input: |-
       WITH customer_total_return AS
@@ -2016,7 +2016,7 @@ formatter-snapshots:
                ctr_total_return NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_31
     input: |-
       WITH ss AS
@@ -2090,7 +2090,7 @@ formatter-snapshots:
                   END
       ORDER BY ss1.ca_county;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_32
     input: |-
       SELECT sum(cs_ext_discount_amt) AS "excess discount amount"
@@ -2110,7 +2110,7 @@ formatter-snapshots:
              AND d_date_sk = cs_sold_date_sk )
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_33
     input: |-
       WITH ss AS
@@ -2180,7 +2180,7 @@ formatter-snapshots:
       ORDER BY total_sales
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_34
     input: |-
       SELECT c_last_name ,
@@ -2224,7 +2224,7 @@ formatter-snapshots:
                c_preferred_cust_flag DESC NULLS FIRST,
                ss_ticket_number NULLS FIRST;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_35
     input: |-
       SELECT ca_state,
@@ -2288,7 +2288,7 @@ formatter-snapshots:
                cd_dep_college_count NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_36
     input: |-
       WITH results AS
@@ -2350,7 +2350,7 @@ formatter-snapshots:
                rank_within_parent NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_37
     input: |-
       SELECT i_item_id,
@@ -2376,7 +2376,7 @@ formatter-snapshots:
       ORDER BY i_item_id
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_38
     input: |-
       SELECT count(*)
@@ -2408,7 +2408,7 @@ formatter-snapshots:
            AND d_month_seq BETWEEN 1200 AND 1200 + 11 ) hot_cust
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_39
     input: |-
       WITH inv AS
@@ -2470,7 +2470,7 @@ formatter-snapshots:
                inv2.mean NULLS FIRST,
                inv2.cov NULLS FIRST;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_40
     input: |-
       SELECT w_state,
@@ -2499,7 +2499,7 @@ formatter-snapshots:
                i_item_id
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_41
     input: |-
       SELECT distinct(i_product_name)
@@ -2569,7 +2569,7 @@ formatter-snapshots:
       ORDER BY i_product_name
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_42
     input: |-
       SELECT dt.d_year,
@@ -2592,7 +2592,7 @@ formatter-snapshots:
                                             item.i_category
       LIMIT 100 ;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_43
     input: |-
 
@@ -2646,7 +2646,7 @@ formatter-snapshots:
                sat_sales
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_44
     input: |-
       SELECT asceding.rnk,
@@ -2699,7 +2699,7 @@ formatter-snapshots:
           i2.i_product_name desc
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_45
     input: |-
       SELECT ca_zip,
@@ -2744,7 +2744,7 @@ formatter-snapshots:
                ca_city
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_46
     input: |-
 
@@ -2795,7 +2795,7 @@ formatter-snapshots:
                ss_ticket_number NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_47
     input: |-
       WITH v1 AS
@@ -2870,7 +2870,7 @@ formatter-snapshots:
       ORDER BY sum_sales - avg_monthly_sales, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_48
     input: |-
       SELECT SUM (ss_quantity)
@@ -2913,7 +2913,7 @@ formatter-snapshots:
                                   'MS')
                  AND ss_net_profit BETWEEN 50 AND 25000)) ;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_49
     input: |-
 
@@ -3019,7 +3019,7 @@ formatter-snapshots:
                2 NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_50
     input: |-
       SELECT s_store_name,
@@ -3090,7 +3090,7 @@ formatter-snapshots:
                s_zip
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_51
     input: |-
       WITH web_v1 AS
@@ -3146,7 +3146,7 @@ formatter-snapshots:
                d_date NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_52
     input: |-
       SELECT dt.d_year,
@@ -3169,7 +3169,7 @@ formatter-snapshots:
                brand_id
       LIMIT 100 ;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_53
     input: |-
       SELECT *
@@ -3220,7 +3220,7 @@ formatter-snapshots:
                i_manufact_id
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_54
     input: |-
       WITH my_customers AS
@@ -3281,7 +3281,7 @@ formatter-snapshots:
                segment_base
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_55
     input: |-
       SELECT i_brand_id brand_id,
@@ -3301,7 +3301,7 @@ formatter-snapshots:
                i_brand_id
       LIMIT 100 ;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_56
     input: |-
       WITH ss AS
@@ -3378,7 +3378,7 @@ formatter-snapshots:
                i_item_id NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_57
     input: |-
       WITH v1 AS
@@ -3446,7 +3446,7 @@ formatter-snapshots:
       ORDER BY sum_sales - avg_monthly_sales NULLS FIRST, 1, 2, 3, 4, 5, 6, 7, 8, 9
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_58
     input: |-
       WITH ss_items AS
@@ -3520,7 +3520,7 @@ formatter-snapshots:
                ss_item_rev NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_59
     input: |-
       WITH wss AS
@@ -3609,7 +3609,7 @@ formatter-snapshots:
                d_week_seq1 NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_60
     input: |-
       WITH ss AS
@@ -3680,7 +3680,7 @@ formatter-snapshots:
                total_sales
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_61
     input: |-
       SELECT promotions,
@@ -3730,7 +3730,7 @@ formatter-snapshots:
                total
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_62
     input: |-
       SELECT w_substr,
@@ -3779,7 +3779,7 @@ formatter-snapshots:
                3 NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_63
     input: |-
 
@@ -3831,7 +3831,7 @@ formatter-snapshots:
                sum_sales
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_64
     input: |-
       WITH cs_ui AS
@@ -3959,7 +3959,7 @@ formatter-snapshots:
                cs1.s1,
                cs2.s1;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_65
     input: |-
       SELECT s_store_name,
@@ -4002,7 +4002,7 @@ formatter-snapshots:
                i_item_sk NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_66
     input: |-
       select
@@ -4223,7 +4223,7 @@ formatter-snapshots:
        order by w_warehouse_name NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_67
     input: |-
       SELECT *
@@ -4271,7 +4271,7 @@ formatter-snapshots:
                rk NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_68
     input: |-
       SELECT c_last_name,
@@ -4319,7 +4319,7 @@ formatter-snapshots:
                ss_ticket_number NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_69
     input: |-
       SELECT cd_gender,
@@ -4374,7 +4374,7 @@ formatter-snapshots:
                cd_credit_rating
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_70
     input: |-
       SELECT sum(ss_net_profit) AS total_sum,
@@ -4414,7 +4414,7 @@ formatter-snapshots:
                rank_within_parent
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_71
     input: |-
       SELECT i_brand_id brand_id,
@@ -4465,7 +4465,7 @@ formatter-snapshots:
                t_hour NULLS FIRST,
                t_minute NULLS FIRST;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_72
     input: |-
       SELECT i_item_desc,
@@ -4507,7 +4507,7 @@ formatter-snapshots:
                d1.d_week_seq NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_73
     input: |-
 
@@ -4553,7 +4553,7 @@ formatter-snapshots:
                ss_ticket_number ASC,
                ss_customer_sk ASC;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_74
     input: |-
       WITH year_total AS
@@ -4621,7 +4621,7 @@ formatter-snapshots:
       ORDER BY 1 NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_75
     input: |-
       WITH all_sales AS
@@ -4700,7 +4700,7 @@ formatter-snapshots:
                sales_amt_diff
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_76
     input: |-
       SELECT channel,
@@ -4759,7 +4759,7 @@ formatter-snapshots:
                i_category NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_77
     input: |-
       WITH ss AS
@@ -4858,7 +4858,7 @@ formatter-snapshots:
                returns_ DESC
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_78
     input: |-
       WITH ws AS
@@ -4938,7 +4938,7 @@ formatter-snapshots:
                ratio
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_79
     input: |-
       SELECT c_last_name,
@@ -4980,7 +4980,7 @@ formatter-snapshots:
                ss_ticket_number
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_80
     input: |-
       WITH ssr AS
@@ -5070,7 +5070,7 @@ formatter-snapshots:
                id NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_81
     input: |-
       WITH customer_total_return AS
@@ -5129,7 +5129,7 @@ formatter-snapshots:
                ctr_total_return
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_82
     input: |-
 
@@ -5156,7 +5156,7 @@ formatter-snapshots:
       ORDER BY i_item_id
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_83
     input: |-
       WITH sr_items AS
@@ -5230,7 +5230,7 @@ formatter-snapshots:
                sr_item_qty NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_84
     input: |-
       SELECT c_customer_id AS customer_id ,
@@ -5252,7 +5252,7 @@ formatter-snapshots:
       ORDER BY c_customer_id NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_85
     input: |-
 
@@ -5314,7 +5314,7 @@ formatter-snapshots:
                avg(wr_fee)
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_86
     input: |-
       SELECT sum(ws_net_paid) AS total_sum ,
@@ -5340,7 +5340,7 @@ formatter-snapshots:
                rank_within_parent NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_87
     input: |-
       SELECT count(*)
@@ -5374,7 +5374,7 @@ formatter-snapshots:
                  AND web_sales.ws_bill_customer_sk = customer.c_customer_sk
                  AND d_month_seq BETWEEN 1200 AND 1200+11)) cool_cust ;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_88
     input: |-
       SELECT *
@@ -5516,7 +5516,7 @@ formatter-snapshots:
                     AND household_demographics.hd_vehicle_count<=0+2))
            AND store.s_store_name = 'ese') s8 ;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_89
     input: |-
 
@@ -5540,7 +5540,7 @@ formatter-snapshots:
                s_store_name, 1, 2, 3, 5, 6, 7, 8
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_90
     input: |-
       SELECT case when pmc=0 then null else cast(amc AS decimal(15,4))/cast(pmc AS decimal(15,4)) end am_pm_ratio
@@ -5570,7 +5570,7 @@ formatter-snapshots:
       ORDER BY am_pm_ratio
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_91
     input: |-
       SELECT cc_call_center_id Call_Center,
@@ -5604,7 +5604,7 @@ formatter-snapshots:
                cd_education_status
       ORDER BY sum(cr_net_loss) DESC;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_92
     input: |-
       SELECT sum(ws_ext_discount_amt) AS "Excess Discount Amount"
@@ -5625,7 +5625,7 @@ formatter-snapshots:
       ORDER BY sum(ws_ext_discount_amt)
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_93
     input: |-
       SELECT ss_customer_sk,
@@ -5648,7 +5648,7 @@ formatter-snapshots:
                ss_customer_sk NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_94
     input: |-
 
@@ -5677,7 +5677,7 @@ formatter-snapshots:
       ORDER BY count(DISTINCT ws_order_number)
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_95
     input: |-
       WITH ws_wh AS
@@ -5712,7 +5712,7 @@ formatter-snapshots:
       ORDER BY count(DISTINCT ws_order_number)
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_96
     input: |-
       SELECT count(*)
@@ -5730,7 +5730,7 @@ formatter-snapshots:
       ORDER BY count(*)
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_97
     input: |-
       WITH ssci AS
@@ -5768,7 +5768,7 @@ formatter-snapshots:
                                AND ssci.item_sk = csci.item_sk)
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_98
     input: |-
       SELECT i_item_id ,
@@ -5798,7 +5798,7 @@ formatter-snapshots:
                i_item_desc  NULLS FIRST,
                revenueratio NULLS FIRST;
     dialects:
-      duckdb:
+      hyper:
   - name: coverage_tpcds_99
     input: |-
       SELECT w_substr ,
@@ -5846,4 +5846,4 @@ formatter-snapshots:
               cc_name NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:

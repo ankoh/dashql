@@ -5,32 +5,32 @@ formatter-snapshots:
   - name: expr_plus
     input: select 1+2
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_minus
     input: select 5-3
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_multiply
     input: select 3*4
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_divide
     input: select 10/2
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_modulo
     input: select 10%3
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_xor
     input: select 5^3
     dialects:
-      duckdb:
+      hyper:
         skip: true
 
   # Unary
@@ -38,56 +38,56 @@ formatter-snapshots:
   - name: expr_negate
     input: select -1
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_not
     input: select not a
     dialects:
-      duckdb:
+      hyper:
 
   # Comparison
 
   - name: expr_equal
     input: select a=1
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_not_equal
     input: select a<>1
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_less_than
     input: select a<1
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_greater_than
     input: select a>1
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_less_equal
     input: select a<=1
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_greater_equal
     input: select a>=1
     dialects:
-      duckdb:
+      hyper:
 
   # Logical
 
   - name: expr_and
     input: select a and b
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_or
     input: select a or b
     dialects:
-      duckdb:
+      hyper:
 
   # Precedence and parenthesisation
 
@@ -95,52 +95,52 @@ formatter-snapshots:
   - name: expr_prec_mul_over_add
     input: select 1+2*3
     dialects:
-      duckdb:
+      hyper:
 
   # explicit parens override precedence → must be preserved
   - name: expr_prec_parens_add_then_mul
     input: select (1+2)*3
     dialects:
-      duckdb:
+      hyper:
 
   # unary negate applied to a sum → parens needed around the sum
   - name: expr_prec_negate_sum
     input: select -(1+2)
     dialects:
-      duckdb:
+      hyper:
 
   # AND binds tighter than OR → no parens needed around the AND
   - name: expr_prec_and_over_or
     input: select a or b and c from test
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
-            create table test (a int, b int, c int);
+            create table test (a boolean, b boolean, c boolean);
 
   # OR inside AND operand → parens needed around OR
   - name: expr_prec_or_inside_and
     input: select (a or b) and c from test
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
-            create table test (a int, b int, c int);
+            create table test (a boolean, b boolean, c boolean);
 
   # NOT binds tighter than AND → no parens needed
   - name: expr_prec_not_over_and
     input: select not a and b from test
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
-            create table test (a int, b int, c int);
+            create table test (a boolean, b boolean, c boolean);
 
   # left-associativity: subtraction is left-associative, right side needs parens
   - name: expr_prec_sub_assoc
     input: select a-(b-c) from test
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test (a int, b int, c int);
@@ -150,7 +150,7 @@ formatter-snapshots:
   - name: expr_like
     input: select a like 'foo' from test
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test (a varchar, b varchar, c varchar);
@@ -158,7 +158,7 @@ formatter-snapshots:
   - name: expr_not_like
     input: select a not like 'foo' from test
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test (a varchar, b varchar, c varchar);
@@ -166,17 +166,17 @@ formatter-snapshots:
   - name: expr_ilike
     input: select a ilike b
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_not_ilike
     input: select a not ilike b
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_result_target_star
     input: select * from test
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test (a int);
@@ -184,7 +184,7 @@ formatter-snapshots:
   - name: expr_result_target_alias_as
     input: select a + b as total from test
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test (a int, b int);
@@ -192,7 +192,7 @@ formatter-snapshots:
   - name: expr_result_target_alias_implicit
     input: select a + b total from test
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test (a int, b int);
@@ -200,7 +200,7 @@ formatter-snapshots:
   - name: expr_function_call_min
     input: select min(ps_supplycost) from test
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test (ps_supplycost int);
@@ -208,17 +208,17 @@ formatter-snapshots:
   - name: expr_const_function_cast
     input: select somefunc 'foo'
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_const_function_cast_date
     input: select date '2021-01-10'
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_const_type_cast_timestamp
     input: select * from test where date_trunc('day', event_timestamp) = timestamp '2026-07-29 00:00:00'
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test (event_timestamp timestamp);
@@ -226,146 +226,146 @@ formatter-snapshots:
   - name: expr_const_function_cast_args
     input: select somefunc(1, 2) 'foo'
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_const_interval_cast
     input: select interval '30 days'
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_const_interval_cast_typed
     input: select interval '90' day
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_glob
     input: select a glob b
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_not_glob
     input: select a not glob b
     dialects:
-      duckdb:
+      hyper:
         skip: true
 
   - name: expr_similar_to
     input: select a similar to b
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_not_similar_to
     input: select a not similar to b
     dialects:
-      duckdb:
+      hyper:
 
   # IS tests
 
   - name: expr_is_null
     input: select a is null
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_is_not_null
     input: select a is not null
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_is_true
     input: select a is true
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_is_not_true
     input: select a is not true
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_is_false
     input: select a is false
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_is_not_false
     input: select a is not false
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_is_unknown
     input: select a is unknown
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_is_not_unknown
     input: select a is not unknown
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_is_distinct_from
     input: select a is distinct from b
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_is_not_distinct_from
     input: select a is not distinct from b
     dialects:
-      duckdb:
+      hyper:
 
   # BETWEEN
 
   - name: expr_between
     input: select a between 1 and 10
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_not_between
     input: select a not between 1 and 10
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_between_symmetric
     input: select a between symmetric 1 and 10
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_not_between_symmetric
     input: select a not between symmetric 1 and 10
     dialects:
-      duckdb:
+      hyper:
 
   # IN
 
   - name: expr_in_list
     input: select a in (1, 2, 3)
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_not_in_list
     input: select a not in (1, 2, 3)
     dialects:
-      duckdb:
+      hyper:
 
   # Long chains
 
   - name: expr_and_chain_long
     input: select very_long_column_name_a = 1 and very_long_column_name_b = 2 and very_long_column_name_c = 3
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_or_chain_long
     input: select very_long_column_name_a = 1 or very_long_column_name_b = 2 or very_long_column_name_c = 3
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_add_chain_long
     input: select very_long_column_name_a + very_long_column_name_b + very_long_column_name_c + very_long_column_name_d
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_nested_boolean_chain_long
     input: select * from test where very_long_outer_left_column = 1 and (very_long_inner_left_column = 2 or very_long_inner_middle_column = 3 or very_long_inner_right_column = 4) and very_long_outer_right_column = 5
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: compact
             width: 80
@@ -377,46 +377,46 @@ formatter-snapshots:
   - name: expr_typecast_int
     input: select x::integer
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_typecast_varchar
     input: select 123::varchar
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_typecast_chain
     input: select x::integer::varchar
     dialects:
-      duckdb:
+      hyper:
 
   # EXISTS
 
   - name: expr_exists
     input: select exists (select 1)
     dialects:
-      duckdb:
+      hyper:
 
   # CASE
 
   - name: expr_case_simple
     input: select case a when 1 then 'one' when 2 then 'two' end
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_case_simple_else
     input: select case a when 1 then 'one' else 'other' end
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_case_searched
     input: select case when a > 0 then 'pos' when a < 0 then 'neg' else 'zero' end
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_case_long
     input: select case very_long_column_name when 'very_long_value_one' then 'result_one' when 'very_long_value_two' then 'result_two' when 'very_long_value_three' then 'result_three' else 'default_result' end
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: compact
             width: 80
@@ -428,19 +428,19 @@ formatter-snapshots:
   - name: expr_union
     input: select 1 union select 2
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_union_all
     input: select 1 union all select 2
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_intersect
     input: select 1 intersect select 2
     dialects:
-      duckdb:
+      hyper:
 
   - name: expr_except
     input: select 1 except select 2
     dialects:
-      duckdb:
+      hyper:

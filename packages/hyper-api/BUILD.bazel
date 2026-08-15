@@ -1,0 +1,86 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+config_setting(
+    name = "linux_x86_64",
+    constraint_values = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
+    ],
+)
+
+config_setting(
+    name = "macos_x86_64",
+    constraint_values = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:macos",
+    ],
+)
+
+config_setting(
+    name = "macos_arm64",
+    constraint_values = [
+        "@platforms//cpu:arm64",
+        "@platforms//os:macos",
+    ],
+)
+
+alias(
+    name = "hyperapi",
+    actual = select({
+        ":linux_x86_64": "@tableauhyperapi_cxx_linux_x86_64//:hyperapi",
+        ":macos_arm64": "@tableauhyperapi_cxx_macos_arm64//:hyperapi",
+        ":macos_x86_64": "@tableauhyperapi_cxx_macos_x86_64//:hyperapi",
+    }),
+)
+
+alias(
+    name = "hyperd",
+    actual = select({
+        ":linux_x86_64": "@tableauhyperapi_cxx_linux_x86_64//:hyperd",
+        ":macos_arm64": "@tableauhyperapi_cxx_macos_arm64//:hyperd",
+        ":macos_x86_64": "@tableauhyperapi_cxx_macos_x86_64//:hyperd",
+    }),
+)
+
+alias(
+    name = "runtime_files",
+    actual = select({
+        ":linux_x86_64": "@tableauhyperapi_cxx_linux_x86_64//:runtime_files",
+        ":macos_arm64": "@tableauhyperapi_cxx_macos_arm64//:runtime_files",
+        ":macos_x86_64": "@tableauhyperapi_cxx_macos_x86_64//:runtime_files",
+    }),
+)
+
+alias(
+    name = "licenses",
+    actual = select({
+        ":linux_x86_64": "@tableauhyperapi_cxx_linux_x86_64//:licenses",
+        ":macos_arm64": "@tableauhyperapi_cxx_macos_arm64//:licenses",
+        ":macos_x86_64": "@tableauhyperapi_cxx_macos_x86_64//:licenses",
+    }),
+)
+
+# Docker targets Linux/amd64 regardless of the host platform.
+alias(
+    name = "hyperd_linux_x86_64",
+    actual = "@tableauhyperapi_cxx_linux_x86_64//:hyperd",
+)
+
+alias(
+    name = "licenses_linux_x86_64",
+    actual = "@tableauhyperapi_cxx_linux_x86_64//:licenses",
+)
+
+cc_test(
+    name = "smoke_test",
+    size = "medium",
+    srcs = ["hyper_api_test.cc"],
+    data = [":hyperd"],
+    env = {"HYPERD_BINARY": "$(rootpath :hyperd)"},
+    deps = [
+        ":hyperapi",
+        "@googletest//:gtest_main",
+    ],
+)

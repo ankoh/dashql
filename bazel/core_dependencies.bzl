@@ -96,20 +96,6 @@ def _dashql_core_deps_impl(mctx):
         urls = ["https://github.com/google/benchmark/archive/refs/tags/v" + _BENCHMARK_VERSION + ".zip"],
         build_file = "//bazel:external_benchmark.BUILD",
     )
-    # renovate: datasource=github-releases depName=duckdb/duckdb
-    http_archive(
-        name = "duckdb_prebuilt_osx",
-        sha256 = "3f3c52970ad1407ec5037062e1a5e575b24bd5b993c889f89fe5876eff47782c",
-        urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/libduckdb-osx-universal.zip"],
-        build_file = "//bazel:external_duckdb_prebuilt.BUILD",
-    )
-    # renovate: datasource=github-releases depName=duckdb/duckdb
-    http_archive(
-        name = "duckdb_prebuilt_linux_amd64",
-        sha256 = "838d98a85e697bab9935010c88a8c67d3312ccedcab4cb4a0ba01da65113bb70",
-        urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/libduckdb-linux-amd64.zip"],
-        build_file = "//bazel:external_duckdb_prebuilt.BUILD",
-    )
     # DuckDB CLI: exec-config build tool used by //packages/dashql-data to convert
     # dataset sources to Parquet in a genrule. One archive per exec platform,
     # selected via the //bazel:duckdb_cli alias. The zip preserves the exec bit.

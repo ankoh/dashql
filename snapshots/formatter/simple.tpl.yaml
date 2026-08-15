@@ -3,22 +3,22 @@ formatter-snapshots:
   - name: select_1
     input: select 1
     dialects:
-      duckdb:
+      hyper:
   # Multiple literals in select list
   - name: select_1_2
     input: select 1,2
     dialects:
-      duckdb:
+      hyper:
   # Hyper obfuscation markers retain their typed literal source text
   - name: select_hyper_obfuscated_literals
     input: select /*String(C5FA)*/,/*Integer(FCD0)*/,/*Float(5A86)*/,/*HexString(C85C)*/,/*BitString(8AB8)*/
     dialects:
-      duckdb:
+      hyper:
   # SELECT DISTINCT
   - name: select_distinct
     input: select distinct a, b from t
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table t(a int, b int);
@@ -28,22 +28,22 @@ formatter-snapshots:
   - name: select_with_simple
     input: with a as (select 1) select * from a
     dialects:
-      duckdb:
+      hyper:
 
   - name: select_with_multiple
     input: with a as (select 1), b as (select 2) select * from a, b
     dialects:
-      duckdb:
+      hyper:
 
   - name: select_with_recursive
     input: with recursive t as (select 1 union all select 2) select * from t
     dialects:
-      duckdb:
+      hyper:
 
   # VALUES
 
   - name: select_with_values
     input: with source(id, tag) as (values (1, 'test-order-1'), (2, 'test-order-2')) select * from source
     dialects:
-      duckdb:
+      hyper:
         validation:

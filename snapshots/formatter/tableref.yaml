@@ -4,7 +4,7 @@ formatter-snapshots:
     input: |-
       select 1 from a
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -24,7 +24,7 @@ formatter-snapshots:
     input: |-
       select 1 from a.b
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -38,14 +38,14 @@ formatter-snapshots:
               from a.b;
         validation:
           setup: |-
-            create schema a;
+            create schema memory.a;
             create table a.b(a int);
 
   - name: tableref_database
     input: |-
       select 1 from memory.b.c
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -59,14 +59,14 @@ formatter-snapshots:
               from memory.b.c;
         validation:
           setup: |-
-            create schema b;
+            create schema memory.b;
             create table b.c(x int);
 
   - name: tableref_alias
     input: |-
       select 1 from a t
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -86,7 +86,7 @@ formatter-snapshots:
     input: |-
       select 1 from a.b t
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -100,14 +100,14 @@ formatter-snapshots:
               from a.b t;
         validation:
           setup: |-
-            create schema a;
+            create schema memory.a;
             create table a.b(x int);
 
   - name: tableref_derived_select
     input: |-
       select d.x from (select x from a) d
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -154,7 +154,7 @@ formatter-snapshots:
       group by cntrycode
       order by cntrycode;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -203,7 +203,7 @@ formatter-snapshots:
     input: |-
       select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -223,7 +223,7 @@ formatter-snapshots:
     input: |-
       select 1 from a.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -242,14 +242,14 @@ formatter-snapshots:
                 .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb;
         validation:
           setup: |-
-            create schema a;
+            create schema memory.a;
             create table a.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb(x int);
 
   - name: tableref_long_schema_2
     input: |-
       select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -268,14 +268,14 @@ formatter-snapshots:
                 .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb;
         validation:
           setup: |-
-            create schema aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
+            create schema memory.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
             create table aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb(x int);
 
   - name: tableref_join_inner
     input: |-
       select * from a join b on a.x = b.x
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -297,7 +297,7 @@ formatter-snapshots:
     input: |-
       select * from a left join b on a.x = b.x
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -319,7 +319,7 @@ formatter-snapshots:
     input: |-
       select * from a right join b on a.x = b.x
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -341,7 +341,7 @@ formatter-snapshots:
     input: |-
       select * from a full join b on a.x = b.x
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -363,7 +363,7 @@ formatter-snapshots:
     input: |-
       select * from a join b using (x)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -385,7 +385,7 @@ formatter-snapshots:
     input: |-
       select * from a t1 join b t2 on t1.x = t2.x
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -407,7 +407,7 @@ formatter-snapshots:
     input: |-
       select * from generate_series(1, 10) t(x)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -424,7 +424,7 @@ formatter-snapshots:
     input: |-
       select * from generate_series(1, 10)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -441,7 +441,7 @@ formatter-snapshots:
     input: |-
       select * from hybrid_search(TABLE("search_index__dlm"), $"_SEARCH_STRING", $"_PREFILTER_EXPRESSION") as v
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -480,7 +480,7 @@ formatter-snapshots:
       ORDER BY "Score" DESC
           LIMIT /*Integer(7776)*/
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -529,7 +529,7 @@ formatter-snapshots:
     input: |-
       select * from generate_series(1, 10) with ordinality t(x, n)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -546,7 +546,7 @@ formatter-snapshots:
     input: |-
       select * from a, lateral generate_series(1, a.n) t(x)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -580,7 +580,7 @@ formatter-snapshots:
           order_json -> 'items'
       ) AS items(item_json);
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -606,14 +606,12 @@ formatter-snapshots:
           setup: |-
             create table source(payload__c varchar);
             insert into source values ('{"tag":"new","orders":[{"order_id":"o1","items":[{"item_id":"i1","price":"12.50"}]}]}');
-            create macro json_array_elements(input) as table
-              select value from json_each(input);
 
   - name: tableref_long_database_1
     input: |-
       select 1 from memory.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-

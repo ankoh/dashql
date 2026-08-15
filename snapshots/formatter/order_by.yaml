@@ -4,7 +4,7 @@ formatter-snapshots:
     input: |-
       select a from test order by a desc
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -25,7 +25,7 @@ formatter-snapshots:
     input: |-
       select a from test order by a asc
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -46,7 +46,7 @@ formatter-snapshots:
     input: |-
       select a from test order by a nulls first
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -67,7 +67,7 @@ formatter-snapshots:
     input: |-
       select a from test order by a nulls last
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -88,7 +88,7 @@ formatter-snapshots:
     input: |-
       select a from test order by a desc nulls last
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -109,7 +109,7 @@ formatter-snapshots:
     input: |-
       select a, b, c from test order by a desc, b nulls first, c
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -130,7 +130,7 @@ formatter-snapshots:
     input: |-
       select a, b, c, d from test order by first_really_long_column_name desc, second_really_long_column_name nulls first, third_really_long_column_name
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-

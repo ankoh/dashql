@@ -3,25 +3,25 @@ formatter-snapshots:
     input: |-
       from sales |> where revenue > 0 |> select region, revenue as amount
     dialects:
-      duckdb:
+      hyper:
 
   - name: pipe_preserve_all_stages
     input: |-
       from sales |> extend revenue * 1.2 as adjusted |> aggregate sum(adjusted) as total group by region |> distinct |> as totals |> left join regions as r using (region) |> order by total desc |> limit 10 offset 5
     dialects:
-      duckdb:
+      hyper:
 
   - name: pipe_preserve_combine_with
     input: |-
       with archive as (select * from archived_sales) from sales |> union all (from archive), (select * from forecast_sales)
     dialects:
-      duckdb:
+      hyper:
 
   - name: pipe_lower_where_select
     input: |-
       from sales |> where revenue > 0 |> select region, revenue as amount
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             lower-pipes: true
@@ -34,7 +34,7 @@ formatter-snapshots:
     input: |-
       from sales
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: compact
             lower-pipes: true
@@ -43,7 +43,7 @@ formatter-snapshots:
     input: |-
       from sales |> as s |> left join regions as r on s.region_id = r.id
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: compact
             lower-pipes: true
@@ -52,7 +52,7 @@ formatter-snapshots:
     input: |-
       from sales |> extend revenue * 1.2 as adjusted |> aggregate sum(adjusted) as total group by region
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             lower-pipes: true
@@ -65,7 +65,7 @@ formatter-snapshots:
     input: |-
       from sales |> aggregate region, sum(revenue) as total group by region
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             lower-pipes: true
@@ -74,7 +74,7 @@ formatter-snapshots:
     input: |-
       with regions as (select * from region_dim) from sales |> join regions using (region_id)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: compact
             lower-pipes: true
@@ -83,7 +83,7 @@ formatter-snapshots:
     input: |-
       from current_sales |> union all (from archived_sales), (select * from forecast_sales)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: compact
             lower-pipes: true

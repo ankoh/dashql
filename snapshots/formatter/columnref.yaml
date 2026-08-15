@@ -4,7 +4,7 @@ formatter-snapshots:
     input: |-
       select a from test
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -24,7 +24,7 @@ formatter-snapshots:
     input: |-
       select a + 1 from test
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -44,7 +44,7 @@ formatter-snapshots:
     input: |-
       select a * 2 + 1 from test
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -64,7 +64,7 @@ formatter-snapshots:
     input: |-
       select a * b + c from test
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -84,7 +84,7 @@ formatter-snapshots:
     input: |-
       select a * b + c * d from test
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-

@@ -4,7 +4,7 @@ formatter-snapshots:
       /* This block comment has enough words to be wrapped at the configured maximum width. */
       select 1
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: compact
             width: 32
@@ -22,7 +22,7 @@ formatter-snapshots:
        */
       select a, b from t
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: compact
             width: 30
@@ -38,7 +38,7 @@ formatter-snapshots:
       -- Their original line endings do not constrain the formatted output.
       select 1
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: compact
             width: 36
@@ -56,7 +56,7 @@ formatter-snapshots:
       -- Line comments after it form another independently reflowed block.
       select 1
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: compact
             width: 30
@@ -71,7 +71,7 @@ formatter-snapshots:
       /* description for the next statement */
       select 2
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: compact
             width: 28

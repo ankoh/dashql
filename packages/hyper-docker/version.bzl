@@ -5,15 +5,15 @@ Exposes two targets in @hyperd_image:
   :repo_tags.txt  -- the single repo_tag for oci_load
 
 Binary source:
-  Default: hyperd from the pinned tableauhyperapi wheel.
+  Default: hyperd from the pinned Tableau Hyper API C++ archive.
   Override: set HYPERD_BINARY to an absolute path to inject a one-off binary,
             e.g. a locally built hyperd:
               HYPERD_BINARY=/abs/path/to/hyperd \
                 bazel run //packages/hyper-docker:load_image
 
 Tag scheme (Option A -- pre-release convention, matches //bazel:versioning.bzl):
-  Release (no override): ankoh/hyperdb:<wheel>
-  One-off  (override):   ankoh/hyperdb:<wheel>-dev.g<sha>
+  Release (no override): ankoh/hyperdb:<hyperapi-version>
+  One-off  (override):   ankoh/hyperdb:<hyperapi-version>-dev.g<sha>
   A one-off image carries the short git SHA so it sorts next to the release tag
   but can never be mistaken for it.
 """
@@ -29,13 +29,15 @@ def _hyperd_image_repository_impl(repository_ctx):
         src = repository_ctx.path(override)
         if not src.exists:
             fail("HYPERD_BINARY is set to '{}' but that file does not exist.".format(override))
+        binary_type = repository_ctx.execute(["file", str(src)])
+        if binary_type.return_code != 0:
+            fail("Could not inspect HYPERD_BINARY '{}': {}".format(override, binary_type.stderr))
+        if "ELF 64-bit" not in binary_type.stdout or "x86-64" not in binary_type.stdout:
+            fail("HYPERD_BINARY must be a Linux x86_64 ELF executable, got: {}".format(binary_type.stdout.strip()))
         repository_ctx.symlink(src, "hyperd")
     else:
-        # Resolve the wheel's flat-copied hyperd (bin/hyperd). Anchor on the
-        # wheel repo's BUILD file and append the real path -- path(Label) on the
-        # :hyperd filegroup would resolve to the label name, not the source.
-        wheel_root = repository_ctx.path(Label("@tableauhyperapi_linux_x86_64//:BUILD.bazel")).dirname
-        repository_ctx.symlink(wheel_root.get_child("bin").get_child("hyperd"), "hyperd")
+        archive_root = repository_ctx.path(Label("@tableauhyperapi_cxx_linux_x86_64//:BUILD.bazel")).dirname
+        repository_ctx.symlink(archive_root.get_child("lib").get_child("hyper").get_child("hyperd"), "hyperd")
 
     # Resolve repo root from this file's label for git queries.
     # packages/hyper-docker/version.bzl -> 3 levels up to the workspace root.
@@ -84,7 +86,7 @@ exports_files(["hyperd", "repo_tags.txt"])
 
 hyperd_image_repository = repository_rule(
     implementation = _hyperd_image_repository_impl,
-    doc = "Resolves the hyperd binary (wheel or HYPERD_BINARY override) and the image repo_tag.",
+    doc = "Resolves the hyperd binary (C++ archive or HYPERD_BINARY override) and the image repo_tag.",
     local = True,
     environ = ["HYPERD_BINARY"],
 )

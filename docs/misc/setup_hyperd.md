@@ -21,17 +21,18 @@ We are re-packaging the hyperd binary shipped with the Tableau HyperAPI as Docke
 bazel run //packages/hyper-docker:load_image
 
 # Also tag the version as latest
-docker tag ankoh/hyperdb:0.0.25080 ankoh/hyperdb:latest
+docker tag ankoh/hyperdb:0.0.26225 ankoh/hyperdb:latest
 
 # Push the new version to the remote
-docker push ankoh/hyperdb:0.0.25080
+docker push ankoh/hyperdb:0.0.26225
 docker push ankoh/hyperdb:latest
 ```
 
 ### One-off image with a custom hyperd
 
-To bake in a locally built hyperd instead of the wheel binary, point `HYPERD_BINARY`
-at an absolute path. The image is tagged `ankoh/hyperdb:<hyperapi-version>-dev.g<sha>`
+To bake in a locally built Linux x86_64 hyperd instead of the pinned C++ archive binary, point
+`HYPERD_BINARY` at an absolute path. Other architectures are rejected because the image is
+always Linux/amd64. The image is tagged `ankoh/hyperdb:<hyperapi-version>-dev.g<sha>`
 (short git SHA) so it can never be mistaken for a release build.
 
 ```

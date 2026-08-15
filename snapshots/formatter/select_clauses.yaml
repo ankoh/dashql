@@ -4,7 +4,7 @@ formatter-snapshots:
     input: |-
       select all value from source
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -21,7 +21,7 @@ formatter-snapshots:
     input: |-
       select a into result from source
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -39,7 +39,7 @@ formatter-snapshots:
     input: |-
       select a into local temporary table result from source
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -57,7 +57,7 @@ formatter-snapshots:
     input: |-
       select sum(value) over first_window from source window first_window as (partition by category rows between 1 preceding and current row), second_window as (partition by region)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -79,7 +79,7 @@ formatter-snapshots:
     input: |-
       select * from source for update
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -97,7 +97,7 @@ formatter-snapshots:
     input: |-
       select * from source for no key update of source, other skip locked
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -115,7 +115,7 @@ formatter-snapshots:
     input: |-
       select * from source for share nowait
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -133,7 +133,7 @@ formatter-snapshots:
     input: |-
       select * from source for key share
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -151,7 +151,7 @@ formatter-snapshots:
     input: |-
       select * from source for read only
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -169,7 +169,7 @@ formatter-snapshots:
     input: |-
       select * from source using sample 5 rows
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -187,7 +187,7 @@ formatter-snapshots:
     input: |-
       select * from source using sample 10%
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -205,7 +205,7 @@ formatter-snapshots:
     input: |-
       select * from source using sample reservoir(50 rows) repeatable (100)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -223,7 +223,7 @@ formatter-snapshots:
     input: |-
       select * from source using sample 10% (system, 377)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -241,7 +241,7 @@ formatter-snapshots:
     input: |-
       select * from source tablesample reservoir(20%)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -258,7 +258,7 @@ formatter-snapshots:
     input: |-
       select * from source limit all offset 21
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -277,7 +277,7 @@ formatter-snapshots:
     input: |-
       select * from source fetch first row only
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-

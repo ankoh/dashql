@@ -4,7 +4,7 @@ formatter-snapshots:
     input: |-
       select 1+2
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -20,7 +20,7 @@ formatter-snapshots:
     input: |-
       select 1+2*3
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -36,7 +36,7 @@ formatter-snapshots:
     input: |-
       select (1+2)*3
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -52,7 +52,7 @@ formatter-snapshots:
     input: |-
       select 1*2+3
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -68,7 +68,7 @@ formatter-snapshots:
     input: |-
       select 1 or 2 and 3
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -84,7 +84,7 @@ formatter-snapshots:
     input: |-
       select (1 or 2) and 3
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -100,7 +100,7 @@ formatter-snapshots:
     input: |-
       select 1-2-3
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -116,7 +116,7 @@ formatter-snapshots:
     input: |-
       select 10-(2-3)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -132,7 +132,7 @@ formatter-snapshots:
     input: |-
       select -1+2
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -148,7 +148,7 @@ formatter-snapshots:
     input: |-
       select -(1+2)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -164,7 +164,7 @@ formatter-snapshots:
     input: |-
       select 1>2 and 3=3
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -180,7 +180,7 @@ formatter-snapshots:
     input: |-
       select 12/3*2
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -196,7 +196,7 @@ formatter-snapshots:
     input: |-
       select (12/3)*2
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -212,7 +212,7 @@ formatter-snapshots:
     input: |-
       select not 1=1 and 2=2
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -228,7 +228,7 @@ formatter-snapshots:
     input: |-
       select not (1=1 and 2=2)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -244,7 +244,7 @@ formatter-snapshots:
     input: |-
       select 1=1 or 2=2
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -260,7 +260,7 @@ formatter-snapshots:
     input: |-
       select 1+2+3
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -276,7 +276,7 @@ formatter-snapshots:
     input: |-
       select 10-2+3
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -292,7 +292,7 @@ formatter-snapshots:
     input: |-
       select 10%3*2
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -308,7 +308,7 @@ formatter-snapshots:
     input: |-
       select 10%3+1
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -324,7 +324,7 @@ formatter-snapshots:
     input: |-
       select -2*3
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -340,7 +340,7 @@ formatter-snapshots:
     input: |-
       select not 1>2
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -356,7 +356,7 @@ formatter-snapshots:
     input: |-
       select 1 and 2 and 3
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -372,7 +372,7 @@ formatter-snapshots:
     input: |-
       select 1 or 2 or 3
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -388,7 +388,7 @@ formatter-snapshots:
     input: |-
       select 10/2%3
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-

@@ -4,7 +4,7 @@ formatter-snapshots:
     input: |-
       explain select 1
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -20,7 +20,7 @@ formatter-snapshots:
     input: |-
       explain (analyze) select 1
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -38,7 +38,7 @@ formatter-snapshots:
     input: |-
       explain (analyze, format text) select 1
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -56,7 +56,7 @@ formatter-snapshots:
     input: |-
       explain create table foo (id integer)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -73,7 +73,7 @@ formatter-snapshots:
       explain (format sql, sql_dialect internal_spark_2025_12)
       select * from raw_sql_subquery(descriptor(foo int), 'bar')
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-

@@ -24,7 +24,7 @@ formatter-snapshots:
           l_returnflag,
           l_linestatus
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q2: Minimum cost supplier
   - name: coverage_tpch_2
     input: |
@@ -74,7 +74,7 @@ formatter-snapshots:
       limit
       	100
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q3: Shipping priority
   - name: coverage_tpch_3
     input: |
@@ -103,7 +103,7 @@ formatter-snapshots:
       limit
       	10
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q4: Order priority
   - name: coverage_tpch_4
     input: |
@@ -129,7 +129,7 @@ formatter-snapshots:
       order by
               o_orderpriority
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q5: Local supplier volume
   - name: coverage_tpch_5
     input: |
@@ -158,7 +158,7 @@ formatter-snapshots:
       order by
               revenue desc
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q6: Forecasting revenue change
   - name: coverage_tpch_6
     input: |
@@ -172,7 +172,7 @@ formatter-snapshots:
               and l_discount between 0.06 - 0.01 and 0.06 + 0.01
               and l_quantity < 24
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q7: Volume shipping
   - name: coverage_tpch_7
     input: |
@@ -216,7 +216,7 @@ formatter-snapshots:
               cust_nation,
               l_year
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q8: National market share
   - name: coverage_tpch_8
     input: |
@@ -258,7 +258,7 @@ formatter-snapshots:
       order by
               o_year
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q9: Product type profit measure
   - name: coverage_tpch_9
     input: |
@@ -295,7 +295,7 @@ formatter-snapshots:
               nation,
               o_year desc
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q10: Returned item reporting
   - name: coverage_tpch_10
     input: |
@@ -333,7 +333,7 @@ formatter-snapshots:
       limit
       	20
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q11: Important stock identification
   - name: coverage_tpch_11
     input: |
@@ -365,7 +365,7 @@ formatter-snapshots:
       order by
               "value" desc
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q12: Shipping modes and order priority
   - name: coverage_tpch_12
     input: |
@@ -398,7 +398,7 @@ formatter-snapshots:
       order by
               l_shipmode
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q13: Customer distribution
   - name: coverage_tpch_13
     input: |
@@ -423,7 +423,7 @@ formatter-snapshots:
               custdist desc,
               c_count desc
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q14: Promotion effect
   - name: coverage_tpch_14
     input: |
@@ -441,7 +441,7 @@ formatter-snapshots:
               and l_shipdate >= date '1995-09-01'
               and l_shipdate < date '1995-10-01'
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q15: Top supplier query
   - name: coverage_tpch_15
     input: |
@@ -476,7 +476,7 @@ formatter-snapshots:
       order by
       	s_suppkey
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q16: Parts supplier relationship
   - name: coverage_tpch_16
     input: |
@@ -511,7 +511,7 @@ formatter-snapshots:
               p_type,
               p_size
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q17: Small quantity order revenue
   - name: coverage_tpch_17
     input: |
@@ -533,7 +533,7 @@ formatter-snapshots:
                               l_partkey = p_partkey
               )
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q18: Large volume customer
   - name: coverage_tpch_18
     input: |
@@ -572,7 +572,7 @@ formatter-snapshots:
       limit
       	100
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q19: Discounted revenue
   - name: coverage_tpch_19
     input: |
@@ -612,7 +612,7 @@ formatter-snapshots:
                       and l_shipinstruct = 'DELIVER IN PERSON'
               )
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q20: Potential part promotion
   - name: coverage_tpch_20
     input: |
@@ -654,7 +654,7 @@ formatter-snapshots:
       order by
               s_name
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q21: Suppliers who kept orders waiting
   - name: coverage_tpch_21
     input: |
@@ -700,7 +700,7 @@ formatter-snapshots:
       limit
       	100
     dialects:
-      duckdb:
+      hyper:
   # TPC-H Q22: Global sales opportunity
   - name: coverage_tpch_22
     input: |
@@ -742,4 +742,4 @@ formatter-snapshots:
       order by
               cntrycode
     dialects:
-      duckdb:
+      hyper:

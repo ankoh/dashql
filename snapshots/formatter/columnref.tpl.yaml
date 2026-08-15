@@ -2,7 +2,7 @@ formatter-snapshots:
   - name: columnref_simple
     input: select a from test
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test(a int);
@@ -10,7 +10,7 @@ formatter-snapshots:
   - name: columnref_plus
     input: select a + 1 from test
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test(a int);
@@ -18,7 +18,7 @@ formatter-snapshots:
   - name: columnref_prec_1
     input: select a * 2 + 1 from test
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test(a int);
@@ -26,7 +26,7 @@ formatter-snapshots:
   - name: columnref_prec_2
     input: select a * b + c from test
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test(a int, b int, c int, d int);
@@ -34,7 +34,7 @@ formatter-snapshots:
   - name: columnref_prec_3
     input: select a * b + c * d from test
     dialects:
-      duckdb:
+      hyper:
         validation:
           setup: |-
             create table test(a int, b int, c int, d int);

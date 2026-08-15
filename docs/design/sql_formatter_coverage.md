@@ -14,7 +14,7 @@ Track support at three levels:
 2. **Parser-corpus ratchet**: format every error-free case in `snapshots/parser` and report unformattable node type and
    attribute pairs. New grammar fixtures must not increase the unsupported set.
 3. **Behavior snapshots**: add focused formatter fixtures for each supported syntax family. Require every fixture to be
-   fully formatted, parse the formatted result again, and use DuckDB execution validation where the syntax is portable.
+   fully formatted, parse the formatted result again, and use Hyper execution validation where the syntax is portable.
 
 The parser corpus is the breadth gate; formatter snapshots define layout quality. Neither replaces the other.
 

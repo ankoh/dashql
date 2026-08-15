@@ -26,7 +26,7 @@ formatter-snapshots:
       ORDER BY c_customer_id
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -149,7 +149,7 @@ formatter-snapshots:
       WHERE d_week_seq1 = d_week_seq2-53
       ORDER BY d_week_seq1 NULLS FIRST;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -307,7 +307,7 @@ formatter-snapshots:
                brand_id
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -455,7 +455,7 @@ formatter-snapshots:
                t_s_secyear.customer_preferred_cust_flag NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -745,7 +745,7 @@ formatter-snapshots:
                id NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -962,7 +962,7 @@ formatter-snapshots:
                a.ca_state NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -1029,7 +1029,7 @@ formatter-snapshots:
       ORDER BY i_item_id
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -1497,7 +1497,7 @@ formatter-snapshots:
       ORDER BY s_store_name
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -2066,7 +2066,7 @@ formatter-snapshots:
       FROM reason
       WHERE r_reason_sk = 1 ;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -2248,7 +2248,7 @@ formatter-snapshots:
                cd_dep_college_count
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -2433,7 +2433,7 @@ formatter-snapshots:
                t_s_secyear.customer_preferred_cust_flag NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -2581,7 +2581,7 @@ formatter-snapshots:
                revenueratio
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -2658,7 +2658,7 @@ formatter-snapshots:
                                                                  AND ca_state IN ('VA', 'TX', 'MS')
                                                                  AND ss_net_profit BETWEEN 50 AND 250)) ;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -2865,7 +2865,7 @@ formatter-snapshots:
                i_category_id NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -3068,7 +3068,7 @@ formatter-snapshots:
       ORDER BY ca_zip NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -3129,7 +3129,7 @@ formatter-snapshots:
       ORDER BY count(DISTINCT cs_order_number)
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -3224,7 +3224,7 @@ formatter-snapshots:
                s_state NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -3340,7 +3340,7 @@ formatter-snapshots:
           grouping (ca_county) NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -3429,7 +3429,7 @@ formatter-snapshots:
                i_manufact
       LIMIT 100 ;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -3491,7 +3491,7 @@ formatter-snapshots:
                revenueratio NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -3562,7 +3562,7 @@ formatter-snapshots:
                i_item_id NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -3637,7 +3637,7 @@ formatter-snapshots:
                i_category NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -3744,7 +3744,7 @@ formatter-snapshots:
                sales NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -3907,7 +3907,7 @@ formatter-snapshots:
                c_first_name,
                s_store_name ;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -4018,7 +4018,7 @@ formatter-snapshots:
                s_store_name
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -4092,7 +4092,7 @@ formatter-snapshots:
       ORDER BY i_item_id
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -4193,7 +4193,7 @@ formatter-snapshots:
                s_state NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -4328,7 +4328,7 @@ formatter-snapshots:
                 OR ss_wholesale_cost BETWEEN 7 AND 7+20)) B6
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -4494,7 +4494,7 @@ formatter-snapshots:
                s_store_name
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -4593,7 +4593,7 @@ formatter-snapshots:
                ctr_total_return NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -4735,7 +4735,7 @@ formatter-snapshots:
                   END
       ORDER BY ss1.ca_county;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -4841,7 +4841,7 @@ formatter-snapshots:
              AND d_date_sk = cs_sold_date_sk )
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -4945,7 +4945,7 @@ formatter-snapshots:
       ORDER BY total_sales
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -5085,7 +5085,7 @@ formatter-snapshots:
                c_preferred_cust_flag DESC NULLS FIRST,
                ss_ticket_number NULLS FIRST;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -5203,7 +5203,7 @@ formatter-snapshots:
                cd_dep_college_count NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -5347,7 +5347,7 @@ formatter-snapshots:
                rank_within_parent NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -5462,7 +5462,7 @@ formatter-snapshots:
       ORDER BY i_item_id
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -5523,7 +5523,7 @@ formatter-snapshots:
            AND d_month_seq BETWEEN 1200 AND 1200 + 11 ) hot_cust
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -5633,7 +5633,7 @@ formatter-snapshots:
                inv2.mean NULLS FIRST,
                inv2.cov NULLS FIRST;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -5740,7 +5740,7 @@ formatter-snapshots:
                i_item_id
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -5862,7 +5862,7 @@ formatter-snapshots:
       ORDER BY i_product_name
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -5978,7 +5978,7 @@ formatter-snapshots:
                                             item.i_category
       LIMIT 100 ;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -6057,7 +6057,7 @@ formatter-snapshots:
                sat_sales
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -6180,7 +6180,7 @@ formatter-snapshots:
           i2.i_product_name desc
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -6324,7 +6324,7 @@ formatter-snapshots:
                ca_city
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -6411,7 +6411,7 @@ formatter-snapshots:
                ss_ticket_number NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -6542,7 +6542,7 @@ formatter-snapshots:
       ORDER BY sum_sales - avg_monthly_sales, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -6667,7 +6667,7 @@ formatter-snapshots:
                                   'MS')
                  AND ss_net_profit BETWEEN 50 AND 25000)) ;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -6831,7 +6831,7 @@ formatter-snapshots:
                2 NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -7063,7 +7063,7 @@ formatter-snapshots:
                s_zip
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -7221,7 +7221,7 @@ formatter-snapshots:
                d_date NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -7330,7 +7330,7 @@ formatter-snapshots:
                brand_id
       LIMIT 100 ;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -7407,7 +7407,7 @@ formatter-snapshots:
                i_manufact_id
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -7542,7 +7542,7 @@ formatter-snapshots:
                segment_base
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -7642,7 +7642,7 @@ formatter-snapshots:
                i_brand_id
       LIMIT 100 ;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -7740,7 +7740,7 @@ formatter-snapshots:
                i_item_id NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -7904,7 +7904,7 @@ formatter-snapshots:
       ORDER BY sum_sales - avg_monthly_sales NULLS FIRST, 1, 2, 3, 4, 5, 6, 7, 8, 9
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -8055,7 +8055,7 @@ formatter-snapshots:
                ss_item_rev NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -8257,7 +8257,7 @@ formatter-snapshots:
                d_week_seq1 NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -8460,7 +8460,7 @@ formatter-snapshots:
                total_sales
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -8606,7 +8606,7 @@ formatter-snapshots:
                total
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -8716,7 +8716,7 @@ formatter-snapshots:
                3 NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -8838,7 +8838,7 @@ formatter-snapshots:
                sum_sales
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -9039,7 +9039,7 @@ formatter-snapshots:
                cs1.s1,
                cs2.s1;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -9240,7 +9240,7 @@ formatter-snapshots:
                i_item_sk NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -9517,7 +9517,7 @@ formatter-snapshots:
        order by w_warehouse_name NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -10031,7 +10031,7 @@ formatter-snapshots:
                rk NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -10148,7 +10148,7 @@ formatter-snapshots:
                ss_ticket_number NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -10254,7 +10254,7 @@ formatter-snapshots:
                cd_credit_rating
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -10370,7 +10370,7 @@ formatter-snapshots:
                rank_within_parent
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -10481,7 +10481,7 @@ formatter-snapshots:
                t_hour NULLS FIRST,
                t_minute NULLS FIRST;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -10586,7 +10586,7 @@ formatter-snapshots:
                d1.d_week_seq NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -10694,7 +10694,7 @@ formatter-snapshots:
                ss_ticket_number ASC,
                ss_customer_sk ASC;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -10810,7 +10810,7 @@ formatter-snapshots:
       ORDER BY 1 NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -10968,7 +10968,7 @@ formatter-snapshots:
                sales_amt_diff
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -11143,7 +11143,7 @@ formatter-snapshots:
                i_category NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -11303,7 +11303,7 @@ formatter-snapshots:
                returns_ DESC
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -11506,7 +11506,7 @@ formatter-snapshots:
                ratio
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -11653,7 +11653,7 @@ formatter-snapshots:
                ss_ticket_number
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -11788,7 +11788,7 @@ formatter-snapshots:
                id NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -11967,7 +11967,7 @@ formatter-snapshots:
                ctr_total_return
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -12068,7 +12068,7 @@ formatter-snapshots:
       ORDER BY i_item_id
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -12171,7 +12171,7 @@ formatter-snapshots:
                sr_item_qty NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -12300,7 +12300,7 @@ formatter-snapshots:
       ORDER BY c_customer_id NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -12391,7 +12391,7 @@ formatter-snapshots:
                avg(wr_fee)
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -12492,7 +12492,7 @@ formatter-snapshots:
                rank_within_parent NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -12567,7 +12567,7 @@ formatter-snapshots:
                  AND web_sales.ws_bill_customer_sk = customer.c_customer_sk
                  AND d_month_seq BETWEEN 1200 AND 1200+11)) cool_cust ;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -12755,7 +12755,7 @@ formatter-snapshots:
                     AND household_demographics.hd_vehicle_count<=0+2))
            AND store.s_store_name = 'ese') s8 ;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -12989,7 +12989,7 @@ formatter-snapshots:
                s_store_name, 1, 2, 3, 5, 6, 7, 8
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -13069,7 +13069,7 @@ formatter-snapshots:
       ORDER BY am_pm_ratio
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -13155,7 +13155,7 @@ formatter-snapshots:
                cd_education_status
       ORDER BY sum(cr_net_loss) DESC;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -13217,7 +13217,7 @@ formatter-snapshots:
       ORDER BY sum(ws_ext_discount_amt)
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -13276,7 +13276,7 @@ formatter-snapshots:
                ss_customer_sk NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -13341,7 +13341,7 @@ formatter-snapshots:
       ORDER BY count(DISTINCT ws_order_number)
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -13420,7 +13420,7 @@ formatter-snapshots:
       ORDER BY count(DISTINCT ws_order_number)
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -13489,7 +13489,7 @@ formatter-snapshots:
       ORDER BY count(*)
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -13554,7 +13554,7 @@ formatter-snapshots:
                                AND ssci.item_sk = csci.item_sk)
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -13641,7 +13641,7 @@ formatter-snapshots:
                i_item_desc  NULLS FIRST,
                revenueratio NULLS FIRST;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -13724,7 +13724,7 @@ formatter-snapshots:
               cc_name NULLS FIRST
       LIMIT 100;
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-

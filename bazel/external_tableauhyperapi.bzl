@@ -1,148 +1,135 @@
-"""Repository rules: download tableauhyperapi wheels from PyPI.
-
-Each wheel is a zip containing:
-  tableauhyperapi/bin/hyper/hyperd                -- hyperd binary
-  tableauhyperapi/bin/libtableauhyperapi.{so|dylib} -- shared library
-
-The wheel is fetched per target platform; consumers select() on
-@platforms//os and @platforms//cpu to pick the right repo.
-
-To update: bump TABLEAUHYPERAPI_VERSION and the _WHEEL_SHA256_* map below.
-Get the new sha256 with:
-  curl -s https://pypi.org/pypi/tableauhyperapi/<version>/json | \
-    jq -r '.urls[] | .filename + " " + .digests.sha256'
-"""
+"""Repository rules for the native Tableau Hyper API C++ distribution."""
 
 # renovate: datasource=pypi depName=tableauhyperapi
-TABLEAUHYPERAPI_VERSION = "0.0.25080"
+TABLEAUHYPERAPI_VERSION = "0.0.26225"
 
-# Per-platform wheel sha256 digests.
-_WHEEL_SHA256 = {
-    "linux_x86_64": "38184aa8e723e264f864a0f7e2658ef3c1375c981e01c19a670cb4ab07ad4e3b",
-    "macos_x86_64": "eb9ee455cf99662fe49199ffdcfa5126ad1394e418a65fb145d4b801cc07e409",
-    "macos_arm64": "ab16896373ad14b79e4ec992ae7e8746cc1af804fd0e36215cd6fd3dbdc19917",
+_CXX_ARCHIVES = {
+    "linux_x86_64": {
+        "url": "https://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-linux-x86_64-release-main.0.0.26225.rbf04a855.zip",
+        "sha256": "2c211c09ccfdc6f0574fcb45261439569b081ac1bac88002bb5b5ee80d37b8e8",
+        "strip_prefix": "tableauhyperapi-cxx-linux-x86_64-release-main.0.0.26225.rbf04a855",
+        "shared_library": "lib/libtableauhyperapi.so",
+    },
+    "macos_x86_64": {
+        "url": "https://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-macos-x86_64-release-main.0.0.26225.rbf04a855.zip",
+        "sha256": "58d9096d7e69aa90d784a998cd960b33db4eb114edb9e0fece4c868531aecb57",
+        "strip_prefix": "tableauhyperapi-cxx-macos-x86_64-release-main.0.0.26225.rbf04a855",
+        "shared_library": "lib/libtableauhyperapi.dylib",
+    },
+    "macos_arm64": {
+        "url": "https://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-macos-arm64-release-main.0.0.26225.rbf04a855.zip",
+        "sha256": "77d118eb35930de56cc891cf63127638782cd2ccfd283bcb06615ae074ab9b22",
+        "strip_prefix": "tableauhyperapi-cxx-macos-arm64-release-main.0.0.26225.rbf04a855",
+        "shared_library": "lib/libtableauhyperapi.dylib",
+    },
 }
 
-# Suffix on the wheel filename that identifies each platform.
-_WHEEL_SUFFIX = {
-    "linux_x86_64": "manylinux2014_x86_64.whl",
-    "macos_x86_64": "macosx_10_11_x86_64.whl",
-    "macos_arm64": "macosx_13_0_arm64.whl",
-}
+def _tableauhyperapi_cxx_repository_impl(repository_ctx):
+    # Tableau's CDN rejects Bazel's downloader user agent. Fetch with curl,
+    # verify the pinned digest, then hand the archive back to Bazel to extract.
+    archive = repository_ctx.path("tableauhyperapi-cxx.zip")
+    download = repository_ctx.execute([
+        "curl",
+        "-fsSL",
+        "--retry",
+        "3",
+        "-o",
+        str(archive),
+        repository_ctx.attr.url,
+    ], timeout = 600)
+    if download.return_code != 0:
+        fail("Failed to download Tableau Hyper API: {}".format(download.stderr))
 
-# Shared-library filename inside the wheel, per platform.
-_SHARED_LIB = {
-    "linux_x86_64": "libtableauhyperapi.so",
-    "macos_x86_64": "libtableauhyperapi.dylib",
-    "macos_arm64": "libtableauhyperapi.dylib",
-}
-
-_PYPI_META_URL = "https://pypi.org/pypi/tableauhyperapi/{version}/json"
-
-def _tableauhyperapi_wheel_repository_impl(repository_ctx):
-    version = repository_ctx.attr.version
-    sha256 = repository_ctx.attr.sha256
-    suffix = repository_ctx.attr.wheel_suffix
-    shared_lib = repository_ctx.attr.shared_lib
-
-    # Resolve the wheel URL from the PyPI JSON API.
-    repository_ctx.download(
-        url = _PYPI_META_URL.format(version = version),
-        output = "pypi_meta.json",
-    )
-    meta = json.decode(repository_ctx.read("pypi_meta.json"))
-
-    wheel_url = None
-    for entry in meta["urls"]:
-        if entry["filename"].endswith(suffix):
-            wheel_url = entry["url"]
-            break
-
-    if wheel_url == None:
-        fail("No {} wheel found for tableauhyperapi {}".format(suffix, version))
-
-    repository_ctx.download_and_extract(
-        url = wheel_url,
-        sha256 = sha256,
-        type = "zip",
-    )
-
-    # Copy binaries to a flat bin/ directory so downstream rules can reference
-    # them at stable, version-independent paths.
-    repository_ctx.execute([
+    verify = repository_ctx.execute([
         "sh",
         "-c",
-        "mkdir -p bin && " +
-        "cp tableauhyperapi/bin/hyper/hyperd bin/hyperd && " +
-        "chmod 755 bin/hyperd && " +
-        "cp tableauhyperapi/bin/" + shared_lib + " bin/" + shared_lib + " && " +
-        "chmod 755 bin/" + shared_lib,
+        "actual=$(if command -v sha256sum >/dev/null; then sha256sum \"$1\" | cut -d' ' -f1; else shasum -a 256 \"$1\" | cut -d' ' -f1; fi); " +
+        "test \"$actual\" = \"$2\" || { echo \"sha256 mismatch: expected $2, got $actual\" >&2; exit 1; }",
+        "verify-tableauhyperapi",
+        str(archive),
+        repository_ctx.attr.sha256,
     ])
+    if verify.return_code != 0:
+        fail("Failed to verify Tableau Hyper API: {}".format(verify.stderr))
+
+    repository_ctx.extract(
+        archive = archive,
+        stripPrefix = repository_ctx.attr.strip_prefix,
+    )
+    repository_ctx.delete(archive)
+
+    # Debug symbols and examples make the extracted repository several times
+    # larger but are not inputs to the native library.
+    repository_ctx.delete("examples")
+    repository_ctx.delete("lib/libtableauhyperapi.so.debug")
+    repository_ctx.delete("lib/libtableauhyperapi.so.dwp")
+    repository_ctx.delete("lib/libtableauhyperapi.dylib.dSYM")
 
     repository_ctx.file("BUILD.bazel", content = """\
+load("@rules_cc//cc:defs.bzl", "cc_import", "cc_library")
+
 package(default_visibility = ["//visibility:public"])
+
+cc_import(
+    name = "hyperapi_c",
+    shared_library = "{shared_library}",
+)
+
+cc_library(
+    name = "hyperapi",
+    hdrs = glob(["include/hyperapi/**/*.h", "include/hyperapi/**/*.hpp"]),
+    includes = ["include"],
+    deps = [":hyperapi_c"],
+)
 
 filegroup(
     name = "hyperd",
-    srcs = ["bin/hyperd"],
+    srcs = ["lib/hyper/hyperd"],
 )
 
 filegroup(
-    name = "shared_lib",
-    srcs = ["bin/{shared_lib}"],
-)
-
-# All runtime files a hyperapi *client* needs: binary + its shared library.
-# The hyperd server image (//packages/hyper-docker) uses only :hyperd -- hyperd
-# is self-contained and does not link libtableauhyperapi.so.
-filegroup(
-    name = "hyperd_runfiles",
+    name = "runtime_files",
     srcs = [
-        "bin/hyperd",
-        "bin/{shared_lib}",
+        "lib/hyper/hyperd",
+        "{shared_library}",
     ],
 )
-""".format(shared_lib = shared_lib))
 
-tableauhyperapi_wheel_repository = repository_rule(
-    implementation = _tableauhyperapi_wheel_repository_impl,
-    doc = "Downloads a single tableauhyperapi wheel and exposes hyperd and its shared library.",
+filegroup(
+    name = "licenses",
+    srcs = [
+        "HYPER_API_OSS_disclosure.txt",
+        "LICENSE",
+        "NOTICES.txt",
+    ],
+)
+""".format(shared_library = repository_ctx.attr.shared_library))
+
+tableauhyperapi_cxx_repository = repository_rule(
+    implementation = _tableauhyperapi_cxx_repository_impl,
+    doc = "Downloads one platform's Tableau Hyper API C++ archive.",
     attrs = {
-        "version": attr.string(mandatory = True, doc = "tableauhyperapi version, e.g. '0.0.24457'"),
-        "sha256": attr.string(mandatory = True, doc = "sha256 of the wheel"),
-        "wheel_suffix": attr.string(mandatory = True, doc = "wheel filename suffix, e.g. 'manylinux2014_x86_64.whl'"),
-        "shared_lib": attr.string(mandatory = True, doc = "shared library filename inside the wheel"),
+        "url": attr.string(mandatory = True),
+        "sha256": attr.string(mandatory = True),
+        "strip_prefix": attr.string(mandatory = True),
+        "shared_library": attr.string(mandatory = True),
     },
 )
 
+def _declare_repository(name, platform):
+    archive = _CXX_ARCHIVES[platform]
+    tableauhyperapi_cxx_repository(
+        name = name,
+        url = archive["url"],
+        sha256 = archive["sha256"],
+        strip_prefix = archive["strip_prefix"],
+        shared_library = archive["shared_library"],
+    )
+
 def _tableauhyperapi_ext_impl(_mctx):
-    # Linux x86_64: used by //packages/hyper-docker and by integration tests on
-    # Linux CI runners.
-    tableauhyperapi_wheel_repository(
-        name = "tableauhyperapi_linux_x86_64",
-        version = TABLEAUHYPERAPI_VERSION,
-        sha256 = _WHEEL_SHA256["linux_x86_64"],
-        wheel_suffix = _WHEEL_SUFFIX["linux_x86_64"],
-        shared_lib = _SHARED_LIB["linux_x86_64"],
-    )
-
-    # macOS arm64: for Apple Silicon dev machines.
-    tableauhyperapi_wheel_repository(
-        name = "tableauhyperapi_macos_arm64",
-        version = TABLEAUHYPERAPI_VERSION,
-        sha256 = _WHEEL_SHA256["macos_arm64"],
-        wheel_suffix = _WHEEL_SUFFIX["macos_arm64"],
-        shared_lib = _SHARED_LIB["macos_arm64"],
-    )
-
-    # macOS x86_64: for Intel dev machines.
-    tableauhyperapi_wheel_repository(
-        name = "tableauhyperapi_macos_x86_64",
-        version = TABLEAUHYPERAPI_VERSION,
-        sha256 = _WHEEL_SHA256["macos_x86_64"],
-        wheel_suffix = _WHEEL_SUFFIX["macos_x86_64"],
-        shared_lib = _SHARED_LIB["macos_x86_64"],
-    )
+    _declare_repository("tableauhyperapi_cxx_linux_x86_64", "linux_x86_64")
+    _declare_repository("tableauhyperapi_cxx_macos_arm64", "macos_arm64")
+    _declare_repository("tableauhyperapi_cxx_macos_x86_64", "macos_x86_64")
 
 tableauhyperapi_ext = module_extension(
     implementation = _tableauhyperapi_ext_impl,

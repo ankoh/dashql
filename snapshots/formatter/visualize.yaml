@@ -4,7 +4,7 @@ formatter-snapshots:
     input: |-
       select * from sales |> visualize using vegalite (mark => bar)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -27,7 +27,7 @@ formatter-snapshots:
     input: |-
       select * from warehouse.public.sales |> visualize using vegalite (mark => point)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -50,7 +50,7 @@ formatter-snapshots:
     input: |-
       select * from sales |> visualize using vegalite (mark => line)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -73,7 +73,7 @@ formatter-snapshots:
     input: |-
       with events as (select * from source), aggregates_other as (select ts_hour, sum(cpu_time) as metric, 'other' as target from events where not marker group by ts_hour, marker), aggregates_filtered as (select ts_hour, sum(cpu_time) as metric, 'filtered' as target from events where marker group by ts_hour) select * from aggregates_other union all select * from aggregates_filtered |> visualize using vegalite (mark => bar, encoding => (x => (field => ts_hour, type => temporal), y => (field => metric, type => quantitative), color => (field => target)))
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -135,7 +135,7 @@ formatter-snapshots:
     input: |-
       select * from sales |> visualize using vegalite (mark => line, width => 800, height => 400)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -160,7 +160,7 @@ formatter-snapshots:
     input: |-
       select * from sales |> visualize using vegalite (mark => bar, encoding => (x => (field => category, type => nominal), y => (field => revenue, type => quantitative)))
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -193,7 +193,7 @@ formatter-snapshots:
     input: |-
       select * from sales |> visualize using vegalite (mark => bar, encoding => (x => (field => category, type => nominal), y => (field => revenue, type => quantitative)))
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -231,7 +231,7 @@ formatter-snapshots:
     input: |-
       select * from sales |> visualize using vegalite (encoding => (x => (field => time, type => temporal, scale => (domain => [0, 100]))))
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -262,7 +262,7 @@ formatter-snapshots:
     input: |-
       select * from sales |> visualize using vegalite (mark => bar, encoding => (x => date, y => revenue))
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -289,7 +289,7 @@ formatter-snapshots:
     input: |-
       select * from sales |> visualize using vegalite (mark => line, width => 800,)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -313,7 +313,7 @@ formatter-snapshots:
     input: |-
       select * from sales |> visualize using vegalite (mark => bar, encoding => (x => (field => date, type => temporal,), y => (field => revenue,),),)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -345,7 +345,7 @@ formatter-snapshots:
     input: |-
       select * from embeddings |> visualize using umap (vector => embedding)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -368,7 +368,7 @@ formatter-snapshots:
     input: |-
       select * from embeddings |> visualize using umap (vector => embedding, category => cluster_id, label => name, neighbors => 15, min_dist => 0.1, metric => cosine)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -396,7 +396,7 @@ formatter-snapshots:
     input: |-
       select * from sales |> visualize using vegalite (mark => line, encoding => (x => (field => time, type => temporal), y => (field => value, type => quantitative)), width => 800)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-

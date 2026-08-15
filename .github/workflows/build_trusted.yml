@@ -182,6 +182,10 @@ jobs:
                     --test_output=errors \
                     --test_summary=detailed
 
+            - name: Build Hyper Docker image
+              shell: bash
+              run: bazel build --config=release //packages/hyper-docker:image
+
     linux_release:
         name: Linux Release
         runs-on: ubuntu-24.04
@@ -281,6 +285,8 @@ jobs:
               run: |
                 bazel test --config=release \
                     --platforms=//bazel/platforms:aarch64_macos \
+                    //packages/hyper-api:smoke_test \
+                    //packages/dashql-core:formatter_validation_hyper_tests \
                     //packages/dashql-native/... \
                     --build_tests_only \
                     --test_output=errors \
@@ -316,7 +322,18 @@ jobs:
               shell: bash
               run: |
                 bazel build --config=release \
+                    --platforms=//bazel/platforms:x86_64_macos \
                     //packages/dashql-native:mac_app_x86_64
+
+            - name: Test Hyper x86_64
+              shell: bash
+              run: |
+                bazel test --config=release \
+                    --platforms=//bazel/platforms:x86_64_macos \
+                    //packages/hyper-api:smoke_test \
+                    //packages/dashql-core:formatter_validation_hyper_tests \
+                    --test_output=errors \
+                    --test_summary=detailed
 
     macos_universal_unsigned:
         name: MacOS Release Universal Unsigned

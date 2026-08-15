@@ -5,109 +5,109 @@ formatter-snapshots:
   - name: func_cast_int
     input: select cast(x as integer)
     dialects:
-      duckdb:
+      hyper:
 
   - name: func_cast_varchar
     input: select cast(123 as varchar)
     dialects:
-      duckdb:
+      hyper:
 
   - name: func_cast_timestamp
     input: select cast('2021-01-01' as timestamp)
     dialects:
-      duckdb:
+      hyper:
 
   - name: func_cast_timestamp_tz
     input: select cast('2021-01-01' as timestamp with time zone)
     dialects:
-      duckdb:
+      hyper:
 
   # EXTRACT
 
   - name: func_extract_year
     input: select extract(year from d)
     dialects:
-      duckdb:
+      hyper:
 
   - name: func_extract_day
     input: select extract(day from created_at)
     dialects:
-      duckdb:
+      hyper:
 
   # POSITION
 
   - name: func_position
     input: select position('x' in name)
     dialects:
-      duckdb:
+      hyper:
 
   # SUBSTRING
 
   - name: func_substring_from
     input: select substring(name from 1)
     dialects:
-      duckdb:
+      hyper:
 
   - name: func_substring_from_for
     input: select substring(name from 1 for 3)
     dialects:
-      duckdb:
+      hyper:
 
   # TRIM
 
   - name: func_trim_both
     input: select trim(both ' ' from name)
     dialects:
-      duckdb:
+      hyper:
 
   - name: func_trim_leading
     input: select trim(leading from name)
     dialects:
-      duckdb:
+      hyper:
 
   - name: func_trim_simple
     input: select trim(name)
     dialects:
-      duckdb:
+      hyper:
 
   # Conditional functions
 
   - name: func_nullif
     input: select nullif(a, b)
     dialects:
-      duckdb:
+      hyper:
 
   - name: func_coalesce
     input: select coalesce(a, b)
     dialects:
-      duckdb:
+      hyper:
 
   # Window functions
 
   - name: func_over_partition
     input: select sum(x) over (partition by y)
     dialects:
-      duckdb:
+      hyper:
 
   - name: func_over_order
     input: select row_number() over (order by x)
     dialects:
-      duckdb:
+      hyper:
 
   - name: func_over_partition_order
     input: select rank() over (partition by a order by b)
     dialects:
-      duckdb:
+      hyper:
 
   - name: func_over_empty
     input: select count(*) over ()
     dialects:
-      duckdb:
+      hyper:
 
   - name: func_over_rows_between
     input: select sum(x) over (order by ts rows between unbounded preceding and current row) from t
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: select sum(x) over (order by ts rows between unbounded preceding and current row) from t;
@@ -123,7 +123,7 @@ formatter-snapshots:
   - name: func_over_range_current_row
     input: select sum(x) over (order by ts range current row) from t
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: select sum(x) over (order by ts range current row) from t;
@@ -139,7 +139,7 @@ formatter-snapshots:
   - name: func_over_rows_value_bounds
     input: select sum(x) over (order by ts rows between 2 preceding and 1 following) from t
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: select sum(x) over (order by ts rows between 2 preceding and 1 following) from t;
@@ -155,9 +155,9 @@ formatter-snapshots:
   - name: func_filter
     input: select count(*) filter (where x > 0)
     dialects:
-      duckdb:
+      hyper:
 
   - name: func_within_group
     input: select percentile_cont(0.5) within group (order by x)
     dialects:
-      duckdb:
+      hyper:

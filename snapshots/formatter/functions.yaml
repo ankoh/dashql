@@ -4,7 +4,7 @@ formatter-snapshots:
     input: |-
       select cast(x as integer)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -20,7 +20,7 @@ formatter-snapshots:
     input: |-
       select cast(123 as varchar)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -36,7 +36,7 @@ formatter-snapshots:
     input: |-
       select cast('2021-01-01' as timestamp)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -52,7 +52,7 @@ formatter-snapshots:
     input: |-
       select cast('2021-01-01' as timestamp with time zone)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -68,7 +68,7 @@ formatter-snapshots:
     input: |-
       select extract(year from d)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -84,7 +84,7 @@ formatter-snapshots:
     input: |-
       select extract(day from created_at)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -100,7 +100,7 @@ formatter-snapshots:
     input: |-
       select position('x' in name)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -116,7 +116,7 @@ formatter-snapshots:
     input: |-
       select substring(name from 1)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -132,7 +132,7 @@ formatter-snapshots:
     input: |-
       select substring(name from 1 for 3)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -148,7 +148,7 @@ formatter-snapshots:
     input: |-
       select trim(both ' ' from name)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -164,7 +164,7 @@ formatter-snapshots:
     input: |-
       select trim(leading from name)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -180,7 +180,7 @@ formatter-snapshots:
     input: |-
       select trim(name)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -196,7 +196,7 @@ formatter-snapshots:
     input: |-
       select nullif(a, b)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -212,7 +212,7 @@ formatter-snapshots:
     input: |-
       select coalesce(a, b)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -228,7 +228,7 @@ formatter-snapshots:
     input: |-
       select sum(x) over (partition by y)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -244,7 +244,7 @@ formatter-snapshots:
     input: |-
       select row_number() over (order by x)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -260,7 +260,7 @@ formatter-snapshots:
     input: |-
       select rank() over (partition by a order by b)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -276,7 +276,7 @@ formatter-snapshots:
     input: |-
       select count(*) over ()
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -292,7 +292,7 @@ formatter-snapshots:
     input: |-
       select sum(x) over (order by ts rows between unbounded preceding and current row) from t
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -312,7 +312,7 @@ formatter-snapshots:
     input: |-
       select sum(x) over (order by ts range current row) from t
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -332,7 +332,7 @@ formatter-snapshots:
     input: |-
       select sum(x) over (order by ts rows between 2 preceding and 1 following) from t
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -352,7 +352,7 @@ formatter-snapshots:
     input: |-
       select count(*) filter (where x > 0)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -368,7 +368,7 @@ formatter-snapshots:
     input: |-
       select percentile_cont(0.5) within group (order by x)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-

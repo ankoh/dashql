@@ -320,7 +320,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "FFRu/vtKVyHZu2Fq4xoLfkcpWhIimWv/sX+BicWJ6/4=",
+        "bzlTransitiveDigest": "KnGxIzrwK+0KdSWqbGG4a4eaq7xM03bH4Dhoo1DYc5A=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -422,26 +422,6 @@
               "build_file": "@@//bazel:external_benchmark.BUILD"
             }
           },
-          "duckdb_prebuilt_osx": {
-            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
-            "attributes": {
-              "sha256": "3f3c52970ad1407ec5037062e1a5e575b24bd5b993c889f89fe5876eff47782c",
-              "urls": [
-                "https://github.com/duckdb/duckdb/releases/download/v1.5.4/libduckdb-osx-universal.zip"
-              ],
-              "build_file": "@@//bazel:external_duckdb_prebuilt.BUILD"
-            }
-          },
-          "duckdb_prebuilt_linux_amd64": {
-            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
-            "attributes": {
-              "sha256": "838d98a85e697bab9935010c88a8c67d3312ccedcab4cb4a0ba01da65113bb70",
-              "urls": [
-                "https://github.com/duckdb/duckdb/releases/download/v1.5.4/libduckdb-linux-amd64.zip"
-              ],
-              "build_file": "@@//bazel:external_duckdb_prebuilt.BUILD"
-            }
-          },
           "duckdb_cli_osx": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
@@ -489,35 +469,35 @@
     },
     "//bazel:external_tableauhyperapi.bzl%tableauhyperapi_ext": {
       "general": {
-        "bzlTransitiveDigest": "KpLiLQlxgRrzoiMNROfWdfe+VYDpn+Sev0idukzgqPU=",
+        "bzlTransitiveDigest": "FD2gVlUs+7d1ugV+cBeo4VUWhS0QHoxIhKfO4JcWXL8=",
         "usagesDigest": "/Cj4t34gwtluFYaKn+aza5CUpAo3VxHJDL1vTkM7hIs=",
         "recordedInputs": [],
         "generatedRepoSpecs": {
-          "tableauhyperapi_linux_x86_64": {
-            "repoRuleId": "@@//bazel:external_tableauhyperapi.bzl%tableauhyperapi_wheel_repository",
+          "tableauhyperapi_cxx_linux_x86_64": {
+            "repoRuleId": "@@//bazel:external_tableauhyperapi.bzl%tableauhyperapi_cxx_repository",
             "attributes": {
-              "version": "0.0.25080",
-              "sha256": "38184aa8e723e264f864a0f7e2658ef3c1375c981e01c19a670cb4ab07ad4e3b",
-              "wheel_suffix": "manylinux2014_x86_64.whl",
-              "shared_lib": "libtableauhyperapi.so"
+              "url": "https://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-linux-x86_64-release-main.0.0.26225.rbf04a855.zip",
+              "sha256": "2c211c09ccfdc6f0574fcb45261439569b081ac1bac88002bb5b5ee80d37b8e8",
+              "strip_prefix": "tableauhyperapi-cxx-linux-x86_64-release-main.0.0.26225.rbf04a855",
+              "shared_library": "lib/libtableauhyperapi.so"
             }
           },
-          "tableauhyperapi_macos_arm64": {
-            "repoRuleId": "@@//bazel:external_tableauhyperapi.bzl%tableauhyperapi_wheel_repository",
+          "tableauhyperapi_cxx_macos_arm64": {
+            "repoRuleId": "@@//bazel:external_tableauhyperapi.bzl%tableauhyperapi_cxx_repository",
             "attributes": {
-              "version": "0.0.25080",
-              "sha256": "ab16896373ad14b79e4ec992ae7e8746cc1af804fd0e36215cd6fd3dbdc19917",
-              "wheel_suffix": "macosx_13_0_arm64.whl",
-              "shared_lib": "libtableauhyperapi.dylib"
+              "url": "https://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-macos-arm64-release-main.0.0.26225.rbf04a855.zip",
+              "sha256": "77d118eb35930de56cc891cf63127638782cd2ccfd283bcb06615ae074ab9b22",
+              "strip_prefix": "tableauhyperapi-cxx-macos-arm64-release-main.0.0.26225.rbf04a855",
+              "shared_library": "lib/libtableauhyperapi.dylib"
             }
           },
-          "tableauhyperapi_macos_x86_64": {
-            "repoRuleId": "@@//bazel:external_tableauhyperapi.bzl%tableauhyperapi_wheel_repository",
+          "tableauhyperapi_cxx_macos_x86_64": {
+            "repoRuleId": "@@//bazel:external_tableauhyperapi.bzl%tableauhyperapi_cxx_repository",
             "attributes": {
-              "version": "0.0.25080",
-              "sha256": "eb9ee455cf99662fe49199ffdcfa5126ad1394e418a65fb145d4b801cc07e409",
-              "wheel_suffix": "macosx_10_11_x86_64.whl",
-              "shared_lib": "libtableauhyperapi.dylib"
+              "url": "https://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-macos-x86_64-release-main.0.0.26225.rbf04a855.zip",
+              "sha256": "58d9096d7e69aa90d784a998cd960b33db4eb114edb9e0fece4c868531aecb57",
+              "strip_prefix": "tableauhyperapi-cxx-macos-x86_64-release-main.0.0.26225.rbf04a855",
+              "shared_library": "lib/libtableauhyperapi.dylib"
             }
           }
         }
@@ -604,7 +584,7 @@
     },
     "//packages/hyper-docker:version.bzl%hyperd_image_ext": {
       "general": {
-        "bzlTransitiveDigest": "lPp00tALPHgkqGYs6cjWCQSE2OioCIJgDiBT7xSB09k=",
+        "bzlTransitiveDigest": "/P5zm/wg1NkFTxo/CzxvMDZuSMQuZukDkG25VTVEYUw=",
         "usagesDigest": "pou5Py9UbEANHk29zr21ArRXqOIOnep6SSBJOCgPiSk=",
         "recordedInputs": [],
         "generatedRepoSpecs": {

@@ -4,19 +4,19 @@ formatter-snapshots:
   - name: create_table_basic
     input: create table t (a int, b int)
     dialects:
-      duckdb:
+      hyper:
 
   # Create table with IF NOT EXISTS
   - name: create_table_if_not_exists
     input: create table if not exists schema_1.t_1 (a int)
     dialects:
-      duckdb:
+      hyper:
 
   # Create table with many elements to test wrapping and indentation
   - name: create_table_many_elements_long_wrap
     input: create table t_many (first_really_long_column_name int, second_really_long_column_name int, third_really_long_column_name int, fourth_really_long_column_name int, fifth_really_long_column_name int)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: compact
             width: 70
@@ -27,7 +27,7 @@ formatter-snapshots:
   - name: create_table_many_elements_short_wrap
     input: create table t_many (a int, b int, c int, d int, e int, f int, g int, h int, i int, j int)
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: compact
             width: 30
@@ -38,10 +38,10 @@ formatter-snapshots:
   - name: create_table_with_table_constraints
     input: create table t (a int, b int, constraint t_pk primary key (a, b), constraint t_u unique (b), constraint t_ck check (a > 0))
     dialects:
-      duckdb:
+      hyper:
 
   # Create table with foreign key table constraint options
   - name: create_table_with_foreign_key_table_constraint
     input: create table t (ref_id int, constraint t_fk foreign key (ref_id) references ref_t (id) match full on update cascade on delete set null)
     dialects:
-      duckdb:
+      hyper:

@@ -91,6 +91,8 @@ bazel test //packages/dashql-core:*_tests
 | `//packages/dashql-core:parser_tests` | Parser snapshot tests |
 | `//packages/dashql-core:analyzer_tests` | Analyzer snapshot tests |
 | `//packages/dashql-core:formatter_tests` | Formatter snapshot tests |
+| `//packages/dashql-core:formatter_validation_hyper_tests` | Execute formatted SQL against Hyper |
+| `//packages/hyper-api:smoke_test` | Native Tableau Hyper API integration test |
 | `//packages/duckdb:duckdb_web_test` | DuckDB WASM integration tests |
 | `//packages/dashql-native:tests` | Rust unit tests for native app |
 | `//packages/dashql-app:test` | TypeScript/Jest tests for web app |

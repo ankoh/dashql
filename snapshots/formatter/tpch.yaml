@@ -24,7 +24,7 @@ formatter-snapshots:
           l_returnflag,
           l_linestatus
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -104,7 +104,7 @@ formatter-snapshots:
       limit
       	100
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -173,7 +173,7 @@ formatter-snapshots:
       limit
       	10
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -224,7 +224,7 @@ formatter-snapshots:
       order by
               o_orderpriority
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -278,7 +278,7 @@ formatter-snapshots:
       order by
               revenue desc
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -320,7 +320,7 @@ formatter-snapshots:
               and l_discount between 0.06 - 0.01 and 0.06 + 0.01
               and l_quantity < 24
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -382,7 +382,7 @@ formatter-snapshots:
               cust_nation,
               l_year
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -461,7 +461,7 @@ formatter-snapshots:
       order by
               o_year
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -540,7 +540,7 @@ formatter-snapshots:
               nation,
               o_year desc
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -612,7 +612,7 @@ formatter-snapshots:
       limit
       	20
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -678,7 +678,7 @@ formatter-snapshots:
       order by
               "value" desc
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -739,7 +739,7 @@ formatter-snapshots:
       order by
               l_shipmode
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -802,7 +802,7 @@ formatter-snapshots:
               custdist desc,
               c_count desc
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -845,7 +845,7 @@ formatter-snapshots:
               and l_shipdate >= date '1995-09-01'
               and l_shipdate < date '1995-10-01'
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -901,7 +901,7 @@ formatter-snapshots:
       order by
       	s_suppkey
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -974,7 +974,7 @@ formatter-snapshots:
               p_type,
               p_size
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -1024,7 +1024,7 @@ formatter-snapshots:
                               l_partkey = p_partkey
               )
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -1085,7 +1085,7 @@ formatter-snapshots:
       limit
       	100
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -1153,7 +1153,7 @@ formatter-snapshots:
                       and l_shipinstruct = 'DELIVER IN PERSON'
               )
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -1240,7 +1240,7 @@ formatter-snapshots:
       order by
               s_name
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -1330,7 +1330,7 @@ formatter-snapshots:
       limit
       	100
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
@@ -1414,7 +1414,7 @@ formatter-snapshots:
       order by
               cntrycode
     dialects:
-      duckdb:
+      hyper:
         formatted:
           - mode: inline
             expected: |-
