@@ -17,7 +17,7 @@ import { useAgentRunState, useCancelAgentRun } from '../agent/agent_run_provider
 import { ScriptOutputDetails, ScriptDetailsTab } from './script_output_details.js';
 import { QueryResultCacheLabel, QueryResultRerunButton } from './query_result_cache_controls.js';
 import { ACCEPT_PENDING_DIFF, getSelectedScriptRef, getSelectedScriptFolder, NotebookScripts, REJECT_PENDING_DIFF, RENAME_SCRIPT, SELECT_SCRIPT_PATH } from '../scripts/notebook_scripts.js';
-import { rerunEntry } from './rerun_query.js';
+import { runNotebookScript } from './rerun_query.js';
 import { useStorageReader } from '../persistence/storage_provider.js';
 import { normalizeScriptFolderName, scriptDisplayName } from '../scripts/script_types.js';
 import type { ModifyNotebookScripts } from '../scripts/notebook_scripts_registry.js';
@@ -367,7 +367,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         if (scriptData == null || props.connection?.connectionHealth !== ConnectionHealth.ONLINE) {
             return;
         }
-        rerunEntry(props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+        runNotebookScript(props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
     }, [props.hideDetails, props.connection?.connectionHealth, props.notebookScripts, props.modifyNotebookScripts, scriptData, executeQuery, logger]);
     const handleRerun = React.useCallback(async (cacheKey: string | null) => {
         if (scriptData == null) {
@@ -376,9 +376,9 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         // Best-effort delete of the stale cache entry first; the re-execution then misses and
         // re-populates the cache (the executor's write path overwrites it either way).
         if (cacheKey != null) {
-            await storageReader.backend.deleteQueryResultCache(props.notebookScripts.notebookId, cacheKey).catch(() => {});
+            await storageReader.backend.deleteQueryResultCache(props.notebookScripts.notebookId, cacheKey).catch(() => { });
         }
-        rerunEntry(props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+        runNotebookScript(props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
     }, [props.notebookScripts, props.modifyNotebookScripts, scriptData, executeQuery, storageReader, logger]);
 
     const agentRunState = useAgentRunState(scriptData?.latestAgentRunId ?? null);
@@ -452,149 +452,149 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                 className={styles.entry_single}
             >
                 {!showServerDetails && (
-                <div className={styles.entry_message_single}>
-                    <div className={styles.entry_script_card}>
-                        <div className={styles.entry_card_action_bar}>
-                        <IconButton
-                            variant={ButtonVariant.Invisible}
-                            size={ButtonSize.Small}
-                            aria-label={`Execute ${scriptDisplay} query`}
-                            disabled={props.connection?.connectionHealth !== ConnectionHealth.ONLINE}
-                            onClick={handleExecuteAndHide}
-                        >
-                            <PaperAirplaneIcon size={16} />
-                        </IconButton>
-                        <div className={styles.entry_card_file_name}>
-                            <ScriptName
-                                folder={folderName}
-                                file={scriptDisplay}
-                                onFolderClick={props.hideDetails}
-                                onFileClick={startEditingName}
-                                editing={isEditingName ? {
-                                    value: draftFileName,
-                                    onChange: setDraftFileName,
-                                    onCommit: saveNameEdit,
-                                    onCancel: cancelNameEdit,
-                                    inputRef: editInputRef,
-                                } : undefined}
-                                fileNameTrailing={
-                                    <span className={styles.entry_card_file_name_actions}>
-                                        <IconButton
-                                            variant={ButtonVariant.Invisible}
-                                            size={ButtonSize.Tiny}
-                                            aria-label="Rename script"
-                                            onClick={startEditingName}
-                                            className={styles.entry_card_file_name_action_button}
-                                        >
-                                            <PencilIcon size={12} />
-                                        </IconButton>
-                                    </span>
-                                }
-                            />
-                        </div>
-                        {scriptDebugMode && scriptData != null && (
-                            <div className={styles.entry_card_stats_bar}>
-                                <ScriptStatisticsBar stats={scriptData.statistics} />
-                            </div>
-                        )}
-                            <div className={styles.entry_card_trailing_actions}>
-                                <ScriptDiagnosticsButton
-                                    scriptData={scriptData}
-                                    isFormattable={isFormattable}
-                                />
-                                <ScriptFormatMenu
-                                    disabled={formatPending || hasPendingDiff}
-                                    canConvertToSQL={canConvertToSQL}
-                                    onFormat={handleFormat}
-                                />
+                    <div className={styles.entry_message_single}>
+                        <div className={styles.entry_script_card}>
+                            <div className={styles.entry_card_action_bar}>
                                 <IconButton
-                                    className={styles.entry_card_collapse_button}
                                     variant={ButtonVariant.Invisible}
-                                    onClick={props.hideDetails}
-                                    aria-label="Collapse"
+                                    size={ButtonSize.Small}
+                                    aria-label={`Execute ${scriptDisplay} query`}
+                                    disabled={props.connection?.connectionHealth !== ConnectionHealth.ONLINE}
+                                    onClick={handleExecuteAndHide}
                                 >
-                                    <ScreenNormalIcon size={16} />
+                                    <PaperAirplaneIcon size={16} />
                                 </IconButton>
+                                <div className={styles.entry_card_file_name}>
+                                    <ScriptName
+                                        folder={folderName}
+                                        file={scriptDisplay}
+                                        onFolderClick={props.hideDetails}
+                                        onFileClick={startEditingName}
+                                        editing={isEditingName ? {
+                                            value: draftFileName,
+                                            onChange: setDraftFileName,
+                                            onCommit: saveNameEdit,
+                                            onCancel: cancelNameEdit,
+                                            inputRef: editInputRef,
+                                        } : undefined}
+                                        fileNameTrailing={
+                                            <span className={styles.entry_card_file_name_actions}>
+                                                <IconButton
+                                                    variant={ButtonVariant.Invisible}
+                                                    size={ButtonSize.Tiny}
+                                                    aria-label="Rename script"
+                                                    onClick={startEditingName}
+                                                    className={styles.entry_card_file_name_action_button}
+                                                >
+                                                    <PencilIcon size={12} />
+                                                </IconButton>
+                                            </span>
+                                        }
+                                    />
+                                </div>
+                                {scriptDebugMode && scriptData != null && (
+                                    <div className={styles.entry_card_stats_bar}>
+                                        <ScriptStatisticsBar stats={scriptData.statistics} />
+                                    </div>
+                                )}
+                                <div className={styles.entry_card_trailing_actions}>
+                                    <ScriptDiagnosticsButton
+                                        scriptData={scriptData}
+                                        isFormattable={isFormattable}
+                                    />
+                                    <ScriptFormatMenu
+                                        disabled={formatPending || hasPendingDiff}
+                                        canConvertToSQL={canConvertToSQL}
+                                        onFormat={handleFormat}
+                                    />
+                                    <IconButton
+                                        className={styles.entry_card_collapse_button}
+                                        variant={ButtonVariant.Invisible}
+                                        onClick={props.hideDetails}
+                                        aria-label="Collapse"
+                                    >
+                                        <ScreenNormalIcon size={16} />
+                                    </IconButton>
+                                </div>
                             </div>
-                        </div>
-                        <div className={styles.script_body}>
-                            <div className={styles.editor_container}>
-                                <ScriptEditor
-                                    notebookId={props.notebookScripts.notebookId}
-                                    scriptKey={notebookEntry.scriptId}
-                                    setView={setEditorView}
-                                    onNavigateToScript={navigateToScript}
-                                />
-                                <div className={styles.format_toggle}>
-                                    {hasPendingDiff ? (
-                                        <ButtonGroup>
-                                            <IconButton
-                                                variant={ButtonVariant.Default}
-                                                onClick={handleAcceptDiff}
-                                                aria-label="Accept rewrite"
-                                            >
-                                                <CheckIcon />
-                                            </IconButton>
-                                            <IconButton
-                                                variant={ButtonVariant.Default}
-                                                onClick={handleRejectDiff}
-                                                aria-label="Reject rewrite"
-                                            >
-                                                <FormatXIcon />
-                                            </IconButton>
-                                        </ButtonGroup>
-                                    ) : formatPending ? (
-                                        <ButtonGroup>
-                                            <IconButton
-                                                variant={ButtonVariant.Default}
-                                                onClick={handleFormatAccept}
-                                                aria-label="Accept format"
-                                            >
-                                                <CheckIcon />
-                                            </IconButton>
-                                            <IconButton
-                                                variant={ButtonVariant.Default}
-                                                onClick={handleFormatCancel}
-                                                aria-label="Cancel format"
-                                            >
-                                                <FormatXIcon />
-                                            </IconButton>
-                                        </ButtonGroup>
-                                    ) : null}
+                            <div className={styles.script_body}>
+                                <div className={styles.editor_container}>
+                                    <ScriptEditor
+                                        notebookId={props.notebookScripts.notebookId}
+                                        scriptKey={notebookEntry.scriptId}
+                                        setView={setEditorView}
+                                        onNavigateToScript={navigateToScript}
+                                    />
+                                    <div className={styles.format_toggle}>
+                                        {hasPendingDiff ? (
+                                            <ButtonGroup>
+                                                <IconButton
+                                                    variant={ButtonVariant.Default}
+                                                    onClick={handleAcceptDiff}
+                                                    aria-label="Accept rewrite"
+                                                >
+                                                    <CheckIcon />
+                                                </IconButton>
+                                                <IconButton
+                                                    variant={ButtonVariant.Default}
+                                                    onClick={handleRejectDiff}
+                                                    aria-label="Reject rewrite"
+                                                >
+                                                    <FormatXIcon />
+                                                </IconButton>
+                                            </ButtonGroup>
+                                        ) : formatPending ? (
+                                            <ButtonGroup>
+                                                <IconButton
+                                                    variant={ButtonVariant.Default}
+                                                    onClick={handleFormatAccept}
+                                                    aria-label="Accept format"
+                                                >
+                                                    <CheckIcon />
+                                                </IconButton>
+                                                <IconButton
+                                                    variant={ButtonVariant.Default}
+                                                    onClick={handleFormatCancel}
+                                                    aria-label="Cancel format"
+                                                >
+                                                    <FormatXIcon />
+                                                </IconButton>
+                                            </ButtonGroup>
+                                        ) : null}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
                 )}
                 {showServerDetails && (
-                <div className={styles.entry_message_single}>
-                    <ScriptOutputDetails
-                        query={activeQueryState}
-                        agentRun={agentRunState}
-                        visualizeQuery={visualizeQuery}
-                        initialTab={props.initialTab}
-                        tableDebugMode={tableDebugMode}
-                        onCancelQuery={activeQueryId != null
-                            ? () => cancelQuery(props.notebookScripts.notebookId, activeQueryId)
-                            : undefined}
-                        onCancelAgent={() => cancelAgentRun(props.notebookScripts.notebookId)}
-                        onClose={props.hideDetails}
-                        statusActions={(
-                            <>
-                                <QueryResultCacheLabel query={activeQueryState} />
-                                <QueryResultRerunButton query={activeQueryState} onRerun={handleRerun} />
-                                <IconButton
-                                    variant={ButtonVariant.Invisible}
-                                    onClick={props.hideDetails}
-                                    aria-label="Collapse"
-                                >
-                                    <ScreenNormalIcon size={16} />
-                                </IconButton>
-                            </>
-                        )}
-                    />
-                </div>
+                    <div className={styles.entry_message_single}>
+                        <ScriptOutputDetails
+                            query={activeQueryState}
+                            agentRun={agentRunState}
+                            visualizeQuery={visualizeQuery}
+                            initialTab={props.initialTab}
+                            tableDebugMode={tableDebugMode}
+                            onCancelQuery={activeQueryId != null
+                                ? () => cancelQuery(props.notebookScripts.notebookId, activeQueryId)
+                                : undefined}
+                            onCancelAgent={() => cancelAgentRun(props.notebookScripts.notebookId)}
+                            onClose={props.hideDetails}
+                            statusActions={(
+                                <>
+                                    <QueryResultCacheLabel query={activeQueryState} />
+                                    <QueryResultRerunButton query={activeQueryState} onRerun={handleRerun} />
+                                    <IconButton
+                                        variant={ButtonVariant.Invisible}
+                                        onClick={props.hideDetails}
+                                        aria-label="Collapse"
+                                    >
+                                        <ScreenNormalIcon size={16} />
+                                    </IconButton>
+                                </>
+                            )}
+                        />
+                    </div>
                 )}
             </div>
         </div>

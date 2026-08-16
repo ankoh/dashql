@@ -1827,11 +1827,15 @@ export function compileQuery(
             }, LOG_CTX);
         }
         const sql = reader.sql() ?? '';
-        if (sql.length > 0) {
-            logger?.debug('Compiled script for query execution', { sql }, LOG_CTX);
-        } else {
-            logger?.warn('Compiled query is empty', { script: scriptData.script.toString() }, LOG_CTX);
+        if (sql.trim().length == 0) {
+            throw new LoggableException('Compile query is empty', {
+                scriptKey: scriptData.scriptKey.toString(),
+                folderName: scriptData.folderName,
+                fileName: scriptData.fileName,
+                scritp: scriptData.script.toString(),
+            }, LOG_CTX);
         }
+        logger?.debug('Compiled script for query execution', { sql }, LOG_CTX);
         return sql;
     } finally {
         compiled.destroy();

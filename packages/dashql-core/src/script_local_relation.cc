@@ -7,8 +7,7 @@ namespace dashql {
 using AttributeKey = buffers::parser::AttributeKey;
 using NodeType = buffers::parser::NodeType;
 
-std::optional<TerminalPipeDefinition> FindTerminalPipeDefinition(const ParsedScript& parsed,
-                                                                 uint32_t statement_id) {
+std::optional<TerminalPipeDefinition> FindTerminalPipeDefinition(const ParsedScript& parsed, uint32_t statement_id) {
     if (statement_id >= parsed.statements.size()) return std::nullopt;
 
     const auto& statement = parsed.statements[statement_id];

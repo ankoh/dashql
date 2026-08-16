@@ -8,7 +8,7 @@ import type { LoggerLike } from '../../../shared/platform/logger/logger.js';
 export function registerNotebookScriptQuery(
     scriptData: ScriptData,
     queryId: number,
-    queryText: string,
+    _queryText: string,
     execution: Promise<import('apache-arrow').Table | null>,
     modifyNotebookScripts: ModifyNotebookScripts,
 ): void {
@@ -16,7 +16,7 @@ export function registerNotebookScriptQuery(
     void execution.catch(() => { });
 }
 
-export function rerunEntry(
+export function runNotebookScript(
     notebookScripts: NotebookScripts,
     scriptData: ScriptData,
     executeQuery: QueryExecutor,

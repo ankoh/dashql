@@ -40,7 +40,7 @@ import { EntryStatusBar } from '../entry_status_bar.js';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
 import { TabKey as DetailsTabKey } from '../script_details.js';
-import { registerNotebookScriptQuery, rerunEntry } from '../rerun_query.js';
+import { registerNotebookScriptQuery, runNotebookScript } from '../rerun_query.js';
 import { useStorageReader, StorageReader } from '../../persistence/storage_provider.js';
 import { STORAGE_CACHE_EXTENSION } from '../../persistence/storage_backend.js';
 import { CachedResultBean, QueryResultCacheLabel, QueryResultRerunButton } from '../query_result_cache_controls.js';
@@ -274,7 +274,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = (props: CollapsedScriptCa
                             size={ButtonSize.Small}
                             aria-label={queryActive ? `Stop ${displayName} query` : `Execute ${displayName} query`}
                             aria-current={props.isFocused ? 'true' : undefined}
-                            disabled={!queryActive}
+                            disabled={queryActive}
                             onClick={() => {
                                 if (queryActive && props.scriptData?.latestQueryId != null) {
                                     cancelQuery(props.notebookId, props.scriptData.latestQueryId);
@@ -794,7 +794,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         if (cacheKey != null) {
             await storageReader.backend.deleteQueryResultCache(notebookScripts.notebookId, cacheKey).catch(() => { });
         }
-        rerunEntry(notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+        runNotebookScript(notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
     }, [props.notebookScripts, props.modifyNotebookScripts, isDisconnected, executeQuery, storageReader, logger]);
 
     const handleExecuteEntry = React.useCallback((fileName: string) => {
@@ -803,7 +803,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         const entry = notebookScripts.scriptFolders[notebookScripts.scriptFocus.folderName]?.scripts[fileName];
         const scriptData = entry != null ? notebookScripts.scripts[entry.scriptId] : undefined;
         if (scriptData == null) return;
-        rerunEntry(notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+        runNotebookScript(notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
     }, [executeQuery, isDisconnected, props.modifyNotebookScripts, props.notebookScripts, logger]);
 
     // Send the compose editor's text to the agent run as a natural-language prompt. Context is

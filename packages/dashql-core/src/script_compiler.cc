@@ -26,9 +26,21 @@ ScriptCompilationError MakeError(ErrorCode code, std::string message, uint32_t s
     return ScriptCompilationError{code, statement_id, ast_node_id, text_span, std::move(message)};
 }
 
-std::optional<uint32_t> ReadTerminalQueryNode(const ParsedScript& parsed, uint32_t statement_id,
-                                              StatementKind& kind) {
+std::optional<uint32_t> ReadTerminalSqlNode(const ParsedScript& parsed, uint32_t statement_id, StatementKind& kind) {
     const auto& statement = parsed.statements[statement_id];
+    switch (statement.type) {
+        case buffers::parser::StatementType::CREATE_FUNCTION:
+        case buffers::parser::StatementType::CREATE_TABLE:
+        case buffers::parser::StatementType::CREATE_TABLE_AS:
+        case buffers::parser::StatementType::CREATE_VIEW:
+        case buffers::parser::StatementType::EXPLAIN:
+        case buffers::parser::StatementType::SELECT:
+        case buffers::parser::StatementType::SET:
+            return true;
+        case buffers::parser::StatementType::NONE:
+        case buffers::parser::StatementType::VIS_VISUALISE:
+            return false;
+    }
     if (statement.type == buffers::parser::StatementType::SELECT) {
         kind = StatementKind::QUERY;
         return statement.root;
@@ -69,12 +81,11 @@ flatbuffers::Offset<buffers::execution::ScriptCompilationResult> ScriptCompilati
             builder.CreateString(visualization->umap_spec));
     }
     return buffers::execution::CreateScriptCompilationResult(builder, kind, terminal_statement_id, sql_offset,
-                                                              visualization_offset, errors_offset);
+                                                             visualization_offset, errors_offset);
 }
 
-ScriptCompilationResult ScriptCompiler::Compile(Script& script,
-                                                 const buffers::formatting::FormattingConfigT& config,
-                                                 ScriptCompilationOptions options) {
+ScriptCompilationResult ScriptCompiler::Compile(Script& script, const buffers::formatting::FormattingConfigT& config,
+                                                ScriptCompilationOptions options) {
     ScriptCompilationResult result;
     if (options.parse_if_outdated &&
         (!script.parsed_script || script.parsed_script->scanned_script->text_version != script.text_version)) {
@@ -99,9 +110,8 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script,
         return result;
     }
 
-    constexpr auto execution_features =
-        static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::RELATIONAL_PIPE) |
-        static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE);
+    constexpr auto execution_features = static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::RELATIONAL_PIPE) |
+                                        static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE);
     if (!options.allow_extensions && (parsed.feature_flags & execution_features) != 0) {
         result.errors.push_back(MakeError(ErrorCode::EXTENSIONS_DISABLED,
                                           "DashQL pipe and VISUALIZE syntax is not executable in the shell"));
@@ -121,19 +131,19 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script,
         auto definition = FindTerminalPipeDefinition(parsed, statement_id);
         if (!definition) {
             auto root_id = parsed.statements[statement_id].root;
-            result.errors.push_back(MakeError(
-                ErrorCode::PREFIX_NOT_LOCAL_RELATION,
-                "every statement before the final query must end in a top-level |> AS name", statement_id, root_id,
-                parsed.scanned_script->ResolveTextSpan(parsed.nodes[root_id].symbol_span())));
+            result.errors.push_back(
+                MakeError(ErrorCode::PREFIX_NOT_LOCAL_RELATION,
+                          "every statement before the final query must end in a top-level |> AS name", statement_id,
+                          root_id, parsed.scanned_script->ResolveTextSpan(parsed.nodes[root_id].symbol_span())));
             continue;
         }
         auto& alias_node = parsed.nodes[definition->alias_node_id];
         auto& name = parsed.scanned_script->GetNames().At(alias_node.children_begin_or_value());
         if (auto [_, inserted] = names.emplace(name.text, statement_id); !inserted) {
-            result.errors.push_back(MakeError(
-                ErrorCode::DUPLICATE_LOCAL_RELATION,
-                std::string("duplicate script-local relation: ") + std::string(name.text), statement_id,
-                definition->alias_node_id, parsed.scanned_script->ResolveTextSpan(alias_node.symbol_span())));
+            result.errors.push_back(MakeError(ErrorCode::DUPLICATE_LOCAL_RELATION,
+                                              std::string("duplicate script-local relation: ") + std::string(name.text),
+                                              statement_id, definition->alias_node_id,
+                                              parsed.scanned_script->ResolveTextSpan(alias_node.symbol_span())));
         }
         definitions.push_back(LocalDefinition{*definition, name});
     }
@@ -149,8 +159,8 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script,
         return result;
     }
 
-    auto terminal_query_node_id = ReadTerminalQueryNode(parsed, terminal_statement_id, result.kind);
-    if (!terminal_query_node_id) {
+    auto terminal_sql_node_id = ReadTerminalSqlNode(parsed, terminal_statement_id, result.kind);
+    if (!terminal_sql_node_id) {
         auto root_id = parsed.statements.back().root;
         result.errors.push_back(MakeError(ErrorCode::LAST_STATEMENT_NOT_EXECUTABLE,
                                           "the final statement must be a query or VISUALIZE statement",
@@ -164,7 +174,7 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script,
         script.Analyze(false);
     }
 
-    ScriptExecutionPlan plan{.terminal_query_node_id = *terminal_query_node_id};
+    ScriptExecutionPlan plan{.terminal_query_node_id = *terminal_sql_node_id};
     for (const auto& definition : definitions) {
         plan.local_relations.push_back(ScriptExecutionLocalRelation{
             definition.pipe.alias_node_id,
@@ -178,7 +188,7 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script,
     if (result.sql.empty()) {
         result.sql.clear();
         result.errors.push_back(MakeError(ErrorCode::FORMAT_ERROR, "could not format the executable query",
-                                          terminal_statement_id, *terminal_query_node_id));
+                                          terminal_statement_id, *terminal_sql_node_id));
         return result;
     }
 
@@ -205,10 +215,8 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script,
     return result;
 }
 
-void ScriptCompiler::CompileAndPack(flatbuffers::FlatBufferBuilder& builder,
-                                    Script& script,
-                                    const buffers::formatting::FormattingConfigT& config,
-                                    bool allow_extensions,
+void ScriptCompiler::CompileAndPack(flatbuffers::FlatBufferBuilder& builder, Script& script,
+                                    const buffers::formatting::FormattingConfigT& config, bool allow_extensions,
                                     bool parse_if_outdated) {
     if (parse_if_outdated &&
         (!script.parsed_script || script.parsed_script->scanned_script->text_version != script.text_version)) {
@@ -225,8 +233,7 @@ void ScriptCompiler::CompileAndPack(flatbuffers::FlatBufferBuilder& builder,
                 MakeError(ErrorCode::SCANNER_ERROR, message, PROTO_NULL_U32, PROTO_NULL_U32, span));
         }
         for (const auto& error : parsed.errors) {
-            compiled.errors.push_back(MakeError(ErrorCode::PARSER_ERROR, error.message, PROTO_NULL_U32,
-                                                PROTO_NULL_U32,
+            compiled.errors.push_back(MakeError(ErrorCode::PARSER_ERROR, error.message, PROTO_NULL_U32, PROTO_NULL_U32,
                                                 parsed.scanned_script->ResolveTextSpan(error.location)));
         }
 
@@ -235,8 +242,7 @@ void ScriptCompiler::CompileAndPack(flatbuffers::FlatBufferBuilder& builder,
             static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE);
         if (compiled.errors.empty() && parsed.statements.empty()) {
             compiled.errors.push_back(MakeError(ErrorCode::EMPTY_SCRIPT, "script has no executable statement"));
-        } else if (compiled.errors.empty() && !allow_extensions &&
-                   (parsed.feature_flags & execution_features) != 0) {
+        } else if (compiled.errors.empty() && !allow_extensions && (parsed.feature_flags & execution_features) != 0) {
             compiled.errors.push_back(MakeError(ErrorCode::EXTENSIONS_DISABLED,
                                                 "DashQL pipe and VISUALIZE syntax is not executable in the shell"));
         } else if (compiled.errors.empty() && (parsed.feature_flags & execution_features) == 0) {

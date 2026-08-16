@@ -186,7 +186,7 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
                 side={AnchorSide.OutsideRight}
                 align={AnchorAlignment.Center}
                 anchorOffset={8}
-                width={OverlaySize.M}
+                width={OverlaySize.L}
                 maxHeight={OverlaySize.L}
                 positionRevision={positionRevision}
             >
