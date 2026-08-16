@@ -111,15 +111,6 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
         if (svg != null && behavior != null) select(svg).transition().duration(120).call(behavior.scaleBy, factor);
     }, []);
 
-    const reset = React.useCallback(() => {
-        const viewport = viewportRef.current;
-        const svg = svgRef.current;
-        const behavior = zoomRef.current;
-        if (viewport == null || svg == null || behavior == null) return;
-        const x = (viewport.clientWidth - scene.width) / 2;
-        const y = Math.max(FIT_PADDING, (viewport.clientHeight - scene.height) / 2);
-        select(svg).transition().duration(160).call(behavior.transform, zoomIdentity.translate(x, y));
-    }, [scene.height, scene.width]);
 
     const onKeyDown = React.useCallback((event: React.KeyboardEvent) => {
         const svg = svgRef.current;
@@ -129,7 +120,6 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
         if (event.key === '+' || event.key === '=') zoomBy(1.25);
         else if (event.key === '-') zoomBy(0.8);
         else if (event.key === 'f') fit(true);
-        else if (event.key === '0') reset();
         else if (event.key === 'ArrowLeft') select(svg).call(behavior.translateBy, step, 0);
         else if (event.key === 'ArrowRight') select(svg).call(behavior.translateBy, -step, 0);
         else if (event.key === 'ArrowUp') select(svg).call(behavior.translateBy, 0, step);
@@ -137,7 +127,7 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
         else return;
         event.preventDefault();
         event.stopPropagation();
-    }, [fit, reset, zoomBy]);
+    }, [fit, zoomBy]);
 
     const anchorRef = React.useMemo(() => ({ current: selection?.anchor ?? null }), [selection?.anchor]);
     return (
@@ -187,7 +177,6 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
                 <IconButton variant={ButtonVariant.Default} size={ButtonSize.Small} aria-label="Zoom in" onClick={() => zoomBy(1.25)}><ZoomInIcon size={12} /></IconButton>
                 <IconButton variant={ButtonVariant.Default} size={ButtonSize.Small} aria-label="Zoom out" onClick={() => zoomBy(0.8)}><ZoomOutIcon size={12} /></IconButton>
                 <IconButton variant={ButtonVariant.Default} size={ButtonSize.Small} aria-label="Fit plan" onClick={() => fit(true)}><ScreenFullIcon size={12} /></IconButton>
-                <IconButton variant={ButtonVariant.Default} size={ButtonSize.Small} aria-label="Reset to 100 percent" onClick={reset}><span className={styles.reset_label}>100%</span></IconButton>
             </ButtonGroup>
             <AnchoredOverlay
                 renderAnchor={null}

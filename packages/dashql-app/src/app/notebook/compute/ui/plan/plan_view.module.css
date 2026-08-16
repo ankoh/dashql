@@ -3,8 +3,6 @@
     width: 100%;
     height: clamp(280px, 60vh, 520px);
     overflow: hidden;
-    background: hsl(210, 29%, 98%);
-    border: 1px solid var(--border_color_primary);
     border-radius: 8px;
     touch-action: none;
 }
