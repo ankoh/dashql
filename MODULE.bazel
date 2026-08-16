@@ -59,7 +59,7 @@ register_toolchains("@nodejs_toolchains//:all")
 # Protobuf: proto_library (rules_proto) + custom plugins (rules_proto_grpc) for protoc + protoc-gen-es
 bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "rules_proto_grpc", version = "5.8.0")
-bazel_dep(name = "protobuf", version = "34.1")
+bazel_dep(name = "protobuf", version = "35.1")
 
 # protobuf 34.1 -> rules_kotlin 2.2.2 -> rules_android 0.6.4.
 # rules_android 0.6.4 has two issues on Bazel 9:
