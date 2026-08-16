@@ -2561,6 +2561,7 @@ std::string Formatter::WriteOutput() const {
 
 std::string Formatter::Format(const buffers::formatting::FormattingConfigT& config) {
     this->config = config;
+    formatting_executable_sql = false;
     fmt.Reset();
     fmt.SetConfig(config);
     node_states.assign(ast.size(), {});
@@ -2589,6 +2590,27 @@ std::string Formatter::Format(const buffers::formatting::FormattingConfigT& conf
 std::string Formatter::FormatNodeAt(size_t node_id, const buffers::formatting::FormattingConfigT& config) {
     if (node_id >= ast.size()) return {};
     this->config = config;
+    formatting_executable_sql = false;
+    fmt.Reset();
+    fmt.SetConfig(config);
+    node_states.assign(ast.size(), {});
+    pipe_stage_limits.clear();
+    script_local_name_regs.clear();
+    select_without_with.reset();
+    unformattable_nodes.clear();
+    PreparePrecedence();
+    for (size_t i = 0; i < ast.size(); ++i) {
+        IdentifyParentheses(ast.size() - 1 - i);
+    }
+    BuildDocs();
+    return Render(node_states[node_id].reg);
+}
+
+std::string Formatter::FormatExecutableNodeAt(size_t node_id,
+                                              const buffers::formatting::FormattingConfigT& config) {
+    if (node_id >= ast.size()) return {};
+    this->config = config;
+    formatting_executable_sql = true;
     fmt.Reset();
     fmt.SetConfig(config);
     node_states.assign(ast.size(), {});
@@ -2619,7 +2641,7 @@ std::string Formatter::FormatExecutableQuery(const ScriptExecutionPlan& plan,
     if (plan.terminal_query_node_id >= ast.size()) return {};
 
     config = input_config;
-    config.lower_relational_pipes = true;
+    formatting_executable_sql = true;
     config.debug_mode = false;
     fmt.Reset();
     fmt.SetConfig(config);

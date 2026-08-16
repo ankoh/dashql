@@ -88,8 +88,8 @@ FmtReg Formatter::FormatPipeFrom(const buffers::parser::Node& node) {
     if (!from) return FormatUnimplemented(node);
     auto from_reg = Reg(*from);
     if (from_reg == 0) return FormatUnimplemented(node);
-    return config.lower_relational_pipes ? fmt.Concat({fmt.Text("select * from "), from_reg})
-                                         : fmt.Concat({fmt.Text("from "), from_reg});
+    return formatting_executable_sql ? fmt.Concat({fmt.Text("select * from "), from_reg})
+                                     : fmt.Concat({fmt.Text("from "), from_reg});
 }
 
 FmtReg Formatter::FormatPipeStage(const buffers::parser::Node& node) {
@@ -176,7 +176,7 @@ FmtReg Formatter::FormatPipe(size_t node_id) {
     auto source_reg = Reg(*source);
     if (source_reg == 0) return FormatUnimplemented(node);
 
-    if (!config.lower_relational_pipes) {
+    if (!formatting_executable_sql) {
         std::vector<FmtReg> parts{source_reg};
         auto stage_count = stages->children_count();
         if (auto it = pipe_stage_limits.find(node_id); it != pipe_stage_limits.end()) {

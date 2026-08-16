@@ -13,7 +13,6 @@ buffers::formatting::FormattingConfigT ExecutionConfig() {
     config.dialect = buffers::formatting::FormattingDialect::HYPER;
     config.max_width = 120;
     config.indentation_width = 2;
-    config.lower_relational_pipes = true;
     return config;
 }
 

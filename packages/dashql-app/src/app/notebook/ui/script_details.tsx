@@ -16,7 +16,16 @@ import { useCancelQuery, useQueryState, useQueryExecutor } from '../connections/
 import { useAgentRunState, useCancelAgentRun } from '../agent/agent_run_provider.js';
 import { ScriptOutputDetails, ScriptDetailsTab } from './script_output_details.js';
 import { QueryResultCacheLabel, QueryResultRerunButton } from './query_result_cache_controls.js';
-import { ACCEPT_PENDING_DIFF, getSelectedScriptRef, getSelectedScriptFolder, NotebookScripts, REJECT_PENDING_DIFF, RENAME_SCRIPT, SELECT_SCRIPT_PATH } from '../scripts/notebook_scripts.js';
+import {
+    ACCEPT_PENDING_DIFF,
+    compileQuery,
+    getSelectedScriptFolder,
+    getSelectedScriptRef,
+    NotebookScripts,
+    REJECT_PENDING_DIFF,
+    RENAME_SCRIPT,
+    SELECT_SCRIPT_PATH,
+} from '../scripts/notebook_scripts.js';
 import { runNotebookScript } from './rerun_query.js';
 import { useStorageReader } from '../persistence/storage_provider.js';
 import { normalizeScriptFolderName, scriptDisplayName } from '../scripts/script_types.js';
@@ -51,20 +60,22 @@ export interface ScriptDetailsProps {
 interface ScriptFormatMenuProps {
     disabled: boolean;
     canConvertToSQL: boolean;
-    onFormat: (mode: dashql.buffers.formatting.FormattingMode, lowerRelationalPipes: boolean) => void;
+    onFormat: (mode: dashql.buffers.formatting.FormattingMode) => void;
+    onConvertToSQL: () => void;
 }
 
 const ScriptFormatMenu: React.FC<ScriptFormatMenuProps> = (props) => {
     const [isOpen, setIsOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement | null>(null);
     const FormatIcon: Icon = SymbolIcon('pencil_ai_16');
-    const selectFormat = React.useCallback((
-        mode: dashql.buffers.formatting.FormattingMode,
-        lowerRelationalPipes: boolean,
-    ) => {
+    const selectFormat = React.useCallback((mode: dashql.buffers.formatting.FormattingMode) => {
         setIsOpen(false);
-        props.onFormat(mode, lowerRelationalPipes);
+        props.onFormat(mode);
     }, [props.onFormat]);
+    const convertToSQL = React.useCallback(() => {
+        setIsOpen(false);
+        props.onConvertToSQL();
+    }, [props.onConvertToSQL]);
 
     return (
         <AnchoredOverlay
@@ -95,20 +106,20 @@ const ScriptFormatMenu: React.FC<ScriptFormatMenuProps> = (props) => {
                 <ActionList.List className={styles.format_menu_list} aria-label="Script formatting options">
                     <ActionList.ListItem
                         className={styles.format_menu_item}
-                        onClick={() => selectFormat(dashql.buffers.formatting.FormattingMode.PRETTY, false)}
+                        onClick={() => selectFormat(dashql.buffers.formatting.FormattingMode.PRETTY)}
                     >
                         <ActionList.ItemText>Format Pretty</ActionList.ItemText>
                     </ActionList.ListItem>
                     <ActionList.ListItem
                         className={styles.format_menu_item}
-                        onClick={() => selectFormat(dashql.buffers.formatting.FormattingMode.COMPACT, false)}
+                        onClick={() => selectFormat(dashql.buffers.formatting.FormattingMode.COMPACT)}
                     >
                         <ActionList.ItemText>Format Compact</ActionList.ItemText>
                     </ActionList.ListItem>
                     <ActionList.ListItem
                         className={styles.format_menu_item}
                         disabled={!props.canConvertToSQL}
-                        onClick={() => selectFormat(dashql.buffers.formatting.FormattingMode.PRETTY, true)}
+                        onClick={convertToSQL}
                     >
                         <ActionList.ItemText>Convert to SQL</ActionList.ItemText>
                     </ActionList.ListItem>
@@ -206,11 +217,56 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         }
     }, [scriptData?.script, scriptData?.scriptAnalysis.buffers]);
 
-    const handleFormat = React.useCallback((
-        mode: dashql.buffers.formatting.FormattingMode,
-        lowerRelationalPipes: boolean,
-    ) => {
-        if (editorView == null || scriptData == null) return;
+    const previewFormattedScript = React.useCallback((formattedScript: dashql.DashQLScript) => {
+        if (editorView == null || scriptData == null) {
+            formattedScript.ptr.destroy();
+            return;
+        }
+        const formattedText = formattedScript.toString();
+        const currentText = editorView.state.doc.toString();
+        if (formattedText === currentText) {
+            formattedScript.ptr.destroy();
+            return;
+        }
+
+        formattedScript.parse();
+        const previewBuffers = analyzeScript(formattedScript);
+
+        savedEditorStateRef.current = editorView.state;
+        formattedTextRef.current = formattedText;
+        formatPreviewBuffersRef.current?.destroy(formatPreviewBuffersRef.current);
+        formatPreviewBuffersRef.current = previewBuffers;
+        formatPreviewScriptRef.current?.ptr.destroy();
+        formatPreviewScriptRef.current = formattedScript;
+
+        const readonlyExtensions = createReadonlyCodeMirrorExtensions();
+        const previewState = EditorState.create({
+            doc: formattedText,
+            extensions: readonlyExtensions,
+        });
+        editorView.setState(previewState);
+        editorView.contentDOM.blur();
+
+        editorView.dispatch({
+            effects: [
+                DashQLUpdateEffect.of({
+                    scriptKey: formattedScript.getCatalogEntryId(),
+                    script: formattedScript,
+                    scriptBuffers: previewBuffers,
+                    scriptCursor: null,
+                    scriptCompletion: null,
+                    scriptPendingDiff: null,
+                    derivedFocus: null,
+                    onUpdate: () => { },
+                }),
+            ],
+        });
+
+        setFormatPending(true);
+    }, [editorView, scriptData]);
+
+    const handleFormat = React.useCallback((mode: dashql.buffers.formatting.FormattingMode) => {
+        if (scriptData == null) return;
         try {
             const config = new dashql.buffers.formatting.FormattingConfigT(
                 dashql.buffers.formatting.FormattingDialect.HYPER,
@@ -218,55 +274,43 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                 80,
                 4,
                 false,
-                lowerRelationalPipes,
             );
-            const formattedScript = scriptData.script.format(config, null);
-            const formattedText = formattedScript.toString();
-
-            const currentText = editorView.state.doc.toString();
-            if (formattedText === currentText) {
-                formattedScript.ptr.destroy();
-                return;
-            }
-
-            formattedScript.parse();
-            const previewBuffers = analyzeScript(formattedScript);
-
-            savedEditorStateRef.current = editorView.state;
-            formattedTextRef.current = formattedText;
-            formatPreviewBuffersRef.current?.destroy(formatPreviewBuffersRef.current);
-            formatPreviewBuffersRef.current = previewBuffers;
-            formatPreviewScriptRef.current?.ptr.destroy();
-            formatPreviewScriptRef.current = formattedScript;
-
-            const readonlyExtensions = createReadonlyCodeMirrorExtensions();
-            const previewState = EditorState.create({
-                doc: formattedText,
-                extensions: readonlyExtensions,
-            });
-            editorView.setState(previewState);
-            editorView.contentDOM.blur();
-
-            editorView.dispatch({
-                effects: [
-                    DashQLUpdateEffect.of({
-                        scriptKey: formattedScript.getCatalogEntryId(),
-                        script: formattedScript,
-                        scriptBuffers: previewBuffers,
-                        scriptCursor: null,
-                        scriptCompletion: null,
-                        scriptPendingDiff: null,
-                        derivedFocus: null,
-                        onUpdate: () => { },
-                    }),
-                ],
-            });
-
-            setFormatPending(true);
+            previewFormattedScript(scriptData.script.format(config, null));
         } catch {
             // Format failed
         }
-    }, [editorView, scriptData]);
+    }, [previewFormattedScript, scriptData]);
+
+    const handleConvertToSQL = React.useCallback(() => {
+        if (scriptData == null) return;
+        let compiledScript: dashql.DashQLScript | null = null;
+        let formattedScript: dashql.DashQLScript | null = null;
+        try {
+            const sql = compileQuery(scriptData, logger);
+            compiledScript = props.notebookScripts.instance.createScript(props.notebookScripts.connectionCatalog);
+            compiledScript.insertTextAt(0, sql);
+            const config = new dashql.buffers.formatting.FormattingConfigT(
+                dashql.buffers.formatting.FormattingDialect.HYPER,
+                dashql.buffers.formatting.FormattingMode.PRETTY,
+                80,
+                4,
+            );
+            formattedScript = compiledScript.format(config, null);
+            compiledScript.ptr.destroy();
+            compiledScript = null;
+            previewFormattedScript(formattedScript);
+            formattedScript = null;
+        } catch {
+            compiledScript?.ptr.destroy();
+            formattedScript?.ptr.destroy();
+        }
+    }, [
+        logger,
+        previewFormattedScript,
+        props.notebookScripts.connectionCatalog,
+        props.notebookScripts.instance,
+        scriptData,
+    ]);
 
     const handleFormatAccept = React.useCallback(() => {
         if (editorView == null || savedEditorStateRef.current == null || formattedTextRef.current == null) return;
@@ -506,6 +550,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                                         disabled={formatPending || hasPendingDiff}
                                         canConvertToSQL={canConvertToSQL}
                                         onFormat={handleFormat}
+                                        onConvertToSQL={handleConvertToSQL}
                                     />
                                     <IconButton
                                         className={styles.entry_card_collapse_button}

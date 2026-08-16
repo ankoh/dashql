@@ -708,9 +708,8 @@ std::string GenerateVegaLiteSpec(const VisualizationSpec& spec, const AnalyzedSc
                    source_node.node_type() == buffers::parser::NodeType::OBJECT_EXT_PIPE_FROM) {
             buffers::formatting::FormattingConfigT config;
             config.mode = buffers::formatting::FormattingMode::INLINE;
-            config.lower_relational_pipes = true;
             Formatter formatter{*script.parsed_script};
-            auto source_text = formatter.FormatNodeAt(*spec.source_node_id, config);
+            auto source_text = formatter.FormatExecutableNodeAt(*spec.source_node_id, config);
             writer.Key("$sql");
             writer.String(source_text.c_str());
         }

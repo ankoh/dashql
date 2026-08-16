@@ -50,6 +50,7 @@ struct Formatter {
     std::unordered_map<uint32_t, uint32_t> pipe_stage_limits;
     std::unordered_map<uint32_t, FmtReg> script_local_name_regs;
     std::optional<uint32_t> select_without_with;
+    bool formatting_executable_sql = false;
 
     NodeState& GetState(const buffers::parser::Node& node) { return node_states[&node - ast.data()]; }
     const NodeState& GetState(const buffers::parser::Node& node) const { return node_states[&node - ast.data()]; }
@@ -166,6 +167,7 @@ struct Formatter {
     size_t EstimateFormattedSize() const;
     std::string Format(const buffers::formatting::FormattingConfigT& config);
     std::string FormatNodeAt(size_t node_id, const buffers::formatting::FormattingConfigT& config);
+    std::string FormatExecutableNodeAt(size_t node_id, const buffers::formatting::FormattingConfigT& config);
     std::string FormatExecutableQuery(const ScriptExecutionPlan& plan,
                                       const buffers::formatting::FormattingConfigT& config);
     const std::vector<uint32_t>& GetUnformattableNodes() const { return unformattable_nodes; }

@@ -68,19 +68,14 @@ extern "C" void dashql_script_analyze(dashql::Script* script, bool parse_if_outd
 extern "C" void dashql_script_format(FFIResult* result, dashql::Script* script, size_t dialect, size_t mode,
                                        size_t max_width, size_t indentation_width, bool debug_mode,
                                        bool parse_if_outdated, dashql::Catalog* catalog);
-/// Get a pretty-printed version of the SQL query, optionally lowering relational pipes
-extern "C" void dashql_script_format_extended(FFIResult* result, dashql::Script* script, size_t dialect, size_t mode,
-                                                 size_t max_width, size_t indentation_width, bool debug_mode,
-                                                 bool lower_relational_pipes, bool parse_if_outdated,
-                                                 dashql::Catalog* catalog);
 /// Whether formatting this script can complete without placeholders.
 extern "C" uint32_t dashql_script_is_fully_formattable(dashql::Script* script, size_t dialect, size_t mode,
-                                                            size_t max_width, size_t indentation_width, bool debug_mode,
-                                                            bool lower_relational_pipes, bool parse_if_outdated);
+                                                             size_t max_width, size_t indentation_width, bool debug_mode,
+                                                             bool parse_if_outdated);
 /// Get the node ids that prevent full formatting.
 extern "C" void dashql_script_get_unformattable_nodes(
     FFIResult* result, dashql::Script* script, size_t dialect, size_t mode, size_t max_width,
-    size_t indentation_width, bool debug_mode, bool lower_relational_pipes, bool parse_if_outdated);
+    size_t indentation_width, bool debug_mode, bool parse_if_outdated);
 /// Get script id
 extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script);
 /// Get the scanned script

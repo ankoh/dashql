@@ -128,7 +128,6 @@ extern "C" void dashql_script_compile_query(FFIResult* result, Script* script, s
     config.mode = static_cast<buffers::formatting::FormattingMode>(mode);
     config.max_width = max_width;
     config.indentation_width = indentation_width;
-    config.lower_relational_pipes = true;
     flatbuffers::FlatBufferBuilder fb;
     ScriptCompiler::CompileAndPack(fb, *script, config, allow_extensions, parse_if_outdated);
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
@@ -142,16 +141,15 @@ extern "C" void dashql_script_parse(Script* script) { script->Parse(); }
 /// Analyze a script
 extern "C" void dashql_script_analyze(Script* script, bool parse_if_outdated) { script->Analyze(parse_if_outdated); }
 /// Format a script
-extern "C" void dashql_script_format_extended(FFIResult* result, Script* script, size_t dialect, size_t mode,
-                                               size_t max_width, size_t indentation_width, bool debug_mode,
-                                               bool lower_relational_pipes, bool parse_if_outdated, Catalog* catalog) {
+extern "C" void dashql_script_format(FFIResult* result, Script* script, size_t dialect, size_t mode,
+                                      size_t max_width, size_t indentation_width, bool debug_mode,
+                                      bool parse_if_outdated, Catalog* catalog) {
     buffers::formatting::FormattingConfigT config;
     config.dialect = static_cast<dashql::buffers::formatting::FormattingDialect>(dialect);
     config.mode = static_cast<dashql::buffers::formatting::FormattingMode>(mode);
     config.max_width = max_width;
     config.indentation_width = indentation_width;
     config.debug_mode = debug_mode;
-    config.lower_relational_pipes = lower_relational_pipes;
 
     // Format the script
     auto text = script->Format(config, parse_if_outdated);
@@ -171,37 +169,28 @@ extern "C" void dashql_script_format_extended(FFIResult* result, Script* script,
 }
 
 extern "C" uint32_t dashql_script_is_fully_formattable(Script* script, size_t dialect, size_t mode, size_t max_width,
-                                                           size_t indentation_width, bool debug_mode,
-                                                           bool lower_relational_pipes, bool parse_if_outdated) {
+                                                            size_t indentation_width, bool debug_mode,
+                                                            bool parse_if_outdated) {
     buffers::formatting::FormattingConfigT config;
     config.dialect = static_cast<dashql::buffers::formatting::FormattingDialect>(dialect);
     config.mode = static_cast<dashql::buffers::formatting::FormattingMode>(mode);
     config.max_width = max_width;
     config.indentation_width = indentation_width;
     config.debug_mode = debug_mode;
-    config.lower_relational_pipes = lower_relational_pipes;
     return script->IsFullyFormattable(config, parse_if_outdated) ? 1 : 0;
 }
 
 extern "C" void dashql_script_get_unformattable_nodes(
     FFIResult* result, Script* script, size_t dialect, size_t mode, size_t max_width, size_t indentation_width,
-    bool debug_mode, bool lower_relational_pipes, bool parse_if_outdated) {
+    bool debug_mode, bool parse_if_outdated) {
     buffers::formatting::FormattingConfigT config;
     config.dialect = static_cast<dashql::buffers::formatting::FormattingDialect>(dialect);
     config.mode = static_cast<dashql::buffers::formatting::FormattingMode>(mode);
     config.max_width = max_width;
     config.indentation_width = indentation_width;
     config.debug_mode = debug_mode;
-    config.lower_relational_pipes = lower_relational_pipes;
     packUInt32Vector(result, std::make_unique<std::vector<uint32_t>>(
                                  script->GetUnformattableNodes(config, parse_if_outdated)));
-}
-
-extern "C" void dashql_script_format(FFIResult* result, Script* script, size_t dialect, size_t mode, size_t max_width,
-                                     size_t indentation_width, bool debug_mode, bool parse_if_outdated,
-                                     Catalog* catalog) {
-    dashql_script_format_extended(result, script, dialect, mode, max_width, indentation_width, debug_mode, false,
-                                  parse_if_outdated, catalog);
 }
 
 /// Get the parsed script

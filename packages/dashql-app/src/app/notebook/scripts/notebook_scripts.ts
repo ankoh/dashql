@@ -1849,7 +1849,6 @@ function executionFormattingConfig(): core.buffers.formatting.FormattingConfigT 
         120,
         2,
         false,
-        true,
     );
 }
 

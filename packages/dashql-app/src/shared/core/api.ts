@@ -44,9 +44,8 @@ export interface EmscriptenModule {
     _dashql_script_compute_diff: (result: number, source: number, target: number) => void;
     _dashql_script_get_statistics: (result: number, ptr: number) => void;
     _dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean, catalog: number) => void;
-    _dashql_script_format_extended: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, lower_relational_pipes: boolean, parse_if_outdated: boolean, catalog: number) => void;
-    _dashql_script_is_fully_formattable: (ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, lower_relational_pipes: boolean, parse_if_outdated: boolean) => number;
-    _dashql_script_get_unformattable_nodes: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, lower_relational_pipes: boolean, parse_if_outdated: boolean) => void;
+    _dashql_script_is_fully_formattable: (ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean) => number;
+    _dashql_script_get_unformattable_nodes: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean) => void;
     _dashql_catalog_new: (result: number) => void;
     _dashql_catalog_clear: (catalog_ptr: number) => void;
     _dashql_catalog_contains_entry_id: (catalog_ptr: number, external_id: number) => boolean;
@@ -98,9 +97,8 @@ interface DashQLModuleExports {
     dashql_script_compute_diff: (result: number, source: number, target: number) => void;
     dashql_script_get_statistics: (result: number, ptr: number) => void;
     dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean, catalog: number) => void;
-    dashql_script_format_extended: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, lower_relational_pipes: boolean, parse_if_outdated: boolean, catalog: number) => void;
-    dashql_script_is_fully_formattable: (ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, lower_relational_pipes: boolean, parse_if_outdated: boolean) => number;
-    dashql_script_get_unformattable_nodes: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, lower_relational_pipes: boolean, parse_if_outdated: boolean) => void;
+    dashql_script_is_fully_formattable: (ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean) => number;
+    dashql_script_get_unformattable_nodes: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean) => void;
 
     dashql_catalog_new: (result: number) => void;
     dashql_catalog_clear: (catalog_ptr: number) => void;
@@ -220,7 +218,6 @@ export class DashQL {
             dashql_script_move_cursor: module._dashql_script_move_cursor,
             dashql_script_complete_at_cursor: module._dashql_script_complete_at_cursor,
             dashql_script_format: module._dashql_script_format,
-            dashql_script_format_extended: module._dashql_script_format_extended,
             dashql_script_is_fully_formattable: module._dashql_script_is_fully_formattable,
             dashql_script_get_unformattable_nodes: module._dashql_script_get_unformattable_nodes,
             dashql_catalog_new: module._dashql_catalog_new,
@@ -647,7 +644,6 @@ export class DashQLScript {
             config.maxWidth,
             config.indentationWidth,
             config.debugMode,
-            config.lowerRelationalPipes,
             parseIfOutdated,
         ) !== 0;
     }
@@ -662,7 +658,6 @@ export class DashQLScript {
                 config.maxWidth,
                 config.indentationWidth,
                 config.debugMode,
-                config.lowerRelationalPipes,
                 parseIfOutdated,
             )
         );
@@ -834,7 +829,7 @@ export class DashQLScript {
         const scriptPtr = this.ptr.assertNotNull();
         const catalogPtr = catalog?.ptr.assertNotNull() ?? 0;
         const newScriptPtr = this.ptr.api.callSRetPtr(SCRIPT_TYPE, (resultPtr) =>
-            this.ptr.api.instanceExports.dashql_script_format_extended(
+            this.ptr.api.instanceExports.dashql_script_format(
                 resultPtr,
                 scriptPtr,
                 config.dialect,
@@ -842,7 +837,6 @@ export class DashQLScript {
                 config.maxWidth,
                 config.indentationWidth,
                 config.debugMode,
-                config.lowerRelationalPipes,
                 parseIfOutdated,
                 catalogPtr)
         );

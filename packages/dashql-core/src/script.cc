@@ -976,9 +976,8 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
                  parsed_script->nodes[*spec.source_node_id].node_type() == buffers::parser::NodeType::OBJECT_EXT_PIPE_FROM)) {
                 buffers::formatting::FormattingConfigT config;
                 config.mode = buffers::formatting::FormattingMode::INLINE;
-                config.lower_relational_pipes = true;
                 Formatter formatter{*parsed_script};
-                auto source_sql = formatter.FormatNodeAt(*spec.source_node_id, config);
+                auto source_sql = formatter.FormatExecutableNodeAt(*spec.source_node_id, config);
                 if (!source_sql.empty()) {
                     source_sql_ofs = builder.CreateString(source_sql);
                 }

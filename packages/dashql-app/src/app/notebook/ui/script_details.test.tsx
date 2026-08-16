@@ -17,6 +17,10 @@ import {
 
 const mockState = vi.hoisted(() => ({
     executeQuery: vi.fn(),
+    compileQuery: vi.fn(),
+    createScript: vi.fn(),
+    insertCompiledText: vi.fn(),
+    formatCompiledScript: vi.fn(),
     formatScript: vi.fn(),
     isFormattable: true,
     keyHandlers: [] as Array<{
@@ -69,6 +73,7 @@ function makeScriptData(scriptKey: number, text: string, fileName: string) {
             toString: () => text,
             getStatementText: () => text,
             compileQuery: () => ({
+                ...mockState.compileQuery(),
                 read: () => ({
                     errorsLength: () => 0,
                     sql: () => text,
@@ -100,7 +105,7 @@ function makeScriptData(scriptKey: number, text: string, fileName: string) {
 function createNotebookScripts(): NotebookScripts {
     return {
         notebookId: crypto.randomUUID(),
-        instance: {} as any,
+        instance: { createScript: mockState.createScript } as any,
         notebookMetadata: {} as any,
         connectorInfo: {} as any,
         connectionCatalog: {} as any,
@@ -137,6 +142,18 @@ describe('ScriptDetails', () => {
         mockState.keyHandlers = [];
         mockState.executeQuery.mockReset();
         mockState.executeQuery.mockReturnValue([42, Promise.resolve(null)]);
+        mockState.compileQuery.mockReset();
+        mockState.compileQuery.mockReturnValue({});
+        mockState.createScript.mockReset();
+        mockState.createScript.mockReturnValue({
+            insertTextAt: mockState.insertCompiledText,
+            format: mockState.formatCompiledScript,
+            ptr: { destroy: vi.fn() },
+            toString: () => 'compiled sql',
+        });
+        mockState.insertCompiledText.mockReset();
+        mockState.formatCompiledScript.mockReset();
+        mockState.formatCompiledScript.mockImplementation(() => { throw new Error('Stop after recording config'); });
         mockState.formatScript.mockReset();
         mockState.formatScript.mockImplementation(() => { throw new Error('Stop after recording config'); });
         mockState.isFormattable = true;
@@ -258,7 +275,6 @@ describe('ScriptDetails', () => {
         act(() => prettyButton.click());
         expect(mockState.formatScript).toHaveBeenLastCalledWith(expect.objectContaining({
             mode: dashql.buffers.formatting.FormattingMode.PRETTY,
-            lowerRelationalPipes: false,
         }), null);
 
         act(() => formatButton.click());
@@ -268,7 +284,6 @@ describe('ScriptDetails', () => {
         act(() => compactButton.click());
         expect(mockState.formatScript).toHaveBeenLastCalledWith(expect.objectContaining({
             mode: dashql.buffers.formatting.FormattingMode.COMPACT,
-            lowerRelationalPipes: false,
         }), null);
     });
 
@@ -323,9 +338,14 @@ describe('ScriptDetails', () => {
             .find(button => button.textContent === 'Convert to SQL') as HTMLButtonElement;
         expect(convertButton.disabled).toBe(false);
         act(() => convertButton.click());
-        expect(mockState.formatScript).toHaveBeenLastCalledWith(expect.objectContaining({
+        expect(mockState.formatScript).not.toHaveBeenCalled();
+        expect(mockState.compileQuery).toHaveBeenCalledOnce();
+        expect(mockState.createScript).toHaveBeenCalledOnce();
+        expect(mockState.insertCompiledText).toHaveBeenCalledWith(0, 'select 2');
+        expect(mockState.formatCompiledScript).toHaveBeenCalledWith(expect.objectContaining({
             mode: dashql.buffers.formatting.FormattingMode.PRETTY,
-            lowerRelationalPipes: true,
+            maxWidth: 80,
+            indentationWidth: 4,
         }), null);
     });
 
