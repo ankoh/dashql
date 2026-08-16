@@ -52,6 +52,7 @@ class NullStorageBackend implements StorageBackend {
     async saveScriptDraft(_notebookId: string, _sql: string): Promise<void> { }
     async loadQueryResultCache(_notebookId: string, _hash: string): Promise<null> { return null; }
     async touchQueryResultCacheAccess(_notebookId: string, _hash: string): Promise<void> { }
+    async hasCachedQueryResult(_notebookId: string, _hash: string): Promise<boolean> { return false; }
     async saveQueryResultCache(_notebookId: string, _hash: string, _bytes: Uint8Array): Promise<void> { }
     async listQueryResultCache(_notebookId: string): Promise<[]> { return []; }
     async deleteQueryResultCache(_notebookId: string, _hash: string): Promise<void> { }

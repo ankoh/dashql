@@ -87,7 +87,7 @@ export function createNotebookScriptsAgentHost(params: NotebookScriptsAgentHostP
             // Inject the resolved source as the spec's `data` member; the WASM transcoder turns it
             // into the `<query> |> VISUALIZE USING vegalite (…)` clause. The model is told not to emit `data`, but
             // overwrite it defensively so our source always wins.
-            const source = determineVisSource(notebookScripts, contextScriptData);
+            const source = determineVisSource(contextScriptData);
             if (source == null) throw new Error('A query source is required to create a visualization');
             spec.data = visSourceToData(source);
             return notebookScripts.instance.parseVegaLiteToVisualize(JSON.stringify(spec));
@@ -156,10 +156,10 @@ export function chooseApplyAction(
 ///   in-place edit keeps pointing at the same data.
 /// - Otherwise (focused is a SQL script) reference that script by its SQL script path.
 /// - If nothing usable is focused, fall back to no source (the verify pass will flag it).
-export function determineVisSource(notebookScripts: NotebookScripts, contextScriptData: ScriptData | null): VisSource | null {
+export function determineVisSource(contextScriptData: ScriptData | null): VisSource | null {
     if (contextScriptData == null) {
         return null;
     }
-    const sql = compileQuery(notebookScripts, contextScriptData).trim();
+    const sql = compileQuery(contextScriptData).trim();
     return sql ? { kind: 'inline-select', sql } : null;
 }

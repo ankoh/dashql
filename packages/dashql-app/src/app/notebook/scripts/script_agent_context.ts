@@ -110,7 +110,7 @@ export const visualizeSourceContributor: AgentContextContributor = (input) => {
     if (vis != null) {
         // Focused script is already a VISUALIZE: send its resolved source SELECT (re-resolved when
         // the analysis is outdated so a changed source is reflected) and the current chart spec.
-        const sql = compileQuery(input.notebookScripts, data, input.logger).trim();
+        const sql = compileQuery(data, input.logger).trim();
         if (sql.length > 0) parts.push(`Source query (feeds the chart):\n${sql}`);
         try {
             // Show only the surface the model is allowed to emit. The resolved spec also carries a
@@ -127,7 +127,7 @@ export const visualizeSourceContributor: AgentContextContributor = (input) => {
         }
     } else {
         // Focused script is a plain SQL query we're about to chart.
-        const sql = compileQuery(input.notebookScripts, data, input.logger).trim();
+        const sql = compileQuery(data, input.logger).trim();
         if (sql.length > 0) parts.push(`Source query (feeds the chart):\n${sql}`);
     }
     return parts.length > 0 ? parts.join('\n\n') : null;

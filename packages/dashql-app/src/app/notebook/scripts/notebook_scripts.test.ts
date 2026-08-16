@@ -82,6 +82,7 @@ class NullStorageBackend implements StorageBackend {
     async saveScriptDraft(_notebookId: string, _sql: string): Promise<void> { }
     async loadQueryResultCache(_notebookId: string, _hash: string): Promise<null> { return null; }
     async touchQueryResultCacheAccess(_notebookId: string, _hash: string): Promise<void> { }
+    async hasCachedQueryResult(): Promise<boolean> { return false; }
     async saveQueryResultCache(_notebookId: string, _hash: string, _bytes: Uint8Array): Promise<void> { }
     async listQueryResultCache(_notebookId: string): Promise<[]> { return []; }
     async deleteQueryResultCache(_notebookId: string, _hash: string): Promise<void> { }
@@ -1208,7 +1209,7 @@ describe('compileQuery', () => {
         expect(scriptData.scriptAnalysis.outdated).toBe(true);
         expect(scriptData.annotations.visualizeQuery).toBeNull();
 
-        const text = compileQuery(state, scriptData);
+        const text = compileQuery(scriptData);
         expect(text.toLowerCase()).not.toContain('visualize');
         expect(text.toLowerCase()).toContain('select v as a');
     });
@@ -1223,7 +1224,7 @@ describe('compileQuery', () => {
         expect(scriptData.scriptAnalysis.outdated).toBe(false);
         expect(scriptData.annotations.visualizeQuery?.sql).toBeDefined();
 
-        const text = compileQuery(s1, scriptData);
+        const text = compileQuery(scriptData);
         expect(text.toLowerCase()).not.toContain('visualize');
         expect(text.toLowerCase()).toContain('select v as a');
     });
@@ -1273,7 +1274,7 @@ describe('compileQuery', () => {
         const script = `-- chart context\n${VISUALIZE_SCRIPT}`;
         const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
 
-        const text = compileQuery(next, next.scripts[scriptKey]);
+        const text = compileQuery(next.scripts[scriptKey]);
         expect(text).toBe('select v as a from generate_series(1, 10) t(v)');
     });
 
@@ -1302,7 +1303,7 @@ describe('compileQuery', () => {
         const scriptData = state.scripts[scriptKey];
         scriptData.script.insertTextAt(0, 'SELECT 1 as x');
 
-        const text = compileQuery(state, scriptData);
+        const text = compileQuery(scriptData);
         expect(text).toBe('SELECT 1 as x');
     });
 
@@ -1312,7 +1313,7 @@ describe('compileQuery', () => {
         const script = `from sales |> where amount > 0 |> select category, amount`;
         const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
 
-        const text = compileQuery(next, next.scripts[scriptKey]);
+        const text = compileQuery(next.scripts[scriptKey]);
         expect(text.toLowerCase()).not.toContain('|>');
         expect(text.toLowerCase()).toContain('select category, amount');
         expect(text.toLowerCase()).toContain('where amount > 0');
@@ -1326,7 +1327,7 @@ describe('compileQuery', () => {
             from table1 |> union all (from table2) |> order by total`;
         const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
 
-        const text = compileQuery(next, next.scripts[scriptKey]);
+        const text = compileQuery(next.scripts[scriptKey]);
         expect(text.toLowerCase()).toContain('with table1 as');
         expect(text.toLowerCase()).toContain('table2 as');
         expect(text.toLowerCase()).toContain('union all');
@@ -1341,7 +1342,7 @@ describe('compileQuery', () => {
             value: { scriptKey, text: 'select 1; select 2' },
         });
 
-        expect(compileQuery(next, next.scripts[scriptKey])).toBe('select 1; select 2');
+        expect(compileQuery(next.scripts[scriptKey])).toBe('select 1; select 2');
     });
 
     it('does not treat a pipe operator inside a string as relational syntax', () => {
@@ -1350,7 +1351,7 @@ describe('compileQuery', () => {
         const script = `select '|>' as operator_text`;
         const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
 
-        expect(compileQuery(next, next.scripts[scriptKey])).toBe(script);
+        expect(compileQuery(next.scripts[scriptKey])).toBe(script);
     });
 
     it('returns executable relational-pipe SQL without a trailing semicolon', () => {
@@ -1360,7 +1361,7 @@ describe('compileQuery', () => {
         const script = `from sales |> where amount > 0 |> select category, amount`;
         const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
 
-        const text = compileQuery(next, next.scripts[scriptKey]);
+        const text = compileQuery(next.scripts[scriptKey]);
         expect(text.toLowerCase()).not.toContain('|>');
         expect(text.trimEnd().endsWith(';')).toBe(false);
     });
@@ -1372,7 +1373,7 @@ describe('compileQuery', () => {
         const script = 'SELECT 1; -- context';
         const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
 
-        expect(compileQuery(next, next.scripts[scriptKey])).toBe(script);
+        expect(compileQuery(next.scripts[scriptKey])).toBe(script);
     });
 
     it('logs the pipe and lowered SQL when preparing execution', () => {
@@ -1382,7 +1383,7 @@ describe('compileQuery', () => {
         const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
         const debug = vi.spyOn(logger, 'debug');
 
-        const sql = compileQuery(next, next.scripts[scriptKey], logger);
+        const sql = compileQuery(next.scripts[scriptKey], logger);
 
         expect(debug).toHaveBeenCalledWith('Compiled script for query execution', {
             sql,

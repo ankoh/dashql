@@ -69,6 +69,7 @@ class CountingBackend implements StorageBackend {
     async loadQueryResultCache(): Promise<CachedQueryResult | null> { return null; }
     async saveQueryResultCache(): Promise<void> { }
     async touchQueryResultCacheAccess(): Promise<void> { }
+    async hasCachedQueryResult(): Promise<boolean> { return false; }
     async listQueryResultCache(): Promise<CacheFileStat[]> { return []; }
     async deleteQueryResultCache(): Promise<void> { }
 }
@@ -108,6 +109,7 @@ class CallLogBackend implements StorageBackend {
     async loadQueryResultCache(): Promise<CachedQueryResult | null> { return null; }
     async saveQueryResultCache(): Promise<void> { }
     async touchQueryResultCacheAccess(): Promise<void> { }
+    async hasCachedQueryResult(): Promise<boolean> { return false; }
     async listQueryResultCache(): Promise<CacheFileStat[]> { return []; }
     async deleteQueryResultCache(): Promise<void> { }
 }

@@ -272,6 +272,9 @@ export class CompositeStorageBackend implements NotebookRegistryBackend {
     async listQueryResultCache(notebookId: string): Promise<CacheFileStat[]> {
         return (await this.backendFor(notebookId)).listQueryResultCache(notebookId);
     }
+    async hasCachedQueryResult(notebookId: string, hash: string): Promise<boolean> {
+        return (await this.backendFor(notebookId)).hasCachedQueryResult(notebookId, hash);
+    }
     async deleteQueryResultCache(notebookId: string, hash: string): Promise<void> {
         return (await this.backendFor(notebookId)).deleteQueryResultCache(notebookId, hash);
     }

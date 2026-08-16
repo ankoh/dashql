@@ -15,7 +15,7 @@ import type { RowComponentProps } from 'react-window';
 import { ButtonSize, ButtonVariant, IconButton } from '../../../../shared/ui/foundations/button.js';
 import { ButtonGroup } from '../../../../shared/ui/foundations/button_group.js';
 import { ConnectionHealth, ConnectionState } from '../../connections/connection_state.js';
-import { compileQuery, getSelectedScriptRef, getSelectedScriptFolder, getSelectedScriptRefs, getSortedScriptFileNames, getUncommittedScriptData, tryCompileQuery, type ScriptData, NotebookScripts, SELECT_SCRIPT, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/notebook_scripts.js';
+import { compileQuery, getSelectedScriptRef, getSelectedScriptFolder, getSelectedScriptRefs, getSortedScriptFileNames, getUncommittedScriptData, type ScriptData, NotebookScripts, SELECT_SCRIPT, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/notebook_scripts.js';
 import { useAIClient } from '../../agent/ai/ai_client_provider.js';
 import { COMPOSE_INPUT_MODE_AI, useComposeInputMode } from '../../scripts/notebook_commands.js';
 import { useLatestAgentRunState, useAgentRunState, useStartAgentRun, useCancelAgentRun } from '../../agent/agent_run_provider.js';
@@ -41,11 +41,12 @@ import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
 import { TabKey as DetailsTabKey } from '../script_details.js';
 import { registerNotebookScriptQuery, rerunEntry } from '../rerun_query.js';
-import { useStorageReader } from '../../persistence/storage_provider.js';
+import { useStorageReader, StorageReader } from '../../persistence/storage_provider.js';
 import { STORAGE_CACHE_EXTENSION } from '../../persistence/storage_backend.js';
 import { CachedResultBean, QueryResultCacheLabel, QueryResultRerunButton } from '../query_result_cache_controls.js';
 import { useLogger } from '../../../../shared/platform/logger/logger_provider.js';
 import { ScriptDiagnosticsButton } from '../script_diagnostics.js';
+import { ConnectionStateDetailsVariant } from '../../connections/connection_state_details';
 
 interface FeedScrollTarget {
     fileName: string;
@@ -97,7 +98,8 @@ function outputColumnsForScript(
 
 interface CollapsedScriptCardProps {
     notebookId: string;
-    connectorIcon: string;
+    connection: ConnectionState | null;
+    storageReader: StorageReader;
     isFocused: boolean;
     scriptData: ScriptData | undefined;
     folderName: string;
@@ -123,37 +125,70 @@ interface CollapsedScriptCardProps {
     onRerun: (fileName: string, cacheKey: string | null) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
-    hasCachedResult: boolean;
     onPreviewReady: () => void;
     initialPreviewText: string;
     onFormattedText: (scriptText: string) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ notebookId, connectorIcon, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, canExecute, canUseAI, canDelete, canMoveUp, canMoveDown, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, hasCachedResult, onPreviewReady, initialPreviewText, onFormattedText }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = (props: CollapsedScriptCardProps) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
     const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
     const PersonIcon: Icon = SymbolIcon('person_16');
-
     const PencilIcon: Icon = SymbolIcon('pencil_16');
-
-    // Accept/Reject a staged rewrite — the same check/cross icon group as the Details editor.
     const CheckIcon: Icon = SymbolIcon('check_16');
     const CrossIcon: Icon = SymbolIcon('x_16');
-    const queryState = useQueryState(notebookId, scriptData?.latestQueryId ?? null);
+
+    const queryState = useQueryState(props.notebookId, props.scriptData?.latestQueryId ?? null);
     const cancelQuery = useCancelQuery();
     const cancelAgentRun = useCancelAgentRun();
     const queryActive = queryState != null && !queryIsDone(queryState.status);
 
     // Resolve the agent run by its id (handle) just like the query above — the run carries its
     // own trace id, so the footer no longer needs a denormalized trace id on ScriptData.
-    const agentRunState = useAgentRunState(scriptData?.latestAgentRunId ?? null);
+    const agentRunState = useAgentRunState(props.scriptData?.latestAgentRunId ?? null);
     const agentTraceId = agentRunState?.traceId ?? null;
 
     // A staged agent rewrite waiting to be accepted/rejected. While set, the read-only preview
     // renders the rewrite as a compact in-place diff overlay and the body carries an Accept/Reject
     // overlay (which dispatch notebookScripts actions — no editable editor is mounted).
-    const hasPendingDiff = scriptData?.pendingDiff != null;
+    const hasPendingDiff = props.scriptData?.pendingDiff != null;
+
+    // Is the script cached?
+    const [isCached, setIsCached] = React.useState<boolean | null>(null);
+    React.useEffect(() => {
+        const cancel = new AbortController();
+        const wasCached = isCached;
+        const run = async () => {
+            // Not script data? Clear cache indicator.
+            if (props.scriptData == null || !props.connection?.details) {
+                if ((wasCached == null || wasCached) && !cancel.signal.aborted) {
+                    setIsCached(null);
+                }
+                return;
+            }
+            try {
+                // Compile the query
+                const compiled = compileQuery(props.scriptData);
+                // Compute the query cache key
+                const cacheKey = await computeQueryCacheKeyForConnection(props.connection.details, compiled);
+                // Cache key is null, then clear the cache if required
+                if (cacheKey == null) {
+                    if ((wasCached == null || wasCached) && !cancel.signal.aborted) {
+                        setIsCached(false);
+                    }
+                    return;
+                }
+                // Check with storage if the query is cached
+                const isCached = await props.storageReader.backend.hasCachedQueryResult(props.notebookId, cacheKey);
+                if (!cancel.signal.aborted) {
+                    setIsCached(isCached);
+                }
+            } catch { }
+        };
+        run();
+        return () => cancel.abort();
+    }, [props.scriptData, props.connection?.details, props.notebookId]);
 
     // The status bar above the body generalizes the former "AI bar": while any work is in flight —
     // an agent run *or* a query execution — it's a compact strip (spinner + latest log line / query
@@ -164,31 +199,31 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ notebookId, connectorI
     const entryStatus = deriveEntryStatus(agentRunState, queryState);
     const cancelEntryOperation = React.useCallback(() => {
         if (entryStatus?.kind === EntryStatusKind.Agent) {
-            cancelAgentRun(notebookId);
-        } else if (entryStatus?.kind === EntryStatusKind.Query && scriptData?.latestQueryId != null) {
-            cancelQuery(notebookId, scriptData.latestQueryId);
+            cancelAgentRun(props.notebookId);
+        } else if (entryStatus?.kind === EntryStatusKind.Query && props.scriptData?.latestQueryId != null) {
+            cancelQuery(props.notebookId, props.scriptData.latestQueryId);
         }
-    }, [cancelAgentRun, cancelQuery, entryStatus?.kind, scriptData?.latestQueryId, notebookId]);
+    }, [cancelAgentRun, cancelQuery, entryStatus?.kind, props.scriptData?.latestQueryId, props.notebookId]);
 
     // A monotonic nonce handed to the footer: bumped when the user clicks the status bar so the
     // footer reveals the matching trace's Log tab on demand (work no longer auto-switches it). The
     // clicked source (query vs agent) rides along so the footer reveals the right trace.
     const [logRequest, setLogRequest] = React.useState<{ nonce: number; traceId: number | null }>({ nonce: 0, traceId: null });
     const showLog = React.useCallback((traceId: number | null) => setLogRequest(prev => ({ nonce: prev.nonce + 1, traceId })), []);
-    const scriptKey = scriptData?.scriptKey ?? null;
+    const scriptKey = props.scriptData?.scriptKey ?? null;
     const acceptDiff = React.useCallback(() => {
-        if (scriptKey != null) onAcceptDiff(scriptKey);
-    }, [scriptKey, onAcceptDiff]);
+        if (scriptKey != null) props.onAcceptDiff(scriptKey);
+    }, [scriptKey, props.onAcceptDiff]);
     const rejectDiff = React.useCallback(() => {
-        if (scriptKey != null) onRejectDiff(scriptKey);
-    }, [scriptKey, onRejectDiff]);
+        if (scriptKey != null) props.onRejectDiff(scriptKey);
+    }, [scriptKey, props.onRejectDiff]);
 
     const [isEditing, setIsEditing] = React.useState(false);
     const [isCompactFormattable, setIsCompactFormattable] = React.useState(true);
 
     // The label and the rename input show the clean display name (no ordering prefix, no ".sql");
     // the raw scriptFileName remains the identity passed to handlers and to RENAME_SCRIPT.
-    const displayName = scriptDisplayName(scriptFileName);
+    const displayName = scriptDisplayName(props.scriptFileName);
     const [draftFileName, setDraftFileName] = React.useState(displayName);
     const editInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -201,10 +236,10 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ notebookId, connectorI
     const saveEdit = React.useCallback(() => {
         const trimmed = draftFileName.trim();
         if (trimmed && trimmed !== displayName) {
-            onRename(scriptFileName, trimmed);
+            props.onRename(props.scriptFileName, trimmed);
         }
         setIsEditing(false);
-    }, [draftFileName, displayName, scriptFileName, onRename]);
+    }, [draftFileName, displayName, props.scriptFileName, props.onRename]);
 
     const cancelEdit = React.useCallback(() => {
         setIsEditing(false);
@@ -220,29 +255,31 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ notebookId, connectorI
     const handlePreviewClick = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
         if ((event.target as HTMLElement).closest('[data-diff-actions], [data-dashql-story-control]') != null) return;
         if (!window.getSelection()?.isCollapsed) return;
-        onExpand(scriptFileName);
-    }, [scriptFileName, onExpand]);
+        props.onExpand(props.scriptFileName);
+    }, [props.scriptFileName, props.onExpand]);
 
+
+    const connectorIcon = props.connection?.connectorInfo.icons?.outlines ?? 'database_16';
     return (
         <div
             className={styles.feed_entry_pair}
-            onPointerEnter={() => onFocus(scriptFileName)}
+            onPointerEnter={() => props.onFocus(props.scriptFileName)}
         >
             <div className={styles.feed_entry_message_script}>
                 <div className={styles.feed_entry_card_script}>
                     <div className={styles.feed_entry_action_bar}>
                         <IconButton
-                            className={isFocused ? undefined : styles.feed_entry_execute_unfocused}
+                            className={props.isFocused ? undefined : styles.feed_entry_execute_unfocused}
                             variant={ButtonVariant.Invisible}
                             size={ButtonSize.Small}
                             aria-label={queryActive ? `Stop ${displayName} query` : `Execute ${displayName} query`}
-                            aria-current={isFocused ? 'true' : undefined}
-                            disabled={!queryActive && !canExecute}
+                            aria-current={props.isFocused ? 'true' : undefined}
+                            disabled={!queryActive}
                             onClick={() => {
-                                if (queryActive && scriptData?.latestQueryId != null) {
-                                    cancelQuery(notebookId, scriptData.latestQueryId);
+                                if (queryActive && props.scriptData?.latestQueryId != null) {
+                                    cancelQuery(props.notebookId, props.scriptData.latestQueryId);
                                 } else {
-                                    onExecute(scriptFileName);
+                                    props.onExecute(props.scriptFileName);
                                 }
                             }}
                         >
@@ -250,7 +287,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ notebookId, connectorI
                         </IconButton>
                         <div className={styles.feed_entry_file_name}>
                             <ScriptName
-                                folder={folderName}
+                                folder={props.folderName}
                                 file={displayName}
                                 onFileClick={startEditing}
                                 editing={isEditing ? {
@@ -267,14 +304,14 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ notebookId, connectorI
                                 }
                             />
                         </div>
-                        {scriptDebugMode && scriptData != null && (
+                        {props.scriptDebugMode && props.scriptData != null && (
                             <div className={styles.feed_entry_stats_bar}>
-                                <ScriptStatisticsBar stats={scriptData.statistics} />
+                                <ScriptStatisticsBar stats={props.scriptData.statistics} />
                             </div>
                         )}
-                        {scriptData != null && (
+                        {props.scriptData != null && (
                             <ScriptDiagnosticsButton
-                                scriptData={scriptData}
+                                scriptData={props.scriptData}
                                 isFormattable={isCompactFormattable}
                             />
                         )}
@@ -282,47 +319,47 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ notebookId, connectorI
                             variant={ButtonVariant.Invisible}
                             size={ButtonSize.Small}
                             aria-label={`Use ${displayName} as AI context`}
-                            disabled={!canUseAI || scriptData == null}
+                            disabled={!props.canUseAI || props.scriptData == null}
                             onClick={() => {
-                                if (scriptData != null) onUseAIContext(scriptData.scriptKey);
+                                if (props.scriptData != null) props.onUseAIContext(props.scriptData.scriptKey);
                             }}
                         >
                             <SparklesFillIcon size={16} />
                         </IconButton>
                         <IconButton
                             variant={ButtonVariant.Invisible}
-                            onClick={(event) => { event.stopPropagation(); onMoveUp(scriptFileName); }}
+                            onClick={(event) => { event.stopPropagation(); props.onMoveUp(props.scriptFileName); }}
                             aria-label="Move script up"
-                            disabled={!canMoveUp}
+                            disabled={!props.canMoveUp}
                         >
                             <MoveUpIcon size={16} />
                         </IconButton>
                         <IconButton
                             variant={ButtonVariant.Invisible}
-                            onClick={(event) => { event.stopPropagation(); onMoveDown(scriptFileName); }}
+                            onClick={(event) => { event.stopPropagation(); props.onMoveDown(props.scriptFileName); }}
                             aria-label="Move script down"
-                            disabled={!canMoveDown}
+                            disabled={!props.canMoveDown}
                         >
                             <MoveDownIcon size={16} />
                         </IconButton>
                         <IconButton
                             variant={ButtonVariant.Invisible}
-                            onClick={() => onDelete(scriptFileName)}
+                            onClick={() => props.onDelete(props.scriptFileName)}
                             aria-label="Delete script"
-                            disabled={!canDelete}
+                            disabled={!props.canDelete}
                         >
                             <TrashIcon size={16} />
                         </IconButton>
                     </div>
                     <div className={styles.feed_body} onClick={handlePreviewClick}>
-                        {scriptData == null ? null : (
+                        {props.scriptData == null ? null : (
                             <ScriptPreview
                                 className={styles.script_preview_editor}
-                                notebookId={notebookId}
-                                scriptData={scriptData}
-                                onReady={onPreviewReady}
-                                initialTextHint={initialPreviewText}
-                                onFormattedText={onFormattedText}
+                                notebookId={props.notebookId}
+                                scriptData={props.scriptData}
+                                onReady={props.onPreviewReady}
+                                initialTextHint={props.initialPreviewText}
+                                onFormattedText={props.onFormattedText}
                                 onFormattingStatus={setIsCompactFormattable}
                             />
                         )}
@@ -370,26 +407,26 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ notebookId, connectorI
                         cancelLabel={entryStatus.kind === EntryStatusKind.Agent ? 'Cancel agent run' : 'Cancel query'}
                         actions={
                             <>
-                                {hasCachedResult && <CachedResultBean />}
+                                {isCached && <CachedResultBean />}
                                 <QueryResultCacheLabel query={queryState} />
                                 <QueryResultRerunButton
                                     query={queryState}
-                                    onRerun={(cacheKey) => onRerun(scriptFileName, cacheKey)}
+                                    onRerun={(cacheKey) => props.onRerun(props.scriptFileName, cacheKey)}
                                 />
                             </>
                         }
                     />
                     {(queryState != null || agentTraceId != null) ? (
                         <FeedEntryFooter
-                            notebookId={notebookId}
+                            notebookId={props.notebookId}
                             queryState={queryState}
                             agentTraceId={agentTraceId}
-                            visualizeQuery={scriptData?.annotations.visualizeQuery ?? null}
+                            visualizeQuery={props.scriptData?.annotations.visualizeQuery ?? null}
                             logRequest={logRequest}
-                            onShowStatus={() => onShowStatus(scriptFileName)}
-                            onShowAgentStatus={() => onShowAgentStatus(scriptFileName)}
-                            onShowTable={() => onShowTable(scriptFileName)}
-                            onShowVisualization={() => onShowVisualization(scriptFileName)}
+                            onShowStatus={() => props.onShowStatus(props.scriptFileName)}
+                            onShowAgentStatus={() => props.onShowAgentStatus(props.scriptFileName)}
+                            onShowTable={() => props.onShowTable(props.scriptFileName)}
+                            onShowVisualization={() => props.onShowVisualization(props.scriptFileName)}
                         />
                     ) : null}
                 </div>
@@ -400,13 +437,13 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ notebookId, connectorI
 
 interface ScriptFeedRowProps {
     notebookId: string;
-    connectorIcon: string;
+    connection: ConnectionState | null;
+    storageReader: StorageReader;
     entries: ReturnType<typeof getSelectedScriptRefs>;
     scripts: NotebookScripts['scripts'];
     folderName: string;
     scriptDebugMode: boolean;
     focusedFileName: string;
-    executableScriptKeys: ReadonlySet<number>;
     canUseAI: boolean;
     canDelete: boolean;
     onFocus: (fileName: string) => void;
@@ -424,7 +461,6 @@ interface ScriptFeedRowProps {
     onRerun: (fileName: string, cacheKey: string | null) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
-    cachedScriptKeys: ReadonlySet<number>;
     previewHints: ReadonlyMap<number, ScriptPreviewHint>;
     onHeightMeasured: (scriptId: number, height: number) => void;
     onFormattedText: (scriptId: number, scriptText: string) => void;
@@ -433,17 +469,17 @@ interface ScriptFeedRowProps {
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { notebookId, connectorIcon, entries, scripts, folderName, scriptDebugMode, focusedFileName, executableScriptKeys, canUseAI, canDelete, onFocus, onExpand, onDelete, onRename, onMoveUp, onMoveDown, onExecute, onUseAIContext, onShowStatus, onShowAgentStatus, onShowTable, onShowVisualization, onRerun, onAcceptDiff, onRejectDiff, cachedScriptKeys, previewHints, onHeightMeasured, onFormattedText, topPadding } = props;
-    const isFillerRow = props.index >= entries.length;
+    const isFillerRow = props.index >= props.entries.length;
     const entryIndex = props.index;
-    const entry = !isFillerRow ? entries[entryIndex] : undefined;
-    const scriptData = entry != null ? scripts[entry.scriptId] : undefined;
+    const entry = !isFillerRow ? props.entries[entryIndex] : undefined;
+    const scriptData = entry != null ? props.scripts[entry.scriptId] : undefined;
     const scriptFileName = entry?.fileName ?? '01-script.sql';
-    const previewHint = entry != null ? previewHints.get(entry.scriptId) : undefined;
+    const previewHint = entry != null ? props.previewHints.get(entry.scriptId) : undefined;
     const cachedHeight = previewHint?.height;
-    // entries are in feed order, so position bounds drive the move-button enablement.
+
+    // Entries are in feed order, so the index drives the movement buttons
     const canMoveUp = !isFillerRow && entryIndex > 0;
-    const canMoveDown = !isFillerRow && entryIndex < entries.length - 1;
+    const canMoveDown = !isFillerRow && entryIndex < props.entries.length - 1;
     const outerRef = React.useRef<HTMLDivElement>(null);
     const [previewReady, setPreviewReady] = React.useState(false);
 
@@ -452,14 +488,14 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
     }, [entry?.scriptId, scriptData?.scriptAnalysis.buffers, scriptData?.pendingDiff]);
     const handlePreviewReady = React.useCallback(() => setPreviewReady(true), []);
     const handleFormattedText = React.useCallback((scriptText: string) => {
-        if (entry != null) onFormattedText(entry.scriptId, scriptText);
-    }, [entry, onFormattedText]);
+        if (entry != null) props.onFormattedText(entry.scriptId, scriptText);
+    }, [entry, props.onFormattedText]);
 
     React.useLayoutEffect(() => {
         if (entry == null) return;
         const element = outerRef.current;
         if (element == null) return;
-        const rowPadding = entryIndex === 0 ? topPadding : 0;
+        const rowPadding = entryIndex === 0 ? props.topPadding : 0;
 
         const measure = () => {
             const height = element.getBoundingClientRect().height - rowPadding;
@@ -470,7 +506,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                 // preview, though, so immediately accept measurements above the cached hint.
                 if (cachedHeight == null || height <= cachedHeight + HEIGHT_CHANGE_EPSILON) return;
             }
-            onHeightMeasured(entry.scriptId, height);
+            props.onHeightMeasured(entry.scriptId, height);
         };
 
         // Observe immediately so result cards can grow even while SQL is being reformatted. The
@@ -479,7 +515,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         const observer = new ResizeObserver(measure);
         observer.observe(element);
         return () => observer.disconnect();
-    }, [cachedHeight, entry, entryIndex, onHeightMeasured, previewReady, topPadding]);
+    }, [cachedHeight, entry, entryIndex, props.onHeightMeasured, previewReady, props.topPadding]);
 
     if (isFillerRow) {
         return <div className={styles.feed_list_filler} style={props.style} />;
@@ -492,9 +528,9 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                 ...props.style,
                 height: 'auto',
                 minHeight: !previewReady && cachedHeight != null
-                    ? cachedHeight + (entryIndex === 0 ? topPadding : 0)
+                    ? cachedHeight + (entryIndex === 0 ? props.topPadding : 0)
                     : undefined,
-                paddingTop: entryIndex === 0 ? topPadding : undefined,
+                paddingTop: entryIndex === 0 ? props.topPadding : undefined,
             }}
         >
             <div
@@ -502,34 +538,34 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
             >
                 <ScriptCard
                     key={entry?.scriptId}
-                    notebookId={notebookId}
-                    connectorIcon={connectorIcon}
-                    isFocused={scriptFileName === focusedFileName}
+                    notebookId={props.notebookId}
+                    connection={props.connection}
+                    storageReader={props.storageReader}
+                    isFocused={scriptFileName === props.focusedFileName}
+                    folderName={props.folderName}
                     scriptData={scriptData}
-                    folderName={folderName}
                     scriptFileName={scriptFileName}
-                    scriptDebugMode={scriptDebugMode}
-                    canExecute={scriptData != null && executableScriptKeys.has(scriptData.scriptKey)}
-                    canUseAI={canUseAI}
-                    canDelete={canDelete}
+                    scriptDebugMode={props.scriptDebugMode}
+                    canExecute={scriptData != null}
+                    canUseAI={props.canUseAI}
+                    canDelete={props.canDelete}
                     canMoveUp={canMoveUp}
                     canMoveDown={canMoveDown}
-                    onFocus={onFocus}
-                    onExpand={onExpand}
-                    onDelete={onDelete}
-                    onRename={onRename}
-                    onMoveUp={onMoveUp}
-                    onMoveDown={onMoveDown}
-                    onExecute={onExecute}
-                    onUseAIContext={onUseAIContext}
-                    onShowStatus={onShowStatus}
-                    onShowAgentStatus={onShowAgentStatus}
-                    onShowTable={onShowTable}
-                    onShowVisualization={onShowVisualization}
-                    onRerun={onRerun}
-                    onAcceptDiff={onAcceptDiff}
-                    onRejectDiff={onRejectDiff}
-                    hasCachedResult={scriptData != null && cachedScriptKeys.has(scriptData.scriptKey)}
+                    onFocus={props.onFocus}
+                    onExpand={props.onExpand}
+                    onDelete={props.onDelete}
+                    onRename={props.onRename}
+                    onMoveUp={props.onMoveUp}
+                    onMoveDown={props.onMoveDown}
+                    onExecute={props.onExecute}
+                    onUseAIContext={props.onUseAIContext}
+                    onShowStatus={props.onShowStatus}
+                    onShowAgentStatus={props.onShowAgentStatus}
+                    onShowTable={props.onShowTable}
+                    onShowVisualization={props.onShowVisualization}
+                    onRerun={props.onRerun}
+                    onAcceptDiff={props.onAcceptDiff}
+                    onRejectDiff={props.onRejectDiff}
                     onPreviewReady={handlePreviewReady}
                     initialPreviewText={previewHint?.formattedText ?? ''}
                     onFormattedText={handleFormattedText}
@@ -545,48 +581,6 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
     const entries = getSelectedScriptRefs(props.notebookScripts);
     const storageReader = useStorageReader();
-    const [cachedScriptKeys, setCachedScriptKeys] = React.useState<ReadonlySet<number>>(() => new Set());
-    const cacheCandidates = entries.flatMap(entry => {
-        const scriptData = props.notebookScripts.scripts[entry.scriptId];
-        if (scriptData == null || scriptData.latestQueryId != null) return [];
-        const queryText = tryCompileQuery(props.notebookScripts, scriptData);
-        return queryText != null && queryText.trim().length > 0
-            ? [{ scriptKey: scriptData.scriptKey, queryText }]
-            : [];
-    });
-    const cacheCandidateSignature = cacheCandidates
-        .map(candidate => `${candidate.scriptKey}:${candidate.queryText}`)
-        .join('\n');
-
-    // Inspect cache metadata only. This identifies cached cards without loading Arrow payloads or
-    // creating query executions during notebookScripts navigation.
-    React.useEffect(() => {
-        let cancelled = false;
-        const findCachedScripts = async () => {
-            if (props.conn == null) {
-                setCachedScriptKeys(new Set());
-                return;
-            }
-            const files = await storageReader.backend.listQueryResultCache(props.notebookScripts.notebookId).catch(() => []);
-            if (cancelled) return;
-            const cacheKeys = new Set(files.map(file => file.name.endsWith(STORAGE_CACHE_EXTENSION)
-                ? file.name.slice(0, -STORAGE_CACHE_EXTENSION.length)
-                : file.name));
-            if (cacheKeys.size === 0) {
-                setCachedScriptKeys(new Set());
-                return;
-            }
-            const matches = await Promise.all(cacheCandidates.map(async candidate => {
-                const key = await computeQueryCacheKeyForConnection(props.conn!.details, candidate.queryText);
-                return key != null && cacheKeys.has(key) ? candidate.scriptKey : null;
-            }));
-            if (!cancelled) {
-                setCachedScriptKeys(new Set(matches.filter((key): key is number => key != null)));
-            }
-        };
-        void findCachedScripts();
-        return () => { cancelled = true; };
-    }, [props.conn?.details, props.notebookScripts.notebookId, cacheCandidateSignature, storageReader.backend]);
 
     const pendingScrollToBottomRef = React.useRef(false);
     const [composeEditorView, setComposeEditorView] = React.useState<EditorView | null>(null);
@@ -699,7 +693,6 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     }, [props.modifyNotebookScripts, props.showDetails]);
 
     const isDisconnected = props.conn?.connectionHealth !== ConnectionHealth.ONLINE;
-    const openConnectionOverlay = props.openConnectionOverlay;
     const executeQuery = useQueryExecutor();
 
     // Re-execute the visualization after the agent finishes editing it.
@@ -733,7 +726,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         }
         executedAgentRunRef.current = agentState.runId;
         // Resolve against the current notebookScripts so a freshly rewritten VISUALIZE source is reflected.
-        const queryText = compileQuery(props.notebookScripts, scriptData, logger);
+        const queryText = compileQuery(scriptData, logger);
         if (queryText.trim().length === 0) {
             return;
         }
@@ -763,7 +756,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         // The compose editor keeps the draft analyzed as it is typed, so the
         // resolved VISUALIZE query / derived annotations are already present (and
         // carried across promotion, which preserves the script key).
-        const queryText = scriptData ? compileQuery(notebookScripts, scriptData, logger) : '';
+        const queryText = scriptData ? compileQuery(scriptData, logger) : '';
         props.modifyNotebookScripts({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
         if (execute && !isDisconnected && queryText.trim().length > 0) {
             const [queryId, execution] = executeQuery(notebookScripts.notebookId, {
@@ -1056,27 +1049,18 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     // Get folder name from current page (display-only: strip the on-disk ordering prefix)
     const selectedPage = getSelectedScriptFolder(props.notebookScripts);
     const folderName = normalizeScriptFolderName(selectedPage?.folderName ?? '') || 'Untitled';
-    const executableScriptKeys = React.useMemo(() => {
-        if (isDisconnected) return new Set<number>();
-        return new Set(entries.flatMap(entry => {
-            const scriptData = props.notebookScripts.scripts[entry.scriptId];
-            return scriptData != null && (tryCompileQuery(props.notebookScripts, scriptData)?.trim().length ?? 0) > 0
-                ? [scriptData.scriptKey]
-                : [];
-        }));
-    }, [entries, isDisconnected, props.notebookScripts]);
 
     const pageCount = Object.keys(props.notebookScripts.scriptFolders).length;
     const canDelete = pageCount > 1 || entries.length > 1;
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
         notebookId: props.notebookScripts.notebookId,
-        connectorIcon: props.notebookScripts.connectorInfo.icons?.outlines ?? 'database_16',
+        connection: props.conn,
         entries,
+        storageReader: storageReader,
         scripts: props.notebookScripts.scripts,
         folderName,
         scriptDebugMode,
         focusedFileName: props.notebookScripts.scriptFocus.fileName,
-        executableScriptKeys,
         canUseAI: aiAvailable,
         canDelete,
         onFocus: handleFocus,
@@ -1094,13 +1078,12 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         onRerun: handleRerunEntry,
         onAcceptDiff: handleAcceptDiff,
         onRejectDiff: handleRejectDiff,
-        cachedScriptKeys,
         previewHints: previewHintsRef.current,
         onHeightMeasured: handleHeightMeasured,
         onFormattedText: handleFormattedText,
         topPadding: feedTopPadding,
         heightsVersion,
-    }), [entries, props.notebookScripts.scripts, props.notebookScripts.connectorInfo.icons?.outlines, props.notebookScripts.scriptFocus.fileName, folderName, scriptDebugMode, executableScriptKeys, aiAvailable, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleUseAIContext, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, cachedScriptKeys, handleHeightMeasured, handleFormattedText, feedTopPadding, heightsVersion]);
+    }), [entries, props.notebookScripts.scripts, props.notebookScripts.connectorInfo.icons?.outlines, props.notebookScripts.scriptFocus.fileName, folderName, scriptDebugMode, aiAvailable, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleUseAIContext, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, handleHeightMeasured, handleFormattedText, feedTopPadding, heightsVersion]);
 
     return (
         <div

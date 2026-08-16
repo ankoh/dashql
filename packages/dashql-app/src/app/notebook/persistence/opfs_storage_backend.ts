@@ -506,6 +506,18 @@ export class OPFSStorageBackend implements NotebookRegistryBackend {
         await this.writeEmptyFile(cacheDir, `${hash}${STORAGE_CACHE_EXTENSION}${STORAGE_CACHE_ACCESS_SUFFIX}`);
     }
 
+    async hasCachedQueryResult(notebookId: string, hash: string): Promise<boolean> {
+        try {
+            const cacheDir = await this.getNotebookDir(this.cacheRelPath(notebookId), false);
+            await cacheDir.getFileHandle(`${hash}${STORAGE_CACHE_EXTENSION}${STORAGE_CACHE_ACCESS_SUFFIX}`, {
+                create: false
+            });
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
     async deleteQueryResultCache(notebookId: string, hash: string): Promise<void> {
         let cacheDir: FileSystemDirectoryHandle;
         try {

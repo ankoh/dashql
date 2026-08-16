@@ -165,6 +165,9 @@ class MemoryRegistry implements NotebookRegistryBackend {
             name: `${hash}.arrow`, size: bytes.byteLength, mtimeMs: 0, lastAccessMs: 0,
         }));
     }
+    async hasCachedQueryResult(_notebookId: string, hash: string): Promise<boolean> {
+        return this.cache.has(hash);
+    }
     async deleteQueryResultCache(notebookId: string, hash: string): Promise<void> {
         this.cache.get(notebookId)?.delete(hash);
     }

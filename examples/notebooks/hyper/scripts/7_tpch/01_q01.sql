@@ -1,3 +1,5 @@
+from external('/mnt/home/Desktop/data/tpch-1/v1/lineitem.parquet', format => 'parquet') |> as lineitem;
+
 select l_returnflag,
     l_linestatus,
     sum(l_quantity) as sum_qty,

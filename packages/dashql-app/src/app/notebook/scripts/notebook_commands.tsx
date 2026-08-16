@@ -1,7 +1,5 @@
 import * as React from 'react';
 
-import { useLocation } from 'react-router-dom';
-
 import { ConnectionHealth, printConnectionHealth } from '../connections/connection_state.js';
 import { ConnectorInfo } from '../connections/connector_info.js';
 import { KeyEventHandler, useKeyEvents } from '../../../shared/utils/key_events.js';
@@ -131,7 +129,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         // Scripts are analyzed eagerly at load and kept analyzed as
                         // they are edited, so the resolved VISUALIZE query / derived
                         // annotations are already present here.
-                        const queryText = compileQuery(notebookScripts, scriptData, logger);
+                        const queryText = compileQuery(scriptData, logger);
                         const [queryId, execution] = executeQuery(notebookScripts.notebookId, {
                             query: queryText,
                             analyzeResults: true,

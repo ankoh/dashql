@@ -33,6 +33,7 @@ describe('exportNotebookAsZip', () => {
             loadQueryResultCache: vi.fn().mockResolvedValue(null),
             saveQueryResultCache: vi.fn(),
             listQueryResultCache: vi.fn(async () => []),
+            hasCachedQueryResult: vi.fn(),
             touchQueryResultCacheAccess: vi.fn(),
             deleteQueryResultCache: vi.fn(),
             loadAppSettings: vi.fn(),

@@ -1,3 +1,5 @@
+import * as Immutable from 'immutable';
+
 import type { DashQL } from '../../../shared/core/api.js';
 import type { Logger } from '../../../shared/platform/logger/logger.js';
 import { stringifyError } from '../../../shared/platform/logger/logger.js';
@@ -13,7 +15,6 @@ import { StorageBackendType } from './storage_backend.js';
 import { validateNotebookData, describeInvalidNotebook, isValidUuid, NotebookValidationError, type InvalidNotebook } from './notebook_validation.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../connections/catalog_update_state.js';
 import { createEmptyAnnotations } from '../scripts/script_types.js';
-import * as Immutable from 'immutable';
 
 const LOG_CTX = "app_state_loader";
 

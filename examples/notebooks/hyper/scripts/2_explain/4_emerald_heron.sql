@@ -4,6 +4,7 @@ from external('/mnt/home/Desktop/data/tpch-1/v1/nation.parquet', format => 'parq
 from external('/mnt/home/Desktop/data/tpch-1/v1/supplier.parquet', format => 'parquet') |> as supplier;
 from external('/mnt/home/Desktop/data/tpch-1/v1/region.parquet', format => 'parquet') |> as region;
 
+explain(format json)
 select s_acctbal,
     s_name,
     n_name,

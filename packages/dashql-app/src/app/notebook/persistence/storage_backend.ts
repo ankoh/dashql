@@ -138,6 +138,8 @@ export interface StorageBackend {
     /// empty array when the notebook has no cache folder yet. This is the read side of the same
     /// listing the eviction policy walks, exposed for the internals cache inspector.
     listQueryResultCache(notebookId: string): Promise<CacheFileStat[]>;
+    /// Query result is cached
+    hasCachedQueryResult(notebookId: string, hash: string): Promise<boolean>;
     /// Delete a single cached query result by content hash. A no-op when the entry is already gone.
     deleteQueryResultCache(notebookId: string, hash: string): Promise<void>;
 

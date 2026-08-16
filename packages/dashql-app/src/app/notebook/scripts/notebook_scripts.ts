@@ -1811,7 +1811,6 @@ function deriveScriptAnnotations(
 /// Statement classification, local relation resolution, pipe lowering, and VISUALIZE
 /// source extraction all happen in dashql-core.
 export function compileQuery(
-    _notebookScripts: NotebookScripts,
     scriptData: ScriptData,
     logger?: LoggerLike,
 ): string {
@@ -1828,7 +1827,11 @@ export function compileQuery(
             }, LOG_CTX);
         }
         const sql = reader.sql() ?? '';
-        logger?.debug('Compiled script for query execution', { sql }, LOG_CTX);
+        if (sql.length > 0) {
+            logger?.debug('Compiled script for query execution', { sql }, LOG_CTX);
+        } else {
+            logger?.warn('Compiled query is empty', { script: scriptData.script.toString() }, LOG_CTX);
+        }
         return sql;
     } finally {
         compiled.destroy();
@@ -1872,16 +1875,6 @@ function compileVisualizeQuery(script: core.DashQLScript, logger?: LoggerLike): 
         }
     } finally {
         compiled.destroy();
-    }
-}
-
-/// Resolve executable text for passive UI checks without turning an unresolved VISUALIZE reference
-/// into a render error. Explicit execution paths still use compileQuery and report it.
-export function tryCompileQuery(notebookScripts: NotebookScripts, scriptData: ScriptData): string | null {
-    try {
-        return compileQuery(notebookScripts, scriptData);
-    } catch {
-        return null;
     }
 }
 

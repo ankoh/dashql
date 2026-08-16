@@ -354,6 +354,11 @@ export class NativeStorageBackend implements StorageBackend {
         await writeFile(marker, new Uint8Array(0));
     }
 
+    async hasCachedQueryResult(_notebookId: string, hash: string): Promise<boolean> {
+        const marker = await this.abs(`${STORAGE_CACHE_FOLDER}/${hash}${STORAGE_CACHE_EXTENSION}`);
+        return await exists(marker);
+    }
+
     async deleteQueryResultCache(_notebookId: string, hash: string): Promise<void> {
         // Remove the payload and its access marker together.
         for (const suffix of ['', STORAGE_CACHE_ACCESS_SUFFIX]) {

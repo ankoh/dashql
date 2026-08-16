@@ -112,6 +112,10 @@ class MemoryBackend implements StorageBackend {
         this.cache.set(notebookId, c);
     }
     async touchQueryResultCacheAccess(): Promise<void> { }
+    async hasCachedQueryResult(notebookId: string, hash: string): Promise<boolean> {
+        let entries = this.cache.get(notebookId);
+        return entries?.has(hash) ?? false;
+    }
     async listQueryResultCache(notebookId: string): Promise<CacheFileStat[]> {
         return [...(this.cache.get(notebookId)?.entries() ?? [])].map(([hash, bytes]) => ({
             name: `${hash}.arrow`, size: bytes.byteLength, mtimeMs: 0, lastAccessMs: 0,

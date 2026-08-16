@@ -144,7 +144,7 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
                 if (event.target === svgRef.current) setSelection(null);
             }}>
                 <g ref={sceneRef}>
-                    <g className={styles.pipeline_layer}>
+                    <g>
                         {scene.pipelines.map(pipeline => (
                             <path
                                 key={pipeline.id}

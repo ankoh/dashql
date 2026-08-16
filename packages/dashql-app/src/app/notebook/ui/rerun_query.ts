@@ -13,7 +13,7 @@ export function registerNotebookScriptQuery(
     modifyNotebookScripts: ModifyNotebookScripts,
 ): void {
     modifyNotebookScripts({ type: REGISTER_QUERY, value: [scriptData.scriptKey, queryId] });
-    void execution.catch(() => {});
+    void execution.catch(() => { });
 }
 
 export function rerunEntry(
@@ -23,7 +23,7 @@ export function rerunEntry(
     modifyNotebookScripts: ModifyNotebookScripts,
     logger: LoggerLike,
 ): void {
-    const queryText = compileQuery(notebookScripts, scriptData, logger);
+    const queryText = compileQuery(scriptData, logger);
     if (queryText.trim().length === 0) {
         return;
     }
