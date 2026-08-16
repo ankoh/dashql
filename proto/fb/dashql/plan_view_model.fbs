@@ -9,13 +9,15 @@ struct PlanExecutionStatistics {
     finished_at: uint64;
 
     /// The estimated input cardinality
-    input_cardinality_estimated: uint64;
+    input_cardinality_estimated: double;
     /// The cardinality that has been consumed already
     input_cardinality_consumed: uint64;
     /// The estimated input cardinality
-    output_cardinality_estimated: uint64;
+    output_cardinality_estimated: double;
     /// The cardinality that has been produced already
     output_cardinality_produced: uint64;
+    /// The memory currently attributed to the operator in bytes
+    memory_bytes: uint64;
 }
 
 enum PlanExecutionStatus: uint8 {

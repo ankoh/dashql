@@ -196,8 +196,9 @@ void PlanViewModel::ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]
                         pending[current_index].source_operator_id = iter->value.GetUint64();
                         pending[current_index].attributes.emplace_back(attribute_name, iter->value);
                     }
-                    // Contains a debug name?
-                    else if (attribute_name == "debugName" && iter->value.IsObject()) {
+                    // Contains a debug name? Hyper plans use both camelCase and kebab-case spellings.
+                    else if ((attribute_name == "debugName" || attribute_name == "debug-name") &&
+                             iter->value.IsObject()) {
                         auto debugName = iter->value.GetObject();
                         auto iter = debugName.FindMember("value");
                         if (iter != debugName.MemberEnd() && iter->value.IsString()) {

@@ -15,7 +15,16 @@ export interface PlanSceneOperator {
     label: string;
     displayLabel: string;
     rect: PlanSceneRect;
+    statistics: PlanSceneOperatorStatistics;
     properties: Record<string, unknown>;
+}
+
+export interface PlanSceneOperatorStatistics {
+    inputCardinalityEstimated: number;
+    inputCardinalityConsumed: bigint;
+    outputCardinalityEstimated: number;
+    outputCardinalityProduced: bigint;
+    memoryBytes: bigint;
 }
 
 export interface PlanSceneEdge {
@@ -91,9 +100,11 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
     const layoutConfig = vm.layoutConfig()!.unpack();
     const operators: PlanSceneOperator[] = new Array(vm.operatorsLength());
     const tmpOperator = new dashql.buffers.view.PlanOperator();
+    const tmpStatistics = new dashql.buffers.view.PlanExecutionStatistics();
     for (let i = 0; i < vm.operatorsLength(); ++i) {
         const op = vm.operators(i, tmpOperator)!;
         const layout = op.layoutRect()!;
+        const statistics = op.executionStatistics(tmpStatistics)!;
         const typeName = readString(vm, op.operatorTypeName());
         const label = readString(vm, op.operatorLabel()) ?? typeName ?? 'operator';
         operators[op.operatorId()] = {
@@ -102,6 +113,13 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
             label,
             displayLabel: truncatePlanLabel(label, layoutConfig.input!.maxLabelChars),
             rect: { x: layout.x(), y: layout.y(), width: layout.width(), height: layout.height() },
+            statistics: {
+                inputCardinalityEstimated: statistics.inputCardinalityEstimated(),
+                inputCardinalityConsumed: statistics.inputCardinalityConsumed(),
+                outputCardinalityEstimated: statistics.outputCardinalityEstimated(),
+                outputCardinalityProduced: statistics.outputCardinalityProduced(),
+                memoryBytes: statistics.memoryBytes(),
+            },
             properties: readProperties(vm, op),
         };
     }

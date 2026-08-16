@@ -2,7 +2,7 @@
 -- This file is auto-generated and can only be updated through a catalog refresh.
 --
 -- Catalog Source: SQL pg_proc
--- Last Refresh: 2026-08-12T06:18:38.871Z
+-- Last Refresh: 2026-08-16T20:02:02.329Z
 
 CREATE FUNCTION "default"."pg_catalog"."abs"() RETURNS any;
 CREATE FUNCTION "default"."pg_catalog"."acos"() RETURNS any;
@@ -145,6 +145,7 @@ CREATE FUNCTION "default"."pg_catalog"."int8larger"() RETURNS any;
 CREATE FUNCTION "default"."pg_catalog"."int8smaller"() RETURNS any;
 CREATE FUNCTION "default"."pg_catalog"."json_array_elements"() RETURNS any;
 CREATE FUNCTION "default"."pg_catalog"."json_array_length"() RETURNS any;
+CREATE AGGREGATE "default"."pg_catalog"."json_arrayagg"() RETURNS any;
 CREATE FUNCTION "default"."pg_catalog"."json_each"() RETURNS any;
 CREATE FUNCTION "default"."pg_catalog"."justify_days"() RETURNS any;
 CREATE FUNCTION "default"."pg_catalog"."justify_hours"() RETURNS any;
@@ -157,6 +158,7 @@ CREATE FUNCTION "default"."pg_catalog"."last_value"() RETURNS any;
 CREATE FUNCTION "default"."pg_catalog"."lead"() RETURNS any;
 CREATE FUNCTION "default"."pg_catalog"."left"() RETURNS any;
 CREATE FUNCTION "default"."pg_catalog"."length"() RETURNS any;
+CREATE AGGREGATE "default"."pg_catalog"."listagg"() RETURNS any;
 CREATE FUNCTION "default"."pg_catalog"."ln"() RETURNS any;
 CREATE FUNCTION "default"."pg_catalog"."log"() RETURNS any;
 CREATE FUNCTION "default"."pg_catalog"."lower"() RETURNS any;
@@ -269,6 +271,7 @@ CREATE FUNCTION "default"."pg_catalog"."starts_with"() RETURNS any;
 CREATE AGGREGATE "default"."pg_catalog"."stddev"() RETURNS any;
 CREATE AGGREGATE "default"."pg_catalog"."stddev_pop"() RETURNS any;
 CREATE AGGREGATE "default"."pg_catalog"."stddev_samp"() RETURNS any;
+CREATE AGGREGATE "default"."pg_catalog"."string_agg"() RETURNS any;
 CREATE FUNCTION "default"."pg_catalog"."string_to_array"() RETURNS any;
 CREATE FUNCTION "default"."pg_catalog"."strpos"() RETURNS any;
 CREATE FUNCTION "default"."pg_catalog"."substr"() RETURNS any;

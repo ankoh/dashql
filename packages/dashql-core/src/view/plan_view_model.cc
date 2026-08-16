@@ -197,6 +197,51 @@ std::string SerializeJSON(const rapidjson::Value& value) {
     return {buffer.GetString(), buffer.GetSize()};
 }
 
+const rapidjson::Value* FindMember(const rapidjson::Value& value,
+                                   std::initializer_list<std::string_view> names) {
+    if (!value.IsObject()) return nullptr;
+    auto object = value.GetObject();
+    for (auto name : names) {
+        auto member = object.FindMember(rapidjson::StringRef(name.data(), name.size()));
+        if (member != object.MemberEnd()) return &member->value;
+    }
+    return nullptr;
+}
+
+const rapidjson::Value* FindNumber(const rapidjson::Value& value,
+                                   std::initializer_list<std::string_view> names) {
+    const auto* member = FindMember(value, names);
+    return member != nullptr && member->IsNumber() ? member : nullptr;
+}
+
+void ReadExecutionStatistics(const rapidjson::Value& source, buffers::view::PlanExecutionStatistics& out) {
+    const rapidjson::Value* statistics = FindMember(source, {"statistics"});
+    const rapidjson::Value& runtime = statistics != nullptr && statistics->IsObject() ? *statistics : source;
+
+    const rapidjson::Value* input_estimated =
+        FindNumber(source, {"estimated-rows-in-table", "estimatedRowsInTable"});
+    if (input_estimated == nullptr) {
+        input_estimated = FindNumber(runtime, {"estimated-rows-in-table", "estimatedRowsInTable"});
+    }
+    if (input_estimated != nullptr) out.mutate_input_cardinality_estimated(input_estimated->GetDouble());
+
+    const rapidjson::Value* output_estimated = FindNumber(source, {"estimated-rows", "estimatedRows", "cardinality"});
+    if (output_estimated == nullptr) {
+        output_estimated = FindNumber(runtime, {"estimated-rows", "estimatedRows", "cardinality"});
+    }
+    if (output_estimated != nullptr) out.mutate_output_cardinality_estimated(output_estimated->GetDouble());
+
+    if (const auto* input_consumed = FindNumber(runtime, {"processed-rows", "processedRows"})) {
+        out.mutate_input_cardinality_consumed(input_consumed->GetUint64());
+    }
+    if (const auto* output_produced = FindNumber(runtime, {"output-rows", "outputRows"})) {
+        out.mutate_output_cardinality_produced(output_produced->GetUint64());
+    }
+    if (const auto* memory_bytes = FindNumber(runtime, {"memory-bytes", "memoryBytes"})) {
+        out.mutate_memory_bytes(memory_bytes->GetUint64());
+    }
+}
+
 }  // namespace
 
 buffers::view::PlanOperator PlanViewModel::OperatorNode::Pack(
@@ -238,6 +283,10 @@ buffers::view::PlanOperator PlanViewModel::OperatorNode::Pack(
         }
     }
     op.mutate_attribute_count(attributes.size() - op.attributes_begin());
+    if (std::holds_alternative<std::reference_wrapper<rapidjson::Value>>(source_value)) {
+        ReadExecutionStatistics(std::get<std::reference_wrapper<rapidjson::Value>>(source_value).get(),
+                                op.mutable_execution_statistics());
+    }
     if (layout_rect.has_value()) {
         op.mutable_layout_rect() = *layout_rect;
     }

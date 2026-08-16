@@ -129,6 +129,82 @@ TEST(HyperPlanTest, InfersScanLabelFromDefinedAttributes) {
     EXPECT_EQ(plan->string_dictionary()->Get(scan->operator_label())->string_view(), "partsupp");
 }
 
+TEST(HyperPlanTest, ReadsKebabCaseDebugName) {
+    auto builder = PackPlan(R"JSON({
+        "operator":"parquetscan",
+        "operator-id":15,
+        "attributes":[
+            {"col-id":0,"name":"s_suppkey","iu":["supplier.suppkey",["BigInt","nullable"]]},
+            {"col-id":3,"name":"s_nationkey","iu":["supplier.nationke",["Integer","nullable"]]}
+        ],
+        "debug-name":{"classification":"customer","value":"supplier"}
+    })JSON");
+    auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
+
+    ASSERT_EQ(plan->operators()->size(), 1);
+    const auto* scan = plan->operators()->Get(0);
+    ASSERT_NE(scan->operator_label(), std::numeric_limits<uint32_t>::max());
+    EXPECT_EQ(plan->string_dictionary()->Get(scan->operator_label())->string_view(), "supplier");
+}
+
+TEST(HyperPlanTest, ExposesOperatorStatistics) {
+    auto builder = PackPlan(R"JSON({
+        "operator":"parquetscan",
+        "operator-id":15,
+        "estimated-rows":10000.5,
+        "estimated-rows-in-table":12000.25,
+        "statistics":{
+            "pipeline":8,
+            "column-count":2,
+            "memory-bytes":4294967297,
+            "output-rows":1987,
+            "processed-rows":10000,
+            "rows-matching-restrictions":1987,
+            "running":false
+        }
+    })JSON");
+    auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
+
+    ASSERT_EQ(plan->operators()->size(), 1);
+    const auto& statistics = plan->operators()->Get(0)->execution_statistics();
+    EXPECT_DOUBLE_EQ(statistics.input_cardinality_estimated(), 12000.25);
+    EXPECT_EQ(statistics.input_cardinality_consumed(), 10000);
+    EXPECT_DOUBLE_EQ(statistics.output_cardinality_estimated(), 10000.5);
+    EXPECT_EQ(statistics.output_cardinality_produced(), 1987);
+    EXPECT_EQ(statistics.memory_bytes(), 4294967297);
+
+    bool found_raw_statistics = false;
+    const auto* op = plan->operators()->Get(0);
+    for (size_t i = 0; i < op->attribute_count(); ++i) {
+        const auto* attribute = plan->attributes()->Get(op->attributes_begin() + i);
+        auto name = plan->string_dictionary()->Get(attribute->name())->string_view();
+        found_raw_statistics |= name == "statistics";
+    }
+    EXPECT_TRUE(found_raw_statistics);
+}
+
+TEST(HyperPlanTest, ReadsNestedEstimatedStatistics) {
+    auto builder = PackPlan(R"JSON({
+        "operator":"scan",
+        "statistics":{"estimated-rows":4.8375,"estimated-rows-in-table":25}
+    })JSON");
+    auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
+
+    const auto& statistics = plan->operators()->Get(0)->execution_statistics();
+    EXPECT_DOUBLE_EQ(statistics.input_cardinality_estimated(), 25);
+    EXPECT_DOUBLE_EQ(statistics.output_cardinality_estimated(), 4.8375);
+}
+
+TEST(HyperPlanTest, ReadsCamelCaseMemoryBytes) {
+    auto builder = PackPlan(R"JSON({
+        "operator":"scan",
+        "statistics":{"memoryBytes":2048}
+    })JSON");
+    auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
+
+    EXPECT_EQ(plan->operators()->Get(0)->execution_statistics().memory_bytes(), 2048);
+}
+
 TEST(HyperPlanTest, VariableWidthNodesDoNotOverlap) {
     constexpr double margin = 0.25;
     auto config = MakeLayoutConfig(margin);

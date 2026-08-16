@@ -2,7 +2,7 @@
 -- This file is auto-generated and can only be updated through a catalog refresh.
 --
 -- Catalog Source: SQL pg_class
--- Last Refresh: 2026-08-12T06:18:38.885Z
+-- Last Refresh: 2026-08-16T20:02:02.353Z
 
 CREATE TABLE "default"."pg_catalog"."hyper_attached_database" (
     "database_name" VARCHAR,
