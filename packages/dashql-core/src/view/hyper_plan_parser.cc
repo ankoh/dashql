@@ -56,6 +56,28 @@ struct AncestorPathBuilder {
         std::span<ParserDFSNode> nodes, size_t next);
 };
 
+std::optional<std::string_view> InferScanLabel(rapidjson::Value::Object object) {
+    auto attributes = object.FindMember("attributes");
+    if (attributes == object.MemberEnd() || !attributes->value.IsArray()) return std::nullopt;
+
+    std::optional<std::string_view> relation;
+    for (auto& attribute : attributes->value.GetArray()) {
+        if (!attribute.IsObject()) continue;
+        auto defines = attribute.FindMember("defines");
+        if (defines == attribute.MemberEnd() || !defines->value.IsObject()) continue;
+        auto id = defines->value.FindMember("id");
+        if (id == defines->value.MemberEnd() || !id->value.IsString()) continue;
+
+        std::string_view qualified_id{id->value.GetString(), id->value.GetStringLength()};
+        size_t separator = qualified_id.rfind('.');
+        if (separator == std::string_view::npos || separator == 0) continue;
+        std::string_view candidate = qualified_id.substr(0, separator);
+        if (relation.has_value() && *relation != candidate) return std::nullopt;
+        relation = candidate;
+    }
+    return relation;
+}
+
 /// Build an ancestor path
 std::pair<std::optional<size_t>, std::vector<PlanViewModel::PathComponent>> AncestorPathBuilder::findAncestor(
     std::span<ParserDFSNode> nodes, size_t next) {
@@ -200,6 +222,10 @@ void PlanViewModel::ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]
                         // Mark pending for DFS traversal
                         pending.emplace_back(iter->value, current_index, MemberInObject(current_index, attribute_name));
                     }
+                }
+                if (!pending[current_index].operator_label.has_value() &&
+                    pending[current_index].operator_type == "scan") {
+                    pending[current_index].operator_label = InferScanLabel(o);
                 }
                 // Reverse the order of the attribute nodes on the stack
                 std::reverse(pending.begin() + pending_begin, pending.end());

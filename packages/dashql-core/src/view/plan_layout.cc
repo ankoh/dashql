@@ -4,6 +4,29 @@
 
 namespace dashql {
 
+namespace {
+
+size_t CountUtf8CodePoints(std::string_view text) {
+    size_t count = 0;
+    for (unsigned char c : text) {
+        count += (c & 0xc0) != 0x80;
+    }
+    return count;
+}
+
+double ComputeNodeWidth(const PlanViewModel::OperatorNode& op,
+                        const buffers::view::PlanLayoutConfig& layout_config) {
+    auto label = op.operator_label.value_or(op.operator_type.value_or(""));
+    size_t label_chars = std::min<size_t>(CountUtf8CodePoints(label), layout_config.max_label_chars());
+    return std::max<double>(layout_config.node_padding_left() + layout_config.icon_width() +
+                                layout_config.icon_margin_right() +
+                                (label_chars * layout_config.width_per_label_char()) +
+                                layout_config.node_padding_right(),
+                            layout_config.node_min_width());
+}
+
+}  // namespace
+
 // This layouting algorithm is based on two papers:
 // - A Node-Positioning Algorithm for General Trees:
 //   1990 by Walker
@@ -24,8 +47,10 @@ struct PlanLayoutNode {
     PlanLayoutNode* parent = nullptr;
     /// The children
     std::span<PlanLayoutNode> children;
-    /// The node label
-    std::string_view label;
+    /// The rendered node width
+    double width = 0;
+    /// The node index among its siblings
+    size_t sibling_index = 0;
 
     /// Walker - The current node's preliminary x-coordinate
     double prelim = 0;
@@ -51,6 +76,8 @@ struct PlanLayoutNode {
     double shift = 0;
     /// Buchheim - The current node's change.
     double change = 0;
+    /// A corrective subtree shift applied by the final level sweep.
+    double layout_shift = 0;
     /// Buchheim - Save a node's ancestor.
     PlanLayoutNode* ancestor = nullptr;
     /// Reingold - The node's thread
@@ -131,6 +158,10 @@ struct PlanLayouter {
                                                  PlanLayoutNode& default_ancestor);
     /// Perform the second walk over the tree
     void SecondWalk(PlanLayoutNode& child, double m, size_t level = 0);
+    /// Enforce the spacing invariant among all nodes on each level
+    void ResolveLevelOverlaps(PlanLayoutNode& root);
+    /// Compute the required center-to-center distance between two nodes
+    double Separation(const PlanLayoutNode& left, const PlanLayoutNode& right) const;
 
    public:
     /// Constructor
@@ -146,9 +177,16 @@ PlanLayouter::PlanLayouter(PlanViewModel& view_model, const buffers::view::Deriv
         auto& op = view_model.operators[i];
         nodes[i].parent = op.parent_operator_id.has_value() ? &nodes[op.parent_operator_id.value()] : nullptr;
         nodes[i].children = {nodes.data() + op.children_begin, op.children_count};
+        nodes[i].width = ComputeNodeWidth(op, layout_config.input());
         nodes[i].ancestor = &nodes[i];
-        // XXX Label
+        for (size_t child_index = 0; child_index < nodes[i].children.size(); ++child_index) {
+            nodes[i].children[child_index].sibling_index = child_index;
+        }
     }
+}
+
+double PlanLayouter::Separation(const PlanLayoutNode& left, const PlanLayoutNode& right) const {
+    return left.width / 2 + layout_config.input().node_margin_horizontal() + right.width / 2;
 }
 
 void PlanLayouter::FirstWalk(PlanLayoutNode& node, PlanLayoutNode* left_sibling) {
@@ -172,7 +210,7 @@ void PlanLayouter::FirstWalk(PlanLayoutNode& node, PlanLayoutNode* left_sibling)
 
         // Is there a left sibling?
         if (left_sibling) {
-            node.prelim = left_sibling->prelim + layout_config.computed_node_width();
+            node.prelim = left_sibling->prelim + Separation(*left_sibling, node);
             node.mod = node.prelim - midpoint;
         } else {
             node.prelim = midpoint;
@@ -180,7 +218,7 @@ void PlanLayouter::FirstWalk(PlanLayoutNode& node, PlanLayoutNode* left_sibling)
     } else {
         // Is there a left sibling?
         if (left_sibling) {
-            node.prelim = left_sibling->prelim + layout_config.computed_node_width();
+            node.prelim = left_sibling->prelim + Separation(*left_sibling, node);
         } else {
             node.prelim = 0.0;
         }
@@ -244,7 +282,7 @@ PlanLayoutNode& PlanLayouter::Apportion(PlanLayoutNode& root, PlanLayoutNode* le
 
             // Compute the current shift as the difference between the left contour and the right contour along the
             // seam. Section 4 in the Buchheim paper does a good job explain the fractional spacing approach.
-            double shift = (lr->prelim + lr_mod) - (rl->prelim + rl_mod) + layout_config.computed_node_width();
+            double shift = (lr->prelim + lr_mod) - (rl->prelim + rl_mod) + Separation(*lr, *rl);
 
             if (shift > 0) {
                 auto& ancestor = FindGreatestDistinctAncestor(*lr, root, default_ancestor);
@@ -290,32 +328,10 @@ void PlanLayouter::ExecuteShifts(PlanLayoutNode& v) {
 }
 
 void PlanLayouter::MoveSubtree(PlanLayoutNode& w0, PlanLayoutNode& w1, double shift) {
-    // Count the number of subtrees from w0 to w1
-    size_t subtrees = 0;
-    {
-        assert(w0.GetParent() != nullptr);
-        assert(w1.GetParent() == w0.GetParent());
-
-        auto end = w0.GetParent()->children.end();
-        auto left = end;
-        auto right = end;
-        for (auto it = w0.GetParent()->children.begin(); it != end; ++it) {
-            if (&*it == &w0) {
-                left = it;
-                for (it = it + 1; it != end; ++it) {
-                    if (&*it == &w1) {
-                        right = it;  // left < right.
-                        break;
-                    }
-                }
-                break;
-            }
-        }
-
-        assert(left != end);
-        assert(right != end);
-        subtrees = right - left;
-    };
+    assert(w0.GetParent() != nullptr);
+    assert(w1.GetParent() == w0.GetParent());
+    assert(w1.sibling_index > w0.sibling_index);
+    size_t subtrees = w1.sibling_index - w0.sibling_index;
 
     w1.change -= shift / subtrees;
     w1.shift += shift;
@@ -324,13 +340,80 @@ void PlanLayouter::MoveSubtree(PlanLayoutNode& w0, PlanLayoutNode& w1, double sh
     w1.mod += shift;
 }
 
+void PlanLayouter::ResolveLevelOverlaps(PlanLayoutNode& root) {
+    struct PendingNode {
+        PlanLayoutNode* node;
+        double inherited_shift;
+    };
+    std::vector<PendingNode> level{{&root, 0}};
+    while (!level.empty()) {
+        std::vector<PendingNode> next_level;
+        std::optional<double> right_edge;
+        for (auto [node, inherited_shift] : level) {
+            double shift = inherited_shift + node->layout_shift;
+            double left_edge = node->x + shift - node->width / 2;
+            if (right_edge.has_value()) {
+                double correction = *right_edge + layout_config.input().node_margin_horizontal() - left_edge;
+                if (correction > 0) {
+                    node->layout_shift += correction;
+                    shift += correction;
+                }
+            }
+            right_edge = node->x + shift + node->width / 2;
+            for (auto& child : node->children) {
+                next_level.push_back({&child, shift});
+            }
+        }
+        level = std::move(next_level);
+    }
+
+    std::vector<PendingNode> pending{{&root, 0}};
+    while (!pending.empty()) {
+        auto [node, inherited_shift] = pending.back();
+        pending.pop_back();
+        double shift = inherited_shift + node->layout_shift;
+        node->x += shift;
+        for (auto& child : node->children) {
+            pending.push_back({&child, shift});
+        }
+    }
+}
+
 void PlanLayouter::Compute() {
+    double packed_right = 0;
+    bool has_packed_root = false;
     for (uint32_t root_op_id : view_model.root_operators) {
         // First run over the tree
         FirstWalk(nodes[root_op_id]);
         // Second run over the tree.
         // `prelim` stores the preliminary x-coordinate AFTER computing the subtree.
         SecondWalk(nodes[root_op_id], -1.0 * nodes[root_op_id].prelim);
+        ResolveLevelOverlaps(nodes[root_op_id]);
+
+        // Independent roots are laid out at the same origin. Pack their full subtree bounds left-to-right.
+        double left = std::numeric_limits<double>::max();
+        double right = std::numeric_limits<double>::lowest();
+        std::vector<PlanLayoutNode*> pending{&nodes[root_op_id]};
+        while (!pending.empty()) {
+            auto* node = pending.back();
+            pending.pop_back();
+            left = std::min(left, node->x - node->width / 2);
+            right = std::max(right, node->x + node->width / 2);
+            for (auto& child : node->children) pending.push_back(&child);
+        }
+        if (has_packed_root) {
+            double offset = packed_right + layout_config.input().node_margin_horizontal() - left;
+            pending.push_back(&nodes[root_op_id]);
+            while (!pending.empty()) {
+                auto* node = pending.back();
+                pending.pop_back();
+                node->x += offset;
+                for (auto& child : node->children) pending.push_back(&child);
+            }
+            right += offset;
+        }
+        has_packed_root = true;
+        packed_right = right;
     }
 }
 
@@ -340,20 +423,12 @@ void PlanViewModel::Configure(const buffers::view::PlanLayoutConfig& config) {
 }
 
 void PlanViewModel::ComputeLayout() {
-    // Compute the preferred text width based on the operator labels
-    uint64_t label_length_max = 0;
+    // Retain the widest node pitch in the derived config for layout consumers.
+    double cell_width = 0;
     for (auto& op : operators) {
-        size_t l = op.operator_label.value_or("").size();
-        size_t t = op.operator_type.value_or("").size();
-        size_t n = std::max<size_t>(l, t);
-        label_length_max = std::max<size_t>(label_length_max, n);
+        cell_width = std::max(cell_width, ComputeNodeWidth(op, layout_config.input()) +
+                                              layout_config.input().node_margin_horizontal());
     }
-    size_t label_chars = std::min<size_t>(layout_config.input().max_label_chars(), label_length_max);
-    double cell_width = layout_config.input().node_padding_left() + layout_config.input().icon_width() +
-                        layout_config.input().icon_margin_right() +
-                        (label_chars * layout_config.input().width_per_label_char()) +
-                        layout_config.input().node_padding_right() + layout_config.input().node_margin_horizontal();
-    cell_width = std::max<double>(cell_width, layout_config.input().node_min_width());
     layout_config.mutate_computed_node_width(cell_width);
 
     // Compute the plan layout
@@ -361,21 +436,21 @@ void PlanViewModel::ComputeLayout() {
     layouter.Compute();
 
     // Compute total width and x- and y-shifts to make each point positive
-    double x_max = std::numeric_limits<double>::min();
+    double x_max = std::numeric_limits<double>::lowest();
     double x_min = std::numeric_limits<double>::max();
-    double y_max = std::numeric_limits<double>::min();
+    double y_max = std::numeric_limits<double>::lowest();
     double y_min = std::numeric_limits<double>::max();
     double node_height = layout_config.input().node_height();
     double level_height = layout_config.input().level_height();
     for (auto& node : layouter.nodes) {
-        x_max = std::max(x_max, node.x);
-        x_min = std::min(x_min, node.x);
+        x_max = std::max(x_max, node.x + node.width / 2);
+        x_min = std::min(x_min, node.x - node.width / 2);
         y_max = std::max(y_max, node.y);
         y_min = std::min(y_min, node.y);
     }
-    double total_width = std::abs(x_max - x_min) + cell_width;
+    double total_width = std::abs(x_max - x_min);
     double total_height = std::abs(y_max - y_min) + level_height;
-    double shift_x = (x_min - cell_width / 2) * -1;
+    double shift_x = -x_min;
     double shift_y = (y_min - level_height / 2) * -1;
 
     // Set all nodes layouts
@@ -383,17 +458,7 @@ void PlanViewModel::ComputeLayout() {
         auto& in = layouter.nodes[i];
         auto& out = operators[i];
 
-        // Compute the specific node width
-        auto node_label = out.operator_label.value_or(out.operator_type.value_or(""));
-        size_t node_label_chars = std::min<size_t>(node_label.size(), label_chars);
-        double node_width =
-            std::max<double>(layout_config.input().node_padding_left() + layout_config.input().icon_width() +
-                                 layout_config.input().icon_margin_right() +
-                                 (node_label_chars * layout_config.input().width_per_label_char()) +
-                                 layout_config.input().node_padding_right(),
-                             layout_config.input().node_min_width());
-
-        out.layout_rect.emplace(shift_x + in.x, shift_y + in.y, node_width, node_height);
+        out.layout_rect.emplace(shift_x + in.x, shift_y + in.y, in.width, node_height);
     }
 
     // Update the plan layout info

@@ -122,7 +122,7 @@ struct DerivedPlanLayoutConfig {
     /// The config
     input: PlanLayoutConfig;
     /// The computed node width
-    computed_node_width: uint32;
+    computed_node_width: double;
 }
 
 struct PlanLayoutRect {

@@ -27,9 +27,9 @@ export function createPlanLayoutConfig(showProgress: boolean): dashql.buffers.vi
     const config = new dashql.buffers.view.PlanLayoutConfigT();
     config.levelHeight = 64;
     config.nodeHeight = 32;
-    config.nodeMarginHorizontal = 20;
-    config.nodePaddingLeft = 8;
-    config.nodePaddingRight = 8;
+    config.nodeMarginHorizontal = 32;
+    config.nodePaddingLeft = 12;
+    config.nodePaddingRight = 12;
     config.iconWidth = showProgress ? 14 : 0;
     config.iconMarginRight = showProgress ? 8 : 0;
     config.maxLabelChars = 20;
@@ -211,6 +211,7 @@ function PlanOperatorNode(props: {
     onSelect: (operator: PlanSceneOperator, anchor: SVGGElement) => void;
 }) {
     const { operator, scene } = props;
+    const labelClipId = React.useId();
     const x = operator.rect.x - operator.rect.width / 2;
     const y = operator.rect.y - operator.rect.height / 2;
     const input = scene.layoutConfig.input!;
@@ -235,6 +236,9 @@ function PlanOperatorNode(props: {
             onKeyDown={activate}
         >
             <rect width={operator.rect.width} height={operator.rect.height} rx={6} ry={6} />
+            <clipPath id={labelClipId}>
+                <path d={`M ${regionStart} 0 H ${regionEnd} V ${input.nodeHeight} H ${regionStart} Z`} />
+            </clipPath>
             {props.showProgress && (
                 <g
                     ref={slot => props.controller.registerOperator(operator.id, slot)}
@@ -245,7 +249,7 @@ function PlanOperatorNode(props: {
                     {Object.entries(STATUS_PATHS).map(([status, path]) => <path key={status} data-status-icon={status} d={path} transform={`scale(${input.iconWidth / 16})`} />)}
                 </g>
             )}
-            <text x={(regionStart + regionEnd) / 2} y={input.nodeHeight / 2 + 5}>{operator.label}</text>
+            <text clipPath={`url(#${labelClipId})`} x={(regionStart + regionEnd) / 2} y={input.nodeHeight / 2 + 5}>{operator.displayLabel}</text>
         </g>
     );
 }

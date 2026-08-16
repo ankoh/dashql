@@ -2,6 +2,10 @@
 
 #include <flatbuffers/flatbuffer_builder.h>
 
+#include <algorithm>
+#include <cmath>
+#include <vector>
+
 #include "gtest/gtest.h"
 
 using namespace dashql;
@@ -23,6 +27,56 @@ flatbuffers::FlatBufferBuilder PackPlan(std::string_view plan) {
     flatbuffers::FlatBufferBuilder builder;
     builder.Finish(model.Pack(builder));
     return builder;
+}
+
+flatbuffers::FlatBufferBuilder PackPlan(std::string_view plan, const buffers::view::PlanLayoutConfig& config) {
+    PlanViewModel model;
+    model.Configure(config);
+    model.ParseHyperPlan(plan);
+    model.ComputeLayout();
+    flatbuffers::FlatBufferBuilder builder;
+    builder.Finish(model.Pack(builder));
+    return builder;
+}
+
+buffers::view::PlanLayoutConfig MakeLayoutConfig(double margin) {
+    buffers::view::PlanLayoutConfig config;
+    config.mutate_level_height(20.0);
+    config.mutate_node_height(8.0);
+    config.mutate_node_margin_horizontal(margin);
+    config.mutate_node_padding_left(0.25);
+    config.mutate_node_padding_right(0.25);
+    config.mutate_max_label_chars(20);
+    config.mutate_width_per_label_char(1.25);
+    return config;
+}
+
+void ExpectSameLevelNodesDoNotOverlap(const buffers::view::PlanViewModel& plan, double margin) {
+    auto* operators = plan.operators();
+    ASSERT_NE(operators, nullptr);
+    for (size_t i = 0; i < operators->size(); ++i) {
+        const auto& left = operators->Get(i)->layout_rect();
+        for (size_t j = i + 1; j < operators->size(); ++j) {
+            const auto& right = operators->Get(j)->layout_rect();
+            if (std::abs(left.y() - right.y()) > 0.001) continue;
+            const auto* first = &left;
+            const auto* second = &right;
+            if (first->x() > second->x()) std::swap(first, second);
+            EXPECT_GE(second->x() - second->width() / 2, first->x() + first->width() / 2 + margin - 0.001)
+                << "operators " << i << " and " << j;
+        }
+    }
+}
+
+void ExpectBoundsContainNodes(const buffers::view::PlanViewModel& plan) {
+    const auto* bounds = plan.layout_rect();
+    ASSERT_NE(bounds, nullptr);
+    ASSERT_NE(plan.operators(), nullptr);
+    for (const auto* op : *plan.operators()) {
+        const auto& rect = op->layout_rect();
+        EXPECT_GE(rect.x() - rect.width() / 2, bounds->x() - 0.001);
+        EXPECT_LE(rect.x() + rect.width() / 2, bounds->x() + bounds->width() + 0.001);
+    }
 }
 
 TEST(HyperPlanTest, ExplicitPipelinesAndProperties) {
@@ -51,6 +105,61 @@ TEST(HyperPlanTest, LegacyPlansDoNotInferPipelines) {
     auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
     EXPECT_EQ(plan->operators()->size(), 2);
     EXPECT_EQ(plan->pipelines()->size(), 0);
+}
+
+TEST(HyperPlanTest, InfersScanLabelFromDefinedAttributes) {
+    auto builder = PackPlan(R"JSON({
+        "operator":"output",
+        "operator-id":1,
+        "inputs":[{
+            "operator":"scan",
+            "operator-id":2,
+            "type":"parquet",
+            "attributes":[
+                {"defines":{"id":"partsupp.partkey","type":{"type":"bigint"}},"name":"ps_partkey"},
+                {"defines":{"id":"partsupp.suppkey","type":{"type":"bigint"}},"name":"ps_suppkey"}
+            ]
+        }]
+    })JSON");
+    auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
+
+    ASSERT_EQ(plan->operators()->size(), 2);
+    const auto* scan = plan->operators()->Get(0);
+    ASSERT_NE(scan->operator_label(), std::numeric_limits<uint32_t>::max());
+    EXPECT_EQ(plan->string_dictionary()->Get(scan->operator_label())->string_view(), "partsupp");
+}
+
+TEST(HyperPlanTest, VariableWidthNodesDoNotOverlap) {
+    constexpr double margin = 0.25;
+    auto config = MakeLayoutConfig(margin);
+    auto builder = PackPlan(R"JSON({
+        "operator":"unionall",
+        "input":[
+            {"operator":"map","input":{"operator":"map","input":{"operator":"tablescan","debugName":{"value":"a_very_long_table"}}}},
+            {"operator":"map","input":{"operator":"tablescan","debugName":{"value":"x"}}},
+            {"operator":"tablescan","debugName":{"value":"medium_table"}}
+        ]
+    })JSON",
+                            config);
+    auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
+
+    ExpectSameLevelNodesDoNotOverlap(*plan, margin);
+    ExpectBoundsContainNodes(*plan);
+}
+
+TEST(HyperPlanTest, IndependentRootsArePackedWithoutOverlap) {
+    constexpr double margin = 0.5;
+    auto config = MakeLayoutConfig(margin);
+    auto builder = PackPlan(R"JSON([
+        {"operator":"tablescan","debugName":{"value":"first_table"}},
+        {"operator":"tablescan","debugName":{"value":"second_table_is_wider"}}
+    ])JSON",
+                            config);
+    auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
+
+    ASSERT_EQ(plan->root_operators()->size(), 2);
+    ExpectSameLevelNodesDoNotOverlap(*plan, margin);
+    ExpectBoundsContainNodes(*plan);
 }
 
 TEST(HyperPlanTest, TPCHQ18) {

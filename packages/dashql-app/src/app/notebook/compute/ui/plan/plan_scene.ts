@@ -13,6 +13,7 @@ export interface PlanSceneOperator {
     id: number;
     typeName: string | null;
     label: string;
+    displayLabel: string;
     rect: PlanSceneRect;
     properties: Record<string, unknown>;
 }
@@ -61,6 +62,13 @@ function readProperties(vm: dashql.buffers.view.PlanViewModel, op: dashql.buffer
     return properties;
 }
 
+export function truncatePlanLabel(label: string, maxChars: number): string {
+    const chars = Array.from(label);
+    if (chars.length <= maxChars) return label;
+    if (maxChars === 0) return '';
+    return `${chars.slice(0, maxChars - 1).join('')}…`;
+}
+
 function buildPipelinePath(operatorIds: readonly number[], operators: readonly PlanSceneOperator[]): string {
     if (operatorIds.length === 0) return '';
     const padding = 4;
@@ -80,16 +88,19 @@ function buildPipelinePath(operatorIds: readonly number[], operators: readonly P
 
 export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel>): PlanScene {
     const vm = viewModel.read();
+    const layoutConfig = vm.layoutConfig()!.unpack();
     const operators: PlanSceneOperator[] = new Array(vm.operatorsLength());
     const tmpOperator = new dashql.buffers.view.PlanOperator();
     for (let i = 0; i < vm.operatorsLength(); ++i) {
         const op = vm.operators(i, tmpOperator)!;
         const layout = op.layoutRect()!;
         const typeName = readString(vm, op.operatorTypeName());
+        const label = readString(vm, op.operatorLabel()) ?? typeName ?? 'operator';
         operators[op.operatorId()] = {
             id: op.operatorId(),
             typeName,
-            label: readString(vm, op.operatorLabel()) ?? typeName ?? 'operator',
+            label,
+            displayLabel: truncatePlanLabel(label, layoutConfig.input!.maxLabelChars),
             rect: { x: layout.x(), y: layout.y(), width: layout.width(), height: layout.height() },
             properties: readProperties(vm, op),
         };
@@ -130,7 +141,7 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
     return {
         width: bounds?.width() ?? 0,
         height: bounds?.height() ?? 0,
-        layoutConfig: vm.layoutConfig()!.unpack(),
+        layoutConfig,
         operators,
         edges,
         pipelines,
