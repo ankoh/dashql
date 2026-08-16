@@ -1319,6 +1319,17 @@ describe('compileQuery', () => {
         expect(text.toLowerCase()).toContain('where amount > 0');
     });
 
+    it('lowers a table-function relational pipe without executing a function argument', () => {
+        const state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const script = `from generate_series(1, 100) t(v) |> select v as x, random() as y`;
+        const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
+
+        expect(compileQuery(next.scripts[scriptKey])).toBe(
+            'select v as x, random() as y from (select * from generate_series(1, 100) t(v)) as _dashql_pipe'
+        );
+    });
+
     it('compiles preceding terminal pipe aliases into local CTEs and executes the final statement', () => {
         const state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];

@@ -61,6 +61,17 @@ FROM events
     EXPECT_EQ(result.sql.find("select ts_hour, ts_hour"), std::string::npos) << result.sql;
 }
 
+TEST(ScriptCompilerTest, CompilesGenerateSeriesPipeline) {
+    auto result = Compile(R"SQL(
+FROM generate_series(1, 100) t(v)
+|> SELECT v AS x, random() AS y
+)SQL");
+
+    ASSERT_TRUE(result.errors.empty()) << (result.errors.empty() ? "" : result.errors.front().message);
+    EXPECT_EQ(result.sql,
+              "select v as x, random() as y from (select * from generate_series(1, 100) t(v)) as _dashql_pipe");
+}
+
 TEST(ScriptCompilerTest, ProjectsImplicitAggregateGroupKeys) {
     auto result = Compile(R"SQL(
 FROM events

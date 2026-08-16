@@ -36,23 +36,20 @@ std::optional<uint32_t> ReadTerminalSqlNode(const ParsedScript& parsed, uint32_t
         case buffers::parser::StatementType::EXPLAIN:
         case buffers::parser::StatementType::SELECT:
         case buffers::parser::StatementType::SET:
-            return true;
+            kind = StatementKind::QUERY;
+            return statement.root;
         case buffers::parser::StatementType::NONE:
-        case buffers::parser::StatementType::VIS_VISUALISE:
-            return false;
+            return std::nullopt;
+        case buffers::parser::StatementType::VIS_VISUALISE: {
+            kind = StatementKind::VISUALIZE;
+            const auto& root = parsed.nodes[statement.root];
+            auto [source] = LookupAttributes<AttributeKey::VIS_VISUALISE_SELECT>(
+                std::span{parsed.nodes}.subspan(root.children_begin_or_value(), root.children_count()));
+            if (!source) return std::nullopt;
+            return static_cast<uint32_t>(source - parsed.nodes.data());
+        }
     }
-    if (statement.type == buffers::parser::StatementType::SELECT) {
-        kind = StatementKind::QUERY;
-        return statement.root;
-    }
-    if (statement.type != buffers::parser::StatementType::VIS_VISUALISE) return std::nullopt;
-
-    kind = StatementKind::VISUALIZE;
-    const auto& root = parsed.nodes[statement.root];
-    auto [source] = LookupAttributes<AttributeKey::VIS_VISUALISE_SELECT>(
-        std::span{parsed.nodes}.subspan(root.children_begin_or_value(), root.children_count()));
-    if (!source) return std::nullopt;
-    return static_cast<uint32_t>(source - parsed.nodes.data());
+    return std::nullopt;
 }
 
 }  // namespace
