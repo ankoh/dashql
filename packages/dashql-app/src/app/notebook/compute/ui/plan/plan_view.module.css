@@ -1,0 +1,91 @@
+.viewport {
+    position: relative;
+    width: 100%;
+    height: clamp(280px, 60vh, 520px);
+    overflow: hidden;
+    background: hsl(210, 29%, 98%);
+    border: 1px solid var(--border_color_primary);
+    border-radius: 8px;
+    touch-action: none;
+}
+
+.viewport:focus-visible {
+    outline: 2px solid hsl(211, 100%, 45%);
+    outline-offset: 2px;
+}
+
+.svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+}
+
+.svg:active { cursor: grabbing; }
+
+.edge {
+    fill: none;
+    stroke: hsl(210, 13%, 74%);
+    stroke-width: 1px;
+}
+
+.pipeline {
+    display: none;
+    fill: rgba(220, 220, 220, 0.5);
+    stroke: hsl(210, 13%, 74%);
+    stroke-width: 1px;
+}
+
+.pipeline[data-status="2"], .pipeline[data-status="4"] { display: inline; }
+
+.operator { cursor: pointer; }
+.operator rect {
+    fill: white;
+    stroke: hsl(210, 13%, 74%);
+    stroke-width: 1px;
+}
+.operator text {
+    font-family: "Roboto Mono", monospace;
+    font-size: 0.85rem;
+    text-anchor: middle;
+    pointer-events: none;
+}
+.operator:hover rect { fill: hsl(210, 30%, 98%); }
+.operator[data-selected="true"] rect {
+    fill: hsl(211, 100%, 97%);
+    stroke: hsl(211, 100%, 45%);
+    stroke-width: 2px;
+}
+.operator:focus-visible { outline: none; }
+.operator:focus-visible rect {
+    stroke: hsl(211, 100%, 35%);
+    stroke-width: 2px;
+    stroke-dasharray: 3 2;
+}
+
+.status path { display: none; }
+.status[data-status="0"] path[data-status-icon="0"],
+.status[data-status="1"] path[data-status-icon="1"],
+.status[data-status="2"] path[data-status-icon="2"],
+.status[data-status="3"] path[data-status-icon="3"],
+.status[data-status="4"] path[data-status-icon="4"],
+.status[data-status="5"] path[data-status-icon="5"] { display: block; }
+
+.controls {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    z-index: 2;
+}
+
+.reset_label { font-size: 10px; font-weight: 600; }
+
+.inspector { max-height: 432px; overflow: auto; user-select: text; }
+.inspector_header {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 12px 4px;
+    border-bottom: 1px solid var(--border_color_primary);
+}
+.inspector_header span { color: hsl(210, 10%, 42%); font-size: 0.8rem; }

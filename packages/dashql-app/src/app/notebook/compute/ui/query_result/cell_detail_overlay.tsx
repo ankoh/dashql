@@ -16,7 +16,7 @@ import { useDashQLCoreSetup } from '../../../../providers/core_provider.js';
 import { CopyToClipboardButton } from '../../../../../shared/utils/clipboard.js';
 import { useKeyEvents } from '../../../../../shared/utils/key_events.js';
 import { peekFormat } from './format_peek.js';
-import { PlanRenderer } from '../plan/plan_renderer.js';
+import { createPlanLayoutConfig, PlanView as HyperPlanView } from '../plan/plan_view.js';
 
 const LOG_CTX = 'cell_detail_overlay';
 
@@ -217,42 +217,16 @@ function SqlTextView(props: SqlTextViewProps) {
 }
 
 
-/// Build the plan layout config for a static plan (no progress indicators).
-/// The icon space is zeroed so operator nodes lay out tight without a reserved status-icon gap.
-function createPlanLayoutConfig(): dashql.buffers.view.PlanLayoutConfigT {
-    const config = new dashql.buffers.view.PlanLayoutConfigT();
-    config.levelHeight = 64.0;
-    config.nodeHeight = 32.0;
-    config.nodeMarginHorizontal = 20.0;
-    config.nodePaddingLeft = 8.0;
-    config.nodePaddingRight = 8.0;
-    config.iconWidth = 0.0;
-    config.iconMarginRight = 0.0;
-    config.maxLabelChars = 20;
-    config.widthPerLabelChar = 8.5;
-    config.nodeMinWidth = 0;
-    return config;
-}
-
-/// Hyper plan sub-view — parses the plan text and renders it statically via PlanRenderer
+/// Hyper plan sub-view.
 function PlanView(props: { planText: string }) {
     const coreSetup = useDashQLCoreSetup();
-    const [layoutConfig] = React.useState<dashql.buffers.view.PlanLayoutConfigT>(createPlanLayoutConfig);
+    const [layoutConfig] = React.useState<dashql.buffers.view.PlanLayoutConfigT>(() => createPlanLayoutConfig(false));
     const [failed, setFailed] = React.useState(false);
+    const [plan, setPlan] = React.useState<dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel> | null>(null);
 
     const viewModelRef = React.useRef<dashql.DashQLPlanViewModel | null>(null);
-    const planRendererRef = React.useRef<PlanRenderer | null>(null);
 
-    // Mount the renderer once the container div is available
-    const mountPlan = React.useCallback((root: HTMLDivElement | null) => {
-        if (root == null) return;
-        if (planRendererRef.current == null) {
-            planRendererRef.current = new PlanRenderer({ showProgress: false });
-        }
-        planRendererRef.current.mountTo(root);
-    }, []);
-
-    // Parse and render the plan whenever the text changes
+    // Parse and materialize the plan whenever the text changes.
     React.useEffect(() => {
         let cancelled = false;
         setFailed(false);
@@ -262,19 +236,15 @@ function PlanView(props: { planText: string }) {
             if (viewModelRef.current == null) {
                 viewModelRef.current = core.createPlanViewModel(layoutConfig);
             }
-            let plan: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel, dashql.buffers.view.PlanViewModelT> | null = null;
+            let nextPlan: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel, dashql.buffers.view.PlanViewModelT> | null = null;
             try {
-                plan = viewModelRef.current.loadHyperPlan(props.planText);
+                nextPlan = viewModelRef.current.loadHyperPlan(props.planText);
             } catch (e: any) {
                 console.warn(e);
                 if (!cancelled) setFailed(true);
             }
-            if (plan != null && !cancelled) {
-                if (planRendererRef.current == null) {
-                    planRendererRef.current = new PlanRenderer();
-                }
-                planRendererRef.current.render(plan);
-                plan.destroy();
+            if (nextPlan != null && !cancelled) {
+                setPlan(nextPlan);
             }
         };
         run();
@@ -284,6 +254,7 @@ function PlanView(props: { planText: string }) {
     // Destroy the view model on unmount
     React.useEffect(() => {
         return () => {
+            setPlan(null);
             viewModelRef.current?.destroy();
             viewModelRef.current = null;
         };
@@ -292,7 +263,7 @@ function PlanView(props: { planText: string }) {
     if (failed) {
         return <div className={styles.plan_error}>Could not render plan</div>;
     }
-    return <div className={styles.plan_container} ref={mountPlan} />;
+    return <div className={styles.plan_container}>{plan != null && <HyperPlanView plan={plan} />}</div>;
 }
 
 

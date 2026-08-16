@@ -52,6 +52,8 @@ table PlanViewModel {
     operator_cross_edges: [PlanOperatorCrossEdge];
     /// The plan attributes
     attributes: [PlanAttribute];
+    /// Operator ids grouped by pipeline
+    pipeline_operators: [uint32];
 
     /// The layout info
     layout_rect: PlanLayoutRect;
@@ -83,6 +85,10 @@ struct PlanPipeline {
     edges_begin: uint32;
     /// The pipeline edges count
     edge_count: uint32;
+    /// The begin of the pipeline's operator membership
+    operators_begin: uint32;
+    /// The number of operators in the pipeline
+    operator_count: uint32;
     /// The begin of the attributes
     attributes_begin: uint32;
     /// The number of attributes

@@ -18,7 +18,7 @@ function handleClick(event: MouseEvent) {
 
 interface UseOnOutsideClickArgs {
     containerRef: React.RefObject<HTMLDivElement | null> | React.RefObject<HTMLUListElement | null>
-    ignoreClickRefs?: React.RefObject<HTMLElement | null>[]
+    ignoreClickRefs?: React.RefObject<Element | null>[]
     onClickOutside: (e: MouseEvent | TouchEvent) => void
 }
 

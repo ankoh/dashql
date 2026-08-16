@@ -81,6 +81,7 @@
 }
 
 .copy_button {
+    appearance: none;
     position: absolute;
     top: 0.2em;
     right: 0;
@@ -89,8 +90,12 @@
     width: 1em;
     cursor: pointer;
     display: inline-flex;
+    padding: 0;
+    border: 0;
     background-color: var(--w-rjv-background-color, #fff);
 }
+
+.copy_button svg { width: 100%; height: 100%; }
 
 .copy_button_copied {
     color: #28a745;
@@ -111,4 +116,20 @@
     color: #002b36;
     background-color: #00000000;
     font-size: 13px;
+}
+.expand_button {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.expand_button:focus-visible,
+.copy_button:focus-visible {
+    outline: 2px solid hsl(211, 100%, 45%);
+    outline-offset: 1px;
 }

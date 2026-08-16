@@ -1,10 +1,57 @@
 #include "dashql/view/plan_view_model.h"
 
+#include <flatbuffers/flatbuffer_builder.h>
+
 #include "gtest/gtest.h"
 
 using namespace dashql;
 
 namespace {
+
+flatbuffers::FlatBufferBuilder PackPlan(std::string_view plan) {
+    PlanViewModel model;
+    buffers::view::PlanLayoutConfig config;
+    config.mutate_level_height(64.0);
+    config.mutate_node_height(32.0);
+    config.mutate_node_padding_left(8.0);
+    config.mutate_node_padding_right(8.0);
+    config.mutate_max_label_chars(20);
+    config.mutate_width_per_label_char(8.5);
+    model.Configure(config);
+    model.ParseHyperPlan(plan);
+    model.ComputeLayout();
+    flatbuffers::FlatBufferBuilder builder;
+    builder.Finish(model.Pack(builder));
+    return builder;
+}
+
+TEST(HyperPlanTest, ExplicitPipelinesAndProperties) {
+    auto builder = PackPlan(R"JSON({
+        "operator":"executiontarget","operatorId":1,"cardinality":5,
+        "input":{"operator":"tablescan","operatorId":2,"metadata":{"cost":1}},
+        "pipelines":[{"pipelineId":10,"operators":[2,1]}]
+    })JSON");
+    auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
+    ASSERT_EQ(plan->operators()->size(), 2);
+    ASSERT_EQ(plan->pipelines()->size(), 1);
+    EXPECT_EQ(plan->pipelines()->Get(0)->operator_count(), 2);
+    EXPECT_EQ(plan->pipeline_operators()->Get(0), 0);
+    EXPECT_EQ(plan->pipeline_operators()->Get(1), 1);
+    EXPECT_EQ(plan->pipelines()->Get(0)->edge_count(), 1);
+    EXPECT_EQ(plan->pipeline_edges()->Get(0)->child_operator(), 0);
+    EXPECT_EQ(plan->pipeline_edges()->Get(0)->parent_operator(), 1);
+    EXPECT_GT(plan->operators()->Get(0)->attribute_count(), 0);
+}
+
+TEST(HyperPlanTest, LegacyPlansDoNotInferPipelines) {
+    auto builder = PackPlan(R"JSON({
+        "operator":"executiontarget","operatorId":1,
+        "input":{"operator":"tablescan","operatorId":2}
+    })JSON");
+    auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
+    EXPECT_EQ(plan->operators()->size(), 2);
+    EXPECT_EQ(plan->pipelines()->size(), 0);
+}
 
 TEST(HyperPlanTest, TPCHQ18) {
     std::string_view plan =

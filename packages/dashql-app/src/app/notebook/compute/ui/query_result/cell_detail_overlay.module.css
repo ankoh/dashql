@@ -111,8 +111,6 @@
 }
 
 .plan_container {
-    display: flex;
-    justify-content: center;
     width: 100%;
     padding: 16px;
 }

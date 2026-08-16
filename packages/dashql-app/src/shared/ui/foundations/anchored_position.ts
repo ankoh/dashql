@@ -444,7 +444,7 @@ function shouldRecalculatePosition(
     containerDimensions: BoxPosition,
     elementDimensions: Size,
 ) {
-    if (side === AnchorSide.OutsideTop || AnchorSide.OutsideBottom) {
+    if (side === AnchorSide.OutsideTop || side === AnchorSide.OutsideBottom) {
         return (
             currentPos.top < containerDimensions.top ||
             currentPos.top + elementDimensions.height > containerDimensions.height + containerDimensions.top
@@ -478,7 +478,7 @@ function shouldRecalculateAlignment(
 
 export interface AnchoredPositionHookArgs extends Partial<PositionSettings> {
     floatingElementRef?: React.RefObject<HTMLElement | null>
-    anchorElementRef?: React.RefObject<HTMLElement | null>
+    anchorElementRef?: React.RefObject<Element | null>
 }
 
 export function useAnchoredPosition(args?: AnchoredPositionHookArgs, dependencies: React.DependencyList = []): {
@@ -487,7 +487,7 @@ export function useAnchoredPosition(args?: AnchoredPositionHookArgs, dependencie
     position: AnchorPosition | undefined
 } {
     const altFloatingElementRef = React.useRef<HTMLElement | null>(null);
-    const altAnchorElementRef = React.useRef<HTMLElement | null>(null);
+    const altAnchorElementRef = React.useRef<Element | null>(null);
 
     const floatingElementRef = args?.floatingElementRef ?? altFloatingElementRef;
     const anchorElementRef = args?.anchorElementRef ?? altAnchorElementRef;

@@ -53,8 +53,35 @@ describe('Plan View Model', () => {
             expect(planReader.operatorsLength()).toEqual(2);
             expect(planReader.rootOperatorsLength()).toEqual(1);
             expect(planReader.rootOperators(0)).toEqual(1);
+            expect(planReader.pipelinesLength()).toEqual(0);
             expect(planReader.stringDictionary(planReader.operators(1)!.operatorTypeName())).toEqual("executiontarget");
             expect(planReader.stringDictionary(planReader.operators(0)!.operatorTypeName())).toEqual("tablescan");
+            const tableScan = planReader.operators(0)!;
+            const properties: Record<string, unknown> = {};
+            for (let i = 0; i < tableScan.attributeCount(); ++i) {
+                const attribute = planReader.attributes(tableScan.attributesBegin() + i)!;
+                properties[planReader.stringDictionary(attribute.name())!] = JSON.parse(planReader.stringDictionary(attribute.valueJson())!);
+            }
+            expect(properties.operatorId).toEqual(2);
+            expect(properties.relationId).toEqual(9);
+            expect(properties.values).toHaveLength(3);
+            expect(properties).not.toHaveProperty('debugName.input');
+        });
+        it('parses explicit pipeline membership', () => {
+            const viewModel = dql!.createPlanViewModel(DEFAULT_LAYOUT_CONFIG);
+            const planPtr = viewModel.loadHyperPlan(`{
+                "operator":"executiontarget","operatorId":1,
+                "input":{"operator":"tablescan","operatorId":2},
+                "pipelines":[{"pipelineId":10,"operators":[2,1]}]
+            }`);
+            const plan = planPtr.read();
+            expect(plan.pipelinesLength()).toEqual(1);
+            expect(plan.pipelines(0)!.operatorCount()).toEqual(2);
+            expect(plan.pipelineOperators(plan.pipelines(0)!.operatorsBegin())).toEqual(0);
+            expect(plan.pipelineOperators(plan.pipelines(0)!.operatorsBegin() + 1)).toEqual(1);
+            expect(plan.pipelines(0)!.edgeCount()).toEqual(1);
+            expect(plan.pipelineEdges(0)!.childOperator()).toEqual(0);
+            expect(plan.pipelineEdges(0)!.parentOperator()).toEqual(1);
         });
     });
 });

@@ -21,7 +21,7 @@ interface AnchoredOverlayPropsWithoutAnchor {
     renderAnchor: null;
     /// An override to the internal renderAnchor ref that will be used to position the overlay.
     /// When renderAnchor is null this can be used to make an anchor that is detached from ActionMenu.
-    anchorRef: React.RefObject<HTMLElement | null>;
+    anchorRef: React.RefObject<Element | null>;
     /// An override to the internal id that will be spread on to the renderAnchor
     anchorId?: string;
 }
@@ -47,6 +47,8 @@ interface AnchoredOverlayBaseProps extends Pick<OverlayProps, 'height' | 'width'
     focusTrapSettings?: Partial<FocusTrapHookArgs>;
     /// Settings to apply to the Focus Zone on the internal `Overlay` component.
     focusZoneSettings?: Partial<FocusZoneHookArgs>;
+    /// Forces position measurement after a detached anchor moves without layout changes.
+    positionRevision?: number;
 }
 
 export type AnchoredOverlayProps = AnchoredOverlayBaseProps &
@@ -96,7 +98,7 @@ export function AnchoredOverlay(args: AnchoredOverlayProps) {
         align: args.align,
         alignmentOffset: args.alignmentOffset,
         anchorOffset: args.anchorOffset,
-    }, [overlayRef.current])
+    }, [overlayRef.current, args.positionRevision])
 
     React.useEffect(() => {
         // ensure overlay ref gets cleared when closed, so position can reset between closing/re-opening

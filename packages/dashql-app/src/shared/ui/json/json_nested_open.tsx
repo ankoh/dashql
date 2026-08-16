@@ -52,12 +52,6 @@ export function JsonNestedOpen(props: NestedOpenProps) {
     const isArray = Array.isArray(props.value);
     const isMySet = props.value instanceof Set;
     const showArrow = len !== 0 && (isArray || isMySet || isObject);
-    const reset: React.HTMLAttributes<HTMLDivElement> = { style };
-
-    if (showArrow) {
-        reset.onClick = click;
-    }
-
     const childProps = {
         keyName: props.keyName,
         keyPath: props.keyPath,
@@ -65,9 +59,17 @@ export function JsonNestedOpen(props: NestedOpenProps) {
         parentValue: props.parentValue
     };
     return (
-        <span {...reset}>
+        <span style={style}>
             {showArrow && (
-                <JsonArrowSymbol isExpanded={isExpanded} />
+                <button
+                    type="button"
+                    className={styles.expand_button}
+                    aria-label={isExpanded ? 'Collapse JSON value' : 'Expand JSON value'}
+                    aria-expanded={isExpanded}
+                    onClick={click}
+                >
+                    <JsonArrowSymbol isExpanded={isExpanded} />
+                </button>
             )}
             {(props.keyName || typeof props.keyName === 'number') && (
                 <JsonKeyName {...childProps} />

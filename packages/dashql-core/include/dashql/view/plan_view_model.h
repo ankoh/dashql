@@ -4,7 +4,6 @@
 #include <variant>
 
 #include "dashql/buffers/index_generated.h"
-#include "dashql/utils/btree/map.h"
 #include "dashql/utils/chunk_buffer.h"
 #include "dashql/utils/intrusive_list.h"
 #include "flatbuffers/flatbuffer_builder.h"
@@ -64,6 +63,8 @@ class PlanViewModel {
         std::optional<std::string_view> operator_type;
         /// The operator label
         std::optional<std::string_view> operator_label;
+        /// The operator id serialized by Hyper
+        std::optional<uint64_t> source_operator_id;
         /// The child operators
         IntrusiveList<IntrusiveListNode> child_operators;
         /// The operator attributes
@@ -75,6 +76,7 @@ class PlanViewModel {
         ParsedOperatorNode(
             std::vector<PathComponent> parent_child_path, OperatorSourceValue source_value,
             std::optional<std::string_view> operator_type, std::optional<std::string_view> operator_label,
+            std::optional<uint64_t> source_operator_id,
             IntrusiveList<IntrusiveListNode> children,
             std::vector<std::pair<std::string_view, std::reference_wrapper<const rapidjson::Value>>> attributes,
             std::optional<dashql::buffers::parser::SymbolSpan> source_location)
@@ -82,6 +84,7 @@ class PlanViewModel {
               source_value(std::move(source_value)),
               operator_type(operator_type),
               operator_label(operator_label),
+              source_operator_id(source_operator_id),
               child_operators(children),
               operator_attributes(std::move(attributes)),
               source_location(source_location) {}
@@ -96,8 +99,12 @@ class PlanViewModel {
         uint32_t fragment_id = 0;
         /// The pipeline id
         uint32_t pipeline_id = 0;
+        /// The id serialized by Hyper
+        std::optional<uint64_t> source_pipeline_id;
+        /// The operators that belong to this pipeline
+        std::vector<uint32_t> operators;
         /// The edges in the pipeline
-        btree::map<std::pair<size_t, size_t>, buffers::view::PlanPipelineEdge> edges;
+        std::vector<buffers::view::PlanPipelineEdge> edges;
 
         /// Pack a pipeline
         buffers::view::PlanPipeline Pack(flatbuffers::FlatBufferBuilder& builder, const PlanViewModel& viewModel,
@@ -131,6 +138,8 @@ class PlanViewModel {
         std::optional<std::string_view> operator_type;
         /// The operator label
         std::optional<std::string_view> operator_label;
+        /// The operator id serialized by Hyper
+        std::optional<uint64_t> source_operator_id;
         /// The parent operator id
         std::optional<size_t> parent_operator_id;
         /// The parent path
@@ -140,7 +149,8 @@ class PlanViewModel {
         /// The source value
         OperatorSourceValue source_value;
         /// The child operators
-        std::span<OperatorNode> child_operators;
+        size_t children_begin = 0;
+        size_t children_count = 0;
         /// The child edges
         std::span<OperatorEdge> child_edges;
         /// The layout info
@@ -148,25 +158,18 @@ class PlanViewModel {
 
         /// The operator attributes
         std::vector<std::pair<std::string_view, std::reference_wrapper<const rapidjson::Value>>> operator_attributes;
-        /// The operator attribute map
-        std::unordered_map<std::string_view, std::reference_wrapper<const rapidjson::Value>> operator_attribute_map;
-        /// The inbound pipelines in the order they are produced
-        std::vector<std::reference_wrapper<Pipeline>> inbound_pipelines;
-        /// The outbound pipelines in the order they are produced
-        std::vector<std::reference_wrapper<Pipeline>> outbound_pipelines;
-
         // Construct from parsed node
         OperatorNode(ParsedOperatorNode&& parsed);
         // Copy constructor (Wasm needs an explicit one)
         OperatorNode(const OperatorNode& other);
         // Move constructor
         OperatorNode(OperatorNode&& other);
-
         /// Serialize the parent child path
         std::string SerializeParentPath() const;
         /// Pack a plan operator
         buffers::view::PlanOperator Pack(flatbuffers::FlatBufferBuilder& builder, const PlanViewModel& viewModel,
-                                         StringDictionary& strings) const;
+                                         StringDictionary& strings,
+                                         std::vector<buffers::view::PlanAttribute>& attributes) const;
     };
 
    protected:
@@ -191,19 +194,18 @@ class PlanViewModel {
     std::optional<buffers::view::PlanLayoutRect> layout_rect;
 
     /// Register a pipeline
-    Pipeline& RegisterPipeline();
+    Pipeline& RegisterPipeline(std::optional<uint64_t> source_pipeline_id = std::nullopt);
     /// Flatten the operators
     void FlattenOperators(ChunkBuffer<ParsedOperatorNode>&& ops,
                           std::vector<std::reference_wrapper<ParsedOperatorNode>>&& roots);
     /// Identify the operators edges
     void IdentifyOperatorEdges(std::span<OperatorNode> ops, size_t child_edge_count);
-    /// Identify Hyper pipelines
-    void IdentifyHyperPipelines();
+    /// Read explicit Hyper pipelines. Plans without this field have no pipelines.
+    void ParseHyperPipelines();
 
    public:
     /// Constructor
     PlanViewModel();
-
     /// Reset the entire view model
     void Reset();
     /// Reset the view model execution

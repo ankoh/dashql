@@ -17,6 +17,8 @@
 
 .demo_section_header {
     font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
     padding: 8px 0 0 0;
 }
 
@@ -27,19 +29,10 @@
     row-gap: 16px;
 }
 
-.demo_actions {
+.input_label {
     display: flex;
-    flex-direction: row;
-}
-
-.timeline_container {
-    display: flex;
-    justify-content: center;
-    width: 100%;
-}
-
-.plan_container {
-    display: flex;
-    justify-content: center;
-    width: 100%;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
 }

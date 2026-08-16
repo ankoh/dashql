@@ -15,7 +15,7 @@ export interface SectionElementResult<T extends object, K = string | number> {
     keyPath?: K[];
 }
 
-export interface JsonCopyButtonProps<T extends object> extends React.SVGProps<SVGSVGElement>, SectionElementResult<T> {
+export interface JsonCopyButtonProps<T extends object> extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'value'>, SectionElementResult<T> {
     expandKey: string;
     beforeCopy?: (
         copyText: string,
@@ -36,7 +36,7 @@ export function JsonCopyButton<T extends object>(props: JsonCopyButtonProps<T>) 
 
     if (enableClipboard === false || !isShowTools) return null;
 
-    const click = (event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
+    const click = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
         event.stopPropagation();
         let copyText = '';
         if (typeof value === 'number' && value === Infinity) {
@@ -94,14 +94,18 @@ export function JsonCopyButton<T extends object>(props: JsonCopyButtonProps<T>) 
 
     const sym = copied ? "clipboard_copied" : "clipboard_copy";
     return (
-        <svg
+        <button
+            {...other}
+            type="button"
+            aria-label={copied ? 'JSON copied' : 'Copy JSON value'}
             className={classNames(styles.copy_button, {
                 [styles.copy_button_copied]: copied
             })}
-            viewBox="0 0 32 36"
             onClick={click}
         >
-            <use xlinkHref={`${icons}#${sym}`} />
-        </svg>
+            <svg viewBox="0 0 32 36" aria-hidden="true">
+                <use xlinkHref={`${icons}#${sym}`} />
+            </svg>
+        </button>
     );
 };

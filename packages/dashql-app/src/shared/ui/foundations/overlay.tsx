@@ -10,7 +10,7 @@ import { AnchorSide } from './anchored_position.js';
 import * as styles from './overlay.module.css';
 
 interface UseOverlayArgs {
-    ignoreClickRefs?: React.RefObject<HTMLElement | null>[];
+    ignoreClickRefs?: React.RefObject<Element | null>[];
     initialFocusRef?: React.RefObject<HTMLElement | null>;
     returnFocusRef?: React.RefObject<HTMLElement | null>;
     onEscape: (e: KeyboardEvent) => void;
@@ -126,7 +126,7 @@ function getSlideAnimationStartingVector(anchorSide?: AnchorSide): { x: number; 
 }
 
 export interface OverlayProps {
-    ignoreClickRefs?: React.RefObject<HTMLElement | null>[];
+    ignoreClickRefs?: React.RefObject<Element | null>[];
     initialFocusRef?: React.RefObject<HTMLElement | null>;
     returnFocusRef?: React.RefObject<HTMLElement | null>;
     onClickOutside: (e: MouseEvent | TouchEvent) => void;

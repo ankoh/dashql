@@ -145,8 +145,7 @@ PlanLayouter::PlanLayouter(PlanViewModel& view_model, const buffers::view::Deriv
     for (size_t i = 0; i < view_model.operators.size(); ++i) {
         auto& op = view_model.operators[i];
         nodes[i].parent = op.parent_operator_id.has_value() ? &nodes[op.parent_operator_id.value()] : nullptr;
-        nodes[i].children = {nodes.data() + (op.child_operators.data() - view_model.operators.data()),
-                             op.child_operators.size()};
+        nodes[i].children = {nodes.data() + op.children_begin, op.children_count};
         nodes[i].ancestor = &nodes[i];
         // XXX Label
     }
