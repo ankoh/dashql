@@ -122,6 +122,26 @@ WITH regional AS (SELECT * FROM active_sales) SELECT * FROM regional;
     EXPECT_EQ(result.sql.find("with with"), std::string::npos);
 }
 
+TEST(ScriptCompilerTest, PrependsLocalRelationsToExplainedQuery) {
+    auto result = Compile(R"SQL(
+FROM external('/tmp/part.parquet', format => 'parquet') |> AS part;
+FROM external('/tmp/supplier.parquet', format => 'parquet') |> AS supplier;
+EXPLAIN (ANALYZE, FORMAT INTERNAL)
+SELECT * FROM supplier, part;
+)SQL");
+
+    ASSERT_TRUE(result.errors.empty()) << (result.errors.empty() ? "" : result.errors.front().message);
+    auto explain = result.sql.find("explain (ANALYZE, FORMAT INTERNAL)");
+    auto with = result.sql.find("with part as");
+    auto select = result.sql.find("select * from supplier, part");
+    ASSERT_NE(explain, std::string::npos) << result.sql;
+    ASSERT_NE(with, std::string::npos) << result.sql;
+    ASSERT_NE(select, std::string::npos) << result.sql;
+    EXPECT_LT(explain, with);
+    EXPECT_LT(with, select);
+    EXPECT_NE(result.sql.find("supplier as"), std::string::npos) << result.sql;
+}
+
 TEST(ScriptCompilerTest, PrependsLocalRelationWhenFinalCTEHasSameName) {
     auto result = Compile(R"SQL(
 FROM sales |> WHERE amount > 0 |> AS active_sales;

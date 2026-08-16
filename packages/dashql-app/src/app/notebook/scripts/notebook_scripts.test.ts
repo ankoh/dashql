@@ -1345,6 +1345,21 @@ describe('compileQuery', () => {
         expect(text).not.toContain('|>');
     });
 
+    it('folds preceding pipe aliases into an explained final statement', () => {
+        const state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const script = `from external('/tmp/part.parquet', format => 'parquet') |> as part;
+            from external('/tmp/supplier.parquet', format => 'parquet') |> as supplier;
+            explain (analyze, format internal) select * from supplier, part`;
+        const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: script } });
+
+        const text = compileQuery(next.scripts[scriptKey]);
+        expect(text.toLowerCase()).toMatch(/^explain \(analyze, format internal\) with part as/);
+        expect(text.toLowerCase()).toContain('supplier as');
+        expect(text.toLowerCase()).toContain('select * from supplier, part');
+        expect(text).not.toContain('|>');
+    });
+
     it('preserves plain multi-statement SQL verbatim', () => {
         const state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];

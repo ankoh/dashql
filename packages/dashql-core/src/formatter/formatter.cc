@@ -2636,15 +2636,23 @@ std::string Formatter::FormatExecutableQuery(const ScriptExecutionPlan& plan,
         }
     }
 
+    uint32_t cte_target_node_id = plan.terminal_query_node_id;
     const auto& terminal_query = ast[plan.terminal_query_node_id];
+    if (terminal_query.node_type() == NodeType::OBJECT_EXT_EXPLAIN) {
+        auto [statement] = GetAttributes<AttributeKey::EXT_EXPLAIN_STATEMENT>(terminal_query);
+        if (!statement) return {};
+        cte_target_node_id = static_cast<uint32_t>(statement - ast.data());
+    }
+
+    const auto& cte_target = ast[cte_target_node_id];
     const buffers::parser::Node* existing_ctes = nullptr;
     bool recursive = false;
-    if (terminal_query.node_type() == NodeType::OBJECT_SQL_SELECT) {
+    if (cte_target.node_type() == NodeType::OBJECT_SQL_SELECT) {
         auto [ctes, recursive_node] = GetAttributes<AttributeKey::SQL_SELECT_WITH_CTES,
-                                                   AttributeKey::SQL_SELECT_WITH_RECURSIVE>(terminal_query);
+                                                   AttributeKey::SQL_SELECT_WITH_RECURSIVE>(cte_target);
         existing_ctes = ctes;
         recursive = recursive_node != nullptr;
-        if (!plan.local_relations.empty()) select_without_with = plan.terminal_query_node_id;
+        if (!plan.local_relations.empty()) select_without_with = cte_target_node_id;
     } else {
         select_without_with.reset();
     }
@@ -2655,9 +2663,9 @@ std::string Formatter::FormatExecutableQuery(const ScriptExecutionPlan& plan,
     }
     BuildDocs();
 
-    auto query = node_states[plan.terminal_query_node_id].reg;
+    auto query = node_states[cte_target_node_id].reg;
     if (query == 0) return {};
-    if (plan.local_relations.empty()) return Render(query);
+    if (plan.local_relations.empty()) return Render(node_states[plan.terminal_query_node_id].reg);
 
     std::vector<FmtReg> cte_regs;
     cte_regs.reserve(plan.local_relations.size() + (existing_ctes ? existing_ctes->children_count() : 0));
@@ -2690,7 +2698,13 @@ std::string Formatter::FormatExecutableQuery(const ScriptExecutionPlan& plan,
     auto policy = config.mode == buffers::formatting::FormattingMode::PRETTY
                       ? FormattingJoinPolicy::ForceBreak
                       : FormattingJoinPolicy::BreakAllOrNone;
-    return Render(fmt.Join(std::vector<FmtReg>{with, query}, fmt.Text(" "), fmt.Break(), policy));
+    auto query_with_ctes = fmt.Join(std::vector<FmtReg>{with, query}, fmt.Text(" "), fmt.Break(), policy);
+    if (cte_target_node_id == plan.terminal_query_node_id) return Render(query_with_ctes);
+
+    node_states[cte_target_node_id].reg = query_with_ctes;
+    auto terminal = FormatNode(plan.terminal_query_node_id);
+    if (terminal == 0) return {};
+    return Render(terminal);
 }
 
 bool Formatter::IsFullyFormatted() const { return unformattable_nodes.empty(); }
