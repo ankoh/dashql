@@ -13,6 +13,7 @@ export function useNotebookScriptsSetup(): NotebookScriptsSetup {
 
     return React.useCallback((conn: ConnectionState) => {
         const mainScript = conn.instance.createScript(conn.catalog);
+        mainScript.replaceText(conn.connectorInfo.helloWorldScript);
         const folderName = 'main';
         const fileName = generateScriptFileName({});
         const mainScriptData: ScriptData = {

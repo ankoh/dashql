@@ -28,6 +28,8 @@ export enum CatalogResolver {
 export interface ConnectorInfo {
     /// The connector type
     connectorType: ConnectorType;
+    /// The query shown in the first script of a new notebook.
+    helloWorldScript: string;
     /// The connector name
     names: {
         displayLong: string;
@@ -71,6 +73,7 @@ export interface ConnectorFeatures {
 export const CONNECTOR_INFOS: ConnectorInfo[] = [
     {
         connectorType: ConnectorType.HYPER,
+        helloWorldScript: 'select version();',
         names: {
             displayShort: 'Hyper',
             displayLong: 'Hyper',
@@ -96,6 +99,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     },
     {
         connectorType: ConnectorType.DUCKDB,
+        helloWorldScript: 'select version();',
         names: {
             displayShort: 'DuckDB',
             displayLong: 'DuckDB',
@@ -121,6 +125,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     },
     {
         connectorType: ConnectorType.SALESFORCE_DATA_CLOUD,
+        helloWorldScript: 'select version();',
         names: {
             displayShort: 'Salesforce',
             displayLong: 'Salesforce Data Cloud',
@@ -146,6 +151,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     },
     {
         connectorType: ConnectorType.TRINO,
+        helloWorldScript: 'select version();',
         names: {
             displayShort: 'Trino',
             displayLong: 'Trino',

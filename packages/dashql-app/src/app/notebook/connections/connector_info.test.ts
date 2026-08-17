@@ -26,3 +26,14 @@ describe('connector list', () => {
         ]);
     });
 });
+
+describe('connector hello world scripts', () => {
+    it.each([
+        [ConnectorType.HYPER, 'select version();'],
+        [ConnectorType.DUCKDB, 'select version();'],
+        [ConnectorType.SALESFORCE_DATA_CLOUD, 'select version();'],
+        [ConnectorType.TRINO, 'select version();'],
+    ])('defines an executable starter query for %s', (connectorType, expected) => {
+        expect(CONNECTOR_INFOS[connectorType].helloWorldScript).toBe(expected);
+    });
+});
