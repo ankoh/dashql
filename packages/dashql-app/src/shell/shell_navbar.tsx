@@ -14,8 +14,14 @@ interface VersionButtonProps {
     engineVersion: string | null;
 }
 
+export function formatNavbarEngineVersion(version: string): string {
+    if (!version.includes('__UNVERSIONED_HYPER__')) return version;
+    return `${version.split(',', 1)[0]}, unversioned`;
+}
+
 const VersionButton: React.FC<VersionButtonProps> = (props: VersionButtonProps) => {
     const [isOpen, setIsOpen] = React.useState(false);
+    const navbarVersion = props.engineVersion == null ? 'Hyper' : formatNavbarEngineVersion(props.engineVersion);
 
     return (
         <AnchoredOverlay
@@ -35,7 +41,7 @@ const VersionButton: React.FC<VersionButtonProps> = (props: VersionButtonProps) 
                     <svg className={styles.actionIcon} width="16px" height="16px" aria-hidden="true">
                         <use xlinkHref={`${symbols}#package`} />
                     </svg>
-                    <span className={styles.actionLabel}>{props.engineVersion ?? 'Hyper'}</span>
+                    <span className={styles.actionLabel}>{navbarVersion}</span>
                 </button>
             )}
         >
