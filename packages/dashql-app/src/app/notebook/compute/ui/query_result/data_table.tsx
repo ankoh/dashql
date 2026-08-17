@@ -210,6 +210,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
             return;
         }
         const orderingTask: TableOrderingTask = {
+            notebookId: computationState.notebookId,
             tableId: computationState.tableId,
             tableVersion: computationState.version,
             inputDataTable: computationState.dataTable,
@@ -249,6 +250,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         }];
         if (computationState.dataFrame && computationState.rowNumberColumnName) {
             const orderingTask: TableOrderingTask = {
+                notebookId: computationState.notebookId,
                 tableId: computationState.tableId,
                 tableVersion: computationState.version,
                 inputDataTable: computationState.dataTable,

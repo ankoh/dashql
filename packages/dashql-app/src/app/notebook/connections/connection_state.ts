@@ -235,7 +235,7 @@ export type QueryExecutionAction =
     | VariantKind<typeof EXECUTE_QUERY, [number, QueryExecutionState]>
     | VariantKind<typeof QUERY_PREPARING, [number]>
     | VariantKind<typeof QUERY_SENDING, [number]>
-    | VariantKind<typeof QUERY_RUNNING, [number, QueryExecutionResponseStream]>
+    | VariantKind<typeof QUERY_RUNNING, [number, QueryExecutionResponseStream | null]>
     | VariantKind<typeof QUERY_PROGRESS_UPDATED, [number, QueryExecutionProgress]>
     | VariantKind<typeof QUERY_RECEIVED_BATCH, [number, arrow.RecordBatch, QueryExecutionMetrics]>
     | VariantKind<typeof QUERY_RECEIVED_ALL_BATCHES, [number, arrow.Table, Map<string, string>, QueryExecutionMetrics]>

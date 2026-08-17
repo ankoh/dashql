@@ -19,6 +19,7 @@ import {
 } from './computation_state.js';
 import {
     processTask,
+    createSQLFrameQueryExecution,
     TaskVariant,
     TABLE_FILTERING_TASK,
     TABLE_ORDERING_TASK,
@@ -28,6 +29,9 @@ import {
     FILTERED_COLUMN_AGGREGATION_TASK,
 } from './computation_scheduler.js';
 import { Dispatch } from '../../../shared/utils/variant.js';
+import type { ComputeQueryExecution } from './computation_logic.js';
+import { QueryExecutionStatus, QueryType } from '../connections/query_execution_state.js';
+import { ShellQueryExecutionTracker } from '../../../shell/query_execution.js';
 
 describe('processTask', () => {
     let logger: TestLogger;
@@ -81,6 +85,43 @@ describe('processTask', () => {
         });
         expect(calls[2][0]).toEqual({ type: UNREGISTER_SCHEDULER_TASK, value: task });
         await expect(result.getValue()).resolves.toBe(mockFilter);
+    });
+
+    it('passes the internal query executor to computation logic', async () => {
+        const executeQuery = vi.fn(<T>(_queryText: string, execute: () => Promise<T>) => execute()) as ComputeQueryExecution;
+        const task: TaskVariant = {
+            type: TABLE_FILTERING_TASK,
+            value: { tableId: 42 } as any,
+            result: new AsyncValue() as any,
+            taskId: 12,
+        };
+
+        await processTask(task, dispatch, logger, executeQuery);
+
+        expect(computationLogic.filterTable).toHaveBeenCalledWith(task.value, expect.anything(), executeQuery);
+    });
+
+    it('records SQLFrame executions in the shared query history', async () => {
+        const tracker = new ShellQueryExecutionTracker();
+        const task: TaskVariant = {
+            type: TABLE_FILTERING_TASK,
+            value: { notebookId: 'notebook', tableId: 42 } as any,
+            result: new AsyncValue() as any,
+            taskId: 13,
+        };
+
+        await createSQLFrameQueryExecution(task, tracker)('SELECT filtered', async () => undefined);
+
+        expect(tracker.getSnapshot()).toMatchObject([{
+            queryText: 'SELECT filtered',
+            status: QueryExecutionStatus.SUCCEEDED,
+            queryMetadata: {
+                queryType: QueryType.INTERNAL_SQLFRAME,
+                title: 'Table filtering',
+                issuer: 'SQLFrame',
+                parentQueryId: 42,
+            },
+        }]);
     });
 
     it('processes TABLE_ORDERING_TASK successfully', async () => {

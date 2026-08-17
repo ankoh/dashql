@@ -11,15 +11,27 @@ import { OverlaySize } from '../../../../shared/ui/foundations/overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../../../shared/ui/foundations/anchored_position.js';
 import { JsonView } from '../../../../shared/ui/json/json_view.js';
 import { useConnectionRegistry } from '../connection_registry.js';
-import { QueryExecutionState, QueryExecutionStatus } from '../query_execution_state.js';
+import { QueryExecutionState, QueryExecutionStatus, QueryType } from '../query_execution_state.js';
 import { observeSize } from '../../../../shared/ui/foundations/size_observer.js';
 import { useKeyEvents } from '../../../../shared/utils/key_events.js';
 
 export const ROW_HEIGHT = 32;
 
+export enum QueryTarget {
+    LOCAL = 'Local',
+    REMOTE = 'Remote',
+}
+
+export function getQueryTarget(query: QueryExecutionState): QueryTarget {
+    return query.queryMetadata.queryType == QueryType.INTERNAL_SQLFRAME
+        ? QueryTarget.LOCAL
+        : QueryTarget.REMOTE;
+}
+
 export interface QueryEntry {
     connectionId: string;
-    connectorName: string;
+    sourceName: string;
+    target: QueryTarget;
     queryId: number;
     query: QueryExecutionState;
 }
@@ -49,9 +61,11 @@ function entryToObject(entry: QueryEntry): object {
         queryId: q.queryId,
         traceId: q.traceId,
         status: QueryExecutionStatus[q.status],
-        connector: entry.connectorName,
+        source: entry.sourceName,
+        target: entry.target,
         queryText: q.queryText,
         metadata: q.queryMetadata,
+        parentQueryId: q.queryMetadata.parentQueryId ?? null,
         metrics: {
             queryRequestedAt: m.queryRequestedAt?.toISOString() ?? null,
             queryPreparingStartedAt: m.queryPreparingStartedAt?.toISOString() ?? null,
@@ -100,7 +114,8 @@ export const QueryRow = (props: RowComponentProps<QueryRowProps>) => {
         >
             <div className={styles.query_row_main}>
                 <div className={styles.query_cell_time}>{time}</div>
-                <div className={styles.query_cell_connector}>{entry.connectorName}</div>
+                <div className={styles.query_cell_source}>{entry.sourceName}</div>
+                <div className={styles.query_cell_target}>{entry.target}</div>
                 <div className={styles.query_cell_status}>{getStatusLabel(entry.query.status)}</div>
                 <div className={styles.query_cell_title} title={entry.query.queryMetadata.title ?? ''}>
                     {entry.query.queryMetadata.title ?? '—'}
@@ -199,7 +214,8 @@ export function QueryHistoryViewer(props: { entries: QueryEntry[]; onClose: () =
                 <div className={styles.query_header_row}>
                     <div className={styles.query_header_main}>
                         <div className={styles.query_header_time}>Time</div>
-                        <div className={styles.query_header_connector}>Connector</div>
+                        <div className={styles.query_header_source}>Source</div>
+                        <div className={styles.query_header_target}>Target</div>
                         <div className={styles.query_header_status}>Status</div>
                         <div className={styles.query_header_title}>Title</div>
                     </div>
@@ -297,13 +313,18 @@ export function QueryViewer(props: { onClose: () => void }) {
         // finished queries are older, active are newer — iterate both oldest-first (forward)
         const next: QueryEntry[] = [];
         for (const [cid, conn] of connReg.connectionMap) {
-            const name = conn.connectorInfo.names.displayShort;
+            const connectorName = conn.connectorInfo.names.displayShort;
             for (const qs of [conn.queriesFinishedOrdered, conn.queriesActiveOrdered]) {
                 for (let k = 0; k < qs.length; k++) {
                     const qid = qs[k];
                     const query = conn.queriesActive.get(qid) ?? conn.queriesFinished.get(qid);
                     if (query) {
-                        next.push({ connectionId: cid, connectorName: name, queryId: qid, query });
+                        const isSQLFrame = query.queryMetadata.queryType == QueryType.INTERNAL_SQLFRAME;
+                        const sourceName = isSQLFrame
+                            ? 'SQLFrame'
+                            : connectorName;
+                        const target = getQueryTarget(query);
+                        next.push({ connectionId: cid, sourceName, target, queryId: qid, query });
                     }
                 }
             }

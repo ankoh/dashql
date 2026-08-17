@@ -138,6 +138,7 @@ export enum QueryType {
     CATALOG_QUERY_PG_ATTRIBUTE,
     CATALOG_QUERY_PG_PROC,
     HEALTH_CHECK,
+    INTERNAL_SQLFRAME,
 }
 
 export interface QueryMetadata {
@@ -151,6 +152,8 @@ export interface QueryMetadata {
     issuer: string | null;
     /// Authored by the user or the app?
     userProvided: boolean;
+    /// Parent query whose result produced this internal query, if any.
+    parentQueryId?: number | null;
 }
 
 export interface QueryExecutionState {
@@ -435,13 +438,15 @@ export function reduceQueryAction<T extends QueryExecutionHistoryState>(state: T
             state.queriesFinished.set(query.queryId, query);
             state.queriesFinishedOrdered.push(query.queryId);
             state.snapshotQueriesActiveFinished += 1;
-            return {
-                ...state,
-                metrics: {
-                    ...state.metrics,
-                    successfulQueries: mergeQueryMetrics(state.metrics.successfulQueries!, metrics)
-                },
-            };
+            return query.queryMetadata.queryType == QueryType.INTERNAL_SQLFRAME
+                ? { ...state }
+                : {
+                    ...state,
+                    metrics: {
+                        ...state.metrics,
+                        successfulQueries: mergeQueryMetrics(state.metrics.successfulQueries!, metrics)
+                    },
+                };
         }
         case QUERY_CANCELLED: {
             const untilNow = now.getTime() - (query.metrics.queryRunningStartedAt ?? query.metrics.queryRequestedAt ?? now).getTime();
@@ -461,13 +466,15 @@ export function reduceQueryAction<T extends QueryExecutionHistoryState>(state: T
             state.queriesFinished.set(query.queryId, query);
             state.queriesFinishedOrdered.push(query.queryId);
             state.snapshotQueriesActiveFinished += 1;
-            return {
-                ...state,
-                metrics: {
-                    ...state.metrics,
-                    canceledQueries: mergeQueryMetrics(state.metrics.canceledQueries!, metrics)
-                },
-            };
+            return query.queryMetadata.queryType == QueryType.INTERNAL_SQLFRAME
+                ? { ...state }
+                : {
+                    ...state,
+                    metrics: {
+                        ...state.metrics,
+                        canceledQueries: mergeQueryMetrics(state.metrics.canceledQueries!, metrics)
+                    },
+                };
         }
         case QUERY_FAILED: {
             const untilNow = now.getTime() - (query.metrics.queryRunningStartedAt ?? query.metrics.queryRequestedAt ?? now).getTime();
@@ -487,13 +494,15 @@ export function reduceQueryAction<T extends QueryExecutionHistoryState>(state: T
             state.queriesFinished.set(query.queryId, query);
             state.queriesFinishedOrdered.push(query.queryId);
             state.snapshotQueriesActiveFinished += 1;
-            return {
-                ...state,
-                metrics: {
-                    ...state.metrics,
-                    failedQueries: mergeQueryMetrics(state.metrics.failedQueries!, metrics)
-                },
-            };
+            return query.queryMetadata.queryType == QueryType.INTERNAL_SQLFRAME
+                ? { ...state }
+                : {
+                    ...state,
+                    metrics: {
+                        ...state.metrics,
+                        failedQueries: mergeQueryMetrics(state.metrics.failedQueries!, metrics)
+                    },
+                };
         }
     }
 }

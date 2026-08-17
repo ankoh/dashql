@@ -12,6 +12,10 @@ import { createTrace } from '../../../shared/platform/logger/trace_context.js';
 import { TaskStatus, TableFilteringTask, TableOrderingTask, TableAggregationTask, FilterTable, OrderingTable, TableAggregation, ColumnGroup, SystemColumnComputationTask, ColumnAggregationTask, ColumnAggregationVariant, TaskProgress, WithFilter, WithFilterEpoch } from "./computation_types.js";
 import { useComputationRegistry } from "./computation_registry.js";
 import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
+import type { ComputeQueryExecution } from './computation_logic.js';
+import { useDynamicConnectionDispatch } from '../connections/connection_registry.js';
+import { QueryType, type QueryExecutionTracker } from '../connections/query_execution_state.js';
+import { executeTrackedQuery } from '../connections/tracked_query_execution.js';
 
 const LOG_CTX = 'scheduler';
 
@@ -44,6 +48,7 @@ interface SchedulerState {
 
 export function ComputationScheduler(props: React.PropsWithChildren<{}>) {
     const logger = useLogger();
+    const [, connectionDispatch] = useDynamicConnectionDispatch();
     const [computationState, dispatchComputation] = useComputationRegistry();
 
     const schedulerState = React.useRef<SchedulerState>({ launched: new Set() });
@@ -59,7 +64,11 @@ export function ComputationScheduler(props: React.PropsWithChildren<{}>) {
             launched.add(id);
 
             // Process a task asynchronously
-            processTask(task, dispatchComputation, logger);
+            const tracker: QueryExecutionTracker = {
+                dispatch: action => connectionDispatch(task.value.notebookId, action),
+            };
+            const executeQuery = createSQLFrameQueryExecution(task, tracker);
+            processTask(task, dispatchComputation, logger, executeQuery);
         }
         // Cleanup tasks that are no longer in included in the background tasks
         for (const l of launched) {
@@ -72,7 +81,29 @@ export function ComputationScheduler(props: React.PropsWithChildren<{}>) {
     return props.children;
 }
 
-export async function processTask(task: TaskVariant, dispatchComputation: Dispatch<ComputationAction>, logger: Logger) {
+export function createSQLFrameQueryExecution(task: TaskVariant, tracker: QueryExecutionTracker): ComputeQueryExecution {
+    return (query, execute) => executeTrackedQuery({
+        query,
+        tracker,
+        metadata: {
+            queryType: QueryType.INTERNAL_SQLFRAME,
+            title: getTaskQueryTitle(task),
+            description: null,
+            issuer: 'SQLFrame',
+            userProvided: false,
+            parentQueryId: task.value.tableId,
+        },
+        execute,
+        errorTarget: LOG_CTX,
+    });
+}
+
+export async function processTask(
+    task: TaskVariant,
+    dispatchComputation: Dispatch<ComputationAction>,
+    logger: Logger,
+    executeQuery?: ComputeQueryExecution,
+) {
     if (task.taskId === undefined) {
         logger.warn("Task has no task id", {
             taskId: task.taskId,
@@ -102,7 +133,7 @@ export async function processTask(task: TaskVariant, dispatchComputation: Dispat
         switch (task.type) {
             case TABLE_FILTERING_TASK: {
                 // Filter the table
-                const filter = await computationLogic.filterTable(task.value, traced);
+                const filter = await computationLogic.filterTable(task.value, traced, executeQuery);
                 // Mark as succeeded
                 dispatchComputation({
                     type: TABLE_FILTERING_SUCCEEDED,
@@ -114,7 +145,7 @@ export async function processTask(task: TaskVariant, dispatchComputation: Dispat
             }
             case TABLE_ORDERING_TASK: {
                 // Sort the table
-                const ordered = await computationLogic.sortTable(task.value, traced);
+                const ordered = await computationLogic.sortTable(task.value, traced, executeQuery);
                 // Mark as succeeded
                 dispatchComputation({
                     type: TABLE_ORDERING_SUCCEDED,
@@ -126,7 +157,7 @@ export async function processTask(task: TaskVariant, dispatchComputation: Dispat
             }
             case TABLE_AGGREGATION_TASK: {
                 // Aggregate the table
-                const [tableAgg, colEntries] = await computationLogic.computeTableAggregates(task.value, traced);
+                const [tableAgg, colEntries] = await computationLogic.computeTableAggregates(task.value, traced, executeQuery);
                 // Mark as succeeded
                 dispatchComputation({
                     type: TABLE_AGGREGATION_SUCCEEDED,
@@ -138,7 +169,7 @@ export async function processTask(task: TaskVariant, dispatchComputation: Dispat
             }
             case SYSTEM_COLUMN_COMPUTATION_TASK: {
                 // Compute the system columns
-                const [table, dataFrame, columnGroups] = await computationLogic.computeSystemColumns(task.value, traced);
+                const [table, dataFrame, columnGroups] = await computationLogic.computeSystemColumns(task.value, traced, executeQuery);
                 // Mark as succeeded
                 dispatchComputation({
                     type: SYSTEM_COLUMN_COMPUTATION_SUCCEEDED,
@@ -150,7 +181,7 @@ export async function processTask(task: TaskVariant, dispatchComputation: Dispat
             }
             case COLUMN_AGGREGATION_TASK:
                 // Compute column aggregates
-                const columnAgg = await computationLogic.computeColumnAggregates(task.value, traced);
+                const columnAgg = await computationLogic.computeColumnAggregates(task.value, traced, executeQuery);
                 // Mark as succeeded
                 dispatchComputation({
                     type: COLUMN_AGGREGATION_SUCCEEDED,
@@ -161,7 +192,7 @@ export async function processTask(task: TaskVariant, dispatchComputation: Dispat
                 break;
             case FILTERED_COLUMN_AGGREGATION_TASK:
                 // Filtered column aggregates
-                const filteredColumnAgg = await computationLogic.computeFilteredColumnAggregates(task.value, traced);
+                const filteredColumnAgg = await computationLogic.computeFilteredColumnAggregates(task.value, traced, executeQuery);
                 // Mark as succeeded
                 dispatchComputation({
                     type: FILTERED_COLUMN_AGGREGATION_SUCCEEDED,
@@ -214,5 +245,22 @@ function getTaskVariantName(task: TaskVariant): string {
             return "system_column";
         case FILTERED_COLUMN_AGGREGATION_TASK:
             return "filtered_column_aggregation"
+    }
+}
+
+function getTaskQueryTitle(task: TaskVariant): string {
+    switch (task.type) {
+        case COLUMN_AGGREGATION_TASK:
+            return 'Column aggregation';
+        case TABLE_FILTERING_TASK:
+            return 'Table filtering';
+        case TABLE_ORDERING_TASK:
+            return 'Table ordering';
+        case TABLE_AGGREGATION_TASK:
+            return 'Table aggregation';
+        case SYSTEM_COLUMN_COMPUTATION_TASK:
+            return 'System column computation';
+        case FILTERED_COLUMN_AGGREGATION_TASK:
+            return 'Filtered column aggregation';
     }
 }

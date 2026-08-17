@@ -60,6 +60,8 @@ export class ComputationStateVersion {
 };
 
 export interface TableFilteringTask {
+    /// The notebook that owns the parent query.
+    notebookId: string;
     /// The table id
     tableId: number;
     /// The table version
@@ -77,6 +79,8 @@ export interface TableFilteringTask {
 }
 
 export interface TableOrderingTask {
+    /// The notebook that owns the parent query.
+    notebookId: string;
     /// The table id
     tableId: number;
     /// The table version
@@ -96,6 +100,8 @@ export interface TableOrderingTask {
 }
 
 export interface TableAggregationTask {
+    /// The notebook that owns the parent query.
+    notebookId: string;
     /// The table id
     tableId: number;
     /// The table version
@@ -107,6 +113,8 @@ export interface TableAggregationTask {
 }
 
 export interface SystemColumnComputationTask {
+    /// The notebook that owns the parent query.
+    notebookId: string;
     /// The table id
     tableId: number;
     /// The table version
@@ -122,6 +130,8 @@ export interface SystemColumnComputationTask {
 }
 
 export interface ColumnAggregationTask {
+    /// The notebook that owns the parent query.
+    notebookId: string;
     /// The table id
     tableId: number;
     /// The table version

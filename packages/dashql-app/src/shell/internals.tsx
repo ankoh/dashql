@@ -6,7 +6,7 @@ import { AnchoredOverlay } from '../shared/ui/foundations/anchored_overlay.js';
 import { OverlaySize } from '../shared/ui/foundations/overlay.js';
 import { VerticalTabs, VerticalTabVariant } from '../shared/ui/foundations/vertical_tabs.js';
 import { LogViewer } from '../shared/ui/logs/log_viewer.js';
-import { QueryHistoryViewer, type QueryEntry } from '../app/notebook/connections/ui/query_viewer.js';
+import { QueryHistoryViewer, QueryTarget, type QueryEntry } from '../app/notebook/connections/ui/query_viewer.js';
 import type { ShellQueryExecutionTracker } from './query_execution.js';
 import * as styles from './shell_navbar.module.css';
 
@@ -28,7 +28,8 @@ const ShellQueryViewer: React.FC<ShellInternalsViewerProps> = props => {
     );
     const entries: QueryEntry[] = executions.map(query => ({
         connectionId: 'shell',
-        connectorName: 'Hyper',
+        sourceName: 'Hyper',
+        target: QueryTarget.LOCAL,
         queryId: query.queryId,
         query,
     }));

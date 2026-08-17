@@ -215,6 +215,7 @@ export function useCrossFilters(
         }
         const scheduleKey = `${computationState.version.toString()}:${scalarFiltersKey(crossFilterTransforms)}`;
         const filteringTask: TableFilteringTask = {
+            notebookId: computationState.notebookId,
             tableId: computationState.tableId,
             tableVersion: computationState.version,
             inputDataTable: computationState.dataTable,
@@ -265,6 +266,7 @@ export function useCrossFilters(
         }
 
         const task: WithFilter<ColumnAggregationTask> = {
+            notebookId: state.notebookId,
             tableId: state.tableId,
             tableVersion: state.version,
             columnId,

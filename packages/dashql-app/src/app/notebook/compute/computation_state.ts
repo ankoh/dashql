@@ -12,6 +12,8 @@ const LOG_CTX = 'computation_state';
 
 /// The table computation state
 export interface TableComputationState {
+    /// The notebook that owns the query result.
+    notebookId: string;
     /// The table id
     tableId: number;
     /// The tasks
@@ -102,8 +104,9 @@ export function createArrowFieldIndex(table: arrow.Table): Map<string, number> {
 }
 
 /// Create the table computation state
-export function createTableComputationState(computationId: number, table: arrow.Table, tableColumns: ColumnGroup[], tableLifetime: AbortController): TableComputationState {
+export function createTableComputationState(computationId: number, table: arrow.Table, tableColumns: ColumnGroup[], tableLifetime: AbortController, notebookId: string = 'test'): TableComputationState {
     return {
+        notebookId,
         tableId: computationId,
         tasks: {
             filteringTask: null,
@@ -153,7 +156,7 @@ export type ComputationAction =
     | VariantKind<typeof UPDATE_SCHEDULER_TASK, [TaskVariant, Partial<TaskProgress>]>
     | VariantKind<typeof UNREGISTER_SCHEDULER_TASK, TaskVariant>
 
-    | VariantKind<typeof COMPUTATION_FROM_QUERY_RESULT, [number, arrow.Table, ColumnGroup[], AbortController]>
+    | VariantKind<typeof COMPUTATION_FROM_QUERY_RESULT, [string, number, arrow.Table, ColumnGroup[], AbortController]>
     | VariantKind<typeof DELETE_COMPUTATION, [number]>
     | VariantKind<typeof CREATED_DATA_FRAME, [number, DataFrame]>
 
@@ -198,12 +201,12 @@ export function reduceComputationState(state: ComputationState, action: Computat
         }
 
         case COMPUTATION_FROM_QUERY_RESULT: {
-            const [tableId, table, tableColumns, tableLifetime] = action.value;
+            const [notebookId, tableId, table, tableColumns, tableLifetime] = action.value;
             const previousTableState = state.tableComputations[tableId];
             if (previousTableState !== undefined) {
                 destroyTableComputationState(previousTableState, memory);
             }
-            const tableState = createTableComputationState(tableId, table, tableColumns, tableLifetime);
+            const tableState = createTableComputationState(tableId, table, tableColumns, tableLifetime, notebookId);
             return {
                 ...state,
                 tableComputations: {
@@ -623,6 +626,7 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 return ({
                     ...tasks,
                     filteringTask: {
+                        notebookId: filterTask.notebookId,
                         tableId: filterTask.tableId,
                         tableVersion: newStateVersion,
                         inputDataTable: filterTask.inputDataTable,
@@ -655,6 +659,7 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 return ({
                     ...tasks,
                     orderingTask: {
+                        notebookId: orderTask.notebookId,
                         tableId: orderTask.tableId,
                         tableVersion: tableState.version,
                         inputDataTable: orderTask.inputDataTable,
@@ -680,6 +685,7 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 return ({
                     ...tasks,
                     tableAggregationTask: {
+                        notebookId: aggTask.notebookId,
                         tableId: aggTask.tableId,
                         tableVersion: aggTask.tableVersion,
                         columnEntries: aggTask.columnEntries,
@@ -702,6 +708,7 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 return ({
                     ...tasks,
                     systemColumnTask: {
+                        notebookId: sysTask.notebookId,
                         tableId: sysTask.tableId,
                         tableVersion: sysTask.tableVersion,
                         columnEntries: sysTask.columnEntries,
@@ -726,6 +733,7 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 const prev = tasks.columnAggregationTasks[colTask.columnId];
                 const updated = [...tasks.columnAggregationTasks];
                 updated[colTask.columnId] = {
+                    notebookId: colTask.notebookId,
                     tableId: colTask.tableId,
                     tableVersion: colTask.tableVersion,
                     columnId: colTask.columnId,
@@ -755,6 +763,7 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 const prev = tasks.filteredColumnAggregationTasks[filteredTask.columnId];
                 const updated = [...tasks.filteredColumnAggregationTasks];
                 updated[filteredTask.columnId] = {
+                    notebookId: filteredTask.notebookId,
                     tableId: filteredTask.tableId,
                     tableVersion: filteredTask.tableVersion,
                     columnId: filteredTask.columnId,

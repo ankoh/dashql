@@ -4,7 +4,6 @@ import * as React from 'react';
 import { useConnectionState, useDynamicConnectionDispatch } from './connection_registry.js';
 import {
     createQueryResponseStreamMetrics,
-    createQueryExecutionState,
     QueryExecutionProgress,
     QueryExecutionResponseStream,
     QueryExecutionTracker,
@@ -12,17 +11,11 @@ import {
 import { useSalesforceAPI } from './salesforce/salesforce_connector.js';
 import { DATALESS_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import {
-    EXECUTE_QUERY,
-    QUERY_CANCELLED,
-    QUERY_FAILED,
     QUERY_PROGRESS_UPDATED,
     QUERY_RECEIVED_BATCH,
-    QUERY_RUNNING,
     QUERY_RECEIVED_ALL_BATCHES,
     QUERY_PROCESSED_RESULTS,
-    QUERY_SUCCEEDED,
     QUERY_PROCESSING_RESULTS,
-    QUERY_SENDING,
     QUERY_CACHE_RECORDED,
 } from './connection_state.js';
 import { useComputationRegistry } from '../compute/computation_registry.js';
@@ -44,10 +37,9 @@ import { executeDemoQuery } from './dataless/dataless_demo_query_execution.js';
 import { AsyncConsumerLambdas } from '../../../shared/utils/async_consumer.js';
 import { LoggableException, stringifyError } from '../../../shared/platform/logger/logger.js';
 import type { LogRecord } from '../../../shared/platform/logger/log_buffer.js';
+import { allocateQueryId, executeTrackedQuery } from './tracked_query_execution.js';
 
 const LOG_CTX = 'query_executor';
-
-let NEXT_QUERY_ID = 1;
 
 /// Compute the file-based cache key for a query against a connection, or null when the connection has
 /// no recoverable params/signature (e.g. before setup completes). This is the same derivation the
@@ -125,41 +117,38 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             throw new Error(`Couldn't find a connection with notebook id ${notebookId}`);
         }
         const queryTracker = createNotebookQueryExecutionTracker(notebookId, connDispatch);
-        traced.info("Executing query", {
-            notebookId,
-            "query": queryId.toString(),
-            "text": args.query
-        }, LOG_CTX);
-
-        // Accept the query and clear the request
-        const initialState = createQueryExecutionState(
+        const execution = await executeTrackedQuery({
+            query: args.query,
+            metadata: args.metadata,
+            tracker: queryTracker,
             queryId,
-            trace.traceId,
-            args.query,
-            args.metadata,
-            runtime.cancellation,
-        );
+            trace,
+            cancellation: runtime.cancellation,
+            autoStart: false,
+            errorTarget: LOG_CTX,
+            execute: async tracked => {
+                const initialState = tracked.initialState;
+                traced.info("Executing query", {
+                    notebookId,
+                    "query": queryId.toString(),
+                    "text": args.query
+                }, LOG_CTX);
 
-        // Compute the cache key up front for cacheable queries. This is best-effort: if the
-        // connection has no recoverable params/signature (e.g. before setup completes) we simply skip
-        // caching and execute normally. Never let a cache concern surface into the query path.
-        let cacheHash: string | null = null;
-        if (args.cacheable) {
-            cacheHash = await computeQueryCacheKeyForConnection(conn.details, args.query);
-        }
+                // Compute the cache key up front for cacheable queries. This is best-effort: if the
+                // connection has no recoverable params/signature (e.g. before setup completes) we simply skip
+                // caching and execute normally. Never let a cache concern surface into the query path.
+                let cacheHash: string | null = null;
+                if (args.cacheable) {
+                    cacheHash = await computeQueryCacheKeyForConnection(conn.details, args.query);
+                }
 
-        queryTracker.dispatch({
-            type: EXECUTE_QUERY,
-            value: [queryId, initialState],
-        });
+                // XXX Add explicit query preparation here later
 
-        // XXX Add explicit query preparation here later
-
-        // Execute the query and consume the results
-        let resultStream: QueryExecutionResponseStream | null = null;
-        let table: arrow.Table | null = null;
-        let servedFromCache = false;
-        try {
+                // Execute the query and consume the results
+                let resultStream: QueryExecutionResponseStream | null = null;
+                let table: arrow.Table | null = null;
+                let servedFromCache = false;
+                try {
             // Cache read path: on a hit, load the Arrow IPC bytes and drive the state machine as if
             // the result had just streamed in, skipping the backend entirely.
             if (cacheHash != null) {
@@ -207,10 +196,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             }
 
             if (!servedFromCache) {
-                queryTracker.dispatch({
-                    type: QUERY_SENDING,
-                    value: [queryId],
-                });
+                tracked.sending();
 
                 // Start the query
                 switch (conn.details.type) {
@@ -234,10 +220,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
 
                 if (resultStream != null) {
                     runtime.resultStream = resultStream;
-                    queryTracker.dispatch({
-                        type: QUERY_RUNNING,
-                        value: [queryId, resultStream],
-                    });
+                    tracked.running(resultStream);
 
                     // Helper to forward progress updates
                     const consumeProgress = new AsyncConsumerLambdas<QueryExecutionResponseStream, QueryExecutionProgress>(
@@ -294,7 +277,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     traced.warn("Query returned no results", { notebookId, "query": queryId.toString() }, LOG_CTX);
                 }
             }
-        } catch (e: any) {
+                } catch (e: any) {
             if (initialState.cancellation.signal.aborted || e?.name === 'AbortError' || e?.message === 'AbortError') {
                 const cancellationError = e instanceof LoggableException
                     ? e
@@ -303,10 +286,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     query: queryId.toString(),
                     notebookId
                 }, LOG_CTX);
-                queryTracker.dispatch({
-                    type: QUERY_CANCELLED,
-                    value: [queryId, cancellationError, resultStream?.getMetrics() ?? null],
-                });
+                tracked.cancel(cancellationError, resultStream?.getMetrics() ?? null);
             } else {
                 if (e instanceof LoggableException) {
                     traced.warn(e.message, e.keyValues, e.target);
@@ -317,20 +297,17 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         raw: stringifyError(e),
                     }, LOG_CTX);
                 }
-                queryTracker.dispatch({
-                    type: QUERY_FAILED,
-                    value: [queryId, e, resultStream?.getMetrics() ?? null],
-                });
+                tracked.fail(e, resultStream?.getMetrics() ?? null);
             }
             if (args.throwOnError) {
                 throw e;
             }
             return null;
-        }
+                }
 
 
-        // Compute all table summaries of the result
-        if (table && args.analyzeResults) {
+                // Compute all table summaries of the result
+                if (table && args.analyzeResults) {
             try {
                 if (args.replaceComputationId != null && args.replaceComputationId !== queryId) {
                     computeDispatch({
@@ -343,7 +320,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     value: [queryId],
                 });
 
-                await analyzeTable(queryId, table!, computeDispatch, computeDb, traced, args.projection);
+                await analyzeTable(notebookId, queryId, table!, computeDispatch, computeDb, traced, args.projection);
                 initialState.cancellation.signal.throwIfAborted();
 
                 queryTracker.dispatch({
@@ -359,10 +336,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         query: queryId.toString(),
                         notebookId,
                     }, LOG_CTX);
-                    queryTracker.dispatch({
-                        type: QUERY_CANCELLED,
-                        value: [queryId, cancellationError, resultStream?.getMetrics() ?? null],
-                    });
+                    tracked.cancel(cancellationError, resultStream?.getMetrics() ?? null);
                     return null;
                 }
                 const processingError = e instanceof LoggableException
@@ -376,24 +350,15 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     error: processingError.message,
                     ...processingError.keyValues,
                 }, LOG_CTX);
-                queryTracker.dispatch({
-                    type: QUERY_FAILED,
-                    value: [queryId, processingError, null],
-                });
+                tracked.fail(processingError);
                 throw processingError;
             }
-        }
+                }
 
-        // Mark as succeeded
-        queryTracker.dispatch({
-            type: QUERY_SUCCEEDED,
-            value: [queryId],
-        });
-
-        // Cache write path: after a successful miss, store the result for next time. Fire-and-forget
-        // (not awaited) so a large eviction scan never stalls the caller's promise, and never fatal —
-        // a quota/permission failure just logs.
-        if (!servedFromCache && cacheHash != null && table != null) {
+                // Cache write path: after a successful miss, store the result for next time. Fire-and-forget
+                // (not awaited) so a large eviction scan never stalls the caller's promise, and never fatal —
+                // a quota/permission failure just logs.
+                if (!servedFromCache && cacheHash != null && table != null) {
             const bytes = arrow.tableToIPC(table, 'stream');
             void storageReader.backend.saveQueryResultCache(notebookId, cacheHash, bytes).then(() => {
                 // The write landed: record the key (but not servedFromCache — this run hit the
@@ -406,15 +371,18 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             }).catch((e: any) => {
                 traced.warn("Failed to write query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
             });
-        }
+                }
 
-        return table;
+                return table;
+            },
+        });
+        return execution;
 
     }, [computeDb, connMap, computeDispatch, logger, sfApi, storageReader]);
 
     // Allocate the next query id and start the execution
     const execute = React.useCallback<QueryExecutor>((notebookId: string, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] => {
-        const queryId = NEXT_QUERY_ID++;
+        const queryId = allocateQueryId();
         const trace = createTrace();
         const runtime: QueryExecutionRuntime = {
             cancellation: new AbortController(),
