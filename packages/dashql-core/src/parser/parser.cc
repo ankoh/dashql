@@ -109,6 +109,7 @@ std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbols() {
 }
 
 template <typename Policy> void Parser::DriveLALR(Policy& policy, bool init_stack) {
+    constexpr size_t MAX_REDUCTIONS_WITHOUT_SHIFT = 4096;
     // The next symbol id
     int yyn;
     // The length of the RHS of the rule being reduced
@@ -123,6 +124,7 @@ template <typename Policy> void Parser::DriveLALR(Policy& policy, bool init_stac
     stack_symbol_type yyerror_range[3];
     /// The return value of parse ()
     [[maybe_unused]] int yyresult;
+    size_t reductions_without_shift = 0;
 
     // Discard the LAC context in case there still is one left from a previous invocation.
     yy_lac_discard_("init");
@@ -201,6 +203,7 @@ yybackup:
         auto shifted_kind = yyla.kind();
         yypush_("Shifting", state_type(yyn), YY_MOVE(yyla));
         yy_lac_discard_("shift");
+        reductions_without_shift = 0;
         policy.OnShifted(*this, shifted_kind);
     }
     goto yynewstate;
@@ -211,6 +214,9 @@ yydefault:
     goto yyreduce;
 
 yyreduce:
+    // A restored completion snapshot can expose nullable grammar cycles that the regular parser
+    // never enters. Stop the speculative replay instead of growing its state stack indefinitely.
+    if (++reductions_without_shift > MAX_REDUCTIONS_WITHOUT_SHIFT) goto yyabortlab;
     yylen = yyr2_[yyn];
     {
         stack_symbol_type yylhs;

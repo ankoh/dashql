@@ -233,6 +233,38 @@ void ParseContext::AddStatement(buffers::parser::Node node) {
 
         case buffers::parser::NodeType::OBJECT_SQL_SELECT:
             stmt_type = buffers::parser::StatementType::SELECT;
+            {
+                auto current = node;
+                while (current.node_type() == buffers::parser::NodeType::OBJECT_SQL_SELECT) {
+                    const buffers::parser::Node* next = nullptr;
+                    for (size_t i = 0; i < current.children_count(); ++i) {
+                        auto& child = nodes[current.children_begin_or_value() + i];
+                        if (child.attribute_key() == buffers::parser::AttributeKey::SQL_SELECT_INTO &&
+                            child.node_type() != buffers::parser::NodeType::NONE) {
+                            stmt_type = buffers::parser::StatementType::SELECT_INTO;
+                            break;
+                        }
+                        if (child.attribute_key() == buffers::parser::AttributeKey::SQL_COMBINE_INPUT &&
+                            child.node_type() == buffers::parser::NodeType::ARRAY && child.children_count() > 0) {
+                            next = &nodes[child.children_begin_or_value()];
+                        }
+                    }
+                    if (stmt_type == buffers::parser::StatementType::SELECT_INTO || next == nullptr) break;
+                    current = *next;
+                }
+            }
+            break;
+
+        case buffers::parser::NodeType::OBJECT_SQL_DROP_TABLE:
+            stmt_type = buffers::parser::StatementType::DROP_TABLE;
+            break;
+
+        case buffers::parser::NodeType::OBJECT_SQL_DROP_VIEW:
+            stmt_type = buffers::parser::StatementType::DROP_VIEW;
+            break;
+
+        case buffers::parser::NodeType::OBJECT_SQL_ATTACH_DATABASE:
+            stmt_type = buffers::parser::StatementType::ATTACH_DATABASE;
             break;
 
         case buffers::parser::NodeType::OBJECT_VIS_VISUALISE:

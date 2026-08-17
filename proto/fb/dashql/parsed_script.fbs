@@ -145,6 +145,10 @@ enum NodeType: uint16 {
     OBJECT_VIS_UMAP_SPEC,
 
     OBJECT_SQL_DESCRIPTOR,
+    OBJECT_SQL_DROP_TABLE,
+    OBJECT_SQL_DROP_VIEW,
+    OBJECT_SQL_ATTACH_DATABASE,
+    OBJECT_SQL_ATTACH_DATABASE_OPTION,
 }
 
 enum AttributeKey: uint16 {
@@ -551,18 +555,46 @@ enum AttributeKey: uint16 {
     VIS_RESOLVE_SCALE,
     VIS_RESOLVE_AXIS,
     VIS_RESOLVE_LEGEND,
+    SQL_DROP_NAME,
+    SQL_DROP_IF_EXISTS,
+    SQL_ATTACH_DATABASE_PATH,
+    SQL_ATTACH_DATABASE_ALIAS,
+    SQL_ATTACH_DATABASE_LOCAL,
+    SQL_ATTACH_DATABASE_OPTIONS,
 }
 
 enum StatementType: uint8 {
+    NONE = 0,
+    CREATE_TABLE = 1,
+    CREATE_TABLE_AS = 2,
+    CREATE_VIEW = 3,
+    SELECT = 4,
+    SET = 5,
+    VIS_VISUALISE = 6,
+    CREATE_FUNCTION = 7,
+    EXPLAIN = 8,
+    DROP_TABLE = 9,
+    DROP_VIEW = 10,
+    SELECT_INTO = 11,
+    ATTACH_DATABASE = 12,
+}
+
+enum StatementTargetType: uint8 {
     NONE,
-    CREATE_TABLE,
-    CREATE_TABLE_AS,
-    CREATE_VIEW,
-    SELECT,
-    SET,
-    VIS_VISUALISE,
-    CREATE_FUNCTION,
-    EXPLAIN,
+    TABLE,
+    VIEW,
+}
+
+table StatementTarget {
+    database_name: string;
+    schema_name: string;
+    relation_name: string;
+}
+
+table AttachDatabaseStatement {
+    path: string;
+    alias: string;
+    local: bool;
 }
 
 enum ParsedScriptFeature: uint32 {
@@ -596,6 +628,10 @@ table Statement {
     // Slice into ParsedScript.comments containing this statement's description comments.
     description_begin: uint32;
     description_count: uint32;
+    // Normalized metadata for statement consumers that do not need to traverse the AST.
+    target_type: StatementTargetType;
+    target: StatementTarget;
+    attach_database: AttachDatabaseStatement;
 }
 
 enum ScannerTokenType: uint8 {

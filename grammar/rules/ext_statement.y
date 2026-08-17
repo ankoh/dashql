@@ -28,4 +28,7 @@ sql_query_statement:
   | vis_visualise_stmt    { $$ = std::move($1); }
   | sql_create_function_stmt  { $$ = std::move($1); }
   | explain_stmt              { $$ = std::move($1); }
+  | sql_drop_table_stmt       { $$ = std::move($1); }
+  | sql_drop_view_stmt        { $$ = std::move($1); }
+  | sql_attach_database_stmt  { $$ = std::move($1); }
     ;

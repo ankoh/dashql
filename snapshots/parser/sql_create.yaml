@@ -719,3 +719,46 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
+  - name: create_table_as_qualified_target
+    input: |-
+      create table analytics.results as select 1
+    expected:
+      statements:
+        - type: CREATE_TABLE_AS
+          ast-begin: 0
+          ast-size: 8
+          description:
+            text: "create tab..s select 1"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_AS
+            text: "create tab..s select 1"
+            children:
+              - key: SQL_CREATE_AS_NAME
+                type: ARRAY
+                text: "analytics.results"
+                children:
+                  - type: NAME
+                    text: "analytics"
+                  - type: NAME
+                    text: "results"
+              - key: SQL_CREATE_AS_STATEMENT
+                type: OBJECT_SQL_SELECT
+                text: "select 1"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "1"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "1"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []

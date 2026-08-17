@@ -112,6 +112,67 @@ QualifiedCatalogObjectID NameResolutionPass::RegisterSchema(RegisteredName& data
     return schema_id;
 }
 
+void NameResolutionPass::RegisterDerivedTable(const buffers::parser::Node& declaration_node,
+                                              const buffers::parser::Node* name_node,
+                                              const buffers::parser::Node* columns_node,
+                                              const buffers::parser::Node& select_node) {
+    auto table_name = state.ReadQualifiedTableName(name_node);
+    if (!table_name.has_value()) return;
+
+    auto schema_id = RegisterSchema(table_name->database_name, table_name->schema_name);
+    ExternalObjectID catalog_table_id{
+        state.catalog_entry_id, static_cast<uint32_t>(state.analyzed->table_declarations.GetSize())};
+    auto& table = state.analyzed->table_declarations.PushBack(
+        AnalyzedScript::TableDeclaration(schema_id, catalog_table_id, table_name.value()));
+    table.ast_node_id = state.GetNodeId(declaration_node);
+    table.ast_statement_id = FindStatementId(*table.ast_node_id);
+    table.ast_scope_root = state.GetNodeId(select_node);
+    table_name->table_name.get().resolved_objects.PushBack(table);
+
+    PendingDerivedTable pending{.table = table, .select_node_id = state.GetNodeId(select_node)};
+    if (columns_node && columns_node->node_type() == buffers::parser::NodeType::ARRAY) {
+        auto columns = state.ast.subspan(columns_node->children_begin_or_value(), columns_node->children_count());
+        pending.column_aliases.reserve(columns.size());
+        for (auto& column : columns) {
+            if (column.node_type() != buffers::parser::NodeType::NAME) continue;
+            auto& name = state.scanned.GetNames().At(column.children_begin_or_value());
+            name.coarse_analyzer_tags |= buffers::analyzer::NameTag::COLUMN_NAME;
+            pending.column_aliases.push_back(name);
+        }
+    }
+    pending_derived_tables.push_back(std::move(pending));
+}
+
+void NameResolutionPass::PopulateDerivedTable(PendingDerivedTable& pending, AnalyzedScript::NameScope& scope) {
+    auto* output_scope = &scope;
+    if (output_scope->output_columns.empty() && !output_scope->child_scopes.IsEmpty()) {
+        output_scope = static_cast<AnalyzedScript::NameScope*>(&*output_scope->child_scopes.begin());
+    }
+    std::vector<std::reference_wrapper<RegisteredName>> column_names;
+    if (!pending.column_aliases.empty()) {
+        size_t count = std::min(pending.column_aliases.size(), output_scope->output_columns.size());
+        column_names.reserve(count);
+        for (size_t i = 0; i < count; ++i) {
+            column_names.push_back(pending.column_aliases[i]);
+        }
+    } else {
+        column_names.reserve(output_scope->output_columns.size());
+        for (auto& output : output_scope->output_columns) {
+            if (output.column_name.get().text.empty()) continue;
+            column_names.push_back(output.column_name);
+        }
+    }
+    auto& table = pending.table.get();
+    table.table_columns.reserve(column_names.size());
+    for (size_t column_index = 0; column_index < column_names.size(); ++column_index) {
+        table.table_columns.emplace_back(table.GetTableID(), column_index, std::nullopt, column_names[column_index]);
+        auto& column = table.table_columns.back();
+        column.table = table;
+        column.column_name.get().resolved_objects.PushBack(column);
+        table.table_columns_by_name.emplace(column.column_name.get().text, column);
+    }
+}
+
 void NameResolutionPass::MergeChildStates(NodeState& dst,
                                           std::initializer_list<const buffers::parser::Node*> children) {
     for (const buffers::parser::Node* child : children) {
@@ -428,7 +489,15 @@ void NameResolutionPass::PopulateOutputColumns(AnalyzedScript::NameScope& scope)
         // Independent of the algebra, we just forward all names of table references as output columns if a star is
         // specified. We might want to get smarter (check if there's a grouping etc)
         if (rt.is_star) {
-            for (auto& [_, ref_table] : scope.referenced_tables_by_name) {
+            for (auto& table_reference : scope.table_references) {
+                auto* relation = std::get_if<AnalyzedScript::TableReference::RelationExpression>(&table_reference.inner);
+                if (!relation) continue;
+                std::string_view alias = table_reference.alias.has_value()
+                                             ? table_reference.alias->first.get().text
+                                             : relation->table_name.table_name.get().text;
+                auto referenced_iter = scope.referenced_tables_by_name.find(alias);
+                if (referenced_iter == scope.referenced_tables_by_name.end()) continue;
+                auto& ref_table = referenced_iter->second;
                 if (auto* table_ref =
                         std::get_if<std::reference_wrapper<const CatalogEntry::TableDeclaration>>(&ref_table.source)) {
                     for (auto& col : table_ref->get().table_columns) {
@@ -447,7 +516,9 @@ void NameResolutionPass::PopulateOutputColumns(AnalyzedScript::NameScope& scope)
                 } else {
                     auto& cte = std::get<std::reference_wrapper<ResolvedCTE>>(ref_table.source).get();
                     if (cte.child_scope) {
-                        for (auto& out_col : cte.child_scope->output_columns) {
+                        for (size_t i = 0; i < cte.child_scope->output_columns.size(); ++i) {
+                            auto out_col = cte.child_scope->output_columns[i];
+                            if (i < cte.column_aliases.size()) out_col.column_name = cte.column_aliases[i];
                             std::string_view name = out_col.column_name.get().text;
                             if (scope.output_columns_by_name.contains(name)) continue;
                             scope.output_columns_by_name.emplace(name, scope.output_columns.size());
@@ -537,6 +608,15 @@ void NameResolutionPass::ResolveNames() {
 }
 
 uint32_t NameResolutionPass::FindStatementId(uint32_t ast_node_id) const {
+    NodeID root_node_id = ast_node_id;
+    for (size_t depth = 0; depth < state.ast.size(); ++depth) {
+        auto parent = state.ast[root_node_id].parent();
+        if (parent >= state.ast.size()) break;
+        root_node_id = parent;
+    }
+    for (uint32_t i = 0; i < state.parsed.statements.size(); ++i) {
+        if (state.parsed.statements[i].root == root_node_id) return i;
+    }
     for (uint32_t i = 0; i < state.parsed.statements.size(); ++i) {
         const auto& statement = state.parsed.statements[i];
         if (ast_node_id >= statement.nodes_begin && ast_node_id < statement.nodes_begin + statement.node_count) {
@@ -737,6 +817,12 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                     scope.cte_definitions.emplace(cte.cte_name.get().text, std::move(def));
                     scope.cte_definition_nodes.emplace(cte.cte_name.get().text, cte.ast_node_id);
                 }
+
+                auto [into_node] = state.GetAttributes<AttributeKey::SQL_SELECT_INTO>(node);
+                if (into_node && into_node->node_type() == buffers::parser::NodeType::OBJECT_SQL_INTO) {
+                    auto [into_name_node] = state.GetAttributes<AttributeKey::SQL_TEMP_NAME>(*into_node);
+                    RegisterDerivedTable(*into_node, into_name_node, nullptr, node);
+                }
                 break;
             }
 
@@ -775,6 +861,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                     auto& n = state.analyzed->table_declarations.PushBack(
                         AnalyzedScript::TableDeclaration(schema_id, catalog_table_id, table_name.value()));
                     n.ast_node_id = node_id;
+                    n.ast_statement_id = FindStatementId(node_id);
                     n.table_columns = std::move(table_columns);
                     // Register the table declaration
                     table_name->table_name.get().resolved_objects.PushBack(n);
@@ -838,12 +925,24 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
             }
 
             case buffers::parser::NodeType::OBJECT_SQL_CREATE_AS: {
-                auto [name_node, elements_node] =
-                    state.GetAttributes<buffers::parser::AttributeKey::SQL_CREATE_TABLE_NAME,
-                                        buffers::parser::AttributeKey::SQL_CREATE_TABLE_ELEMENTS>(node);
+                auto [name_node, columns_node, statement_node] =
+                    state.GetAttributes<AttributeKey::SQL_CREATE_AS_NAME, AttributeKey::SQL_CREATE_AS_COLUMNS,
+                                        AttributeKey::SQL_CREATE_AS_STATEMENT>(node);
+                if (statement_node && statement_node->node_type() == buffers::parser::NodeType::OBJECT_SQL_SELECT) {
+                    RegisterDerivedTable(node, name_node, columns_node, *statement_node);
+                }
+                MergeChildStates(node_state, node);
+                break;
+            }
 
-                (void)name_node;
-                (void)elements_node;
+            case buffers::parser::NodeType::OBJECT_SQL_VIEW: {
+                auto [name_node, columns_node, statement_node] =
+                    state.GetAttributes<AttributeKey::SQL_VIEW_NAME, AttributeKey::SQL_VIEW_COLUMNS,
+                                        AttributeKey::SQL_VIEW_STATEMENT>(node);
+                if (statement_node && statement_node->node_type() == buffers::parser::NodeType::OBJECT_SQL_SELECT) {
+                    RegisterDerivedTable(node, name_node, columns_node, *statement_node);
+                }
+                MergeChildStates(node_state, node);
                 break;
             }
 
@@ -889,32 +988,29 @@ void NameResolutionPass::Finish() {
     // Resolve all names
     ResolveNames();
 
+    for (auto& pending : pending_derived_tables) {
+        auto scope_iter = state.analyzed->name_scopes_by_root_node.find(pending.select_node_id);
+        if (scope_iter != state.analyzed->name_scopes_by_root_node.end()) {
+            PopulateDerivedTable(pending, scope_iter->second);
+        }
+    }
+
     // Bail out if there are no statements
     if (!state.parsed.statements.empty()) {
-        // Helper to assign statement ids
         auto assign_statment_ids = [&](auto& chunks) {
             uint32_t statement_id = 0;
             size_t statement_begin = state.parsed.statements[0].nodes_begin;
             size_t statement_end = statement_begin + state.parsed.statements[0].node_count;
             for (auto& chunk : chunks) {
                 for (auto& ref : chunk) {
-                    // Search first statement that might include the node
                     while (statement_end <= ref.ast_node_id && statement_id < state.parsed.statements.size()) {
                         ++statement_id;
+                        if (statement_id == state.parsed.statements.size()) break;
                         statement_begin = state.parsed.statements[statement_id].nodes_begin;
                         statement_end = statement_begin + state.parsed.statements[statement_id].node_count;
                     }
-                    // There is none?
-                    // Abort, all other refs won't match either
-                    if (statement_id == state.parsed.statements.size()) {
-                        break;
-                    }
-                    // The statement includes the node?
-                    if (statement_begin <= ref.ast_node_id) {
-                        ref.ast_statement_id = statement_id;
-                        continue;
-                    }
-                    // Otherwise lthe ast_node does not belong to a statement, check next one
+                    if (statement_id == state.parsed.statements.size()) break;
+                    if (statement_begin <= ref.ast_node_id) ref.ast_statement_id = statement_id;
                 }
             }
         };

@@ -1,0 +1,19 @@
+parser-snapshots:
+  - name: drop_table
+    input: |
+      drop table analytics.results
+  - name: drop_table_if_exists
+    input: |
+      drop table if exists analytics.results
+  - name: drop_view
+    input: |
+      drop view analytics.results
+  - name: drop_view_if_exists
+    input: |
+      drop view if exists analytics.results
+  - name: attach_database
+    input: |
+      attach database "path/to/source.hyper" as source
+  - name: attach_local_database_with_options
+    input: |
+      attach local database local_source as attached with (access_mode = 'readonly', encryption_key = default)

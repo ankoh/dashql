@@ -85,6 +85,10 @@ parser-snapshots:
   - name: select_from_into_2rel
     input: |
       select a into b from c, d
+  # Classify SELECT INTO separately and normalize its target
+  - name: select_into_qualified_target
+    input: |
+      select 1 into analytics.results
   # Parse GROUP BY with position reference
   - name: select_from_1rel_group1
     input: |

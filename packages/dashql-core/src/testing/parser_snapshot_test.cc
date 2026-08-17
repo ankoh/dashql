@@ -110,8 +110,6 @@ void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript
     auto& nodes = parsed.nodes;
     auto& statements = parsed.statements;
     auto descriptions = parsed.AssociateDescriptions();
-    auto* stmt_type_tt = buffers::parser::StatementTypeTypeTable();
-
     auto stmts_node = root.append_child();
     stmts_node << c4::yml::key("statements");
     stmts_node |= c4::yml::SEQ;
@@ -119,7 +117,7 @@ void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript
         auto& s = statements[stmt_id];
         auto stmt = stmts_node.append_child();
         stmt.set_type(c4::yml::MAP);
-        stmt.append_child() << c4::yml::key("type") << std::string(stmt_type_tt->names[static_cast<uint16_t>(s.type)]);
+        stmt.append_child() << c4::yml::key("type") << std::string(buffers::parser::EnumNameStatementType(s.type));
         stmt.append_child() << c4::yml::key("ast-begin") << s.nodes_begin;
         stmt.append_child() << c4::yml::key("ast-size") << s.node_count;
         auto& description = descriptions[stmt_id];

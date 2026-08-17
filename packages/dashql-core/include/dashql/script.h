@@ -165,7 +165,7 @@ class ParsedScript {
         /// The node count
         size_t node_count = 0;
         /// Get as flatbuffer object
-        std::unique_ptr<buffers::parser::StatementT> Pack();
+        std::unique_ptr<buffers::parser::StatementT> Pack() const;
     };
 
     /// Source-level description metadata corresponding one-to-one with `statements`. Kept outside

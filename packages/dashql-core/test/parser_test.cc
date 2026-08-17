@@ -58,6 +58,98 @@ static std::shared_ptr<ParsedScript> ParseString(std::string_view text) {
     return Parser::Parse(scanned);
 }
 
+TEST(ParserTest, ExposesNormalizedStatementMetadata) {
+    struct TestCase {
+        std::string_view input;
+        buffers::parser::StatementType statement_type;
+        buffers::parser::StatementTargetType target_type;
+        std::string_view target_database;
+        std::string_view target_schema;
+        std::string_view target_relation;
+        std::string_view attach_path;
+        std::string_view attach_alias;
+        bool attach_local;
+    };
+    constexpr std::array<TestCase, 9> tests = {{
+        {"create table foo (a integer)", buffers::parser::StatementType::CREATE_TABLE,
+         buffers::parser::StatementTargetType::TABLE, {}, {}, "foo", {}, {}, false},
+        {"create table target as select 1", buffers::parser::StatementType::CREATE_TABLE_AS,
+         buffers::parser::StatementTargetType::TABLE, {}, {}, "target", {}, {}, false},
+        {"create view catalog.schema.target as select 1", buffers::parser::StatementType::CREATE_VIEW,
+         buffers::parser::StatementTargetType::VIEW, "catalog", "schema", "target", {}, {}, false},
+        {"drop table if exists schema.\"Target\"", buffers::parser::StatementType::DROP_TABLE,
+         buffers::parser::StatementTargetType::TABLE, {}, "schema", "Target", {}, {}, false},
+        {"drop view target", buffers::parser::StatementType::DROP_VIEW,
+         buffers::parser::StatementTargetType::VIEW, {}, {}, "target", {}, {}, false},
+        {"select 1 into schema.target", buffers::parser::StatementType::SELECT_INTO,
+         buffers::parser::StatementTargetType::TABLE, {}, "schema", "target", {}, {}, false},
+        {"select 1 into schema.target union all select 2", buffers::parser::StatementType::SELECT_INTO,
+         buffers::parser::StatementTargetType::TABLE, {}, "schema", "target", {}, {}, false},
+        {"attach database \"path/to/source.hyper\" as source", buffers::parser::StatementType::ATTACH_DATABASE,
+         buffers::parser::StatementTargetType::NONE, {}, {}, {}, "path/to/source.hyper", "source", false},
+        {"attach local database local_source as attached with (access_mode = 'readonly')",
+         buffers::parser::StatementType::ATTACH_DATABASE, buffers::parser::StatementTargetType::NONE, {}, {}, {},
+         "local_source", "attached", true},
+    }};
+
+    for (size_t test_id = 0; test_id < tests.size(); ++test_id) {
+        const auto& test = tests[test_id];
+        SCOPED_TRACE(test_id);
+        auto script = ParseString(test.input);
+        ASSERT_TRUE(script->errors.empty())
+            << test.input << ": " << (script->errors.empty() ? "" : script->errors.front().message);
+        ASSERT_EQ(script->statements.size(), 1u) << test.input;
+
+        flatbuffers::FlatBufferBuilder builder;
+        builder.Finish(script->Pack(builder));
+        auto* parsed = flatbuffers::GetRoot<buffers::parser::ParsedScript>(builder.GetBufferPointer());
+        auto* statement = parsed->statements()->Get(0);
+        EXPECT_EQ(statement->statement_type(), test.statement_type) << test.input;
+        EXPECT_EQ(statement->target_type(), test.target_type) << test.input;
+        auto* target = statement->target();
+        EXPECT_EQ(target && target->database_name() ? target->database_name()->string_view() : std::string_view{},
+                  test.target_database) << test.input;
+        EXPECT_EQ(target && target->schema_name() ? target->schema_name()->string_view() : std::string_view{},
+                  test.target_schema) << test.input;
+        EXPECT_EQ(target && target->relation_name() ? target->relation_name()->string_view() : std::string_view{},
+                  test.target_relation) << test.input;
+        auto* attach = statement->attach_database();
+        EXPECT_EQ(attach && attach->path() ? attach->path()->string_view() : std::string_view{}, test.attach_path)
+            << test.input;
+        EXPECT_EQ(attach && attach->alias() ? attach->alias()->string_view() : std::string_view{}, test.attach_alias)
+            << test.input;
+        EXPECT_EQ(attach ? attach->local() : false, test.attach_local) << test.input;
+    }
+}
+
+TEST(ParserTest, FormatsDropAndAttachStatements) {
+    struct TestCase {
+        std::string_view input;
+        std::string_view expected;
+    };
+    constexpr std::array<TestCase, 4> tests = {{
+        {"DROP TABLE IF EXISTS Schema_1.Target", "drop table if exists Schema_1.Target;"},
+        {"DROP VIEW Target", "drop view Target;"},
+        {"ATTACH DATABASE \"path/to/source.hyper\" AS Source",
+         "attach database \"path/to/source.hyper\" as Source;"},
+        {"ATTACH LOCAL DATABASE local_source AS Attached WITH (access_mode='readonly', encryption_key=DEFAULT)",
+         "attach local database local_source as Attached with (access_mode = 'readonly', encryption_key = DEFAULT);"},
+    }};
+
+    buffers::formatting::FormattingConfigT config;
+    config.dialect = buffers::formatting::FormattingDialect::HYPER;
+    config.mode = buffers::formatting::FormattingMode::COMPACT;
+    config.max_width = 120;
+    for (const auto& test : tests) {
+        auto script = ParseString(test.input);
+        ASSERT_TRUE(script->errors.empty())
+            << test.input << ": " << (script->errors.empty() ? "" : script->errors.front().message);
+        Formatter formatter{*script};
+        EXPECT_EQ(formatter.Format(config), test.expected) << test.input;
+        EXPECT_TRUE(formatter.IsFullyFormatted()) << test.input;
+    }
+}
+
 TEST(ParserTest, HintForStringLiteralWhereIdentExpected) {
     // FROM expects an identifier-like name. A bare SCONST should produce a hint to use a
     // double-quoted identifier instead.

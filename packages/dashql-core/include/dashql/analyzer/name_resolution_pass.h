@@ -50,11 +50,25 @@ struct NameResolutionPass : public PassManager::LTRPass {
     ChunkBuffer<AnalyzedScript::ResultTarget, 16> pending_result_targets;
     /// The pending CTEs
     ChunkBuffer<AnalyzedScript::CTEDefinition, 4> pending_cte_nodes;
+    /// Declarations whose columns are derived after their SELECT scope is resolved.
+    struct PendingDerivedTable {
+        std::reference_wrapper<CatalogEntry::TableDeclaration> table;
+        uint32_t select_node_id;
+        std::vector<std::reference_wrapper<RegisteredName>> column_aliases;
+    };
+    std::vector<PendingDerivedTable> pending_derived_tables;
     /// Return the statement that contains an AST node.
     uint32_t FindStatementId(uint32_t ast_node_id) const;
 
     /// Register a schema
     QualifiedCatalogObjectID RegisterSchema(RegisteredName& database_name, RegisteredName& schema_name);
+    /// Register a table-like declaration backed by a SELECT scope.
+    void RegisterDerivedTable(const buffers::parser::Node& declaration_node,
+                              const buffers::parser::Node* name_node,
+                              const buffers::parser::Node* columns_node,
+                              const buffers::parser::Node& select_node);
+    /// Materialize a pending declaration after its SELECT scope has output columns.
+    void PopulateDerivedTable(PendingDerivedTable& pending, AnalyzedScript::NameScope& scope);
 
     /// Merge child states into a destination state
     void MergeChildStates(NodeState& dst, const sx::parser::Node& parent);

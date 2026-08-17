@@ -28,7 +28,7 @@ namespace dashql {
 template <typename T> constexpr bool always_false = false;
 
 /// Finish a statement
-std::unique_ptr<buffers::parser::StatementT> ParsedScript::Statement::Pack() {
+std::unique_ptr<buffers::parser::StatementT> ParsedScript::Statement::Pack() const {
     auto stmt = std::make_unique<buffers::parser::StatementT>();
     stmt->statement_type = type;
     stmt->root_node = root;
@@ -216,8 +216,8 @@ ParsedScript::ParsedScript(std::shared_ptr<ScannedScript> scan, parser::ParseCon
       scanned_script(scan),
       nodes(ctx.nodes.Flatten()),
       statements(std::move(ctx.statements)),
-       errors(std::move(ctx.errors)),
-       vis_spec_spans(std::move(ctx.vis_spec_spans)) {
+      errors(std::move(ctx.errors)),
+      vis_spec_spans(std::move(ctx.vis_spec_spans)) {
     for (const auto& node : nodes) {
         switch (node.node_type()) {
             case buffers::parser::NodeType::OBJECT_VIS_VISUALISE:
@@ -229,6 +229,102 @@ ParsedScript::ParsedScript(std::shared_ptr<ScannedScript> scan, parser::ParseCon
     }
     assert(std::is_sorted(statements.begin(), statements.end(),
                            [](auto& l, auto& r) { return l.nodes_begin < r.nodes_begin; }));
+}
+
+static std::unique_ptr<buffers::parser::StatementT> PackStatement(const ParsedScript& parsed, size_t statement_id) {
+    const auto& statement = parsed.statements[statement_id];
+    auto out = statement.Pack();
+    const auto& root = parsed.nodes[statement.root];
+    auto find_attribute = [&](buffers::parser::AttributeKey key) -> const buffers::parser::Node* {
+        for (size_t i = 0; i < root.children_count(); ++i) {
+            const auto& child = parsed.nodes[root.children_begin_or_value() + i];
+            if (child.attribute_key() == key) return &child;
+        }
+        return nullptr;
+    };
+    auto find_select_attribute = [&](buffers::parser::AttributeKey key) -> const buffers::parser::Node* {
+        const buffers::parser::Node* current = &root;
+        while (current->node_type() == buffers::parser::NodeType::OBJECT_SQL_SELECT) {
+            const buffers::parser::Node* next = nullptr;
+            for (size_t i = 0; i < current->children_count(); ++i) {
+                const auto& child = parsed.nodes[current->children_begin_or_value() + i];
+                if (child.attribute_key() == key) return &child;
+                if (child.attribute_key() == buffers::parser::AttributeKey::SQL_COMBINE_INPUT &&
+                    child.node_type() == buffers::parser::NodeType::ARRAY && child.children_count() > 0) {
+                    next = &parsed.nodes[child.children_begin_or_value()];
+                }
+            }
+            if (next == nullptr) break;
+            current = next;
+        }
+        return nullptr;
+    };
+    auto read_name = [&](const buffers::parser::Node* source) -> std::string {
+        if (!source || source->node_type() != buffers::parser::NodeType::NAME) return {};
+        return std::string(parsed.scanned_script->GetNames().At(source->children_begin_or_value()).text);
+    };
+    auto read_target = [&](const buffers::parser::Node* source) {
+        if (!source || source->node_type() != buffers::parser::NodeType::ARRAY) return;
+        auto children = std::span{parsed.nodes}.subspan(source->children_begin_or_value(), source->children_count());
+        if (children.empty() || children.size() > 3) return;
+        auto target = std::make_unique<buffers::parser::StatementTargetT>();
+        target->relation_name = read_name(&children.back());
+        if (children.size() >= 2) target->schema_name = read_name(&children[children.size() - 2]);
+        if (children.size() == 3) target->database_name = read_name(&children.front());
+        if (!target->relation_name.empty()) out->target = std::move(target);
+    };
+    auto set_target = [&](buffers::parser::StatementTargetType type, buffers::parser::AttributeKey key) {
+        out->target_type = type;
+        read_target(find_attribute(key));
+    };
+
+    switch (statement.type) {
+        case buffers::parser::StatementType::CREATE_TABLE:
+            set_target(buffers::parser::StatementTargetType::TABLE,
+                       buffers::parser::AttributeKey::SQL_CREATE_TABLE_NAME);
+            break;
+        case buffers::parser::StatementType::CREATE_TABLE_AS:
+            set_target(buffers::parser::StatementTargetType::TABLE,
+                       buffers::parser::AttributeKey::SQL_CREATE_AS_NAME);
+            break;
+        case buffers::parser::StatementType::CREATE_VIEW:
+            set_target(buffers::parser::StatementTargetType::VIEW,
+                       buffers::parser::AttributeKey::SQL_VIEW_NAME);
+            break;
+        case buffers::parser::StatementType::DROP_TABLE:
+            set_target(buffers::parser::StatementTargetType::TABLE,
+                       buffers::parser::AttributeKey::SQL_DROP_NAME);
+            break;
+        case buffers::parser::StatementType::DROP_VIEW:
+            set_target(buffers::parser::StatementTargetType::VIEW,
+                       buffers::parser::AttributeKey::SQL_DROP_NAME);
+            break;
+        case buffers::parser::StatementType::SELECT_INTO: {
+            auto* into = find_select_attribute(buffers::parser::AttributeKey::SQL_SELECT_INTO);
+            if (into && into->node_type() != buffers::parser::NodeType::NONE) {
+                out->target_type = buffers::parser::StatementTargetType::TABLE;
+                for (size_t i = 0; i < into->children_count(); ++i) {
+                    const auto& child = parsed.nodes[into->children_begin_or_value() + i];
+                    if (child.attribute_key() == buffers::parser::AttributeKey::SQL_TEMP_NAME) {
+                        read_target(&child);
+                        break;
+                    }
+                }
+            }
+            break;
+        }
+        case buffers::parser::StatementType::ATTACH_DATABASE: {
+            auto attach = std::make_unique<buffers::parser::AttachDatabaseStatementT>();
+            attach->path = read_name(find_attribute(buffers::parser::AttributeKey::SQL_ATTACH_DATABASE_PATH));
+            attach->alias = read_name(find_attribute(buffers::parser::AttributeKey::SQL_ATTACH_DATABASE_ALIAS));
+            attach->local = find_attribute(buffers::parser::AttributeKey::SQL_ATTACH_DATABASE_LOCAL) != nullptr;
+            out->attach_database = std::move(attach);
+            break;
+        }
+        default:
+            break;
+    }
+    return out;
 }
 
 /// Return true when every byte in [begin, end) is SQL whitespace or a statement separator.
@@ -424,7 +520,7 @@ flatbuffers::Offset<buffers::parser::ParsedScript> ParsedScript::Pack(flatbuffer
     out.statements.reserve(statements.size());
     auto descriptions = AssociateDescriptions();
     for (size_t i = 0; i < statements.size(); ++i) {
-        auto statement = statements[i].Pack();
+        auto statement = PackStatement(*this, i);
         auto& metadata = descriptions[i];
         statement->statement_span = std::make_unique<buffers::parser::TextSpan>(metadata.statement_span);
         statement->description_begin = metadata.description_begin;

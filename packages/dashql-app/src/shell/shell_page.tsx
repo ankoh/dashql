@@ -85,6 +85,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                         logger,
                     ),
                 }),
+                trackSessionRelations: true,
                 commands: [
                     loginCommand,
                     createShellResultCommand(getResultMode, mode => { resultModeRef.current = mode; }),

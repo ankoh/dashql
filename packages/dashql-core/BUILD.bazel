@@ -383,6 +383,7 @@ cc_test(
     name = "unit_tests",
     size = "small",
     srcs = [
+        "test/analyzer_declaration_test.cc",
         "test/api_test.cc",
         "test/chunk_buffer_test.cc",
         "test/cursor_test.cc",

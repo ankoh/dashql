@@ -178,3 +178,67 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               create temporary table result (value integer) on commit delete rows;
+
+  - name: coverage_drop_table
+    input: |-
+      DROP TABLE IF EXISTS analytics.result
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              drop table if exists analytics.result;
+          - mode: compact
+            expected: |-
+              drop table if exists analytics.result;
+          - mode: pretty
+            expected: |-
+              drop table if exists analytics.result;
+
+  - name: coverage_drop_view
+    input: |-
+      DROP VIEW analytics.result
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              drop view analytics.result;
+          - mode: compact
+            expected: |-
+              drop view analytics.result;
+          - mode: pretty
+            expected: |-
+              drop view analytics.result;
+
+  - name: coverage_attach_database
+    input: |-
+      ATTACH DATABASE "path/to/source.hyper" AS source
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              attach database "path/to/source.hyper" as source;
+          - mode: compact
+            expected: |-
+              attach database "path/to/source.hyper" as source;
+          - mode: pretty
+            expected: |-
+              attach database "path/to/source.hyper" as source;
+
+  - name: coverage_attach_local_database_options
+    input: |-
+      ATTACH LOCAL DATABASE local_source AS attached WITH (access_mode='readonly', encryption_key=DEFAULT)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              attach local database local_source as attached with (access_mode = 'readonly', encryption_key = DEFAULT);
+          - mode: compact
+            expected: |-
+              attach local database local_source as attached with (access_mode = 'readonly', encryption_key = DEFAULT);
+          - mode: pretty
+            expected: |-
+              attach local database local_source as attached with (access_mode = 'readonly', encryption_key = DEFAULT);

@@ -37,7 +37,9 @@ describe('DashQL Completion', () => {
             'set',
             'values',
             'with',
+            'attach',
             'create',
+            'drop',
             'explain',
             'table'
         ]));

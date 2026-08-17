@@ -794,7 +794,7 @@ parser-snapshots:
       select a into b from c, d
     expected:
       statements:
-        - type: SELECT
+        - type: SELECT_INTO
           ast-begin: 0
           ast-size: 17
           description:
@@ -857,6 +857,52 @@ parser-snapshots:
                         children:
                           - type: NAME
                             text: "d"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: select_into_qualified_target
+    input: |-
+      select 1 into analytics.results
+    expected:
+      statements:
+        - type: SELECT_INTO
+          ast-begin: 0
+          ast-size: 9
+          description:
+            text: "select 1 i..cs.results"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1 i..cs.results"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+              - key: SQL_SELECT_INTO
+                type: OBJECT_SQL_INTO
+                text: "analytics.results"
+                children:
+                  - key: SQL_TEMP_TYPE
+                    type: ENUM_SQL_TEMP_TYPE
+                    value: NONE
+                  - key: SQL_TEMP_NAME
+                    type: ARRAY
+                    text: "analytics.results"
+                    children:
+                      - type: NAME
+                        text: "analytics"
+                      - type: NAME
+                        text: "results"
       scanner-errors: []
       parser-errors: []
       line-breaks: []
@@ -2413,7 +2459,7 @@ parser-snapshots:
                   select 1 from b;
     expected:
       statements:
-        - type: SELECT
+        - type: SELECT_INTO
           ast-begin: 0
           ast-size: 8
           description:
@@ -2585,7 +2631,7 @@ parser-snapshots:
                   select c from b where c = $a + 1
     expected:
       statements:
-        - type: SELECT
+        - type: SELECT_INTO
           ast-begin: 0
           ast-size: 8
           description:
@@ -2715,7 +2761,7 @@ parser-snapshots:
       select * into countries_joined from country1_weather c1, country2_weather c2 where c1.month = c2.month and c2.month = $month
     expected:
       statements:
-        - type: SELECT
+        - type: SELECT_INTO
           ast-begin: 0
           ast-size: 42
           description:
@@ -2863,7 +2909,7 @@ parser-snapshots:
       select v into a FROM generate_series(0, 10000) as t(v);
     expected:
       statements:
-        - type: SELECT
+        - type: SELECT_INTO
           ast-begin: 0
           ast-size: 26
           description:
@@ -11168,7 +11214,7 @@ parser-snapshots:
       select v into a FROM somefunc() as t(a integer);
     expected:
       statements:
-        - type: SELECT
+        - type: SELECT_INTO
           ast-begin: 0
           ast-size: 24
           description:

@@ -1,0 +1,11 @@
+%type <BackedUniquePtr<NodeList>> sql_attach_database_option_list;
+%type <buffers::parser::Node> sql_attach_database_alias;
+%type <buffers::parser::Node> sql_attach_database_locality;
+%type <buffers::parser::Node> sql_attach_database_option;
+%type <buffers::parser::Node> sql_attach_database_options;
+%type <buffers::parser::Node> sql_attach_database_path;
+%type <buffers::parser::Node> sql_attach_database_stmt;
+%type <buffers::parser::Node> sql_attach_database_value;
+%type <buffers::parser::Node> sql_drop_table_stmt;
+%type <buffers::parser::Node> sql_drop_view_stmt;
+%type <buffers::parser::Node> sql_opt_if_exists;

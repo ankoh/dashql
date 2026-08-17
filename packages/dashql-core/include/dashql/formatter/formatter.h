@@ -63,6 +63,9 @@ struct Formatter {
     FmtReg FormatCreateAs(const buffers::parser::Node& node);
     FmtReg FormatView(const buffers::parser::Node& node);
     FmtReg FormatCreateFunction(const buffers::parser::Node& node);
+    FmtReg FormatDrop(const buffers::parser::Node& node, bool table);
+    FmtReg FormatAttachDatabase(const buffers::parser::Node& node);
+    FmtReg FormatAttachDatabaseOption(const buffers::parser::Node& node);
     FmtReg FormatFunctionParam(const buffers::parser::Node& node);
     FmtReg FormatSet(const buffers::parser::Node& node);
     FmtReg FormatVarargField(const buffers::parser::Node& node);

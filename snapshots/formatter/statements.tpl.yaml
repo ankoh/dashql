@@ -56,3 +56,22 @@ formatter-snapshots:
     input: create temporary table result (value int) on commit delete rows
     dialects:
       hyper:
+  - name: coverage_drop_table
+    input: DROP TABLE IF EXISTS analytics.result
+    dialects:
+      hyper:
+
+  - name: coverage_drop_view
+    input: DROP VIEW analytics.result
+    dialects:
+      hyper:
+
+  - name: coverage_attach_database
+    input: ATTACH DATABASE "path/to/source.hyper" AS source
+    dialects:
+      hyper:
+
+  - name: coverage_attach_local_database_options
+    input: ATTACH LOCAL DATABASE local_source AS attached WITH (access_mode='readonly', encryption_key=DEFAULT)
+    dialects:
+      hyper:

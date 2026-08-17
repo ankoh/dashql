@@ -300,14 +300,14 @@ completion-snapshots:
           location-qualified: "inser"
           objects: []
         - score: 0
-          value: create
-          keyword-continuation: table
+          value: attach
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
           location: "inser"
           location-qualified: "inser"
           objects: []
         - score: 0
-          value: explain
+          value: create
+          keyword-continuation: table
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
           location: "inser"
           location-qualified: "inser"
@@ -354,7 +354,7 @@ completion-snapshots:
           location-qualified: "creat"
           objects: []
         - score: 0
-          value: explain
+          value: attach
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
           location: "creat"
           location-qualified: "creat"
@@ -512,14 +512,14 @@ completion-snapshots:
           location-qualified: "fetc"
           objects: []
         - score: 0
-          value: create
-          keyword-continuation: table
+          value: attach
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
           location: "fetc"
           location-qualified: "fetc"
           objects: []
         - score: 0
-          value: explain
+          value: create
+          keyword-continuation: table
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
           location: "fetc"
           location-qualified: "fetc"

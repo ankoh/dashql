@@ -51,3 +51,7 @@ parser-snapshots:
   - name: create_table_12
     input: |
       create table foo (a integer not null default 42)
+  # Normalize the target of CREATE TABLE AS
+  - name: create_table_as_qualified_target
+    input: |
+      create table analytics.results as select 1

@@ -3,3 +3,7 @@ parser-snapshots:
   - name: create_table_as_select_1
     input: |
       create view foo as select 1
+  # Normalize a qualified CREATE VIEW target
+  - name: create_view_qualified_target
+    input: |
+      create view analytics.results as select 1

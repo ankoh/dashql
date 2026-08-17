@@ -984,13 +984,13 @@ completion-snapshots:
           location-qualified: "select"
           objects: []
         - score: 0
-          value: create
+          value: attach
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_INCOMPATIBLE]
           location: "select"
           location-qualified: "select"
           objects: []
         - score: 0
-          value: explain
+          value: create
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_INCOMPATIBLE]
           location: "select"
           location-qualified: "select"

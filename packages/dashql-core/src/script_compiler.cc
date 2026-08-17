@@ -26,6 +26,10 @@ std::optional<uint32_t> ReadTerminalSqlNode(const ParsedScript& parsed, uint32_t
         case buffers::parser::StatementType::CREATE_TABLE:
         case buffers::parser::StatementType::CREATE_TABLE_AS:
         case buffers::parser::StatementType::CREATE_VIEW:
+        case buffers::parser::StatementType::DROP_TABLE:
+        case buffers::parser::StatementType::DROP_VIEW:
+        case buffers::parser::StatementType::SELECT_INTO:
+        case buffers::parser::StatementType::ATTACH_DATABASE:
         case buffers::parser::StatementType::EXPLAIN:
         case buffers::parser::StatementType::SELECT:
         case buffers::parser::StatementType::SET:

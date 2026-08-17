@@ -162,6 +162,38 @@ FmtReg Formatter::FormatCreateFunction(const buffers::parser::Node& node) {
                        Reg(*returns)});
 }
 
+FmtReg Formatter::FormatDrop(const buffers::parser::Node& node, bool table) {
+    auto [name, if_exists] =
+        GetAttributes<AttributeKey::SQL_DROP_NAME, AttributeKey::SQL_DROP_IF_EXISTS>(node);
+    if (!name) return FormatUnimplemented(node);
+
+    std::string_view object = table ? "table " : "view ";
+    return fmt.Concat({fmt.Text("drop "), fmt.Text(object), if_exists ? fmt.Text("if exists ") : fmt.Empty(),
+                       Reg(*name)});
+}
+
+FmtReg Formatter::FormatAttachDatabaseOption(const buffers::parser::Node& node) {
+    auto [key, value] =
+        GetAttributes<AttributeKey::SQL_GENERIC_OPTION_KEY, AttributeKey::SQL_GENERIC_OPTION_VALUE>(node);
+    if (!key || !value) return FormatUnimplemented(node);
+    return fmt.Concat({Reg(*key), fmt.Text(" = "), Reg(*value)});
+}
+
+FmtReg Formatter::FormatAttachDatabase(const buffers::parser::Node& node) {
+    auto [path, alias, local, options] =
+        GetAttributes<AttributeKey::SQL_ATTACH_DATABASE_PATH, AttributeKey::SQL_ATTACH_DATABASE_ALIAS,
+                      AttributeKey::SQL_ATTACH_DATABASE_LOCAL, AttributeKey::SQL_ATTACH_DATABASE_OPTIONS>(node);
+    if (!path || !alias) return FormatUnimplemented(node);
+
+    std::vector<FmtReg> parts{fmt.Text(local ? "attach local database " : "attach database "), Reg(*path),
+                              fmt.Text(" as "), Reg(*alias)};
+    if (options) {
+        parts.push_back(fmt.Text(" with "));
+        parts.push_back(fmt.Parenthesized(Reg(*options)));
+    }
+    return fmt.Concat(std::move(parts));
+}
+
 FmtReg Formatter::FormatVarargField(const buffers::parser::Node& node) {
     auto [key, value] =
         GetAttributes<AttributeKey::EXT_VARARG_FIELD_KEY, AttributeKey::EXT_VARARG_FIELD_VALUE>(node);
