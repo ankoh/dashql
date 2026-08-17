@@ -3,13 +3,13 @@ import * as styles from './notebook_feed.module.css';
 
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '@primer/octicons-react';
-import { CodeIcon, ComposeIcon, PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon, XIcon } from '@primer/octicons-react';
+import { PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon } from '@primer/octicons-react';
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import { useAppConfig } from '../../../config/app_config.js';
 import { ScriptStatisticsBar } from '../script_statistics_bar.js';
 
-import { List, useListRef } from 'react-window';
+import { List } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
@@ -25,17 +25,12 @@ import { createNotebookScriptsAgentHost } from '../../scripts/script_agent_host.
 import { QueryType, queryIsDone } from '../../connections/query_execution_state.js';
 import { computeQueryCacheKeyForConnection, useCancelQuery, useQueryExecutor, useQueryState } from '../../connections/query_executor.js';
 import { SymbolIcon } from '../../../../ui/foundations/symbol_icon.js';
-import { ScriptEditor } from '../script_editor.js';
-import { PromptEditor } from '../prompt_editor.js';
 import { ScriptPreview } from '../script_preview.js';
-import { observeSize } from '../../../../ui/foundations/size_observer.js';
 import type { ModifyNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
 import { normalizeScriptFolderName, projectionForVisualizeQuery, scriptDisplayName } from '../../scripts/script_types.js';
 import { type KeyEventHandler, useKeyEvents } from '../../../../utils/key_events.js';
-import { useScrollbarWidth } from '../../../../utils/scrollbar.js';
-import { SegmentedControl, SegmentedControlSize } from '../../../../ui/foundations/segmented_control.js';
 import { ScriptName } from '../script_name.js';
-import { IndicatorStatus, StatusIndicator } from '../../../../ui/foundations/status_indicator.js';
+import { IndicatorStatus } from '../../../../ui/foundations/status_indicator.js';
 import { EntryStatusBar } from '../entry_status_bar.js';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
@@ -47,11 +42,8 @@ import { CachedResultBean, QueryResultCacheLabel, QueryResultRerunButton } from 
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { ScriptDiagnosticsButton } from '../script_diagnostics.js';
 import { ConnectionStateDetailsVariant } from '../../connections/connection_state_details';
-
-interface FeedScrollTarget {
-    fileName: string;
-    version: number;
-}
+import { NotebookFeedComposer } from './notebook_feed_composer.js';
+import { useNotebookFeedLayout, type FeedScrollTarget, type ScriptPreviewHint } from './notebook_feed_layout.js';
 
 export interface NotebookFeedProps {
     notebookScripts: NotebookScripts;
@@ -69,15 +61,7 @@ export interface NotebookFeedProps {
 const ESTIMATED_ROW_HEIGHT = 240;
 const HEIGHT_CHANGE_EPSILON = 0.5;
 const OVERSCAN_ROW_COUNT = 16;
-const FEED_TOP_PADDING = 24;
-const FEED_MOBILE_TOP_PADDING = 8;
 const FEED_BOTTOM_PADDING = 8;
-const FEED_BOTTOM_FADE_HEIGHT = 24;
-
-interface ScriptPreviewHint {
-    height?: number;
-    formattedText?: string;
-}
 
 /// Resolve the output columns (result schema) a script produced on its most recent execution, for
 /// the agent's visualize context. Output columns only exist after execution, so this reads the
@@ -968,83 +952,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     ], [feedActive, composeEditorView, handleComposeSend, props.notebookScripts, handleAcceptDiff, handleRejectDiff]);
     useKeyEvents(keyHandlers);
 
-    const listContainerRef = React.useRef<HTMLDivElement>(null);
-    const listRef = useListRef(null);
-
-    // A cached height is a layout hint, not a validity claim. Reuse it immediately whenever a row
-    // remounts, then replace it with the mounted row's current height once its preview is ready.
-    const previewHintsRef = React.useRef<Map<number, ScriptPreviewHint>>(new Map());
-    const [heightsVersion, setHeightsVersion] = React.useState(0);
-    const handleHeightMeasured = React.useCallback((scriptId: number, height: number) => {
-        const previous = previewHintsRef.current.get(scriptId);
-        if (previous?.height != null && Math.abs(previous.height - height) < HEIGHT_CHANGE_EPSILON) return;
-        previewHintsRef.current.set(scriptId, { ...previous, height });
-        setHeightsVersion(version => version + 1);
-    }, []);
-    const handleFormattedText = React.useCallback((scriptId: number, scriptText: string) => {
-        const previous = previewHintsRef.current.get(scriptId);
-        previewHintsRef.current.set(scriptId, { ...previous, formattedText: scriptText });
-    }, []);
-
-    // Measure list container dimensions for react-window
-    const listContainerSize = observeSize(listContainerRef);
-    const listWidth = listContainerSize?.width ?? 0;
-    const listHeight = listContainerSize?.height ?? 0;
-    const listScrollbarInset = useScrollbarWidth();
-    const feedTopPadding = listWidth > 0 && listWidth <= 700
-        ? FEED_MOBILE_TOP_PADDING
-        : FEED_TOP_PADDING;
-
-    // Track the height of the composer for the filler row
-    const composeSectionRef = React.useRef<HTMLDivElement>(null);
-    const composeSectionSize = observeSize(composeSectionRef);
-    const composePadding = 24;
-    const composeSectionHeight = (composeSectionSize?.height ?? 0) + composePadding;
-    const fillerRowHeight = composeSectionHeight + FEED_BOTTOM_FADE_HEIGHT;
-
-    React.useEffect(() => {
-        if (!pendingScrollToBottomRef.current || !listRef.current) {
-            return;
-        }
-        pendingScrollToBottomRef.current = false;
-        listRef.current.scrollToRow({
-            index: entries.length,
-            align: 'end',
-        });
-    }, [entries.length, listRef]);
-
-    // Read entries via ref so this effect runs only when scrollTarget changes,
-    // not on every re-render (e.g. hover-driven SELECT_SCRIPT) which would yank
-    // the feed back to the last keyboard-set target while the user mouse-scrolls.
-    const entriesRef = React.useRef(entries);
-    entriesRef.current = entries;
-
-    // Scroll a requested entry to the top of the feed. This fires for the keyboard step commands
-    // (Ctrl+J/K bump the target) and when the notebookScripts focus is re-asserted on return from Details.
-    // The feed stays mounted (just hidden) across a Details visit, so the list is always warm here —
-    // its rows are already measured and its container already sized — and scrollToRow lands exactly
-    // on the target with no remount cold-start to work around.
-    React.useEffect(() => {
-        if (props.scrollTarget == null || !listRef.current) {
-            return;
-        }
-        const currentEntries = entriesRef.current;
-        if (currentEntries.length === 0) {
-            return;
-        }
-        if (props.scrollTarget.fileName === '') {
-            listRef.current.scrollToRow({ index: 0, align: 'start' });
-            return;
-        }
-        const targetIdx = currentEntries.findIndex(e => e.fileName === props.scrollTarget!.fileName);
-        if (targetIdx === -1) {
-            return;
-        }
-        listRef.current.scrollToRow({
-            index: targetIdx,
-            align: 'start',
-        });
-    }, [listRef, props.scrollTarget]);
+    const feedLayout = useNotebookFeedLayout(entries, props.scrollTarget, pendingScrollToBottomRef);
 
     // Get folder name from current page (display-only: strip the on-disk ordering prefix)
     const selectedPage = getSelectedScriptFolder(props.notebookScripts);
@@ -1078,159 +986,61 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         onRerun: handleRerunEntry,
         onAcceptDiff: handleAcceptDiff,
         onRejectDiff: handleRejectDiff,
-        previewHints: previewHintsRef.current,
-        onHeightMeasured: handleHeightMeasured,
-        onFormattedText: handleFormattedText,
-        topPadding: feedTopPadding,
-        heightsVersion,
-    }), [entries, props.notebookScripts.scripts, props.notebookScripts.connectorInfo.icons?.outlines, props.notebookScripts.scriptFocus.fileName, folderName, scriptDebugMode, aiAvailable, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleUseAIContext, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, handleHeightMeasured, handleFormattedText, feedTopPadding, heightsVersion]);
+        previewHints: feedLayout.previewHints,
+        onHeightMeasured: feedLayout.onHeightMeasured,
+        onFormattedText: feedLayout.onFormattedText,
+        topPadding: feedLayout.topPadding,
+        heightsVersion: feedLayout.heightsVersion,
+    }), [entries, props.notebookScripts.scripts, props.notebookScripts.connectorInfo.icons?.outlines, props.notebookScripts.scriptFocus.fileName, folderName, scriptDebugMode, aiAvailable, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleUseAIContext, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, feedLayout.previewHints, feedLayout.onHeightMeasured, feedLayout.onFormattedText, feedLayout.topPadding, feedLayout.heightsVersion]);
 
     return (
         <div
             className={styles.feed_body_container}
             data-tauri-drag-region="deep"
-            style={{ '--feed-scrollbar-inset': `${listScrollbarInset}px` } as React.CSSProperties}
+            style={{ '--feed-scrollbar-inset': `${feedLayout.listScrollbarInset}px` } as React.CSSProperties}
         >
-            <div className={styles.feed_list_container} ref={listContainerRef}>
+            <div className={styles.feed_list_container} ref={feedLayout.listContainerRef}>
                 <List
                     key={props.notebookScripts.scriptFocus.folderName}
-                    listRef={listRef}
+                    listRef={feedLayout.listRef}
                     style={{
-                        width: listWidth,
-                        height: listHeight,
+                        width: feedLayout.listWidth,
+                        height: feedLayout.listHeight,
                         overflowX: 'hidden',
                         scrollbarGutter: 'stable',
-                        '--feed-scrollbar-inset': `${listScrollbarInset}px`,
+                        '--feed-scrollbar-inset': `${feedLayout.listScrollbarInset}px`,
                     } as React.CSSProperties}
                     rowCount={entries.length + 1}
                     overscanCount={OVERSCAN_ROW_COUNT}
                     rowHeight={(rowIndex) => {
                         if (rowIndex < entries.length) {
                             const scriptId = entries[rowIndex].scriptId;
-                            const contentHeight = previewHintsRef.current.get(scriptId)?.height ?? ESTIMATED_ROW_HEIGHT;
-                            return contentHeight + (rowIndex === 0 ? feedTopPadding : 0);
+                            const contentHeight = feedLayout.previewHints.get(scriptId)?.height ?? ESTIMATED_ROW_HEIGHT;
+                            return contentHeight + (rowIndex === 0 ? feedLayout.topPadding : 0);
                         }
-                        return fillerRowHeight + FEED_BOTTOM_PADDING;
+                        return feedLayout.fillerRowHeight + FEED_BOTTOM_PADDING;
                     }}
                     rowComponent={ScriptFeedRow}
                     rowProps={rowProps}
                 />
             </div>
-            <div className={styles.compose_section} ref={composeSectionRef}>
-                <div className={styles.compose_card}>
-                    {inputMode === 1 ? (
-                        // AI mode: an isolated, plugin-free prompt editor (no SQL parsing,
-                        // autocompletion or notebookScripts-state wiring — the text is just a prompt).
-                        <PromptEditor
-                            className={styles.compose_card_body}
-                            autoHeight
-                            placeholder="Show account balance over time as line chart"
-                            initialText={aiPromptTextRef.current}
-                            onChange={(text) => { aiPromptTextRef.current = text; }}
-                            setView={handleComposeView}
-                        />
-                    ) : (
-                        <ScriptEditor
-                            notebookId={props.notebookScripts.notebookId}
-                            scriptKey={getUncommittedScriptData(props.notebookScripts)?.scriptKey ?? 0}
-                            className={styles.compose_card_body}
-                            autoHeight
-                            setView={handleComposeView}
-                        />
-                    )}
-                    <div className={styles.compose_action_bar}>
-                        <div className={styles.compose_mode_group}>
-                            <SegmentedControl
-                                aria-label="Input mode"
-                                size={SegmentedControlSize.Small}
-                                onChange={setInputMode}
-                            >
-                                <SegmentedControl.Button
-                                    leadingVisual={CodeIcon}
-                                    selected={inputMode === 0}
-                                >
-                                    SQL
-                                </SegmentedControl.Button>
-                                <SegmentedControl.Button
-                                    leadingVisual={SparklesFillIcon}
-                                    selected={inputMode === 1}
-                                    disabled={!aiAvailable}
-                                    title={aiAvailable ? 'Ctrl + M to toggle' : 'Configure an AI provider in settings'}
-                                >
-                                    AI
-                                </SegmentedControl.Button>
-                            </SegmentedControl>
-                            {inputMode === COMPOSE_INPUT_MODE_AI && aiContextName != null && (
-                                <button
-                                    type="button"
-                                    className={styles.compose_context_bean}
-                                    title={aiContextName}
-                                    aria-label={`Remove ${aiContextName} AI context`}
-                                    onClick={() => setAIContextScriptKey(null)}
-                                >
-                                    <span className={styles.compose_context_name}>
-                                        <span className={styles.compose_context_name_text}>{aiContextName}</span>
-                                    </span>
-                                    <span className={styles.compose_context_remove} aria-hidden="true">
-                                        <XIcon size={12} />
-                                    </span>
-                                </button>
-                            )}
-                        </div>
-                        <div className={styles.compose_send_group}>
-                            {inputMode === 1 && agentActive ? (
-                                <>
-                                    <StatusIndicator
-                                        className={styles.compose_progress_spinner}
-                                        status={IndicatorStatus.Running}
-                                        width="16px"
-                                        height="16px"
-                                        fill="currentColor"
-                                    />
-                                    <IconButton
-                                        variant={ButtonVariant.Default}
-                                        size={ButtonSize.Small}
-                                        className={styles.compose_send_button}
-                                        aria-label="Stop agent run"
-                                        onClick={() => cancelAgentRun(notebookId)}
-                                    >
-                                        <SquareFillIcon />
-                                    </IconButton>
-                                </>
-                            ) : inputMode === 0 ? (
-                                <ButtonGroup aria-label="Draft actions">
-                                    <IconButton
-                                        variant={ButtonVariant.Default}
-                                        size={ButtonSize.Small}
-                                        aria-label="Save"
-                                        onClick={() => handleSend(false)}
-                                    >
-                                        <ComposeIcon />
-                                    </IconButton>
-                                    <IconButton
-                                        variant={ButtonVariant.Default}
-                                        size={ButtonSize.Small}
-                                        aria-label="Execute"
-                                        disabled={isDisconnected}
-                                        onClick={handleComposeSend}
-                                    >
-                                        <PaperAirplaneIcon />
-                                    </IconButton>
-                                </ButtonGroup>
-                            ) : (
-                                <IconButton
-                                    variant={ButtonVariant.Default}
-                                    size={ButtonSize.Small}
-                                    className={styles.compose_send_button}
-                                    aria-label="Send to AI"
-                                    onClick={handleComposeSend}
-                                >
-                                    <PaperAirplaneIcon />
-                                </IconButton>
-                            )}
-                        </div>
-                    </div>
-                </div>
+            <div className={styles.compose_section} ref={feedLayout.composeSectionRef}>
+                <NotebookFeedComposer
+                    notebookId={notebookId}
+                    scriptKey={getUncommittedScriptData(props.notebookScripts)?.scriptKey ?? 0}
+                    inputMode={inputMode}
+                    setInputMode={setInputMode}
+                    aiAvailable={aiAvailable}
+                    aiContextName={aiContextName}
+                    aiPromptTextRef={aiPromptTextRef}
+                    agentActive={agentActive}
+                    disconnected={isDisconnected}
+                    onClearAIContext={() => setAIContextScriptKey(null)}
+                    onCancelAgentRun={() => cancelAgentRun(notebookId)}
+                    onSave={() => handleSend(false)}
+                    onSend={handleComposeSend}
+                    onEditorView={handleComposeView}
+                />
             </div>
         </div>
     );
