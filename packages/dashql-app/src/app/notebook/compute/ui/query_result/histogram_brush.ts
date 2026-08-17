@@ -39,6 +39,7 @@ export class SettledBrushUpdates<T> {
 interface HistogramBrushOptions {
     xScale: d3.ScaleBand<string>;
     height: number;
+    selection: [number, number] | null;
     onBrushUpdate: (event: d3.D3BrushEvent<unknown>) => void;
     onClear: () => void;
     onBrushingChange?: (isBrushing: boolean) => void;
@@ -50,21 +51,31 @@ export function useHistogramBrush(options: HistogramBrushOptions): {
 } {
     const brushContainer = React.useRef<SVGGElement>(null);
     const brushBehavior = React.useRef<d3.BrushBehavior<unknown> | null>(null);
+    const syncingSelection = React.useRef(false);
     const settledBrushUpdates = React.useRef(new SettledBrushUpdates<d3.D3BrushEvent<unknown>>());
 
     const onBrushUpdateRef = React.useRef(options.onBrushUpdate);
     onBrushUpdateRef.current = options.onBrushUpdate;
 
     const onBrushStart = React.useCallback(() => {
+        if (syncingSelection.current) {
+            return;
+        }
         settledBrushUpdates.current.cancel();
         options.onBrushingChange?.(true);
     }, [options.onBrushingChange]);
 
     const onBrushMove = React.useCallback((event: d3.D3BrushEvent<unknown>) => {
+        if (syncingSelection.current) {
+            return;
+        }
         settledBrushUpdates.current.schedule(event, pending => onBrushUpdateRef.current(pending));
     }, []);
 
     const onBrushEnd = React.useCallback((event: d3.D3BrushEvent<unknown>) => {
+        if (syncingSelection.current) {
+            return;
+        }
         settledBrushUpdates.current.flush(event, options.onBrushUpdate);
         options.onBrushingChange?.(false);
     }, [options.onBrushUpdate, options.onBrushingChange]);
@@ -101,6 +112,26 @@ export function useHistogramBrush(options: HistogramBrushOptions): {
             brushBehavior.current = null;
         };
     }, [options.xScale, options.height]);
+
+    React.useLayoutEffect(() => {
+        const container = brushContainer.current;
+        const brush = brushBehavior.current;
+        if (container == null || brush == null) {
+            return;
+        }
+        const current = d3.brushSelection(container) as [number, number] | null;
+        const next = options.selection;
+        if (current == null ? next == null : next != null && current[0] === next[0] && current[1] === next[1]) {
+            return;
+        }
+        settledBrushUpdates.current.cancel();
+        syncingSelection.current = true;
+        try {
+            d3.select(container).call(brush.move, next);
+        } finally {
+            syncingSelection.current = false;
+        }
+    }, [options.selection, options.xScale, options.height]);
 
     const clearBrush = React.useCallback(() => {
         const container = brushContainer.current;

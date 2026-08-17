@@ -1,7 +1,13 @@
+import * as React from 'react';
+import { act } from 'react';
+import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as d3 from 'd3';
 
 import { SettledBrushUpdates } from './histogram_cell.js';
+import { useHistogramBrush } from './histogram_brush.js';
+
+vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 describe('SettledBrushUpdates', () => {
     afterEach(() => {
@@ -64,5 +70,37 @@ describe('d3 brush geometry', () => {
             expect(rect.getAttribute('width')).toBe('0');
             expect(rect.getAttribute('height')).toBe('0');
         }
+    });
+});
+
+describe('useHistogramBrush', () => {
+    it('clears the rendered brush when the controlled selection is cleared', () => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+        const onBrushUpdate = vi.fn();
+        const xScale = d3.scaleBand<string>().range([0, 100]).domain(['0', '1']);
+
+        function Brush({ selection }: { selection: [number, number] | null }) {
+            const { brushContainer } = useHistogramBrush({
+                xScale,
+                height: 20,
+                selection,
+                onBrushUpdate,
+                onClear: vi.fn(),
+            });
+            return React.createElement('svg', null, React.createElement('g', { ref: brushContainer }));
+        }
+
+        act(() => root.render(React.createElement(Brush, { selection: [10, 30] })));
+        const brushGroup = container.querySelector<SVGGElement>('g')!;
+        expect(d3.brushSelection(brushGroup)).toEqual([10, 30]);
+
+        act(() => root.render(React.createElement(Brush, { selection: null })));
+        expect(d3.brushSelection(brushGroup)).toBeNull();
+        expect(onBrushUpdate).not.toHaveBeenCalled();
+
+        act(() => root.unmount());
+        container.remove();
     });
 });

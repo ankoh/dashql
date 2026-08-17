@@ -144,7 +144,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
 
     // Shared cross-filter controller: selection lives on the computation state and drives
     // a single filterTable. Also owns the guarded filtering effect.
-    const { histogramFilter, mostFrequentValueFilter, requestFilteredColumnAggregation } = useCrossFilters(
+    const { crossFilters, histogramFilter, mostFrequentValueFilter, requestFilteredColumnAggregation } = useCrossFilters(
         computationState,
         dispatchComputation,
         gridLayout,
@@ -339,6 +339,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                         filteredColumnAggregationOutdated: computationState.filteredColumnAggregatesOutdated,
                         tableAggregation: computationState.tableAggregation,
                         filterTableEpoch: computationState.filterTable?.version ?? null,
+                        crossFilters,
                         isVisible: true,
                         rightmostVisibleColumn: gridLayout.columnCount - 1,
                         onRequestFilteredColumnAggregation: requestFilteredColumnAggregation,

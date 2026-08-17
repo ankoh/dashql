@@ -8,6 +8,7 @@ import { RectangleWaveSpinner } from '../../../../../ui/foundations/spinners.js'
 import { BrushingStateCallback, HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentCell, MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { DataTableLayout } from './data_table_layout.js';
+import { CrossFilters, HISTOGRAM_FILTER } from '../../../../../compute/cross_filters.js';
 
 /// ---------------------------------------------------------------------------
 /// Header Plots Cell (row 1)
@@ -25,6 +26,7 @@ export interface HeaderPlotsCellProps {
     filteredColumnAggregationOutdated: boolean[];
     tableAggregation: TableAggregation | null;
     filterTableEpoch: ComputationStateVersion | null;
+    crossFilters: CrossFilters;
     isVisible: boolean;
     rightmostVisibleColumn: number;
     onRequestFilteredColumnAggregation: (columnId: number) => void;
@@ -84,6 +86,10 @@ export function HeaderPlotsCell(props: HeaderPlotsCellProps): React.ReactElement
     // value column of such groups (meta/system columns stay blank).
     const columnGroupId = props.gridLayout.columnGroupByColumnIndex[props.columnIndex];
     const columnGroup = props.columnGroups[columnGroupId] as ColumnGroup | undefined;
+    const crossFilter = props.crossFilters.columnFilters[columnGroupId];
+    const histogramSelection = crossFilter?.type === HISTOGRAM_FILTER
+        ? crossFilter.value.selection
+        : null;
     const isValueColumn = props.gridLayout.isSystemColumn[props.columnIndex] == 0;
     const hasNoSummaryByDesign = isValueColumn && columnGroup?.type == LIST_COLUMN;
 
@@ -154,6 +160,7 @@ export function HeaderPlotsCell(props: HeaderPlotsCellProps): React.ReactElement
                                 filteredColumnAggregation={filteredColumnAggregate}
                                 columnIndex={props.columnIndex}
                                 columnAggregate={columnAggregate.value}
+                                selection={histogramSelection}
                                 onFilter={props.onHistogramFilter}
                                 onBrushingChange={props.onBrushingChange}
                             />

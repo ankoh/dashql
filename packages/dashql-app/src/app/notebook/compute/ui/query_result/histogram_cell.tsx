@@ -24,6 +24,7 @@ interface HistogramCellProps {
     columnIndex: number;
     columnAggregate: OrdinalColumnAggregation;
     filteredColumnAggregation: WithFilterEpoch<ColumnAggregationVariant> | null;
+    selection: [number, number] | null;
     onFilter: HistogramFilterCallback;
     onBrushingChange?: BrushingStateCallback;
 }
@@ -104,9 +105,18 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, null);
     }, [props.tableAggregation, props.columnIndex, props.columnAggregate, props.onFilter]);
 
+    const brushSelection = React.useMemo<[number, number] | null>(() => {
+        if (props.selection == null) {
+            return null;
+        }
+        const step = histXScale.step();
+        return [props.selection[0] * step, props.selection[1] * step];
+    }, [histXScale, props.selection]);
+
     const { brushContainer, clearBrush } = useHistogramBrush({
         xScale: histXScale,
         height,
+        selection: brushSelection,
         onBrushUpdate,
         onClear: clearFilter,
         onBrushingChange: props.onBrushingChange,

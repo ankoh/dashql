@@ -136,6 +136,7 @@ export function ColumnAggregationBar(props: Props): React.ReactElement | null {
                         filteredColumnAggregationOutdated={tableComputation.filteredColumnAggregatesOutdated}
                         tableAggregation={tableComputation.tableAggregation}
                         filterTableEpoch={tableComputation.filterTable?.version ?? null}
+                        crossFilters={controller.crossFilters}
                         isVisible={true}
                         rightmostVisibleColumn={gridLayout.columnCount - 1}
                         onRequestFilteredColumnAggregation={controller.requestFilteredColumnAggregation}
