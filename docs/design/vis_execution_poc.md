@@ -1,10 +1,10 @@
 # VISUALIZE Execution — Proof of Concept
 
-> Historical design record, superseded by the complete-query pipeline. The
+> Historical design record, superseded by complete-query execution. The
 > original POC used frontend source lookup, source-kind dispatch, and notebook
 > script references. Those mechanisms were removed and must not be used as a
 > current implementation guide. The supported architecture executes the
-> complete classical query prefix written before `|> VISUALIZE` with no
+> complete classical query prefix written before ` VISUALIZE` with no
 > frontend substitution.
 
 ## Context
@@ -14,19 +14,19 @@ collected a `VisualizationSpec`, and the C++ side could lift it into Vega-Lite
 JSON via `dashql::visualize::GenerateVegaLiteSpec`, but:
 
 1. The visualization specs are **not serialized** into `AnalyzedScript` (`analyzed_script.fbs`), so the app can't see them.
-2. There is no execution path: when a user sends a visualization pipeline, its raw text is shipped to the backend, which doesn't speak the dialect.
+2. There is no execution path: when a user sends a visualization statement, its raw text is shipped to the backend, which doesn't speak the dialect.
 3. There is no Vega-Lite renderer on the frontend.
 
 The current user-facing form is a complete query followed by the visualization
 operator, for example `select i, i * 2 as v from generate_series(0, 10) as t(i)
-|> visualize using vegalite (...)`. Running it shows the query result in the
+ visualize using vegalite (...)`. Running it shows the query result in the
 existing data table and enables the visualization tab.
 
 Key decisions:
 
 - **Always re-execute the source** in v1; no cache reuse, no refcounted result map yet.
 - **Vega-Lite JSON belongs on the analyzed-script flatbuffer.** The vis analysis is currently omitted entirely; we use this opportunity to wire it through. The TS side reads the spec from there.
-- **Wrap in a new `QueryExecutionState`** for the visualization pipeline's script (so its tabs behave like any other script's).
+- **Wrap in a new `QueryExecutionState`** for the visualization statement's script (so its tabs behave like any other script's).
 - Render with `vega-embed` + `vega-loader-arrow` to bind Apache Arrow results directly.
 - The current execution path has one source shape: the complete classical
   `SELECT` query prefix.
@@ -79,8 +79,8 @@ Key decisions:
 
 ## Historical scope exclusions
 
-- No refcounted result map; no result reuse. Every run of a script containing a visualization pipeline issues a fresh source query.
-- No multi-statement orchestration; we still treat a script as a single execution unit, and v1 assumes a visualization script contains exactly one pipeline ending in VIS_VISUALISE.
+- No refcounted result map; no result reuse. Every run of a script containing a visualization statement issues a fresh source query.
+- No multi-statement orchestration; we still treat a script as a single execution unit, and v1 assumes a visualization script contains exactly one statement ending in VIS_VISUALISE.
 - No edits to ggsql; no grammar changes.
 - No footer-tab change. The third "Visualization" tab is added only to the script *details* panel (per the user's description of "below the result data table").
 
@@ -91,12 +91,12 @@ Key decisions:
    - `bazel test //packages/dashql-app/...` — covers extraction of the complete
      query prefix and annotation decoding.
 2. **Snapshot test** (new): write a fixture containing a self-contained query
-   pipeline and assert that the analyzed flatbuffer contains a
+   statement and assert that the analyzed flatbuffer contains a
    `VisualizationSpec` with a non-empty Vega-Lite spec and the complete query
    AST node.
 3. **Manual end-to-end** (DashQL app dev server):
    - Create a script containing `select i, i * 2 as v from
-     generate_series(0, 10) as t(i) |> visualize using vegalite (mark => line,
+     generate_series(0, 10) as t(i) visualize using vegalite (mark => line,
      x => i, y => v);`. Run it.
    - Verify: data tab shows the same 11-row result; the new Visualization tab is enabled and renders a line chart via vega-embed.
    - Repeat with a CTE, projection, and filter in the query prefix to verify that

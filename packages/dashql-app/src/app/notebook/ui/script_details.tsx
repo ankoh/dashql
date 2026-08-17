@@ -18,7 +18,6 @@ import { ScriptOutputDetails, ScriptDetailsTab } from './script_output_details.j
 import { QueryResultCacheLabel, QueryResultRerunButton } from './query_result_cache_controls.js';
 import {
     ACCEPT_PENDING_DIFF,
-    compileQuery,
     getSelectedScriptFolder,
     getSelectedScriptRef,
     NotebookScripts,
@@ -59,9 +58,7 @@ export interface ScriptDetailsProps {
 
 interface ScriptFormatMenuProps {
     disabled: boolean;
-    canConvertToSQL: boolean;
     onFormat: (mode: dashql.buffers.formatting.FormattingMode) => void;
-    onConvertToSQL: () => void;
 }
 
 const ScriptFormatMenu: React.FC<ScriptFormatMenuProps> = (props) => {
@@ -72,10 +69,6 @@ const ScriptFormatMenu: React.FC<ScriptFormatMenuProps> = (props) => {
         setIsOpen(false);
         props.onFormat(mode);
     }, [props.onFormat]);
-    const convertToSQL = React.useCallback(() => {
-        setIsOpen(false);
-        props.onConvertToSQL();
-    }, [props.onConvertToSQL]);
 
     return (
         <AnchoredOverlay
@@ -115,13 +108,6 @@ const ScriptFormatMenu: React.FC<ScriptFormatMenuProps> = (props) => {
                         onClick={() => selectFormat(dashql.buffers.formatting.FormattingMode.COMPACT)}
                     >
                         <ActionList.ItemText>Format Compact</ActionList.ItemText>
-                    </ActionList.ListItem>
-                    <ActionList.ListItem
-                        className={styles.format_menu_item}
-                        disabled={!props.canConvertToSQL}
-                        onClick={convertToSQL}
-                    >
-                        <ActionList.ItemText>Convert to SQL</ActionList.ItemText>
                     </ActionList.ListItem>
                 </ActionList.List>
             </div>
@@ -281,37 +267,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         }
     }, [previewFormattedScript, scriptData]);
 
-    const handleConvertToSQL = React.useCallback(() => {
-        if (scriptData == null) return;
-        let compiledScript: dashql.DashQLScript | null = null;
-        let formattedScript: dashql.DashQLScript | null = null;
-        try {
-            const sql = compileQuery(scriptData, logger);
-            compiledScript = props.notebookScripts.instance.createScript(props.notebookScripts.connectionCatalog);
-            compiledScript.insertTextAt(0, sql);
-            const config = new dashql.buffers.formatting.FormattingConfigT(
-                dashql.buffers.formatting.FormattingDialect.HYPER,
-                dashql.buffers.formatting.FormattingMode.PRETTY,
-                80,
-                4,
-            );
-            formattedScript = compiledScript.format(config, null);
-            compiledScript.ptr.destroy();
-            compiledScript = null;
-            previewFormattedScript(formattedScript);
-            formattedScript = null;
-        } catch {
-            compiledScript?.ptr.destroy();
-            formattedScript?.ptr.destroy();
-        }
-    }, [
-        logger,
-        previewFormattedScript,
-        props.notebookScripts.connectionCatalog,
-        props.notebookScripts.instance,
-        scriptData,
-    ]);
-
     const handleFormatAccept = React.useCallback(() => {
         if (editorView == null || savedEditorStateRef.current == null || formattedTextRef.current == null) return;
 
@@ -361,14 +316,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     // too, mirroring the feed's status bar. Both drive the editor-effect accept/reject path, which
     // round-trips through UPDATE_FROM_PROCESSOR to clear the pending diff.
     const hasPendingDiff = scriptData?.pendingDiff != null;
-    let canConvertToSQL = false;
-    try {
-        const parsed = scriptData?.scriptAnalysis.buffers.parsed?.read() ?? null;
-        canConvertToSQL = parsed != null &&
-            (parsed.featureFlags() & dashql.buffers.parser.ParsedScriptFeature.RELATIONAL_PIPE) !== 0;
-    } catch {
-        canConvertToSQL = false;
-    }
     const handleAcceptDiff = React.useCallback(() => {
         if (editorView != null) {
             acceptPendingDiff(editorView);
@@ -550,9 +497,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                                     />
                                     <ScriptFormatMenu
                                         disabled={formatPending || hasPendingDiff}
-                                        canConvertToSQL={canConvertToSQL}
                                         onFormat={handleFormat}
-                                        onConvertToSQL={handleConvertToSQL}
                                     />
                                     <IconButton
                                         className={styles.entry_card_collapse_button}

@@ -26,7 +26,7 @@ parser-snapshots:
 
   - name: vis_statement_table_source
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (mark => bar);
+      SELECT * FROM sales VISUALIZE USING vegalite (mark => bar);
     expected:
       statements:
         - type: VIS_VISUALISE
@@ -85,7 +85,7 @@ parser-snapshots:
 
   - name: vis_statement_qualified_table_source
     input: |-
-      SELECT * FROM warehouse.public.sales |> VISUALIZE USING vegalite (mark => point);
+      SELECT * FROM warehouse.public.sales VISUALIZE USING vegalite (mark => point);
     expected:
       statements:
         - type: VIS_VISUALISE
@@ -148,7 +148,7 @@ parser-snapshots:
 
   - name: vis_statement_select_source
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (mark => line);
+      SELECT * FROM sales VISUALIZE USING vegalite (mark => line);
     expected:
       statements:
         - type: VIS_VISUALISE
@@ -207,7 +207,7 @@ parser-snapshots:
 
   - name: vis_statement_multi_spec_keys
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (mark => line, width => 800, height => 400);
+      SELECT * FROM sales VISUALIZE USING vegalite (mark => line, width => 800, height => 400);
     expected:
       statements:
         - type: VIS_VISUALISE
@@ -272,7 +272,7 @@ parser-snapshots:
 
   - name: vis_statement_encoding_single_channel
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => bar,
         encoding => (
           x => (field => category, type => nominal)
@@ -354,16 +354,16 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [49,50]
-        - text: [64,65]
-        - text: [80,81]
-        - text: [126,127]
-        - text: [130,131]
+        - text: [46,47]
+        - text: [61,62]
+        - text: [77,78]
+        - text: [123,124]
+        - text: [127,128]
       comments: []
 
   - name: vis_statement_encoding_two_channels
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => line,
         encoding => (
           x => (field => date, type => temporal),
@@ -464,17 +464,17 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [49,50]
-        - text: [65,66]
-        - text: [81,82]
-        - text: [125,126]
-        - text: [175,176]
-        - text: [179,180]
+        - text: [46,47]
+        - text: [62,63]
+        - text: [78,79]
+        - text: [122,123]
+        - text: [172,173]
+        - text: [176,177]
       comments: []
 
   - name: vis_statement_encoding_with_scale
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         encoding => (
           x => (field => time, type => temporal, scale => (domain => [0, 100]))
         )
@@ -567,15 +567,15 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [49,50]
-        - text: [65,66]
-        - text: [139,140]
-        - text: [143,144]
+        - text: [46,47]
+        - text: [62,63]
+        - text: [136,137]
+        - text: [140,141]
       comments: []
 
   - name: vis_statement_encoding_with_axis
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         encoding => (
           x => (field => date, type => temporal, axis => (format => '%Y', grid => false))
         )
@@ -662,15 +662,15 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [49,50]
-        - text: [65,66]
-        - text: [149,150]
-        - text: [153,154]
+        - text: [46,47]
+        - text: [62,63]
+        - text: [146,147]
+        - text: [150,151]
       comments: []
 
   - name: vis_statement_encoding_with_legend
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         encoding => (
           color => (field => region, type => nominal, legend => (title => 'Region', orient => 'right'))
         )
@@ -757,15 +757,15 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [49,50]
-        - text: [65,66]
-        - text: [163,164]
-        - text: [167,168]
+        - text: [46,47]
+        - text: [62,63]
+        - text: [160,161]
+        - text: [164,165]
       comments: []
 
   - name: vis_statement_scale_full
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         encoding => (
           x => (
             field => price,
@@ -881,25 +881,25 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [49,50]
-        - text: [65,66]
-        - text: [76,77]
-        - text: [98,99]
-        - text: [126,127]
-        - text: [143,144]
-        - text: [164,165]
-        - text: [193,194]
-        - text: [215,216]
-        - text: [238,239]
-        - text: [260,261]
-        - text: [268,269]
-        - text: [274,275]
-        - text: [278,279]
+        - text: [46,47]
+        - text: [62,63]
+        - text: [73,74]
+        - text: [95,96]
+        - text: [123,124]
+        - text: [140,141]
+        - text: [161,162]
+        - text: [190,191]
+        - text: [212,213]
+        - text: [235,236]
+        - text: [257,258]
+        - text: [265,266]
+        - text: [271,272]
+        - text: [275,276]
       comments: []
 
   - name: vis_statement_encoding_shorthand_value
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         encoding => (
           x => date,
           y => revenue
@@ -979,16 +979,16 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [49,50]
-        - text: [65,66]
-        - text: [80,81]
-        - text: [97,98]
-        - text: [101,102]
+        - text: [46,47]
+        - text: [62,63]
+        - text: [77,78]
+        - text: [94,95]
+        - text: [98,99]
       comments: []
 
   - name: vis_statement_encoding_color_channel
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => point,
         encoding => (
           x => (field => date, type => temporal),
@@ -1108,18 +1108,18 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [49,50]
-        - text: [66,67]
-        - text: [82,83]
-        - text: [126,127]
-        - text: [177,178]
-        - text: [225,226]
-        - text: [229,230]
+        - text: [46,47]
+        - text: [63,64]
+        - text: [79,80]
+        - text: [123,124]
+        - text: [174,175]
+        - text: [222,223]
+        - text: [226,227]
       comments: []
 
   - name: vis_statement_mark_def_simple
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => (type => bar, filled => true, opacity => 0.8)
       );
     expected:
@@ -1186,13 +1186,13 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [49,50]
-        - text: [105,106]
+        - text: [46,47]
+        - text: [102,103]
       comments: []
 
   - name: vis_statement_mark_def_point_toggle
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => (type => line, point => true)
       );
     expected:
@@ -1256,13 +1256,13 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [49,50]
-        - text: [89,90]
+        - text: [46,47]
+        - text: [86,87]
       comments: []
 
   - name: vis_statement_mark_def_nested_overlay
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => (type => line, point => (filled => false, fill => 'white'))
       );
     expected:
@@ -1333,13 +1333,13 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [49,50]
-        - text: [119,120]
+        - text: [46,47]
+        - text: [116,117]
       comments: []
 
   - name: vis_statement_mark_def_broad
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => (
           type => area,
           line => (stroke => 'red', stroke_width => 2),
@@ -1446,22 +1446,22 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [49,50]
-        - text: [61,62]
-        - text: [79,80]
-        - text: [129,130]
-        - text: [149,150]
-        - text: [175,176]
-        - text: [202,203]
-        - text: [233,234]
-        - text: [253,254]
-        - text: [273,274]
-        - text: [277,278]
+        - text: [46,47]
+        - text: [58,59]
+        - text: [76,77]
+        - text: [126,127]
+        - text: [146,147]
+        - text: [172,173]
+        - text: [199,200]
+        - text: [230,231]
+        - text: [250,251]
+        - text: [270,271]
+        - text: [274,275]
       comments: []
 
   - name: vis_statement_array_value
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         encoding => (
           x => (scale => (domain => [0, 50, 100]))
         )
@@ -1542,15 +1542,15 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [49,50]
-        - text: [65,66]
-        - text: [110,111]
-        - text: [114,115]
+        - text: [46,47]
+        - text: [62,63]
+        - text: [107,108]
+        - text: [111,112]
       comments: []
 
   - name: vis_statement_numeric_values
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (width => 800, height => 400, padding => 20);
+      SELECT * FROM sales VISUALIZE USING vegalite (width => 800, height => 400, padding => 20);
     expected:
       statements:
         - type: VIS_VISUALISE
@@ -1614,7 +1614,7 @@ parser-snapshots:
 
   - name: vis_statement_full_pipeline
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => line,
         encoding => (
           x => (field => date, type => temporal, axis => (format => '%b %Y')),
@@ -1767,21 +1767,21 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [49,50]
-        - text: [65,66]
-        - text: [81,82]
-        - text: [154,155]
-        - text: [230,231]
-        - text: [309,310]
-        - text: [314,315]
-        - text: [330,331]
-        - text: [347,348]
-        - text: [378,379]
+        - text: [46,47]
+        - text: [62,63]
+        - text: [78,79]
+        - text: [151,152]
+        - text: [227,228]
+        - text: [306,307]
+        - text: [311,312]
+        - text: [327,328]
+        - text: [344,345]
+        - text: [375,376]
       comments: []
 
   - name: vis_statement_trailing_comma_spec
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (mark => line, width => 800,);
+      SELECT * FROM sales VISUALIZE USING vegalite (mark => line, width => 800,);
     expected:
       statements:
         - type: VIS_VISUALISE
@@ -1843,7 +1843,7 @@ parser-snapshots:
 
   - name: vis_statement_trailing_comma_encoding
     input: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => bar,
         encoding => (
           x => (field => date, type => temporal,),
@@ -1940,12 +1940,12 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [49,50]
-        - text: [64,65]
-        - text: [80,81]
-        - text: [125,126]
-        - text: [155,156]
-        - text: [160,161]
+        - text: [46,47]
+        - text: [61,62]
+        - text: [77,78]
+        - text: [122,123]
+        - text: [152,153]
+        - text: [157,158]
       comments: []
 
   - name: vis_statement_keyword_collision_select
@@ -2130,7 +2130,7 @@ parser-snapshots:
 
   - name: vis_statement_umap_minimal
     input: |-
-      SELECT * FROM embeddings |> VISUALIZE USING umap (vector => embedding);
+      SELECT * FROM embeddings VISUALIZE USING umap (vector => embedding);
     expected:
       statements:
         - type: VIS_VISUALISE
@@ -2195,7 +2195,7 @@ parser-snapshots:
 
   - name: vis_statement_umap_category_label
     input: |-
-      SELECT * FROM embeddings |> VISUALIZE USING umap (
+      SELECT * FROM embeddings VISUALIZE USING umap (
         vector => embedding,
         category => cluster_id,
         label => name
@@ -2280,15 +2280,15 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [50,51]
-        - text: [73,74]
-        - text: [99,100]
-        - text: [115,116]
+        - text: [47,48]
+        - text: [70,71]
+        - text: [96,97]
+        - text: [112,113]
       comments: []
 
   - name: vis_statement_umap_projection
     input: |-
-      SELECT * FROM embeddings |> VISUALIZE USING umap (
+      SELECT * FROM embeddings VISUALIZE USING umap (
         vector => embedding,
         category => cluster_id,
         neighbors => 15,
@@ -2374,17 +2374,17 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [50,51]
-        - text: [73,74]
-        - text: [99,100]
-        - text: [118,119]
-        - text: [137,138]
-        - text: [156,157]
+        - text: [47,48]
+        - text: [70,71]
+        - text: [96,97]
+        - text: [115,116]
+        - text: [134,135]
+        - text: [153,154]
       comments: []
 
   - name: vis_statement_umap_select_source
     input: |-
-      SELECT embedding FROM embeddings |> VISUALIZE USING umap (vector => embedding);
+      SELECT embedding FROM embeddings VISUALIZE USING umap (vector => embedding);
     expected:
       statements:
         - type: VIS_VISUALISE

@@ -7,19 +7,19 @@ parser-snapshots:
       VISUALIZE;
   - name: vis_statement_table_source
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (mark => bar);
+      SELECT * FROM sales VISUALIZE USING vegalite (mark => bar);
   - name: vis_statement_qualified_table_source
     input: |
-      SELECT * FROM warehouse.public.sales |> VISUALIZE USING vegalite (mark => point);
+      SELECT * FROM warehouse.public.sales VISUALIZE USING vegalite (mark => point);
   - name: vis_statement_select_source
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (mark => line);
+      SELECT * FROM sales VISUALIZE USING vegalite (mark => line);
   - name: vis_statement_multi_spec_keys
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (mark => line, width => 800, height => 400);
+      SELECT * FROM sales VISUALIZE USING vegalite (mark => line, width => 800, height => 400);
   - name: vis_statement_encoding_single_channel
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => bar,
         encoding => (
           x => (field => category, type => nominal)
@@ -27,7 +27,7 @@ parser-snapshots:
       );
   - name: vis_statement_encoding_two_channels
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => line,
         encoding => (
           x => (field => date, type => temporal),
@@ -36,28 +36,28 @@ parser-snapshots:
       );
   - name: vis_statement_encoding_with_scale
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         encoding => (
           x => (field => time, type => temporal, scale => (domain => [0, 100]))
         )
       );
   - name: vis_statement_encoding_with_axis
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         encoding => (
           x => (field => date, type => temporal, axis => (format => '%Y', grid => false))
         )
       );
   - name: vis_statement_encoding_with_legend
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         encoding => (
           color => (field => region, type => nominal, legend => (title => 'Region', orient => 'right'))
         )
       );
   - name: vis_statement_scale_full
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         encoding => (
           x => (
             field => price,
@@ -74,7 +74,7 @@ parser-snapshots:
       );
   - name: vis_statement_encoding_shorthand_value
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         encoding => (
           x => date,
           y => revenue
@@ -82,7 +82,7 @@ parser-snapshots:
       );
   - name: vis_statement_encoding_color_channel
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => point,
         encoding => (
           x => (field => date, type => temporal),
@@ -92,22 +92,22 @@ parser-snapshots:
       );
   - name: vis_statement_mark_def_simple
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => (type => bar, filled => true, opacity => 0.8)
       );
   - name: vis_statement_mark_def_point_toggle
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => (type => line, point => true)
       );
   - name: vis_statement_mark_def_nested_overlay
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => (type => line, point => (filled => false, fill => 'white'))
       );
   - name: vis_statement_mark_def_broad
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => (
           type => area,
           line => (stroke => 'red', stroke_width => 2),
@@ -121,17 +121,17 @@ parser-snapshots:
       );
   - name: vis_statement_array_value
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         encoding => (
           x => (scale => (domain => [0, 50, 100]))
         )
       );
   - name: vis_statement_numeric_values
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (width => 800, height => 400, padding => 20);
+      SELECT * FROM sales VISUALIZE USING vegalite (width => 800, height => 400, padding => 20);
   - name: vis_statement_full_pipeline
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => line,
         encoding => (
           x => (field => date, type => temporal, axis => (format => '%b %Y')),
@@ -144,10 +144,10 @@ parser-snapshots:
       );
   - name: vis_statement_trailing_comma_spec
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (mark => line, width => 800,);
+      SELECT * FROM sales VISUALIZE USING vegalite (mark => line, width => 800,);
   - name: vis_statement_trailing_comma_encoding
     input: |
-      SELECT * FROM sales |> VISUALIZE USING vegalite (
+      SELECT * FROM sales VISUALIZE USING vegalite (
         mark => bar,
         encoding => (
           x => (field => date, type => temporal,),
@@ -162,17 +162,17 @@ parser-snapshots:
       SELECT mark, encoding, field, axis, legend FROM t;
   - name: vis_statement_umap_minimal
     input: |
-      SELECT * FROM embeddings |> VISUALIZE USING umap (vector => embedding);
+      SELECT * FROM embeddings VISUALIZE USING umap (vector => embedding);
   - name: vis_statement_umap_category_label
     input: |
-      SELECT * FROM embeddings |> VISUALIZE USING umap (
+      SELECT * FROM embeddings VISUALIZE USING umap (
         vector => embedding,
         category => cluster_id,
         label => name
       );
   - name: vis_statement_umap_projection
     input: |
-      SELECT * FROM embeddings |> VISUALIZE USING umap (
+      SELECT * FROM embeddings VISUALIZE USING umap (
         vector => embedding,
         category => cluster_id,
         neighbors => 15,
@@ -181,7 +181,7 @@ parser-snapshots:
       );
   - name: vis_statement_umap_select_source
     input: |
-      SELECT embedding FROM embeddings |> VISUALIZE USING umap (vector => embedding);
+      SELECT embedding FROM embeddings VISUALIZE USING umap (vector => embedding);
   - name: vis_statement_umap_keywords_as_columns
     input: |
       SELECT vector, category, neighbors, min_dist, metric, umap FROM t;

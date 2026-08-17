@@ -857,11 +857,10 @@ ShellOperation ShellSession::StartQuery(std::string_view query) {
     script.InsertTextAt(0, query);
     script.Parse();
     const auto& parsed = script.GetParsedScript();
-    constexpr auto extensions = static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::RELATIONAL_PIPE) |
-                                static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE);
+    constexpr auto extensions = static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE);
     if (parsed && (parsed->feature_flags & extensions) != 0) {
         return {ShellStatus::kInvalidArgument,
-                "DashQL pipe and VISUALIZE syntax is not executable in the shell"};
+                "DashQL VISUALIZE syntax is not executable in the shell"};
     }
 
     outgoing_effect_.reset();

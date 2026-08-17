@@ -1,70 +1,5 @@
 completion-snapshots:
 
-  - name: vis_incomplete_pipe_operator
-    catalog:
-      script:
-        input: create table sales(revenue int, region text);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: sales
-            text: "create tab..gion text)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: region
-                text: "region text"
-              - catalog-id: "256.65536.4294967296.1"
-                name: revenue
-                text: "revenue int"
-        errors: []
-    editor:
-      input: 'select * from sales |'
-      catalog-id: 2
-      errors: []
-    cursor:
-      search:
-        text: '|'
-        index: 1
-    completions:
-      limit: 3
-      strategy: DEFAULT
-      entries: []
-      text: "|"
-
-  - name: vis_complete_pipe_operator
-    catalog:
-      script:
-        input: create table sales(revenue int, region text);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: sales
-            text: "create tab..gion text)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: region
-                text: "region text"
-              - catalog-id: "256.65536.4294967296.1"
-                name: revenue
-                text: "revenue int"
-        errors: []
-    editor:
-      input: 'select * from sales |>'
-      catalog-id: 2
-      errors: []
-      table-refs:
-        - type: name/unresolved
-          text: "sales"
-    cursor:
-      search:
-        text: '|>'
-        index: 2
-    completions:
-      limit: 3
-      strategy: DEFAULT
-      entries: []
-      text: "|>"
-
   - name: vis_renderer_prefix
     catalog:
       script:
@@ -83,12 +18,9 @@ completion-snapshots:
                 text: "revenue int"
         errors: []
     editor:
-      input: select * from sales |> visualize using veg
+      input: select * from sales visualize using veg
       catalog-id: 2
       errors: []
-      table-refs:
-        - type: name/unresolved
-          text: "sales"
     cursor:
       search:
         text: veg
@@ -97,14 +29,8 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
-        - score: 55
-          value: vegalite
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "veg"
-          location-qualified: "veg"
-          objects: []
         - score: 0
-          value: umap
+          value: sample
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
           location: "veg"
           location-qualified: "veg"
@@ -129,12 +55,9 @@ completion-snapshots:
                 text: "revenue int"
         errors: []
     editor:
-      input: 'select * from sales |> visualize using '
+      input: 'select * from sales visualize using '
       catalog-id: 2
       errors: []
-      table-refs:
-        - type: name/unresolved
-          text: "sales"
     cursor:
       search:
         text: 'using '
@@ -144,13 +67,7 @@ completion-snapshots:
       strategy: DEFAULT
       entries:
         - score: 0
-          value: umap
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
-          location: ""
-          location-qualified: ""
-          objects: []
-        - score: 0
-          value: vegalite
+          value: sample
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
           location: ""
           location-qualified: ""
@@ -160,7 +77,7 @@ completion-snapshots:
   - name: vis_spec_key_m
     catalog: {}
     editor:
-      input: select * from sales |> visualize using vegalite (m
+      input: select * from sales visualize using vegalite (m
       catalog-id: 1
       errors: []
       table-refs:
@@ -200,7 +117,7 @@ completion-snapshots:
   - name: vis_spec_key_enc
     catalog: {}
     editor:
-      input: select * from sales |> visualize using vegalite (enc
+      input: select * from sales visualize using vegalite (enc
       catalog-id: 1
       errors: []
       table-refs:
@@ -240,7 +157,7 @@ completion-snapshots:
   - name: vis_spec_key_w
     catalog: {}
     editor:
-      input: select * from sales |> visualize using vegalite (mark => bar, w
+      input: select * from sales visualize using vegalite (mark => bar, w
       catalog-id: 1
       errors: []
       table-refs:
@@ -280,7 +197,7 @@ completion-snapshots:
   - name: vis_spec_key_h
     catalog: {}
     editor:
-      input: select * from sales |> visualize using vegalite (mark => bar, h
+      input: select * from sales visualize using vegalite (mark => bar, h
       catalog-id: 1
       errors: []
       table-refs:
@@ -320,7 +237,7 @@ completion-snapshots:
   - name: vis_spec_key_t
     catalog: {}
     editor:
-      input: select * from sales |> visualize using vegalite (mark => bar, t
+      input: select * from sales visualize using vegalite (mark => bar, t
       catalog-id: 1
       errors: []
       table-refs:
@@ -361,7 +278,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (mark => bar,
+        select * from sales visualize using vegalite (mark => bar,
       catalog-id: 1
       errors: []
       table-refs:
@@ -380,7 +297,7 @@ completion-snapshots:
   - name: vis_mark_type_li
     catalog: {}
     editor:
-      input: select * from sales |> visualize using vegalite (mark => li
+      input: select * from sales visualize using vegalite (mark => li
       catalog-id: 1
       errors: []
       table-refs:
@@ -417,7 +334,7 @@ completion-snapshots:
   - name: vis_mark_type_b
     catalog: {}
     editor:
-      input: select * from sales |> visualize using vegalite (mark => b
+      input: select * from sales visualize using vegalite (mark => b
       catalog-id: 1
       errors: []
       table-refs:
@@ -454,7 +371,7 @@ completion-snapshots:
   - name: vis_mark_type_p
     catalog: {}
     editor:
-      input: select * from sales |> visualize using vegalite (mark => p
+      input: select * from sales visualize using vegalite (mark => p
       catalog-id: 1
       errors: []
       table-refs:
@@ -491,7 +408,7 @@ completion-snapshots:
   - name: vis_mark_type_ar
     catalog: {}
     editor:
-      input: select * from sales |> visualize using vegalite (mark => ar
+      input: select * from sales visualize using vegalite (mark => ar
       catalog-id: 1
       errors: []
       table-refs:
@@ -528,7 +445,7 @@ completion-snapshots:
   - name: vis_arrow_before
     catalog: {}
     editor:
-      input: select * from sales |> visualize using vegalite (mark
+      input: select * from sales visualize using vegalite (mark
       catalog-id: 1
       errors: []
       table-refs:
@@ -568,7 +485,7 @@ completion-snapshots:
   - name: vis_arrow_at_equals
     catalog: {}
     editor:
-      input: select * from sales |> visualize using vegalite (mark =
+      input: select * from sales visualize using vegalite (mark =
       catalog-id: 1
       errors: []
       table-refs:
@@ -587,7 +504,7 @@ completion-snapshots:
   - name: vis_arrow_after
     catalog: {}
     editor:
-      input: select * from sales |> visualize using vegalite (mark => l
+      input: select * from sales visualize using vegalite (mark => l
       catalog-id: 1
       errors: []
       table-refs:
@@ -625,7 +542,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           mark => bar,
           encoding => (x
       catalog-id: 1
@@ -668,7 +585,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           mark => bar,
           encoding => (co
       catalog-id: 1
@@ -711,7 +628,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           mark => bar,
           encoding => (
             x => date,
@@ -741,7 +658,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           mark => bar,
           encoding => (
             x => date,
@@ -786,7 +703,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           mark => point,
           encoding => (sh
       catalog-id: 1
@@ -829,7 +746,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             x => (f
       catalog-id: 1
@@ -872,7 +789,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             x => (field => date, ty
       catalog-id: 1
@@ -915,7 +832,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             x => (field => date, type => temporal, sc
       catalog-id: 1
@@ -958,7 +875,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             y => (field => revenue, ag
       catalog-id: 1
@@ -1001,7 +918,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             x => (field => date, type => temporal, ax
       catalog-id: 1
@@ -1044,7 +961,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             color => (field => region, type => nominal, le
       catalog-id: 1
@@ -1060,21 +977,21 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
-        - score: 59
+        - score: 60
           value: select
-          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "select"
           location-qualified: "select"
           objects: []
-        - score: 2
-          value: set
-          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+        - score: 0
+          value: create
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_INCOMPATIBLE]
           location: "select"
           location-qualified: "select"
           objects: []
-        - score: 2
-          value: with
-          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+        - score: 0
+          value: explain
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_INCOMPATIBLE]
           location: "select"
           location-qualified: "select"
           objects: []
@@ -1084,7 +1001,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             x => (field => date, type => te
       catalog-id: 1
@@ -1124,7 +1041,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             color => (field => region, type => no
       catalog-id: 1
@@ -1164,7 +1081,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             y => (field => amount, type => qu
       catalog-id: 1
@@ -1204,7 +1121,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             x => (scale => (do
       catalog-id: 1
@@ -1247,7 +1164,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             x => (scale => (ty
       catalog-id: 1
@@ -1290,7 +1207,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             x => (scale => (type => lo
       catalog-id: 1
@@ -1330,7 +1247,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             x => (scale => (type => log, ni
       catalog-id: 1
@@ -1373,7 +1290,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             y => (scale => (ze
       catalog-id: 1
@@ -1417,7 +1334,7 @@ completion-snapshots:
     editor:
       input: |-
         create table sales(revenue int, region text, sale_date date);
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             x => sal
       catalog-id: 1
@@ -1490,7 +1407,7 @@ completion-snapshots:
     editor:
       input: |-
         create table sales(revenue int, region text, sale_date date);
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             y => (field => rev
       catalog-id: 1
@@ -1555,7 +1472,7 @@ completion-snapshots:
     editor:
       input: |-
         create table metrics(cpu_usage float, mem_usage float, disk_io float, timestamp date);
-        select * from metrics |> visualize using vegalite (
+        select * from metrics visualize using vegalite (
           encoding => (
             x => (field => ti
       catalog-id: 1
@@ -1615,7 +1532,7 @@ completion-snapshots:
     editor:
       input: |-
         create table sales(revenue int, region text, sale_date date);
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             x => sale_date,
             y => rev
@@ -1685,7 +1602,7 @@ completion-snapshots:
           sum(raw_amount) as chart_total
         from sales
         group by raw_category
-        |> visualize using vegalite (
+        visualize using vegalite (
           encoding => (
             x => (field => chart_c, type => nominal),
             y => (field => chart_total, type => quantitative)
@@ -1783,7 +1700,7 @@ completion-snapshots:
           sum(raw_amount) as chart_total
         from sales
         group by raw_category
-        |> visualize using vegalite (
+        visualize using vegalite (
           encoding => (
             x => chart_category,
             y => chart_t
@@ -1875,7 +1792,7 @@ completion-snapshots:
     editor:
       input: |-
         select raw_category as chart_category from sales
-        |> visualize using vegalite (
+        visualize using vegalite (
           title => chart_c,
           encoding => (x => chart_category)
         )
@@ -1948,7 +1865,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             x => (axis => (fo
       catalog-id: 1
@@ -1991,7 +1908,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             x => (axis => (gr
       catalog-id: 1
@@ -2034,7 +1951,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             x => (axis => (la
       catalog-id: 1
@@ -2077,7 +1994,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             color => (legend => (or
       catalog-id: 1
@@ -2120,7 +2037,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: |-
-        select * from sales |> visualize using vegalite (
+        select * from sales visualize using vegalite (
           encoding => (
             color => (legend => (ti
       catalog-id: 1
@@ -2165,7 +2082,7 @@ completion-snapshots:
       input: |-
         create table sales(revenue int, region text);
         select * from sales;
-        select * from sales |> visualize using vegalite (m
+        select * from sales visualize using vegalite (m
       catalog-id: 1
       tables:
         - catalog-id: "256.65536.4294967296"
@@ -2237,7 +2154,7 @@ completion-snapshots:
                 text: "revenue int"
         errors: []
     editor:
-      input: select * from warehouse.public.sal |> visualize using vegalite (mark => bar)
+      input: select * from warehouse.public.sal visualize using vegalite (mark => bar)
       catalog-id: 2
       errors: []
       table-refs:

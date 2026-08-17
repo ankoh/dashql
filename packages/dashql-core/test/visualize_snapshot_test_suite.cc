@@ -83,21 +83,19 @@ TEST_P(VisualizeSnapshotTestSuite, Test) {
     }
 }
 
-TEST(VisualizeTest, PipeSource) {
+TEST(VisualizeTest, SelectSource) {
     Catalog catalog;
     Script script{catalog};
     script.InsertTextAt(0, R"SQL(
-FROM sales
-|> WHERE revenue > 0
-|> VISUALIZE USING vegalite (mark => bar)
+SELECT * FROM sales WHERE revenue > 0
+VISUALIZE USING vegalite (mark => bar)
 )SQL");
     script.Analyze();
 
     auto& analyzed = *script.analyzed_script;
     ASSERT_FALSE(analyzed.visualization_specs.IsEmpty());
     auto json = visualize::GenerateVegaLiteSpec(analyzed.visualization_specs[0], analyzed);
-    EXPECT_NE(json.find("select * from (select * from sales) as _dashql_pipe where revenue > 0"),
-              std::string::npos);
+    EXPECT_NE(json.find("SELECT * FROM sales WHERE revenue > 0"), std::string::npos);
     EXPECT_EQ(json.find("visualize"), std::string::npos);
 }
 

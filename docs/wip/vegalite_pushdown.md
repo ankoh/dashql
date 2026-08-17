@@ -4,10 +4,10 @@
 
 DashQL is in a rare position: it owns *both* the SQL semantics and the visualization
 spec semantics for a complete, self-contained
-`<classical SELECT query> |> VISUALIZE USING vegalite (...)` pipeline. Today
+`<classical SELECT query> VISUALIZE USING vegalite (...)` statement. Today
 those two worlds are not wired together on the hot path.
 
-**The inefficiency.** For a cell containing a visualization pipeline, the
+**The inefficiency.** For a cell containing a visualization statement, the
 frontend slices the complete query prefix from the same script and executes it.
 Then `VegaLiteView` marshals the **entire** result table row-by-row into
 `data: { values: rows }`
@@ -29,7 +29,7 @@ via `SQLFrame` (`packages/dashql-app/src/sql/sqlframe_builder.ts`), which compil
 GROUP BY aggregation, filters, ordering, and limit into DuckDB CTEs. The Vega-Lite path
 simply doesn't use it.
 
-**Intended outcome.** A visualization pipeline whose spec declares aggregation/binning/top-N executes
+**Intended outcome.** A visualization statement whose spec declares aggregation/binning/top-N executes
 the reduction in the SQL engine (DuckDB/Hyper/Trino) and hands Vega-Lite a small,
 pre-aggregated table. The declarative Vega-Lite authoring experience is unchanged; the
 computation moves to where the data lives.
@@ -152,7 +152,7 @@ never edits either string.
   Include a query with a CTE, join, filter, ordering, and limit to guard against
   prefix truncation or reconstruction.
 - **End-to-end in the app** — run a notebook with a complete
-  `SELECT ... FROM <relation> |> VISUALIZE USING vegalite (...)` query and an
+  `SELECT ... FROM <relation> VISUALIZE USING vegalite (...)` query and an
   aggregating bar-chart spec; confirm the executed query is the GROUP BY (small result)
   rather than `SELECT *`, and the chart renders identically to the pre-change JS-aggregated
   version. Compare against the current behavior on the same spec.
@@ -166,7 +166,7 @@ never edits either string.
   go through the pushdown-aware spec generation — keep them in one function so they can't
   diverge.
 - **Query-boundary correctness** — source-span extraction must include the full
-  classical query and exclude `|> VISUALIZE`. Snapshot complex prefixes so the
+  classical query and exclude ` VISUALIZE`. Snapshot complex prefixes so the
   wrapper cannot silently truncate a CTE, clause, or nested query.
 - **Auto-title cosmetics** — aggregated axis titles degrade from "Sum of revenue" to
   "sum_revenue"; note as a known follow-up (emit explicit axis/legend titles).

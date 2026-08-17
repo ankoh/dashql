@@ -13,7 +13,6 @@
 #include "dashql/catalog_object.h"
 #include "dashql/external.h"
 #include "dashql/script.h"
-#include "dashql/script_local_relation.h"
 #include "dashql/utils/intrusive_list.h"
 
 namespace dashql {
@@ -202,21 +201,6 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
             std::string_view alias = table_ref.alias.has_value() ? table_ref.alias.value().first.get().text : ref_name;
             register_in_scope(table_ref, alias, ReferencedTable{.source = std::ref(*matched_cte)});
             continue;
-        }
-
-        // Script-local relations are visible only after their defining statement.
-        if (table_name.database_name.get().text.empty() && table_name.schema_name.get().text.empty()) {
-            auto local_it = state.analyzed->script_local_relations_by_name.find(ref_name);
-            if (local_it != state.analyzed->script_local_relations_by_name.end()) {
-                auto& local = state.analyzed->script_local_relations[local_it->second];
-                if (local.statement_id < scope.ast_statement_id) {
-                    std::string_view alias = table_ref.alias.has_value() ? table_ref.alias.value().first.get().text
-                                                                         : ref_name;
-                    auto& resolved = state.analyzed->script_local_resolved_relations[local.resolved_relation_id];
-                    register_in_scope(table_ref, alias, ReferencedTable{.source = std::ref(resolved)});
-                    continue;
-                }
-            }
         }
 
         // Try to resolve as a catalog table in the own script
@@ -502,12 +486,6 @@ void NameResolutionPass::PopulateOutputColumns(AnalyzedScript::NameScope& scope)
 
 void NameResolutionPass::ResolveNames() {
     std::vector<AnalyzedScript::NameScope*> roots{root_scopes.begin(), root_scopes.end()};
-    if (!state.analyzed->script_local_relations.empty()) {
-        std::sort(roots.begin(), roots.end(), [](const auto* left, const auto* right) {
-            return left->ast_node_id > right->ast_node_id;
-        });
-    }
-
     // Pass 1 (bottom-up via post-order DFS): resolve table refs from catalog,
     // resolve column refs locally against those tables, resolve from child scope
     // outputs, then populate this scope's output_columns for its parent.
@@ -566,37 +544,6 @@ uint32_t NameResolutionPass::FindStatementId(uint32_t ast_node_id) const {
         }
     }
     return PROTO_NULL_U32;
-}
-
-void NameResolutionPass::BuildScriptLocalRelations() {
-    auto& relations = state.analyzed->script_local_relations;
-    relations.clear();
-    state.analyzed->script_local_relations_by_name.clear();
-    relations.reserve(state.parsed.statements.size());
-    auto& resolved_relations = state.analyzed->script_local_resolved_relations;
-    resolved_relations.clear();
-    resolved_relations.reserve(state.parsed.statements.size());
-    for (uint32_t statement_id = 0; statement_id < state.parsed.statements.size(); ++statement_id) {
-        auto definition = FindTerminalPipeDefinition(state.parsed, statement_id);
-        if (!definition) continue;
-        auto& alias_node = state.ast[definition->alias_node_id];
-        auto& alias = state.scanned.GetNames().At(alias_node.children_begin_or_value());
-        alias.coarse_analyzer_tags |= buffers::analyzer::NameTag::TABLE_NAME;
-        auto scope_it = state.analyzed->name_scopes_by_root_node.find(definition->pipe_node_id);
-        if (scope_it == state.analyzed->name_scopes_by_root_node.end()) continue;
-        resolved_relations.push_back(ResolvedCTE{.cte_name = alias, .child_scope = &scope_it->second.get()});
-        auto relation_index = relations.size();
-        relations.push_back(ScriptLocalRelation{
-            .relation_name = alias,
-            .statement_id = statement_id,
-            .query_node_id = definition->query_node_id,
-            .pipe_node_id = definition->pipe_node_id,
-            .alias_node_id = definition->alias_node_id,
-            .body_stage_count = definition->body_stage_count,
-            .resolved_relation_id = resolved_relations.size() - 1,
-        });
-        state.analyzed->script_local_relations_by_name.try_emplace(alias.text, relation_index);
-    }
 }
 
 /// Prepare the analysis pass
@@ -793,37 +740,6 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 break;
             }
 
-            case buffers::parser::NodeType::OBJECT_EXT_PIPE_FROM:
-            case buffers::parser::NodeType::OBJECT_EXT_PIPE: {
-                MergeChildStates(node_state, node);
-                auto result_targets = std::move(node_state.result_targets);
-                auto cte_defs = std::move(node_state.ctes);
-                auto& scope = CreateScope(node_state, node_id);
-                scope.result_targets.Append(std::move(result_targets));
-                // Keep the same visibility metadata for SELECT variants handled by this branch.
-                auto [recursive_node] = state.GetAttributes<AttributeKey::SQL_SELECT_WITH_RECURSIVE>(node);
-                scope.ctes_recursive = recursive_node != nullptr;
-                for (auto& cte : cte_defs) {
-                    auto it = state.analyzed->name_scopes_by_root_node.find(cte.select_node_id);
-                    if (it == state.analyzed->name_scopes_by_root_node.end()) continue;
-                    auto& child_scope = it->second.get();
-                    ResolvedCTE def{.cte_name = cte.cte_name, .child_scope = &child_scope};
-                    if (cte.columns_count > 0) {
-                        auto& cols_node = state.ast[cte.columns_node_id];
-                        for (uint16_t ci = 0; ci < cte.columns_count; ++ci) {
-                            auto& col_node = state.ast[cols_node.children_begin_or_value() + ci];
-                            if (col_node.node_type() == buffers::parser::NodeType::NAME) {
-                                def.column_aliases.push_back(
-                                    state.scanned.GetNames().At(col_node.children_begin_or_value()));
-                            }
-                        }
-                    }
-                    scope.cte_definitions.emplace(cte.cte_name.get().text, std::move(def));
-                    scope.cte_definition_nodes.emplace(cte.cte_name.get().text, cte.ast_node_id);
-                }
-                break;
-            }
-
             case buffers::parser::NodeType::OBJECT_VIS_VISUALISE: {
                 MergeChildStates(node_state, node);
                 CreateScope(node_state, node_id);
@@ -969,7 +885,6 @@ void NameResolutionPass::Finish() {
     state.analyzed->name_scopes.ForEach([&](size_t, auto& scope) {
         scope.ast_statement_id = FindStatementId(scope.ast_node_id);
     });
-    BuildScriptLocalRelations();
 
     // Resolve all names
     ResolveNames();

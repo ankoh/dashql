@@ -23,7 +23,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        SELECT * FROM sales |> VISUALIZE USING vegalite (mark => bar);
+        SELECT * FROM sales VISUALIZE USING vegalite (mark => bar);
       catalog-id: 2
       errors: []
       table-refs:
@@ -61,7 +61,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        SELECT * FROM sales |> VISUALIZE USING vegalite (
+        SELECT * FROM sales VISUALIZE USING vegalite (
           mark => (type => line, point => (filled => false, fill => 'white'))
         );
       catalog-id: 2
@@ -110,7 +110,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        SELECT * FROM sales |> VISUALIZE USING vegalite (
+        SELECT * FROM sales VISUALIZE USING vegalite (
           mark => (
             type => area,
             line => (stroke => 'red', stroke_width => 2),
@@ -210,7 +210,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        SELECT * FROM sales |> VISUALIZE USING vegalite (
+        SELECT * FROM sales VISUALIZE USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal)
@@ -263,7 +263,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        SELECT * FROM sales |> VISUALIZE USING vegalite (
+        SELECT * FROM sales VISUALIZE USING vegalite (
           mark => line,
           encoding => (
             x => (field => date, type => temporal),
@@ -325,7 +325,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        SELECT * FROM sales |> VISUALIZE USING vegalite (
+        SELECT * FROM sales VISUALIZE USING vegalite (
           mark => point,
           encoding => (
             x => (field => revenue, type => quantitative, scale => (type => log, zero => false))
@@ -381,7 +381,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        SELECT * FROM sales |> VISUALIZE USING vegalite (
+        SELECT * FROM sales VISUALIZE USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal, axis => (label_angle => -45))
@@ -444,7 +444,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        SELECT * FROM sales |> VISUALIZE USING vegalite (
+        SELECT * FROM sales VISUALIZE USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal),
@@ -515,7 +515,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        SELECT * FROM sales |> VISUALIZE USING vegalite (
+        SELECT * FROM sales VISUALIZE USING vegalite (
           mark => line,
           encoding => (
             x => date,
@@ -575,7 +575,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        SELECT category, revenue FROM sales |> VISUALIZE USING vegalite (
+        SELECT category, revenue FROM sales VISUALIZE USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal),
@@ -627,7 +627,7 @@ analyzer-snapshots:
   - name: vis_no_source
     script:
       input: |
-        SELECT * FROM sales |> VISUALIZE USING vegalite (
+        SELECT * FROM sales VISUALIZE USING vegalite (
           mark => line,
           encoding => (
             x => (field => date, type => temporal)
@@ -678,7 +678,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        SELECT * FROM sales |> VISUALIZE USING vegalite (
+        SELECT * FROM sales VISUALIZE USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal),
@@ -745,7 +745,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        SELECT * FROM sales |> VISUALIZE USING vegalite (
+        SELECT * FROM sales VISUALIZE USING vegalite (
           mark => bar,
           encoding => (
             x => (field => revenue, type => quantitative, bin => true),
@@ -808,7 +808,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        SELECT * FROM sales |> VISUALIZE USING vegalite (
+        SELECT * FROM sales VISUALIZE USING vegalite (
           mark => bar,
           encoding => (
             x => (field => category, type => nominal, sort => 'descending'),

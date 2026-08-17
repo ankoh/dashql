@@ -34,15 +34,6 @@ TEST(ScriptTest, AnalyzeSpecialFunctionArguments) {
 
 TEST(ScriptTest, AnalyzeMalformedQueryWithFunctionArguments) {
     constexpr std::string_view input = R"SQL(
-from analytics.events
-|> extend date_trunc('hour', event_timestamp) as ts_hour
-|> extend (query_plan like '%internal_marker%') as marker
-|> where tenant = 'example/tenant'
-       and event_timestamp >= current_timestamp - interval '30' day
-|> as events;
-
-from analytics.events
-
 with events as (
     select *,
       ,
@@ -57,10 +48,9 @@ with events as (
     where marker
     group by ts_hour
 )
-from aggregates_other
-|> select *
-|> union all (from aggregates_filtered |> select *)
-|> visualize using vegalite (
+select * from aggregates_other
+union all select * from aggregates_filtered
+visualize using vegalite (
     mark => line,
     encoding => (
         x => (field => ts_hour, type => temporal),

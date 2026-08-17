@@ -306,19 +306,19 @@ FmtReg Formatter::FormatVisualize(size_t node_id) {
     auto source_reg = Reg(*source);
     if (source_reg == 0) return FormatUnimplemented(node);
 
-    std::vector<FmtReg> pipe_parts;
-    pipe_parts.reserve(4);
-    pipe_parts.push_back(fmt.Text("|> visualize using "));
+    std::vector<FmtReg> suffix_parts;
+    suffix_parts.reserve(4);
+    suffix_parts.push_back(fmt.Text("visualize using "));
     if (renderer && renderer->node_type() != NodeType::NONE) {
-        pipe_parts.push_back(fmt.Text(scanned.ReadTextAtSymbolSpan(renderer->symbol_span())));
-        pipe_parts.push_back(fmt.Text(" "));
+        suffix_parts.push_back(fmt.Text(scanned.ReadTextAtSymbolSpan(renderer->symbol_span())));
+        suffix_parts.push_back(fmt.Text(" "));
     }
-    pipe_parts.push_back(spec_reg);
-    auto pipe = fmt.Concat(std::move(pipe_parts));
+    suffix_parts.push_back(spec_reg);
+    auto suffix = fmt.Concat(std::move(suffix_parts));
     auto policy = config.mode == buffers::formatting::FormattingMode::INLINE
                       ? FormattingJoinPolicy::BreakOnOverflow
                       : FormattingJoinPolicy::ForceBreak;
-    return fmt.Join(std::vector<FmtReg>{source_reg, pipe}, fmt.Text(" "), fmt.Break(), policy);
+    return fmt.Join(std::vector<FmtReg>{source_reg, suffix}, fmt.Text(" "), fmt.Break(), policy);
 }
 
 }  // namespace dashql

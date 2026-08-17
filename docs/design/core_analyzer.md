@@ -54,7 +54,7 @@ Later passes can depend on results from earlier passes via the shared `Expressio
 The most complex pass. It operates in two stages:
 
 **Stage A — Visit (bottom-up via buffer scan):**
-During the left-to-right scan, the pass collects table references, column references, result targets, CTE definitions, and column definitions. At scope-creating nodes (`SELECT`, pipeline `VISUALISE`, `CREATE TABLE`), it:
+During the left-to-right scan, the pass collects table references, column references, result targets, CTE definitions, and column definitions. At scope-creating nodes (`SELECT`, trailing `VISUALISE`, `CREATE TABLE`), it:
 - Merges child state into a new `NameScope`
 - Registers the scope's CTE definitions
 - Links parent/child scope relationships
@@ -91,7 +91,7 @@ Bottom-up identification of constant expressions:
 
 Processes DashQL visualization AST nodes, extracting:
 - The complete, self-contained classical `SELECT` query on the left side of
-  `<query> |> VISUALIZE USING <renderer> (...)`
+  `<query> VISUALIZE USING <renderer> (...)`
 - Mark types (bar, line, point, etc.)
 - Encoding channels (x, y, color, size, etc.) with their field references
 - Scale, axis, and legend configuration

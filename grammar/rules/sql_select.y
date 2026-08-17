@@ -57,7 +57,6 @@ sql_select_with_parens:
 
 sql_select_no_parens:
     sql_classical_select_no_parens { $$ = std::move($1); }
-  | ext_pipe_query { $$ = std::move($1); }
     ;
 
 sql_classical_select_no_parens:

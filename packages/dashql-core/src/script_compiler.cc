@@ -1,7 +1,5 @@
 #include "dashql/script_compiler.h"
 
-#include <unordered_map>
-
 #include "dashql/formatter/formatter.h"
 #include "dashql/script.h"
 #include "dashql/utils/ast_attributes.h"
@@ -15,11 +13,6 @@ using NodeType = buffers::parser::NodeType;
 using StatementKind = buffers::execution::ScriptCompilationStatementKind;
 
 namespace {
-
-struct LocalDefinition {
-    TerminalPipeDefinition pipe;
-    std::reference_wrapper<RegisteredName> name;
-};
 
 ScriptCompilationError MakeError(ErrorCode code, std::string message, uint32_t statement_id = PROTO_NULL_U32,
                                  uint32_t ast_node_id = PROTO_NULL_U32, std::optional<TextSpan> text_span = {}) {
@@ -107,11 +100,10 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script, const buffers::f
         return result;
     }
 
-    constexpr auto execution_features = static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::RELATIONAL_PIPE) |
-                                        static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE);
+    constexpr auto execution_features = static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE);
     if (!options.allow_extensions && (parsed.feature_flags & execution_features) != 0) {
         result.errors.push_back(MakeError(ErrorCode::EXTENSIONS_DISABLED,
-                                          "DashQL pipe and VISUALIZE syntax is not executable in the shell"));
+                                           "DashQL VISUALIZE syntax is not executable in the shell"));
         return result;
     }
     if ((parsed.feature_flags & execution_features) == 0) {
@@ -121,40 +113,8 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script, const buffers::f
         return result;
     }
 
-    std::vector<LocalDefinition> definitions;
-    definitions.reserve(parsed.statements.size() - 1);
-    std::unordered_map<std::string_view, uint32_t> names;
-    for (uint32_t statement_id = 0; statement_id + 1 < parsed.statements.size(); ++statement_id) {
-        auto definition = FindTerminalPipeDefinition(parsed, statement_id);
-        if (!definition) {
-            auto root_id = parsed.statements[statement_id].root;
-            result.errors.push_back(
-                MakeError(ErrorCode::PREFIX_NOT_LOCAL_RELATION,
-                          "every statement before the final query must end in a top-level |> AS name", statement_id,
-                          root_id, parsed.scanned_script->ResolveTextSpan(parsed.nodes[root_id].symbol_span())));
-            continue;
-        }
-        auto& alias_node = parsed.nodes[definition->alias_node_id];
-        auto& name = parsed.scanned_script->GetNames().At(alias_node.children_begin_or_value());
-        if (auto [_, inserted] = names.emplace(name.text, statement_id); !inserted) {
-            result.errors.push_back(MakeError(ErrorCode::DUPLICATE_LOCAL_RELATION,
-                                              std::string("duplicate script-local relation: ") + std::string(name.text),
-                                              statement_id, definition->alias_node_id,
-                                              parsed.scanned_script->ResolveTextSpan(alias_node.symbol_span())));
-        }
-        definitions.push_back(LocalDefinition{*definition, name});
-    }
-
     auto terminal_statement_id = static_cast<uint32_t>(parsed.statements.size() - 1);
     result.terminal_statement_id = terminal_statement_id;
-    if (FindTerminalPipeDefinition(parsed, terminal_statement_id)) {
-        auto root_id = parsed.statements.back().root;
-        result.errors.push_back(MakeError(ErrorCode::LAST_STATEMENT_IS_LOCAL_RELATION,
-                                          "the final statement must produce a result and cannot end in |> AS name",
-                                          terminal_statement_id, root_id,
-                                          parsed.scanned_script->ResolveTextSpan(parsed.nodes[root_id].symbol_span())));
-        return result;
-    }
 
     auto terminal_sql_node_id = ReadTerminalSqlNode(parsed, terminal_statement_id, result.kind);
     if (!terminal_sql_node_id) {
@@ -171,17 +131,8 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script, const buffers::f
         script.Analyze(false);
     }
 
-    ScriptExecutionPlan plan{.terminal_query_node_id = *terminal_sql_node_id};
-    for (const auto& definition : definitions) {
-        plan.local_relations.push_back(ScriptExecutionLocalRelation{
-            definition.pipe.alias_node_id,
-            definition.pipe.query_node_id,
-            definition.pipe.pipe_node_id,
-            definition.pipe.body_stage_count,
-        });
-    }
     Formatter formatter{parsed};
-    result.sql = formatter.FormatExecutableQuery(plan, config);
+    result.sql = formatter.FormatNodeAt(*terminal_sql_node_id, config);
     if (result.sql.empty()) {
         result.sql.clear();
         result.errors.push_back(MakeError(ErrorCode::FORMAT_ERROR, "could not format the executable query",
@@ -234,14 +185,12 @@ void ScriptCompiler::CompileAndPack(flatbuffers::FlatBufferBuilder& builder, Scr
                                                 parsed.scanned_script->ResolveTextSpan(error.location)));
         }
 
-        constexpr auto execution_features =
-            static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::RELATIONAL_PIPE) |
-            static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE);
+        constexpr auto execution_features = static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE);
         if (compiled.errors.empty() && parsed.statements.empty()) {
             compiled.errors.push_back(MakeError(ErrorCode::EMPTY_SCRIPT, "script has no executable statement"));
         } else if (compiled.errors.empty() && !allow_extensions && (parsed.feature_flags & execution_features) != 0) {
             compiled.errors.push_back(MakeError(ErrorCode::EXTENSIONS_DISABLED,
-                                                "DashQL pipe and VISUALIZE syntax is not executable in the shell"));
+                                                 "DashQL VISUALIZE syntax is not executable in the shell"));
         } else if (compiled.errors.empty() && (parsed.feature_flags & execution_features) == 0) {
             compiled.kind = StatementKind::QUERY;
             compiled.terminal_statement_id = static_cast<uint32_t>(parsed.statements.size() - 1);

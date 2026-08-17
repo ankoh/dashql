@@ -1,4 +1,4 @@
-FROM external(
+SELECT * FROM external(
     s3_location(
         's3://dashql-data/vega-cars/v1/cars.parquet',
         endpoint => 'https://875b6eb3578b597278be32b1d4b3b316.r2.cloudflarestorage.com',
@@ -8,8 +8,7 @@ FROM external(
     ),
     format => 'parquet'
 )
-|> SELECT *
-|> VISUALIZE USING vegalite (
+VISUALIZE USING vegalite (
   mark => point,
   encoding => (
     x => (field => "Year", type => temporal),

@@ -81,7 +81,7 @@ using namespace dashql::parser;
 %token         Op
 %token         FCONST BCONST XCONST
 %token         ICONST PARAM
-%token         TYPECAST DOT DOT_DOT DOT_TRAILING COLON_EQUALS EQUALS_GREATER PIPE_GREATER
+%token         TYPECAST DOT DOT_DOT DOT_TRAILING COLON_EQUALS EQUALS_GREATER
 %token         LESS_EQUALS GREATER_EQUALS NOT_EQUALS
 %token         COMPLETE_HERE
 
@@ -92,6 +92,8 @@ using namespace dashql::parser;
 %token         RAW_CHAR
 
 %token EOF 0
+
+%token<std::string_view> VISUALIZE_LA
 
 /*
  * The grammar thinks these are keywords, but they are not in the kwlist.h

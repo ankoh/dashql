@@ -219,7 +219,6 @@ class AnalyzedScript : public CatalogEntry {
     using Expression = dashql::Expression;
     using ResultTarget = dashql::ResultTarget;
     using CTEDefinition = dashql::CTEDefinition;
-    using ScriptLocalRelation = dashql::ScriptLocalRelation;
     using NameScope = dashql::NameScope;
     using ConstantExpression = dashql::ConstantExpression;
     using VisEncodingChannel = dashql::VisEncodingChannel;
@@ -266,12 +265,6 @@ class AnalyzedScript : public CatalogEntry {
     /// The inferred table schemas indexed by normalized (db, schema, table) name.
     std::unordered_map<CatalogEntry::QualifiedTableName::Key, std::reference_wrapper<InferredTableSchema>, TupleHasher>
         inferred_table_schemas_by_name;
-
-    /// Relations defined by top-level pipelines ending in `|> AS name`.
-    /// Kept after the established analyzer fields so adding this feature does not shift their layout.
-    std::vector<ScriptLocalRelation> script_local_relations;
-    std::unordered_map<std::string_view, size_t> script_local_relations_by_name;
-    std::vector<ResolvedCTE> script_local_resolved_relations;
 
     /// Traverse the name scopes for a given ast node id
     void FollowPathUpwards(uint32_t ast_node_id, std::vector<uint32_t>& ast_node_path,

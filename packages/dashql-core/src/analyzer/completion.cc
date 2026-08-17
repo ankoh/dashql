@@ -301,7 +301,6 @@ bool Completion::IsSymbolKindCompletable(parser::Parser::symbol_kind_type kind) 
         case parser::Parser::symbol_kind_type::S_EQUALS:
         case parser::Parser::symbol_kind_type::S_Op:
         case parser::Parser::symbol_kind_type::S_EQUALS_GREATER:
-        case parser::Parser::symbol_kind_type::S_PIPE_GREATER:
         case parser::Parser::symbol_kind_type::S_LESS_EQUALS:
         case parser::Parser::symbol_kind_type::S_GREATER_EQUALS:
         case parser::Parser::symbol_kind_type::S_NOT_EQUALS:
@@ -863,8 +862,8 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
         auto name = parser::Keyword::GetKeywordName(expected);
         if (name.empty()) continue;
         auto tags = get_score(*target_symbol, expected, name);
-        // A leading FROM is valid only for relational-pipe syntax. Do not surface it as a
-        // proactive standard-SQL suggestion; users can still opt in by typing a matching prefix.
+        // Do not surface a leading FROM as a proactive standard-SQL suggestion; users can still
+        // opt in by typing a matching prefix.
         if (expected == parser::Parser::symbol_kind_type::S_FROM && !inside_select &&
             (tags & buffers::completion::CandidateTag::SUBSTRING_MATCH) == 0) {
             continue;
@@ -1060,7 +1059,7 @@ void Completion::FindCandidatesInScope() {
     if (strategy == buffers::completion::CompletionStrategy::TABLE_REF) {
         // CTE visibility is positional for non-recursive WITH clauses: earlier siblings are
         // visible, while the current CTE and later siblings are not. Recursive WITH removes
-        // both restrictions. Script-local relations similarly become visible after their statement.
+        // both restrictions.
         auto& scanned = *cursor.script.scanned_script;
         for (auto& scope_ref : cursor.name_scopes) {
             auto& scope = scope_ref.get();
@@ -1079,14 +1078,6 @@ void Completion::FindCandidatesInScope() {
             }
         }
 
-        if (cursor.statement_id.has_value()) {
-            for (auto& relation : cursor.script.analyzed_script->script_local_relations) {
-                if (relation.statement_id >= *cursor.statement_id) continue;
-                AddLocalCandidate(relation.relation_name.get().text,
-                                  NameTags{buffers::analyzer::NameTag::TABLE_NAME}, tags, prefix, target_location,
-                                  target_location);
-            }
-        }
         return;
     }
 
@@ -1721,7 +1712,6 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
                 case sx::parser::AttributeKey::SQL_WINDOW_DEF_NAME:
                 case sx::parser::AttributeKey::SQL_CREATE_FUNCTION_NAME:
                 case sx::parser::AttributeKey::SQL_FUNCTION_PARAM_NAME:
-                case sx::parser::AttributeKey::EXT_PIPE_ALIAS:
                     completion->at_definition = true;
                     break;
                 default:

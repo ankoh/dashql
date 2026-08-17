@@ -13,8 +13,8 @@ a `VisualizationSpec` struct. The Vega-Lite generator
 ### Data source
 
 ```sql
-SELECT * FROM sales |> VISUALIZE USING vegalite (mark => bar);
-SELECT category, revenue FROM sales |> VISUALIZE USING vegalite (mark => bar);
+SELECT * FROM sales VISUALIZE USING vegalite (mark => bar);
+SELECT category, revenue FROM sales VISUALIZE USING vegalite (mark => bar);
 ```
 
 The generator preserves the complete classical query prefix under `data.$sql`:
@@ -170,14 +170,14 @@ The `$schema` key is always emitted pointing to Vega-Lite v5.
 ## Reverse: Vega-Lite -> VISUALIZE
 
 The reverse parser (`vegalite_parser.cc`) reads a Vega-Lite JSON string and
-produces a complete query-prefixed `VISUALIZE` pipeline string.
+produces a complete query with a trailing `VISUALIZE` clause.
 
 ### Data source
 
 | Vega-Lite `data` form | VISUALIZE output |
 |-----------------------|------------------|
-| `"data": { "$sql": "SELECT ..." }` | `SELECT ... |> VISUALIZE USING vegalite (...)` |
-| `"data": { "$raw": "SELECT ..." }` | `SELECT ... |> VISUALIZE USING vegalite (...)` |
+| `"data": { "$sql": "SELECT ..." }` | `SELECT ... VISUALIZE USING vegalite (...)` |
+| `"data": { "$raw": "SELECT ..." }` | `SELECT ... VISUALIZE USING vegalite (...)` |
 | No data field | No output; translation fails because a source is required |
 | `"data": { "name": "sales" }` | No output; a complete SQL query is required |
 | `"data": { "url": "..." }` | No output; no SQL relation can be derived |
@@ -185,7 +185,7 @@ produces a complete query-prefixed `VISUALIZE` pipeline string.
 
 `$raw` is a DashQL transcoder convention rather than a standard Vega-Lite data
 form. Like `$sql`, it must contain the complete classical `SELECT` query that
-will appear before `|> VISUALIZE`; it is not a script or relation reference.
+will appear before ` VISUALIZE`; it is not a script or relation reference.
 
 ### Mark
 
@@ -196,7 +196,7 @@ The mark string is emitted directly as a keyword:
 ```
 
 ```sql
-SELECT * FROM sales |> VISUALIZE USING vegalite (mark => bar);
+SELECT * FROM sales VISUALIZE USING vegalite (mark => bar);
 ```
 
 Object-form marks (`{ "mark": { "type": "bar", "opacity": 0.7 } }`) are not
@@ -235,8 +235,8 @@ pairs.
 ## Roundtrip fidelity
 
 The snapshot tests (`snapshots/visualize/basic.yaml`) verify roundtrip
-correctness: parse the complete query-prefixed pipeline -> analyze -> generate
-Vega-Lite -> parse back to the query-prefixed pipeline. The roundtrip is tested
+correctness: parse the complete visualization statement -> analyze -> generate
+Vega-Lite -> parse back to the visualization statement. The roundtrip is tested
 for:
 
 - Basic mark-only specs
@@ -313,7 +313,7 @@ SQL text
 ```
 Vega-Lite JSON string
   -> Parser (vegalite_parser.cc, RapidJSON)
-  -> canonical visualization pipeline string
+  -> canonical visualization statement string
 ```
 
 The reverse path is a direct JSON-to-text translation. It does not go through

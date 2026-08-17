@@ -202,11 +202,11 @@ describe('chooseApplyAction', () => {
         expect(action.type).toBe(CREATE_SCRIPT_WITH_TEXT);
     });
     it('visualize over a SQL script creates a new entry', () => {
-        const action = chooseApplyAction('visualize', { scriptKey: 7, annotations: { visualizeQuery: null } } as any, 'select * from x |> visualize using vegalite ()');
+        const action = chooseApplyAction('visualize', { scriptKey: 7, annotations: { visualizeQuery: null } } as any, 'select * from x visualize using vegalite ()');
         expect(action.type).toBe(CREATE_SCRIPT_WITH_TEXT);
     });
     it('visualize over a VISUALIZE script edits in place', () => {
-        const action = chooseApplyAction('visualize', { scriptKey: 7, annotations: { visualizeQuery: { sql: 's' } } } as any, 'select * from x |> visualize using vegalite ()');
+        const action = chooseApplyAction('visualize', { scriptKey: 7, annotations: { visualizeQuery: { sql: 's' } } } as any, 'select * from x visualize using vegalite ()');
         expect(action.type).toBe(SET_SCRIPT_TEXT);
         expect((action.value as any).scriptKey).toBe(7);
     });
@@ -296,7 +296,7 @@ describe('startAgentRun — visualize path', () => {
         expect(applied[0].type).toBe(CREATE_SCRIPT_WITH_TEXT);
         const text = (applied[0].value as any).text as string;
         expect(text).toContain('select category, amount from sales');
-        expect(text).toContain('|> VISUALIZE USING vegalite');
+        expect(text).toContain('\nVISUALIZE USING vegalite');
         expect(text).toContain('mark => bar');
     });
 
@@ -382,7 +382,7 @@ describe('startAgentRun — context', () => {
     it('editing an existing VISUALIZE reframes as an edit and strips data/$schema from the current chart', async () => {
         // A focused VISUALIZE over the seeded `sales` table becomes the "current chart" in context.
         const { state, focusedKey } = buildNotebookScripts(
-            'SELECT * FROM sales |> VISUALIZE USING vegalite (mark => bar, encoding => (x => (field => category), y => (field => amount)));',
+            'SELECT * FROM sales VISUALIZE USING vegalite (mark => bar, encoding => (x => (field => category), y => (field => amount)));',
         );
         // The edited reply flips the mark to line while keeping the encoding.
         const spec = JSON.stringify({

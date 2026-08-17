@@ -252,7 +252,7 @@ table AnalyzerWarning {}
 /// The kind of source resolved for a VISUALIZE statement
 enum VisSourceKind: uint8 {
     UNRESOLVED = 0,
-    /// `<query> |> visualize ...` — complete input query
+    /// `<query> visualize ...` — complete input query
     INLINE_SELECT = 3,
 }
 
@@ -278,8 +278,6 @@ table VisualizationSpec {
     /// Only populated when `renderer` is `umap`. The 2D projection itself runs
     /// client-side at render time; the analyzer records only column names + projection params.
     umap_spec: string;
-    /// Executable SQL for the source query, with relational pipes lowered.
-    source_sql: string;
 }
 
 /// The confidence of a schema-inference result

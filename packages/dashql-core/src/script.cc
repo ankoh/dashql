@@ -220,10 +220,6 @@ ParsedScript::ParsedScript(std::shared_ptr<ScannedScript> scan, parser::ParseCon
        vis_spec_spans(std::move(ctx.vis_spec_spans)) {
     for (const auto& node : nodes) {
         switch (node.node_type()) {
-            case buffers::parser::NodeType::OBJECT_EXT_PIPE:
-            case buffers::parser::NodeType::OBJECT_EXT_PIPE_FROM:
-                feature_flags |= static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::RELATIONAL_PIPE);
-                break;
             case buffers::parser::NodeType::OBJECT_VIS_VISUALISE:
                 feature_flags |= static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE);
                 break;
@@ -970,19 +966,6 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
         std::vector<flatbuffers::Offset<buffers::analyzer::VisualizationSpec>> spec_offsets;
         spec_offsets.reserve(visualization_specs.GetSize());
         visualization_specs.ForEach([&](size_t, VisualizationSpec& spec) {
-            flatbuffers::Offset<flatbuffers::String> source_sql_ofs;
-            if (spec.source_node_id.has_value() &&
-                (parsed_script->nodes[*spec.source_node_id].node_type() == buffers::parser::NodeType::OBJECT_EXT_PIPE ||
-                 parsed_script->nodes[*spec.source_node_id].node_type() == buffers::parser::NodeType::OBJECT_EXT_PIPE_FROM)) {
-                buffers::formatting::FormattingConfigT config;
-                config.mode = buffers::formatting::FormattingMode::INLINE;
-                Formatter formatter{*parsed_script};
-                auto source_sql = formatter.FormatExecutableNodeAt(*spec.source_node_id, config);
-                if (!source_sql.empty()) {
-                    source_sql_ofs = builder.CreateString(source_sql);
-                }
-            }
-
             // Each renderer emits its own serialized spec string. The grammar rejects
             // unknown renderers, so only the branches below can produce output here.
             bool is_vegalite = spec.renderer.has_value() && *spec.renderer == "vegalite";
@@ -1024,7 +1007,6 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
             sb.add_renderer(renderer_ofs);
             sb.add_vegalite_spec(vegalite_ofs);
             sb.add_umap_spec(umap_ofs);
-            sb.add_source_sql(source_sql_ofs);
             spec_offsets.push_back(sb.Finish());
         });
         visualization_specs_ofs = builder.CreateVector(spec_offsets);

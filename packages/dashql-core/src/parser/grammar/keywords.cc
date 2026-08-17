@@ -81,6 +81,7 @@ constexpr size_t MAX_KEYWORD_LENGTH = std::max<size_t>({
 std::span<const Keyword> Keyword::GetKeywords() { return {SORTED_KEYWORDS.begin(), SORTED_KEYWORDS.size()}; }
 /// Get a keyword name
 std::string_view Keyword::GetKeywordName(Parser::symbol_kind_type sym) {
+    if (sym == Parser::symbol_kind_type::S_VISUALIZE_LA) return "visualize";
     int64_t sym_id = static_cast<int64_t>(sym);
     if (sym_id >= 0 && sym_id < static_cast<int64_t>(KEYWORD_SYMBOL_COUNT)) {
         return KEYWORD_SYMBOL_NAMES[sym_id];

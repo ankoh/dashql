@@ -704,14 +704,6 @@ std::string GenerateVegaLiteSpec(const VisualizationSpec& spec, const AnalyzedSc
             std::string source_text(input.substr(span.offset(), span.length()));
             writer.Key("$sql");
             writer.String(source_text.c_str());
-        } else if (source_node.node_type() == buffers::parser::NodeType::OBJECT_EXT_PIPE ||
-                   source_node.node_type() == buffers::parser::NodeType::OBJECT_EXT_PIPE_FROM) {
-            buffers::formatting::FormattingConfigT config;
-            config.mode = buffers::formatting::FormattingMode::INLINE;
-            Formatter formatter{*script.parsed_script};
-            auto source_text = formatter.FormatExecutableNodeAt(*spec.source_node_id, config);
-            writer.Key("$sql");
-            writer.String(source_text.c_str());
         }
         writer.EndObject();
     }

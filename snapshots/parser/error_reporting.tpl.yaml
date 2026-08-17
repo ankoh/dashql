@@ -23,4 +23,4 @@ parser-snapshots:
   # keyword, so `USING foo` cannot reduce and the statement fails to parse.
   - name: error_reporting_vis_unknown_renderer
     input: |
-      select * from sales |> visualize using foo (mark => bar)
+      select * from sales visualize using foo (mark => bar)

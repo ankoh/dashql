@@ -18,7 +18,7 @@ const Completion::Candidate* FindCandidate(const Completion& completion, std::st
 
 TEST(CompletionTest, OperatorsAreNotCompletable) {
     using Symbol = parser::Parser::symbol_kind_type;
-    for (auto symbol : {Symbol::S_EQUALS, Symbol::S_Op, Symbol::S_EQUALS_GREATER, Symbol::S_PIPE_GREATER,
+    for (auto symbol : {Symbol::S_EQUALS, Symbol::S_Op, Symbol::S_EQUALS_GREATER,
                         Symbol::S_LESS_EQUALS, Symbol::S_GREATER_EQUALS, Symbol::S_NOT_EQUALS}) {
         EXPECT_FALSE(Completion::IsSymbolKindCompletable(symbol));
     }
@@ -380,25 +380,6 @@ TEST(CompletionTest, CompletesSelfCTEOnlyWhenRecursive) {
     }
 }
 
-TEST(CompletionTest, CompletesPrecedingScriptLocalRelation) {
-    constexpr std::string_view text = R"SQL(
-FROM sales |> SELECT amount |> AS local_sales;
-SELECT * FROM local_s
-)SQL";
-
-    Catalog catalog;
-    Script script{catalog};
-    script.InsertTextAt(0, text);
-    ASSERT_NO_THROW(script.Analyze());
-    script.MoveCursor(text.rfind("local_s") + std::string_view{"local_s"}.size());
-
-    auto completion = script.CompleteAtCursor();
-    auto* candidate = FindCandidate(*completion, "local_sales");
-    ASSERT_NE(candidate, nullptr);
-    EXPECT_TRUE(candidate->coarse_name_tags.contains(buffers::analyzer::NameTag::TABLE_NAME));
-    EXPECT_TRUE(candidate->candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE));
-}
-
 TEST(CompletionTest, PassiveHint_SelectStar) {
     const std::string_view main_script_text = "select * ";
 
@@ -519,7 +500,7 @@ TEST(CompletionTest, InlineVisualizeSourceOutputAlias) {
 SELECT category AS chart_category, SUM(amount) AS chart_total
 FROM sales
 GROUP BY category
-|> VISUALIZE USING vegalite (
+ VISUALIZE USING vegalite (
     encoding => (y => (field => chart_t, type => quantitative))
 )
 )SQL";
@@ -543,29 +524,6 @@ GROUP BY category
     EXPECT_TRUE(found);
 }
 
-TEST(CompletionTest, PipeVisualizeSourceOutputAlias) {
-    const std::string_view text = R"SQL(
-FROM sales
-|> SELECT category AS chart_category, amount AS chart_total
-|> VISUALIZE USING vegalite (
-    encoding => (y => (field => chart_t, type => quantitative))
-)
-)SQL";
-
-    Catalog catalog;
-    Script script{catalog};
-    script.InsertTextAt(0, text);
-    ASSERT_NO_THROW(script.Analyze());
-
-    script.MoveCursor(text.rfind("chart_t") + std::string_view{"chart_t"}.size());
-    auto completion = script.CompleteAtCursor();
-
-    auto found = std::find_if(completion->GetResultCandidates().begin(), completion->GetResultCandidates().end(),
-                              [](const auto& candidate) { return candidate.completion_text == "chart_total"; });
-    ASSERT_NE(found, completion->GetResultCandidates().end());
-    EXPECT_TRUE(found->candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE));
-}
-
 TEST(CompletionTest, CTEVisualizeSourceOutputAlias) {
     constexpr std::string_view text = R"SQL(
 WITH events AS (
@@ -579,7 +537,7 @@ WITH events AS (
     GROUP BY ts_hour
 )
 SELECT * FROM aggregates_other
-|> VISUALIZE USING vegalite (
+ VISUALIZE USING vegalite (
     mark => bar,
     encoding => (y => (field => met, type => quantitative))
 )
@@ -602,7 +560,7 @@ TEST(CompletionTest, VisualizeOutputsDoNotLeakIntoSource) {
     constexpr std::string_view text = R"SQL(
 SELECT amount AS chart_total
 FROM chart_t
-|> VISUALIZE USING vegalite (
+ VISUALIZE USING vegalite (
     encoding => (y => (field => chart_total))
 )
 )SQL";
@@ -624,7 +582,7 @@ TEST(CompletionTest, VisualizeFieldsDoNotPromoteTablesInSource) {
     constexpr std::string_view text = R"SQL(
 SELECT amount
 FROM chart_t
-|> VISUALIZE USING vegalite (
+ VISUALIZE USING vegalite (
     encoding => (y => (field => chart_total))
 )
 )SQL";

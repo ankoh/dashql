@@ -561,14 +561,6 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_SELECT_FROM:
         case AttributeKey::SQL_SELECT_GROUPS:
         case AttributeKey::SQL_SELECT_ORDER:
-        case AttributeKey::EXT_PIPE_FROM:
-        case AttributeKey::EXT_PIPE_SELECT_TARGETS:
-        case AttributeKey::EXT_PIPE_EXTEND_TARGETS:
-        case AttributeKey::EXT_PIPE_AGGREGATE_TARGETS:
-        case AttributeKey::EXT_PIPE_AGGREGATE_GROUPS:
-        case AttributeKey::EXT_PIPE_COMBINE_INPUTS:
-        case AttributeKey::EXT_PIPE_ORDER:
-        case AttributeKey::EXT_PIPE_STAGES:
         case AttributeKey::SQL_WINDOW_FRAME_PARTITION:
         case AttributeKey::SQL_WINDOW_FRAME_ORDER:
         case AttributeKey::SQL_FUNCTION_WITHIN_GROUP:
@@ -633,7 +625,6 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_TABLE_CONSTRAINT_COLUMNS:
         case AttributeKey::SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS:
         case AttributeKey::SQL_JOIN_USING:
-        case AttributeKey::EXT_PIPE_JOIN_USING:
         case AttributeKey::SQL_FUNCTION_TRIM_INPUT:
         case AttributeKey::SQL_ALIAS_COLUMN_NAMES:
         case AttributeKey::SQL_ALIAS_COLUMN_DEFS:
@@ -2441,21 +2432,6 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatExpressionOperatorType(node);
         case NodeType::OBJECT_SQL_NARY_EXPRESSION:
             return FormatExpression(node_id);
-        case NodeType::OBJECT_EXT_PIPE:
-            return FormatPipe(node_id);
-        case NodeType::OBJECT_EXT_PIPE_FROM:
-            return FormatPipeFrom(node);
-        case NodeType::OBJECT_EXT_PIPE_WHERE:
-        case NodeType::OBJECT_EXT_PIPE_SELECT:
-        case NodeType::OBJECT_EXT_PIPE_EXTEND:
-        case NodeType::OBJECT_EXT_PIPE_AGGREGATE:
-        case NodeType::OBJECT_EXT_PIPE_DISTINCT:
-        case NodeType::OBJECT_EXT_PIPE_JOIN:
-        case NodeType::OBJECT_EXT_PIPE_COMBINE:
-        case NodeType::OBJECT_EXT_PIPE_ORDER:
-        case NodeType::OBJECT_EXT_PIPE_LIMIT:
-        case NodeType::OBJECT_EXT_PIPE_AS:
-            return FormatPipeStage(node);
         case NodeType::OBJECT_VIS_VISUALISE:
             return FormatVisualize(node_id);
         case NodeType::OBJECT_VIS_SPEC:
@@ -2561,13 +2537,9 @@ std::string Formatter::WriteOutput() const {
 
 std::string Formatter::Format(const buffers::formatting::FormattingConfigT& config) {
     this->config = config;
-    formatting_executable_sql = false;
     fmt.Reset();
     fmt.SetConfig(config);
     node_states.assign(ast.size(), {});
-    pipe_stage_limits.clear();
-    script_local_name_regs.clear();
-    select_without_with.reset();
     unformattable_nodes.clear();
     for (const auto& statement : parsed.statements) {
         if (statement.root < node_states.size()) {
@@ -2590,33 +2562,9 @@ std::string Formatter::Format(const buffers::formatting::FormattingConfigT& conf
 std::string Formatter::FormatNodeAt(size_t node_id, const buffers::formatting::FormattingConfigT& config) {
     if (node_id >= ast.size()) return {};
     this->config = config;
-    formatting_executable_sql = false;
     fmt.Reset();
     fmt.SetConfig(config);
     node_states.assign(ast.size(), {});
-    pipe_stage_limits.clear();
-    script_local_name_regs.clear();
-    select_without_with.reset();
-    unformattable_nodes.clear();
-    PreparePrecedence();
-    for (size_t i = 0; i < ast.size(); ++i) {
-        IdentifyParentheses(ast.size() - 1 - i);
-    }
-    BuildDocs();
-    return Render(node_states[node_id].reg);
-}
-
-std::string Formatter::FormatExecutableNodeAt(size_t node_id,
-                                              const buffers::formatting::FormattingConfigT& config) {
-    if (node_id >= ast.size()) return {};
-    this->config = config;
-    formatting_executable_sql = true;
-    fmt.Reset();
-    fmt.SetConfig(config);
-    node_states.assign(ast.size(), {});
-    pipe_stage_limits.clear();
-    script_local_name_regs.clear();
-    select_without_with.reset();
     unformattable_nodes.clear();
     PreparePrecedence();
     for (size_t i = 0; i < ast.size(); ++i) {
@@ -2634,99 +2582,6 @@ std::string Formatter::Render(FmtReg reg) const {
         .mode = config.mode,
     };
     return fmt.Render(reg, options);
-}
-
-std::string Formatter::FormatExecutableQuery(const ScriptExecutionPlan& plan,
-                                             const buffers::formatting::FormattingConfigT& input_config) {
-    if (plan.terminal_query_node_id >= ast.size()) return {};
-
-    config = input_config;
-    formatting_executable_sql = true;
-    config.debug_mode = false;
-    fmt.Reset();
-    fmt.SetConfig(config);
-    node_states.assign(ast.size(), {});
-    unformattable_nodes.clear();
-    pipe_stage_limits.clear();
-    script_local_name_regs.clear();
-    for (const auto& relation : plan.local_relations) {
-        pipe_stage_limits.emplace(relation.pipe_node_id, relation.body_stage_count);
-        if (relation.alias_node_id < ast.size()) {
-            script_local_name_regs.emplace(
-                relation.alias_node_id,
-                fmt.Text(scanned.ReadTextAtSymbolSpan(ast[relation.alias_node_id].symbol_span())));
-        }
-    }
-
-    uint32_t cte_target_node_id = plan.terminal_query_node_id;
-    const auto& terminal_query = ast[plan.terminal_query_node_id];
-    if (terminal_query.node_type() == NodeType::OBJECT_EXT_EXPLAIN) {
-        auto [statement] = GetAttributes<AttributeKey::EXT_EXPLAIN_STATEMENT>(terminal_query);
-        if (!statement) return {};
-        cte_target_node_id = static_cast<uint32_t>(statement - ast.data());
-    }
-
-    const auto& cte_target = ast[cte_target_node_id];
-    const buffers::parser::Node* existing_ctes = nullptr;
-    bool recursive = false;
-    if (cte_target.node_type() == NodeType::OBJECT_SQL_SELECT) {
-        auto [ctes, recursive_node] = GetAttributes<AttributeKey::SQL_SELECT_WITH_CTES,
-                                                   AttributeKey::SQL_SELECT_WITH_RECURSIVE>(cte_target);
-        existing_ctes = ctes;
-        recursive = recursive_node != nullptr;
-        if (!plan.local_relations.empty()) select_without_with = cte_target_node_id;
-    } else {
-        select_without_with.reset();
-    }
-
-    PreparePrecedence();
-    for (size_t i = 0; i < ast.size(); ++i) {
-        IdentifyParentheses(ast.size() - 1 - i);
-    }
-    BuildDocs();
-
-    auto query = node_states[cte_target_node_id].reg;
-    if (query == 0) return {};
-    if (plan.local_relations.empty()) return Render(node_states[plan.terminal_query_node_id].reg);
-
-    std::vector<FmtReg> cte_regs;
-    cte_regs.reserve(plan.local_relations.size() + (existing_ctes ? existing_ctes->children_count() : 0));
-    for (const auto& relation : plan.local_relations) {
-        if (relation.alias_node_id >= ast.size() || relation.query_node_id >= ast.size()) return {};
-        auto name = script_local_name_regs[relation.alias_node_id];
-        auto body_query = node_states[relation.query_node_id].reg;
-        if (name == 0 || body_query == 0) return {};
-        FmtReg body;
-        if (config.mode == buffers::formatting::FormattingMode::PRETTY) {
-            body = fmt.Concat({fmt.Text("("), fmt.Indented(fmt.Concat({fmt.Break(), body_query})),
-                               fmt.Break(), fmt.Text(")")});
-        } else {
-            body = fmt.Parenthesized(body_query);
-        }
-        cte_regs.push_back(fmt.Concat({name, fmt.Text(" as "), body}));
-    }
-    if (existing_ctes) {
-        for (auto& state : GetArrayStates(*existing_ctes)) {
-            if (state.reg == 0) return {};
-            cte_regs.push_back(state.reg);
-        }
-    }
-
-    auto ctes = fmt.Join(cte_regs, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}),
-                         config.mode == buffers::formatting::FormattingMode::PRETTY
-                             ? FormattingJoinPolicy::ForceBreak
-                             : FormattingJoinPolicy::BreakOnOverflow);
-    auto with = fmt.Concat({fmt.Text(recursive ? "with recursive " : "with "), ctes});
-    auto policy = config.mode == buffers::formatting::FormattingMode::PRETTY
-                      ? FormattingJoinPolicy::ForceBreak
-                      : FormattingJoinPolicy::BreakAllOrNone;
-    auto query_with_ctes = fmt.Join(std::vector<FmtReg>{with, query}, fmt.Text(" "), fmt.Break(), policy);
-    if (cte_target_node_id == plan.terminal_query_node_id) return Render(query_with_ctes);
-
-    node_states[cte_target_node_id].reg = query_with_ctes;
-    auto terminal = FormatNode(plan.terminal_query_node_id);
-    if (terminal == 0) return {};
-    return Render(terminal);
 }
 
 bool Formatter::IsFullyFormatted() const { return unformattable_nodes.empty(); }

@@ -288,68 +288,6 @@ describe('ScriptDetails', () => {
         }), null);
     });
 
-    it('only enables SQL conversion for scripts containing relational pipes', () => {
-        const notebookScripts = createNotebookScripts();
-
-        act(() => {
-            root.render(
-                <ScriptDetails
-                    notebookScripts={notebookScripts}
-                    modifyNotebookScripts={vi.fn()}
-                    connection={null}
-                    hideDetails={vi.fn()}
-                    scriptId={102}
-                />,
-            );
-        });
-
-        let formatButton = container.querySelector('[aria-label="Format script"]') as HTMLButtonElement;
-        act(() => formatButton.click());
-        let menu = document.querySelector('[role="dialog"][aria-label="Script formatting"]') as HTMLElement;
-        let convertButton = Array.from(menu.querySelectorAll('button'))
-            .find(button => button.textContent === 'Convert to SQL') as HTMLButtonElement;
-        expect(convertButton.disabled).toBe(true);
-
-        act(() => formatButton.click());
-        notebookScripts.scripts[102].scriptAnalysis.buffers.parsed = {
-            read: () => ({
-                featureFlags: () => dashql.buffers.parser.ParsedScriptFeature.RELATIONAL_PIPE,
-                scannerErrorsLength: () => 0,
-                scannerErrors: () => null,
-                parserErrorsLength: () => 0,
-                parserErrors: () => null,
-            }),
-        } as any;
-        act(() => {
-            root.render(
-                <ScriptDetails
-                    notebookScripts={notebookScripts}
-                    modifyNotebookScripts={vi.fn()}
-                    connection={null}
-                    hideDetails={vi.fn()}
-                    scriptId={102}
-                />,
-            );
-        });
-
-        formatButton = container.querySelector('[aria-label="Format script"]') as HTMLButtonElement;
-        act(() => formatButton.click());
-        menu = document.querySelector('[role="dialog"][aria-label="Script formatting"]') as HTMLElement;
-        convertButton = Array.from(menu.querySelectorAll('button'))
-            .find(button => button.textContent === 'Convert to SQL') as HTMLButtonElement;
-        expect(convertButton.disabled).toBe(false);
-        act(() => convertButton.click());
-        expect(mockState.formatScript).not.toHaveBeenCalled();
-        expect(mockState.compileQuery).toHaveBeenCalledOnce();
-        expect(mockState.createScript).toHaveBeenCalledOnce();
-        expect(mockState.insertCompiledText).toHaveBeenCalledWith(0, 'select 2');
-        expect(mockState.formatCompiledScript).toHaveBeenCalledWith(expect.objectContaining({
-            mode: dashql.buffers.formatting.FormattingMode.PRETTY,
-            maxWidth: 80,
-            indentationWidth: 4,
-        }), null);
-    });
-
     it('uses the error icon when script diagnostics include errors', () => {
         const notebookScripts = createNotebookScripts();
         notebookScripts.scripts[102].scriptAnalysis.buffers.analyzed = {

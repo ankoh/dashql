@@ -1,6 +1,6 @@
-# VISUALIZE pipeline operator
+# Trailing VISUALIZE clause
 
-`VISUALIZE` is a dashql pipeline operator grafted onto the SQL grammar. It
+`VISUALIZE` is a trailing dashql clause grafted onto the SQL grammar. It
 describes a chart as a structured spec — a nested key-value tree that mirrors
 Vega-Lite's JSON shape — applied to a required SQL relation and a visualization
 *renderer* named after `USING`.
@@ -8,11 +8,11 @@ Vega-Lite's JSON shape — applied to a required SQL relation and a visualizatio
 ## Shape
 
 ```
-<complete classical SELECT query> |> VISUALIZE USING <renderer> (
+<complete classical SELECT query> VISUALIZE USING <renderer> (
     ...
 )
 
-SELECT * FROM <relation> |> VISUALIZE USING <renderer> (
+SELECT * FROM <relation> VISUALIZE USING <renderer> (
     mark => <mark-type>,
     encoding => (
         <channel> => (<field-def-key> => <value>, ...),
@@ -44,8 +44,8 @@ validates it and offers it for autocompletion after `USING`; an unknown renderer
 is a parse error. The current renderers are `vegalite` and `umap`:
 
 ```sql
-SELECT * FROM sales |> VISUALIZE USING vegalite (mark => bar);
-SELECT * FROM embeddings |> VISUALIZE USING umap (vector => embedding);
+SELECT * FROM sales VISUALIZE USING vegalite (mark => bar);
+SELECT * FROM embeddings VISUALIZE USING umap (vector => embedding);
 ```
 
 The renderer is captured on the AST as the `VIS_VISUALISE_USING` attribute and
@@ -56,12 +56,12 @@ generated when the renderer is `vegalite`.
 ## Data source
 
 `VISUALIZE` requires a complete, self-contained classical `SELECT` query on the
-left side of `|>`. A relation is visualized by selecting from it in that query:
+preceding query. A relation is visualized by selecting from it in that query:
 
 ```sql
-SELECT * FROM sales |> VISUALIZE USING vegalite (mark => bar);
-SELECT * FROM schema.sales |> VISUALIZE USING vegalite (mark => bar);
-SELECT category, revenue FROM sales WHERE fy = 2026 |> VISUALIZE USING vegalite (mark => bar);
+SELECT * FROM sales VISUALIZE USING vegalite (mark => bar);
+SELECT * FROM schema.sales VISUALIZE USING vegalite (mark => bar);
+SELECT category, revenue FROM sales WHERE fy = 2026 VISUALIZE USING vegalite (mark => bar);
 ```
 
 Standalone `VISUALIZE`, `VISUALIZE <source> USING ...`, and source-free
@@ -81,7 +81,7 @@ The `mark` key accepts one of the following keywords, resolved against the
 The mark value can also be a nested spec object for mark configuration:
 
 ```sql
-SELECT * FROM sales |> VISUALIZE USING vegalite (
+SELECT * FROM sales VISUALIZE USING vegalite (
     mark => (type => bar, opacity => 0.7)
 );
 ```
@@ -112,7 +112,7 @@ A channel can take a bare column reference instead of a full field-def object.
 This maps to `field => <column>`:
 
 ```sql
-SELECT * FROM sales |> VISUALIZE USING vegalite (
+SELECT * FROM sales VISUALIZE USING vegalite (
     mark => line,
     encoding => (x => date, y => revenue)
 );
@@ -246,7 +246,7 @@ inventing a novel clause-based syntax. This has several advantages:
    keyword and attribute key — no grammar restructuring required. Unknown
    identifiers are already accepted gracefully.
 4. **SQL integration.** A complete classical `SELECT` query feeds the operator
-   through `|>`, and values can be SQL expressions, so the visualization
+   as a trailing clause, and values can be SQL expressions, so the visualization
    grammar composes cleanly with the rest of the SQL parser.
 
 ## Source files

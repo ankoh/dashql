@@ -27,7 +27,7 @@ describe('DashQL processor completion triggers', () => {
         const catalog = dql!.createCatalog();
         const text = `-- Fetch and visualize vega cars data from a parquet file, rendering a point
 -- chart with year on the x-axis and weight on the y-axis.
-SELECT * FROM read_parquet('vega_cars.parquet') |> VISUALIZE USING vegalite (
+SELECT * FROM read_parquet('vega_cars.parquet') VISUALIZE USING vegalite (
   mark => point,
   encoding => (
     x => (field => "Year", type => temporal),

@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "dashql/buffers/index_generated.h"
-#include "dashql/script_local_relation.h"
+#include "dashql/script.h"
 
 namespace dashql {
 
@@ -37,9 +37,6 @@ struct ScriptCompilationResult {
     flatbuffers::Offset<buffers::execution::ScriptCompilationResult> Pack(
         flatbuffers::FlatBufferBuilder& builder) const;
 };
-
-class Script;
-struct ScriptCompilationOptions;
 
 struct ScriptCompiler {
     static ScriptCompilationResult Compile(Script& script,

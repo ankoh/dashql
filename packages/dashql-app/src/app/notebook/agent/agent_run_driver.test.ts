@@ -34,7 +34,7 @@ class FakeHost implements AgentHost {
     /// Per-call verify verdict; defaults to clean.
     verifyImpl: (candidate: string) => VerifyResult = () => clean();
     /// Vega-Lite transcode; defaults to wrapping the raw spec. May throw to trigger repair.
-    transcodeImpl: (raw: string) => string = (raw) => `SELECT * FROM source |> VISUALIZE USING vegalite (${raw})`;
+    transcodeImpl: (raw: string) => string = (raw) => `SELECT * FROM source VISUALIZE USING vegalite (${raw})`;
     /// Apply-plan shape.
     planInPlace = true;
     planTargetName: string | null = 'the-target';
@@ -246,7 +246,7 @@ describe('startAgentRun (fake host)', () => {
         let t = 0;
         host.transcodeImpl = (raw) => {
             if (++t === 1) throw new Error('bad spec');
-            return 'SELECT * FROM x |> VISUALIZE USING vegalite (mark => bar)';
+            return 'SELECT * FROM x VISUALIZE USING vegalite (mark => bar)';
         };
         const ai = new MockAIClient('visualize', ['{"mark":"bar"}', '{"mark":"line"}']);
         const { agent, actions } = await drive(host, ai, { intentOverride: 'visualize' });
@@ -260,7 +260,7 @@ describe('startAgentRun (fake host)', () => {
         // The repair prompt carries the transcode error.
         expect(lastGenerationPrompt(ai)).toContain('bad spec');
         // The committed candidate is the transcoded DSL, not the raw spec.
-        expect(host.committed).toEqual([{ intent: 'visualize', candidate: 'SELECT * FROM x |> VISUALIZE USING vegalite (mark => bar)' }]);
+        expect(host.committed).toEqual([{ intent: 'visualize', candidate: 'SELECT * FROM x VISUALIZE USING vegalite (mark => bar)' }]);
     });
 
     it('enriches an opaque parser error with a spec-level hint for an unsupported mark', async () => {

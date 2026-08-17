@@ -151,9 +151,9 @@ diff-snapshots:
 
   - name: update_vis_mark_type
     source: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (mark => line);
+      SELECT * FROM sales VISUALIZE USING vegalite (mark => line);
     target: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (mark => bar);
+      SELECT * FROM sales VISUALIZE USING vegalite (mark => bar);
     expected:
       ops:
         - code: UPDATE
@@ -164,9 +164,9 @@ diff-snapshots:
 
   - name: reorder_object_attributes
     source: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (mark => bar, width => 800, height => 400);
+      SELECT * FROM sales VISUALIZE USING vegalite (mark => bar, width => 800, height => 400);
     target: |-
-      SELECT * FROM sales |> VISUALIZE USING vegalite (height => 400, width => 800, mark => bar);
+      SELECT * FROM sales VISUALIZE USING vegalite (height => 400, width => 800, mark => bar);
     expected:
       ops:
         - code: KEEP

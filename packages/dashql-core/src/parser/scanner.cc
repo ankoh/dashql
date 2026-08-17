@@ -1,6 +1,7 @@
 #include "dashql/parser/scanner.h"
 
 #include <charconv>
+#include <deque>
 
 #include "dashql/buffers/index_generated.h"
 #include "dashql/exception.h"
@@ -114,12 +115,12 @@ Parser::symbol_type Scanner::ReadBitStringLiteral(buffers::parser::SymbolSpan lo
 std::shared_ptr<ScannedScript> Scanner::Scan(const rope::Rope& text, TextVersion text_version,
                                              CatalogEntryID external_id) {
     // Function to get next token
-    auto next = [](void* scanner_state_ptr, std::optional<Parser::symbol_type>& lookahead_symbol) {
+    auto next = [](void* scanner_state_ptr, std::deque<Parser::symbol_type>& lookahead_symbols) {
         // Have lookahead?
         Parser::symbol_type current_symbol;
-        if (lookahead_symbol) {
-            current_symbol.move(*lookahead_symbol);
-            lookahead_symbol.reset();
+        if (!lookahead_symbols.empty()) {
+            current_symbol.move(lookahead_symbols.front());
+            lookahead_symbols.pop_front();
         } else {
             auto t = dashql_yylex(scanner_state_ptr);
             current_symbol.move(t);
@@ -130,6 +131,8 @@ std::shared_ptr<ScannedScript> Scanner::Scan(const rope::Rope& text, TextVersion
             case Parser::symbol_kind::S_NOT:
             case Parser::symbol_kind::S_NULLS_P:
             case Parser::symbol_kind::S_WITH:
+            case Parser::symbol_kind::S_VISUALISE:
+            case Parser::symbol_kind::S_VISUALIZE:
                 break;
             default:
                 return current_symbol;
@@ -138,7 +141,7 @@ std::shared_ptr<ScannedScript> Scanner::Scan(const rope::Rope& text, TextVersion
         // Get next token
         auto next_symbol = dashql_yylex(scanner_state_ptr);
         auto next_symbol_kind = next_symbol.kind();
-        lookahead_symbol.emplace(std::move(next_symbol));
+        lookahead_symbols.push_back(std::move(next_symbol));
 
         // Should replace current token?
         switch (current_symbol.kind()) {
@@ -176,6 +179,21 @@ std::shared_ptr<ScannedScript> Scanner::Scan(const rope::Rope& text, TextVersion
                         break;
                 }
                 break;
+            case Parser::symbol_kind::S_VISUALISE:
+            case Parser::symbol_kind::S_VISUALIZE:
+                if (next_symbol_kind == Parser::symbol_kind::S_USING) {
+                    auto renderer = dashql_yylex(scanner_state_ptr);
+                    auto renderer_kind = renderer.kind();
+                    lookahead_symbols.push_back(std::move(renderer));
+                    if (renderer_kind == Parser::symbol_kind::S_VEGALITE ||
+                        renderer_kind == Parser::symbol_kind::S_UMAP) {
+                        auto text = current_symbol.kind() == Parser::symbol_kind::S_VISUALISE
+                                        ? std::string_view{"visualise"}
+                                        : std::string_view{"visualize"};
+                        return Parser::make_VISUALIZE_LA(text, current_symbol.location);
+                    }
+                }
+                break;
             default:
                 break;
         }
@@ -185,9 +203,9 @@ std::shared_ptr<ScannedScript> Scanner::Scan(const rope::Rope& text, TextVersion
     // Create the scanner
     Scanner scanner{text, text_version, external_id};
     // Collect all tokens until we hit EOF
-    std::optional<Parser::symbol_type> lookahead_symbol;
+    std::deque<Parser::symbol_type> lookahead_symbols;
     while (true) {
-        auto token = next(scanner.scanner_state_ptr, lookahead_symbol);
+        auto token = next(scanner.scanner_state_ptr, lookahead_symbols);
         scanner.output->symbols.PushBack(token);
         if (token.kind() == Parser::symbol_kind::S_YYEOF) break;
     }

@@ -232,8 +232,6 @@ void ParseContext::AddStatement(buffers::parser::Node node) {
             break;
 
         case buffers::parser::NodeType::OBJECT_SQL_SELECT:
-        case buffers::parser::NodeType::OBJECT_EXT_PIPE:
-        case buffers::parser::NodeType::OBJECT_EXT_PIPE_FROM:
             stmt_type = buffers::parser::StatementType::SELECT;
             break;
 

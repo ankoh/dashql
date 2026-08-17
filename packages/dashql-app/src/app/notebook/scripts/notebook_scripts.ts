@@ -1810,7 +1810,7 @@ function deriveScriptAnnotations(
 
 /// Compile a script into executable SQL.
 ///
-/// Statement classification, local relation resolution, pipe lowering, and VISUALIZE
+/// Statement classification, executable SQL extraction, and VISUALIZE
 /// source extraction all happen in dashql-core.
 export function compileQuery(
     scriptData: ScriptData,

@@ -22,11 +22,11 @@ import type { LoggerLike } from '../../../platform/logger/logger.js';
 ///
 /// The actual transcoding lives in the WASM core (`ParseVegaLiteToVisualize`); we encode the
 /// source into the Vega-Lite spec's `data` member (see `visSourceToData`) and let the core
-/// derive the `<query> |> VISUALIZE USING vegalite (…)` clause. This keeps a single transcoder.
+/// derive the `<query> VISUALIZE USING vegalite (…)` clause. This keeps a single transcoder.
 export type VisSource =
-    /// Inline query, emitted verbatim before the visualization pipe.
+    /// Inline query, emitted verbatim before the trailing visualization clause.
     { kind: 'inline-select'; sql: string }
-    /// Reuse a query source extracted verbatim from an existing visualization pipeline.
+    /// Reuse a query source extracted verbatim from an existing visualization statement.
     | { kind: 'raw'; text: string };
 
 /// Encode a VisSource into the `data` member that the WASM transcoder understands.
@@ -85,7 +85,7 @@ export function createNotebookScriptsAgentHost(params: NotebookScriptsAgentHostP
             // driver treats as a verifiable error and repairs.
             const spec = JSON.parse(rawSpecJson) as Record<string, unknown>;
             // Inject the resolved source as the spec's `data` member; the WASM transcoder turns it
-            // into the `<query> |> VISUALIZE USING vegalite (…)` clause. The model is told not to emit `data`, but
+            // into the `<query> VISUALIZE USING vegalite (…)` clause. The model is told not to emit `data`, but
             // overwrite it defensively so our source always wins.
             const source = determineVisSource(contextScriptData);
             if (source == null) throw new Error('A query source is required to create a visualization');

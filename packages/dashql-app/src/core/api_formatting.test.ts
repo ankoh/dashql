@@ -89,53 +89,16 @@ describe('DashQL formatting', () => {
         parsed.destroy();
     });
 
-    it('formats relational pipe log queries', async () => {
+    it('reports trailing visualizations as fully formattable', async () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);
-        script.insertTextAt(0, `FROM noncorelogs.noncore_views.cdp_hyperdb_logs_v2
-|> extend json_extract_scalar(_event, '$.ctx["query-id"]') AS qid,
-    element_at(v, 'transfer-mode') AS transfer_mode,
-    json_extract_scalar(_event, '$.ctx.workload.name') AS workload
-|> WHERE ts_date IN ('20260805', '20260806', '20260807', '20260808', '20260809', '20260810', '20260811')
-    AND _falcon_instance = 'aws-prod1-useast1'
-    AND _functional_domain = 'cdp1'
-    AND k IN ('query-end', 'grpc-query-info-end', 'grpc-query-end', 'query-status-written')
-    AND json_extract_scalar(_event, '$.ctx["query-id"]') IS NOT NULL
-|> limit 10`);
-        const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.TRINO,
-            dashql.buffers.formatting.FormattingMode.COMPACT,
-            120,
-            2,
-        );
-
-        script.parse();
-        const formatted = script.format(config, null, false);
-        expect(formatted.toString()).toEqual(
-            `from noncorelogs.noncore_views.cdp_hyperdb_logs_v2
-|> extend json_extract_scalar(_event, '$.ctx["query-id"]') as qid, element_at(v, 'transfer-mode') as transfer_mode,
-  json_extract_scalar(_event, '$.ctx.workload.name') as workload
-|> where ts_date in ('20260805', '20260806', '20260807', '20260808', '20260809', '20260810', '20260811')
-  and _falcon_instance = 'aws-prod1-useast1' and _functional_domain = 'cdp1'
-  and k in ('query-end', 'grpc-query-info-end', 'grpc-query-end', 'query-status-written')
-  and json_extract_scalar(_event, '$.ctx["query-id"]') is not null
-|> limit 10;`
-        );
-    });
-
-    it('reports relational pipe visualizations as fully formattable', async () => {
-        const catalog = dql!.createCatalog();
-        const script = dql!.createScript(catalog);
-        script.insertTextAt(0, `from logs
-|> extend date_trunc('day', event_timestamp) as ts
-|> where workload_name in (
-    'foo',
-    'bar'
-  )
+        script.insertTextAt(0, `select date_trunc('day', event_timestamp) as ts, workload_name, count(*) as cnt
+from logs
+where workload_name in ('foo', 'bar')
   and event_timestamp > current_timestamp - interval '360' day
-|> aggregate count(*) as cnt group by ts, workload_name
-|> order by ts asc, workload_name asc
-|> visualize using vegalite (
+group by ts, workload_name
+order by ts asc, workload_name asc
+visualize using vegalite (
   mark => bar,
   encoding => (
     x => (field => ts, type => temporal),
@@ -151,76 +114,6 @@ describe('DashQL formatting', () => {
         );
 
         expect(script.isFullyFormattable(config)).toBe(true);
-    });
-
-    it('formats window frame bounds in relational pipe queries', async () => {
-        const catalog = dql!.createCatalog();
-        const script = dql!.createScript(catalog);
-        script.insertTextAt(0, `from events
-|> extend sum(processed_rows) over (order by ts_hour asc rows between unbounded preceding and current row) as processed_rows_running`);
-        const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.HYPER,
-            dashql.buffers.formatting.FormattingMode.PRETTY,
-            80,
-            4,
-        );
-
-        expect(script.isFullyFormattable(config)).toBe(true);
-        expect(script.format(config, null, true).toString()).toEqual(
-            `from events
-|> extend sum(processed_rows) over (
-    order by ts_hour asc rows between unbounded preceding and current row
-) as processed_rows_running;`
-        );
-    });
-
-    it('formats multi-statement pipe aliases feeding a visualization', async () => {
-        const catalog = dql!.createCatalog();
-        const script = dql!.createScript(catalog);
-        script.insertTextAt(0, `from analytics.query_events
-|> extend date_trunc('hour', event_timestamp) as ts_hour
-|> extend (query_text like '%flagged_dataset%') as marker
-|> where tenant = 'tenant/example'
-  and event_timestamp >= current_timestamp - interval '30' day
-|> as events;
-
-from events
-|> where not marker
-|> aggregate count(*) as metric, 'other' as target group by ts_hour, marker
-|> as aggregates_other;
-
-from events
-|> where marker
-|> aggregate count(*) as metric, 'flagged' as target group by ts_hour, marker
-|> as aggregates_filtered;
-
-from aggregates_other
-|> union all (from aggregates_filtered)
-|> visualize using vegalite (
-  mark => line,
-  encoding => (
-    x => (field => ts_hour, type => temporal),
-    y => (
-      field => metric,
-      type => quantitative,
-      aggregate => 'sum',
-      axis => (title => 'queries')
-    ),
-    color => (field => target)
-  )
-)`);
-        const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.TRINO,
-            dashql.buffers.formatting.FormattingMode.COMPACT,
-            120,
-            2,
-        );
-
-        expect(script.isFullyFormattable(config)).toBe(true);
-        const formatted = script.format(config, null, true).toString();
-        expect(formatted).not.toContain("'<OBJECT_");
-        expect(formatted).toContain('|> union all (from aggregates_filtered)');
-        expect(formatted).toContain('|> visualize using vegalite (');
     });
 
     it('formats with debug settings preamble and line width comments', async () => {

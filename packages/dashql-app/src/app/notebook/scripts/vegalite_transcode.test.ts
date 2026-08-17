@@ -32,12 +32,12 @@ describe('parseVegaLiteToVisualize (WASM)', () => {
         expect(dsl).toBe('');
     });
 
-    it('emits a $sql data source as the query pipeline prefix', () => {
+    it('emits a $sql data source before the trailing visualization clause', () => {
         const dsl = dql!.parseVegaLiteToVisualize(JSON.stringify({
             data: { $sql: 'SELECT a FROM t' },
             mark: 'bar',
         }));
-        expect(dsl).toContain('SELECT a FROM t\n|> VISUALIZE USING vegalite');
+        expect(dsl).toContain('SELECT a FROM t\nVISUALIZE USING vegalite');
     });
 
     it('returns an empty string when data is missing', () => {
@@ -54,7 +54,7 @@ describe('parseVegaLiteToVisualize (WASM)', () => {
                 },
             },
         );
-        expect(dsl).toContain('SELECT * FROM sales\n|> VISUALIZE USING vegalite');
+        expect(dsl).toContain('SELECT * FROM sales\nVISUALIZE USING vegalite');
         expect(dsl).toContain('mark => bar');
         expect(dsl).toContain('x => (field => category, type => nominal)');
         expect(dsl).toContain('y => (field => amount, type => quantitative)');
@@ -181,7 +181,7 @@ describe('parseVegaLiteToVisualize (WASM)', () => {
             { mark: 'bar', encoding: { x: { field: 'a', type: 'nominal' } } },
             { kind: 'inline-select', sql: 'SELECT a FROM t' },
         );
-        expect(dsl).toContain('SELECT a FROM t\n|> VISUALIZE USING vegalite');
+        expect(dsl).toContain('SELECT a FROM t\nVISUALIZE USING vegalite');
     });
 
     it('returns an empty string for malformed JSON', () => {

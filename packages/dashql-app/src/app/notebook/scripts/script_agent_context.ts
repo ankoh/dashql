@@ -28,7 +28,7 @@ export interface AgentContextInput {
     intent: AgentIntent;
     /// Resolve a script's last-execution output columns (null if never run / unavailable).
     resolveOutputColumns?: OutputColumnResolver;
-    /// Logger used when executable context requires relational-pipe lowering.
+    /// Logger used when executable context requires script compilation.
     logger?: LoggerLike;
 }
 

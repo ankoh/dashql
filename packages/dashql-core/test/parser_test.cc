@@ -164,30 +164,6 @@ limit /*Integer(FCD0)*/
     EXPECT_EQ(script->statements.front().type, buffers::parser::StatementType::SELECT);
 }
 
-TEST(ParserTest, ParsesRelationalPipeStages) {
-    constexpr std::array<std::string_view, 11> inputs = {
-        "FROM sales",
-        "FROM sales |> WHERE revenue > 0 |> SELECT region, revenue AS amount",
-        "SELECT * FROM sales |> EXTEND revenue * 1.2 AS adjusted_revenue",
-        "FROM sales |> AGGREGATE sum(revenue) AS total GROUP BY region",
-        "FROM sales |> AGGREGATE GROUP BY region",
-        "FROM sales |> DISTINCT",
-        "FROM sales |> AS s |> LEFT JOIN regions AS r ON s.region_id = r.id",
-        "FROM current_sales |> UNION ALL (FROM archived_sales), (SELECT * FROM forecast_sales)",
-        "FROM sales |> ORDER BY revenue DESC NULLS LAST |> LIMIT 10 OFFSET 5",
-        "WITH regions AS (SELECT * FROM region_dim) FROM sales |> JOIN regions USING (region_id)",
-        "(FROM sales |> WHERE revenue > 0) |> LIMIT 10",
-    };
-
-    for (auto input : inputs) {
-        auto script = ParseString(input);
-        EXPECT_TRUE(script->errors.empty())
-            << input << ": " << (script->errors.empty() ? "" : script->errors.front().message);
-        ASSERT_EQ(script->statements.size(), 1u) << input;
-        EXPECT_EQ(script->statements.front().type, buffers::parser::StatementType::SELECT) << input;
-    }
-}
-
 TEST(ParserTest, FormatsLogQueryWithCtesAndFunctionArguments) {
     constexpr std::string_view input = R"SQL(WITH events AS (
   SELECT
@@ -265,72 +241,6 @@ order by delta_s desc;)SQL");
     EXPECT_TRUE(formatter.IsFullyFormatted());
 }
 
-TEST(ParserTest, RejectsWithAsRelationalPipeStage) {
-    auto script =
-        ParseString("FROM sales |> WITH regions AS (SELECT * FROM region_dim) |> JOIN regions USING (region_id)");
-
-    EXPECT_FALSE(script->errors.empty());
-}
-
-TEST(ParserTest, FormatsRelationalPipeWithKnownFunctionsAndGroupBy) {
-    constexpr std::string_view input = R"SQL(from queries
-|> extend date_trunc('day', event_timestamp) as ts
-|> where workload_name in (
-    'foo',
-    'bar'
-  )
-  and event_timestamp > current_timestamp - interval '360' day
-|> aggregate count(*) as cnt group by ts, workload_name
-|> order by ts asc, workload_name asc
-|> visualize using vegalite (
-  mark => bar,
-  encoding => (
-    x => (field => ts, type => temporal),
-    y => (field => cnt, type => quantitative, aggregate => 'sum', stack => 'normalize'),
-    color => (field => workload_name)
-  )
-))SQL";
-    auto script = ParseString(input);
-    ASSERT_TRUE(script->errors.empty());
-    buffers::formatting::FormattingConfigT config;
-    config.dialect = buffers::formatting::FormattingDialect::TRINO;
-    config.mode = buffers::formatting::FormattingMode::COMPACT;
-    config.max_width = 120;
-    config.indentation_width = 2;
-
-    Formatter formatter{*script};
-    auto formatted = formatter.Format(config);
-
-    EXPECT_FALSE(formatted.empty());
-    EXPECT_TRUE(formatter.IsFullyFormatted()) << formatted;
-}
-
-TEST(ParserTest, ParsesRelationalPipesInSelectContexts) {
-    constexpr std::array<std::string_view, 6> inputs = {
-        "SELECT * FROM (FROM sales |> WHERE revenue > 0) AS filtered",
-        "SELECT (FROM sales |> AGGREGATE count(*) AS total)",
-        "SELECT EXISTS (FROM sales |> WHERE revenue > 0)",
-        "CREATE TABLE filtered AS FROM sales |> WHERE revenue > 0",
-        "CREATE VIEW filtered AS FROM sales |> WHERE revenue > 0",
-        "EXPLAIN FROM sales |> WHERE revenue > 0",
-    };
-
-    for (auto input : inputs) {
-        auto script = ParseString(input);
-        EXPECT_TRUE(script->errors.empty())
-            << input << ": " << (script->errors.empty() ? "" : script->errors.front().message);
-        EXPECT_EQ(script->statements.size(), 1u) << input;
-    }
-}
-
-TEST(ParserTest, ParsesRelationalPipeInCte) {
-    constexpr std::string_view input = "WITH filtered AS (FROM sales |> WHERE revenue > 0) SELECT * FROM filtered";
-    auto script = ParseString(input);
-
-    EXPECT_TRUE(script->errors.empty()) << (script->errors.empty() ? "" : script->errors.front().message);
-    EXPECT_EQ(script->statements.size(), 1u);
-}
-
 TEST(ParserTest, RestoresCapturedPrefixStateStack) {
     constexpr std::string_view text = "WITH source AS (SELECT 1) SELECT * FROM source";
     rope::Rope buffer{128};
@@ -359,23 +269,15 @@ TEST(ParserTest, DetectsParsedScriptFeatures) {
     auto plain = ParseString("SELECT '|>' AS operator_text");
     EXPECT_EQ(plain->feature_flags, 0u);
 
-    auto pipe = ParseString("FROM sales |> WHERE revenue > 0");
-    EXPECT_EQ(pipe->feature_flags, static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::RELATIONAL_PIPE));
-
-    auto visualize = ParseString("SELECT 1 |> VISUALIZE USING vegalite (mark => bar)");
+    auto visualize = ParseString("SELECT 1 VISUALIZE USING vegalite (mark => bar)");
     EXPECT_EQ(visualize->feature_flags, static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE));
 
-    auto piped_visualize = ParseString("FROM sales |> WHERE revenue > 0 |> VISUALIZE USING vegalite (mark => bar)");
-    EXPECT_EQ(piped_visualize->feature_flags,
-              static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::RELATIONAL_PIPE) |
-                  static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE));
 }
 
-TEST(ParserTest, ParsesRelationalPipeVisualization) {
+TEST(ParserTest, ParsesTrailingVisualization) {
     constexpr std::string_view input = R"SQL(
-FROM sales
-|> WHERE revenue > 0
-|> VISUALIZE USING vegalite (mark => bar)
+SELECT * FROM sales WHERE revenue > 0
+VISUALIZE USING vegalite (mark => bar)
 )SQL";
 
     auto script = ParseString(input);
@@ -390,7 +292,7 @@ FROM sales
         script->nodes.begin() + root.children_begin_or_value() + root.children_count(),
         [](const auto& node) { return node.attribute_key() == buffers::parser::AttributeKey::VIS_VISUALISE_SELECT; });
     ASSERT_NE(source, script->nodes.end());
-    EXPECT_EQ(source->node_type(), buffers::parser::NodeType::OBJECT_EXT_PIPE);
+    EXPECT_EQ(source->node_type(), buffers::parser::NodeType::OBJECT_SQL_SELECT);
 }
 
 }  // namespace

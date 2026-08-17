@@ -16,6 +16,7 @@ static const buffers::parser::ScannerTokenType MapToken(parser::Parser::symbol_t
         case parser::Parser::symbol_kind_type::S_NULLS_LA:
         case parser::Parser::symbol_kind_type::S_NOT_LA:
         case parser::Parser::symbol_kind_type::S_WITH_LA:
+        case parser::Parser::symbol_kind_type::S_VISUALIZE_LA:
             return buffers::parser::ScannerTokenType::KEYWORD;
         case parser::Parser::symbol_kind_type::S_SCONST:
             return buffers::parser::ScannerTokenType::LITERAL_STRING;
@@ -31,7 +32,6 @@ static const buffers::parser::ScannerTokenType MapToken(parser::Parser::symbol_t
             return buffers::parser::ScannerTokenType::IDENTIFIER;
         case parser::Parser::symbol_kind_type::S_Op:
         case parser::Parser::symbol_kind_type::S_EQUALS_GREATER:
-        case parser::Parser::symbol_kind_type::S_PIPE_GREATER:
         case parser::Parser::symbol_kind_type::S_GREATER_EQUALS:
         case parser::Parser::symbol_kind_type::S_LESS_EQUALS:
         case parser::Parser::symbol_kind_type::S_NOT_EQUALS:

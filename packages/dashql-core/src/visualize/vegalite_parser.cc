@@ -421,7 +421,7 @@ void AppendVegaLiteSpecLines(const rapidjson::Value& spec, std::vector<std::stri
     }
 }
 
-/// Emit the query input before the VISUALIZE pipe from the spec's `data` member.
+/// Emit the query input before the trailing VISUALIZE clause from the spec's `data` member.
 ///
 /// Recognised conventions (the analyzer-driven generator emits `name` / `$sql`; the agent loop
 /// injects `$ref` / `$raw` for qualified- and verbatim-source edits):
@@ -457,7 +457,7 @@ std::string ParseVegaLiteToVisualize(const std::string& vegalite_json) {
     if (!source) return "";
 
     std::string result = *source;
-    result += "\n|> VISUALIZE USING vegalite (\n";
+    result += "\nVISUALIZE USING vegalite (\n";
     for (size_t i = 0; i < lines.size(); ++i) {
         if (i > 0) result += ",\n";
         result += lines[i];

@@ -74,12 +74,12 @@ parser-snapshots:
 
   - name: error_reporting_vis_unknown_renderer
     input: |-
-      select * from sales |> visualize using foo (mark => bar)
+      select * from sales visualize using foo (mark => bar)
     expected:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected identifier literal, expecting VEGALITE or UMAP'
+        - message: 'syntax error, unexpected identifier literal, expecting SAMPLE'
           text: "foo"
       line-breaks: []
       comments: []

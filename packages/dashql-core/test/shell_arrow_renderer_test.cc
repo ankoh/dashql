@@ -243,12 +243,8 @@ TEST(ShellSessionTest, RejectsDashQLExtensions) {
     Catalog catalog;
     ShellSession session{catalog, 80};
 
-    const auto pipe = session.StartQuery("FROM sales |> WHERE amount > 0");
-    EXPECT_EQ(pipe.status, ShellStatus::kInvalidArgument);
-    EXPECT_NE(pipe.data.find("not executable in the shell"), std::string::npos);
-
     const auto visualize = session.StartQuery(
-        "SELECT 1 AS value |> VISUALIZE USING vegalite (mark => bar, encoding => (x => (field => value)))");
+        "SELECT 1 AS value VISUALIZE USING vegalite (mark => bar, encoding => (x => (field => value)))");
     EXPECT_EQ(visualize.status, ShellStatus::kInvalidArgument);
     EXPECT_NE(visualize.data.find("not executable in the shell"), std::string::npos);
 }
