@@ -13,9 +13,9 @@ const mockState = vi.hoisted(() => ({
         error: vi.fn(),
     },
     nativeDb: { kind: 'native', terminate: vi.fn() } as any,
-    webDb: { kind: 'web', terminate: vi.fn() } as any,
+    hyperDb: { kind: 'hyper', terminate: vi.fn() } as any,
     setupNativeDuckDB: vi.fn(),
-    setupWebDuckDB: vi.fn(),
+    setupWebHyperDB: vi.fn(),
 }));
 
 vi.mock('../logger/logger_provider.js', () => ({
@@ -27,8 +27,8 @@ vi.mock('../native_globals.js', () => ({
 vi.mock('../duckdb/duckdb_provider_native.js', () => ({
     setupNativeDuckDB: (...args: any[]) => mockState.setupNativeDuckDB(...args),
 }));
-vi.mock('../duckdb/duckdb_provider_web.js', () => ({
-    setupWebDuckDB: (...args: any[]) => mockState.setupWebDuckDB(...args),
+vi.mock('../hyperdb/hyperdb_provider_web.js', () => ({
+    setupWebHyperDB: (...args: any[]) => mockState.setupWebHyperDB(...args),
 }));
 
 import { EmbeddedDatabaseProvider, useEmbeddedDatabaseSetup } from './embedded_database_provider.js';
@@ -56,9 +56,9 @@ describe('EmbeddedDatabaseProvider', () => {
         mockState.logger.warn.mockReset();
         mockState.logger.error.mockReset();
         mockState.nativeDb.terminate.mockReset();
-        mockState.webDb.terminate.mockReset();
+        mockState.hyperDb.terminate.mockReset();
         mockState.setupNativeDuckDB.mockReset().mockResolvedValue(mockState.nativeDb);
-        mockState.setupWebDuckDB.mockReset().mockResolvedValue(mockState.webDb);
+        mockState.setupWebHyperDB.mockReset().mockResolvedValue(mockState.hyperDb);
     });
 
     afterEach(() => {
@@ -92,15 +92,15 @@ describe('EmbeddedDatabaseProvider', () => {
         expect(db).toBe(mockState.nativeDb);
         expect(mockState.setupNativeDuckDB).toHaveBeenCalledTimes(1);
         expect(mockState.setupNativeDuckDB).toHaveBeenCalledWith('native-test', mockState.logger);
-        expect(mockState.setupWebDuckDB).not.toHaveBeenCalled();
+        expect(mockState.setupWebHyperDB).not.toHaveBeenCalled();
     });
 
-    it('uses the web setup helper on web platforms', async () => {
+    it('uses HyperDB on web platforms', async () => {
         const db = await renderAndSetup('web-test');
 
-        expect(db).toBe(mockState.webDb);
-        expect(mockState.setupWebDuckDB).toHaveBeenCalledTimes(1);
-        expect(mockState.setupWebDuckDB).toHaveBeenCalledWith('web-test', mockState.logger);
+        expect(db).toBe(mockState.hyperDb);
+        expect(mockState.setupWebHyperDB).toHaveBeenCalledTimes(1);
+        expect(mockState.setupWebHyperDB).toHaveBeenCalledWith('web-test', mockState.logger);
         expect(mockState.setupNativeDuckDB).not.toHaveBeenCalled();
     });
 
@@ -112,6 +112,6 @@ describe('EmbeddedDatabaseProvider', () => {
         expect(db).toBe(mockState.nativeDb);
         expect(mockState.setupNativeDuckDB).toHaveBeenCalledTimes(1);
         expect(mockState.setupNativeDuckDB).toHaveBeenCalledWith('native-build', mockState.logger);
-        expect(mockState.setupWebDuckDB).not.toHaveBeenCalled();
+        expect(mockState.setupWebHyperDB).not.toHaveBeenCalled();
     });
 });

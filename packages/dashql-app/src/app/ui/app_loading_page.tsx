@@ -157,7 +157,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                         />
                                     </div>
                                     <div className={pageStyles.detail_entry_key}>
-                                        Initialize WebDB
+                                        Initialize HyperDB
                                     </div>
                                     <div className={pageStyles.detail_entry_value}>
                                         <StatusIndicator

@@ -53,7 +53,7 @@ describe('SQLFrame SQL generation', () => {
             outputAlias: "bin",
         }).toSQL();
         expect(sql).toContain('CROSS JOIN');
-        expect(sql).toContain('CAST(t."price" AS DOUBLE)');
+        expect(sql).toContain('CAST(t."price" AS DOUBLE PRECISION)');
         expect(sql).toContain('__bin_width');
         expect(sql).toContain('AS "bin"');
         expect(sql).toContain('GREATEST');
@@ -132,7 +132,7 @@ describe('SQLFrame SQL generation', () => {
         expect(sql).toContain('__all_bins');
         expect(sql).toContain('__with_bins');
         expect(sql).toContain('__bin_meta');
-        expect(sql).toContain('generate_series(0, 8)');
+        expect(sql).toContain('FROM generate_series(0, 8)');
         expect(sql).toContain('WHEN t."price" IS NULL THEN 8');
         expect(sql).toContain('AS "bin_width"');
         expect(sql).toContain('AS "bin_lb"');
@@ -157,7 +157,7 @@ describe('SQLFrame SQL generation', () => {
             }],
             aggregates: [{ func: "count_star", outputAlias: "cnt" }],
         }).toSQL();
-        expect(sql).toContain('generate_series(0, 3)');
+        expect(sql).toContain('FROM generate_series(0, 3)');
         expect(sql).not.toContain('IS NULL THEN');
         expect(sql).not.toContain('CASE WHEN "bin" =');
     });

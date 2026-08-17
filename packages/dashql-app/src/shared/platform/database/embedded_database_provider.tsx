@@ -24,8 +24,8 @@ export const EmbeddedDatabaseProvider: React.FC<Props> = (props: Props) => {
                 const { setupNativeDuckDB } = await import('../duckdb/duckdb_provider_native.js');
                 return await setupNativeDuckDB(context, logger);
             }
-            const { setupWebDuckDB } = await import('../duckdb/duckdb_provider_web.js');
-            return await setupWebDuckDB(context, logger);
+            const { setupWebHyperDB } = await import('../hyperdb/hyperdb_provider_web.js');
+            return await setupWebHyperDB(context, logger);
         };
 
         instantiation.current = instantiate();

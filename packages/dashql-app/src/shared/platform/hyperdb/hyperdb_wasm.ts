@@ -5,7 +5,9 @@ import type {
     EmbeddedTableImportConnection,
     EmbeddedTableInsertOptions,
 } from '../database/embedded_database.js';
-import { Semaphore } from '../../utils/semaphore.js';
+
+const DATABASE_NAME = '__dashql_compute';
+const DATABASE_SCHEMA = 'public';
 
 export type HyperDBResult =
     | { state: 'ok'; payload: Uint8Array }
@@ -19,6 +21,10 @@ export interface HyperDBEngineClient {
     ready(): Promise<void>;
     connect(): Promise<HyperDBResult>;
     disconnect(connection: number): Promise<HyperDBResult>;
+    createDatabase(databaseName: string, persistent: boolean): Promise<HyperDBResult>;
+    dropDatabase(databaseName: string): Promise<HyperDBResult>;
+    attachDatabase(connection: number, databaseName: string, alias: string): Promise<HyperDBResult>;
+    detachDatabase(connection: number, alias: string): Promise<HyperDBResult>;
     startQuery(connection: number, sql: string): Promise<HyperDBResult>;
     insertArrowIPCFromPath(
         connection: number,
@@ -103,8 +109,7 @@ function yieldToEventLoop(): Promise<void> {
 }
 
 export class HyperDB implements EmbeddedComputeDatabase {
-    private readonly semaphore = new Semaphore(1);
-    private connectionHandle: number | null = null;
+    private readonly connections = new Set<HyperDBConnection>();
     private initialization: Promise<void> | null = null;
     private termination: Promise<void> | null = null;
     private terminated = false;
@@ -119,7 +124,32 @@ export class HyperDB implements EmbeddedComputeDatabase {
 
     async connect(): Promise<HyperDBConnection> {
         await this.initialize();
-        return new HyperDBConnection(this);
+        if (this.termination || this.terminated) {
+            throw new Error('database is terminated');
+        }
+
+        const connectionHandle = readHandle(await this.client.connect(), 'connect');
+        try {
+            expectOK(
+                await this.client.attachDatabase(connectionHandle, DATABASE_NAME, DATABASE_NAME),
+                'attach database',
+            );
+        } catch (error) {
+            expectOK(await this.client.disconnect(connectionHandle), 'disconnect');
+            throw error;
+        }
+
+        if (this.termination || this.terminated) {
+            expectOK(await this.client.detachDatabase(connectionHandle, DATABASE_NAME), 'detach database');
+            expectOK(await this.client.disconnect(connectionHandle), 'disconnect');
+            throw new Error('database is terminated');
+        }
+
+        const connection = new HyperDBConnection(this.client, connectionHandle, () => {
+            this.connections.delete(connection);
+        });
+        this.connections.add(connection);
+        return connection;
     }
 
     async getVersion(): Promise<string> {
@@ -142,36 +172,18 @@ export class HyperDB implements EmbeddedComputeDatabase {
         }
         if (!this.termination) {
             this.termination = (async () => {
-                const release = await this.semaphore.acquire();
                 try {
-                    if (this.connectionHandle !== null) {
-                        expectOK(await this.client.disconnect(this.connectionHandle), 'disconnect');
-                        this.connectionHandle = null;
-                    }
+                    await Promise.all([...this.connections].map(connection => connection.closeForTermination()));
+                    expectOK(await this.client.dropDatabase(DATABASE_NAME), 'drop database');
                     await this.client.terminate();
                     this.terminated = true;
                 } catch (error) {
                     this.termination = null;
                     throw error;
-                } finally {
-                    release();
                 }
             })();
         }
         await this.termination;
-    }
-
-    async execute<T>(operation: (client: HyperDBEngineClient, connection: number) => Promise<T>): Promise<T> {
-        await this.initialize();
-        const release = await this.semaphore.acquire();
-        try {
-            if (this.terminated || this.connectionHandle === null) {
-                throw new Error('database is terminated');
-            }
-            return await operation(this.client, this.connectionHandle);
-        } finally {
-            release();
-        }
     }
 
     private async initialize(): Promise<void> {
@@ -181,7 +193,7 @@ export class HyperDB implements EmbeddedComputeDatabase {
         if (!this.initialization) {
             this.initialization = (async () => {
                 await this.client.ready();
-                this.connectionHandle = readHandle(await this.client.connect(), 'connect');
+                expectOK(await this.client.createDatabase(DATABASE_NAME, false), 'create database');
             })().catch(error => {
                 this.initialization = null;
                 throw error;
@@ -193,12 +205,23 @@ export class HyperDB implements EmbeddedComputeDatabase {
 
 export class HyperDBConnection implements EmbeddedTableImportConnection {
     private closed = false;
+    private active = false;
+    private closing: Promise<void> | null = null;
 
-    constructor(private readonly database: HyperDB) {}
+    constructor(
+        private readonly client: HyperDBEngineClient,
+        private readonly connectionHandle: number,
+        private readonly onClose: () => void,
+    ) {}
 
-    close(): Promise<void> {
-        this.closed = true;
-        return Promise.resolve();
+    async close(): Promise<void> {
+        if (this.closed) {
+            return;
+        }
+        if (this.active) {
+            throw new Error('connection has an active operation');
+        }
+        await this.closeImpl();
     }
 
     async query(query: string): Promise<arrow.Table> {
@@ -206,19 +229,18 @@ export class HyperDBConnection implements EmbeddedTableImportConnection {
     }
 
     async queryArrowIPC(query: string): Promise<Uint8Array> {
-        this.checkOpen();
-        return await this.database.execute(async (client, connection) => {
+        return await this.run(async () => {
             let queryHandle: number | null = null;
             const chunks: Uint8Array[] = [];
             let byteLength = 0;
             let terminal = false;
             try {
-                queryHandle = readHandle(await client.startQuery(connection, query), 'start query');
+                queryHandle = readHandle(await this.client.startQuery(this.connectionHandle, query), 'start query');
                 for (;;) {
-                    let result = await client.pollQuery(queryHandle);
+                    let result = await this.client.pollQuery(queryHandle);
                     while (result.state === 'pending') {
                         await yieldToEventLoop();
-                        result = await client.pollQuery(queryHandle);
+                        result = await this.client.pollQuery(queryHandle);
                     }
                     if (result.state === 'chunk') {
                         chunks.push(result.payload);
@@ -235,14 +257,14 @@ export class HyperDBConnection implements EmbeddedTableImportConnection {
                 let cleanupError: unknown;
                 if (queryHandle !== null && !terminal) {
                     try {
-                        expectOK(await client.cancelQuery(queryHandle), 'cancel query');
+                        expectOK(await this.client.cancelQuery(queryHandle), 'cancel query');
                     } catch (error) {
                         cleanupError = error;
                     }
                 }
                 if (queryHandle !== null) {
                     try {
-                        await this.releaseQuery(client, queryHandle);
+                        await this.releaseQuery(queryHandle);
                     } catch (error) {
                         cleanupError ??= error;
                     }
@@ -255,32 +277,31 @@ export class HyperDBConnection implements EmbeddedTableImportConnection {
     }
 
     async insertArrowTable(table: arrow.Table, options: EmbeddedTableInsertOptions): Promise<void> {
-        this.checkOpen();
         if (!options.name) {
             throw new Error('Arrow insert table name must not be empty');
         }
-        await this.database.execute(async (client, connection) => {
+        await this.run(async () => {
             let path: string | null = null;
             try {
                 const bytes = arrow.tableToIPC(materializeDictionaryColumns(table), 'stream');
-                const temporaryFile = await client.createTemporaryFile(bytes);
+                const temporaryFile = await this.client.createTemporaryFile(bytes);
                 expectOK(temporaryFile, 'create temporary Arrow IPC file');
                 path = new TextDecoder().decode(temporaryFile.payload);
 
-                const queryHandle = readHandle(await client.insertArrowIPCFromPath(
-                    connection,
+                const queryHandle = readHandle(await this.client.insertArrowIPCFromPath(
+                    this.connectionHandle,
                     path,
                     options.name,
-                    options.schema ?? null,
+                    options.schema ?? DATABASE_SCHEMA,
                     options.create ?? true,
                     true,
                 ), 'insert Arrow IPC from path');
                 try {
                     for (;;) {
-                        let result = await client.pollQuery(queryHandle);
+                        let result = await this.client.pollQuery(queryHandle);
                         while (result.state === 'pending') {
                             await yieldToEventLoop();
-                            result = await client.pollQuery(queryHandle);
+                            result = await this.client.pollQuery(queryHandle);
                         }
                         if (result.state === 'chunk') {
                             continue;
@@ -291,11 +312,11 @@ export class HyperDBConnection implements EmbeddedTableImportConnection {
                         throw readError(result, 'insert Arrow IPC from path');
                     }
                 } finally {
-                    await this.releaseQuery(client, queryHandle);
+                    await this.releaseQuery(queryHandle);
                 }
             } finally {
                 if (path !== null) {
-                    expectOK(await client.removeFile(path), 'remove temporary Arrow IPC file');
+                    expectOK(await this.client.removeFile(path), 'remove temporary Arrow IPC file');
                 }
             }
         });
@@ -303,13 +324,48 @@ export class HyperDBConnection implements EmbeddedTableImportConnection {
 
     async createTableAs(name: string, query: string): Promise<void> {
         this.checkOpen();
-        await this.queryArrowIPC(`CREATE TEMPORARY TABLE ${quoteIdentifier(name)} AS ${query}`);
+        await this.queryArrowIPC(`CREATE TABLE ${quoteIdentifier(name)} AS ${query}`);
     }
 
-    private async releaseQuery(client: HyperDBEngineClient, query: number): Promise<void> {
+    async closeForTermination(): Promise<void> {
+        while (this.active) {
+            await yieldToEventLoop();
+        }
+        await this.closeImpl();
+    }
+
+    private async run<T>(operation: () => Promise<T>): Promise<T> {
+        this.checkOpen();
+        if (this.active) {
+            throw new Error('connection has an active operation');
+        }
+        this.active = true;
+        try {
+            return await operation();
+        } finally {
+            this.active = false;
+        }
+    }
+
+    private async closeImpl(): Promise<void> {
+        if (!this.closing) {
+            this.closing = (async () => {
+                expectOK(await this.client.detachDatabase(this.connectionHandle, DATABASE_NAME), 'detach database');
+                expectOK(await this.client.disconnect(this.connectionHandle), 'disconnect');
+                this.closed = true;
+                this.onClose();
+            })().catch(error => {
+                this.closing = null;
+                throw error;
+            });
+        }
+        await this.closing;
+    }
+
+    private async releaseQuery(query: number): Promise<void> {
         let delay = 1;
         for (;;) {
-            const result = await client.releaseQuery(query);
+            const result = await this.client.releaseQuery(query);
             if (result.state === 'ok') {
                 return;
             }

@@ -1,4 +1,3 @@
-load("@emsdk//emscripten_toolchain:wasm_rules.bzl", "wasm_cc_binary")
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 
 # DashQL DuckDB: Minimal DuckDB-Wasm with pthreads, exceptions and Arrow IPC interface
@@ -101,33 +100,6 @@ cc_library(
         "@rapidjson//:rapidjson",
     ],
 )
-
-# Main binary (WASM only)
-cc_binary(
-    name = "dashql_duckdb",
-    srcs = [
-        "src/wasm_main.cc",
-    ],
-    copts = WASM_COPTS,
-    features = ["wasm_exceptions", "use_pthreads"],
-    linkopts = WASM_LINKOPTS,
-    target_compatible_with = ["@platforms//cpu:wasm32"],
-    deps = [
-        ":duckdb_web",
-    ],
-)
-
-wasm_cc_binary(
-    name = "duckdb_web_wasm",
-    cc_target = ":dashql_duckdb",
-    standalone = False,
-    outputs = [
-        "duckdb_web.wasm",
-        "duckdb_web.js",
-    ],
-    visibility = ["//visibility:public"],
-)
-
 
 # Test configuration (native, not WASM)
 TEST_COPTS = [

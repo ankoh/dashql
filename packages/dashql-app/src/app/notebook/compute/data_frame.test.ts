@@ -1,15 +1,11 @@
 // @vitest-environment node
 import * as arrow from 'apache-arrow';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { instantiateTestWebDB } from '../../../shared/platform/duckdb/duckdb_test_worker.js';
-import { DuckDB } from '../../../shared/platform/duckdb/duckdb_api.js';
+import { createSerializedNodeTestClient } from '../../../shared/platform/hyperdb/hyperdb_test_client.js';
+import { HyperDB } from '../../../shared/platform/hyperdb/hyperdb_wasm.js';
 import { TestLogger } from '../../../shared/platform/logger/test_logger.js';
 import { DataFrame, DataFrameRegistry, generateTableName } from './data_frame.js';
-
-declare const WEBDB_PRECOMPILED: Promise<Uint8Array>;
-
-let webdbWasmBinary: Uint8Array;
 
 function toPlainObjects(table: arrow.Table): any[] {
     return table.toArray().map(row => {
@@ -21,21 +17,21 @@ function toPlainObjects(table: arrow.Table): any[] {
     });
 }
 
-beforeAll(async () => {
-    webdbWasmBinary = await WEBDB_PRECOMPILED;
-});
-
 describe('DataFrame', () => {
-    let webdb: DuckDB;
+    let database: HyperDB | null = null;
+    let releaseClient: (() => Promise<void>) | null = null;
 
     beforeEach(async () => {
-        webdb = await instantiateTestWebDB(webdbWasmBinary);
-        await webdb.open({ maximumThreads: 1 });
-    });
+        const { client, release } = await createSerializedNodeTestClient();
+        releaseClient = release;
+        database = await HyperDB.create(client);
+    }, 30_000);
 
-    afterEach(() => {
-        if (webdb) {
-            webdb.terminate();
+    afterEach(async () => {
+        try {
+            await database?.terminate();
+        } finally {
+            await releaseClient?.();
         }
     });
 
@@ -47,7 +43,7 @@ describe('DataFrame', () => {
             label: ['alpha', 'beta', 'gamma'],
         });
 
-        const dataFrame = await DataFrame.fromArrowTable(webdb, inputTable, tableName);
+        const dataFrame = await DataFrame.fromArrowTable(database!, inputTable, tableName);
         const [firstRead, secondRead] = await Promise.all([
             dataFrame.readTable(),
             dataFrame.readTable(),
@@ -61,7 +57,7 @@ describe('DataFrame', () => {
         expect(toPlainObjects(secondRead)).toEqual(toPlainObjects(firstRead));
 
         const summaryFrame = await DataFrame.fromSQL(
-            webdb,
+            database!,
             `SELECT COUNT(*)::INTEGER AS row_count FROM "${tableName}"`,
             summaryName,
         );
@@ -77,7 +73,7 @@ describe('DataFrame', () => {
 
     it('drops a data frame when its last registry reference is released', async () => {
         const tableName = generateTableName('__released');
-        const dataFrame = await DataFrame.fromArrowTable(webdb, arrow.tableFromArrays({ id: [1] }), tableName);
+        const dataFrame = await DataFrame.fromArrowTable(database!, arrow.tableFromArrays({ id: [1] }), tableName);
         const registry = new DataFrameRegistry(new TestLogger());
         const destroy = vi.spyOn(dataFrame, 'destroy');
 

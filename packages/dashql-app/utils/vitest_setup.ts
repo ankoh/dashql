@@ -22,7 +22,6 @@ const g = globalThis as typeof globalThis & {
     Response?: typeof Response;
     DASHQL_PRECOMPILED?: Promise<Uint8Array>;
     DASHQL_SHELL_PRECOMPILED?: Promise<Uint8Array>;
-    WEBDB_PRECOMPILED: Promise<Uint8Array>;
 };
 if (typeof g.TextEncoder === "undefined") g.TextEncoder = TextEncoder;
 if (typeof g.TextDecoder === "undefined") g.TextDecoder = TextDecoder as typeof g.TextDecoder;
@@ -33,13 +32,11 @@ if (typeof g.Response === "undefined") g.Response = Response;
 
 const coreWasmPath = path.resolve(process.cwd(), "dependencies/dashql-core-wasm/dashql_core.wasm");
 const shellWasmPath = path.resolve(process.cwd(), "dependencies/dashql-shell-wasm/dashql_shell.wasm");
-const webdbWasmPath = path.resolve(process.cwd(), "dependencies/duckdb/duckdb_web.wasm");
 
 // Pre-load the WASM binary for faster instantiation
 // Using wasmBinary is simpler and more compatible with Emscripten than instantiateWasm
 let wasmBinaryPromise: Promise<Uint8Array> | null = null;
 let shellWasmBinaryPromise: Promise<Uint8Array> | null = null;
-let webdbWasmBinaryPromise: Promise<Uint8Array> | null = null;
 
 function getWasmBinary(): Promise<Uint8Array> {
     if (!wasmBinaryPromise) {
@@ -55,18 +52,7 @@ function getShellWasmBinary(): Promise<Uint8Array> {
     return shellWasmBinaryPromise;
 }
 
-function getWebDBWasmBinary(): Promise<Uint8Array> {
-    if (!webdbWasmBinaryPromise) {
-        webdbWasmBinaryPromise = fs.promises.readFile(webdbWasmPath)
-            .then(buf => new Uint8Array(buf));
-    }
-    return webdbWasmBinaryPromise;
-}
-
 // Provide preloaded WASM binary to Emscripten
 // This is type-compatible and lets Emscripten handle all the memory setup properly
 g.DASHQL_PRECOMPILED = getWasmBinary();
 g.DASHQL_SHELL_PRECOMPILED = getShellWasmBinary();
-
-// Provide preloaded WebDB WASM binary for tests
-g.WEBDB_PRECOMPILED = getWebDBWasmBinary();

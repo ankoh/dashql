@@ -170,8 +170,8 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             traced.info("Initializing application", {}, "app_loader");
             const totalStartTime = performance.now();
 
-            // Wait for core and webdb to be ready
-            traced.info("Initializing core and WebDB", {}, "app_loader");
+            // Wait for Core and HyperDB to be ready.
+            traced.info("Initializing Core and HyperDB", {}, "app_loader");
             const coreStartTime = performance.now();
 
             const [core] = await Promise.all([
@@ -181,7 +181,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             ]);
 
             const coreDuration = performance.now() - coreStartTime;
-            traced.info("Core and WebDB ready", {
+            traced.info("Core and HyperDB ready", {
                 durationMs: coreDuration.toFixed(2)
             }, "app_loader");
 

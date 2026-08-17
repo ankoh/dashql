@@ -75,7 +75,11 @@ function formatLiteral(value: number): string {
 }
 
 function toNumeric(expr: string, fn?: string): string {
-    return fn ? `${fn}(${expr})` : `CAST(${expr} AS DOUBLE)`;
+    return fn === "EPOCH"
+        ? `EXTRACT(EPOCH FROM ${expr})`
+        : fn
+            ? `${fn}(${expr})`
+            : `CAST(${expr} AS DOUBLE PRECISION)`;
 }
 
 function formatAggExpr(agg: GroupByAggregate): string {
@@ -308,11 +312,11 @@ export class SQLFrame {
         const statsSql = fn
             ? `SELECT ` +
               `${minField} AS __min, ` +
-              `GREATEST(ABS(${fn}(${maxField}) - ${fn}(${minField})) / ${binCount}, 1e-15) AS __bin_width ` +
+              `GREATEST(ABS(${toNumeric(maxField, fn)} - ${toNumeric(minField, fn)}) / ${binCount}, 1e-15) AS __bin_width ` +
               `FROM ${quoteIdent(binning.statsTable)}`
             : `SELECT ` +
-              `CAST(${minField} AS DOUBLE) AS __min, ` +
-              `GREATEST(ABS(CAST(${maxField} AS DOUBLE) - CAST(${minField} AS DOUBLE)) / ${binCount}, 1e-15) AS __bin_width ` +
+              `CAST(${minField} AS DOUBLE PRECISION) AS __min, ` +
+              `GREATEST(ABS(CAST(${maxField} AS DOUBLE PRECISION) - CAST(${minField} AS DOUBLE PRECISION)) / ${binCount}, 1e-15) AS __bin_width ` +
               `FROM ${quoteIdent(binning.statsTable)}`;
         ctes.push(`${statsCteName} AS (\n    ${statsSql}\n  )`);
 
@@ -322,8 +326,8 @@ export class SQLFrame {
             binExpr = `t.${quoteIdent(binning.preBinnedFieldName)}`;
         } else {
             binExpr = fn
-                ? `(${fn}(t.${quoteIdent(binnedKeyDef.fieldName)}) - ${fn}(s.__min)) / s.__bin_width`
-                : `(CAST(t.${quoteIdent(binnedKeyDef.fieldName)} AS DOUBLE) - s.__min) / s.__bin_width`;
+                ? `(${toNumeric(`t.${quoteIdent(binnedKeyDef.fieldName)}`, fn)} - ${toNumeric('s.__min', fn)}) / s.__bin_width`
+                : `(CAST(t.${quoteIdent(binnedKeyDef.fieldName)} AS DOUBLE PRECISION) - s.__min) / s.__bin_width`;
         }
 
         // Clamped bin. The floating-point bin index must be clamped to
@@ -371,7 +375,7 @@ export class SQLFrame {
 
         // All bins CTE
         const allBinsCteName = "__all_bins";
-        const allBinsSql = `SELECT UNNEST(generate_series(0, ${totalBins - 1})) AS ${quoteIdent(binAlias)}`;
+        const allBinsSql = `SELECT * FROM generate_series(0, ${totalBins - 1}) AS bins(${quoteIdent(binAlias)})`;
         ctes.push(`${allBinsCteName} AS (\n    ${allBinsSql}\n  )`);
 
         // Join missing bins
@@ -399,7 +403,7 @@ export class SQLFrame {
         const binRef = quoteIdent(binAlias);
 
         const offsetExpr = (offset: string) => fn
-            ? `${fn}(s.__min) * 1000.0 + (${offset}) * 1000.0`
+            ? `${toNumeric('s.__min', fn)} * 1000.0 + (${offset}) * 1000.0`
             : `s.__min + (${offset})`;
 
         let widthExpr: string;

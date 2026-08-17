@@ -2,7 +2,7 @@ import type { UMAPOptions } from '@dashql/umap-wasm';
 
 /// Message protocol for the UMAP web worker.
 ///
-/// Follows the dashql worker convention (see platform/duckdb/duckdb_worker_request.ts):
+/// Follows the DashQL worker request convention:
 /// typed request/response variants correlated by a numeric messageId — NOT Comlink.
 /// A single RUN request streams zero or more PROGRESS responses (same requestId)
 /// followed by exactly one RESULT or ERROR. A CANCEL request abandons the in-flight

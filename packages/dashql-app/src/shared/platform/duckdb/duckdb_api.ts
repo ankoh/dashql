@@ -20,10 +20,6 @@ export interface DuckDBOpenOptions {
 
 export type DuckDBInsertOptions = EmbeddedTableInsertOptions;
 
-// Backward-compatible aliases while consumers migrate away from the old web-specific names.
-export type WebDBOpenOptions = DuckDBOpenOptions;
-export type WebDBInsertOptions = DuckDBInsertOptions;
-
 export function decodeArrowTable(buffer: Uint8Array): arrow.Table {
     const reader = arrow.RecordBatchReader.from(buffer);
     return new arrow.Table(reader);

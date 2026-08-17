@@ -7,21 +7,21 @@ import { NativeDuckDB } from './duckdb_native_api.js';
 export async function setupNativeDuckDB(context: string, logger: Logger): Promise<DuckDB> {
     const initStart = performance.now();
     try {
-        logger.info("Creating native duckdb proxy client", { "context": context }, "webdb");
+        logger.info("Creating native DuckDB proxy client", { "context": context }, "duckdb");
         const nativeDb = new NativeDuckDB();
         await nativeDb.open();
         const initEnd = performance.now();
-        logger.info("Instantiated native duckdb", {
+        logger.info("Instantiated native DuckDB", {
             "context": context,
             "duration": Math.floor(initEnd - initStart).toString()
-        }, "webdb");
+        }, "duckdb");
         return nativeDb;
     } catch (e: any) {
         const initEnd = performance.now();
-        logger.error("Instantiating native duckdb failed", {
+        logger.error("Instantiating native DuckDB failed", {
             "error": stringifyError(e),
             "duration": Math.floor(initEnd - initStart).toString()
-        }, "webdb");
+        }, "duckdb");
         throw e;
     }
 }

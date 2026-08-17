@@ -26,12 +26,17 @@ class FakeHyperDBEngineClient implements HyperDBEngineClient {
 
     connectCount = 0;
     disconnectCount = 0;
+    createDatabaseCount = 0;
+    dropDatabaseCount = 0;
+    attachDatabaseCount = 0;
+    detachDatabaseCount = 0;
     terminateCount = 0;
     activeOperationCount = 0;
     maximumActiveOperationCount = 0;
     failStartQuery = false;
 
-    private nextQuery = 10;
+    private nextConnection = 7;
+    private nextQuery = 100;
     private nextFile = 1;
     private readonly queries = new Map<number, HyperDBResult[]>();
 
@@ -41,14 +46,39 @@ class FakeHyperDBEngineClient implements HyperDBEngineClient {
     }
 
     connect(): Promise<HyperDBResult> {
-        this.calls.push('connect');
+        const connection = this.nextConnection++;
+        this.calls.push(`connect:${connection}`);
         this.connectCount++;
-        return Promise.resolve(handle(7));
+        return Promise.resolve(handle(connection));
     }
 
     disconnect(connection: number): Promise<HyperDBResult> {
         this.calls.push(`disconnect:${connection}`);
         this.disconnectCount++;
+        return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
+    }
+
+    createDatabase(databaseName: string, persistent: boolean): Promise<HyperDBResult> {
+        this.calls.push(`create-database:${databaseName}:${persistent}`);
+        this.createDatabaseCount++;
+        return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
+    }
+
+    dropDatabase(databaseName: string): Promise<HyperDBResult> {
+        this.calls.push(`drop-database:${databaseName}`);
+        this.dropDatabaseCount++;
+        return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
+    }
+
+    attachDatabase(connection: number, databaseName: string, alias: string): Promise<HyperDBResult> {
+        this.calls.push(`attach:${connection}:${databaseName}:${alias}`);
+        this.attachDatabaseCount++;
+        return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
+    }
+
+    detachDatabase(connection: number, alias: string): Promise<HyperDBResult> {
+        this.calls.push(`detach:${connection}:${alias}`);
+        this.detachDatabaseCount++;
         return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
     }
 
@@ -146,7 +176,7 @@ function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
 }
 
 describe('HyperDB embedded database adapter', () => {
-    it('keeps one physical session alive across logical connection leases', async () => {
+    it('attaches the shared database to each physical connection', async () => {
         const client = new FakeHyperDBEngineClient();
         const database = await HyperDB.create(client);
         const first = await database.connect();
@@ -155,18 +185,22 @@ describe('HyperDB embedded database adapter', () => {
         await first.close();
         const third = await database.connect();
 
-        expect(client.connectCount).toBe(1);
-        expect(client.disconnectCount).toBe(0);
+        expect(client.connectCount).toBe(3);
+        expect(client.disconnectCount).toBe(1);
+        expect(client.createDatabaseCount).toBe(1);
+        expect(client.attachDatabaseCount).toBe(3);
 
         await second.close();
         await third.close();
         await database.terminate();
 
-        expect(client.disconnectCount).toBe(1);
+        expect(client.disconnectCount).toBe(3);
+        expect(client.detachDatabaseCount).toBe(3);
+        expect(client.dropDatabaseCount).toBe(1);
         expect(client.terminateCount).toBe(1);
     });
 
-    it('makes a temporary Arrow table available to later logical connections', async () => {
+    it('creates shared Arrow tables in the attached database', async () => {
         const client = new FakeHyperDBEngineClient();
         const database = await HyperDB.create(client);
         const writer = await database.connect();
@@ -177,7 +211,7 @@ describe('HyperDB embedded database adapter', () => {
         }), { name: '__frame', create: true });
         await writer.close();
 
-        const inserted = client.insertedTables.get('__frame');
+        const inserted = client.insertedTables.get('public.__frame');
         expect(inserted).toBeDefined();
         client.queryResults.set('SELECT * FROM "__frame"', ipc(inserted!));
 
@@ -189,8 +223,8 @@ describe('HyperDB embedded database adapter', () => {
             { id: 2, label: 'beta' },
             { id: 3, label: 'gamma' },
         ]);
-        expect(client.calls).toContain('insert:7:/tmp/hyperdb/test-1.arrows::__frame:true:true');
-        expect(client.connectCount).toBe(1);
+        expect(client.calls).toContain('insert:7:/tmp/hyperdb/test-1.arrows:public:__frame:true:true');
+        expect(client.connectCount).toBe(2);
 
         await reader.close();
         await database.terminate();
@@ -206,7 +240,7 @@ describe('HyperDB embedded database adapter', () => {
             create: true,
         });
 
-        const inserted = client.insertedTables.get('labels');
+        const inserted = client.insertedTables.get('public.labels');
         expect(inserted?.schema.fields[0]?.type.toString()).toBe('Utf8');
         expect(client.temporaryFiles.size).toBe(0);
 
@@ -241,23 +275,23 @@ describe('HyperDB embedded database adapter', () => {
         await database.terminate();
     });
 
-    it('creates derived relations as temporary tables with quoted names', async () => {
+    it('creates derived relations in the attached database with quoted names', async () => {
         const client = new FakeHyperDBEngineClient();
         const database = await HyperDB.create(client);
         const connection = await database.connect();
         client.queryResults.set(
-            'CREATE TEMPORARY TABLE "derived""rows" AS SELECT 1',
+            'CREATE TABLE "derived""rows" AS SELECT 1',
             ipc(arrow.tableFromArrays({})),
         );
 
         await connection.createTableAs('derived"rows', 'SELECT 1');
 
-        expect(client.calls).toContain('query:7:CREATE TEMPORARY TABLE "derived""rows" AS SELECT 1');
+        expect(client.calls).toContain('query:7:CREATE TABLE "derived""rows" AS SELECT 1');
         await connection.close();
         await database.terminate();
     });
 
-    it('serializes operations submitted through separate logical connections', async () => {
+    it('submits operations through separate physical connections without a global lock', async () => {
         const client = new FakeHyperDBEngineClient();
         const firstResult = ipc(arrow.tableFromArrays({ value: new Int32Array([1]) }));
         const secondResult = ipc(arrow.tableFromArrays({ value: new Int32Array([2]) }));
@@ -274,14 +308,16 @@ describe('HyperDB embedded database adapter', () => {
 
         expect(toPlainObjects(one)).toEqual([{ value: 1 }]);
         expect(toPlainObjects(two)).toEqual([{ value: 2 }]);
-        expect(client.maximumActiveOperationCount).toBe(1);
+        expect(client.maximumActiveOperationCount).toBe(2);
+        expect(client.calls).toContain('query:7:SELECT 1 AS value');
+        expect(client.calls).toContain('query:8:SELECT 2 AS value');
 
         await first.close();
         await second.close();
         await database.terminate();
     });
 
-    it('releases failed queries and leaves the shared session usable', async () => {
+    it('releases failed queries and leaves other connections usable', async () => {
         const client = new FakeHyperDBEngineClient();
         client.queryResults.set('SELECT 42 AS answer', ipc(arrow.tableFromArrays({ answer: new Int32Array([42]) })));
         const database = await HyperDB.create(client);
@@ -299,7 +335,7 @@ describe('HyperDB embedded database adapter', () => {
         await database.terminate();
     });
 
-    it('releases the operation lock when starting a query fails', async () => {
+    it('leaves a connection usable when starting a query fails', async () => {
         const client = new FakeHyperDBEngineClient();
         client.failStartQuery = true;
         const database = await HyperDB.create(client);
@@ -317,14 +353,14 @@ describe('HyperDB embedded database adapter', () => {
         await database.terminate();
     });
 
-    it('rejects use of a closed logical connection without closing the physical session', async () => {
+    it('rejects use of a closed connection after closing its physical session', async () => {
         const client = new FakeHyperDBEngineClient();
         const database = await HyperDB.create(client);
         const connection = await database.connect();
         await connection.close();
 
         await expect(connection.query('SELECT 1')).rejects.toThrow('connection is closed');
-        expect(client.disconnectCount).toBe(0);
+        expect(client.disconnectCount).toBe(1);
 
         await database.terminate();
     });

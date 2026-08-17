@@ -48,7 +48,6 @@ bazel build //...
 | `//packages/dashql-app:reloc` | Web app bundle for native apps |
 | `//packages/dashql-native:mac_universal_dmg` | Universal macOS DMG |
 | `//packages/dashql-core:dashql_core` | Core C++ library |
-| `//packages/duckdb:duckdb_web` | DuckDB WebAssembly module |
 
 ### Build Configs
 
@@ -93,7 +92,6 @@ bazel test //packages/dashql-core:*_tests
 | `//packages/dashql-core:formatter_tests` | Formatter snapshot tests |
 | `//packages/dashql-core:formatter_validation_hyper_tests` | Execute formatted SQL against Hyper |
 | `//packages/hyper-api:smoke_test` | Native Tableau Hyper API integration test |
-| `//packages/duckdb:duckdb_web_test` | DuckDB WASM integration tests |
 | `//packages/dashql-native:tests` | Rust unit tests for native app |
 | `//packages/dashql-app:test` | TypeScript/Jest tests for web app |
 

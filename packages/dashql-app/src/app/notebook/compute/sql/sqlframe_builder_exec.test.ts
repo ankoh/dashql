@@ -1,12 +1,11 @@
 // @vitest-environment node
 import * as arrow from 'apache-arrow';
 import { SQLFrame } from './sqlframe_builder.js';
-import { instantiateTestWebDB } from '../../../../shared/platform/duckdb/duckdb_test_worker.js';
-import { DuckDB, DuckDBConnection } from '../../../../shared/platform/duckdb/duckdb_api.js';
-
-declare const WEBDB_PRECOMPILED: Promise<Uint8Array>;
-
-let webdbWasmBinary: Uint8Array;
+import { createSerializedNodeTestClient } from '../../../../shared/platform/hyperdb/hyperdb_test_client.js';
+import {
+    HyperDB,
+    HyperDBConnection,
+} from '../../../../shared/platform/hyperdb/hyperdb_wasm.js';
 
 function toPlainObjects(table: arrow.Table): any[] {
     return table.toArray().map(row => {
@@ -18,26 +17,25 @@ function toPlainObjects(table: arrow.Table): any[] {
     });
 }
 
-beforeAll(async () => {
-    webdbWasmBinary = await WEBDB_PRECOMPILED;
-});
-
 describe('SQLFrame execution', () => {
-    let webdb: DuckDB;
-    let conn: DuckDBConnection;
+    let database: HyperDB | null = null;
+    let conn!: HyperDBConnection;
+    let releaseClient: (() => Promise<void>) | null = null;
 
     beforeEach(async () => {
-        webdb = await instantiateTestWebDB(webdbWasmBinary);
-        await webdb.open({
-            maximumThreads: 1,
-            query: { castBigIntToDouble: true },
-        });
-        conn = await webdb.connect();
-    });
+        const { client, release } = await createSerializedNodeTestClient();
+        releaseClient = release;
+        database = await HyperDB.create(client);
+        conn = await database.connect();
+    }, 30_000);
 
     afterEach(async () => {
-        if (conn) await conn.close();
-        if (webdb) webdb.terminate();
+        try {
+            if (conn) await conn.close();
+            await database?.terminate();
+        } finally {
+            await releaseClient?.();
+        }
     });
 
     it('order by Float64', async () => {
@@ -76,7 +74,7 @@ describe('SQLFrame execution', () => {
 
         expect(rows.length).toBe(3);
         const rns = rows.map((r: any) => r.rn).sort();
-        expect(rns).toEqual([1, 2, 3]);
+        expect(rns).toEqual([1n, 2n, 3n]);
     });
 
     it('value identifier (dense_rank)', async () => {
@@ -102,7 +100,7 @@ describe('SQLFrame execution', () => {
         expect(new Set(cRows.map((r: any) => r.cat_id)).size).toBe(1);
 
         const ids = [...new Set(rows.map((r: any) => r.cat_id))].sort();
-        expect(ids).toEqual([1, 2, 3]);
+        expect(ids).toEqual([1n, 2n, 3n]);
     });
 
     it('filters rows by categorical value identifier', async () => {
@@ -120,7 +118,7 @@ describe('SQLFrame execution', () => {
         const result = await conn.query(sql);
         const rows = toPlainObjects(result);
 
-        expect(rows.map((row: any) => row.rn).sort()).toEqual([2, 4]);
+        expect(rows.map((row: any) => row.rn).sort()).toEqual([2n, 4n]);
     });
 
     it('assigns null categories a filterable value identifier', async () => {
@@ -138,7 +136,7 @@ describe('SQLFrame execution', () => {
         const result = await conn.query(sql);
         const rows = toPlainObjects(result);
 
-        expect(rows.map((row: any) => row.rn)).toEqual([3]);
+        expect(rows.map((row: any) => row.rn)).toEqual([3n]);
     });
 
     it('scalar filter range', async () => {
@@ -158,7 +156,37 @@ describe('SQLFrame execution', () => {
 
         expect(rows.length).toBe(2);
         const rns = rows.map((r: any) => r.rn).sort();
-        expect(rns).toEqual([2, 3]);
+        expect(rns).toEqual([2n, 3n]);
+    });
+
+    it('bins temporal values using epoch seconds', async () => {
+        await conn.query(`CREATE TABLE input (occurred_at TIMESTAMP)`);
+        await conn.query(
+            `INSERT INTO input VALUES ` +
+            `(TIMESTAMP '2024-01-01 00:00:00'), ` +
+            `(TIMESTAMP '2024-01-01 00:00:05'), ` +
+            `(TIMESTAMP '2024-01-01 00:00:10')`,
+        );
+        await conn.query(
+            `CREATE TABLE stats AS ` +
+            `SELECT MIN(occurred_at) AS min_time, MAX(occurred_at) AS max_time FROM input`,
+        );
+
+        const sql = SQLFrame.from("input")
+            .binning({
+                fieldName: "occurred_at",
+                statsTable: "stats",
+                statsMinField: "min_time",
+                statsMaxField: "max_time",
+                binCount: 2,
+                outputAlias: "time_bin",
+                toNumericFn: "EPOCH",
+            })
+            .orderBy([{ field: "occurred_at" }])
+            .toSQL();
+        const rows = toPlainObjects(await conn.query(sql));
+
+        expect(rows.map(row => row.time_bin)).toEqual([0, 1, 2]);
     });
 
     it('semi-join filter', async () => {
@@ -203,8 +231,8 @@ describe('SQLFrame execution', () => {
         const rows = toPlainObjects(result);
 
         expect(rows).toEqual([
-            { key: 'A', cnt: 3 },
-            { key: 'B', cnt: 2 },
+            { key: 'A', cnt: 3n },
+            { key: 'B', cnt: 2n },
         ]);
     });
 
@@ -287,16 +315,16 @@ describe('SQLFrame execution', () => {
         //   bin 6: 22070, 23269 → 2
         //   bin 7: 25733, 27309, 28054 → 3
         expect(rows[0].bin).toBe(0);
-        expect(rows[0].count).toBe(6);
+        expect(rows[0].count).toBe(6n);
 
         expect(rows[1].bin).toBe(1);
-        expect(rows[1].count).toBe(2);
+        expect(rows[1].count).toBe(2n);
 
         expect(rows[5].bin).toBe(5);
         expect(rows[5].count).toBeNull();
 
         expect(rows[7].bin).toBe(7);
-        expect(rows[7].count).toBe(3);
+        expect(rows[7].count).toBe(3n);
 
         for (const row of rows) {
             expect(row.bin_width).toBeCloseTo(3505.5, 1);

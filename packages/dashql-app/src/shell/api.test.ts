@@ -2,13 +2,15 @@
 import { DashQLShell, DashQLShellError, DashQLShellPromptAction, DashQLShellPromptInput, DashQLShellStatus } from './api.js';
 import * as arrow from 'apache-arrow';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
-import { instantiateTestWebDB } from '../shared/platform/duckdb/duckdb_test_worker.js';
-import { DuckDB, DuckDBConnection } from '../shared/platform/duckdb/duckdb_api.js';
+import { createSerializedNodeTestClient } from '../shared/platform/hyperdb/hyperdb_test_client.js';
+import {
+    HyperDB,
+    HyperDBConnection,
+} from '../shared/platform/hyperdb/hyperdb_wasm.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../shared/catalog.js';
 import { VT100, VT100Command, vt100Sequence } from './vt100.js';
 
 declare const DASHQL_SHELL_PRECOMPILED: Promise<Uint8Array>;
-declare const WEBDB_PRECOMPILED: Promise<Uint8Array>;
 
 describe('DashQL shell Wasm', () => {
     let shell: DashQLShell;
@@ -488,13 +490,19 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('runs the asynchronous query workflow through a C++ coroutine', async () => {
-        let database: DuckDB | null = null;
-        let connection: DuckDBConnection | null = null;
+        let database: HyperDB | null = null;
+        let connection: HyperDBConnection | null = null;
+        let releaseClient: (() => Promise<void>) | null = null;
         try {
-            database = await instantiateTestWebDB(await WEBDB_PRECOMPILED);
-            await database.open({ maximumThreads: 1 });
+            const { client, release } = await createSerializedNodeTestClient();
+            releaseClient = release;
+            database = await HyperDB.create(client);
             connection = await database.connect();
-            executeQuery = createEmbeddedDatabaseShellEnvironment(connection).executeQuery;
+            const environment = createEmbeddedDatabaseShellEnvironment(connection);
+            executeQuery = async (query, signal) => {
+                const stream = await environment.executeQuery(query, signal);
+                return arrow.tableToIPC(arrow.tableFromIPC(stream), 'file');
+            };
 
             await expect(shell.executeQuery(
                 "SELECT * FROM (VALUES (1, 'alpha'), (20, '界'), (300, NULL)) AS t(value, name)",
@@ -509,9 +517,10 @@ describe('DashQL shell Wasm', () => {
             );
         } finally {
             if (connection) await connection.close();
-            database?.terminate();
+            await database?.terminate();
+            await releaseClient?.();
         }
-    });
+    }, 30_000);
 
     it('cancels a suspended C++ coroutine', async () => {
         const abort = new AbortController();

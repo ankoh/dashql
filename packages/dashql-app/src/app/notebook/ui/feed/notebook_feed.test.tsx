@@ -41,6 +41,7 @@ const mockState = vi.hoisted(() => ({
     cancelQuery: vi.fn(),
     storageBackend: {
         deleteQueryResultCache: vi.fn(),
+        hasCachedQueryResult: vi.fn(async (_notebookId: string, _cacheKey: string) => false),
         listQueryResultCache: vi.fn(async () => [] as Array<{ name: string }>),
     },
     cacheKey: null as string | null,
@@ -292,6 +293,10 @@ describe('NotebookFeed', () => {
         mockState.cancelAgentRun.mockReset();
         mockState.cancelQuery.mockReset();
         mockState.storageBackend.deleteQueryResultCache.mockReset();
+        mockState.storageBackend.hasCachedQueryResult.mockReset();
+        mockState.storageBackend.hasCachedQueryResult.mockImplementation(async (_notebookId: string, cacheKey: string) =>
+            mockState.cachedFiles.some(file => file.name === `${cacheKey}.arrow`),
+        );
         mockState.storageBackend.listQueryResultCache.mockReset();
         mockState.storageBackend.listQueryResultCache.mockImplementation(async () => mockState.cachedFiles);
         mockState.cacheKey = null;
@@ -655,6 +660,7 @@ describe('NotebookFeed', () => {
     it('keeps the compose send control available while a query is running', () => {
         const notebookScripts = createNotebookScripts();
         notebookScripts.scripts[101] = { ...notebookScripts.scripts[101], latestQueryId: 42 };
+        notebookScripts.scripts[notebookScripts.uncommittedScriptId] = makeScriptData(notebookScripts.uncommittedScriptId, 'select 3');
         const modifyNotebookScripts = vi.fn();
         mockState.queryStates.set(42, { traceId: 100, status: 4 /* RUNNING */ });
         renderFeed({
@@ -727,9 +733,11 @@ describe('NotebookFeed', () => {
     });
 
     it('dispatches PROMOTE_UNCOMMITTED_SCRIPT on Ctrl+Enter when the compose editor is focused', () => {
+        const notebookScripts = createNotebookScripts();
+        notebookScripts.scripts[notebookScripts.uncommittedScriptId] = makeScriptData(notebookScripts.uncommittedScriptId, 'select 3');
         const modifyNotebookScripts = vi.fn();
         renderFeed({
-            notebookScripts: createNotebookScripts(),
+            notebookScripts,
             modifyNotebookScripts,
             showDetails: vi.fn(),
             scrollTarget: null,
@@ -1080,9 +1088,11 @@ describe('NotebookFeed', () => {
     it('marks only cards whose query result is cached', async () => {
         mockState.cacheKey = 'cached-query';
         mockState.cachedFiles = [{ name: 'cached-query.arrow' }];
-        renderFeed({ notebookScripts: createNotebookScripts(), modifyNotebookScripts: vi.fn(), showDetails: vi.fn() });
+        const conn = createOnlineConnection();
+        conn.details = {} as any;
+        renderFeed({ notebookScripts: createNotebookScripts(), modifyNotebookScripts: vi.fn(), showDetails: vi.fn(), conn });
 
-        await act(async () => { await Promise.resolve(); });
+        await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
 
         expect(container.textContent?.match(/Cached/g)).toHaveLength(1);
         expect(container.textContent?.match(/Not run yet/g)).toHaveLength(2);
@@ -1391,6 +1401,7 @@ describe('NotebookFeed', () => {
 
     it('scrolls to the bottom after send once the promoted entry appears', () => {
         let notebookScripts = createNotebookScripts();
+        notebookScripts.scripts[notebookScripts.uncommittedScriptId] = makeScriptData(notebookScripts.uncommittedScriptId, 'select 3');
         const modifyNotebookScripts = vi.fn();
         const showDetails = vi.fn();
 

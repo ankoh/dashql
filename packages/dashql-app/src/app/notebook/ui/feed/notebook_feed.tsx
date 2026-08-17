@@ -259,7 +259,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = (props: CollapsedScriptCa
     }, [props.scriptFileName, props.onExpand]);
 
 
-    const connectorIcon = props.connection?.connectorInfo.icons?.outlines ?? 'database_16';
+    const connectorIcon = props.connection?.connectorInfo?.icons?.outlines ?? 'database_16';
     return (
         <div
             className={styles.feed_entry_pair}
@@ -274,7 +274,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = (props: CollapsedScriptCa
                             size={ButtonSize.Small}
                             aria-label={queryActive ? `Stop ${displayName} query` : `Execute ${displayName} query`}
                             aria-current={props.isFocused ? 'true' : undefined}
-                            disabled={queryActive}
+                            disabled={!queryActive && !props.canExecute}
                             onClick={() => {
                                 if (queryActive && props.scriptData?.latestQueryId != null) {
                                     cancelQuery(props.notebookId, props.scriptData.latestQueryId);
@@ -546,7 +546,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     scriptData={scriptData}
                     scriptFileName={scriptFileName}
                     scriptDebugMode={props.scriptDebugMode}
-                    canExecute={scriptData != null}
+                    canExecute={scriptData != null && props.connection != null}
                     canUseAI={props.canUseAI}
                     canDelete={props.canDelete}
                     canMoveUp={canMoveUp}
@@ -756,7 +756,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         // The compose editor keeps the draft analyzed as it is typed, so the
         // resolved VISUALIZE query / derived annotations are already present (and
         // carried across promotion, which preserves the script key).
-        const queryText = scriptData ? compileQuery(scriptData, logger) : '';
+        const queryText = scriptData && execute ? compileQuery(scriptData, logger) : '';
         props.modifyNotebookScripts({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
         if (execute && !isDisconnected && queryText.trim().length > 0) {
             const [queryId, execution] = executeQuery(notebookScripts.notebookId, {

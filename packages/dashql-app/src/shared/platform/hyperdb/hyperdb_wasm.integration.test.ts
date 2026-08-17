@@ -3,6 +3,7 @@ import * as arrow from 'apache-arrow';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { DataFrame, generateTableName } from '../../../app/notebook/compute/data_frame.js';
+import { createSerializedNodeTestClient } from './hyperdb_test_client.js';
 import { HyperDB, type HyperDBEngineClient, type HyperDBResult } from './hyperdb_wasm.js';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
@@ -12,6 +13,10 @@ function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
 class CountingClient implements HyperDBEngineClient {
     connectCount = 0;
     disconnectCount = 0;
+    createDatabaseCount = 0;
+    dropDatabaseCount = 0;
+    attachDatabaseCount = 0;
+    detachDatabaseCount = 0;
 
     constructor(private readonly client: HyperDBEngineClient) {}
 
@@ -27,6 +32,26 @@ class CountingClient implements HyperDBEngineClient {
     disconnect(connection: number): Promise<HyperDBResult> {
         this.disconnectCount++;
         return this.client.disconnect(connection);
+    }
+
+    createDatabase(databaseName: string, persistent: boolean): Promise<HyperDBResult> {
+        this.createDatabaseCount++;
+        return this.client.createDatabase(databaseName, persistent);
+    }
+
+    dropDatabase(databaseName: string): Promise<HyperDBResult> {
+        this.dropDatabaseCount++;
+        return this.client.dropDatabase(databaseName);
+    }
+
+    attachDatabase(connection: number, databaseName: string, alias: string): Promise<HyperDBResult> {
+        this.attachDatabaseCount++;
+        return this.client.attachDatabase(connection, databaseName, alias);
+    }
+
+    detachDatabase(connection: number, alias: string): Promise<HyperDBResult> {
+        this.detachDatabaseCount++;
+        return this.client.detachDatabase(connection, alias);
     }
 
     startQuery(connection: number, sql: string): Promise<HyperDBResult> {
@@ -71,34 +96,38 @@ class CountingClient implements HyperDBEngineClient {
 
 describe('HyperDB embedded database integration', () => {
     let client: CountingClient;
-    let database: HyperDB;
+    let database: HyperDB | null = null;
+    let releaseClient: (() => Promise<void>) | null = null;
 
     beforeEach(async () => {
-        const raw = await import('hyperdb-wasm/raw') as unknown as {
-            createNodeClient(): HyperDBEngineClient;
-        };
-        client = new CountingClient(raw.createNodeClient());
+        const { client: rawClient, release } = await createSerializedNodeTestClient();
+        releaseClient = release;
+        client = new CountingClient(rawClient);
         database = await HyperDB.create(client);
     }, 30_000);
 
     afterEach(async () => {
-        await database.terminate();
+        try {
+            await database?.terminate();
+        } finally {
+            await releaseClient?.();
+        }
     });
 
     it('queries Hyper through Arrow IPC using the DashQL Arrow runtime', async () => {
-        const connection = await database.connect();
+        const connection = await database!.connect();
         const result = await connection.query("SELECT 42::INTEGER AS answer, 'hyper'::TEXT AS engine");
 
         expect(toPlainObjects(result)).toEqual([{ answer: 42, engine: 'hyper' }]);
-        expect(await database.getVersion()).toContain('hyper version');
+        expect(await database!.getVersion()).toContain('hyper version');
 
         await connection.close();
     });
 
-    it('keeps temporary tables visible across logical DataFrame connections', async () => {
+    it('keeps shared tables visible across physical DataFrame connections', async () => {
         const inputName = generateTableName('__hyper_input');
         const summaryName = generateTableName('__hyper_summary');
-        const input = await DataFrame.fromArrowTable(database, arrow.tableFromArrays({
+        const input = await DataFrame.fromArrowTable(database!, arrow.tableFromArrays({
             id: new Int32Array([1, 2, 3]),
             label: ['alpha', 'beta', 'gamma'],
         }), inputName);
@@ -115,13 +144,16 @@ describe('HyperDB embedded database integration', () => {
         expect(toPlainObjects(secondRead)).toEqual(toPlainObjects(firstRead));
 
         const summary = await DataFrame.fromSQL(
-            database,
+            database!,
             `SELECT COUNT(*)::INTEGER AS row_count FROM "${inputName}"`,
             summaryName,
         );
         expect(toPlainObjects(await summary.readTable())).toEqual([{ row_count: 3 }]);
-        expect(client.connectCount).toBe(1);
-        expect(client.disconnectCount).toBe(0);
+        expect(client.createDatabaseCount).toBe(1);
+        expect(client.connectCount).toBeGreaterThan(1);
+        expect(client.attachDatabaseCount).toBe(client.connectCount);
+        expect(client.disconnectCount).toBe(client.connectCount);
+        expect(client.detachDatabaseCount).toBe(client.disconnectCount);
 
         await summary.destroy();
         await expect(summary.readTable()).rejects.toThrow();
@@ -129,21 +161,21 @@ describe('HyperDB embedded database integration', () => {
         await expect(input.readTable()).rejects.toThrow();
     });
 
-    it('appends Arrow batches to a temporary table', async () => {
-        const first = await database.connect();
+    it('appends Arrow batches to a shared table', async () => {
+        const first = await database!.connect();
         await first.insertArrowTable(arrow.tableFromArrays({ value: new Int32Array([1, 2]) }), {
             name: 'hyper_append_rows',
         });
         await first.close();
 
-        const second = await database.connect();
+        const second = await database!.connect();
         await second.insertArrowTable(arrow.tableFromArrays({ value: new Int32Array([3, 4]) }), {
             name: 'hyper_append_rows',
             create: false,
         });
         await second.close();
 
-        const reader = await database.connect();
+        const reader = await database!.connect();
         expect(toPlainObjects(await reader.query('SELECT value FROM hyper_append_rows ORDER BY value'))).toEqual([
             { value: 1 },
             { value: 2 },

@@ -20,8 +20,6 @@ export default vite.defineConfig(({ mode, command }) => {
     const CORE_WASM_PATH = path.resolve(rootDir, "__CORE_WASM_PATH__");
     const SHELL_JS_PATH = path.resolve(rootDir, "__SHELL_JS_PATH__");
     const SHELL_WASM_PATH = path.resolve(rootDir, "__SHELL_WASM_PATH__");
-    const WEBDB_JS_PATH = path.resolve(rootDir, "__WEBDB_JS_PATH__");
-    const WEBDB_WASM_PATH = path.resolve(rootDir, "__WEBDB_WASM_PATH__");
     // Entry point of the vendored UMAP wasm module (dependencies/umap-wasm/index.js).
     // Its glue (pkg/umap_wasm.js) loads pkg/umap_wasm_bg.wasm relatively via
     // import.meta.url, so only the entry needs an alias — the .wasm has no placeholder.
@@ -31,43 +29,6 @@ export default vite.defineConfig(({ mode, command }) => {
     return {
         plugins: [
             react(),
-            // In Vite dev mode the esbuild transform rewrites dynamic `import("node:...")` calls
-            // inside webdb_wasm.js (even inside dead `if (ENVIRONMENT_IS_NODE)` / `if (isNode)`
-            // branches). That rewrite causes the module to fail silently in pthread workers,
-            // which never send "loaded" back, leaving `pthreadPoolReady` permanently pending.
-            // Release builds work because Rolldown dead-code-eliminates the node: branches.
-            // Fix: intercept every HTTP request for webdb_wasm.js and serve the raw file,
-            // bypassing Vite's JS transform pipeline entirely. Convert the leading shebang
-            // (#!...) to a JS line comment so browsers accept it as a valid ES module.
-            ...(!isTest && !isNativeBuild ? [{
-                name: 'webdb-wasm-js-passthrough',
-                configureServer(server: vite.ViteDevServer) {
-                    server.middlewares.use((req, res, next) => {
-                        const [pathname, query] = (req.url || '').split('?');
-                        const viteQuery = query ?? '';
-                        // Only intercept plain requests (no query or only Vite's cache-bust ?v=…).
-                        // Must NOT intercept ?url / ?raw / etc. — those are Vite virtual-module
-                        // queries that must pass through so Vite can return a URL-export module.
-                        if (pathname.endsWith('duckdb_web.js') && (viteQuery === '' || /^v=/.test(viteQuery))) {
-                            try {
-                                let content = nodeFs.readFileSync(WEBDB_JS_PATH, 'utf8');
-                                if (content.startsWith('#!')) {
-                                    content = '//' + content.slice(2);
-                                }
-                                res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-                                res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-                                res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-                                res.setHeader('Cache-Control', 'no-cache');
-                                res.end(content);
-                            } catch (e) {
-                                next(e);
-                            }
-                            return;
-                        }
-                        next();
-                    });
-                },
-            }] : []),
             // In the Bazel sandbox, HTML entry files are symlinks to the execroot. Rolldown
             // follows them during input resolution, causing vite:build-html to compute the
             // output fileName as a deep ../../execroot/... traversal, which Rolldown rejects.
@@ -160,17 +121,20 @@ export default vite.defineConfig(({ mode, command }) => {
                 ...(
                     isNativeBuild
                         ? [{
-                            find: '../duckdb/duckdb_provider_web.js',
-                            replacement: path.resolve(rootDir, 'src/shared/platform/duckdb/duckdb_provider_web_stub.ts'),
+                            find: '../hyperdb/hyperdb_provider_web.js',
+                            replacement: path.resolve(rootDir, 'src/shared/platform/hyperdb/hyperdb_provider_web_stub.ts'),
                         }]
                         : []
                 ),
-                ...(!isNativeBuild ? [{
-                    find: /^@dashql\/duckdb-wasm(\?.*)?$/,
-                    replacement: WEBDB_WASM_PATH + "$1",
+                ...(!isNativeBuild && !isTest ? [{
+                    find: /^@dashql\/hyperdb-wasm-worker\?url$/,
+                    replacement: path.resolve(rootDir, '../../node_modules/hyperdb-wasm/dist/browser_worker.js') + '?url',
                 }, {
-                    find: /^@dashql\/duckdb-wasm-js(\?.*)?$/,
-                    replacement: WEBDB_JS_PATH + "$1",
+                    find: /^@dashql\/hyperdb-wasm-js\?url$/,
+                    replacement: path.resolve(rootDir, '../../node_modules/hyperdb-wasm/dist/hyperdb-wasm.js') + '?url',
+                }, {
+                    find: /^@dashql\/hyperdb-wasm\?url$/,
+                    replacement: path.resolve(rootDir, '../../node_modules/hyperdb-wasm/dist/hyperdb-wasm.wasm.br') + '?url',
                 }] : []),
                 {
                     find: /^@dashql\/umap-wasm(\?.*)?$/,
@@ -179,6 +143,10 @@ export default vite.defineConfig(({ mode, command }) => {
                 { find: /@ankoh\/dashql-svg-symbols/, replacement: SVG_SYMBOLS_PATH },
                 // Test-only mocks for asset imports (replacing Jest moduleNameMapper)
                 ...(isTest ? [
+                    {
+                        find: /^@dashql\/hyperdb-wasm(?:-js|-worker)?(?:\?url)?$/,
+                        replacement: path.resolve(rootDir, "utils/file_mock.ts"),
+                    },
                     {
                         find: /^.+\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga|html|wasm)$/,
                         replacement: path.resolve(rootDir, "utils/file_mock.ts")
@@ -226,10 +194,6 @@ export default vite.defineConfig(({ mode, command }) => {
                         path.dirname(UMAP_JS_PATH),
                         path.join(path.dirname(UMAP_JS_PATH), "pkg"),
                     ]
-                        .concat(isNativeBuild ? [] : [
-                            path.dirname(WEBDB_JS_PATH),
-                            path.dirname(WEBDB_WASM_PATH),
-                        ])
                         .map(p => { try { return nodeFs.realpathSync(p); } catch { return p; } });
                     // In the Bazel processwrapper sandbox, source files are symlinks pointing
                     // into the execroot. Vite 8 strictly enforces server.fs.allow, so we must
@@ -245,6 +209,11 @@ export default vite.defineConfig(({ mode, command }) => {
         },
         optimizeDeps: {
             include: ['react', 'react-dom', 'react-router-dom'],
+            exclude: [
+                '@dashql/hyperdb-wasm?url',
+                '@dashql/hyperdb-wasm-js?url',
+                '@dashql/hyperdb-wasm-worker?url',
+            ],
         },
         worker: {
             format: 'es',
