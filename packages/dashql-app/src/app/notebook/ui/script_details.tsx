@@ -2,19 +2,16 @@ import * as React from 'react';
 import * as styles from './script_details.module.css';
 import * as dashql from '../../../core/index.js';
 import { EditorView } from '@codemirror/view';
-import { EditorState, EditorSelection } from '@codemirror/state';
 import { DashQLCompletionAbortEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from '../scripts/editor/dashql_processor.js';
 
-import { PaperAirplaneIcon } from '@primer/octicons-react';
 import type { Icon } from '@primer/octicons-react';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
-import { ButtonGroup } from '../../../ui/foundations/button_group.js';
 import { KeyEventHandler, useKeyEvents } from '../../../utils/key_events.js';
 import { ConnectionHealth, ConnectionState } from '../connections/connection_state.js';
 import { useCancelQuery, useQueryState, useQueryExecutor } from '../connections/query_executor.js';
 import { useAgentRunState, useCancelAgentRun } from '../agent/agent_run_provider.js';
-import { ScriptOutputDetails, ScriptDetailsTab } from './script_output_details.js';
+import { ScriptDetailsTab } from './script_output_details.js';
 import { QueryResultCacheLabel, QueryResultRerunButton } from './query_result_cache_controls.js';
 import {
     ACCEPT_PENDING_DIFF,
@@ -30,19 +27,16 @@ import { useStorageReader } from '../persistence/storage_provider.js';
 import { normalizeScriptFolderName, scriptDisplayName } from '../scripts/script_types.js';
 import type { ModifyNotebookScripts } from '../scripts/notebook_scripts_registry.js';
 import { useAppConfig } from '../../config/app_config.js';
-import { ScriptEditor } from './script_editor.js';
 import { acceptPendingDiff, rejectPendingDiff } from '../scripts/editor/dashql_diff_hint.js';
 import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
-import { ScriptName } from './script_name.js';
-import { ScriptStatisticsBar } from './script_statistics_bar.js';
-import { createReadonlyCodeMirrorExtensions } from '../scripts/editor/codemirror.js';
-import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../scripts/editor/dashql_processor.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { ScriptDiagnosticsButton } from './script_diagnostics.js';
 import * as ActionList from '../../../ui/foundations/action_list.js';
 import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
 import { OverlaySize } from '../../../ui/foundations/overlay.js';
+import { useScriptFormatPreview } from './script_format_preview.js';
+import { ScriptDetailsEditorPane, ScriptDetailsOutputPane } from './script_details_panes.js';
 
 export { ScriptDetailsTab as TabKey };
 
@@ -120,12 +114,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     const logger = useLogger();
     const showServerDetails = props.initialTab != null && props.initialTab !== ScriptDetailsTab.Editor;
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
-    const [formatPending, setFormatPending] = React.useState(false);
     const [isFormattable, setIsFormattable] = React.useState(true);
-    const savedEditorStateRef = React.useRef<EditorState | null>(null);
-    const formattedTextRef = React.useRef<string | null>(null);
-    const formatPreviewBuffersRef = React.useRef<DashQLScriptBuffers | null>(null);
-    const formatPreviewScriptRef = React.useRef<dashql.DashQLScript | null>(null);
 
     const selectedPage = getSelectedScriptFolder(props.notebookScripts);
     const notebookEntry = props.scriptId != null
@@ -174,15 +163,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
 
     React.useEffect(() => {
         setIsEditingName(false);
-        if (formatPending) {
-            formatPreviewBuffersRef.current?.destroy(formatPreviewBuffersRef.current);
-            formatPreviewBuffersRef.current = null;
-            formatPreviewScriptRef.current?.ptr.destroy();
-            formatPreviewScriptRef.current = null;
-            savedEditorStateRef.current = null;
-            formattedTextRef.current = null;
-            setFormatPending(false);
-        }
     }, [notebookEntry?.scriptId]);
 
     React.useEffect(() => {
@@ -203,113 +183,12 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         }
     }, [scriptData?.script, scriptData?.scriptAnalysis.buffers]);
 
-    const previewFormattedScript = React.useCallback((formattedScript: dashql.DashQLScript) => {
-        if (editorView == null || scriptData == null) {
-            formattedScript.ptr.destroy();
-            return;
-        }
-        const formattedText = formattedScript.toString();
-        const currentText = editorView.state.doc.toString();
-        if (formattedText === currentText) {
-            formattedScript.ptr.destroy();
-            return;
-        }
-
-        formattedScript.parse();
-        const previewBuffers = analyzeScript(formattedScript);
-
-        savedEditorStateRef.current = editorView.state;
-        formattedTextRef.current = formattedText;
-        formatPreviewBuffersRef.current?.destroy(formatPreviewBuffersRef.current);
-        formatPreviewBuffersRef.current = previewBuffers;
-        formatPreviewScriptRef.current?.ptr.destroy();
-        formatPreviewScriptRef.current = formattedScript;
-
-        const readonlyExtensions = createReadonlyCodeMirrorExtensions();
-        const previewState = EditorState.create({
-            doc: formattedText,
-            extensions: readonlyExtensions,
-        });
-        editorView.setState(previewState);
-        editorView.contentDOM.blur();
-
-        editorView.dispatch({
-            effects: [
-                DashQLUpdateEffect.of({
-                    scriptKey: formattedScript.getCatalogEntryId(),
-                    script: formattedScript,
-                    scriptBuffers: previewBuffers,
-                    scriptCursor: null,
-                    scriptCompletion: null,
-                    scriptPendingDiff: null,
-                    derivedFocus: null,
-                    onUpdate: () => { },
-                }),
-            ],
-        });
-
-        setFormatPending(true);
-    }, [editorView, scriptData]);
-
-    const handleFormat = React.useCallback((mode: dashql.buffers.formatting.FormattingMode) => {
-        if (scriptData == null) return;
-        try {
-            const config = new dashql.buffers.formatting.FormattingConfigT(
-                dashql.buffers.formatting.FormattingDialect.HYPER,
-                mode,
-                80,
-                4,
-                false,
-            );
-            previewFormattedScript(scriptData.script.format(config, null));
-        } catch {
-            // Format failed
-        }
-    }, [previewFormattedScript, scriptData]);
-
-    const handleFormatAccept = React.useCallback(() => {
-        if (editorView == null || savedEditorStateRef.current == null || formattedTextRef.current == null) return;
-
-        document.getSelection()?.removeAllRanges();
-        editorView.setState(savedEditorStateRef.current);
-        editorView.dispatch({
-            changes: { from: 0, to: editorView.state.doc.length, insert: formattedTextRef.current },
-            selection: EditorSelection.cursor(0),
-        });
-
-        formatPreviewBuffersRef.current?.destroy(formatPreviewBuffersRef.current);
-        formatPreviewBuffersRef.current = null;
-        formatPreviewScriptRef.current?.ptr.destroy();
-        formatPreviewScriptRef.current = null;
-        savedEditorStateRef.current = null;
-        formattedTextRef.current = null;
-        setFormatPending(false);
-    }, [editorView]);
-
-    const handleFormatCancel = React.useCallback(() => {
-        if (editorView == null || savedEditorStateRef.current == null) return;
-
-        document.getSelection()?.removeAllRanges();
-        editorView.setState(savedEditorStateRef.current);
-        editorView.dispatch({
-            selection: EditorSelection.cursor(0),
-        });
-
-        formatPreviewBuffersRef.current?.destroy(formatPreviewBuffersRef.current);
-        formatPreviewBuffersRef.current = null;
-        formatPreviewScriptRef.current?.ptr.destroy();
-        formatPreviewScriptRef.current = null;
-        savedEditorStateRef.current = null;
-        formattedTextRef.current = null;
-        setFormatPending(false);
-    }, [editorView]);
-
-    React.useEffect(() => {
-        return () => {
-            formatPreviewBuffersRef.current?.destroy(formatPreviewBuffersRef.current);
-            formatPreviewScriptRef.current?.ptr.destroy();
-        };
-    }, []);
+    const {
+        formatPending,
+        format: handleFormat,
+        acceptFormat: handleFormatAccept,
+        cancelFormat: handleFormatCancel,
+    } = useScriptFormatPreview(editorView, scriptData);
 
     // A staged agent rewrite is shown as an in-place diff on the editable editor here (the diff
     // decorations + ⏎/⎋ keymap come from the editor's DashQL extensions). Surface visible controls
@@ -444,149 +323,60 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                 key={notebookEntry?.scriptId}
                 className={styles.entry_single}
             >
-                {!showServerDetails && (
-                    <div className={styles.entry_message_single}>
-                        <div className={styles.entry_script_card}>
-                            <div className={styles.entry_card_action_bar}>
-                                <IconButton
-                                    variant={ButtonVariant.Invisible}
-                                    size={ButtonSize.Small}
-                                    aria-label={`Execute ${scriptDisplay} query`}
-                                    disabled={props.connection?.connectionHealth !== ConnectionHealth.ONLINE}
-                                    onClick={handleExecuteAndHide}
-                                >
-                                    <PaperAirplaneIcon size={16} />
+                {!showServerDetails ? (
+                    <ScriptDetailsEditorPane
+                        notebookId={props.notebookScripts.notebookId}
+                        scriptData={scriptData}
+                        folderName={folderName}
+                        scriptDisplay={scriptDisplay}
+                        scriptDebugMode={scriptDebugMode}
+                        executeDisabled={props.connection?.connectionHealth !== ConnectionHealth.ONLINE}
+                        isEditingName={isEditingName}
+                        draftFileName={draftFileName}
+                        editInputRef={editInputRef}
+                        isFormattable={isFormattable}
+                        formatPending={formatPending}
+                        hasPendingDiff={hasPendingDiff}
+                        PencilIcon={PencilIcon}
+                        CheckIcon={CheckIcon}
+                        CancelIcon={FormatXIcon}
+                        CollapseIcon={ScreenNormalIcon}
+                        formatMenu={<ScriptFormatMenu disabled={formatPending || hasPendingDiff} onFormat={handleFormat} />}
+                        onExecute={handleExecuteAndHide}
+                        onHide={props.hideDetails}
+                        onStartEditingName={startEditingName}
+                        onDraftFileNameChange={setDraftFileName}
+                        onSaveName={saveNameEdit}
+                        onCancelName={cancelNameEdit}
+                        onEditorView={setEditorView}
+                        onNavigateToScript={navigateToScript}
+                        onAcceptDiff={handleAcceptDiff}
+                        onRejectDiff={handleRejectDiff}
+                        onAcceptFormat={handleFormatAccept}
+                        onCancelFormat={handleFormatCancel}
+                    />
+                ) : (
+                    <ScriptDetailsOutputPane
+                        query={activeQueryState}
+                        agentRun={agentRunState}
+                        visualizeQuery={visualizeQuery}
+                        initialTab={props.initialTab}
+                        tableDebugMode={tableDebugMode}
+                        onCancelQuery={activeQueryId != null
+                            ? () => props.connection && cancelQuery(props.connection.connectionId, activeQueryId)
+                            : undefined}
+                        onCancelAgent={() => cancelAgentRun(props.notebookScripts.notebookId)}
+                        onClose={props.hideDetails}
+                        statusActions={(
+                            <>
+                                <QueryResultCacheLabel query={activeQueryState} />
+                                <QueryResultRerunButton query={activeQueryState} onRerun={handleRerun} />
+                                <IconButton variant={ButtonVariant.Invisible} onClick={props.hideDetails} aria-label="Collapse">
+                                    <ScreenNormalIcon size={16} />
                                 </IconButton>
-                                <div className={styles.entry_card_file_name}>
-                                    <ScriptName
-                                        folder={folderName}
-                                        file={scriptDisplay}
-                                        onFolderClick={props.hideDetails}
-                                        onFileClick={startEditingName}
-                                        editing={isEditingName ? {
-                                            value: draftFileName,
-                                            onChange: setDraftFileName,
-                                            onCommit: saveNameEdit,
-                                            onCancel: cancelNameEdit,
-                                            inputRef: editInputRef,
-                                        } : undefined}
-                                        fileNameTrailing={
-                                            <span className={styles.entry_card_file_name_actions}>
-                                                <IconButton
-                                                    variant={ButtonVariant.Invisible}
-                                                    size={ButtonSize.Tiny}
-                                                    aria-label="Rename script"
-                                                    onClick={startEditingName}
-                                                    className={styles.entry_card_file_name_action_button}
-                                                >
-                                                    <PencilIcon size={12} />
-                                                </IconButton>
-                                            </span>
-                                        }
-                                    />
-                                </div>
-                                {scriptDebugMode && scriptData != null && (
-                                    <div className={styles.entry_card_stats_bar}>
-                                        <ScriptStatisticsBar stats={scriptData.statistics} />
-                                    </div>
-                                )}
-                                <div className={styles.entry_card_trailing_actions}>
-                                    <ScriptDiagnosticsButton
-                                        scriptData={scriptData}
-                                        isFormattable={isFormattable}
-                                    />
-                                    <ScriptFormatMenu
-                                        disabled={formatPending || hasPendingDiff}
-                                        onFormat={handleFormat}
-                                    />
-                                    <IconButton
-                                        className={styles.entry_card_collapse_button}
-                                        variant={ButtonVariant.Invisible}
-                                        onClick={props.hideDetails}
-                                        aria-label="Collapse"
-                                    >
-                                        <ScreenNormalIcon size={16} />
-                                    </IconButton>
-                                </div>
-                            </div>
-                            <div className={styles.script_body}>
-                                <div className={styles.editor_container}>
-                                    <ScriptEditor
-                                        notebookId={props.notebookScripts.notebookId}
-                                        scriptKey={notebookEntry.scriptId}
-                                        setView={setEditorView}
-                                        onNavigateToScript={navigateToScript}
-                                    />
-                                    <div className={styles.format_toggle}>
-                                        {hasPendingDiff ? (
-                                            <ButtonGroup>
-                                                <IconButton
-                                                    variant={ButtonVariant.Default}
-                                                    onClick={handleAcceptDiff}
-                                                    aria-label="Accept rewrite"
-                                                >
-                                                    <CheckIcon />
-                                                </IconButton>
-                                                <IconButton
-                                                    variant={ButtonVariant.Default}
-                                                    onClick={handleRejectDiff}
-                                                    aria-label="Reject rewrite"
-                                                >
-                                                    <FormatXIcon />
-                                                </IconButton>
-                                            </ButtonGroup>
-                                        ) : formatPending ? (
-                                            <ButtonGroup>
-                                                <IconButton
-                                                    variant={ButtonVariant.Default}
-                                                    onClick={handleFormatAccept}
-                                                    aria-label="Accept format"
-                                                >
-                                                    <CheckIcon />
-                                                </IconButton>
-                                                <IconButton
-                                                    variant={ButtonVariant.Default}
-                                                    onClick={handleFormatCancel}
-                                                    aria-label="Cancel format"
-                                                >
-                                                    <FormatXIcon />
-                                                </IconButton>
-                                            </ButtonGroup>
-                                        ) : null}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-                {showServerDetails && (
-                    <div className={styles.entry_message_single}>
-                        <ScriptOutputDetails
-                            query={activeQueryState}
-                            agentRun={agentRunState}
-                            visualizeQuery={visualizeQuery}
-                            initialTab={props.initialTab}
-                            tableDebugMode={tableDebugMode}
-                            onCancelQuery={activeQueryId != null
-                                ? () => props.connection && cancelQuery(props.connection.connectionId, activeQueryId)
-                                : undefined}
-                            onCancelAgent={() => cancelAgentRun(props.notebookScripts.notebookId)}
-                            onClose={props.hideDetails}
-                            statusActions={(
-                                <>
-                                    <QueryResultCacheLabel query={activeQueryState} />
-                                    <QueryResultRerunButton query={activeQueryState} onRerun={handleRerun} />
-                                    <IconButton
-                                        variant={ButtonVariant.Invisible}
-                                        onClick={props.hideDetails}
-                                        aria-label="Collapse"
-                                    >
-                                        <ScreenNormalIcon size={16} />
-                                    </IconButton>
-                                </>
-                            )}
-                        />
-                    </div>
+                            </>
+                        )}
+                    />
                 )}
             </div>
         </div>
