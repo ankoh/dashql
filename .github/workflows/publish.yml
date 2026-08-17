@@ -31,15 +31,14 @@ jobs:
                   name: dashql_app_pages
                   path: ${{ runner.temp }}/artifacts/pages
 
-            - name: Setup pnpm
-              uses: pnpm/action-setup@v4
-
             - name: Deploy prebuilt web app
               id: deployment
               uses: cloudflare/wrangler-action@v4
               with:
                   apiToken: ${{ secrets.PAGES_DASHQL_API_TOKEN }}
                   accountId: ${{ secrets.PAGES_DASHQL_ACCOUNT_ID }}
+                  workingDirectory: ${{ runner.temp }}
+                  packageManager: npm
                   command: pages deploy ${{ runner.temp }}/artifacts/pages --project-name=dashql --branch=main --commit-hash=${{ inputs.commit }}
                   gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
