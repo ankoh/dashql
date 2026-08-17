@@ -7,7 +7,7 @@ plan-snapshots:
       - id: 11
         type: executiontarget
         fragment: 0
-        position: [370.250000,32.000000]
+        position: [235.625000,32.000000]
         children:
           - id: 10
             path: input
@@ -15,7 +15,7 @@ plan-snapshots:
             loc: 777..794
             parent: 11
             fragment: 0
-            position: [370.250000,96.000000]
+            position: [235.625000,96.000000]
             children:
               - id: 9
                 path: input
@@ -23,35 +23,35 @@ plan-snapshots:
                 loc: 654..759
                 parent: 10
                 fragment: 0
-                position: [370.250000,160.000000]
+                position: [235.625000,160.000000]
                 children:
                   - id: 8
                     path: input
                     type: join
                     parent: 9
                     fragment: 0
-                    position: [370.250000,224.000000]
+                    position: [235.625000,224.000000]
                     children:
                       - id: 6
                         path: left
                         type: join
                         parent: 8
                         fragment: 0
-                        position: [277.750000,288.000000]
+                        position: [181.125000,288.000000]
                         children:
                           - id: 4
                             path: left
                             type: rightsemijoin
                             parent: 6
                             fragment: 0
-                            position: [185.250000,352.000000]
+                            position: [107.500000,352.000000]
                             children:
                               - id: 2
                                 path: left
                                 type: select
                                 parent: 4
                                 fragment: 0
-                                position: [92.750000,416.000000]
+                                position: [53.000000,416.000000]
                                 children:
                                   - id: 1
                                     path: input
@@ -59,7 +59,7 @@ plan-snapshots:
                                     loc: 469..512
                                     parent: 2
                                     fragment: 0
-                                    position: [92.750000,480.000000]
+                                    position: [53.000000,480.000000]
                                     children:
                                       - id: 0
                                         path: input
@@ -68,7 +68,7 @@ plan-snapshots:
                                         loc: 444..452
                                         parent: 1
                                         fragment: 0
-                                        position: [92.750000,544.000000]
+                                        position: [53.000000,544.000000]
                               - id: 3
                                 path: right
                                 type: tablescan
@@ -76,7 +76,7 @@ plan-snapshots:
                                 loc: 286..292
                                 parent: 4
                                 fragment: 0
-                                position: [277.750000,416.000000]
+                                position: [162.000000,416.000000]
                           - id: 5
                             path: right
                             type: tablescan
@@ -84,7 +84,7 @@ plan-snapshots:
                             loc: 268..276
                             parent: 6
                             fragment: 0
-                            position: [370.250000,352.000000]
+                            position: [254.750000,352.000000]
                       - id: 7
                         path: right
                         type: tablescan
@@ -92,7 +92,7 @@ plan-snapshots:
                         loc: 302..310
                         parent: 8
                         fragment: 0
-                        position: [462.750000,288.000000]
+                        position: [290.125000,288.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -149,76 +149,7 @@ plan-snapshots:
         parent: 11
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 1
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 2
-            parent-breaks: false
-          - id: 2
-            pipeline: 1
-            child: 2
-            parent: 4
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 3
-            pipeline: 2
-            child: 3
-            parent: 4
-            parent-breaks: false
-          - id: 4
-            pipeline: 2
-            child: 4
-            parent: 6
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 5
-            pipeline: 3
-            child: 5
-            parent: 6
-            parent-breaks: false
-          - id: 6
-            pipeline: 3
-            child: 6
-            parent: 8
-            parent-breaks: true
-      - id: 4
-        edges:
-          - id: 7
-            pipeline: 4
-            child: 7
-            parent: 8
-            parent-breaks: false
-          - id: 8
-            pipeline: 4
-            child: 8
-            parent: 9
-            parent-breaks: true
-      - id: 5
-        edges:
-          - id: 9
-            pipeline: 5
-            child: 9
-            parent: 10
-            parent-breaks: true
-      - id: 6
-        edges:
-          - id: 10
-            pipeline: 6
-            child: 10
-            parent: 11
-            parent-breaks: true
+    pipelines: []
 
   - name: q7_sql
     input: |-
@@ -227,7 +158,7 @@ plan-snapshots:
       - id: 14
         type: executiontarget
         fragment: 0
-        position: [555.250000,32.000000]
+        position: [278.750000,32.000000]
         children:
           - id: 13
             path: input
@@ -235,7 +166,7 @@ plan-snapshots:
             loc: 1414..1425
             parent: 14
             fragment: 0
-            position: [555.250000,96.000000]
+            position: [278.750000,96.000000]
             children:
               - id: 12
                 path: input
@@ -243,7 +174,7 @@ plan-snapshots:
                 loc: 1331..1396
                 parent: 13
                 fragment: 0
-                position: [555.250000,160.000000]
+                position: [278.750000,160.000000]
                 children:
                   - id: 11
                     path: input
@@ -251,42 +182,42 @@ plan-snapshots:
                     loc: 283..307
                     parent: 12
                     fragment: 0
-                    position: [555.250000,224.000000]
+                    position: [278.750000,224.000000]
                     children:
                       - id: 10
                         path: input
                         type: join
                         parent: 11
                         fragment: 0
-                        position: [555.250000,288.000000]
+                        position: [278.750000,288.000000]
                         children:
                           - id: 8
                             path: left
                             type: join
                             parent: 10
                             fragment: 0
-                            position: [462.750000,352.000000]
+                            position: [224.250000,352.000000]
                             children:
                               - id: 6
                                 path: left
                                 type: join
                                 parent: 8
                                 fragment: 0
-                                position: [370.250000,416.000000]
+                                position: [169.750000,416.000000]
                                 children:
                                   - id: 4
                                     path: left
                                     type: join
                                     parent: 6
                                     fragment: 0
-                                    position: [277.750000,480.000000]
+                                    position: [119.500000,480.000000]
                                     children:
                                       - id: 2
                                         path: left
                                         type: join
                                         parent: 4
                                         fragment: 0
-                                        position: [185.250000,544.000000]
+                                        position: [65.000000,544.000000]
                                         children:
                                           - id: 0
                                             path: left
@@ -295,7 +226,7 @@ plan-snapshots:
                                             loc: 707..713
                                             parent: 2
                                             fragment: 0
-                                            position: [92.750000,608.000000]
+                                            position: [27.500000,608.000000]
                                           - id: 1
                                             path: right
                                             type: tablescan
@@ -303,7 +234,7 @@ plan-snapshots:
                                             loc: 672..678
                                             parent: 2
                                             fragment: 0
-                                            position: [277.750000,608.000000]
+                                            position: [102.500000,608.000000]
                                       - id: 3
                                         path: right
                                         type: tablescan
@@ -311,7 +242,7 @@ plan-snapshots:
                                         loc: 638..646
                                         parent: 4
                                         fragment: 0
-                                        position: [370.250000,544.000000]
+                                        position: [174.000000,544.000000]
                                   - id: 5
                                     path: right
                                     type: tablescan
@@ -319,7 +250,7 @@ plan-snapshots:
                                     loc: 606..612
                                     parent: 6
                                     fragment: 0
-                                    position: [462.750000,480.000000]
+                                    position: [220.000000,480.000000]
                               - id: 7
                                 path: right
                                 type: tablescan
@@ -327,7 +258,7 @@ plan-snapshots:
                                 loc: 572..580
                                 parent: 8
                                 fragment: 0
-                                position: [555.250000,416.000000]
+                                position: [278.750000,416.000000]
                           - id: 9
                             path: right
                             type: tablescan
@@ -335,7 +266,7 @@ plan-snapshots:
                             loc: 538..546
                             parent: 10
                             fragment: 0
-                            position: [647.750000,352.000000]
+                            position: [333.250000,352.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -407,88 +338,7 @@ plan-snapshots:
         parent: 14
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 2
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 2
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 2
-            pipeline: 2
-            child: 3
-            parent: 4
-            parent-breaks: false
-          - id: 3
-            pipeline: 2
-            child: 4
-            parent: 6
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 4
-            pipeline: 3
-            child: 5
-            parent: 6
-            parent-breaks: false
-          - id: 5
-            pipeline: 3
-            child: 6
-            parent: 8
-            parent-breaks: true
-      - id: 4
-        edges:
-          - id: 6
-            pipeline: 4
-            child: 7
-            parent: 8
-            parent-breaks: false
-          - id: 7
-            pipeline: 4
-            child: 8
-            parent: 10
-            parent-breaks: true
-      - id: 5
-        edges:
-          - id: 8
-            pipeline: 5
-            child: 9
-            parent: 10
-            parent-breaks: false
-          - id: 9
-            pipeline: 5
-            child: 10
-            parent: 11
-            parent-breaks: false
-          - id: 10
-            pipeline: 5
-            child: 11
-            parent: 12
-            parent-breaks: true
-      - id: 6
-        edges:
-          - id: 11
-            pipeline: 6
-            child: 12
-            parent: 13
-            parent-breaks: true
-      - id: 7
-        edges:
-          - id: 12
-            pipeline: 7
-            child: 13
-            parent: 14
-            parent-breaks: true
+    pipelines: []
 
   - name: q6_sql
     input: |-
@@ -497,7 +347,7 @@ plan-snapshots:
       - id: 2
         type: executiontarget
         fragment: 0
-        position: [92.750000,32.000000]
+        position: [82.750000,32.000000]
         children:
           - id: 1
             path: input
@@ -505,7 +355,7 @@ plan-snapshots:
             loc: 140..173
             parent: 2
             fragment: 0
-            position: [92.750000,96.000000]
+            position: [82.750000,96.000000]
             children:
               - id: 0
                 path: input
@@ -514,7 +364,7 @@ plan-snapshots:
                 loc: 198..206
                 parent: 1
                 fragment: 0
-                position: [92.750000,160.000000]
+                position: [82.750000,160.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -526,21 +376,7 @@ plan-snapshots:
         parent: 2
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 1
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 2
-            parent-breaks: true
+    pipelines: []
 
   - name: q19_sql
     input: |-
@@ -549,7 +385,7 @@ plan-snapshots:
       - id: 4
         type: executiontarget
         fragment: 0
-        position: [185.250000,32.000000]
+        position: [107.500000,32.000000]
         children:
           - id: 3
             path: input
@@ -557,14 +393,14 @@ plan-snapshots:
             loc: 141..179
             parent: 4
             fragment: 0
-            position: [185.250000,96.000000]
+            position: [107.500000,96.000000]
             children:
               - id: 2
                 path: input
                 type: join
                 parent: 3
                 fragment: 0
-                position: [185.250000,160.000000]
+                position: [107.500000,160.000000]
                 children:
                   - id: 0
                     path: left
@@ -573,7 +409,7 @@ plan-snapshots:
                     loc: 204..212
                     parent: 2
                     fragment: 0
-                    position: [92.750000,224.000000]
+                    position: [53.000000,224.000000]
                   - id: 1
                     path: right
                     type: tablescan
@@ -581,7 +417,7 @@ plan-snapshots:
                     loc: 222..226
                     parent: 2
                     fragment: 0
-                    position: [277.750000,224.000000]
+                    position: [162.000000,224.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -603,33 +439,7 @@ plan-snapshots:
         parent: 4
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 2
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 2
-            parent-breaks: false
-          - id: 2
-            pipeline: 1
-            child: 2
-            parent: 3
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 3
-            pipeline: 2
-            child: 3
-            parent: 4
-            parent-breaks: true
+    pipelines: []
 
   - name: q4_sql
     input: |-
@@ -638,7 +448,7 @@ plan-snapshots:
       - id: 5
         type: executiontarget
         fragment: 0
-        position: [185.250000,32.000000]
+        position: [103.250000,32.000000]
         children:
           - id: 4
             path: input
@@ -646,7 +456,7 @@ plan-snapshots:
             loc: 611..626
             parent: 5
             fragment: 0
-            position: [185.250000,96.000000]
+            position: [103.250000,96.000000]
             children:
               - id: 3
                 path: input
@@ -654,14 +464,14 @@ plan-snapshots:
                 loc: 561..593
                 parent: 4
                 fragment: 0
-                position: [185.250000,160.000000]
+                position: [103.250000,160.000000]
                 children:
                   - id: 2
                     path: input
                     type: leftsemijoin
                     parent: 3
                     fragment: 0
-                    position: [185.250000,224.000000]
+                    position: [103.250000,224.000000]
                     children:
                       - id: 0
                         path: left
@@ -670,7 +480,7 @@ plan-snapshots:
                         loc: 202..208
                         parent: 2
                         fragment: 0
-                        position: [92.750000,288.000000]
+                        position: [44.500000,288.000000]
                       - id: 1
                         path: right
                         type: tablescan
@@ -678,7 +488,7 @@ plan-snapshots:
                         loc: 415..423
                         parent: 2
                         fragment: 0
-                        position: [277.750000,288.000000]
+                        position: [162.000000,288.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -705,40 +515,7 @@ plan-snapshots:
         parent: 5
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 2
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 2
-            parent-breaks: false
-          - id: 2
-            pipeline: 1
-            child: 2
-            parent: 3
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 3
-            pipeline: 2
-            child: 3
-            parent: 4
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 4
-            pipeline: 3
-            child: 4
-            parent: 5
-            parent-breaks: true
+    pipelines: []
 
   - name: q5_sql
     input: |-
@@ -747,7 +524,7 @@ plan-snapshots:
       - id: 13
         type: executiontarget
         fragment: 0
-        position: [555.250000,32.000000]
+        position: [312.750000,32.000000]
         children:
           - id: 12
             path: input
@@ -755,7 +532,7 @@ plan-snapshots:
             loc: 691..703
             parent: 13
             fragment: 0
-            position: [555.250000,96.000000]
+            position: [312.750000,96.000000]
             children:
               - id: 11
                 path: input
@@ -763,42 +540,42 @@ plan-snapshots:
                 loc: 650..673
                 parent: 12
                 fragment: 0
-                position: [555.250000,160.000000]
+                position: [312.750000,160.000000]
                 children:
                   - id: 10
                     path: input
                     type: join
                     parent: 11
                     fragment: 0
-                    position: [555.250000,224.000000]
+                    position: [312.750000,224.000000]
                     children:
                       - id: 8
                         path: left
                         type: join
                         parent: 10
                         fragment: 0
-                        position: [462.750000,288.000000]
+                        position: [258.250000,288.000000]
                         children:
                           - id: 6
                             path: left
                             type: join
                             parent: 8
                             fragment: 0
-                            position: [370.250000,352.000000]
+                            position: [203.750000,352.000000]
                             children:
                               - id: 4
                                 path: left
                                 type: join
                                 parent: 6
                                 fragment: 0
-                                position: [277.750000,416.000000]
+                                position: [153.500000,416.000000]
                                 children:
                                   - id: 2
                                     path: left
                                     type: join
                                     parent: 4
                                     fragment: 0
-                                    position: [185.250000,480.000000]
+                                    position: [99.000000,480.000000]
                                     children:
                                       - id: 0
                                         path: left
@@ -807,7 +584,7 @@ plan-snapshots:
                                         loc: 306..312
                                         parent: 2
                                         fragment: 0
-                                        position: [92.750000,544.000000]
+                                        position: [44.500000,544.000000]
                                       - id: 1
                                         path: right
                                         type: tablescan
@@ -815,7 +592,7 @@ plan-snapshots:
                                         loc: 290..296
                                         parent: 2
                                         fragment: 0
-                                        position: [277.750000,544.000000]
+                                        position: [153.500000,544.000000]
                                   - id: 3
                                     path: right
                                     type: tablescan
@@ -823,7 +600,7 @@ plan-snapshots:
                                     loc: 220..228
                                     parent: 4
                                     fragment: 0
-                                    position: [370.250000,480.000000]
+                                    position: [208.000000,480.000000]
                               - id: 5
                                 path: right
                                 type: tablescan
@@ -831,7 +608,7 @@ plan-snapshots:
                                 loc: 238..244
                                 parent: 6
                                 fragment: 0
-                                position: [462.750000,416.000000]
+                                position: [254.000000,416.000000]
                           - id: 7
                             path: right
                             type: tablescan
@@ -839,7 +616,7 @@ plan-snapshots:
                             loc: 254..262
                             parent: 8
                             fragment: 0
-                            position: [555.250000,352.000000]
+                            position: [312.750000,352.000000]
                       - id: 9
                         path: right
                         type: tablescan
@@ -847,7 +624,7 @@ plan-snapshots:
                         loc: 272..280
                         parent: 10
                         fragment: 0
-                        position: [647.750000,288.000000]
+                        position: [367.250000,288.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -914,88 +691,7 @@ plan-snapshots:
         parent: 13
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 2
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 2
-            parent-breaks: false
-          - id: 2
-            pipeline: 1
-            child: 2
-            parent: 4
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 3
-            pipeline: 2
-            child: 3
-            parent: 4
-            parent-breaks: false
-          - id: 4
-            pipeline: 2
-            child: 4
-            parent: 6
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 5
-            pipeline: 3
-            child: 5
-            parent: 6
-            parent-breaks: false
-          - id: 6
-            pipeline: 3
-            child: 6
-            parent: 8
-            parent-breaks: true
-      - id: 4
-        edges:
-          - id: 7
-            pipeline: 4
-            child: 7
-            parent: 8
-            parent-breaks: false
-          - id: 8
-            pipeline: 4
-            child: 8
-            parent: 10
-            parent-breaks: true
-      - id: 5
-        edges:
-          - id: 9
-            pipeline: 5
-            child: 9
-            parent: 10
-            parent-breaks: false
-          - id: 10
-            pipeline: 5
-            child: 10
-            parent: 11
-            parent-breaks: true
-      - id: 6
-        edges:
-          - id: 11
-            pipeline: 6
-            child: 11
-            parent: 12
-            parent-breaks: true
-      - id: 7
-        edges:
-          - id: 12
-            pipeline: 7
-            child: 12
-            parent: 13
-            parent-breaks: true
+    pipelines: []
 
   - name: q22_sql
     input: |-
@@ -1004,7 +700,7 @@ plan-snapshots:
       - id: 9
         type: executiontarget
         fragment: 0
-        position: [231.500000,32.000000]
+        position: [145.375000,32.000000]
         children:
           - id: 8
             path: input
@@ -1012,7 +708,7 @@ plan-snapshots:
             loc: 1481..1490
             parent: 9
             fragment: 0
-            position: [231.500000,96.000000]
+            position: [145.375000,96.000000]
             children:
               - id: 7
                 path: input
@@ -1020,7 +716,7 @@ plan-snapshots:
                 loc: 1437..1463
                 parent: 8
                 fragment: 0
-                position: [231.500000,160.000000]
+                position: [145.375000,160.000000]
                 children:
                   - id: 6
                     path: input
@@ -1028,14 +724,14 @@ plan-snapshots:
                     loc: 280..324
                     parent: 7
                     fragment: 0
-                    position: [231.500000,224.000000]
+                    position: [145.375000,224.000000]
                     children:
                       - id: 5
                         path: input
                         type: join
                         parent: 6
                         fragment: 0
-                        position: [231.500000,288.000000]
+                        position: [145.375000,288.000000]
                         children:
                           - id: 3
                             path: left
@@ -1043,7 +739,7 @@ plan-snapshots:
                             loc: 691..705
                             parent: 5
                             fragment: 0
-                            position: [92.750000,352.000000]
+                            position: [53.000000,352.000000]
                             children:
                               - id: 0
                                 path: input
@@ -1052,13 +748,13 @@ plan-snapshots:
                                 loc: 783..791
                                 parent: 3
                                 fragment: 0
-                                position: [92.750000,416.000000]
+                                position: [53.000000,416.000000]
                           - id: 4
                             path: right
                             type: leftantijoin
                             parent: 5
                             fragment: 0
-                            position: [370.250000,352.000000]
+                            position: [237.750000,352.000000]
                             children:
                               - id: 1
                                 path: left
@@ -1067,7 +763,7 @@ plan-snapshots:
                                 loc: 405..413
                                 parent: 4
                                 fragment: 0
-                                position: [277.750000,416.000000]
+                                position: [179.000000,416.000000]
                               - id: 2
                                 path: right
                                 type: tablescan
@@ -1075,7 +771,7 @@ plan-snapshots:
                                 loc: 1282..1288
                                 parent: 4
                                 fragment: 0
-                                position: [462.750000,416.000000]
+                                position: [296.500000,416.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -1122,49 +818,7 @@ plan-snapshots:
         parent: 9
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 3
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 4
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 2
-            pipeline: 2
-            child: 2
-            parent: 4
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 3
-            pipeline: 3
-            child: 3
-            parent: 5
-            parent-breaks: true
-      - id: 4
-        edges:
-          - id: 4
-            pipeline: 4
-            child: 7
-            parent: 8
-            parent-breaks: true
-      - id: 5
-        edges:
-          - id: 5
-            pipeline: 5
-            child: 8
-            parent: 9
-            parent-breaks: true
+    pipelines: []
 
   - name: q1_sql
     input: |-
@@ -1173,7 +827,7 @@ plan-snapshots:
       - id: 3
         type: executiontarget
         fragment: 0
-        position: [92.750000,32.000000]
+        position: [82.750000,32.000000]
         children:
           - id: 2
             path: input
@@ -1181,7 +835,7 @@ plan-snapshots:
             loc: 709..721
             parent: 3
             fragment: 0
-            position: [92.750000,96.000000]
+            position: [82.750000,96.000000]
             children:
               - id: 1
                 path: input
@@ -1189,7 +843,7 @@ plan-snapshots:
                 loc: 640..691
                 parent: 2
                 fragment: 0
-                position: [92.750000,160.000000]
+                position: [82.750000,160.000000]
                 children:
                   - id: 0
                     path: input
@@ -1198,7 +852,7 @@ plan-snapshots:
                     loc: 565..573
                     parent: 1
                     fragment: 0
-                    position: [92.750000,224.000000]
+                    position: [82.750000,224.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -1215,28 +869,7 @@ plan-snapshots:
         parent: 3
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 1
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 2
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 2
-            pipeline: 2
-            child: 2
-            parent: 3
-            parent-breaks: true
+    pipelines: []
 
   - name: q21_sql
     input: |-
@@ -1245,7 +878,7 @@ plan-snapshots:
       - id: 13
         type: executiontarget
         fragment: 0
-        position: [555.250000,32.000000]
+        position: [295.750000,32.000000]
         children:
           - id: 12
             path: input
@@ -1253,7 +886,7 @@ plan-snapshots:
             loc: 1131..1143
             parent: 13
             fragment: 0
-            position: [555.250000,96.000000]
+            position: [295.750000,96.000000]
             children:
               - id: 11
                 path: input
@@ -1261,42 +894,42 @@ plan-snapshots:
                 loc: 1090..1113
                 parent: 12
                 fragment: 0
-                position: [555.250000,160.000000]
+                position: [295.750000,160.000000]
                 children:
                   - id: 10
                     path: input
                     type: leftsemijoin
                     parent: 11
                     fragment: 0
-                    position: [555.250000,224.000000]
+                    position: [295.750000,224.000000]
                     children:
                       - id: 8
                         path: left
                         type: leftantijoin
                         parent: 10
                         fragment: 0
-                        position: [462.750000,288.000000]
+                        position: [237.000000,288.000000]
                         children:
                           - id: 6
                             path: left
                             type: join
                             parent: 8
                             fragment: 0
-                            position: [370.250000,352.000000]
+                            position: [195.250000,352.000000]
                             children:
                               - id: 4
                                 path: left
                                 type: join
                                 parent: 6
                                 fragment: 0
-                                position: [277.750000,416.000000]
+                                position: [145.000000,416.000000]
                                 children:
                                   - id: 2
                                     path: left
                                     type: join
                                     parent: 4
                                     fragment: 0
-                                    position: [185.250000,480.000000]
+                                    position: [103.250000,480.000000]
                                     children:
                                       - id: 0
                                         path: left
@@ -1305,7 +938,7 @@ plan-snapshots:
                                         loc: 245..251
                                         parent: 2
                                         fragment: 0
-                                        position: [92.750000,544.000000]
+                                        position: [44.500000,544.000000]
                                       - id: 1
                                         path: right
                                         type: tablescan
@@ -1313,7 +946,7 @@ plan-snapshots:
                                         loc: 190..198
                                         parent: 2
                                         fragment: 0
-                                        position: [277.750000,544.000000]
+                                        position: [162.000000,544.000000]
                                   - id: 3
                                     path: right
                                     type: tablescan
@@ -1321,7 +954,7 @@ plan-snapshots:
                                     loc: 208..216
                                     parent: 4
                                     fragment: 0
-                                    position: [370.250000,480.000000]
+                                    position: [186.750000,480.000000]
                               - id: 5
                                 path: right
                                 type: tablescan
@@ -1329,7 +962,7 @@ plan-snapshots:
                                 loc: 229..235
                                 parent: 6
                                 fragment: 0
-                                position: [462.750000,416.000000]
+                                position: [245.500000,416.000000]
                           - id: 7
                             path: right
                             type: tablescan
@@ -1337,7 +970,7 @@ plan-snapshots:
                             loc: 798..806
                             parent: 8
                             fragment: 0
-                            position: [555.250000,352.000000]
+                            position: [278.750000,352.000000]
                       - id: 9
                         path: right
                         type: tablescan
@@ -1345,7 +978,7 @@ plan-snapshots:
                         loc: 524..532
                         parent: 10
                         fragment: 0
-                        position: [647.750000,288.000000]
+                        position: [354.500000,288.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -1412,83 +1045,7 @@ plan-snapshots:
         parent: 13
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 2
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 2
-            parent-breaks: false
-          - id: 2
-            pipeline: 1
-            child: 2
-            parent: 4
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 3
-            pipeline: 2
-            child: 3
-            parent: 4
-            parent-breaks: false
-          - id: 4
-            pipeline: 2
-            child: 4
-            parent: 6
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 5
-            pipeline: 3
-            child: 5
-            parent: 6
-            parent-breaks: false
-          - id: 6
-            pipeline: 3
-            child: 6
-            parent: 8
-            parent-breaks: true
-      - id: 4
-        edges:
-          - id: 7
-            pipeline: 4
-            child: 7
-            parent: 8
-            parent-breaks: true
-      - id: 5
-        edges:
-          - id: 8
-            pipeline: 5
-            child: 9
-            parent: 10
-            parent-breaks: false
-          - id: 9
-            pipeline: 5
-            child: 10
-            parent: 11
-            parent-breaks: true
-      - id: 6
-        edges:
-          - id: 10
-            pipeline: 6
-            child: 11
-            parent: 12
-            parent-breaks: true
-      - id: 7
-        edges:
-          - id: 11
-            pipeline: 7
-            child: 12
-            parent: 13
-            parent-breaks: true
+    pipelines: []
 
   - name: q2_sql
     input: |-
@@ -1497,7 +1054,7 @@ plan-snapshots:
       - id: 19
         type: executiontarget
         fragment: 0
-        position: [647.750000,32.000000]
+        position: [365.125000,32.000000]
         children:
           - id: 18
             path: input
@@ -1505,28 +1062,28 @@ plan-snapshots:
             loc: 1140..1154
             parent: 19
             fragment: 0
-            position: [647.750000,96.000000]
+            position: [365.125000,96.000000]
             children:
               - id: 17
                 path: input
                 type: join
                 parent: 18
                 fragment: 0
-                position: [647.750000,160.000000]
+                position: [365.125000,160.000000]
                 children:
                   - id: 15
                     path: left
                     type: join
                     parent: 17
                     fragment: 0
-                    position: [370.250000,224.000000]
+                    position: [203.750000,224.000000]
                     children:
                       - id: 6
                         path: left
                         type: join
                         parent: 15
                         fragment: 0
-                        position: [185.250000,288.000000]
+                        position: [99.000000,288.000000]
                         children:
                           - id: 0
                             path: left
@@ -1535,7 +1092,7 @@ plan-snapshots:
                             loc: 351..357
                             parent: 6
                             fragment: 0
-                            position: [92.750000,352.000000]
+                            position: [44.500000,352.000000]
                           - id: 1
                             path: right
                             type: tablescan
@@ -1543,20 +1100,20 @@ plan-snapshots:
                             loc: 335..341
                             parent: 6
                             fragment: 0
-                            position: [277.750000,352.000000]
+                            position: [153.500000,352.000000]
                       - id: 7
                         path: right
                         type: join
                         parent: 15
                         fragment: 0
-                        position: [555.250000,288.000000]
+                        position: [308.500000,288.000000]
                         children:
                           - id: 4
                             path: left
                             type: join
                             parent: 7
                             fragment: 0
-                            position: [462.750000,352.000000]
+                            position: [254.000000,352.000000]
                             children:
                               - id: 2
                                 path: left
@@ -1565,7 +1122,7 @@ plan-snapshots:
                                 loc: 285..289
                                 parent: 4
                                 fragment: 0
-                                position: [370.250000,416.000000]
+                                position: [199.500000,416.000000]
                               - id: 3
                                 path: right
                                 type: tablescan
@@ -1573,7 +1130,7 @@ plan-snapshots:
                                 loc: 317..325
                                 parent: 4
                                 fragment: 0
-                                position: [555.250000,416.000000]
+                                position: [308.500000,416.000000]
                           - id: 5
                             path: right
                             type: tablescan
@@ -1581,35 +1138,35 @@ plan-snapshots:
                             loc: 299..307
                             parent: 7
                             fragment: 0
-                            position: [647.750000,352.000000]
+                            position: [363.000000,352.000000]
                   - id: 16
                     path: right
                     type: groupby
                     loc: 670..688
                     parent: 17
                     fragment: 0
-                    position: [925.250000,224.000000]
+                    position: [526.500000,224.000000]
                     children:
                       - id: 14
                         path: input
                         type: join
                         parent: 16
                         fragment: 0
-                        position: [925.250000,288.000000]
+                        position: [526.500000,288.000000]
                         children:
                           - id: 12
                             path: left
                             type: join
                             parent: 14
                             fragment: 0
-                            position: [832.750000,352.000000]
+                            position: [472.000000,352.000000]
                             children:
                               - id: 10
                                 path: left
                                 type: join
                                 parent: 12
                                 fragment: 0
-                                position: [740.250000,416.000000]
+                                position: [417.500000,416.000000]
                                 children:
                                   - id: 8
                                     path: left
@@ -1618,7 +1175,7 @@ plan-snapshots:
                                     loc: 834..840
                                     parent: 10
                                     fragment: 0
-                                    position: [647.750000,480.000000]
+                                    position: [363.000000,480.000000]
                                   - id: 9
                                     path: right
                                     type: tablescan
@@ -1626,7 +1183,7 @@ plan-snapshots:
                                     loc: 802..808
                                     parent: 10
                                     fragment: 0
-                                    position: [832.750000,480.000000]
+                                    position: [472.000000,480.000000]
                               - id: 11
                                 path: right
                                 type: tablescan
@@ -1634,7 +1191,7 @@ plan-snapshots:
                                 loc: 768..776
                                 parent: 12
                                 fragment: 0
-                                position: [925.250000,416.000000]
+                                position: [526.500000,416.000000]
                           - id: 13
                             path: right
                             type: tablescan
@@ -1642,7 +1199,7 @@ plan-snapshots:
                             loc: 734..742
                             parent: 14
                             fragment: 0
-                            position: [1017.750000,352.000000]
+                            position: [581.000000,352.000000]
     operator-edges:
       - id: 0
         child: 2
@@ -1739,124 +1296,7 @@ plan-snapshots:
         parent: 19
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 6
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 6
-            parent-breaks: false
-          - id: 2
-            pipeline: 1
-            child: 6
-            parent: 15
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 3
-            pipeline: 2
-            child: 2
-            parent: 4
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 4
-            pipeline: 3
-            child: 3
-            parent: 4
-            parent-breaks: false
-          - id: 5
-            pipeline: 3
-            child: 4
-            parent: 7
-            parent-breaks: true
-      - id: 4
-        edges:
-          - id: 6
-            pipeline: 4
-            child: 5
-            parent: 7
-            parent-breaks: false
-          - id: 7
-            pipeline: 4
-            child: 7
-            parent: 15
-            parent-breaks: false
-          - id: 8
-            pipeline: 4
-            child: 15
-            parent: 17
-            parent-breaks: true
-      - id: 5
-        edges:
-          - id: 9
-            pipeline: 5
-            child: 8
-            parent: 10
-            parent-breaks: true
-      - id: 6
-        edges:
-          - id: 10
-            pipeline: 6
-            child: 9
-            parent: 10
-            parent-breaks: false
-          - id: 11
-            pipeline: 6
-            child: 10
-            parent: 12
-            parent-breaks: true
-      - id: 7
-        edges:
-          - id: 12
-            pipeline: 7
-            child: 11
-            parent: 12
-            parent-breaks: false
-          - id: 13
-            pipeline: 7
-            child: 12
-            parent: 14
-            parent-breaks: true
-      - id: 8
-        edges:
-          - id: 14
-            pipeline: 8
-            child: 13
-            parent: 14
-            parent-breaks: false
-          - id: 15
-            pipeline: 8
-            child: 14
-            parent: 16
-            parent-breaks: true
-      - id: 9
-        edges:
-          - id: 16
-            pipeline: 9
-            child: 16
-            parent: 17
-            parent-breaks: false
-          - id: 17
-            pipeline: 9
-            child: 17
-            parent: 18
-            parent-breaks: true
-      - id: 10
-        edges:
-          - id: 18
-            pipeline: 10
-            child: 18
-            parent: 19
-            parent-breaks: true
+    pipelines: []
 
   - name: q3_sql
     input: |-
@@ -1865,7 +1305,7 @@ plan-snapshots:
       - id: 7
         type: executiontarget
         fragment: 0
-        position: [277.750000,32.000000]
+        position: [166.250000,32.000000]
         children:
           - id: 6
             path: input
@@ -1873,7 +1313,7 @@ plan-snapshots:
             loc: 599..611
             parent: 7
             fragment: 0
-            position: [277.750000,96.000000]
+            position: [166.250000,96.000000]
             children:
               - id: 5
                 path: input
@@ -1881,21 +1321,21 @@ plan-snapshots:
                 loc: 509..581
                 parent: 6
                 fragment: 0
-                position: [277.750000,160.000000]
+                position: [166.250000,160.000000]
                 children:
                   - id: 4
                     path: input
                     type: join
                     parent: 5
                     fragment: 0
-                    position: [277.750000,224.000000]
+                    position: [166.250000,224.000000]
                     children:
                       - id: 2
                         path: left
                         type: join
                         parent: 4
                         fragment: 0
-                        position: [185.250000,288.000000]
+                        position: [111.750000,288.000000]
                         children:
                           - id: 0
                             path: left
@@ -1904,7 +1344,7 @@ plan-snapshots:
                             loc: 269..277
                             parent: 2
                             fragment: 0
-                            position: [92.750000,352.000000]
+                            position: [53.000000,352.000000]
                           - id: 1
                             path: right
                             type: tablescan
@@ -1912,7 +1352,7 @@ plan-snapshots:
                             loc: 287..293
                             parent: 2
                             fragment: 0
-                            position: [277.750000,352.000000]
+                            position: [170.500000,352.000000]
                       - id: 3
                         path: right
                         type: tablescan
@@ -1920,7 +1360,7 @@ plan-snapshots:
                         loc: 303..311
                         parent: 4
                         fragment: 0
-                        position: [370.250000,288.000000]
+                        position: [220.750000,288.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -1957,52 +1397,7 @@ plan-snapshots:
         parent: 7
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 2
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 2
-            parent-breaks: false
-          - id: 2
-            pipeline: 1
-            child: 2
-            parent: 4
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 3
-            pipeline: 2
-            child: 3
-            parent: 4
-            parent-breaks: false
-          - id: 4
-            pipeline: 2
-            child: 4
-            parent: 5
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 5
-            pipeline: 3
-            child: 5
-            parent: 6
-            parent-breaks: true
-      - id: 4
-        edges:
-          - id: 6
-            pipeline: 4
-            child: 6
-            parent: 7
-            parent-breaks: true
+    pipelines: []
 
   - name: q20_sql
     input: |-
@@ -2011,7 +1406,7 @@ plan-snapshots:
       - id: 12
         type: executiontarget
         fragment: 0
-        position: [324.000000,32.000000]
+        position: [180.750000,32.000000]
         children:
           - id: 11
             path: input
@@ -2019,14 +1414,14 @@ plan-snapshots:
             loc: 1376..1382
             parent: 12
             fragment: 0
-            position: [324.000000,96.000000]
+            position: [180.750000,96.000000]
             children:
               - id: 10
                 path: input
                 type: join
                 parent: 11
                 fragment: 0
-                position: [324.000000,160.000000]
+                position: [180.750000,160.000000]
                 children:
                   - id: 8
                     path: left
@@ -2035,27 +1430,27 @@ plan-snapshots:
                     loc: 198..204
                     parent: 10
                     fragment: 0
-                    position: [231.500000,224.000000]
+                    position: [111.375000,224.000000]
                   - id: 9
                     path: right
                     type: rightsemijoin
                     parent: 10
                     fragment: 0
-                    position: [416.500000,224.000000]
+                    position: [250.125000,224.000000]
                     children:
                       - id: 6
                         path: left
                         type: leftsemijoin
                         parent: 9
                         fragment: 0
-                        position: [324.000000,288.000000]
+                        position: [178.625000,288.000000]
                         children:
                           - id: 4
                             path: left
                             type: rightsemijoin
                             parent: 6
                             fragment: 0
-                            position: [185.250000,352.000000]
+                            position: [90.500000,352.000000]
                             children:
                               - id: 0
                                 path: left
@@ -2064,7 +1459,7 @@ plan-snapshots:
                                 loc: 574..578
                                 parent: 4
                                 fragment: 0
-                                position: [92.750000,416.000000]
+                                position: [36.000000,416.000000]
                               - id: 1
                                 path: right
                                 type: tablescan
@@ -2072,14 +1467,14 @@ plan-snapshots:
                                 loc: 337..345
                                 parent: 4
                                 fragment: 0
-                                position: [277.750000,416.000000]
+                                position: [145.000000,416.000000]
                           - id: 5
                             path: right
                             type: map
                             loc: 828..849
                             parent: 6
                             fragment: 0
-                            position: [462.750000,352.000000]
+                            position: [266.750000,352.000000]
                             children:
                               - id: 3
                                 path: input
@@ -2087,7 +1482,7 @@ plan-snapshots:
                                 loc: 834..849
                                 parent: 5
                                 fragment: 0
-                                position: [462.750000,416.000000]
+                                position: [266.750000,416.000000]
                                 children:
                                   - id: 2
                                     path: input
@@ -2096,7 +1491,7 @@ plan-snapshots:
                                     loc: 927..935
                                     parent: 3
                                     fragment: 0
-                                    position: [462.750000,480.000000]
+                                    position: [266.750000,480.000000]
                       - id: 7
                         path: right
                         type: tablescan
@@ -2104,7 +1499,7 @@ plan-snapshots:
                         loc: 180..188
                         parent: 9
                         fragment: 0
-                        position: [509.000000,288.000000]
+                        position: [321.625000,288.000000]
     operator-edges:
       - id: 0
         child: 2
@@ -2166,81 +1561,7 @@ plan-snapshots:
         parent: 12
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 4
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 4
-            parent-breaks: false
-          - id: 2
-            pipeline: 1
-            child: 4
-            parent: 6
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 3
-            pipeline: 2
-            child: 2
-            parent: 3
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 4
-            pipeline: 3
-            child: 3
-            parent: 5
-            parent-breaks: false
-          - id: 5
-            pipeline: 3
-            child: 5
-            parent: 6
-            parent-breaks: false
-          - id: 6
-            pipeline: 3
-            child: 6
-            parent: 9
-            parent-breaks: true
-      - id: 4
-        edges:
-          - id: 7
-            pipeline: 4
-            child: 7
-            parent: 9
-            parent-breaks: false
-          - id: 8
-            pipeline: 4
-            child: 9
-            parent: 10
-            parent-breaks: false
-          - id: 9
-            pipeline: 4
-            child: 10
-            parent: 11
-            parent-breaks: true
-      - id: 5
-        edges:
-          - id: 10
-            pipeline: 5
-            child: 8
-            parent: 10
-            parent-breaks: true
-      - id: 6
-        edges:
-          - id: 11
-            pipeline: 6
-            child: 11
-            parent: 12
-            parent-breaks: true
+    pipelines: []
 
   - name: q11_sql
     input: |-
@@ -2249,7 +1570,7 @@ plan-snapshots:
       - id: 15
         type: executiontarget
         fragment: 0
-        position: [971.500000,32.000000]
+        position: [585.625000,32.000000]
         children:
           - id: 14
             path: input
@@ -2257,14 +1578,14 @@ plan-snapshots:
             loc: 949..961
             parent: 15
             fragment: 0
-            position: [971.500000,96.000000]
+            position: [585.625000,96.000000]
             children:
               - id: 13
                 path: input
                 type: join
                 parent: 14
                 fragment: 0
-                position: [971.500000,160.000000]
+                position: [585.625000,160.000000]
                 children:
                   - id: 11
                     path: left
@@ -2272,7 +1593,7 @@ plan-snapshots:
                     loc: 518..559
                     parent: 13
                     fragment: 0
-                    position: [740.250000,224.000000]
+                    position: [443.000000,224.000000]
                     children:
                       - id: 5
                         path: input
@@ -2280,21 +1601,21 @@ plan-snapshots:
                         loc: 518..550
                         parent: 11
                         fragment: 0
-                        position: [740.250000,288.000000]
+                        position: [443.000000,288.000000]
                         children:
                           - id: 4
                             path: input
                             type: join
                             parent: 5
                             fragment: 0
-                            position: [740.250000,352.000000]
+                            position: [443.000000,352.000000]
                             children:
                               - id: 2
                                 path: left
                                 type: join
                                 parent: 4
                                 fragment: 0
-                                position: [647.750000,416.000000]
+                                position: [388.500000,416.000000]
                                 children:
                                   - id: 0
                                     path: left
@@ -2303,7 +1624,7 @@ plan-snapshots:
                                     loc: 705..711
                                     parent: 2
                                     fragment: 0
-                                    position: [92.750000,480.000000]
+                                    position: [44.500000,480.000000]
                                   - id: 1
                                     path: right
                                     type: tablescan
@@ -2311,7 +1632,7 @@ plan-snapshots:
                                     loc: 663..671
                                     parent: 2
                                     fragment: 0
-                                    position: [277.750000,480.000000]
+                                    position: [162.000000,480.000000]
                               - id: 3
                                 path: right
                                 type: tablescan
@@ -2319,28 +1640,28 @@ plan-snapshots:
                                 loc: 621..629
                                 parent: 4
                                 fragment: 0
-                                position: [832.750000,416.000000]
+                                position: [497.500000,416.000000]
                   - id: 12
                     path: right
                     type: groupby
                     loc: 367..394
                     parent: 13
                     fragment: 0
-                    position: [1202.750000,224.000000]
+                    position: [728.250000,224.000000]
                     children:
                       - id: 10
                         path: input
                         type: join
                         parent: 12
                         fragment: 0
-                        position: [1202.750000,288.000000]
+                        position: [728.250000,288.000000]
                         children:
                           - id: 8
                             path: left
                             type: join
                             parent: 10
                             fragment: 0
-                            position: [1110.250000,352.000000]
+                            position: [673.750000,352.000000]
                             children:
                               - id: 6
                                 path: left
@@ -2349,7 +1670,7 @@ plan-snapshots:
                                 loc: 254..260
                                 parent: 8
                                 fragment: 0
-                                position: [1017.750000,416.000000]
+                                position: [615.000000,416.000000]
                               - id: 7
                                 path: right
                                 type: tablescan
@@ -2357,7 +1678,7 @@ plan-snapshots:
                                 loc: 236..244
                                 parent: 8
                                 fragment: 0
-                                position: [1202.750000,416.000000]
+                                position: [732.500000,416.000000]
                           - id: 9
                             path: right
                             type: tablescan
@@ -2365,7 +1686,7 @@ plan-snapshots:
                             loc: 218..226
                             parent: 10
                             fragment: 0
-                            position: [1295.250000,352.000000]
+                            position: [782.750000,352.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -2442,100 +1763,7 @@ plan-snapshots:
         parent: 15
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 2
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 2
-            parent-breaks: false
-          - id: 2
-            pipeline: 1
-            child: 2
-            parent: 4
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 3
-            pipeline: 2
-            child: 3
-            parent: 4
-            parent-breaks: false
-          - id: 4
-            pipeline: 2
-            child: 4
-            parent: 5
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 5
-            pipeline: 3
-            child: 5
-            parent: 11
-            parent-breaks: false
-          - id: 6
-            pipeline: 3
-            child: 11
-            parent: 13
-            parent-breaks: true
-      - id: 4
-        edges:
-          - id: 7
-            pipeline: 4
-            child: 6
-            parent: 8
-            parent-breaks: true
-      - id: 5
-        edges:
-          - id: 8
-            pipeline: 5
-            child: 7
-            parent: 8
-            parent-breaks: false
-          - id: 9
-            pipeline: 5
-            child: 8
-            parent: 10
-            parent-breaks: true
-      - id: 6
-        edges:
-          - id: 10
-            pipeline: 6
-            child: 9
-            parent: 10
-            parent-breaks: false
-          - id: 11
-            pipeline: 6
-            child: 10
-            parent: 12
-            parent-breaks: true
-      - id: 7
-        edges:
-          - id: 12
-            pipeline: 7
-            child: 12
-            parent: 13
-            parent-breaks: false
-          - id: 13
-            pipeline: 7
-            child: 13
-            parent: 14
-            parent-breaks: true
-      - id: 8
-        edges:
-          - id: 14
-            pipeline: 8
-            child: 14
-            parent: 15
-            parent-breaks: true
+    pipelines: []
 
   - name: q10_sql
     input: |-
@@ -2544,7 +1772,7 @@ plan-snapshots:
       - id: 9
         type: executiontarget
         fragment: 0
-        position: [370.250000,32.000000]
+        position: [208.000000,32.000000]
         children:
           - id: 8
             path: input
@@ -2552,7 +1780,7 @@ plan-snapshots:
             loc: 769..781
             parent: 9
             fragment: 0
-            position: [370.250000,96.000000]
+            position: [208.000000,96.000000]
             children:
               - id: 7
                 path: input
@@ -2560,28 +1788,28 @@ plan-snapshots:
                 loc: 619..751
                 parent: 8
                 fragment: 0
-                position: [370.250000,160.000000]
+                position: [208.000000,160.000000]
                 children:
                   - id: 6
                     path: input
                     type: join
                     parent: 7
                     fragment: 0
-                    position: [370.250000,224.000000]
+                    position: [208.000000,224.000000]
                     children:
                       - id: 4
                         path: left
                         type: join
                         parent: 6
                         fragment: 0
-                        position: [277.750000,288.000000]
+                        position: [153.500000,288.000000]
                         children:
                           - id: 2
                             path: left
                             type: join
                             parent: 4
                             fragment: 0
-                            position: [185.250000,352.000000]
+                            position: [103.250000,352.000000]
                             children:
                               - id: 0
                                 path: left
@@ -2590,7 +1818,7 @@ plan-snapshots:
                                 loc: 348..354
                                 parent: 2
                                 fragment: 0
-                                position: [92.750000,416.000000]
+                                position: [44.500000,416.000000]
                               - id: 1
                                 path: right
                                 type: tablescan
@@ -2598,7 +1826,7 @@ plan-snapshots:
                                 loc: 330..338
                                 parent: 2
                                 fragment: 0
-                                position: [277.750000,416.000000]
+                                position: [162.000000,416.000000]
                           - id: 3
                             path: right
                             type: tablescan
@@ -2606,7 +1834,7 @@ plan-snapshots:
                             loc: 382..388
                             parent: 4
                             fragment: 0
-                            position: [370.250000,352.000000]
+                            position: [203.750000,352.000000]
                       - id: 5
                         path: right
                         type: tablescan
@@ -2614,7 +1842,7 @@ plan-snapshots:
                         loc: 364..372
                         parent: 6
                         fragment: 0
-                        position: [462.750000,288.000000]
+                        position: [262.500000,288.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -2661,64 +1889,7 @@ plan-snapshots:
         parent: 9
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 2
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 2
-            parent-breaks: false
-          - id: 2
-            pipeline: 1
-            child: 2
-            parent: 4
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 3
-            pipeline: 2
-            child: 3
-            parent: 4
-            parent-breaks: false
-          - id: 4
-            pipeline: 2
-            child: 4
-            parent: 6
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 5
-            pipeline: 3
-            child: 5
-            parent: 6
-            parent-breaks: false
-          - id: 6
-            pipeline: 3
-            child: 6
-            parent: 7
-            parent-breaks: true
-      - id: 4
-        edges:
-          - id: 7
-            pipeline: 4
-            child: 7
-            parent: 8
-            parent-breaks: true
-      - id: 5
-        edges:
-          - id: 8
-            pipeline: 5
-            child: 8
-            parent: 9
-            parent-breaks: true
+    pipelines: []
 
   - name: q12_sql
     input: |-
@@ -2727,7 +1898,7 @@ plan-snapshots:
       - id: 5
         type: executiontarget
         fragment: 0
-        position: [185.250000,32.000000]
+        position: [111.750000,32.000000]
         children:
           - id: 4
             path: input
@@ -2735,7 +1906,7 @@ plan-snapshots:
             loc: 906..916
             parent: 5
             fragment: 0
-            position: [185.250000,96.000000]
+            position: [111.750000,96.000000]
             children:
               - id: 3
                 path: input
@@ -2743,14 +1914,14 @@ plan-snapshots:
                 loc: 861..888
                 parent: 4
                 fragment: 0
-                position: [185.250000,160.000000]
+                position: [111.750000,160.000000]
                 children:
                   - id: 2
                     path: input
                     type: join
                     parent: 3
                     fragment: 0
-                    position: [185.250000,224.000000]
+                    position: [111.750000,224.000000]
                     children:
                       - id: 0
                         path: left
@@ -2759,7 +1930,7 @@ plan-snapshots:
                         loc: 599..607
                         parent: 2
                         fragment: 0
-                        position: [92.750000,288.000000]
+                        position: [53.000000,288.000000]
                       - id: 1
                         path: right
                         type: tablescan
@@ -2767,7 +1938,7 @@ plan-snapshots:
                         loc: 583..589
                         parent: 2
                         fragment: 0
-                        position: [277.750000,288.000000]
+                        position: [170.500000,288.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -2794,40 +1965,7 @@ plan-snapshots:
         parent: 5
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 2
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 2
-            parent-breaks: false
-          - id: 2
-            pipeline: 1
-            child: 2
-            parent: 3
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 3
-            pipeline: 2
-            child: 3
-            parent: 4
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 4
-            pipeline: 3
-            child: 4
-            parent: 5
-            parent-breaks: true
+    pipelines: []
 
   - name: q13_sql
     input: |-
@@ -2836,7 +1974,7 @@ plan-snapshots:
       - id: 6
         type: executiontarget
         fragment: 0
-        position: [185.250000,32.000000]
+        position: [103.250000,32.000000]
         children:
           - id: 5
             path: input
@@ -2844,7 +1982,7 @@ plan-snapshots:
             loc: 635..648
             parent: 6
             fragment: 0
-            position: [185.250000,96.000000]
+            position: [103.250000,96.000000]
             children:
               - id: 4
                 path: input
@@ -2852,7 +1990,7 @@ plan-snapshots:
                 loc: 593..617
                 parent: 5
                 fragment: 0
-                position: [185.250000,160.000000]
+                position: [103.250000,160.000000]
                 children:
                   - id: 3
                     path: input
@@ -2860,14 +1998,14 @@ plan-snapshots:
                     loc: 528..570
                     parent: 4
                     fragment: 0
-                    position: [185.250000,224.000000]
+                    position: [103.250000,224.000000]
                     children:
                       - id: 2
                         path: input
                         type: rightouterjoin
                         parent: 3
                         fragment: 0
-                        position: [185.250000,288.000000]
+                        position: [103.250000,288.000000]
                         children:
                           - id: 0
                             path: left
@@ -2876,7 +2014,7 @@ plan-snapshots:
                             loc: 372..378
                             parent: 2
                             fragment: 0
-                            position: [92.750000,352.000000]
+                            position: [44.500000,352.000000]
                           - id: 1
                             path: right
                             type: tablescan
@@ -2884,7 +2022,7 @@ plan-snapshots:
                             loc: 347..355
                             parent: 2
                             fragment: 0
-                            position: [277.750000,352.000000]
+                            position: [162.000000,352.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -2916,47 +2054,7 @@ plan-snapshots:
         parent: 6
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 2
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 2
-            parent-breaks: false
-          - id: 2
-            pipeline: 1
-            child: 2
-            parent: 3
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 3
-            pipeline: 2
-            child: 3
-            parent: 4
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 4
-            pipeline: 3
-            child: 4
-            parent: 5
-            parent-breaks: true
-      - id: 4
-        edges:
-          - id: 5
-            pipeline: 4
-            child: 5
-            parent: 6
-            parent-breaks: true
+    pipelines: []
 
   - name: q17_sql
     input: |-
@@ -2965,7 +2063,7 @@ plan-snapshots:
       - id: 9
         type: executiontarget
         fragment: 0
-        position: [277.750000,32.000000]
+        position: [134.375000,32.000000]
         children:
           - id: 8
             path: input
@@ -2973,7 +2071,7 @@ plan-snapshots:
             loc: 141..181
             parent: 9
             fragment: 0
-            position: [277.750000,96.000000]
+            position: [134.375000,96.000000]
             children:
               - id: 7
                 path: input
@@ -2981,21 +2079,21 @@ plan-snapshots:
                 loc: 141..161
                 parent: 8
                 fragment: 0
-                position: [277.750000,160.000000]
+                position: [134.375000,160.000000]
                 children:
                   - id: 6
                     path: input
                     type: join
                     parent: 7
                     fragment: 0
-                    position: [277.750000,224.000000]
+                    position: [134.375000,224.000000]
                     children:
                       - id: 4
                         path: left
                         type: join
                         parent: 6
                         fragment: 0
-                        position: [185.250000,288.000000]
+                        position: [79.875000,288.000000]
                         children:
                           - id: 2
                             path: left
@@ -3004,14 +2102,14 @@ plan-snapshots:
                             loc: 213..217
                             parent: 4
                             fragment: 0
-                            position: [92.750000,352.000000]
+                            position: [36.000000,352.000000]
                           - id: 3
                             path: right
                             type: map
                             loc: 397..418
                             parent: 4
                             fragment: 0
-                            position: [277.750000,352.000000]
+                            position: [123.750000,352.000000]
                             children:
                               - id: 1
                                 path: input
@@ -3019,7 +2117,7 @@ plan-snapshots:
                                 loc: 403..418
                                 parent: 3
                                 fragment: 0
-                                position: [277.750000,416.000000]
+                                position: [123.750000,416.000000]
                                 children:
                                   - id: 0
                                     path: input
@@ -3028,7 +2126,7 @@ plan-snapshots:
                                     loc: 464..472
                                     parent: 1
                                     fragment: 0
-                                    position: [277.750000,480.000000]
+                                    position: [123.750000,480.000000]
                       - id: 5
                         path: right
                         type: tablescan
@@ -3036,7 +2134,7 @@ plan-snapshots:
                         loc: 195..203
                         parent: 6
                         fragment: 0
-                        position: [370.250000,288.000000]
+                        position: [188.875000,288.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -3083,62 +2181,7 @@ plan-snapshots:
         parent: 9
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 1
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 3
-            parent-breaks: false
-          - id: 2
-            pipeline: 1
-            child: 3
-            parent: 4
-            parent-breaks: false
-          - id: 3
-            pipeline: 1
-            child: 4
-            parent: 6
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 4
-            pipeline: 2
-            child: 2
-            parent: 4
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 5
-            pipeline: 3
-            child: 5
-            parent: 6
-            parent-breaks: false
-          - id: 6
-            pipeline: 3
-            child: 6
-            parent: 7
-            parent-breaks: true
-      - id: 4
-        edges:
-          - id: 7
-            pipeline: 4
-            child: 7
-            parent: 8
-            parent-breaks: false
-          - id: 8
-            pipeline: 4
-            child: 8
-            parent: 9
-            parent-breaks: true
+    pipelines: []
 
   - name: q8_sql
     input: |-
@@ -3147,7 +2190,7 @@ plan-snapshots:
       - id: 19
         type: executiontarget
         fragment: 0
-        position: [555.250000,32.000000]
+        position: [283.000000,32.000000]
         children:
           - id: 18
             path: input
@@ -3155,7 +2198,7 @@ plan-snapshots:
             loc: 1437..1443
             parent: 19
             fragment: 0
-            position: [555.250000,96.000000]
+            position: [283.000000,96.000000]
             children:
               - id: 17
                 path: input
@@ -3163,7 +2206,7 @@ plan-snapshots:
                 loc: 140..146
                 parent: 18
                 fragment: 0
-                position: [555.250000,160.000000]
+                position: [283.000000,160.000000]
                 children:
                   - id: 16
                     path: input
@@ -3171,7 +2214,7 @@ plan-snapshots:
                     loc: 1396..1419
                     parent: 17
                     fragment: 0
-                    position: [555.250000,224.000000]
+                    position: [283.000000,224.000000]
                     children:
                       - id: 15
                         path: input
@@ -3179,28 +2222,28 @@ plan-snapshots:
                         loc: 341..381
                         parent: 16
                         fragment: 0
-                        position: [555.250000,288.000000]
+                        position: [283.000000,288.000000]
                         children:
                           - id: 14
                             path: input
                             type: join
                             parent: 15
                             fragment: 0
-                            position: [555.250000,352.000000]
+                            position: [283.000000,352.000000]
                             children:
                               - id: 12
                                 path: left
                                 type: join
                                 parent: 14
                                 fragment: 0
-                                position: [462.750000,416.000000]
+                                position: [241.250000,416.000000]
                                 children:
                                   - id: 10
                                     path: left
                                     type: join
                                     parent: 12
                                     fragment: 0
-                                    position: [370.250000,480.000000]
+                                    position: [186.750000,480.000000]
                                     children:
                                       - id: 8
                                         path: left
@@ -3209,34 +2252,34 @@ plan-snapshots:
                                         loc: 776..782
                                         parent: 10
                                         fragment: 0
-                                        position: [277.750000,544.000000]
+                                        position: [136.500000,544.000000]
                                       - id: 9
                                         path: right
                                         type: join
                                         parent: 10
                                         fragment: 0
-                                        position: [462.750000,544.000000]
+                                        position: [237.000000,544.000000]
                                         children:
                                           - id: 6
                                             path: left
                                             type: join
                                             parent: 9
                                             fragment: 0
-                                            position: [370.250000,608.000000]
+                                            position: [195.250000,608.000000]
                                             children:
                                               - id: 4
                                                 path: left
                                                 type: join
                                                 parent: 6
                                                 fragment: 0
-                                                position: [277.750000,672.000000]
+                                                position: [140.750000,672.000000]
                                                 children:
                                                   - id: 2
                                                     path: left
                                                     type: join
                                                     parent: 4
                                                     fragment: 0
-                                                    position: [185.250000,736.000000]
+                                                    position: [90.500000,736.000000]
                                                     children:
                                                       - id: 0
                                                         path: left
@@ -3245,7 +2288,7 @@ plan-snapshots:
                                                         loc: 542..546
                                                         parent: 2
                                                         fragment: 0
-                                                        position: [92.750000,800.000000]
+                                                        position: [36.000000,800.000000]
                                                       - id: 1
                                                         path: right
                                                         type: tablescan
@@ -3253,7 +2296,7 @@ plan-snapshots:
                                                         loc: 606..614
                                                         parent: 2
                                                         fragment: 0
-                                                        position: [277.750000,800.000000]
+                                                        position: [145.000000,800.000000]
                                                   - id: 3
                                                     path: right
                                                     type: tablescan
@@ -3261,7 +2304,7 @@ plan-snapshots:
                                                     loc: 640..646
                                                     parent: 4
                                                     fragment: 0
-                                                    position: [370.250000,736.000000]
+                                                    position: [191.000000,736.000000]
                                               - id: 5
                                                 path: right
                                                 type: tablescan
@@ -3269,7 +2312,7 @@ plan-snapshots:
                                                 loc: 672..680
                                                 parent: 6
                                                 fragment: 0
-                                                position: [462.750000,672.000000]
+                                                position: [249.750000,672.000000]
                                           - id: 7
                                             path: right
                                             type: tablescan
@@ -3277,7 +2320,7 @@ plan-snapshots:
                                             loc: 706..712
                                             parent: 9
                                             fragment: 0
-                                            position: [555.250000,608.000000]
+                                            position: [278.750000,608.000000]
                                   - id: 11
                                     path: right
                                     type: tablescan
@@ -3285,7 +2328,7 @@ plan-snapshots:
                                     loc: 572..580
                                     parent: 12
                                     fragment: 0
-                                    position: [555.250000,480.000000]
+                                    position: [295.750000,480.000000]
                               - id: 13
                                 path: right
                                 type: tablescan
@@ -3293,7 +2336,7 @@ plan-snapshots:
                                 loc: 741..747
                                 parent: 14
                                 fragment: 0
-                                position: [647.750000,416.000000]
+                                position: [324.750000,416.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -3390,122 +2433,7 @@ plan-snapshots:
         parent: 19
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 2
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 2
-            parent-breaks: false
-          - id: 2
-            pipeline: 1
-            child: 2
-            parent: 4
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 3
-            pipeline: 2
-            child: 3
-            parent: 4
-            parent-breaks: false
-          - id: 4
-            pipeline: 2
-            child: 4
-            parent: 6
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 5
-            pipeline: 3
-            child: 5
-            parent: 6
-            parent-breaks: false
-          - id: 6
-            pipeline: 3
-            child: 6
-            parent: 9
-            parent-breaks: true
-      - id: 4
-        edges:
-          - id: 7
-            pipeline: 4
-            child: 7
-            parent: 9
-            parent-breaks: false
-          - id: 8
-            pipeline: 4
-            child: 9
-            parent: 10
-            parent-breaks: false
-          - id: 9
-            pipeline: 4
-            child: 10
-            parent: 12
-            parent-breaks: true
-      - id: 5
-        edges:
-          - id: 10
-            pipeline: 5
-            child: 8
-            parent: 10
-            parent-breaks: true
-      - id: 6
-        edges:
-          - id: 11
-            pipeline: 6
-            child: 11
-            parent: 12
-            parent-breaks: false
-          - id: 12
-            pipeline: 6
-            child: 12
-            parent: 14
-            parent-breaks: true
-      - id: 7
-        edges:
-          - id: 13
-            pipeline: 7
-            child: 13
-            parent: 14
-            parent-breaks: false
-          - id: 14
-            pipeline: 7
-            child: 14
-            parent: 15
-            parent-breaks: false
-          - id: 15
-            pipeline: 7
-            child: 15
-            parent: 16
-            parent-breaks: true
-      - id: 8
-        edges:
-          - id: 16
-            pipeline: 8
-            child: 16
-            parent: 17
-            parent-breaks: false
-          - id: 17
-            pipeline: 8
-            child: 17
-            parent: 18
-            parent-breaks: true
-      - id: 9
-        edges:
-          - id: 18
-            pipeline: 9
-            child: 18
-            parent: 19
-            parent-breaks: true
+    pipelines: []
 
   - name: q9_sql
     input: |-
@@ -3514,7 +2442,7 @@ plan-snapshots:
       - id: 14
         type: executiontarget
         fragment: 0
-        position: [370.250000,32.000000]
+        position: [199.500000,32.000000]
         children:
           - id: 13
             path: input
@@ -3522,7 +2450,7 @@ plan-snapshots:
             loc: 1111..1117
             parent: 14
             fragment: 0
-            position: [370.250000,96.000000]
+            position: [199.500000,96.000000]
             children:
               - id: 12
                 path: input
@@ -3530,7 +2458,7 @@ plan-snapshots:
                 loc: 1054..1093
                 parent: 13
                 fragment: 0
-                position: [370.250000,160.000000]
+                position: [199.500000,160.000000]
                 children:
                   - id: 11
                     path: input
@@ -3538,28 +2466,28 @@ plan-snapshots:
                     loc: 260..276
                     parent: 12
                     fragment: 0
-                    position: [370.250000,224.000000]
+                    position: [199.500000,224.000000]
                     children:
                       - id: 10
                         path: input
                         type: join
                         parent: 11
                         fragment: 0
-                        position: [370.250000,288.000000]
+                        position: [199.500000,288.000000]
                         children:
                           - id: 8
                             path: left
                             type: join
                             parent: 10
                             fragment: 0
-                            position: [277.750000,352.000000]
+                            position: [149.250000,352.000000]
                             children:
                               - id: 6
                                 path: left
                                 type: join
                                 parent: 8
                                 fragment: 0
-                                position: [185.250000,416.000000]
+                                position: [94.750000,416.000000]
                                 children:
                                   - id: 4
                                     path: left
@@ -3568,20 +2496,20 @@ plan-snapshots:
                                     loc: 651..657
                                     parent: 6
                                     fragment: 0
-                                    position: [92.750000,480.000000]
+                                    position: [44.500000,480.000000]
                                   - id: 5
                                     path: right
                                     type: join
                                     parent: 6
                                     fragment: 0
-                                    position: [277.750000,480.000000]
+                                    position: [145.000000,480.000000]
                                     children:
                                       - id: 2
                                         path: left
                                         type: join
                                         parent: 5
                                         fragment: 0
-                                        position: [185.250000,544.000000]
+                                        position: [90.500000,544.000000]
                                         children:
                                           - id: 0
                                             path: left
@@ -3590,7 +2518,7 @@ plan-snapshots:
                                             loc: 487..491
                                             parent: 2
                                             fragment: 0
-                                            position: [92.750000,608.000000]
+                                            position: [36.000000,608.000000]
                                           - id: 1
                                             path: right
                                             type: tablescan
@@ -3598,7 +2526,7 @@ plan-snapshots:
                                             loc: 585..593
                                             parent: 2
                                             fragment: 0
-                                            position: [277.750000,608.000000]
+                                            position: [145.000000,608.000000]
                                       - id: 3
                                         path: right
                                         type: tablescan
@@ -3606,7 +2534,7 @@ plan-snapshots:
                                         loc: 517..525
                                         parent: 5
                                         fragment: 0
-                                        position: [370.250000,544.000000]
+                                        position: [199.500000,544.000000]
                               - id: 7
                                 path: right
                                 type: tablescan
@@ -3614,7 +2542,7 @@ plan-snapshots:
                                 loc: 551..559
                                 parent: 8
                                 fragment: 0
-                                position: [370.250000,416.000000]
+                                position: [203.750000,416.000000]
                           - id: 9
                             path: right
                             type: tablescan
@@ -3622,7 +2550,7 @@ plan-snapshots:
                             loc: 619..625
                             parent: 10
                             fragment: 0
-                            position: [462.750000,352.000000]
+                            position: [249.750000,352.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -3694,93 +2622,7 @@ plan-snapshots:
         parent: 14
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 2
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 2
-            parent-breaks: false
-          - id: 2
-            pipeline: 1
-            child: 2
-            parent: 5
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 3
-            pipeline: 2
-            child: 3
-            parent: 5
-            parent-breaks: false
-          - id: 4
-            pipeline: 2
-            child: 5
-            parent: 6
-            parent-breaks: false
-          - id: 5
-            pipeline: 2
-            child: 6
-            parent: 8
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 6
-            pipeline: 3
-            child: 4
-            parent: 6
-            parent-breaks: true
-      - id: 4
-        edges:
-          - id: 7
-            pipeline: 4
-            child: 7
-            parent: 8
-            parent-breaks: false
-          - id: 8
-            pipeline: 4
-            child: 8
-            parent: 10
-            parent-breaks: true
-      - id: 5
-        edges:
-          - id: 9
-            pipeline: 5
-            child: 9
-            parent: 10
-            parent-breaks: false
-          - id: 10
-            pipeline: 5
-            child: 10
-            parent: 11
-            parent-breaks: false
-          - id: 11
-            pipeline: 5
-            child: 11
-            parent: 12
-            parent-breaks: true
-      - id: 6
-        edges:
-          - id: 12
-            pipeline: 6
-            child: 12
-            parent: 13
-            parent-breaks: true
-      - id: 7
-        edges:
-          - id: 13
-            pipeline: 7
-            child: 13
-            parent: 14
-            parent-breaks: true
+    pipelines: []
 
   - name: q16_sql
     input: |-
@@ -3789,7 +2631,7 @@ plan-snapshots:
       - id: 7
         type: executiontarget
         fragment: 0
-        position: [185.250000,32.000000]
+        position: [107.500000,32.000000]
         children:
           - id: 6
             path: input
@@ -3797,7 +2639,7 @@ plan-snapshots:
             loc: 752..769
             parent: 7
             fragment: 0
-            position: [185.250000,96.000000]
+            position: [107.500000,96.000000]
             children:
               - id: 5
                 path: input
@@ -3805,14 +2647,14 @@ plan-snapshots:
                 loc: 678..734
                 parent: 6
                 fragment: 0
-                position: [185.250000,160.000000]
+                position: [107.500000,160.000000]
                 children:
                   - id: 4
                     path: input
                     type: rightantijoin
                     parent: 5
                     fragment: 0
-                    position: [185.250000,224.000000]
+                    position: [107.500000,224.000000]
                     children:
                       - id: 2
                         path: left
@@ -3821,13 +2663,13 @@ plan-snapshots:
                         loc: 574..582
                         parent: 4
                         fragment: 0
-                        position: [92.750000,288.000000]
+                        position: [53.000000,288.000000]
                       - id: 3
                         path: right
                         type: join
                         parent: 4
                         fragment: 0
-                        position: [277.750000,288.000000]
+                        position: [162.000000,288.000000]
                         children:
                           - id: 0
                             path: left
@@ -3836,7 +2678,7 @@ plan-snapshots:
                             loc: 264..268
                             parent: 3
                             fragment: 0
-                            position: [185.250000,352.000000]
+                            position: [107.500000,352.000000]
                           - id: 1
                             path: right
                             type: tablescan
@@ -3844,7 +2686,7 @@ plan-snapshots:
                             loc: 246..254
                             parent: 3
                             fragment: 0
-                            position: [370.250000,352.000000]
+                            position: [216.500000,352.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -3881,52 +2723,7 @@ plan-snapshots:
         parent: 7
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 3
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 3
-            parent-breaks: false
-          - id: 2
-            pipeline: 1
-            child: 3
-            parent: 4
-            parent-breaks: false
-          - id: 3
-            pipeline: 1
-            child: 4
-            parent: 5
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 4
-            pipeline: 2
-            child: 2
-            parent: 4
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 5
-            pipeline: 3
-            child: 5
-            parent: 6
-            parent-breaks: true
-      - id: 4
-        edges:
-          - id: 6
-            pipeline: 4
-            child: 6
-            parent: 7
-            parent-breaks: true
+    pipelines: []
 
   - name: q14_sql
     input: |-
@@ -3935,7 +2732,7 @@ plan-snapshots:
       - id: 5
         type: executiontarget
         fragment: 0
-        position: [185.250000,32.000000]
+        position: [107.500000,32.000000]
         children:
           - id: 4
             path: input
@@ -3943,7 +2740,7 @@ plan-snapshots:
             loc: 141..359
             parent: 5
             fragment: 0
-            position: [185.250000,96.000000]
+            position: [107.500000,96.000000]
             children:
               - id: 3
                 path: input
@@ -3951,14 +2748,14 @@ plan-snapshots:
                 loc: 150..300
                 parent: 4
                 fragment: 0
-                position: [185.250000,160.000000]
+                position: [107.500000,160.000000]
                 children:
                   - id: 2
                     path: input
                     type: join
                     parent: 3
                     fragment: 0
-                    position: [185.250000,224.000000]
+                    position: [107.500000,224.000000]
                     children:
                       - id: 0
                         path: left
@@ -3967,7 +2764,7 @@ plan-snapshots:
                         loc: 373..381
                         parent: 2
                         fragment: 0
-                        position: [92.750000,288.000000]
+                        position: [53.000000,288.000000]
                       - id: 1
                         path: right
                         type: tablescan
@@ -3975,7 +2772,7 @@ plan-snapshots:
                         loc: 391..395
                         parent: 2
                         fragment: 0
-                        position: [277.750000,288.000000]
+                        position: [162.000000,288.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -4002,38 +2799,7 @@ plan-snapshots:
         parent: 5
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 2
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 2
-            parent-breaks: false
-          - id: 2
-            pipeline: 1
-            child: 2
-            parent: 3
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 3
-            pipeline: 2
-            child: 3
-            parent: 4
-            parent-breaks: false
-          - id: 4
-            pipeline: 2
-            child: 4
-            parent: 5
-            parent-breaks: true
+    pipelines: []
 
   - name: q15_sql
     input: |-
@@ -4042,7 +2808,7 @@ plan-snapshots:
       - id: 9
         type: executiontarget
         fragment: 0
-        position: [277.750000,32.000000]
+        position: [193.875000,32.000000]
         children:
           - id: 8
             path: input
@@ -4050,21 +2816,21 @@ plan-snapshots:
             loc: 563..572
             parent: 9
             fragment: 0
-            position: [277.750000,96.000000]
+            position: [193.875000,96.000000]
             children:
               - id: 7
                 path: input
                 type: join
                 parent: 8
                 fragment: 0
-                position: [277.750000,160.000000]
+                position: [193.875000,160.000000]
                 children:
                   - id: 5
                     path: left
                     type: join
                     parent: 7
                     fragment: 0
-                    position: [185.250000,224.000000]
+                    position: [139.375000,224.000000]
                     children:
                       - id: 3
                         path: left
@@ -4072,14 +2838,14 @@ plan-snapshots:
                         loc: 513..531
                         parent: 5
                         fragment: 0
-                        position: [92.750000,288.000000]
+                        position: [70.000000,288.000000]
                         children:
                           - id: 2
                             path: input
                             type: explicitscan
                             parent: 3
                             fragment: 0
-                            position: [92.750000,352.000000]
+                            position: [70.000000,352.000000]
                             children:
                               - id: 1
                                 path: input
@@ -4087,7 +2853,7 @@ plan-snapshots:
                                 loc: 335..355
                                 parent: 2
                                 fragment: 0
-                                position: [92.750000,416.000000]
+                                position: [70.000000,416.000000]
                                 children:
                                   - id: 0
                                     path: input
@@ -4096,13 +2862,13 @@ plan-snapshots:
                                     loc: 247..255
                                     parent: 1
                                     fragment: 0
-                                    position: [92.750000,480.000000]
+                                    position: [70.000000,480.000000]
                       - id: 4
                         path: right
                         type: explicitscan
                         parent: 5
                         fragment: 0
-                        position: [277.750000,288.000000]
+                        position: [208.750000,288.000000]
                   - id: 6
                     path: right
                     type: tablescan
@@ -4110,7 +2876,7 @@ plan-snapshots:
                     loc: 428..436
                     parent: 7
                     fragment: 0
-                    position: [370.250000,224.000000]
+                    position: [248.375000,224.000000]
     operator-edges:
       - id: 0
         child: 0
@@ -4157,63 +2923,4 @@ plan-snapshots:
         parent: 9
         port-index: 0
         port-count: 1
-    pipelines:
-      - id: 0
-        edges:
-          - id: 0
-            pipeline: 0
-            child: 0
-            parent: 1
-            parent-breaks: true
-      - id: 1
-        edges:
-          - id: 1
-            pipeline: 1
-            child: 1
-            parent: 2
-            parent-breaks: true
-      - id: 2
-        edges:
-          - id: 2
-            pipeline: 2
-            child: 2
-            parent: 3
-            parent-breaks: true
-      - id: 3
-        edges:
-          - id: 3
-            pipeline: 3
-            child: 3
-            parent: 5
-            parent-breaks: true
-      - id: 4
-        edges:
-          - id: 4
-            pipeline: 4
-            child: 4
-            parent: 5
-            parent-breaks: false
-          - id: 5
-            pipeline: 4
-            child: 5
-            parent: 7
-            parent-breaks: true
-      - id: 5
-        edges:
-          - id: 6
-            pipeline: 5
-            child: 6
-            parent: 7
-            parent-breaks: false
-          - id: 7
-            pipeline: 5
-            child: 7
-            parent: 8
-            parent-breaks: true
-      - id: 6
-        edges:
-          - id: 8
-            pipeline: 6
-            child: 8
-            parent: 9
-            parent-breaks: true
+    pipelines: []
