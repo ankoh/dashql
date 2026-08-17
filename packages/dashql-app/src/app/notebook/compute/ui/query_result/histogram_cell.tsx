@@ -7,43 +7,12 @@ import { ColumnAggregationVariant, OrdinalColumnAggregation, ORDINAL_COLUMN, Tab
 import { dataTypeToString } from '../../../../../compute/arrow_formatter.js';
 import { BIN_COUNT } from '../../../../../compute/computation_logic.js';
 import { getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
+import { HistogramBars, HistogramNullBar, NULL_SYMBOL } from './histogram_bars.js';
+import { useHistogramBrush } from './histogram_brush.js';
 import { formatHistogramFocusDescription } from './histogram_label.js';
 
-export const NULL_SYMBOL = "∅";
-const BRUSH_SETTLE_DELAY_MS = 120;
-
-export class SettledBrushUpdates<T> {
-    private timeout: number | null = null;
-    private pending: T | null = null;
-
-    public schedule(event: T, callback: (event: T) => void): void {
-        this.pending = event;
-        if (this.timeout != null) {
-            window.clearTimeout(this.timeout);
-        }
-        this.timeout = window.setTimeout(() => {
-            this.timeout = null;
-            const pending = this.pending;
-            this.pending = null;
-            if (pending != null) {
-                callback(pending);
-            }
-        }, BRUSH_SETTLE_DELAY_MS);
-    }
-
-    public flush(event: T, callback: (event: T) => void): void {
-        this.cancel();
-        callback(event);
-    }
-
-    public cancel(): void {
-        if (this.timeout != null) {
-            window.clearTimeout(this.timeout);
-            this.timeout = null;
-        }
-        this.pending = null;
-    }
-}
+export { NULL_SYMBOL } from './histogram_bars.js';
+export { SettledBrushUpdates } from './histogram_brush.js';
 
 export type HistogramFilterCallback = (table: TableAggregation, columnId: number, column: OrdinalColumnAggregation, filter: [number, number] | null) => void;
 export type BrushingStateCallback = (isBrushing: boolean) => void;
@@ -66,9 +35,6 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
 
     const svgContainer = React.useRef<HTMLDivElement>(null);
     const svgContainerSize = observeSize(svgContainer);
-    const brushContainer = React.useRef<SVGGElement>(null);
-    const brushBehavior = React.useRef<d3.BrushBehavior<unknown> | null>(null);
-    const settledBrushUpdates = React.useRef(new SettledBrushUpdates<d3.D3BrushEvent<unknown>>());
     const margin = { top: 8, right: 8, bottom: 20, left: 8 },
         width = (svgContainerSize?.width ?? 130) - margin.left - margin.right,
         height = (svgContainerSize?.height ?? 50) - margin.top - margin.bottom;
@@ -134,69 +100,17 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, binSelection);
     }, [props.tableAggregation, props.columnAggregate, props.onFilter, props.columnIndex, histXScale]);
 
-    // Notify when brushing starts or ends
-    const onBrushStart = React.useCallback(() => {
-        settledBrushUpdates.current.cancel();
-        props.onBrushingChange?.(true);
-    }, [props.onBrushingChange]);
-
-    const clearBrush = React.useCallback(() => {
-        const container = brushContainer.current;
-        const brush = brushBehavior.current;
-        if (container != null && brush != null) {
-            d3.select(container).call(brush.move, null);
-            return;
-        }
+    const clearFilter = React.useCallback(() => {
         props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, null);
     }, [props.tableAggregation, props.columnIndex, props.columnAggregate, props.onFilter]);
 
-    const onBrushEnd = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
-        settledBrushUpdates.current.flush(e, onBrushUpdate);
-        props.onBrushingChange?.(false);
-    }, [onBrushUpdate, props.onBrushingChange]);
-
-    const onBrushMove = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
-        settledBrushUpdates.current.schedule(e, pending => onBrushUpdateRef.current(pending));
-    }, []);
-
-    React.useEffect(() => () => settledBrushUpdates.current.cancel(), []);
-
-    // Store callbacks in refs to avoid recreating the D3 brush when callbacks change
-    const onBrushUpdateRef = React.useRef(onBrushUpdate);
-    const onBrushMoveRef = React.useRef(onBrushMove);
-    const onBrushStartRef = React.useRef(onBrushStart);
-    const onBrushEndRef = React.useRef(onBrushEnd);
-    onBrushUpdateRef.current = onBrushUpdate;
-    onBrushMoveRef.current = onBrushMove;
-    onBrushStartRef.current = onBrushStart;
-    onBrushEndRef.current = onBrushEnd;
-
-    // Setup d3 brush - now only depends on geometry, not callbacks
-    React.useLayoutEffect(() => {
-        // Define the brush with stable callback wrappers
-        const brush = d3.brushX()
-            .extent([
-                [histXScale.range()[0], 0],
-                [histXScale.range()[1], height]
-            ])
-            .on('start', () => onBrushStartRef.current())
-            .on('brush', (e) => onBrushMoveRef.current(e))
-            .on('end', (e) => onBrushEndRef.current(e));
-        brushBehavior.current = brush;
-
-        // Add the brush overlay
-        d3.select(brushContainer.current!)
-            .selectChildren()
-            .remove();
-        d3.select(brushContainer.current!)
-            .call(brush)
-            .selectAll('rect')
-            .attr("y", 0)
-            .attr('height', height);
-        return () => {
-            brushBehavior.current = null;
-        };
-    }, [histXScale, height]);
+    const { brushContainer, clearBrush } = useHistogramBrush({
+        xScale: histXScale,
+        height,
+        onBrushUpdate,
+        onClear: clearFilter,
+        onBrushingChange: props.onBrushingChange,
+    });
 
     // Adjust null padding to center null bar horizontally
     const nullsPadding = (nullsWidth - nullsXScale.bandwidth()) / 2;
@@ -270,93 +184,6 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
     const binLabelRight = binLabels[binLabels.length - 1];
     const binLabelFocused = focusedBin != null ? binLabels[focusedBin] : null;
 
-    // Memoize total (unfiltered) bars - only recompute when data or scales change
-    const totalBars = React.useMemo(() => (
-        Array.from({ length: BIN_COUNT }, (_, i) => {
-            const x = histXScale(i.toString());
-            const y = histYScale(Number(binCounts[i]));
-            const w = histXScale.bandwidth();
-            const h = height - y;
-            // Skip invalid values
-            if (x == null || isNaN(y) || isNaN(w) || isNaN(h)) return null;
-            return (
-                <rect
-                    key={i}
-                    x={x}
-                    y={y}
-                    width={w}
-                    height={h}
-                    fill={totalBarColor}
-                />
-            );
-        })
-    ), [binCounts, histXScale, histYScale, height, totalBarColor]);
-
-    // Memoize focused bar overlay - separate from main bars for focus state
-    const focusedTotalBar = React.useMemo(() => {
-        if (focusedBin == null) return null;
-        const x = histXScale(focusedBin.toString());
-        const y = histYScale(Number(binCounts[focusedBin]));
-        const w = histXScale.bandwidth();
-        const h = height - y;
-        // Skip invalid values
-        if (x == null || isNaN(y) || isNaN(w) || isNaN(h)) return null;
-        return (
-            <rect
-                key={`focused-${focusedBin}`}
-                x={x}
-                y={y}
-                width={w}
-                height={h}
-                fill={totalBarFocusedColor}
-            />
-        );
-    }, [focusedBin, binCounts, histXScale, histYScale, height, totalBarFocusedColor]);
-
-    // Memoize filtered bars - only recompute when filtered data changes
-    const filteredBars = React.useMemo(() => {
-        if (!filteredBinCounts) return null;
-        return Array.from({ length: BIN_COUNT }, (_, i) => {
-            const x = histXScale(i.toString());
-            const y = histYScale(Number(filteredBinCounts[i]));
-            const w = histXScale.bandwidth();
-            const h = height - y;
-            // Skip invalid values
-            if (x == null || isNaN(y) || isNaN(w) || isNaN(h)) return null;
-            return (
-                <rect
-                    key={`filtered-${i}`}
-                    x={x}
-                    y={y}
-                    width={w}
-                    height={h}
-                    fill={filteredBarColor}
-                />
-            );
-        });
-    }, [filteredBinCounts, histXScale, histYScale, height, filteredBarColor]);
-
-    // Memoize focused filtered bar overlay
-    const focusedFilteredBar = React.useMemo(() => {
-        if (focusedBin == null || !filteredBinCounts) return null;
-        const x = histXScale(focusedBin.toString());
-        const y = histYScale(Number(filteredBinCounts[focusedBin]));
-        const w = histXScale.bandwidth();
-        const h = height - y;
-        // Skip invalid values
-        if (x == null || isNaN(y) || isNaN(w) || isNaN(h)) return null;
-        return (
-            <rect
-                key={`focused-filtered-${focusedBin}`}
-                x={x}
-                y={y}
-                width={w}
-                height={h}
-                fill={filteredBarFocusedColor}
-            />
-        );
-    }, [focusedBin, filteredBinCounts, histXScale, histYScale, height, filteredBarFocusedColor]);
-
     // Memoize container style to avoid object recreation
     const containerStyle = React.useMemo(() => ({
         ...props.style,
@@ -426,10 +253,18 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
                     >
                         <g transform={`translate(${margin.left},${margin.top})`}>
                             <g>
-                                {totalBars}
-                                {focusedTotalBar}
-                                {filteredBars}
-                                {focusedFilteredBar}
+                                <HistogramBars
+                                    binCounts={binCounts}
+                                    filteredBinCounts={filteredBinCounts}
+                                    focusedBin={focusedBin}
+                                    xScale={histXScale}
+                                    yScale={histYScale}
+                                    height={height}
+                                    totalBarColor={totalBarColor}
+                                    totalBarFocusedColor={totalBarFocusedColor}
+                                    filteredBarColor={filteredBarColor}
+                                    filteredBarFocusedColor={filteredBarFocusedColor}
+                                />
                             </g>
                             <g ref={brushContainer}
                                 onPointerOver={onPointerOverBin}
@@ -452,61 +287,25 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
                                     fillOpacity={0}
                                 />
                             </g>
-                            {inputNullable && (() => {
-                                const nullX = nullsXScale(NULL_SYMBOL);
-                                const nullY = nullsYScale(countNull ?? 0);
-                                const nullW = nullsXScale.bandwidth();
-                                const nullH = height - nullY;
-                                // Skip rendering if invalid
-                                if (nullX == null || isNaN(nullY) || isNaN(nullW) || isNaN(nullH)) return null;
-
-                                return (
-                                    <g
-                                        transform={`translate(${histWidth + nullsMargin + nullsPadding}, 0)`}
-                                        onPointerOver={onPointerOverNull}
-                                        onPointerMove={onPointerOverNull}
-                                        onPointerOut={onPointerOutNull}
-                                    >
-                                        {/* Total null bar */}
-                                        <rect
-                                            x={nullX}
-                                            y={nullY}
-                                            width={nullW}
-                                            height={nullH}
-                                            fill={focusedNull ? totalNullBarFocusedColor : totalNullBarColor}
-                                        />
-                                        {/* Filtered null bar overlay */}
-                                        {filteredNullCount != null && (() => {
-                                            const filteredNullY = nullsYScale(filteredNullCount);
-                                            const filteredNullH = height - filteredNullY;
-                                            if (isNaN(filteredNullY) || isNaN(filteredNullH)) return null;
-                                            return (
-                                                <rect
-                                                    x={nullX}
-                                                    y={filteredNullY}
-                                                    width={nullW}
-                                                    height={filteredNullH}
-                                                    fill={focusedNull ? filteredBarFocusedColor : filteredBarColor}
-                                                />
-                                            );
-                                        })()}
-                                        <g transform={`translate(0, ${height})`}>
-                                            <line
-                                                x1={0} y1={1}
-                                                x2={nullsXWidth} y2={1}
-                                                stroke={"hsl(210deg 17.5% 84.31%)"}
-                                            />
-                                            <rect
-                                                x={nullX}
-                                                y={0}
-                                                width={nullW}
-                                                height={margin.bottom}
-                                                fillOpacity={0}
-                                            />
-                                        </g>
-                                    </g>
-                                );
-                            })()}
+                            {inputNullable && (
+                                <HistogramNullBar
+                                    countNull={countNull ?? 0}
+                                    filteredNullCount={filteredNullCount}
+                                    focused={focusedNull}
+                                    xScale={nullsXScale}
+                                    yScale={nullsYScale}
+                                    xWidth={nullsXWidth}
+                                    height={height}
+                                    bottomMargin={margin.bottom}
+                                    transformX={histWidth + nullsMargin + nullsPadding}
+                                    totalBarColor={totalNullBarColor}
+                                    totalBarFocusedColor={totalNullBarFocusedColor}
+                                    filteredBarColor={filteredBarColor}
+                                    filteredBarFocusedColor={filteredBarFocusedColor}
+                                    onPointerOver={onPointerOverNull}
+                                    onPointerOut={onPointerOutNull}
+                                />
+                            )}
                         </g>
 
                     </svg>
