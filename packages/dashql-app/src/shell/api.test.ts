@@ -2,7 +2,7 @@
 import { DashQLShell, DashQLShellError, DashQLShellPromptAction, DashQLShellPromptInput, DashQLShellStatus } from './api.js';
 import * as arrow from 'apache-arrow';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
-import { createSerializedNodeTestClient } from '../platform/hyperdb/hyperdb_test_client.js';
+import { createIsolatedNodeTestClient } from '../platform/hyperdb/hyperdb_test_client.js';
 import {
     HyperDB,
     HyperDBConnection,
@@ -494,7 +494,7 @@ describe('DashQL shell Wasm', () => {
         let connection: HyperDBConnection | null = null;
         let releaseClient: (() => Promise<void>) | null = null;
         try {
-            const { client, release } = await createSerializedNodeTestClient();
+            const { client, release } = await createIsolatedNodeTestClient();
             releaseClient = release;
             database = await HyperDB.create(client);
             connection = await database.connect();

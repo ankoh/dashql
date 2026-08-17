@@ -2,7 +2,7 @@
 import * as arrow from 'apache-arrow';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createSerializedNodeTestClient } from '../platform/hyperdb/hyperdb_test_client.js';
+import { createIsolatedNodeTestClient } from '../platform/hyperdb/hyperdb_test_client.js';
 import { HyperDB } from '../platform/hyperdb/hyperdb_wasm.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
 import { DataFrame, DataFrameRegistry, generateTableName } from './data_frame.js';
@@ -22,7 +22,7 @@ describe('DataFrame', () => {
     let releaseClient: (() => Promise<void>) | null = null;
 
     beforeEach(async () => {
-        const { client, release } = await createSerializedNodeTestClient();
+        const { client, release } = await createIsolatedNodeTestClient();
         releaseClient = release;
         database = await HyperDB.create(client);
     }, 60_000);

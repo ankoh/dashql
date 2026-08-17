@@ -3,7 +3,7 @@ import * as arrow from 'apache-arrow';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { DataFrame, generateTableName } from '../../compute/data_frame.js';
-import { createSerializedNodeTestClient } from './hyperdb_test_client.js';
+import { createIsolatedNodeTestClient } from './hyperdb_test_client.js';
 import { HyperDB, type HyperDBEngineClient, type HyperDBResult } from './hyperdb_wasm.js';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
@@ -100,7 +100,7 @@ describe('HyperDB embedded database integration', () => {
     let releaseClient: (() => Promise<void>) | null = null;
 
     beforeEach(async () => {
-        const { client: rawClient, release } = await createSerializedNodeTestClient();
+        const { client: rawClient, release } = await createIsolatedNodeTestClient();
         releaseClient = release;
         client = new CountingClient(rawClient);
         database = await HyperDB.create(client);

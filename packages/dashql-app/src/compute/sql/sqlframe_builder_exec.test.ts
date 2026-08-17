@@ -1,7 +1,7 @@
 // @vitest-environment node
 import * as arrow from 'apache-arrow';
 import { SQLFrame } from './sqlframe_builder.js';
-import { createSerializedNodeTestClient } from '../../platform/hyperdb/hyperdb_test_client.js';
+import { createIsolatedNodeTestClient } from '../../platform/hyperdb/hyperdb_test_client.js';
 import {
     HyperDB,
     HyperDBConnection,
@@ -23,7 +23,7 @@ describe('SQLFrame execution', () => {
     let releaseClient: (() => Promise<void>) | null = null;
 
     beforeEach(async () => {
-        const { client, release } = await createSerializedNodeTestClient();
+        const { client, release } = await createIsolatedNodeTestClient();
         releaseClient = release;
         database = await HyperDB.create(client);
         conn = await database.connect();
