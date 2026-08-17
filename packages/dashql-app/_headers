@@ -1,0 +1,37 @@
+/*
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Opener-Policy: same-origin
+  Access-Control-Allow-Origin: *
+
+# Vite fingerprints generated assets, so browsers can retain them across deployments.
+/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Serve uncompressed WebAssembly with the MIME type required for streaming compilation.
+/static/wasm/*.wasm
+  Content-Type: application/wasm
+
+# Vite preserves the .br suffix but inserts the content hash before it.
+/static/assets/hyperdb-wasm.wasm.*.br
+  Content-Encoding: br
+  Content-Type: application/wasm
+
+# Native release artifacts are versioned and immutable when hosted by this project.
+/releases/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Entrypoints must be revalidated before reuse.
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/oauth.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/oauth
+  Cache-Control: public, max-age=0, must-revalidate
+
+/shell.html
+  Cache-Control: public, max-age=0, must-revalidate

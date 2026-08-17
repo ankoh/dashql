@@ -243,6 +243,8 @@ copy_to_bin(
         "index.html",
         "oauth.html",
         "shell.html",
+        "_headers",
+        "_redirects",
         "static/**/*.css",
         "static/**/*.svg",
         "static/**/*.ttf",
@@ -347,11 +349,27 @@ vite_bin.vite(
 )
 
 vite_bin.vite(
-    name = "pages",
+    name = "pages_vite",
     srcs = _vite_web_deps,
     args = ["build", "--config", "vite.config.generated.ts", "--mode", "pages", "--outDir", "pages"],
     chdir = "packages/dashql-app",
     out_dirs = ["pages"],
+    visibility = ["//visibility:private"],
+)
+
+copy_to_directory(
+    name = "pages",
+    srcs = [
+        ":pages_vite",
+        "_headers",
+        "_redirects",
+    ],
+    out = "pages_deploy",
+    replace_prefixes = {
+        "pages": "",
+        "packages/dashql-app/_headers": "_headers",
+        "packages/dashql-app/_redirects": "_redirects",
+    },
     visibility = ["//visibility:public"],
 )
 

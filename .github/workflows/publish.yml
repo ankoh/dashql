@@ -12,34 +12,33 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    pages_artifact:
-        name: GitHub Page Artifact
+    pages_deploy:
+        name: Cloudflare Pages Deploy
         runs-on: ubuntu-24.04
         permissions:
             contents: read
+            deployments: write
+        environment:
+            name: cloudflare-pages
+            url: ${{ steps.deployment.outputs.deployment-url }}
         steps:
+            - uses: actions/checkout@v6
+              with:
+                  ref: ${{ inputs.commit || github.sha }}
+
             - uses: actions/download-artifact@v8
               with:
                   name: dashql_app_pages
                   path: ${{ runner.temp }}/artifacts/pages
 
-            - uses: actions/upload-pages-artifact@v5
+            - name: Deploy prebuilt web app
+              id: deployment
+              uses: cloudflare/wrangler-action@v4
               with:
-                  path: ${{ runner.temp }}/artifacts/pages
-
-    pages_deploy:
-        name: GitHub Page Deploy
-        runs-on: ubuntu-24.04
-        needs: [pages_artifact]
-        permissions:
-            pages: write
-            id-token: write
-        environment:
-            name: github-pages
-            url: ${{ steps.deployment.outputs.page_url }}
-        steps:
-            - id: deployment
-              uses: actions/deploy-pages@v5
+                  apiToken: ${{ secrets.PAGES_DASHQL_API_TOKEN }}
+                  accountId: ${{ secrets.PAGES_DASHQL_ACCOUNT_ID }}
+                  command: pages deploy ${{ runner.temp }}/artifacts/pages --project-name=dashql --branch=main --commit-hash=${{ inputs.commit }}
+                  gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
     native:
         name: Native apps

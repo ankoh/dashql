@@ -24,5 +24,4 @@ jobs:
         secrets: inherit
         permissions:
             contents: read
-            pages: write
-            id-token: write
+            deployments: write

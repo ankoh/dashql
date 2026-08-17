@@ -1,0 +1,3 @@
+# Pages normally redirects .html assets to extensionless URLs. Keep the OAuth callback URL exact:
+# it is registered with providers and reused as redirect_uri during the token exchange.
+/oauth.html /oauth 200

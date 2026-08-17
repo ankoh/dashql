@@ -44,7 +44,7 @@ bazel build //...
 
 | Target | Purpose |
 |--------|---------|
-| `//packages/dashql-app:pages` | Web app bundle for GitHub Pages |
+| `//packages/dashql-app:pages` | Web app bundle for Cloudflare Pages |
 | `//packages/dashql-app:reloc` | Web app bundle for native apps |
 | `//packages/dashql-native:mac_universal_dmg` | Universal macOS DMG |
 | `//packages/dashql-core:dashql_core` | Core C++ library |
