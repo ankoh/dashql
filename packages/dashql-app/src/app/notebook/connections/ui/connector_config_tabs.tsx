@@ -1,7 +1,7 @@
 import * as React from 'react';
 import icons from '@ankoh/dashql-svg-symbols';
 
-import { VerticalTabs, VerticalTabVariant } from '../../../../shared/ui/foundations/vertical_tabs.js';
+import { VerticalTabs, VerticalTabVariant } from '../../../../ui/foundations/vertical_tabs.js';
 import { CONNECTOR_INFOS, ConnectorType, CONNECTOR_TYPES } from '../connector_info.js';
 import { HyperConnectorSettings } from './hyper_connection_settings.js';
 import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';

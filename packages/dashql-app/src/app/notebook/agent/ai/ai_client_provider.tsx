@@ -1,8 +1,8 @@
 import * as React from 'react';
 
 import { AIClient, AIClientSettings } from './ai_client.js';
-import { useHttpClient } from '../../../../shared/platform/http/http_client_provider.js';
-import { useLogger } from '../../../../shared/platform/logger/logger_provider.js';
+import { useHttpClient } from '../../../../platform/http/http_client_provider.js';
+import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import {
     AIProviderSettings,
     DEFAULT_AI_ENDPOINT_URL,

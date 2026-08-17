@@ -1,6 +1,6 @@
 import { open } from '@tauri-apps/plugin-dialog';
 
-import type { Logger } from '../../../shared/platform/logger/logger.js';
+import type { Logger } from '../../../platform/logger/logger.js';
 import type { CompositeStorageBackend } from './composite_storage_backend.js';
 import { StorageWriter } from './storage_writer.js';
 

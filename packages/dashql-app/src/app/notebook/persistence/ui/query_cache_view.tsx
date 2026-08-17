@@ -5,13 +5,13 @@ import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 import { XIcon, TrashIcon, SyncIcon } from '@primer/octicons-react';
 
-import { ButtonVariant, ButtonSize, IconButton } from '../../../../shared/ui/foundations/button.js';
+import { ButtonVariant, ButtonSize, IconButton } from '../../../../ui/foundations/button.js';
 import { CacheFileStat } from '../query_result_cache_eviction.js';
 import { STORAGE_CACHE_EXTENSION } from '../storage_backend.js';
-import { formatBytes } from '../../../../shared/utils/format.js';
-import { formatRelativeTime } from '../../../../shared/utils/time_format.js';
-import { observeSize } from '../../../../shared/ui/foundations/size_observer.js';
-import { useLogger } from '../../../../shared/platform/logger/logger_provider.js';
+import { formatBytes } from '../../../../utils/format.js';
+import { formatRelativeTime } from '../../../../utils/time_format.js';
+import { observeSize } from '../../../../ui/foundations/size_observer.js';
+import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { useStorageReader } from '../storage_provider.js';
 
 const LOG_CTX = 'query_cache_view';

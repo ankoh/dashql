@@ -1,8 +1,8 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { HttpClient, HttpFetchResult } from '../../../../shared/platform/http/http_client.js';
-import { Logger } from '../../../../shared/platform/logger/logger.js';
+import type { HttpClient, HttpFetchResult } from '../../../../platform/http/http_client.js';
+import { Logger } from '../../../../platform/logger/logger.js';
 import {
     DEFAULT_SALESFORCE_DATA_SPACE,
     getSalesforceDataSpace,

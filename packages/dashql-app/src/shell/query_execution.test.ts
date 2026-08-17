@@ -7,7 +7,7 @@ import {
     QueryExecutionStatus,
     QueryType,
 } from '../query/query_execution_state.js';
-import { LoggableException } from '../shared/platform/logger/logger.js';
+import { LoggableException } from '../platform/logger/logger.js';
 import { SHELL_QUERY_HISTORY_LIMIT, ShellQueryExecutionTracker } from './query_execution.js';
 
 function createExecution(queryId: number, queryText: string) {

@@ -14,23 +14,23 @@ import {
     ShieldLockIcon,
 } from '@primer/octicons-react';
 
-import { Button, ButtonVariant } from '../../../../shared/ui/foundations/button.js';
+import { Button, ButtonVariant } from '../../../../ui/foundations/button.js';
 import { ConnectionHealth } from '../connection_state.js';
-import { Dispatch } from '../../../../shared/utils/variant.js';
-import { KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../../../../shared/ui/foundations/keyvalue_list.js';
-import { TextField, VALIDATION_WARNING } from '../../../../shared/ui/foundations/text_field.js';
-import { classNames } from '../../../../shared/utils/classnames.js';
+import { Dispatch } from '../../../../utils/variant.js';
+import { KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../../../../ui/foundations/keyvalue_list.js';
+import { TextField, VALIDATION_WARNING } from '../../../../ui/foundations/text_field.js';
+import { classNames } from '../../../../utils/classnames.js';
 import { useConnectionState } from '../connection_registry.js';
-import { useLogger } from '../../../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { useQueryExecutor } from '../query_executor.js';
 import { performHealthCheck } from '../health_check.js';
 import { useTrinoSetup } from '../trino/trino_connector.js';
 import { CONNECTOR_INFOS, ConnectorType, requiresSwitchingToNative, TRINO_CONNECTOR } from '../connector_info.js';
-import { UpdateValueList, ValueListBuilder } from '../../../../shared/ui/foundations/value_list.js';
+import { UpdateValueList, ValueListBuilder } from '../../../../ui/foundations/value_list.js';
 import { useAnyConnectionNotebookScripts } from './connection_notebook_scripts.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
-import { SegmentedControl } from '../../../../shared/ui/foundations/segmented_control.js';
-import { LoggableException, stringifyError } from '../../../../shared/platform/logger/logger.js';
+import { SegmentedControl } from '../../../../ui/foundations/segmented_control.js';
+import { LoggableException, stringifyError } from '../../../../platform/logger/logger.js';
 
 const LOG_CTX = "trino_connector";
 

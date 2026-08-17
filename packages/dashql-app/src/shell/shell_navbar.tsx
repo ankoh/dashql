@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import { AnchorAlignment, AnchorSide } from '../shared/ui/foundations/anchored_position.js';
-import { DASHQL_VERSION } from '../shared/globals.js';
-import { AnchoredOverlay } from '../shared/ui/foundations/anchored_overlay.js';
-import { ButtonVariant, IconButton } from '../shared/ui/foundations/button.js';
+import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
+import { DASHQL_VERSION } from '../globals.js';
+import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
+import { ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import { ShellInternals } from './internals.js';
 import type { ShellQueryExecutionTracker } from './query_execution.js';
 

@@ -13,8 +13,8 @@ import {
 } from './connection_state.js';
 import { updateSalesforceCatalog } from './salesforce/salesforce_catalog_update.js';
 import { useQueryExecutor } from './query_executor.js';
-import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
-import { createTrace } from '../../../shared/platform/logger/trace_context.js';
+import { useLogger } from '../../../platform/logger/logger_provider.js';
+import { createTrace } from '../../../platform/logger/trace_context.js';
 import { updateInformationSchemaCatalog } from './catalog_query_information_schema.js';
 import { updatePgCatalog } from './catalog_query_pg_attribute.js';
 import { updateDemoSchemaCatalog } from './dataless/dataless_demo_catalog.js';

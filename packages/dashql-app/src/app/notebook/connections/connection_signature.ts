@@ -1,4 +1,4 @@
-import { Hasher } from "../../../shared/utils/hash.js";
+import { Hasher } from "../../../utils/hash.js";
 
 export type ConnectionSignatureMap = Map<string, string | null>;
 

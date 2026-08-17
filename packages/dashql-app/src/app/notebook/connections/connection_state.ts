@@ -1,5 +1,5 @@
-import * as core from '../../../shared/core/index.js';
-import * as dashql from '../../../shared/core/index.js';
+import * as core from '../../../core/index.js';
+import * as dashql from '../../../core/index.js';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { HyperConnectorAction, reduceHyperConnectorState } from './hyper/hyper_connection_state.js';
@@ -7,7 +7,7 @@ import { SalesforceConnectionStateAction, reduceSalesforceConnectionState } from
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
 import { generateCatalogScriptHeader, CatalogSource } from './catalog_sql_generator.js';
 import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
-import { VariantKind } from '../../../shared/utils/variant.js';
+import { VariantKind } from '../../../utils/variant.js';
 import {
     CONNECTOR_INFOS,
     ConnectorInfo,
@@ -36,14 +36,14 @@ import {
     QUERY_CACHE_DELETED,
     QueryExecutionState,
 } from './query_execution_state.js';
-import { Hasher } from '../../../shared/utils/hash.js';
+import { Hasher } from '../../../utils/hash.js';
 import { reduceQueryAction } from './query_execution_state.js';
 import { DatalessConnectorAction, reduceDatalessConnectorState } from './dataless/dataless_connection_state.js';
 import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
 import { DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK, groupNotebookManifestWrites, StorageWriter, WRITE_NOTEBOOK_MANIFEST } from '../persistence/storage_writer.js';
-import { Logger } from '../../../shared/platform/logger/logger.js';
+import { Logger } from '../../../platform/logger/logger.js';
 
 export interface CatalogUpdates {
     /// The running tasks

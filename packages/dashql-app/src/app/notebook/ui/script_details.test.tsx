@@ -13,7 +13,7 @@ import {
     ResizeObserverMock,
     setKeyEventMockState,
     setQueryExecutorMockState,
-} from '../../../shared/test/view_mocks.js';
+} from '../../../test/view_mocks.js';
 
 const mockState = vi.hoisted(() => ({
     executeQuery: vi.fn(),
@@ -32,8 +32,8 @@ const mockState = vi.hoisted(() => ({
 }));
 
 vi.mock('../../config/app_config.js', () => ({ useAppConfig: () => ({ settings: {} }) }));
-vi.mock('../../../shared/ui/foundations/button.js', async () => fakeButtonModule(await import('react')));
-vi.mock('../../../shared/ui/foundations/symbol_icon.js', async () => fakeSymbolIconModule(await import('react')));
+vi.mock('../../../ui/foundations/button.js', async () => fakeButtonModule(await import('react')));
+vi.mock('../../../ui/foundations/symbol_icon.js', async () => fakeSymbolIconModule(await import('react')));
 vi.mock('./script_editor.js', async () => {
     const React = await import('react');
     return {
@@ -47,7 +47,7 @@ vi.mock('./script_name.js', async () => {
     const React = await import('react');
     return { ScriptName: () => React.createElement('span', null, 'script') };
 });
-vi.mock('../../../shared/utils/key_events.js', () => fakeKeyEventsModule());
+vi.mock('../../../utils/key_events.js', () => fakeKeyEventsModule());
 vi.mock('../connections/query_executor.js', () => fakeQueryExecutorModule());
 vi.mock('../agent/agent_run_provider.js', () => ({
     useAgentRunState: () => null,
@@ -62,7 +62,7 @@ vi.mock('../../../compute/computation_registry.js', () => ({
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
 import { ConnectionHealth, type ConnectionState } from '../connections/connection_state.js';
-import * as dashql from '../../../shared/core/index.js';
+import * as dashql from '../../../core/index.js';
 import { REGISTER_QUERY, type NotebookScripts } from '../scripts/notebook_scripts.js';
 import { ScriptDetails } from './script_details.js';
 

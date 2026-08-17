@@ -2,14 +2,14 @@ import * as React from 'react';
 import * as styles from './app_settings_view.module.css';
 
 import { XIcon } from '@primer/octicons-react';
-import { Button, ButtonVariant, IconButton } from '../../../shared/ui/foundations/button.js';
-import { ToggleSwitch } from '../../../shared/ui/foundations/toggle_switch.js';
-import { SegmentedControl } from '../../../shared/ui/foundations/segmented_control.js';
+import { Button, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
+import { ToggleSwitch } from '../../../ui/foundations/toggle_switch.js';
+import { SegmentedControl } from '../../../ui/foundations/segmented_control.js';
 
 import { AppConfig, useAppConfig, useAppReconfigure } from '../../config/app_config.js';
 import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../../router/router.js';
-import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
-import { LogLevel } from '../../../shared/platform/logger/log_buffer.js';
+import { useLogger } from '../../../platform/logger/logger_provider.js';
+import { LogLevel } from '../../../platform/logger/log_buffer.js';
 import { useStorageReader } from '../../notebook/persistence/storage_provider.js';
 
 export function AppSettings(props: { onClose: () => void; }) {

@@ -1,4 +1,4 @@
-import * as core from '../../../shared/core/index.js';
+import * as core from '../../../core/index.js';
 
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -8,7 +8,7 @@ import { createDatalessConnectionState } from './dataless/dataless_connection_st
 import type { NotebookScriptsInput } from '../scripts/notebook_scripts_registry.js';
 import type { NotebookScripts } from '../scripts/notebook_scripts.js';
 import { scriptDisplayName } from '../scripts/script_types.js';
-import { Logger } from '../../../shared/platform/logger/logger.js';
+import { Logger } from '../../../platform/logger/logger.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

@@ -3,16 +3,16 @@ import * as styles from './notebook_storage_overlay.module.css';
 
 import { XIcon, FileDirectoryIcon } from '@primer/octicons-react';
 
-import { AnchorAlignment, AnchorSide } from '../../../../shared/ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../../../../shared/ui/foundations/anchored_overlay.js';
-import { ButtonVariant, IconButton } from '../../../../shared/ui/foundations/button.js';
-import { OverlaySize } from '../../../../shared/ui/foundations/overlay.js';
-import { PlatformType, usePlatformType } from '../../../../shared/platform/platform_type.js';
+import { AnchorAlignment, AnchorSide } from '../../../../ui/foundations/anchored_position.js';
+import { AnchoredOverlay } from '../../../../ui/foundations/anchored_overlay.js';
+import { ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
+import { OverlaySize } from '../../../../ui/foundations/overlay.js';
+import { PlatformType, usePlatformType } from '../../../../platform/platform_type.js';
 import { StorageBackendType } from '../storage_backend.js';
 import { CompositeStorageBackend } from '../composite_storage_backend.js';
 import { displayPath } from '../notebook_locator.js';
 import { useStorageReader, useStorageWriter } from '../storage_provider.js';
-import { useLogger } from '../../../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { relocateNotebookToNative } from '../storage_migration_flow.js';
 import { useConnectionState } from '../../connections/connection_registry.js';
 import { RENAME_NOTEBOOK } from '../../connections/connection_state.js';

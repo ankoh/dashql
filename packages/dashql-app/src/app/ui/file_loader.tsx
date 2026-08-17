@@ -1,18 +1,18 @@
 import * as React from 'react';
 import symbols from '@ankoh/dashql-svg-symbols';
-import * as baseStyles from '../../shared/ui/banner/banner_page.module.css';
+import * as baseStyles from '../../ui/banner/banner_page.module.css';
 import * as styles from './file_loader.module.css';
 
-import { IndicatorStatus, StatusIndicator } from '../../shared/ui/foundations/status_indicator.js';
-import { PlatformFile } from "../../shared/platform/file/file.js";
-import { classNames } from '../../shared/utils/classnames.js';
-import { formatBytes } from '../../shared/utils/format.js';
+import { IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
+import { PlatformFile } from "../../platform/file/file.js";
+import { classNames } from '../../utils/classnames.js';
+import { formatBytes } from '../../utils/format.js';
 import { useRouterNavigate, NOTEBOOK_PATH } from '../router/router.js';
 import { useStorageReader } from '../notebook/persistence/storage_provider.js';
 import { importAndRestoreNotebook } from '../loading/app_setup_events.js';
 import { destroyRestoredNotebook, type RestoredNotebook } from '../notebook/persistence/app_state_loader.js';
 import { useDashQLCoreSetup } from '../providers/core_provider.js';
-import { useLogger } from '../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useConnectionRegistry } from '../notebook/connections/connection_registry.js';
 import { useNotebookScriptsRegistry } from '../notebook/scripts/notebook_scripts_registry.js';
 

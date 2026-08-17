@@ -1,5 +1,5 @@
-import { HttpClient } from "../../../../shared/platform/http/http_client.js";
-import { Logger } from "../../../../shared/platform/logger/logger.js";
+import { HttpClient } from "../../../../platform/http/http_client.js";
+import { Logger } from "../../../../platform/logger/logger.js";
 import { AIProviderHeader } from "../../../config/app_config.js";
 
 /// Resolved (non-optional) provider settings used by the client.

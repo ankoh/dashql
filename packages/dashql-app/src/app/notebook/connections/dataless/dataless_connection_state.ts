@@ -1,4 +1,4 @@
-import * as dashql from "../../../../shared/core/index.js";
+import * as dashql from "../../../../core/index.js";
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import type { DetailedError } from '../connection_types.js';
@@ -6,8 +6,8 @@ import type { DetailedError } from '../connection_types.js';
 import { ConnectionHealth, ConnectionState, ConnectionStateWithoutId, ConnectionStatus, createConnectionState, DELETE_CONNECTION, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION } from "../connection_state.js";
 import { CONNECTOR_INFOS, ConnectorType, DATALESS_CONNECTOR, createDatalessConnectorInfo } from "../connector_info.js";
 import { DemoDatabaseChannel } from "./dataless_demo_channel.js";
-import { VariantKind } from '../../../../shared/utils/variant.js';
-import { Hasher } from "../../../../shared/utils/hash.js";
+import { VariantKind } from '../../../../utils/variant.js';
+import { Hasher } from "../../../../utils/hash.js";
 import { ConnectionSignatureMap } from "../connection_signature.js";
 import { StorageWriter } from "../../persistence/storage_writer.js";
 

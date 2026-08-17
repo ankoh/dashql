@@ -4,7 +4,7 @@ import symbols from '@ankoh/dashql-svg-symbols';
 import { ConnectionState } from '../connection_state.js';
 import { ConnectorType } from '../connector_info.js';
 import { DatalessConnectionStateDetails, isDemoConnector } from '../dataless/dataless_connection_state.js';
-import { Button, ButtonVariant } from '../../../../shared/ui/foundations/button.js';
+import { Button, ButtonVariant } from '../../../../ui/foundations/button.js';
 
 interface ButtonProps {
     notebookId?: string;

@@ -1,4 +1,4 @@
-import * as dashql from '../../../../../shared/core/index.js';
+import * as dashql from '../../../../../core/index.js';
 
 import * as styles from './timeline_renderer.module.css';
 

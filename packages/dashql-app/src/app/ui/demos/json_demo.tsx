@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './json_demo.module.css';
-import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
-import { JsonView } from '../../../shared/ui/json/json_view.js';
+import { useLogger } from '../../../platform/logger/logger_provider.js';
+import { JsonView } from '../../../ui/json/json_view.js';
 
 const LOG_CTX = "json_demo";
 

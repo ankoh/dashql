@@ -13,4 +13,4 @@ export interface DetailedError {
     data?: Record<string, string>;
 }
 
-export type { AppEventData, OAuthRedirectData, OAuthState } from '../../../shared/oauth_types.js';
+export type { AppEventData, OAuthRedirectData, OAuthState } from '../../../oauth_types.js';

@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { ComputationAction, SET_CROSS_FILTERS, TableComputationState } from '../../../../../compute/computation_state.js';
 import { CrossFilters } from '../../../../../compute/cross_filters.js';
-import { Dispatch } from '../../../../../shared/utils/variant.js';
+import { Dispatch } from '../../../../../utils/variant.js';
 import { ORDINAL_COLUMN, STRING_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableAggregation, TableFilteringTask, TaskStatus, WithFilter, ColumnAggregationTask } from '../../../../../compute/computation_types.js';
 import { ScalarFilter } from '../../../../../compute/sql/sqlframe_builder.js';
 import { HistogramFilterCallback } from './histogram_cell.js';

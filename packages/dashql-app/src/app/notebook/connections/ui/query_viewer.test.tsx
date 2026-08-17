@@ -3,7 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, vi } from 'vitest';
 
-import { fakeReactWindowModule, ResizeObserverMock } from '../../../../shared/test/view_mocks.js';
+import { fakeReactWindowModule, ResizeObserverMock } from '../../../../test/view_mocks.js';
 
 vi.mock('react-window', async () => fakeReactWindowModule(await import('react'), vi.fn()));
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);

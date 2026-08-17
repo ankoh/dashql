@@ -1,5 +1,5 @@
-import { Dispatch } from '../../../../shared/utils/index.js';
-import { LoggerLike } from '../../../../shared/platform/logger/logger.js';
+import { Dispatch } from '../../../../utils/index.js';
+import { LoggerLike } from '../../../../platform/logger/logger.js';
 import { HEALTH_CHECK_SUCCEEDED } from '../connection_state.js';
 import { DATALESS_CHANNEL_READY, DATALESS_CHANNEL_SETUP_CANCELLED, DATALESS_CHANNEL_SETUP_FAILED, DatalessConnectorAction } from './dataless_connection_state.js';
 import { DemoDatabaseChannel } from './dataless_demo_channel.js';

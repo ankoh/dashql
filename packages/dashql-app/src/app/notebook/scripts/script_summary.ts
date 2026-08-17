@@ -1,9 +1,9 @@
-import * as dashql from '../../../shared/core/index.js';
+import * as dashql from '../../../core/index.js';
 import {
     formatQualifiedTableName,
     formatQualifiedColumnName,
     formatQualifiedFunctionName,
-} from '../../../shared/core/index.js';
+} from '../../../core/index.js';
 
 import type { DashQLScriptBuffers } from './editor/dashql_processor.js';
 

@@ -1,4 +1,4 @@
-import * as dashql from '../../../shared/core/index.js';
+import * as dashql from '../../../core/index.js';
 
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
 

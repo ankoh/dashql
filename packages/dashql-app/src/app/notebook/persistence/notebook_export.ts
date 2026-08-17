@@ -4,7 +4,7 @@ import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 
 import type { StorageBackend, NotebookData, ScriptFolderData, ConnectionParams } from './storage_backend.js';
 import { STORAGE_NOTEBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT } from './storage_backend.js';
-import { BASE64URL_CODEC } from '../../../shared/utils/base64.js';
+import { BASE64URL_CODEC } from '../../../utils/base64.js';
 import { sanitizeConnectionParamsForSharing } from '../connections/connection_params.js';
 
 /// The target platform a shared notebook link points at.

@@ -1,9 +1,9 @@
 import * as React from 'react';
 
 import { ConnectorConfigs, readConnectorConfigs } from '../notebook/connections/connector_configs.js';
-import { useLogger } from '../../shared/platform/logger/logger_provider.js';
-import { Logger } from '../../shared/platform/logger/logger.js';
-import { createTrace } from '../../shared/platform/logger/trace_context.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
+import { Logger } from '../../platform/logger/logger.js';
+import { createTrace } from '../../platform/logger/trace_context.js';
 
 const CONFIG_URL = new URL('../../../static/config.json', import.meta.url);
 

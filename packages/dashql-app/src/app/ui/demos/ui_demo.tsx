@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ActionList from '../../../shared/ui/foundations/action_list.js'
+import * as ActionList from '../../../ui/foundations/action_list.js'
 import * as styles from './ui_demo.module.css';
 
 import {
@@ -17,10 +17,10 @@ import {
     GraphIcon,
 } from '@primer/octicons-react';
 
-import { TextInput, TextInputValidationStatus } from '../../../shared/ui/foundations/text_input.js';
-import { TextInputAction } from '../../../shared/ui/foundations/text_input_action.js';
-import { Button, ButtonSize, ButtonVariant } from '../../../shared/ui/foundations/button.js';
-import { SegmentedControl, SegmentedControlSize } from '../../../shared/ui/foundations/segmented_control.js';
+import { TextInput, TextInputValidationStatus } from '../../../ui/foundations/text_input.js';
+import { TextInputAction } from '../../../ui/foundations/text_input_action.js';
+import { Button, ButtonSize, ButtonVariant } from '../../../ui/foundations/button.js';
+import { SegmentedControl, SegmentedControlSize } from '../../../ui/foundations/segmented_control.js';
 
 export function UIExperimentPage(): React.ReactElement {
     const [selectedView, setSelectedView] = React.useState(0);

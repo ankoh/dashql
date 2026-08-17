@@ -16,7 +16,7 @@ import {
     SET_SCRIPT_TEXT,
 } from './notebook_scripts.js';
 import { scriptDisplayName } from './script_types.js';
-import type { LoggerLike } from '../../../shared/platform/logger/logger.js';
+import type { LoggerLike } from '../../../platform/logger/logger.js';
 
 /// The source clause for the generated VISUALIZE statement.
 ///

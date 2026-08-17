@@ -1,20 +1,20 @@
 import * as React from 'react';
 import * as styles from './cell_detail_overlay.module.css';
-import * as dashql from '../../../../../shared/core/index.js';
+import * as dashql from '../../../../../core/index.js';
 
 import { EditorView } from '@codemirror/view';
 import { XIcon, ChevronUpIcon, ChevronDownIcon } from '@primer/octicons-react';
 
-import { ButtonSize, IconButton, ButtonVariant } from '../../../../../shared/ui/foundations/button.js';
-import { SegmentedControl, SegmentedControlSize } from '../../../../../shared/ui/foundations/segmented_control.js';
-import { SymbolIcon } from '../../../../../shared/ui/foundations/symbol_icon.js';
-import { JsonView } from '../../../../../shared/ui/json/json_view.js';
+import { ButtonSize, IconButton, ButtonVariant } from '../../../../../ui/foundations/button.js';
+import { SegmentedControl, SegmentedControlSize } from '../../../../../ui/foundations/segmented_control.js';
+import { SymbolIcon } from '../../../../../ui/foundations/symbol_icon.js';
+import { JsonView } from '../../../../../ui/json/json_view.js';
 import { CodeMirror, createReadonlyCodeMirrorExtensions } from '../../../scripts/editor/codemirror.js';
 import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../../../scripts/editor/dashql_processor.js';
-import { Overlay, OverlaySize } from '../../../../../shared/ui/foundations/overlay.js';
+import { Overlay, OverlaySize } from '../../../../../ui/foundations/overlay.js';
 import { useDashQLCoreSetup } from '../../../../providers/core_provider.js';
-import { CopyToClipboardButton } from '../../../../../shared/utils/clipboard.js';
-import { useKeyEvents } from '../../../../../shared/utils/key_events.js';
+import { CopyToClipboardButton } from '../../../../../utils/clipboard.js';
+import { useKeyEvents } from '../../../../../utils/key_events.js';
 import { peekFormat } from './format_peek.js';
 import { createPlanLayoutConfig, PlanView as HyperPlanView } from '../plan/plan_view.js';
 

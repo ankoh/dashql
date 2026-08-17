@@ -4,14 +4,14 @@ import * as arrow from 'apache-arrow';
 import * as computationLogic from './computation_logic.js';
 
 import { DataFrame } from './data_frame.js';
-import { AsyncValue } from '../shared/utils/async_value.js';
+import { AsyncValue } from '../utils/async_value.js';
 import { COLUMN_AGGREGATION_SUCCEEDED, ComputationAction, UNREGISTER_SCHEDULER_TASK, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, TABLE_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, UPDATE_SCHEDULER_TASK } from './computation_state.js';
-import { Dispatch, VariantKind } from '../shared/utils/variant.js';
-import { LoggableException, Logger, stringifyError } from '../shared/platform/logger/logger.js';
-import { createTrace } from '../shared/platform/logger/trace_context.js';
+import { Dispatch, VariantKind } from '../utils/variant.js';
+import { LoggableException, Logger, stringifyError } from '../platform/logger/logger.js';
+import { createTrace } from '../platform/logger/trace_context.js';
 import { TaskStatus, TableFilteringTask, TableOrderingTask, TableAggregationTask, FilterTable, OrderingTable, TableAggregation, ColumnGroup, SystemColumnComputationTask, ColumnAggregationTask, ColumnAggregationVariant, TaskProgress, WithFilter, WithFilterEpoch } from "./computation_types.js";
 import { useComputationRegistry } from "./computation_registry.js";
-import { useLogger } from '../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
 import type { ComputeQueryExecution } from './computation_logic.js';
 import { useCreateComputeQueryExecution } from './computation_query_execution.js';
 

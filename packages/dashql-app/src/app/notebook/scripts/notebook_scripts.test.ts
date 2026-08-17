@@ -1,4 +1,4 @@
-import * as core from '../../../shared/core/index.js';
+import * as core from '../../../core/index.js';
 
 import {
     reduceNotebookScripts,
@@ -49,7 +49,7 @@ import {
     CREATE_SCRIPT_FOLDER as STORAGE_CREATE_SCRIPT_FOLDER,
     DELETE_SCRIPT_FOLDER as STORAGE_DELETE_SCRIPT_FOLDER,
 } from "../persistence/storage_writer.js";
-import { Logger } from '../../../shared/platform/logger/logger.js';
+import { Logger } from '../../../platform/logger/logger.js';
 import { createEmptyMetadata, createScriptRef, generateScriptFileName, normalizeScriptFolderName, scriptFolderOrderPrefixString, formatScriptFolderOrderPrefix, normalizeScriptName, scriptOrderPrefixString, formatScriptOrderPrefix, scriptDisplayName, uniqueScriptBase, planScriptInsertion, ScriptRef } from './script_types.js';
 import { type AppSettings, type NotebookData, type NotebookEntry, type ScriptData as StoredScriptData, type ScriptFolderData, type StorageBackend, StorageBackendType } from '../persistence/storage_backend.js';
 

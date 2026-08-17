@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { Dispatch } from '../../../../shared/utils/variant.js';
+import { Dispatch } from '../../../../utils/variant.js';
 import { HyperSetupProvider } from './hyper_connection_setup.js';
 import { HyperConnectorAction } from './hyper_connection_state.js';
 

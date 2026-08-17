@@ -1,5 +1,5 @@
-import { HttpClient, HttpFetchResult } from '../../../../shared/platform/http/http_client.js';
-import { Logger } from '../../../../shared/platform/logger/logger.js';
+import { HttpClient, HttpFetchResult } from '../../../../platform/http/http_client.js';
+import { Logger } from '../../../../platform/logger/logger.js';
 
 const LOG_CTX = "hyperdb_http_client";
 

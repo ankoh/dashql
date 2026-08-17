@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { isNativePlatform } from '../../../shared/platform/native_globals.js';
+import { isNativePlatform } from '../../../platform/native_globals.js';
 
 /// Grant the native filesystem scope for a directory.
 ///

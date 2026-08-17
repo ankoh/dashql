@@ -122,7 +122,7 @@ export default vite.defineConfig(({ mode, command }) => {
                     isNativeBuild
                         ? [{
                             find: '../hyperdb/hyperdb_provider_web.js',
-                            replacement: path.resolve(rootDir, 'src/shared/platform/hyperdb/hyperdb_provider_web_stub.ts'),
+                            replacement: path.resolve(rootDir, 'src/platform/hyperdb/hyperdb_provider_web_stub.ts'),
                         }]
                         : []
                 ),

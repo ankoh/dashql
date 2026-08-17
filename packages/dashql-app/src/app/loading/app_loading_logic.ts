@@ -1,6 +1,6 @@
-import * as dashql from '../../shared/core/index.js';
+import * as dashql from '../../core/index.js';
 
-import { TracedLogger } from '../../shared/platform/logger/logger.js';
+import { TracedLogger } from '../../platform/logger/logger.js';
 import { StorageReader } from '../notebook/persistence/storage_provider.js';
 import { AppLoadingProgress, AppLoadingProgressConsumer } from './app_loading_progress.js';
 import { ConnectionAllocator, DynamicConnectionDispatch, SetConnectionRegistryAction } from '../notebook/connections/connection_registry.js';
@@ -10,10 +10,10 @@ import { AppConfig } from '../config/app_config.js';
 import { DemoDatabaseChannel } from '../notebook/connections/dataless/dataless_demo_channel.js';
 import { setupDatalessDemoConnection } from '../notebook/connections/dataless/dataless_demo_setup.js';
 import { ConnectorType, DATALESS_CONNECTOR } from '../notebook/connections/connector_info.js';
-import { Dispatch } from '../../shared/utils/variant.js';
+import { Dispatch } from '../../utils/variant.js';
 import { SetNotebookScriptsRegistryAction } from '../notebook/scripts/notebook_scripts_registry.js';
 import { NotebookScriptsSetupFn } from '../notebook/connections/dataless/dataless_notebook.js';
-import { ProgressCounter } from '../../shared/utils/progress.js';
+import { ProgressCounter } from '../../utils/progress.js';
 import { NotebookScripts } from '../notebook/scripts/notebook_scripts.js';
 import { isDemoConnector } from '../notebook/connections/dataless/dataless_connection_state.js';
 import { DatalessConnectionStateDetails } from '../notebook/connections/dataless/dataless_connection_state.js';

@@ -1,32 +1,32 @@
 import * as React from 'react';
 import symbols from '@ankoh/dashql-svg-symbols';
-import * as baseStyles from '../shared/ui/banner/banner_page.module.css';
+import * as baseStyles from '../ui/banner/banner_page.module.css';
 import * as styles from './oauth_redirect.module.css';
 
 import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 
-import type { OAuthState, AppEventData } from '../shared/oauth_types.js';
+import type { OAuthState, AppEventData } from '../oauth_types.js';
 
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes, useSearchParams } from 'react-router-dom';
 
-import { AnchorAlignment, AnchorSide } from '../shared/ui/foundations/anchored_position.js';
-import { BASE64URL_CODEC } from '../shared/utils/base64.js';
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../shared/ui/foundations/button.js';
-import { CopyToClipboardButton } from '../shared/utils/clipboard.js';
-import { DASHQL_VERSION } from '../shared/globals.js';
-import { GitHubTheme } from '../shared/theme/github_theme.js';
-import { LogsOverlay } from '../shared/ui/logs_overlay.js';
-import { Logger, stringifyError } from '../shared/platform/logger/logger.js';
-import { LoggerProvider, useLogger } from '../shared/platform/logger/logger_provider.js';
-import { Result, RESULT_ERROR, RESULT_OK } from '../shared/utils/result.js';
-import { TextField, TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_WARNING } from '../shared/ui/foundations/text_field.js';
-import { classNames } from '../shared/utils/classnames.js';
-import { formatHHMMSS, formatTimeDifference } from '../shared/utils/format.js';
-import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../shared/platform/events/event.js';
+import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
+import { BASE64URL_CODEC } from '../utils/base64.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
+import { CopyToClipboardButton } from '../utils/clipboard.js';
+import { DASHQL_VERSION } from '../globals.js';
+import { GitHubTheme } from '../theme/github_theme.js';
+import { LogsOverlay } from '../ui/logs_overlay.js';
+import { Logger, stringifyError } from '../platform/logger/logger.js';
+import { LoggerProvider, useLogger } from '../platform/logger/logger_provider.js';
+import { Result, RESULT_ERROR, RESULT_OK } from '../utils/result.js';
+import { TextField, TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_WARNING } from '../ui/foundations/text_field.js';
+import { classNames } from '../utils/classnames.js';
+import { formatHHMMSS, formatTimeDifference } from '../utils/format.js';
+import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../platform/events/event.js';
 
 import '../../static/fonts/fonts.css';
-import '../shared/styles/globals.css';
+import '../styles/globals.css';
 
 const AUTO_TRIGGER_DELAY = 2000;
 const AUTO_TRIGGER_COUNTER_INTERVAL = 200;

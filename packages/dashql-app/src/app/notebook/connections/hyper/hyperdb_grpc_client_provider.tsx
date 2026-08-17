@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import { isNativePlatform } from '../../../../shared/platform/native_globals.js';
+import { isNativePlatform } from '../../../../platform/native_globals.js';
 import { HyperDatabaseClient } from './hyperdb_grpc_client.js';
 import { NativeHyperDatabaseClient } from './platform/native_hyperdb_grpc_client.js';
 import { WebHyperDatabaseClient } from './platform/web_hyperdb_http_client.js';
-import { useHttpClient } from '../../../../shared/platform/http/http_client_provider.js';
-import { useLogger } from '../../../../shared/platform/logger/logger_provider.js';
+import { useHttpClient } from '../../../../platform/http/http_client_provider.js';
+import { useLogger } from '../../../../platform/logger/logger_provider.js';
 
 type Props = {
     children: React.ReactElement;

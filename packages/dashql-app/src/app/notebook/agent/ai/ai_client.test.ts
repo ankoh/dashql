@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 
 import { AIClient } from './ai_client.js';
-import { Logger } from '../../../../shared/platform/logger/logger.js';
-import type { HttpClient, HttpFetchResult } from '../../../../shared/platform/http/http_client.js';
+import { Logger } from '../../../../platform/logger/logger.js';
+import type { HttpClient, HttpFetchResult } from '../../../../platform/http/http_client.js';
 
 class NullLogger extends Logger {
     public destroy(): void { }

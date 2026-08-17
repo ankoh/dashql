@@ -8,7 +8,7 @@ import { computeTableLayout, DataTableLayout } from '../query_result/data_table_
 import { HeaderPlotsCell } from '../query_result/data_table_cell.js';
 import { useCrossFilters } from '../query_result/use_cross_filters.js';
 import { useAppConfig } from '../../../../config/app_config.js';
-import { useLogger } from '../../../../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../../../../platform/logger/logger_provider.js';
 
 const COLUMN_HEADER_PLOTS_HEIGHT = 76;
 /// Matches COLUMN_HEADER_HEIGHT in data_table.tsx so the name row lines up with the table header.

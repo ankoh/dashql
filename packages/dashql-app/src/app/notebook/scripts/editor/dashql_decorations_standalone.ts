@@ -1,4 +1,4 @@
-import * as dashql from '../../../../shared/core/index.js';
+import * as dashql from '../../../../core/index.js';
 
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { EditorState, Extension, StateEffect, type StateEffectType, StateField, Transaction, RangeSetBuilder } from '@codemirror/state';

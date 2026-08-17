@@ -4,7 +4,7 @@ import { QueryExecutionArgs } from "../query_execution_args.js";
 import { DatalessConnectionStateDetails } from "./dataless_connection_state.js";
 import { QueryExecutionResponseStream } from "../query_execution_state.js";
 import { DemoQuerySpec } from './dataless_demo_channel.js';
-import { Int128 } from '../../../../shared/utils/int128.js';
+import { Int128 } from '../../../../utils/int128.js';
 
 const DEFAULT_QUERY_FIRST_EVENT = Math.floor((new Date()).getTime() - 1000 * 60 * 60 * 24 * 10);
 const DEFAULT_QUERY_SPEC: DemoQuerySpec = {

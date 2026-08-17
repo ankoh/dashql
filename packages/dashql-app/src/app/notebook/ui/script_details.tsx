@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as styles from './script_details.module.css';
-import * as dashql from '../../../shared/core/index.js';
+import * as dashql from '../../../core/index.js';
 import { EditorView } from '@codemirror/view';
 import { EditorState, EditorSelection } from '@codemirror/state';
 import { DashQLCompletionAbortEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from '../scripts/editor/dashql_processor.js';
@@ -8,9 +8,9 @@ import { DashQLCompletionAbortEffect, DashQLCompletionStatus, DashQLProcessorPlu
 import { PaperAirplaneIcon } from '@primer/octicons-react';
 import type { Icon } from '@primer/octicons-react';
 
-import { ButtonSize, ButtonVariant, IconButton } from '../../../shared/ui/foundations/button.js';
-import { ButtonGroup } from '../../../shared/ui/foundations/button_group.js';
-import { KeyEventHandler, useKeyEvents } from '../../../shared/utils/key_events.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
+import { ButtonGroup } from '../../../ui/foundations/button_group.js';
+import { KeyEventHandler, useKeyEvents } from '../../../utils/key_events.js';
 import { ConnectionHealth, ConnectionState } from '../connections/connection_state.js';
 import { useCancelQuery, useQueryState, useQueryExecutor } from '../connections/query_executor.js';
 import { useAgentRunState, useCancelAgentRun } from '../agent/agent_run_provider.js';
@@ -33,17 +33,17 @@ import type { ModifyNotebookScripts } from '../scripts/notebook_scripts_registry
 import { useAppConfig } from '../../config/app_config.js';
 import { ScriptEditor } from './script_editor.js';
 import { acceptPendingDiff, rejectPendingDiff } from '../scripts/editor/dashql_diff_hint.js';
-import { SymbolIcon } from '../../../shared/ui/foundations/symbol_icon.js';
+import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
 import { ScriptName } from './script_name.js';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
 import { createReadonlyCodeMirrorExtensions } from '../scripts/editor/codemirror.js';
 import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../scripts/editor/dashql_processor.js';
-import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { ScriptDiagnosticsButton } from './script_diagnostics.js';
-import * as ActionList from '../../../shared/ui/foundations/action_list.js';
-import { AnchorAlignment, AnchorSide } from '../../../shared/ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../../../shared/ui/foundations/anchored_overlay.js';
-import { OverlaySize } from '../../../shared/ui/foundations/overlay.js';
+import * as ActionList from '../../../ui/foundations/action_list.js';
+import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
+import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
+import { OverlaySize } from '../../../ui/foundations/overlay.js';
 
 export { ScriptDetailsTab as TabKey };
 

@@ -11,7 +11,7 @@ import {
     StorageBackendType,
 } from './storage_backend.js';
 import { type CacheFileStat } from './query_result_cache_eviction.js';
-import { TestLogger } from '../../../shared/platform/logger/test_logger.js';
+import { TestLogger } from '../../../platform/logger/test_logger.js';
 
 /// A minimal in-memory StorageBackend used to drive single-notebook copy tests.
 /// Per-notebook ops are keyed by the bare notebook UUID (no storage prefix anymore).

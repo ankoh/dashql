@@ -1,11 +1,11 @@
 import { ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR } from "./connector_info.js";
-import { VariantKind } from "../../../shared/utils/variant.js";
+import { VariantKind } from "../../../utils/variant.js";
 import { computeDatalessConnectionSignature, createDatalessConnectionStateDetails, DatalessConnectionStateDetails } from "./dataless/dataless_connection_state.js";
 import { computeHyperConnectionSignature, createHyperConnectionStateDetails, HyperConnectionDetails } from "./hyper/hyper_connection_state.js";
 import { computeSalesforceConnectionSignature, createSalesforceConnectionStateDetails, SalesforceConnectionStateDetails } from "./salesforce/salesforce_connection_state.js";
 import { computeTrinoConnectionSignature, createTrinoConnectionStateDetails, TrinoConnectionStateDetails } from "./trino/trino_connection_state.js";
-import { Hasher } from "../../../shared/utils/hash.js";
-import { DefaultHasher } from "../../../shared/utils/hash_default.js";
+import { Hasher } from "../../../utils/hash.js";
+import { DefaultHasher } from "../../../utils/hash_default.js";
 
 export type ConnectionStateDetailsVariant =
     | VariantKind<typeof SALESFORCE_DATA_CLOUD_CONNECTOR, SalesforceConnectionStateDetails>

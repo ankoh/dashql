@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import type { EmbeddedConnection } from '../shared/platform/database/embedded_database.js';
-import { useEmbeddedDatabaseSetup } from '../shared/platform/database/embedded_database_provider.js';
-import { stringifyError } from '../shared/platform/logger/logger.js';
-import { useLogger } from '../shared/platform/logger/logger_provider.js';
+import type { EmbeddedConnection } from '../platform/database/embedded_database.js';
+import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
+import { stringifyError } from '../platform/logger/logger.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
 import { createDashQLShell, type DashQLShell } from './api.js';
 import type { BrowserShellController } from './browser_shell.js';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';

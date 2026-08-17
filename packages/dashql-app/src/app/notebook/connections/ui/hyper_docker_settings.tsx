@@ -3,15 +3,15 @@ import * as styles from '../../../ui/internals/docker_manager.module.css';
 
 import { TrashIcon, XIcon } from '@primer/octicons-react';
 
-import { Button, ButtonVariant, IconButton } from '../../../../shared/ui/foundations/button.js';
-import { AnchoredOverlay } from '../../../../shared/ui/foundations/anchored_overlay.js';
-import { OverlaySize } from '../../../../shared/ui/foundations/overlay.js';
-import { AnchorAlignment, AnchorSide } from '../../../../shared/ui/foundations/anchored_position.js';
-import { BinaryStatusIndicator } from '../../../../shared/ui/foundations/status_indicator.js';
-import { RectangleWaveSpinner } from '../../../../shared/ui/foundations/spinners.js';
-import { SymbolIcon } from '../../../../shared/ui/foundations/symbol_icon.js';
-import { useDockerClient } from '../../../../shared/platform/docker/docker_client_provider.js';
-import { useLogger } from '../../../../shared/platform/logger/logger_provider.js';
+import { Button, ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
+import { AnchoredOverlay } from '../../../../ui/foundations/anchored_overlay.js';
+import { OverlaySize } from '../../../../ui/foundations/overlay.js';
+import { AnchorAlignment, AnchorSide } from '../../../../ui/foundations/anchored_position.js';
+import { BinaryStatusIndicator } from '../../../../ui/foundations/status_indicator.js';
+import { RectangleWaveSpinner } from '../../../../ui/foundations/spinners.js';
+import { SymbolIcon } from '../../../../ui/foundations/symbol_icon.js';
+import { useDockerClient } from '../../../../platform/docker/docker_client_provider.js';
+import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { useHyperGrpcClient } from '../hyper/hyperdb_grpc_client_provider.js';
 import { useHyperSetup } from '../hyper/hyper_connection_setup.js';
 import { useQueryExecutor } from '../query_executor.js';
@@ -23,7 +23,7 @@ import {
     DockerContainerSummary,
     DockerLogChunk,
     pickHyperPort,
-} from '../../../../shared/platform/docker/docker_types.js';
+} from '../../../../platform/docker/docker_types.js';
 import { DockerCreatePanel } from '../../../ui/internals/docker_create_panel.js';
 import { DockerLogList } from '../../../ui/internals/docker_manager.js';
 

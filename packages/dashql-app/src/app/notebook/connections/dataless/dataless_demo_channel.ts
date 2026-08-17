@@ -1,9 +1,9 @@
 import * as arrow from 'apache-arrow';
 
 import { QueryExecutionProgress, QueryExecutionResponseStream, QueryExecutionMetrics, QueryExecutionStatus, createQueryResponseStreamMetrics } from "../query_execution_state.js";
-import { generateRandomData, RandomDataConfig } from '../../../../shared/utils/random_data.js';
-import { sleep } from '../../../../shared/utils/sleep.js';
-import { AsyncConsumer } from '../../../../shared/utils/async_consumer.js';
+import { generateRandomData, RandomDataConfig } from '../../../../utils/random_data.js';
+import { sleep } from '../../../../utils/sleep.js';
+import { AsyncConsumer } from '../../../../utils/async_consumer.js';
 
 export interface DemoQuerySpec extends RandomDataConfig {
     /// Time in milliseconds until the first batch

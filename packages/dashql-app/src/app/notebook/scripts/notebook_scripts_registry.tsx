@@ -1,11 +1,11 @@
 import * as React from 'react';
 
 import { NotebookScripts, NotebookScriptsAction, destroyNotebookScripts, reduceNotebookScripts } from './notebook_scripts.js';
-import { Dispatch } from '../../../shared/utils/variant.js';
+import { Dispatch } from '../../../utils/variant.js';
 import { CONNECTOR_TYPES, ConnectorType } from '../connections/connector_info.js';
 import { useConnectionRegistry } from '../connections/connection_registry.js';
 import { useStorageWriter } from '../persistence/storage_provider.js';
-import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { REPLACE_NOTEBOOK_SCRIPTS, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupNotebookWrites } from "../persistence/storage_writer.js";
 
 /// The scripts registry.

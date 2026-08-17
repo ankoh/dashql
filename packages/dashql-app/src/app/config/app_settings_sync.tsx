@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { useAppConfig, useAppReconfigure } from './app_config.js';
 import { useStorageReader } from '../notebook/persistence/storage_provider.js';
-import { useLogger } from '../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 
 const LOG_CTX = 'app_settings_sync';
 

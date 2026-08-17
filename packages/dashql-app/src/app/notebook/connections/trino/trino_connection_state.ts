@@ -1,11 +1,11 @@
-import * as dashql from "../../../../shared/core/index.js";
+import * as dashql from "../../../../core/index.js";
 
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 
 import type { DetailedError } from '../connection_types.js';
 
-import { VariantKind } from '../../../../shared/utils/variant.js';
+import { VariantKind } from '../../../../utils/variant.js';
 import { ConnectorType, CONNECTOR_INFOS, TRINO_CONNECTOR } from '../connector_info.js';
 import {
     ConnectionHealth,
@@ -21,9 +21,9 @@ import {
     DELETE_CONNECTION,
 } from '../connection_state.js';
 import { TrinoChannelInterface } from "./trino_channel.js";
-import { Hasher } from "../../../../shared/utils/hash.js";
+import { Hasher } from "../../../../utils/hash.js";
 import { ConnectionSignatureMap, updateConnectionSignature } from "../connection_signature.js";
-import { DefaultHasher } from "../../../../shared/utils/hash_default.js";
+import { DefaultHasher } from "../../../../utils/hash_default.js";
 import { dateToTimestamp } from "../proto_helper.js";
 import { StorageWriter } from "../../persistence/storage_writer.js";
 

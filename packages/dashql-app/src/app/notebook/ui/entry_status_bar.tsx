@@ -2,11 +2,11 @@ import * as React from 'react';
 import * as styles from './entry_status_bar.module.css';
 
 import { EntryStatus } from './entry_status_model.js';
-import { StatusIndicator } from '../../../shared/ui/foundations/status_indicator.js';
-import { AnchoredOverlay } from '../../../shared/ui/foundations/anchored_overlay.js';
-import { AnchorAlignment, AnchorSide } from '../../../shared/ui/foundations/anchored_position.js';
-import { ButtonVariant, IconButton } from '../../../shared/ui/foundations/button.js';
-import { SymbolIcon } from '../../../shared/ui/foundations/symbol_icon.js';
+import { StatusIndicator } from '../../../ui/foundations/status_indicator.js';
+import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
+import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
+import { ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
+import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
 
 interface EntryStatusBarProps {
     /// The derived status to show. When null the caller shouldn't render the bar at all.

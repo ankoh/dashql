@@ -1,11 +1,11 @@
 // @vitest-environment node
 import * as arrow from 'apache-arrow';
 import { SQLFrame } from './sqlframe_builder.js';
-import { createSerializedNodeTestClient } from '../../shared/platform/hyperdb/hyperdb_test_client.js';
+import { createSerializedNodeTestClient } from '../../platform/hyperdb/hyperdb_test_client.js';
 import {
     HyperDB,
     HyperDBConnection,
-} from '../../shared/platform/hyperdb/hyperdb_wasm.js';
+} from '../../platform/hyperdb/hyperdb_wasm.js';
 
 function toPlainObjects(table: arrow.Table): any[] {
     return table.toArray().map(row => {

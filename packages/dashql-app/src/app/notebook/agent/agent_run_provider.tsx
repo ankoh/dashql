@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { useAIClient } from './ai/ai_client_provider.js';
-import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../../platform/logger/logger_provider.js';
 import {
     AGENT_START,
     AgentIntent,

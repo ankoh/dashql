@@ -1,10 +1,10 @@
-import * as core from '../../../shared/core/index.js';
+import * as core from '../../../core/index.js';
 import * as Immutable from 'immutable';
 
 import { analyzeScript, DashQLCompletionState, DashQLPendingDiff, DashQLProcessorUpdateOut, DashQLScriptBuffers } from './editor/dashql_processor.js';
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, SemanticUserFocus } from './focus.js';
 import { ConnectorInfo } from '../connections/connector_info.js';
-import { VariantKind } from '../../../shared/utils/index.js';
+import { VariantKind } from '../../../utils/index.js';
 import {
     CREATE_SCRIPT_FOLDER as STORAGE_CREATE_SCRIPT_FOLDER,
     DEBOUNCE_DURATION_SCRIPT_WRITE,
@@ -25,7 +25,7 @@ import {
     WRITE_SCRIPT,
 } from '../persistence/storage_writer.js';
 import type { NotebookScriptsInput } from './notebook_scripts_registry.js';
-import { Logger, LoggerLike, LoggableException, stringifyError } from '../../../shared/platform/logger/logger.js';
+import { Logger, LoggerLike, LoggableException, stringifyError } from '../../../platform/logger/logger.js';
 import { ScriptAnnotations, ScriptFolder, ScriptRef, NotebookMetadata as NotebookMetadataType, ResolvedVisualizeQuery, createEmptyAnnotations, createScriptRef, generateScriptFileName, planScriptInsertion, normalizeScriptFolderName, formatScriptFolderOrderPrefix, normalizeScriptName, scriptOrderPrefixString, formatScriptOrderPrefix, scriptDisplayName, uniqueScriptBase } from './script_types.js';
 import { parseUmapSpec } from '../compute/ui/visualization/umap/umap_spec.js';
 

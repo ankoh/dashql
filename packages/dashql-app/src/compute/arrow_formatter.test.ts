@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 import { ArrowTableFormatter, ArrowTextColumnFormatter, makeArrowValueFormatter } from './arrow_formatter.js';
-import { TestLogger } from '../shared/platform/logger/test_logger.js';
+import { TestLogger } from '../platform/logger/test_logger.js';
 
 describe('TableFormatter', () => {
     it("can be constructed from a single column", () => {

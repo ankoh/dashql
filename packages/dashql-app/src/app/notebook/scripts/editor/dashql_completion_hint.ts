@@ -1,4 +1,4 @@
-import * as dashql from '../../../../shared/core/index.js';
+import * as dashql from '../../../../core/index.js';
 
 import { Range } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';

@@ -3,10 +3,10 @@ import * as styles from './ai_settings_view.module.css';
 
 import { XIcon } from '@primer/octicons-react';
 
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../../../shared/ui/foundations/button.js';
-import { TextField } from '../../../shared/ui/foundations/text_field.js';
-import { KeyValueListBuilder, KeyValueListElement } from '../../../shared/ui/foundations/keyvalue_list.js';
-import { IndicatorStatus, StatusIndicator } from '../../../shared/ui/foundations/status_indicator.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
+import { TextField } from '../../../ui/foundations/text_field.js';
+import { KeyValueListBuilder, KeyValueListElement } from '../../../ui/foundations/keyvalue_list.js';
+import { IndicatorStatus, StatusIndicator } from '../../../ui/foundations/status_indicator.js';
 import {
     AIProviderHeader,
     AIProviderSettings,
@@ -17,8 +17,8 @@ import {
     useAppReconfigure,
 } from '../../config/app_config.js';
 import { AIClient } from '../../notebook/agent/ai/ai_client.js';
-import { useHttpClient } from '../../../shared/platform/http/http_client_provider.js';
-import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
+import { useHttpClient } from '../../../platform/http/http_client_provider.js';
+import { useLogger } from '../../../platform/logger/logger_provider.js';
 
 const LOG_CTX = 'ai_settings';
 

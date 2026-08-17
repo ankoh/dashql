@@ -1,4 +1,4 @@
-import * as core from '../../../shared/core/index.js';
+import * as core from '../../../core/index.js';
 
 import { startAgentRun, AgentAIClient } from '../agent/agent_run_driver.js';
 import {
@@ -20,7 +20,7 @@ import {
 } from './notebook_scripts.js';
 import { createDatalessConnectorInfo } from '../connections/connector_info.js';
 import { StorageWriter, StorageWriteTaskVariant } from '../persistence/storage_writer.js';
-import { Logger } from '../../../shared/platform/logger/logger.js';
+import { Logger } from '../../../platform/logger/logger.js';
 import { createEmptyMetadata, createScriptRef, generateScriptFileName, scriptDisplayName } from './script_types.js';
 import { type AppSettings, type NotebookData, type NotebookEntry, type ScriptData as StoredScriptData, type ScriptFolderData, type StorageBackend, StorageBackendType } from '../persistence/storage_backend.js';
 

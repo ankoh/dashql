@@ -4,11 +4,11 @@ import { ThreeBarsIcon } from '@primer/octicons-react';
 import type { ConnectionState } from '../connections/connection_state.js';
 import type { ModifyNotebookScripts } from '../scripts/notebook_scripts_registry.js';
 import type { NotebookScripts } from '../scripts/notebook_scripts.js';
-import * as ActionList from '../../../shared/ui/foundations/action_list.js';
-import { AnchorAlignment, AnchorSide } from '../../../shared/ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../../../shared/ui/foundations/anchored_overlay.js';
-import { ButtonVariant, IconButton } from '../../../shared/ui/foundations/button.js';
-import { OverlaySize } from '../../../shared/ui/foundations/overlay.js';
+import * as ActionList from '../../../ui/foundations/action_list.js';
+import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
+import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
+import { ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
+import { OverlaySize } from '../../../ui/foundations/overlay.js';
 import { NotebookCommandList } from './notebook_command_lists.js';
 import type { NotebookFileTreeNavigationLevel } from './notebook_file_tree.js';
 

@@ -1,5 +1,5 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import * as pb from "../../../../shared/proto.js";
+import * as pb from "../../../../proto.js";
 
 import { HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext, HyperQueryResultStream } from "./hyperdb_grpc_client.js";
 import { QueryExecutionResponseStreamMock } from "../query_execution_mock.js";

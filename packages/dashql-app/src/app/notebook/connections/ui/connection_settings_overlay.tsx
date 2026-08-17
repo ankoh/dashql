@@ -1,9 +1,9 @@
 import * as React from 'react';
 
 import * as styles from './connection_settings_overlay.module.css';
-import { AnchoredOverlay } from '../../../../shared/ui/foundations/anchored_overlay.js';
-import { AnchorAlignment, AnchorSide } from '../../../../shared/ui/foundations/anchored_position.js';
-import { OverlaySize } from '../../../../shared/ui/foundations/overlay.js';
+import { AnchoredOverlay } from '../../../../ui/foundations/anchored_overlay.js';
+import { AnchorAlignment, AnchorSide } from '../../../../ui/foundations/anchored_position.js';
+import { OverlaySize } from '../../../../ui/foundations/overlay.js';
 import { ConnectorType } from '../connector_info.js';
 import { useConnectionState } from '../connection_registry.js';
 import { ConnectorConfigTabs } from './connector_config_tabs.js';

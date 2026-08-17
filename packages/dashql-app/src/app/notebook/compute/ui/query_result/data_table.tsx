@@ -7,19 +7,19 @@ import { Grid, useGridCallbackRef } from 'react-window';
 
 import { ArrowTableFormatter } from '../../../../../compute/arrow_formatter.js';
 import { CLEAR_TABLE_ORDERING, ComputationAction, TableComputationState } from '../../../../../compute/computation_state.js';
-import { Dispatch } from '../../../../../shared/utils/variant.js';
+import { Dispatch } from '../../../../../utils/variant.js';
 import { OrderByConstraint } from '../../../../../compute/sql/sqlframe_builder.js';
 import { TableOrderingTask, TaskStatus } from '../../../../../compute/computation_types.js';
 import { DataCell, DataCellData, HeaderNameCell, HeaderPlotsCell, TableColumnHeader } from './data_table_cell.js';
-import { classNames } from '../../../../../shared/utils/classnames.js';
+import { classNames } from '../../../../../utils/classnames.js';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
 import { sortTableDispatched } from '../../../../../compute/computation_logic.js';
 import { useCrossFilters } from './use_cross_filters.js';
-import { observeSize } from '../../../../../shared/ui/foundations/size_observer.js';
+import { observeSize } from '../../../../../ui/foundations/size_observer.js';
 import { CellDetailOverlay } from './cell_detail_overlay.js';
 import { useAppConfig } from '../../../../config/app_config.js';
-import { useLogger } from '../../../../../shared/platform/logger/logger_provider.js';
-import { useScrollbarHeight } from '../../../../../shared/utils/scrollbar.js';
+import { useLogger } from '../../../../../platform/logger/logger_provider.js';
+import { useScrollbarHeight } from '../../../../../utils/scrollbar.js';
 import { getColumnSortDirection, getNextColumnSortDirection } from './data_table_ordering.js';
 
 const LOG_CTX = 'data_table';

@@ -1,7 +1,7 @@
-import * as dashql from '../../../../shared/core/index.js';
+import * as dashql from '../../../../core/index.js';
 
 import { ChangeSpec, Text } from '@codemirror/state';
-import { VariantKind } from '../../../../shared/utils/index.js';
+import { VariantKind } from '../../../../utils/index.js';
 import { DashQLCompletionState } from './dashql_processor.js';
 
 export const PATCH_INSERT_TEXT = Symbol("INSERT_TEXT");

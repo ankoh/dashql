@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { XIcon } from '@primer/octicons-react';
 
-import { Portal } from '../../../shared/ui/foundations/portal.js';
-import { ButtonVariant, IconButton } from '../../../shared/ui/foundations/button.js';
-import { useOverlay } from '../../../shared/ui/foundations/overlay.js';
-import { useFocusTrap } from '../../../shared/ui/foundations/focus.js';
+import { Portal } from '../../../ui/foundations/portal.js';
+import { ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
+import { useOverlay } from '../../../ui/foundations/overlay.js';
+import { useFocusTrap } from '../../../ui/foundations/focus.js';
 import * as styles from './notebook_navigation_drawer.module.css';
 
 interface Props {

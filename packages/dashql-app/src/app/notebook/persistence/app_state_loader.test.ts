@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { destroyRestoredNotebook, restoreAppState, restoreSingleNotebook } from './app_state_loader.js';
 import { type StorageBackend, type NotebookData, type ScriptFolderData, StorageBackendType } from './storage_backend.js';
-import type { DashQL } from '../../../shared/core/api.js';
-import { Logger } from '../../../shared/platform/logger/logger.js';
+import type { DashQL } from '../../../core/api.js';
+import { Logger } from '../../../platform/logger/logger.js';
 import { ConnectorType } from '../connections/connector_info.js';
 
 // Notebook identity is the bare UUID, used as both the manifest entry path and the notebook's own

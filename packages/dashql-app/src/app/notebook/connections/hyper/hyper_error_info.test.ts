@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as buf from "@bufbuild/protobuf";
 import * as wkt from "@bufbuild/protobuf/wkt";
-import * as pb from "../../../../shared/proto.js";
+import * as pb from "../../../../proto.js";
 
 import {
     decodeGrpcStatusDetails,

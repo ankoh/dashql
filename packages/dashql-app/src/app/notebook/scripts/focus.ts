@@ -1,7 +1,7 @@
-import * as dashql from '../../../shared/core/index.js';
+import * as dashql from '../../../core/index.js';
 
 import { ScriptData, ScriptKey } from './notebook_scripts.js';
-import { VariantKind } from '../../../shared/utils/variant.js';
+import { VariantKind } from '../../../utils/variant.js';
 import { QUALIFIED_DATABASE_ID, QUALIFIED_SCHEMA_ID, QUALIFIED_TABLE_COLUMN_ID, QUALIFIED_TABLE_ID, QualifiedCatalogObjectID } from './catalog_object_id.js';
 
 export interface FocusedExpression {

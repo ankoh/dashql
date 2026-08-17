@@ -5,7 +5,7 @@ import { ConnectionHealth } from '../connections/connection_state.js';
 import { ConnectionSettingsOverlay } from '../connections/ui/connection_settings_overlay.js';
 import { useNotebookScriptsRegistry, useNotebookScripts } from '../scripts/notebook_scripts_registry.js';
 import { useConnectionState } from '../connections/connection_registry.js';
-import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH } from '../../router/router.js';
 
 import { NotebookFeedPage } from './feed/notebook_feed_page.js';

@@ -2,10 +2,10 @@ import * as arrow from 'apache-arrow';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as buf from '@bufbuild/protobuf';
 
-import { AsyncConsumer } from '../shared/utils/async_consumer.js';
-import { removePrimitiveFromArray } from '../shared/utils/array.js';
-import { LoggableException } from '../shared/platform/logger/logger.js';
-import { VariantKind } from '../shared/utils/variant.js';
+import { AsyncConsumer } from '../utils/async_consumer.js';
+import { removePrimitiveFromArray } from '../utils/array.js';
+import { LoggableException } from '../platform/logger/logger.js';
+import { VariantKind } from '../utils/variant.js';
 
 export enum QueryExecutionStatus {
     REQUESTED = 0,

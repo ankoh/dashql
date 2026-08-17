@@ -1,10 +1,10 @@
-import * as dashql from '../../../shared/core/index.js';
+import * as dashql from '../../../core/index.js';
 
 import * as React from 'react';
 import * as Immutable from 'immutable';
 
-import { formatBytes, formatNanoseconds } from '../../../shared/utils/format.js';
-import { classNames } from '../../../shared/utils/classnames.js';
+import { formatBytes, formatNanoseconds } from '../../../utils/format.js';
+import { classNames } from '../../../utils/classnames.js';
 
 import * as styles from './script_statistics_bar.module.css';
 

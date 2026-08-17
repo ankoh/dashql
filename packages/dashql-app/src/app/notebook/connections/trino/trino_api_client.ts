@@ -1,8 +1,8 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 
-import { HttpClient } from "../../../../shared/platform/http/http_client.js";
-import { LoggableException, Logger } from "../../../../shared/platform/logger/logger.js";
+import { HttpClient } from "../../../../platform/http/http_client.js";
+import { LoggableException, Logger } from "../../../../platform/logger/logger.js";
 
 const LOG_CTX = "trino_api";
 

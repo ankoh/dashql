@@ -1,5 +1,5 @@
 import type { UnwatchFn, WatchEvent } from '@tauri-apps/plugin-fs';
-import type { Logger } from '../../../shared/platform/logger/logger.js';
+import type { Logger } from '../../../platform/logger/logger.js';
 import type { NotebookLocation } from './notebook_locator.js';
 import {
     StorageBackendType,

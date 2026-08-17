@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as buf from '@bufbuild/protobuf';
-import * as pb from '../../../../shared/proto.js';
+import * as pb from '../../../../proto.js';
 import * as style from './connection_settings.module.css';
 
 import {
@@ -14,14 +14,14 @@ import {
     PlusIcon,
 } from '@primer/octicons-react';
 
-import { ButtonVariant, IconButton } from '../../../../shared/ui/foundations/button.js';
+import { ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
 
-import { classNames } from '../../../../shared/utils/classnames.js';
-import { KeyValueTextField, TextField } from '../../../../shared/ui/foundations/text_field.js';
-import { useLogger } from '../../../../shared/platform/logger/logger_provider.js';
+import { classNames } from '../../../../utils/classnames.js';
+import { KeyValueTextField, TextField } from '../../../../ui/foundations/text_field.js';
+import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { useHyperGrpcClient, useHyperHttpClient } from '../hyper/hyperdb_grpc_client_provider.js';
-import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../../../../shared/ui/foundations/keyvalue_list.js';
-import { Dispatch } from '../../../../shared/utils/variant.js';
+import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../../../../ui/foundations/keyvalue_list.js';
+import { Dispatch } from '../../../../utils/variant.js';
 import { useConnectionState } from '../connection_registry.js';
 import { ConnectionHealth } from '../connection_state.js';
 import { performHealthCheck } from '../health_check.js';
@@ -30,7 +30,7 @@ import { getHyperConnectionDetails } from '../hyper/hyper_connection_state.js';
 import { useQueryExecutor } from '../query_executor.js';
 import { useAnyConnectionNotebookScripts } from './connection_notebook_scripts.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connector_info.js';
-import { isNativePlatform } from '../../../../shared/platform/native_globals.js';
+import { isNativePlatform } from '../../../../platform/native_globals.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { HyperDockerPanelMode, HyperDockerSettingsPanel } from './hyper_docker_settings.js';
 

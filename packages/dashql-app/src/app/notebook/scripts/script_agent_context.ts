@@ -1,8 +1,8 @@
-import * as core from '../../../shared/core/index.js';
+import * as core from '../../../core/index.js';
 
 import { AgentIntent } from '../agent/agent_prompts.js';
 import { compileQuery, NotebookScripts, ScriptData } from './notebook_scripts.js';
-import type { LoggerLike } from '../../../shared/platform/logger/logger.js';
+import type { LoggerLike } from '../../../platform/logger/logger.js';
 
 /// A column of a query's output schema: its name and (best-effort) type.
 export interface OutputColumn {

@@ -34,9 +34,9 @@ import {
 } from '../scripts/notebook_scripts.js';
 import type { ModifyNotebookScripts } from '../scripts/notebook_scripts_registry.js';
 import { normalizeScriptFolderName, scriptDisplayName } from '../scripts/script_types.js';
-import { classNames } from '../../../shared/utils/classnames.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../../../shared/ui/foundations/button.js';
-import { SymbolIcon } from '../../../shared/ui/foundations/symbol_icon.js';
+import { classNames } from '../../../utils/classnames.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
+import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
 
 export type NotebookFileTreeCatalogTab = 'relations' | 'functions';
 export type NotebookFileTreeNavigationLevel = 'folders' | 'scripts';

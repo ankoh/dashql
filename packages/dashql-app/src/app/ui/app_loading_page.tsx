@@ -1,15 +1,15 @@
 import * as React from 'react';
 
 import symbols from '@ankoh/dashql-svg-symbols';
-import * as baseStyles from '../../shared/ui/banner/banner_page.module.css';
+import * as baseStyles from '../../ui/banner/banner_page.module.css';
 import * as pageStyles from './app_loading_page.module.css';
 
-import { AnchorAlignment, AnchorSide } from '../../shared/ui/foundations/anchored_position.js';
+import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { AppLoadingStatus } from '../router/app_loading_status.js';
-import { Button, ButtonVariant, IconButton } from '../../shared/ui/foundations/button.js';
+import { Button, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../router/router.js';
-import { DASHQL_VERSION } from '../../shared/globals.js';
-import { combineIndicatorStatus, getStatusFromProgressCounter, IndicatorStatus, StatusIndicator } from '../../shared/ui/foundations/status_indicator.js';
+import { DASHQL_VERSION } from '../../globals.js';
+import { combineIndicatorStatus, getStatusFromProgressCounter, IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
 import { useDashQLCoreSetup } from '../providers/core_provider.js';

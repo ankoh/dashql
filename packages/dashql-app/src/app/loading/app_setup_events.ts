@@ -1,13 +1,13 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as app_notebook from '@ankoh/dashql-jsonschema/app_notebook.js';
-import * as dashql from '../../shared/core/index.js';
+import * as dashql from '../../core/index.js';
 
-import { Logger } from '../../shared/platform/logger/logger.js';
-import { SETUP_NOTEBOOK, SetupEventVariant } from '../../shared/platform/events/event.js';
+import { Logger } from '../../platform/logger/logger.js';
+import { SETUP_NOTEBOOK, SetupEventVariant } from '../../platform/events/event.js';
 import { importNotebookFromZip } from '../notebook/persistence/notebook_import.js';
 import { restoreSingleNotebook, type RestoredNotebook } from '../notebook/persistence/app_state_loader.js';
 import type { StorageBackend } from '../notebook/persistence/storage_backend.js';
-import { VariantKind } from '../../shared/utils/variant.js';
+import { VariantKind } from '../../utils/variant.js';
 import type { ConnectionSignatureMap } from '../notebook/connections/connection_signature.js';
 
 const LOG_CTX = 'app_setup';

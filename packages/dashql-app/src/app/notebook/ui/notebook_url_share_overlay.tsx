@@ -4,15 +4,15 @@ import * as styles from './notebook_url_share_overlay.module.css';
 
 import { CheckIcon, PaperclipIcon } from '@primer/octicons-react';
 
-import { AnchorAlignment } from '../../../shared/ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../../../shared/ui/foundations/anchored_overlay.js';
-import { IconButton } from '../../../shared/ui/foundations/button.js';
-import { TextInput } from '../../../shared/ui/foundations/text_input.js';
+import { AnchorAlignment } from '../../../ui/foundations/anchored_position.js';
+import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
+import { IconButton } from '../../../ui/foundations/button.js';
+import { TextInput } from '../../../ui/foundations/text_input.js';
 import { NotebookExportSettings, NotebookExportSettingsView } from './notebook_export_settings_view.js';
-import { classNames } from '../../../shared/utils/classnames.js';
+import { classNames } from '../../../utils/classnames.js';
 import { exportNotebookAsUrl, NotebookLinkTarget } from '../persistence/notebook_export.js';
 import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '../connections/connection_params.js';
-import { sleep } from '../../../shared/utils/sleep.js';
+import { sleep } from '../../../utils/sleep.js';
 import { useConnectionState } from '../connections/connection_registry.js';
 import { useRouteContext } from '../../router/router.js';
 import { useNotebookScripts } from '../scripts/notebook_scripts_registry.js';

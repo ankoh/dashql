@@ -8,9 +8,9 @@ import { CodeMirror, createCodeMirrorExtensions } from '../scripts/editor/codemi
 import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from '../scripts/editor/dashql_processor.js';
 import { ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, NotebookScripts } from '../scripts/notebook_scripts.js';
 import { AppConfig, useAppConfig } from '../../config/app_config.js';
-import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { ModifyNotebookScripts, useNotebookScripts } from '../scripts/notebook_scripts_registry.js';
-import { Logger } from '../../../shared/platform/logger/logger.js';
+import { Logger } from '../../../platform/logger/logger.js';
 
 const LOG_CTX = "notebook_editor";
 

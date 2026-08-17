@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from "react-router-dom";
-import { VariantKind } from "../../shared/utils/variant.js";
+import { VariantKind } from "../../utils/variant.js";
 import { AppLoadingStatus } from './app_loading_status.js';
 import { NotebookSetupStatus } from './notebook_setup_status.js';
-import { LoggableException } from '../../shared/platform/logger/logger.js';
+import { LoggableException } from '../../platform/logger/logger.js';
 
 export interface RouteContext {
     /// The app loading status

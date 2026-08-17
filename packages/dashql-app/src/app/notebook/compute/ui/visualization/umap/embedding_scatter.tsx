@@ -8,8 +8,8 @@ import { isWebGPUAvailable, requestWebGPUDevice } from './renderer/webgpu_render
 import type { EmbeddingRenderer } from './renderer/renderer_interface.js';
 import type { Point, ViewportState } from './renderer/utils.js';
 import { Viewport } from './renderer/viewport_utils.js';
-import { ButtonGroup } from '../../../../../../shared/ui/foundations/button_group.js';
-import { IconButton, ButtonVariant, ButtonSize } from '../../../../../../shared/ui/foundations/button.js';
+import { ButtonGroup } from '../../../../../../ui/foundations/button_group.js';
+import { IconButton, ButtonVariant, ButtonSize } from '../../../../../../ui/foundations/button.js';
 
 import * as styles from './embedding_scatter.module.css';
 

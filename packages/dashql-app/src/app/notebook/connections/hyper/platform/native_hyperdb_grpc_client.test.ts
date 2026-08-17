@@ -1,13 +1,13 @@
 import { vi } from 'vitest';
 
-import * as pb from "../../../../../shared/proto.js";
+import * as pb from "../../../../../proto.js";
 import * as buf from "@bufbuild/protobuf";
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { NativeAPIRustBridge } from '../../../../../shared/platform/native_api_rust_bridge.js';
-import { TestHyperGrpcServer } from '../../../../../shared/platform/native_proxy_test_servers.js';
+import { NativeAPIRustBridge } from '../../../../../platform/native_api_rust_bridge.js';
+import { TestHyperGrpcServer } from '../../../../../platform/native_proxy_test_servers.js';
 import { NativeHyperDatabaseClient, NativeHyperQueryResultStream } from './native_hyperdb_grpc_client.js';
-import { TestLogger } from '../../../../../shared/platform/logger/test_logger.js';
+import { TestLogger } from '../../../../../platform/logger/test_logger.js';
 import { AttachedDatabase, HyperDatabaseConnectionContext } from '../hyperdb_grpc_client.js';
 
 describe('Native Hyper client', () => {

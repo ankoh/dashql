@@ -2,12 +2,12 @@
 import { DashQLShell, DashQLShellError, DashQLShellPromptAction, DashQLShellPromptInput, DashQLShellStatus } from './api.js';
 import * as arrow from 'apache-arrow';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
-import { createSerializedNodeTestClient } from '../shared/platform/hyperdb/hyperdb_test_client.js';
+import { createSerializedNodeTestClient } from '../platform/hyperdb/hyperdb_test_client.js';
 import {
     HyperDB,
     HyperDBConnection,
-} from '../shared/platform/hyperdb/hyperdb_wasm.js';
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../shared/catalog.js';
+} from '../platform/hyperdb/hyperdb_wasm.js';
+import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../catalog.js';
 import { VT100, VT100Command, vt100Sequence } from './vt100.js';
 
 declare const DASHQL_SHELL_PRECOMPILED: Promise<Uint8Array>;

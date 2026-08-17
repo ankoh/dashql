@@ -3,20 +3,20 @@ import * as styles from './notebook_file_save_overlay.module.css';
 
 import { DownloadIcon, FileIcon } from '@primer/octicons-react';
 
-import { AnchorAlignment } from '../../../shared/ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../../../shared/ui/foundations/anchored_overlay.js';
+import { AnchorAlignment } from '../../../ui/foundations/anchored_position.js';
+import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
 import { ConnectionState } from '../connections/connection_state.js';
 import { NotebookExportSettings, NotebookExportSettingsView } from './notebook_export_settings_view.js';
 import { NotebookScripts } from '../scripts/notebook_scripts.js';
-import { classNames } from '../../../shared/utils/classnames.js';
+import { classNames } from '../../../utils/classnames.js';
 import { exportNotebookAsSharedZip } from '../persistence/notebook_export.js';
 import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '../connections/connection_params.js';
-import { formatBytes } from '../../../shared/utils/format.js';
-import { useFileDownloader } from '../../../shared/platform/file/file_downloader_provider.js';
+import { formatBytes } from '../../../utils/format.js';
+import { useFileDownloader } from '../../../platform/file/file_downloader_provider.js';
 import { useStorageReader } from '../persistence/storage_provider.js';
 import { StorageBackend } from '../persistence/storage_backend.js';
-import { IconButton } from '../../../shared/ui/foundations/button.js';
-import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../../shared/globals.js';
+import { IconButton } from '../../../ui/foundations/button.js';
+import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../../globals.js';
 
 async function packAndCompressFile(backend: StorageBackend, conn: ConnectionState, notebookScripts: NotebookScripts, withConnectionInfo: boolean, withLoginHint: boolean): Promise<Uint8Array> {
     const connectionParams = await import('../connections/connection_params.js').then(m =>

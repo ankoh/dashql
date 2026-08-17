@@ -5,8 +5,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { WebHyperDatabaseClient } from './web_hyperdb_http_client.js';
 import { HyperHttpClientMock } from '../hyperdb_http_client_mock.js';
-import { HttpClient, HttpFetchResult } from '../../../../../shared/platform/http/http_client.js';
-import { TestLogger } from '../../../../../shared/platform/logger/test_logger.js';
+import { HttpClient, HttpFetchResult } from '../../../../../platform/http/http_client.js';
+import { TestLogger } from '../../../../../platform/logger/test_logger.js';
 import { HyperDatabaseConnectionContext, AttachedDatabase } from '../hyperdb_grpc_client.js';
 
 const ENDPOINT = 'https://hyper.mock.local';

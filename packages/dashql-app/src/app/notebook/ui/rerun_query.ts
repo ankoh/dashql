@@ -3,7 +3,7 @@ import { QueryType } from '../connections/query_execution_state.js';
 import { NotebookScripts, ScriptData, REGISTER_QUERY, compileQuery } from '../scripts/notebook_scripts.js';
 import { ModifyNotebookScripts } from '../scripts/notebook_scripts_registry.js';
 import { projectionForVisualizeQuery } from '../scripts/script_types.js';
-import type { LoggerLike } from '../../../shared/platform/logger/logger.js';
+import type { LoggerLike } from '../../../platform/logger/logger.js';
 
 export function registerNotebookScriptQuery(
     scriptData: ScriptData,

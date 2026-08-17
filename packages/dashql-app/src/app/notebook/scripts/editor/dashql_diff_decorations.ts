@@ -1,4 +1,4 @@
-import * as dashql from '../../../../shared/core/index.js';
+import * as dashql from '../../../../core/index.js';
 
 import { Decoration, DecorationSet, EditorView, gutter, GutterMarker } from '@codemirror/view';
 import { EditorState, Extension, Range, StateEffect, StateEffectType, StateField, Text, Transaction } from '@codemirror/state';

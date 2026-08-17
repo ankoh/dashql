@@ -1,10 +1,10 @@
-import * as dashql from '../../../../shared/core/index.js';
+import * as dashql from '../../../../core/index.js';
 
 import { SalesforceApiClientInterface } from './salesforce_api_client.js';
 import { getSalesforceDataSpace } from './salesforce_api_client.js';
 import { SalesforceConnectionStateDetails } from './salesforce_connection_state.js';
 import { generateUnqualifiedSchemaSQL, generateCatalogScriptHeader, CatalogSource, type ColumnMetadata } from '../catalog_sql_generator.js';
-import { LoggerLike } from '../../../../shared/platform/logger/logger.js';
+import { LoggerLike } from '../../../../platform/logger/logger.js';
 import { fetchPrefetchedHyperFunctions, loadPrefetchedHyperFunctions } from '../prefetched_hyper_functions.js';
 
 const SALESFORCE_CATALOG_RANK = 100;

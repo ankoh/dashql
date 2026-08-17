@@ -6,13 +6,13 @@ import { List } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 import { ChevronLeftIcon, ChevronRightIcon, XIcon } from '@primer/octicons-react';
 
-import { ButtonVariant, IconButton } from '../../../shared/ui/foundations/button.js';
-import { TextField } from '../../../shared/ui/foundations/text_field.js';
-import { observeSize } from '../../../shared/ui/foundations/size_observer.js';
-import { ValueListBuilder, UpdateValueList } from '../../../shared/ui/foundations/value_list.js';
-import { useDockerClient } from '../../../shared/platform/docker/docker_client_provider.js';
-import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
-import { DockerCreateContainerSpec } from '../../../shared/platform/docker/docker_types.js';
+import { ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
+import { TextField } from '../../../ui/foundations/text_field.js';
+import { observeSize } from '../../../ui/foundations/size_observer.js';
+import { ValueListBuilder, UpdateValueList } from '../../../ui/foundations/value_list.js';
+import { useDockerClient } from '../../../platform/docker/docker_client_provider.js';
+import { useLogger } from '../../../platform/logger/logger_provider.js';
+import { DockerCreateContainerSpec } from '../../../platform/docker/docker_types.js';
 
 const DEFAULT_REPOSITORY = 'ankoh/hyperdb';
 const HYPER_GRPC_PORT = '7484';

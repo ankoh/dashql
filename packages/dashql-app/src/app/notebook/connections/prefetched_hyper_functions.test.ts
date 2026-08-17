@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import * as dashql from '../../../shared/core/index.js';
+import * as dashql from '../../../core/index.js';
 import { fetchPrefetchedHyperFunctions, loadPrefetchedHyperFunctions } from './prefetched_hyper_functions.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

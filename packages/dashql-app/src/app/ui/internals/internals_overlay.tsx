@@ -1,18 +1,18 @@
 import * as React from 'react';
 import icons from '@ankoh/dashql-svg-symbols';
 
-import { AnchorAlignment, AnchorSide } from '../../../shared/ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../../../shared/ui/foundations/anchored_overlay.js';
+import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
+import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
 import { AppSettings } from './app_settings_view.js';
 import { AISettingsView } from './ai_settings_view.js';
 import { StorageWriterView } from '../../notebook/persistence/ui/storage_writer_view.js';
-import { LogViewer } from '../../../shared/ui/logs/log_viewer.js';
-import { OverlaySize } from '../../../shared/ui/foundations/overlay.js';
+import { LogViewer } from '../../../ui/logs/log_viewer.js';
+import { OverlaySize } from '../../../ui/foundations/overlay.js';
 import { QueryViewer } from '../../notebook/connections/ui/query_viewer.js';
 import { QueryCacheView } from '../../notebook/persistence/ui/query_cache_view.js';
-import { VerticalTabs, VerticalTabVariant } from '../../../shared/ui/foundations/vertical_tabs.js';
+import { VerticalTabs, VerticalTabVariant } from '../../../ui/foundations/vertical_tabs.js';
 import { DockerManager } from './docker_manager.js';
-import { useDockerClient } from '../../../shared/platform/docker/docker_client_provider.js';
+import { useDockerClient } from '../../../platform/docker/docker_client_provider.js';
 
 interface InternalsViewerProps {
     /// The active notebook UUID, used by notebook-scoped tabs (e.g. the query cache inspector).

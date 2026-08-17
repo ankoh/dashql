@@ -5,7 +5,7 @@ import { QueryExecutionState } from '../../../connections/query_execution_state.
 import { DataTable } from './data_table.js';
 import { TableColumnHeader } from './data_table_cell.js';
 import { useComputationRegistry } from '../../../../../compute/computation_registry.js';
-import { classNames } from '../../../../../shared/utils/classnames.js';
+import { classNames } from '../../../../../utils/classnames.js';
 
 interface Props {
     query: QueryExecutionState | null;

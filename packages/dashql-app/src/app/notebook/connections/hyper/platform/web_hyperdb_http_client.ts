@@ -1,5 +1,5 @@
 import * as arrow from 'apache-arrow';
-import * as pb from "../../../../../shared/proto.js";
+import * as pb from "../../../../../proto.js";
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import {
@@ -22,10 +22,10 @@ import {
     QueryExecutionResponseStream,
     QueryExecutionStatus,
 } from '../../query_execution_state.js';
-import { AsyncConsumer } from '../../../../../shared/utils/async_consumer.js';
-import { AsyncValue } from '../../../../../shared/utils/async_value.js';
-import { HttpClient } from '../../../../../shared/platform/http/http_client.js';
-import { Logger } from '../../../../../shared/platform/logger/logger.js';
+import { AsyncConsumer } from '../../../../../utils/async_consumer.js';
+import { AsyncValue } from '../../../../../utils/async_value.js';
+import { HttpClient } from '../../../../../platform/http/http_client.js';
+import { Logger } from '../../../../../platform/logger/logger.js';
 
 const LOG_CTX = "web_hyperdb_http_client";
 

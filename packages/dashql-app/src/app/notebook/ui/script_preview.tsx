@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as core from '../../../shared/core/index.js';
+import * as core from '../../../core/index.js';
 import * as themes from '../scripts/editor/themes/index.js';
 
 import { EditorState, StateEffect, type Extension } from '@codemirror/state';
@@ -8,8 +8,8 @@ import { EditorView } from '@codemirror/view';
 import { useAppConfig } from '../../config/app_config.js';
 import type { ScriptData } from '../scripts/notebook_scripts.js';
 import { useNotebookScripts } from '../scripts/notebook_scripts_registry.js';
-import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
-import { Logger, stringifyError } from '../../../shared/platform/logger/logger.js';
+import { useLogger } from '../../../platform/logger/logger_provider.js';
+import { Logger, stringifyError } from '../../../platform/logger/logger.js';
 import { CodeMirror } from '../scripts/editor/codemirror.js';
 import { DashQLScannerDecorationUpdateEffect, DashQLStandaloneScannerDecorationPlugin } from '../scripts/editor/dashql_decorations_standalone.js';
 import { DashQLDiffDecorationUpdateEffect, DashQLStandaloneDiffDecorationPlugin } from '../scripts/editor/dashql_diff_decorations.js';

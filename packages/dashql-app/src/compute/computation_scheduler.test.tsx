@@ -3,9 +3,9 @@ import * as arrow from 'apache-arrow';
 
 import * as computationLogic from './computation_logic.js';
 
-import { AsyncValue } from '../shared/utils/async_value.js';
-import { LoggableException } from '../shared/platform/logger/logger.js';
-import { TestLogger } from '../shared/platform/logger/test_logger.js';
+import { AsyncValue } from '../utils/async_value.js';
+import { LoggableException } from '../platform/logger/logger.js';
+import { TestLogger } from '../platform/logger/test_logger.js';
 import { TaskStatus, ComputationStateVersion } from './computation_types.js';
 import {
     ComputationAction,
@@ -29,7 +29,7 @@ import {
     COLUMN_AGGREGATION_TASK,
     FILTERED_COLUMN_AGGREGATION_TASK,
 } from './computation_scheduler.js';
-import { Dispatch } from '../shared/utils/variant.js';
+import { Dispatch } from '../utils/variant.js';
 import type { ComputeQueryExecution } from './computation_logic.js';
 import * as React from 'react';
 import { act } from 'react';
@@ -37,7 +37,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { ComputationRegistry, useComputationRegistry } from './computation_registry.js';
 import { ComputeQueryExecutionProvider } from './computation_query_execution.js';
 import { COMPUTATION_FROM_QUERY_RESULT, SCHEDULE_TASK } from './computation_state.js';
-import { LoggerProvider } from '../shared/platform/logger/logger_provider.js';
+import { LoggerProvider } from '../platform/logger/logger_provider.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { logCoreStderr } from './core_provider.js';
-import type { TracedLogger } from '../../shared/platform/logger/logger.js';
+import type { TracedLogger } from '../../platform/logger/logger.js';
 
 describe('logCoreStderr', () => {
     it('logs Emscripten abort output as a warning', () => {

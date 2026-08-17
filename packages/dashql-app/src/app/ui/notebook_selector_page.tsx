@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import symbols from '@ankoh/dashql-svg-symbols';
-import * as baseStyles from '../../shared/ui/banner/banner_page.module.css';
+import * as baseStyles from '../../ui/banner/banner_page.module.css';
 import * as styles from './notebook_selector_page.module.css';
 
 import {
@@ -21,8 +21,8 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ButtonVariant, IconButton } from '../../shared/ui/foundations/button.js';
-import { DASHQL_VERSION } from '../../shared/globals.js';
+import { ButtonVariant, IconButton } from '../../ui/foundations/button.js';
+import { DASHQL_VERSION } from '../../globals.js';
 import { SELECT_NOTEBOOK, BEGIN_NOTEBOOK_SETUP, CANCEL_NOTEBOOK_SETUP, SKIP_NOTEBOOK_SETUP, useRouteContext, useRouterNavigate } from '../router/router.js';
 import { NotebookSetupStatus } from '../router/notebook_setup_status.js';
 import { ConnectionRegistry, useDynamicConnectionDispatch } from '../notebook/connections/connection_registry.js';
@@ -37,17 +37,17 @@ import {
 import { createConnectionStateFromParams, createDefaultConnectionParamsForConnector } from '../notebook/connections/connection_params.js';
 import { ConnectionConfigCard } from '../notebook/connections/ui/connection_config_card.js';
 import { NotebookScriptsSetup } from '../notebook/scripts/notebook_scripts_setup.js';
-import type { DashQL } from '../../shared/core/index.js';
+import type { DashQL } from '../../core/index.js';
 import { useStorageReader, useStorageWriter } from '../notebook/persistence/storage_provider.js';
 import { displayPath as notebookDisplayPath } from '../notebook/persistence/notebook_locator.js';
 import { StorageBackendType } from '../notebook/persistence/storage_backend.js';
 import { CompositeStorageBackend } from '../notebook/persistence/composite_storage_backend.js';
 import { addNativeNotebookFromFolder } from '../notebook/persistence/storage_migration_flow.js';
-import { PlatformType, usePlatformType } from '../../shared/platform/platform_type.js';
-import { useLogger } from '../../shared/platform/logger/logger_provider.js';
-import { SymbolIcon } from '../../shared/ui/foundations/symbol_icon.js';
-import { useKeyEvents, KeyEventHandler } from '../../shared/utils/key_events.js';
-import { AnchorAlignment, AnchorSide } from '../../shared/ui/foundations/anchored_position.js';
+import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
+import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
+import { useKeyEvents, KeyEventHandler } from '../../utils/key_events.js';
+import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { InvalidNotebook, describeNotebookValidationError } from '../notebook/persistence/notebook_validation.js';
 import { useComputationRegistry } from '../../compute/computation_registry.js';

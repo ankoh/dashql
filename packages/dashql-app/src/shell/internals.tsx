@@ -1,11 +1,11 @@
 import * as React from 'react';
 import icons from '@ankoh/dashql-svg-symbols';
 
-import { AnchorAlignment, AnchorSide } from '../shared/ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../shared/ui/foundations/anchored_overlay.js';
-import { OverlaySize } from '../shared/ui/foundations/overlay.js';
-import { VerticalTabs, VerticalTabVariant } from '../shared/ui/foundations/vertical_tabs.js';
-import { LogViewer } from '../shared/ui/logs/log_viewer.js';
+import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
+import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
+import { OverlaySize } from '../ui/foundations/overlay.js';
+import { VerticalTabs, VerticalTabVariant } from '../ui/foundations/vertical_tabs.js';
+import { LogViewer } from '../ui/logs/log_viewer.js';
 import { QueryHistoryViewer, QueryTarget, type QueryEntry } from '../query/ui/query_history_viewer.js';
 import type { ShellQueryExecutionTracker } from './query_execution.js';
 import * as styles from './shell_navbar.module.css';

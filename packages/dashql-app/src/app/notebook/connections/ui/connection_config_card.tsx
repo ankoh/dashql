@@ -1,16 +1,16 @@
 import * as React from 'react';
 
 import symbols from '@ankoh/dashql-svg-symbols';
-import * as baseStyles from '../../../../shared/ui/banner/banner_page.module.css';
+import * as baseStyles from '../../../../ui/banner/banner_page.module.css';
 import * as styles from './connection_config_card.module.css';
 
 import { ChevronLeftIcon } from '@primer/octicons-react';
-import { Button, IconButton, ButtonVariant } from '../../../../shared/ui/foundations/button.js';
+import { Button, IconButton, ButtonVariant } from '../../../../ui/foundations/button.js';
 import { ConnectorConfigTabs } from './connector_config_tabs.js';
 import { ConnectorType } from '../connector_info.js';
 import { useConnectionState } from '../connection_registry.js';
 import { ConnectionHealth } from '../connection_state.js';
-import { AnchorAlignment, AnchorSide } from '../../../../shared/ui/foundations/anchored_position.js';
+import { AnchorAlignment, AnchorSide } from '../../../../ui/foundations/anchored_position.js';
 import { InternalsViewerOverlay } from '../../../ui/internals/internals_overlay.js';
 
 interface Props {

@@ -18,7 +18,7 @@ import {
     ResizeObserverMock,
     setKeyEventMockState,
     setQueryExecutorMockState,
-} from '../../../../shared/test/view_mocks.js';
+} from '../../../../test/view_mocks.js';
 
 const mockState = vi.hoisted(() => ({
     scrollToRowMock: vi.fn(),
@@ -75,10 +75,10 @@ vi.mock('../prompt_editor.js', async () => {
     };
 });
 vi.mock('../script_preview.js', async () => fakeScriptPreviewModule(await import('react'), mockState));
-vi.mock('../../../../shared/ui/foundations/button.js', async () => fakeButtonModule(await import('react')));
-vi.mock('../../../../shared/ui/foundations/status_indicator.js', async () => fakeStatusIndicatorModule(await import('react')));
-vi.mock('../../../../shared/ui/foundations/symbol_icon.js', async () => fakeSymbolIconModule(await import('react')));
-vi.mock('../../../../shared/ui/foundations/size_observer.js', () => {
+vi.mock('../../../../ui/foundations/button.js', async () => fakeButtonModule(await import('react')));
+vi.mock('../../../../ui/foundations/status_indicator.js', async () => fakeStatusIndicatorModule(await import('react')));
+vi.mock('../../../../ui/foundations/symbol_icon.js', async () => fakeSymbolIconModule(await import('react')));
+vi.mock('../../../../ui/foundations/size_observer.js', () => {
     const sizes = new Map<number, { width: number; height: number }>();
     return {
         observeSize: () => {
@@ -91,8 +91,8 @@ vi.mock('../../../../shared/ui/foundations/size_observer.js', () => {
         },
     };
 });
-vi.mock('../../../../shared/utils/scrollbar.js', () => fakeScrollbarModule());
-vi.mock('../../../../shared/utils/key_events.js', () => fakeKeyEventsModule());
+vi.mock('../../../../utils/scrollbar.js', () => fakeScrollbarModule());
+vi.mock('../../../../utils/key_events.js', () => fakeKeyEventsModule());
 vi.mock('../../scripts/notebook_commands.js', async () => {
     const React = await import('react');
     return {

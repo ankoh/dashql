@@ -1,8 +1,8 @@
 import * as Immutable from 'immutable';
-import * as core from '../../../shared/core/index.js';
+import * as core from '../../../core/index.js';
 
 import { ConnectionState } from './connection_state.js';
-import { Logger } from '../../../shared/platform/logger/logger.js';
+import { Logger } from '../../../platform/logger/logger.js';
 import { analyzeScriptData, ScriptData, NotebookScripts, createEmptyScriptData } from '../scripts/notebook_scripts.js';
 import { NotebookScriptsAllocator, NotebookScriptsInput } from '../scripts/notebook_scripts_registry.js';
 import { createEmptyAnnotations, createScriptRef, generateScriptFileName } from '../scripts/script_types.js';

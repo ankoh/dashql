@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as dashql from '../../../shared/core/index.js';
+import * as dashql from '../../../core/index.js';
 import * as styles from './prompt_demo.module.css';
 
 import symbols from '@ankoh/dashql-svg-symbols';
@@ -9,7 +9,7 @@ import { EditorView, drawSelection, keymap, placeholder } from '@codemirror/view
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 
 import { useDashQLCoreSetup } from '../../providers/core_provider.js';
-import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { DashQLExtensions } from '../../notebook/scripts/editor/dashql_extension.js';
 import { DashQLUpdateEffect, DashQLProcessorUpdateOut, analyzeScript } from '../../notebook/scripts/editor/dashql_processor.js';
 import * as themes from '../../notebook/scripts/editor/themes/index.js';

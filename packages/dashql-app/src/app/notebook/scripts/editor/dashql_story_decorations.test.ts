@@ -1,4 +1,4 @@
-import * as core from '../../../../shared/core/index.js';
+import * as core from '../../../../core/index.js';
 
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';

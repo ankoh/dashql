@@ -1,4 +1,4 @@
-import { ProgressCounter } from "../../shared/utils/progress.js";
+import { ProgressCounter } from "../../utils/progress.js";
 
 export type AppLoadingPartialProgressConsumer = (progress: Partial<AppLoadingProgress>) => void;
 export type AppLoadingProgressConsumer = (progress: AppLoadingProgress) => void;

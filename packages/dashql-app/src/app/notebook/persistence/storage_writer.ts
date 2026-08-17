@@ -1,8 +1,8 @@
 import * as Immutable from 'immutable';
-import * as dashql from '../../../shared/core/index.js';
+import * as dashql from '../../../core/index.js';
 
-import { Logger, stringifyError } from '../../../shared/platform/logger/logger.js';
-import { VariantKind } from '../../../shared/utils/index.js';
+import { Logger, stringifyError } from '../../../platform/logger/logger.js';
+import { VariantKind } from '../../../utils/index.js';
 import { NotebookScripts } from '../scripts/notebook_scripts.js';
 import { ConnectionState } from '../connections/connection_state.js';
 import { getConnectionParamsFromStateDetails, createDefaultConnectionParamsForConnector } from '../connections/connection_params.js';

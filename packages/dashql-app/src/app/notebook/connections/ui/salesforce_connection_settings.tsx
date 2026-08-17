@@ -15,13 +15,13 @@ import {
     TextFieldValidationStatus,
     VALIDATION_ERROR,
     VALIDATION_UNKNOWN,
-} from '../../../../shared/ui/foundations/text_field.js';
-import { IndicatorStatus } from '../../../../shared/ui/foundations/status_indicator.js';
-import { classNames } from '../../../../shared/utils/classnames.js';
-import { Logger } from '../../../../shared/platform/logger/logger.js';
-import { Button, ButtonVariant } from '../../../../shared/ui/foundations/button.js';
+} from '../../../../ui/foundations/text_field.js';
+import { IndicatorStatus } from '../../../../ui/foundations/status_indicator.js';
+import { classNames } from '../../../../utils/classnames.js';
+import { Logger } from '../../../../platform/logger/logger.js';
+import { Button, ButtonVariant } from '../../../../ui/foundations/button.js';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../connector_info.js';
-import { isNativePlatform } from '../../../../shared/platform/native_globals.js';
+import { isNativePlatform } from '../../../../platform/native_globals.js';
 import { ConnectionStateDetailsVariant } from '../connection_state_details.js';
 import type { DetailedError } from '../connection_types.js';
 import { useAnyConnectionNotebookScripts } from './connection_notebook_scripts.js';

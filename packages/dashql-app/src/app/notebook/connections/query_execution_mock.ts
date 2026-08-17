@@ -5,8 +5,8 @@ import {
     QueryExecutionStatus,
     createQueryResponseStreamMetrics,
 } from './query_execution_state.js';
-import { sleep } from '../../../shared/utils/sleep.js';
-import { AsyncConsumer } from '../../../shared/utils/async_consumer.js';
+import { sleep } from '../../../utils/sleep.js';
+import { AsyncConsumer } from '../../../utils/async_consumer.js';
 
 export class QueryExecutionResponseStreamMock implements QueryExecutionResponseStream {
     schema: arrow.Schema;

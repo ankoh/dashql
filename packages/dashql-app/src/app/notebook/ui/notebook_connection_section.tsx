@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import type { ConnectionState } from '../connections/connection_state.js';
 import type { NotebookScripts } from '../scripts/notebook_scripts.js';
-import * as ActionList from '../../../shared/ui/foundations/action_list.js';
+import * as ActionList from '../../../ui/foundations/action_list.js';
 import { ConnectionCommandList } from './notebook_command_lists.js';
 import * as styles from './notebook_connection_section.module.css';
 

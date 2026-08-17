@@ -1,8 +1,8 @@
 import * as React from 'react';
 import * as styles from './trace_log_panel.module.css';
 
-import { LogRecord } from '../../../shared/platform/logger/log_buffer.js';
-import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
+import { LogRecord } from '../../../platform/logger/log_buffer.js';
+import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { TraceLogViewer } from './trace_log_viewer.js';
 
 /// Track the number of log records on a trace, updating as records stream in. Returns 0 when the

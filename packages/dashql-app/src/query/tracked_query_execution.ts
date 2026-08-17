@@ -13,8 +13,8 @@ import {
     type QueryExecutionTracker,
     type QueryMetadata,
 } from './query_execution_state.js';
-import { LoggableException, stringifyError } from '../shared/platform/logger/logger.js';
-import { createTrace, type TraceContext } from '../shared/platform/logger/trace_context.js';
+import { LoggableException, stringifyError } from '../platform/logger/logger.js';
+import { createTrace, type TraceContext } from '../platform/logger/trace_context.js';
 
 let NEXT_QUERY_ID = 1;
 

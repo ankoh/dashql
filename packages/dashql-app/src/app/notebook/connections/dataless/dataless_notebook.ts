@@ -4,7 +4,7 @@ import { EXAMPLES } from '../../scripts/example_scripts.js';
 import { NotebookScripts } from '../../scripts/notebook_scripts.js';
 import { useNotebookScriptsAllocator } from '../../scripts/notebook_scripts_registry.js';
 import { ConnectionState } from '../connection_state.js';
-import { useLogger } from '../../../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { createDefaultNotebookScripts } from '../default_notebook_setup.js';
 
 export type NotebookScriptsSetupFn = (conn: ConnectionState, abort?: AbortSignal) => Promise<NotebookScripts>;

@@ -14,7 +14,7 @@ vi.mock('../scripts/notebook_commands.js', () => ({
     },
     useNotebookCommandDispatch: () => commandDispatch,
 }));
-vi.mock('../../../shared/ui/foundations/status_indicator.js', async () => {
+vi.mock('../../../ui/foundations/status_indicator.js', async () => {
     const React = await import('react');
     return {
         IndicatorStatus: { Running: 1 },

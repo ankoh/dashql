@@ -15,10 +15,10 @@ import {
     SF_CHANNEL_READY,
     SF_CHANNEL_SETUP_STARTED,
 } from './salesforce_connection_state.js';
-import { generatePKCEChallenge } from '../../../../shared/utils/pkce.js';
-import { sleep } from '../../../../shared/utils/sleep.js';
-import { Dispatch } from '../../../../shared/utils/variant.js';
-import { Logger, stringifyError } from '../../../../shared/platform/logger/logger.js';
+import { generatePKCEChallenge } from '../../../../utils/pkce.js';
+import { sleep } from '../../../../utils/sleep.js';
+import { Dispatch } from '../../../../utils/variant.js';
+import { Logger, stringifyError } from '../../../../platform/logger/logger.js';
 import { SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
 import { SalesforceSetupApi } from './salesforce_connection_setup.js';
 import { SalesforceConnectorConfig } from '../connector_configs.js';

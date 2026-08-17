@@ -1,9 +1,9 @@
 import * as Immutable from 'immutable';
 
-import type { DashQL } from '../../../shared/core/api.js';
-import type { Logger } from '../../../shared/platform/logger/logger.js';
-import { stringifyError } from '../../../shared/platform/logger/logger.js';
-import { ProgressCounter } from '../../../shared/utils/progress.js';
+import type { DashQL } from '../../../core/api.js';
+import type { Logger } from '../../../platform/logger/logger.js';
+import { stringifyError } from '../../../platform/logger/logger.js';
+import { ProgressCounter } from '../../../utils/progress.js';
 import type { ConnectionState } from '../connections/connection_state.js';
 import type { NotebookScripts, ScriptData } from '../scripts/notebook_scripts.js';
 import { analyzeAllScripts, createEmptyScriptData, destroyNotebookScripts, sortScriptFolderNamesNumerically } from '../scripts/notebook_scripts.js';

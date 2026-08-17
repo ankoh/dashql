@@ -1,20 +1,20 @@
 import * as React from 'react';
-import * as styles from '../../../shared/ui/logs/log_viewer.module.css';
+import * as styles from '../../../ui/logs/log_viewer.module.css';
 
 import { List, useListRef } from 'react-window';
 
-import { LogRecord } from '../../../shared/platform/logger/log_buffer.js';
-import { pollLogVersion, useLogger } from '../../../shared/platform/logger/logger_provider.js';
-import { observeSize } from '../../../shared/ui/foundations/size_observer.js';
-import { AnchorAlignment, AnchorSide } from '../../../shared/ui/foundations/anchored_position.js';
-import { useKeyEvents } from '../../../shared/utils/key_events.js';
-import { LogJsonModal } from '../../../shared/ui/logs/log_json_modal.js';
+import { LogRecord } from '../../../platform/logger/log_buffer.js';
+import { pollLogVersion, useLogger } from '../../../platform/logger/logger_provider.js';
+import { observeSize } from '../../../ui/foundations/size_observer.js';
+import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
+import { useKeyEvents } from '../../../utils/key_events.js';
+import { LogJsonModal } from '../../../ui/logs/log_json_modal.js';
 import {
     LogRow,
     LogRowProps,
     ROW_HEIGHT,
     computeLogRowHeight,
-} from '../../../shared/ui/logs/log_viewer.js';
+} from '../../../ui/logs/log_viewer.js';
 
 interface TraceLogViewerProps {
     traceId?: number;

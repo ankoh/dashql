@@ -1,15 +1,15 @@
 import * as React from 'react';
-import * as dashql from '../../../shared/core/index.js';
+import * as dashql from '../../../core/index.js';
 import * as styles from './script_diagnostics.module.css';
 
 import { AlertIcon, XCircleFillIcon, XIcon } from '@primer/octicons-react';
 
 import type { ScriptData } from '../scripts/notebook_scripts.js';
-import { AnchorAlignment, AnchorSide } from '../../../shared/ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../../../shared/ui/foundations/anchored_overlay.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../../../shared/ui/foundations/button.js';
-import { JsonView } from '../../../shared/ui/json/json_view.js';
-import { Overlay, OverlaySize } from '../../../shared/ui/foundations/overlay.js';
+import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
+import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
+import { JsonView } from '../../../ui/json/json_view.js';
+import { Overlay, OverlaySize } from '../../../ui/foundations/overlay.js';
 
 export const SCRIPT_FORMATTING_WARNING = 'This script cannot be formatted';
 

@@ -8,8 +8,8 @@ import { LockIcon, XIcon } from '@primer/octicons-react';
 import { CodeMirror, createReadonlyCodeMirrorExtensions } from '../scripts/editor/codemirror.js';
 import { DashQLUpdateEffect, analyzeScript, DashQLScriptBuffers } from '../scripts/editor/dashql_processor.js';
 import { ScriptName } from './script_name.js';
-import type { DashQLScript } from '../../../shared/core/api.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../../../shared/ui/foundations/button.js';
+import type { DashQLScript } from '../../../core/api.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
 
 export interface CatalogScriptCardProps {
     script: DashQLScript;

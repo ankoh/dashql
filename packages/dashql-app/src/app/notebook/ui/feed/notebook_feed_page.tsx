@@ -16,9 +16,9 @@ import {
     type NotebookScripts,
 } from '../../scripts/notebook_scripts.js';
 import type { ModifyNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
-import { KeyEventHandler, useKeyEvents } from '../../../../shared/utils/key_events.js';
+import { KeyEventHandler, useKeyEvents } from '../../../../utils/key_events.js';
 import { CHANGE_NOTEBOOK, useRouterNavigate } from '../../../router/router.js';
-import { ButtonVariant, IconButton } from '../../../../shared/ui/foundations/button.js';
+import { ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
 import { CatalogFunctionsView } from '../catalog_functions_view.js';
 import { CatalogSchemaView } from '../catalog_schema_view.js';
 import { NotebookActionMenu } from '../notebook_action_menu.js';

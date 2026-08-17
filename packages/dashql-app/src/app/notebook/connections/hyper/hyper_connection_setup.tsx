@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as buf from "@bufbuild/protobuf";
-import * as pb from "../../../../shared/proto.js";
+import * as pb from "../../../../proto.js";
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import {
@@ -10,15 +10,15 @@ import {
     HYPER_CHANNEL_SETUP_STARTED,
     HyperConnectorAction,
 } from './hyper_connection_state.js';
-import { Logger, stringifyError } from '../../../../shared/platform/logger/logger.js';
+import { Logger, stringifyError } from '../../../../platform/logger/logger.js';
 import { HyperConnectorConfig } from '../connector_configs.js';
-import { Dispatch } from '../../../../shared/utils/index.js';
+import { Dispatch } from '../../../../utils/index.js';
 import {
     HyperDatabaseChannel,
     HyperDatabaseClient,
     HyperDatabaseConnectionContext,
 } from './hyperdb_grpc_client.js';
-import { useLogger } from '../../../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { useAppConfig } from '../../../config/app_config.js';
 import { useHyperGrpcClient, useHyperHttpClient } from './hyperdb_grpc_client_provider.js';
 import { RESET_CONNECTION } from '../connection_state.js';

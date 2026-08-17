@@ -1,4 +1,4 @@
-import * as dashql from '../../../shared/core/index.js';
+import * as dashql from '../../../core/index.js';
 import { NotebookScripts } from './notebook_scripts.js';
 
 export function findTableById(notebookScripts: NotebookScripts, table: dashql.ExternalObjectID.Value): dashql.buffers.analyzer.Table | null {

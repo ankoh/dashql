@@ -4,7 +4,7 @@ import { exportNotebookAsZip, exportNotebookAsSharedZip, exportNotebookAsUrl, No
 import { importNotebookFromZip } from './notebook_import.js';
 import { type StorageBackend, type NotebookData, type ScriptFolderData, StorageBackendType } from './storage_backend.js';
 import { STORAGE_NOTEBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT } from './storage_backend.js';
-import { BASE64URL_CODEC } from '../../../shared/utils/base64.js';
+import { BASE64URL_CODEC } from '../../../utils/base64.js';
 
 describe('exportNotebookAsZip', () => {
     let mockBackend: StorageBackend;

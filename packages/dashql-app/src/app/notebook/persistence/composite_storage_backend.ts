@@ -17,7 +17,7 @@ import { type NotebookLocation, locationFromEntry } from './notebook_locator.js'
 import { grantFsScope } from './native_fs_scope.js';
 import { copyNotebook, verifyNotebook } from './storage_migration.js';
 import { validateNotebookData, describeNotebookValidationError } from './notebook_validation.js';
-import type { Logger } from '../../../shared/platform/logger/logger.js';
+import type { Logger } from '../../../platform/logger/logger.js';
 
 const LOG_CTX = 'composite_storage_backend';
 

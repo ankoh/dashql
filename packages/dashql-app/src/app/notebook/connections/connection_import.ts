@@ -1,13 +1,13 @@
-import * as dashql from '../../../shared/core/index.js';
+import * as dashql from '../../../core/index.js';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { computeConnectionSignatureFromDetails, ConnectionStateDetailsVariant } from './connection_state_details.js';
-import { LoggableException } from '../../../shared/platform/logger/logger.js';
+import { LoggableException } from '../../../platform/logger/logger.js';
 import { CONNECTOR_INFOS, ConnectorInfo, ConnectorType, DATALESS_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR, createDatalessConnectorInfo } from './connector_info.js';
 import { ConnectionHealth, ConnectionState, ConnectionStatus, createConnectionMetrics } from './connection_state.js';
 import { generateCatalogScriptHeader, CatalogSource } from './catalog_sql_generator.js';
 import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
-import { DefaultHasher } from '../../../shared/utils/hash_default.js';
+import { DefaultHasher } from '../../../utils/hash_default.js';
 import { ConnectionSignatureMap, newConnectionSignature } from './connection_signature.js';
 import { QueryExecutionState } from './query_execution_state.js';
 const LOG_CTX = "connection";

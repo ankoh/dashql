@@ -4,8 +4,8 @@ import * as styles from './notebook_shell_page.module.css';
 import type { ConnectionState } from '../connections/connection_state.js';
 import { useCancelQuery, useQueryExecutor, useQueryState } from '../connections/query_executor.js';
 import { NotebookViewMode, useNotebookViewMode } from '../scripts/notebook_commands.js';
-import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
-import { stringifyError } from '../../../shared/platform/logger/logger.js';
+import { useLogger } from '../../../platform/logger/logger_provider.js';
+import { stringifyError } from '../../../platform/logger/logger.js';
 import {
     DashQLShell,
 } from '../../../shell/api.js';

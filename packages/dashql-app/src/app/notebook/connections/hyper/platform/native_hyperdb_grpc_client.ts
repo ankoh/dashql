@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 import * as buf from "@bufbuild/protobuf";
-import * as pb from "../../../../../shared/proto.js";
+import * as pb from "../../../../../proto.js";
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import {
@@ -15,18 +15,18 @@ import {
     NativeGrpcProxyConfig,
     NativeGrpcServerStream,
     NativeGrpcServerStreamMessageIterator,
-} from '../../../../../shared/platform/grpc/native_grpc_client.js';
+} from '../../../../../platform/grpc/native_grpc_client.js';
 import {
     createQueryResponseStreamMetrics,
     QueryExecutionProgress,
     QueryExecutionResponseStream, QueryExecutionMetrics,
     QueryExecutionStatus,
 } from '../../query_execution_state.js';
-import { ChannelArgs, ChannelError } from '../../../../../shared/platform/channel_common.js';
+import { ChannelArgs, ChannelError } from '../../../../../platform/channel_common.js';
 import { decodeGrpcErrorHeaders, HyperQueryError } from '../hyper_error_info.js';
-import { Logger } from '../../../../../shared/platform/logger/logger.js';
-import { AsyncConsumer } from '../../../../../shared/utils/async_consumer.js';
-import { AsyncValue } from '../../../../../shared/utils/async_value.js';
+import { Logger } from '../../../../../platform/logger/logger.js';
+import { AsyncConsumer } from '../../../../../utils/async_consumer.js';
+import { AsyncValue } from '../../../../../utils/async_value.js';
 
 const LOG_CTX = "native_hyperdb_grpc_client";
 

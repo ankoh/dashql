@@ -1,4 +1,4 @@
-import * as dashql from '../../../../shared/core/index.js';
+import * as dashql from '../../../../core/index.js';
 
 import { DynamicConnectionDispatch } from "../connection_registry.js";
 import { CATALOG_UPDATE_SCHEMA_SCRIPT } from "../connection_state.js";

@@ -4,8 +4,8 @@ import * as styles from './mostfrequent_cell.module.css';
 
 import { ColumnAggregationVariant, StringColumnAggregation, STRING_COLUMN, TableAggregation, WithFilterEpoch } from '../../../../../compute/computation_types.js';
 import { dataTypeToString } from '../../../../../compute/arrow_formatter.js';
-import { observeSize } from '../../../../../shared/ui/foundations/size_observer.js';
-import { assert } from '../../../../../shared/utils/assert.js';
+import { observeSize } from '../../../../../ui/foundations/size_observer.js';
+import { assert } from '../../../../../utils/assert.js';
 import { NULL_SYMBOL } from './histogram_cell.js';
 import { getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
 import { formatHistogramFocusDescription } from './histogram_label.js';

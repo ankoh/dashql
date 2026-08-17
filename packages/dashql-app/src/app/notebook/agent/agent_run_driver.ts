@@ -21,8 +21,8 @@ import {
     parseIntent,
 } from './agent_prompts.js';
 import { AgentHost } from './agent_host.js';
-import { LoggerLike } from '../../../shared/platform/logger/logger.js';
-import { createTrace, TraceContext } from '../../../shared/platform/logger/trace_context.js';
+import { LoggerLike } from '../../../platform/logger/logger.js';
+import { createTrace, TraceContext } from '../../../platform/logger/trace_context.js';
 
 const LOG_CTX = 'agent_run';
 

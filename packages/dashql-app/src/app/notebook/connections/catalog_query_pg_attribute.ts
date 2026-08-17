@@ -1,5 +1,5 @@
 import * as arrow from "apache-arrow";
-import * as dashql from '../../../shared/core/index.js';
+import * as dashql from '../../../core/index.js';
 
 import { QueryExecutor } from './query_executor.js';
 import { QueryExecutionArgs } from './query_execution_args.js';
@@ -10,7 +10,7 @@ import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from "./catalog_update_state.js"
 import { generateSchemaSQL, generateCatalogScriptHeader, CatalogSource, type ColumnMetadata } from './catalog_sql_generator.js';
 import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
 import { queryPgProc, generateCatalogSQLFromPgProc } from './catalog_query_pg_proc.js';
-import { type LoggerLike } from '../../../shared/platform/logger/logger.js';
+import { type LoggerLike } from '../../../platform/logger/logger.js';
 
 const LOG_CTX = "catalog_pg";
 

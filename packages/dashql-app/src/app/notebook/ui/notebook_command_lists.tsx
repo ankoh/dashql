@@ -1,19 +1,19 @@
 import * as React from 'react';
 import symbols from '@ankoh/dashql-svg-symbols';
-import * as ActionList from '../../../shared/ui/foundations/action_list.js';
+import * as ActionList from '../../../ui/foundations/action_list.js';
 import { LinkIcon, PaperAirplaneIcon, SyncIcon } from '@primer/octicons-react';
 
-import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../../shared/globals.js';
+import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../../globals.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../scripts/notebook_commands.js';
 import type { ModifyNotebookScripts } from '../scripts/notebook_scripts_registry.js';
 import { NotebookScripts } from '../scripts/notebook_scripts.js';
-import { SymbolIcon } from '../../../shared/ui/foundations/symbol_icon.js';
+import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
 import { NotebookFileSaveOverlay } from './notebook_file_save_overlay.js';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
 import { ConnectionHealth, ConnectionState } from '../connections/connection_state.js';
 import { CONNECTION_HEALTH_COLORS } from '../connections/ui/connection_status.js';
 import { isCatalogRefreshRunning } from '../connections/catalog_update_state.js';
-import { IndicatorStatus, StatusIndicator } from '../../../shared/ui/foundations/status_indicator.js';
+import { IndicatorStatus, StatusIndicator } from '../../../ui/foundations/status_indicator.js';
 import type { NotebookFileTreeNavigationLevel } from './notebook_file_tree.js';
 
 export const ConnectionCommandList: React.FC<{

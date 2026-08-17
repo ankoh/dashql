@@ -1,6 +1,6 @@
-import * as dashql from '../../../shared/core/index.js';
+import * as dashql from '../../../core/index.js';
 
-import { VariantKind } from '../../../shared/utils/variant.js';
+import { VariantKind } from '../../../utils/variant.js';
 
 export interface QualifiedDatabaseId {
     /// The database id

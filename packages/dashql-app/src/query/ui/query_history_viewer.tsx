@@ -5,14 +5,14 @@ import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 import { XIcon, ChevronUpIcon, ChevronDownIcon } from '@primer/octicons-react';
 
-import { ButtonVariant, IconButton } from '../../shared/ui/foundations/button.js';
-import { AnchoredOverlay } from '../../shared/ui/foundations/anchored_overlay.js';
-import { OverlaySize } from '../../shared/ui/foundations/overlay.js';
-import { AnchorAlignment, AnchorSide } from '../../shared/ui/foundations/anchored_position.js';
-import { JsonView } from '../../shared/ui/json/json_view.js';
+import { ButtonVariant, IconButton } from '../../ui/foundations/button.js';
+import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
+import { OverlaySize } from '../../ui/foundations/overlay.js';
+import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
+import { JsonView } from '../../ui/json/json_view.js';
 import { QueryExecutionState, QueryExecutionStatus, QueryType } from '../query_execution_state.js';
-import { observeSize } from '../../shared/ui/foundations/size_observer.js';
-import { useKeyEvents } from '../../shared/utils/key_events.js';
+import { observeSize } from '../../ui/foundations/size_observer.js';
+import { useKeyEvents } from '../../utils/key_events.js';
 
 export const ROW_HEIGHT = 32;
 

@@ -23,15 +23,15 @@ import {
     SF_CHANNEL_READY,
     SF_CHANNEL_SETUP_STARTED,
 } from './salesforce_connection_state.js';
-import { generatePKCEChallenge } from '../../../../shared/utils/pkce.js';
-import { BASE64URL_CODEC } from '../../../../shared/utils/base64.js';
-import { isDebugBuild } from '../../../../shared/globals.js';
-import { PlatformType } from '../../../../shared/platform/platform_type.js';
+import { generatePKCEChallenge } from '../../../../utils/pkce.js';
+import { BASE64URL_CODEC } from '../../../../utils/base64.js';
+import { isDebugBuild } from '../../../../globals.js';
+import { PlatformType } from '../../../../platform/platform_type.js';
 import { SalesforceConnectorConfig } from '../connector_configs.js';
 import { collectSalesforceAuthInfo, getSalesforceLakehousePath, SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
-import { Dispatch } from '../../../../shared/utils/variant.js';
-import { Logger, stringifyError } from '../../../../shared/platform/logger/logger.js';
-import { PlatformEventListener } from '../../../../shared/platform/events/event_listener.js';
+import { Dispatch } from '../../../../utils/variant.js';
+import { Logger, stringifyError } from '../../../../platform/logger/logger.js';
+import { PlatformEventListener } from '../../../../platform/events/event_listener.js';
 import { RESET_CONNECTION } from '../connection_state.js';
 import { AttachedDatabase, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '../hyper/hyperdb_grpc_client.js';
 

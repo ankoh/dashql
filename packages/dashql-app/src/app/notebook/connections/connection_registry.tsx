@@ -1,11 +1,11 @@
 import * as React from 'react';
 
 import { ConnectionState, ConnectionStateAction, ConnectionStateWithoutId, DELETE_CONNECTION, SWITCH_CONNECTOR_TYPE, reduceConnectionState } from './connection_state.js';
-import { Dispatch } from '../../../shared/utils/variant.js';
+import { Dispatch } from '../../../utils/variant.js';
 import { CONNECTOR_TYPES } from './connector_info.js';
 import { ConnectionSignatureMap } from './connection_signature.js';
 import { useStorageWriter } from '../persistence/storage_provider.js';
-import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../../platform/logger/logger_provider.js';
 
 // Note: Storage persistence handled by connection reducer when setupParams are configured
 

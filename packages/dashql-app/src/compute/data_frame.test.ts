@@ -2,9 +2,9 @@
 import * as arrow from 'apache-arrow';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createSerializedNodeTestClient } from '../shared/platform/hyperdb/hyperdb_test_client.js';
-import { HyperDB } from '../shared/platform/hyperdb/hyperdb_wasm.js';
-import { TestLogger } from '../shared/platform/logger/test_logger.js';
+import { createSerializedNodeTestClient } from '../platform/hyperdb/hyperdb_test_client.js';
+import { HyperDB } from '../platform/hyperdb/hyperdb_wasm.js';
+import { TestLogger } from '../platform/logger/test_logger.js';
 import { DataFrame, DataFrameRegistry, generateTableName } from './data_frame.js';
 
 function toPlainObjects(table: arrow.Table): any[] {

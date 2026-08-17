@@ -1,4 +1,4 @@
-import * as core from '../../../shared/core/index.js';
+import * as core from '../../../core/index.js';
 
 import { VisSource, visSourceToData } from './script_agent_host.js';
 import { verifyScript } from '../agent/agent_verify.js';

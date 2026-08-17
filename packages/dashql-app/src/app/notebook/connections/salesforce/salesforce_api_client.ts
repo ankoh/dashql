@@ -1,10 +1,10 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import * as pb from "../../../../shared/proto.js";
+import * as pb from "../../../../proto.js";
 
-import { Logger } from '../../../../shared/platform/logger/logger.js';
-import { HttpClient } from '../../../../shared/platform/http/http_client.js';
+import { Logger } from '../../../../platform/logger/logger.js';
+import { HttpClient } from '../../../../platform/http/http_client.js';
 import { HyperDatabaseChannel, HyperQueryResultStream } from '../hyper/hyperdb_grpc_client.js';
-import { BASE64_CODEC } from "../../../../shared/utils/base64.js";
+import { BASE64_CODEC } from "../../../../utils/base64.js";
 import { dateToTimestamp } from "../proto_helper.js";
 
 const LOG_CTX = "salesforce_api";

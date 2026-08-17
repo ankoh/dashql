@@ -1,10 +1,10 @@
 import * as React from 'react';
 
 import type { QueryExecutionState } from '../connections/query_execution_state.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../../../shared/ui/foundations/button.js';
-import { useFocusTrap } from '../../../shared/ui/foundations/focus.js';
-import { Overlay, OverlaySize } from '../../../shared/ui/foundations/overlay.js';
-import { SymbolIcon } from '../../../shared/ui/foundations/symbol_icon.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
+import { useFocusTrap } from '../../../ui/foundations/focus.js';
+import { Overlay, OverlaySize } from '../../../ui/foundations/overlay.js';
+import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
 import { QueryResultDetails } from '../compute/ui/query_result/query_result_details.js';
 import * as styles from './shell_query_result_overlay.module.css';
 

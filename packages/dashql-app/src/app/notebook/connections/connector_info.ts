@@ -1,4 +1,4 @@
-import { isNativePlatform } from "../../../shared/platform/native_globals.js";
+import { isNativePlatform } from "../../../platform/native_globals.js";
 
 export const DATALESS_CONNECTOR = Symbol('DATALESS_CONNECTOR');
 export const SALESFORCE_DATA_CLOUD_CONNECTOR = Symbol('SALESFORCE_DATA_CLOUD_CONNECTOR');

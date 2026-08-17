@@ -1,4 +1,4 @@
-import * as core from '../../../shared/core/index.js';
+import * as core from '../../../core/index.js';
 
 import { beforeAll, afterEach, describe, expect, it } from 'vitest';
 
@@ -20,7 +20,7 @@ import {
 } from './storage_writer.js';
 import { type ConnectionState } from '../connections/connection_state.js';
 import { createDatalessConnectionState } from '../connections/dataless/dataless_connection_state.js';
-import { Logger } from '../../../shared/platform/logger/logger.js';
+import { Logger } from '../../../platform/logger/logger.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

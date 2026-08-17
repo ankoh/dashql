@@ -1,6 +1,6 @@
 import { AgentRunPhase, AgentRunState, agentRunIsActive } from '../agent/agent_run_state.js';
 import { QueryExecutionState, QueryExecutionStatus, queryIsDone } from '../connections/query_execution_state.js';
-import { IndicatorStatus } from '../../../shared/ui/foundations/status_indicator.js';
+import { IndicatorStatus } from '../../../ui/foundations/status_indicator.js';
 
 /// Which source produced the status shown in the bar. The footer log tab keys off this to reveal
 /// the matching trace when the bar is clicked.

@@ -1,11 +1,11 @@
 import * as React from 'react';
 
 import { TrinoApiClient, TrinoApiClientInterface } from "./trino_api_client.js";
-import { useLogger } from '../../../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { useAppConfig } from '../../../config/app_config.js';
-import { useHttpClient } from '../../../../shared/platform/http/http_client_provider.js';
+import { useHttpClient } from '../../../../platform/http/http_client_provider.js';
 import { createTrinoSetup, TrinoSetupApi } from './trino_connection_setup.js';
-import { usePlatformType } from '../../../../shared/platform/platform_type.js';
+import { usePlatformType } from '../../../../platform/platform_type.js';
 
 const API_CTX = React.createContext<TrinoApiClientInterface | null>(null);
 const SETUP_CTX = React.createContext<TrinoSetupApi | null>(null);

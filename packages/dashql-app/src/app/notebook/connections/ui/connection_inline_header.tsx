@@ -10,14 +10,14 @@ import {
     XCircleIcon,
 } from '@primer/octicons-react';
 
-import { Button, ButtonVariant, IconButton } from '../../../../shared/ui/foundations/button.js';
+import { Button, ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
 import { ConnectionHealth, ConnectionState } from '../connection_state.js';
 import { ConnectorInfo } from '../connector_info.js';
-import { IndicatorStatus, StatusIndicator } from '../../../../shared/ui/foundations/status_indicator.js';
+import { IndicatorStatus, StatusIndicator } from '../../../../ui/foundations/status_indicator.js';
 import { NotebookScripts } from '../../scripts/notebook_scripts.js';
-import { SegmentedControl } from '../../../../shared/ui/foundations/segmented_control.js';
+import { SegmentedControl } from '../../../../ui/foundations/segmented_control.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
-import { useLogger } from '../../../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../../../platform/logger/logger_provider.js';
 
 const LOG_CTX = "conn_inline_header";
 

@@ -8,11 +8,11 @@ import { useConnectionState } from '../connection_registry.js';
 import { useAnyConnectionNotebookScripts } from './connection_notebook_scripts.js';
 import { DemoDatabaseChannel } from '../dataless/dataless_demo_channel.js';
 import { setupDatalessDemoConnection } from '../dataless/dataless_demo_setup.js';
-import { useLogger } from '../../../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { RESET_CONNECTION } from '../connection_state.js';
 import { isDemoConnector, DATALESS_SET_DEMO_MODE, DatalessConnectionStateDetails } from '../dataless/dataless_connection_state.js';
-import { ToggleSwitch } from '../../../../shared/ui/foundations/toggle_switch.js';
-import { classNames } from '../../../../shared/utils/classnames.js';
+import { ToggleSwitch } from '../../../../ui/foundations/toggle_switch.js';
+import { classNames } from '../../../../utils/classnames.js';
 
 interface Props {
     notebookId: string | null;

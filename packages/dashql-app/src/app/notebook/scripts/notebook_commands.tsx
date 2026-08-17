@@ -2,13 +2,13 @@ import * as React from 'react';
 
 import { ConnectionHealth, printConnectionHealth } from '../connections/connection_state.js';
 import { ConnectorInfo } from '../connections/connector_info.js';
-import { KeyEventHandler, useKeyEvents } from '../../../shared/utils/key_events.js';
+import { KeyEventHandler, useKeyEvents } from '../../../utils/key_events.js';
 import { QueryType } from '../connections/query_execution_state.js';
 import { compileQuery, getSelectedScriptRef, SELECT_NEXT_SCRIPT, SELECT_NEXT_SCRIPT_FOLDER, SELECT_PREV_SCRIPT, SELECT_PREV_SCRIPT_FOLDER } from './notebook_scripts.js';
 import { projectionForVisualizeQuery } from './script_types.js';
 import { useCatalogLoaderQueue } from '../connections/catalog_loader.js';
 import { useConnectionState } from '../connections/connection_registry.js';
-import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { useQueryExecutor } from '../connections/query_executor.js';
 import { useRouteContext, useRouterNavigate, CHANGE_NOTEBOOK } from '../../router/router.js';
 import { useNotebookScriptsRegistry, useNotebookScripts } from './notebook_scripts_registry.js';

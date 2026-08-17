@@ -19,16 +19,16 @@ import {
     REQUESTING_ACCESS_TOKEN,
     RECEIVED_ACCESS_TOKEN,
 } from './trino_connection_state.js';
-import { Dispatch } from '../../../../shared/utils/index.js';
-import { LoggableException, Logger, stringifyError } from '../../../../shared/platform/logger/logger.js';
+import { Dispatch } from '../../../../utils/index.js';
+import { LoggableException, Logger, stringifyError } from '../../../../platform/logger/logger.js';
 import { RESET_CONNECTION } from '../connection_state.js';
 import { TrinoApiClientInterface, TrinoApiEndpoint } from './trino_api_client.js';
 import { TrinoChannel, TrinoChannelInterface } from './trino_channel.js';
 import { TrinoConnectorConfig } from '../connector_configs.js';
-import { generatePKCEChallenge } from '../../../../shared/utils/pkce.js';
-import { PlatformType } from '../../../../shared/platform/platform_type.js';
-import { isNativePlatform } from '../../../../shared/platform/native_globals.js';
-import { HttpClient } from '../../../../shared/platform/http/http_client.js';
+import { generatePKCEChallenge } from '../../../../utils/pkce.js';
+import { PlatformType } from '../../../../platform/platform_type.js';
+import { isNativePlatform } from '../../../../platform/native_globals.js';
+import { HttpClient } from '../../../../platform/http/http_client.js';
 import { dateToTimestamp } from '../proto_helper.js';
 
 const LOG_CTX = "trino_setup";

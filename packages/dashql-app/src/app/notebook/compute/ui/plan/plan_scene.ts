@@ -1,6 +1,6 @@
-import * as dashql from '../../../../../shared/core/index.js';
-import { U32_MAX } from '../../../../../shared/utils/numeric_limits.js';
-import { buildEdgePathBetweenRectangles, PathBuilder, selectVerticalEdgeType } from '../../../../../shared/utils/graph_edges.js';
+import * as dashql from '../../../../../core/index.js';
+import { U32_MAX } from '../../../../../utils/numeric_limits.js';
+import { buildEdgePathBetweenRectangles, PathBuilder, selectVerticalEdgeType } from '../../../../../utils/graph_edges.js';
 
 export interface PlanSceneRect {
     x: number;

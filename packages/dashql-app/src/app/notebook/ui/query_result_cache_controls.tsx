@@ -4,8 +4,8 @@ import * as styles from './query_result_cache_controls.module.css';
 import { SyncIcon } from '@primer/octicons-react';
 
 import { QueryExecutionState, QueryExecutionStatus } from '../connections/query_execution_state.js';
-import { useRelativeTime } from '../../../shared/utils/time_format.js';
-import { ButtonVariant, IconButton } from '../../../shared/ui/foundations/button.js';
+import { useRelativeTime } from '../../../utils/time_format.js';
+import { ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
 
 interface QueryResultCacheControlsProps {
     query: QueryExecutionState | null;

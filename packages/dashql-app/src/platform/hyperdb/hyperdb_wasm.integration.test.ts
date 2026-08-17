@@ -2,7 +2,7 @@
 import * as arrow from 'apache-arrow';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { DataFrame, generateTableName } from '../../../compute/data_frame.js';
+import { DataFrame, generateTableName } from '../../compute/data_frame.js';
 import { createSerializedNodeTestClient } from './hyperdb_test_client.js';
 import { HyperDB, type HyperDBEngineClient, type HyperDBResult } from './hyperdb_wasm.js';
 

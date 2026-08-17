@@ -10,7 +10,7 @@ import {
     StorageBackendType,
 } from './storage_backend.js';
 import { type CacheFileStat } from './query_result_cache_eviction.js';
-import { TestLogger } from '../../../shared/platform/logger/test_logger.js';
+import { TestLogger } from '../../../platform/logger/test_logger.js';
 
 // Spy standing in for the Tauri `grant_fs_scope` bridge. Hoisted so the vi.mock factory can use it.
 const grantSpy = vi.hoisted(() => vi.fn(async (_path: string) => { }));

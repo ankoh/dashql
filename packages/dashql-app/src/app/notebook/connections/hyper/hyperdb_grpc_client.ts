@@ -1,7 +1,7 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import * as pb from "../../../../shared/proto.js";
+import * as pb from "../../../../proto.js";
 
-import { ChannelMetadataProvider } from '../../../../shared/platform/channel_common.js';
+import { ChannelMetadataProvider } from '../../../../platform/channel_common.js';
 import { QueryExecutionProgress, QueryExecutionResponseStream } from "../query_execution_state.js";
 
 export interface AttachedDatabase {

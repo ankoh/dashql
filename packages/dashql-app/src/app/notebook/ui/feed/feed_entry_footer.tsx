@@ -6,7 +6,7 @@ import icons from '@ankoh/dashql-svg-symbols';
 import { QueryExecutionState } from '../../connections/query_execution_state.js';
 import { QueryResultView } from '../../compute/ui/query_result/query_result_view.js';
 import { TableColumnHeader } from '../../compute/ui/query_result/data_table_cell.js';
-import { VerticalTabs, VerticalTabVariant, type VerticalTabProps } from '../../../../shared/ui/foundations/vertical_tabs.js';
+import { VerticalTabs, VerticalTabVariant, type VerticalTabProps } from '../../../../ui/foundations/vertical_tabs.js';
 import { VisualizationDispatch } from '../../compute/ui/visualization/visualization_dispatch.js';
 import { ResolvedVisualizeQuery } from '../../scripts/script_types.js';
 import { TraceLogPanel } from '../trace_log_panel.js';

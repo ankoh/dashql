@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import * as styles from './notebook_export_settings_view.module.css';
-import { ToggleSwitch } from '../../../shared/ui/foundations/toggle_switch.js';
+import { ToggleSwitch } from '../../../ui/foundations/toggle_switch.js';
 
 export interface NotebookExportSettings {
     withCatalog: boolean;

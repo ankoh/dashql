@@ -5,10 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { fakeButtonModule, fakeSymbolIconModule } from '../../../shared/test/view_mocks.js';
+import { fakeButtonModule, fakeSymbolIconModule } from '../../../test/view_mocks.js';
 
-vi.mock('../../../shared/ui/foundations/button.js', async () => fakeButtonModule(await import('react')));
-vi.mock('../../../shared/ui/foundations/symbol_icon.js', async () => fakeSymbolIconModule(await import('react')));
+vi.mock('../../../ui/foundations/button.js', async () => fakeButtonModule(await import('react')));
+vi.mock('../../../ui/foundations/symbol_icon.js', async () => fakeSymbolIconModule(await import('react')));
 
 import {
     type NotebookScriptsAction,

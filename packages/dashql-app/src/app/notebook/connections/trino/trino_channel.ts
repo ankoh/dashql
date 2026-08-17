@@ -1,12 +1,12 @@
 import * as arrow from 'apache-arrow';
-import * as proto from "../../../../shared/proto.js";
+import * as proto from "../../../../proto.js";
 
-import { Logger } from '../../../../shared/platform/logger/logger.js';
+import { Logger } from '../../../../platform/logger/logger.js';
 import { createQueryResponseStreamMetrics, QueryExecutionProgress, QueryExecutionResponseStream, QueryExecutionMetrics, QueryExecutionStatus } from "../query_execution_state.js";
 import { TrinoApiClientInterface, TrinoApiEndpoint, TrinoQueryData, TrinoQueryResult, TrinoQueryStatistics } from "./trino_api_client.js";
-import { ChannelError, RawProxyError } from '../../../../shared/platform/channel_common.js';
-import { AsyncValue } from '../../../../shared/utils/async_value.js';
-import { AsyncConsumer } from '../../../../shared/utils/async_consumer.js';
+import { ChannelError, RawProxyError } from '../../../../platform/channel_common.js';
+import { AsyncValue } from '../../../../utils/async_value.js';
+import { AsyncConsumer } from '../../../../utils/async_consumer.js';
 import { translateAnyRowsToArrowBatch } from '../../../../compute/arrow_conversion.js';
 
 const LOG_CTX = 'trino_channel';

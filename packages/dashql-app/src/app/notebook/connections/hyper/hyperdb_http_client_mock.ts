@@ -1,4 +1,4 @@
-import { HttpClient, HttpFetchResult } from '../../../../shared/platform/http/http_client.js';
+import { HttpClient, HttpFetchResult } from '../../../../platform/http/http_client.js';
 import {
     ColumnDefinition,
     CompletionStatus,
@@ -9,7 +9,7 @@ import {
     QueryErrorResponse,
     QueryStatus,
 } from './hyperdb_http_client.js';
-import { TestLogger } from '../../../../shared/platform/logger/test_logger.js';
+import { TestLogger } from '../../../../platform/logger/test_logger.js';
 
 const ARROW_CONTENT_TYPE = "application/vnd.apache.arrow.stream";
 
