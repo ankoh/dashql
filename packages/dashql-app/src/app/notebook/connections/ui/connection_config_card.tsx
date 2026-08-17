@@ -89,6 +89,7 @@ export const ConnectionConfigCard: React.FC<Props> = (props: Props) => {
             </div>
             <div className={`${baseStyles.card_section} ${styles.card_body}`}>
                 <ConnectorConfigTabs
+                    className={styles.content_sized_tabs}
                     notebookId={props.notebookId}
                     selectedConnectorType={selectedConnectorType}
                     setSelectedConnectorType={setSelectedConnectorType}

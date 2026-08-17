@@ -160,7 +160,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
             // Setup the Hyper connection
             setupAbortController.current = new AbortController();
             const hyperChannel = await hyperSetup.setup(dispatchConnectionState, setupParams, setupAbortController.current.signal);
-            if (hyperChannel != null) {
+            if (hyperChannel != null && protocol !== 'WASM') {
                 await performHealthCheck(queryExecutor, connectionState.connectionId, { type: 'hyper', channel: hyperChannel }, dispatchConnectionState, setupAbortController.current.signal);
             }
 
@@ -216,6 +216,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                 protocols={protocols}
                 onProtocolChange={setProtocol}
                 freezeInput={freezeInput}
+                embedded={protocol === 'WASM'}
                 onClose={props.onClose}
                 trailingStatusActions={isDocker && dockerMode === 'list' && (
                     <>
@@ -251,7 +252,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
             <div className={style.body_container}>
                 <div className={style.section}>
                     <div className={`${style.section_layout} ${style.body_section_layout}`}>
-                        <div className={style.grid_column_1_span_2}>
+                        <div className={`${style.grid_column_1_span_2} ${style.embedded_description}`}>
                             Hyper runs locally in this browser using WebAssembly.
                         </div>
                     </div>

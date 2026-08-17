@@ -49,6 +49,7 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
         >
             <div className={styles.overlay_container}>
                 <ConnectorConfigTabs
+                    className={styles.content_sized_tabs}
                     notebookId={props.notebookId}
                     selectedConnectorType={selectedConnectorType}
                     setSelectedConnectorType={setSelectedConnectorType}

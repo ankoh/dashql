@@ -83,6 +83,12 @@
     font-weight: 500;
 }
 
+.embedded_label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #59636e;
+}
+
 .status_error {
     font-size: 0.8rem;
     font-weight: 300;

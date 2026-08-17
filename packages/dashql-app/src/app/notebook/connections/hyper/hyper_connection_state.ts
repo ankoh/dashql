@@ -191,7 +191,9 @@ export function reduceHyperConnectorState(state: ConnectionState, action: HyperC
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_READY,
-                connectionHealth: ConnectionHealth.CONNECTING,
+                connectionHealth: details.proto.setupParams?.protocol === 'WASM'
+                    ? ConnectionHealth.ONLINE
+                    : ConnectionHealth.CONNECTING,
                 details: {
                     type: HYPER_CONNECTOR,
                     value: {

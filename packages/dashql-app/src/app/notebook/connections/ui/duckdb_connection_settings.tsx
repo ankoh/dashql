@@ -8,8 +8,6 @@ import { ConnectionHealth } from '../connection_state.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connector_info.js';
 import { getDuckDBConnectionDetails } from '../duckdb/duckdb_connection_state.js';
 import { useDuckDBSetup } from '../duckdb/duckdb_connection_setup.js';
-import { useQueryExecutor } from '../query_executor.js';
-import { performHealthCheck } from '../health_check.js';
 import { useAnyConnectionNotebookScripts } from './connection_notebook_scripts.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 
@@ -21,7 +19,6 @@ interface Props {
 export const DuckDBConnectorSettings: React.FC<Props> = props => {
     const logger = useLogger();
     const setup = useDuckDBSetup();
-    const queryExecutor = useQueryExecutor();
     const [connectionState, dispatchConnectionState] = useConnectionState(props.notebookId);
     const notebookScripts = useAnyConnectionNotebookScripts(props.notebookId);
     const details = getDuckDBConnectionDetails(connectionState);
@@ -31,16 +28,9 @@ export const DuckDBConnectorSettings: React.FC<Props> = props => {
         if (!setup || !connectionState) return;
         abortController.current = new AbortController();
         try {
-            const channel = await setup.setup(
+            await setup.setup(
                 dispatchConnectionState,
                 details?.proto.setupParams ?? {},
-                abortController.current.signal,
-            );
-            await performHealthCheck(
-                queryExecutor,
-                connectionState.connectionId,
-                { type: 'duckdb', channel },
-                dispatchConnectionState,
                 abortController.current.signal,
             );
         } catch (error) {
@@ -66,12 +56,13 @@ export const DuckDBConnectorSettings: React.FC<Props> = props => {
                 resetSetup={resetSetup}
                 notebookScripts={notebookScripts}
                 freezeInput={freezeInput}
+                embedded
                 onClose={props.onClose}
             />
             <div className={style.body_container}>
                 <div className={style.section}>
                     <div className={`${style.section_layout} ${style.body_section_layout}`}>
-                        <div className={style.grid_column_1_span_2}>
+                        <div className={`${style.grid_column_1_span_2} ${style.embedded_description}`}>
                             DuckDB runs locally inside the native DashQL application.
                         </div>
                     </div>

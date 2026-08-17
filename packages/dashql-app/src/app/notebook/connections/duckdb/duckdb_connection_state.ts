@@ -115,7 +115,7 @@ export function reduceDuckDBConnectorState(
             return {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_READY,
-                connectionHealth: ConnectionHealth.CONNECTING,
+                connectionHealth: ConnectionHealth.ONLINE,
                 details: {
                     type: DUCKDB_CONNECTOR,
                     value: {

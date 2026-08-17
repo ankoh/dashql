@@ -33,6 +33,7 @@ interface Props {
     protocols?: connection.HyperProtocol[];
     onProtocolChange?: (protocol: connection.HyperProtocol) => void;
     freezeInput?: boolean;
+    embedded?: boolean;
     onClose?: () => void;
     /// Extra actions rendered fully right in the status bar, after the connect button.
     trailingStatusActions?: React.ReactNode;
@@ -61,11 +62,11 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                 connectButton = (
                     <Button
                         variant={ButtonVariant.Primary}
-                        leadingVisual={PlugIcon}
+                        leadingVisual={props.embedded ? undefined : PlugIcon}
                         onClick={props.setupConnection}
                         disabled={props.wrongPlatform || !props.setupConnection}
                     >
-                        Connect
+                        {props.embedded ? "Select" : "Connect"}
                     </Button>
                 );
                 break;
@@ -153,21 +154,28 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                     )}
                 </div>
             </div>
-            {props.connector.features.healthChecks && (
+            {(props.connector.features.healthChecks || props.embedded) && (
                 <div className={style.status_row}>
-                    <div className={style.status_left}>
-                        <div className={style.status_indicator}>
-                            <StatusIndicator status={indicatorStatus} fill="black" />
-                        </div>
-                        <div className={style.status_text}>
-                            {statusText}
-                        </div>
-                        {connectionError && (
-                            <div className={style.status_error}>
-                                {connectionError.message.toString()}
+                    {!props.embedded && (
+                        <div className={style.status_left}>
+                            <div className={style.status_indicator}>
+                                <StatusIndicator status={indicatorStatus} fill="black" />
                             </div>
-                        )}
-                    </div>
+                            <div className={style.status_text}>
+                                {statusText}
+                            </div>
+                            {connectionError && (
+                                <div className={style.status_error}>
+                                    {connectionError.message.toString()}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {props.embedded && (
+                        <div className={style.embedded_label}>
+                            Embedded Engine
+                        </div>
+                    )}
                     <div className={style.status_right}>
                         {connectButton}
                         {props.trailingStatusActions}

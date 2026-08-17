@@ -85,6 +85,11 @@
     grid-column: 1 / span 2;
 }
 
+.embedded_description {
+    font-size: 0.9rem;
+    color: #59636e;
+}
+
 .connector_body_container {
     min-height: 48px;
 }

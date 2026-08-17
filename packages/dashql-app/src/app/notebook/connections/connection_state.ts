@@ -461,8 +461,9 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 throw new Error(`failed to apply state action: ${String(action.type)}`);
             }
 
-            // Activate the connection when the health check succeeds
-            if (action.type === HEALTH_CHECK_SUCCEEDED && !newState.active) {
+            // Embedded connectors become online as soon as their local channel is ready, without a
+            // health-check action. Activate every connection on its first transition to online.
+            if (newState.connectionHealth === ConnectionHealth.ONLINE && !newState.active) {
                 newState = { ...newState, active: true };
             }
 

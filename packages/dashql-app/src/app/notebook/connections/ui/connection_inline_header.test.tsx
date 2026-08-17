@@ -1,0 +1,76 @@
+import * as React from 'react';
+import { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, beforeEach } from 'vitest';
+
+import { LoggerProvider } from '../../../../platform/logger/logger_provider.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../connector_info.js';
+import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '../connection_state.js';
+import { ConnectionInlineHeader } from './connection_inline_header.js';
+
+describe('ConnectionInlineHeader', () => {
+    let container: HTMLDivElement;
+    let root: Root;
+
+    beforeEach(() => {
+        container = document.createElement('div');
+        document.body.appendChild(container);
+        root = createRoot(container);
+    });
+
+    afterEach(() => {
+        act(() => root.unmount());
+        container.remove();
+    });
+
+    it('offers selection with an embedded engine label instead of health status', () => {
+        const connection = {
+            connectorInfo: CONNECTOR_INFOS[ConnectorType.DUCKDB],
+            connectionHealth: ConnectionHealth.NOT_STARTED,
+            connectionStatus: ConnectionStatus.NOT_STARTED,
+            details: { type: Symbol('test'), value: null },
+        } as unknown as ConnectionState;
+
+        act(() => root.render(
+            <LoggerProvider>
+                <ConnectionInlineHeader
+                    connector={connection.connectorInfo}
+                    connection={connection}
+                    wrongPlatform={false}
+                    setupConnection={() => {}}
+                    notebookScripts={null}
+                    embedded
+                />
+            </LoggerProvider>,
+        ));
+
+        expect(container.querySelector('button')?.textContent).toBe('Select');
+        expect(container.querySelector('button svg')).toBeNull();
+        expect(container.textContent).toContain('Embedded Engine');
+        expect(container.textContent).not.toContain('Disconnected');
+    });
+
+    it('keeps connect and health status for remote connectors', () => {
+        const connection = {
+            connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
+            connectionHealth: ConnectionHealth.NOT_STARTED,
+            connectionStatus: ConnectionStatus.NOT_STARTED,
+            details: { type: Symbol('test'), value: null },
+        } as unknown as ConnectionState;
+
+        act(() => root.render(
+            <LoggerProvider>
+                <ConnectionInlineHeader
+                    connector={connection.connectorInfo}
+                    connection={connection}
+                    wrongPlatform={false}
+                    setupConnection={() => {}}
+                    notebookScripts={null}
+                />
+            </LoggerProvider>,
+        ));
+
+        expect(container.querySelector('button')?.textContent).toBe('Connect');
+        expect(container.textContent).toContain('Disconnected');
+    });
+});

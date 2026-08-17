@@ -1,11 +1,16 @@
 .overlay_container {
     width: 100%;
-    height: 600px;
-    max-height: 80vh;
+    max-height: min(600px, 80vh);
     display: flex;
     flex-direction: column;
     container-type: inline-size;
     container-name: connection-overlay;
+}
+
+.content_sized_tabs {
+    height: auto;
+    max-height: min(600px, 80vh);
+    grid-template-rows: minmax(0, max-content);
 }
 
 .overlay_container :global(.body),

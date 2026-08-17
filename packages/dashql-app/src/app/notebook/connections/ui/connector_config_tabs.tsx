@@ -11,6 +11,7 @@ import { useConnectionState } from '../connection_registry.js';
 import { ConnectionHealth, ConnectionStatus, SWITCH_CONNECTOR_TYPE } from '../connection_state.js';
 
 interface Props {
+    className?: string;
     notebookId: string | null;
     selectedConnectorType: ConnectorType;
     setSelectedConnectorType: (type: ConnectorType) => void;
@@ -79,6 +80,7 @@ export const ConnectorConfigTabs: React.FC<Props> = (props: Props) => {
 
     return (
         <VerticalTabs
+            className={props.className}
             variant={VerticalTabVariant.Stacked}
             selectedTab={props.selectedConnectorType}
             selectTab={handleSelectTab}
