@@ -12,6 +12,9 @@ import { ShellNavBar } from './shell_navbar.js';
 import { ShellPage } from './shell_page.js';
 import { ShellConnectionProvider } from './shell_connection.js';
 import { ConnectionRegistry } from '../app/notebook/connections/connection_registry.js';
+import { ComputationRegistry } from '../compute/computation_registry.js';
+import { ComputationScheduler } from '../compute/computation_scheduler.js';
+import { DashQLCoreProvider } from '../app/providers/core_provider.js';
 import * as styles from './shell.module.css';
 
 import '../../static/fonts/fonts.css';
@@ -30,14 +33,19 @@ export const Shell: React.FC = () => {
                         <ProcessProvider>
                             <EmbeddedDatabaseProvider>
                                 <GitHubTheme>
-                                    <ConnectionRegistry>
-                                        <ShellConnectionProvider>
-                                            <div className={styles.root}>
-                                                <ShellNavBar engineVersion={engineVersion} />
-                                                <ShellPage onEngineVersion={setEngineVersion} />
-                                            </div>
-                                        </ShellConnectionProvider>
-                                    </ConnectionRegistry>
+                                    <DashQLCoreProvider>
+                                        <ComputationRegistry>
+                                            <ComputationScheduler />
+                                            <ConnectionRegistry>
+                                                <ShellConnectionProvider>
+                                                    <div className={styles.root}>
+                                                        <ShellNavBar engineVersion={engineVersion} />
+                                                        <ShellPage onEngineVersion={setEngineVersion} />
+                                                    </div>
+                                                </ShellConnectionProvider>
+                                            </ConnectionRegistry>
+                                        </ComputationRegistry>
+                                    </DashQLCoreProvider>
                                 </GitHubTheme>
                             </EmbeddedDatabaseProvider>
                         </ProcessProvider>

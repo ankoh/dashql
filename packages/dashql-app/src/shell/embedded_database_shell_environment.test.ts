@@ -25,6 +25,27 @@ describe('embedded database shell environment', () => {
         expect(result).toBe(stream);
     });
 
+    it('prepares and opens results in overlay mode', async () => {
+        const table = arrow.tableFromArrays({ value: [42] });
+        const queryArrowIPC = vi.fn().mockResolvedValue(arrow.tableToIPC(table, 'file'));
+        const prepareResult = vi.fn();
+        const environment = createEmbeddedDatabaseShellEnvironment(
+            { queryArrowIPC } as any,
+            undefined,
+            {
+                getResultMode: () => 'overlay',
+                prepareResult,
+            },
+        );
+        const onResult = vi.fn();
+
+        const result = await environment.executeQuery('SELECT 42', undefined, undefined, onResult);
+
+        expect(arrow.tableFromIPC(result).numCols).toBe(0);
+        expect(prepareResult).toHaveBeenCalledWith(expect.any(Number), expect.objectContaining({ numRows: 1 }));
+        expect(onResult).toHaveBeenCalledWith(expect.any(Number), 1);
+    });
+
     it('rejects an already cancelled query before reaching the database', async () => {
         const queryArrowIPC = vi.fn();
         const environment = createEmbeddedDatabaseShellEnvironment({ queryArrowIPC } as any);

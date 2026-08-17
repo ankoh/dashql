@@ -9,13 +9,23 @@ import {
 import type { EmbeddedConnection } from '../platform/database/embedded_database.js';
 import { DashQLShellEnvironment } from './api.js';
 import { executeTrackedQuery } from '../query/tracked_query_execution.js';
+import { shouldShowResultOverlay, type ShellResultMode } from './shell_result.js';
+
+const EMPTY_RESULT_IPC = arrow.tableToIPC(arrow.tableFromArrays({}), 'file');
+
+interface EmbeddedDatabaseShellEnvironmentOptions {
+    getResultMode?: () => ShellResultMode;
+    getTerminalColumns?: () => number;
+    prepareResult?: (queryId: number, table: arrow.Table) => void | Promise<void>;
+}
 
 export function createEmbeddedDatabaseShellEnvironment(
     connection: EmbeddedConnection,
     queryExecutions?: QueryExecutionTracker,
+    options: EmbeddedDatabaseShellEnvironmentOptions = {},
 ): DashQLShellEnvironment {
     return {
-        executeQuery: async (query, signal) => {
+        executeQuery: async (query, signal, _onProgress, onResult) => {
             const cancellation = new AbortController();
             const abort = () => cancellation.abort();
             if (signal?.aborted) abort();
@@ -46,6 +56,16 @@ export function createEmbeddedDatabaseShellEnvironment(
                             type: QUERY_RECEIVED_ALL_BATCHES,
                             value: [tracked.queryId, table, new Map(), metrics],
                         });
+                        const showOverlay = shouldShowResultOverlay(
+                            options.getResultMode?.() ?? 'auto',
+                            table,
+                            options.getTerminalColumns?.() ?? 100,
+                        );
+                        if (showOverlay && onResult != null) {
+                            await options.prepareResult?.(tracked.queryId, table);
+                            onResult(tracked.queryId, table.numRows);
+                            return EMPTY_RESULT_IPC;
+                        }
                         return queryResult;
                     },
                 });

@@ -551,7 +551,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
 
             const folderToDelete = action.value;
             if (!state.scriptFolders[folderToDelete]) {
-                console.warn("Delete references invalid page");
+                logger.warn("DELETE_SCRIPT_FOLDER references invalid folder", { folderName: folderToDelete }, LOG_CTX);
                 return state;
             }
 
@@ -990,13 +990,18 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
         case RENAME_SCRIPT: {
             const page = getSelectedScriptFolder(state);
             if (!page) {
-                console.warn("Update references invalid notebook entry");
+                logger.warn("RENAME_SCRIPT references invalid selected folder", {
+                    folderName: state.scriptFocus.folderName,
+                }, LOG_CTX);
                 return state;
             }
             const { fileName: oldFileName, newFileName: requestedName } = action.value;
             const entry = page.scripts[oldFileName];
             if (!entry) {
-                console.warn("Update references invalid notebook entry");
+                logger.warn("RENAME_SCRIPT references invalid script", {
+                    folderName: page.folderName,
+                    fileName: oldFileName,
+                }, LOG_CTX);
                 return state;
             }
             // The rename input edits the *clean* display name. Normalise whatever the user typed to a
@@ -1087,7 +1092,9 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             const { folderName: oldFolderName, newFolderName: requestedName } = action.value;
             const page = state.scriptFolders[oldFolderName];
             if (!page) {
-                console.warn("Update references invalid folder name");
+                logger.warn("RENAME_SCRIPT_FOLDER references invalid folder", {
+                    folderName: oldFolderName,
+                }, LOG_CTX);
                 return state;
             }
             // Only the clean (display) part of the name changes here; the numeric ordering prefix is
@@ -1925,10 +1932,13 @@ export function analyzeScriptData(scriptData: ScriptData, _catalog: core.DashQLC
     next.scriptAnalysis.buffers.destroy(next.scriptAnalysis.buffers);
 
     // Analyze the script
-    const buffers = analyzeScript(next.script);
+    // Capture the underlying failure so callers can log it with notebook/script context
+    // instead of writing it directly to the console.
+    let analyzeError: unknown = null;
+    const buffers = analyzeScript(next.script, (error) => { analyzeError = error; });
     if (buffers.analyzed == null) {
         buffers.destroy(buffers);
-        throw new Error("Failed to analyze script");
+        throw analyzeError ?? new Error("Failed to analyze script");
     }
     next.scriptAnalysis = { buffers, outdated: false };
     // Rotate the script statistics

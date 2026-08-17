@@ -97,7 +97,7 @@ export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
 export type DashQLProcessorState = DashQLProcessorUpdateIn;
 
 /// Analyze a new script
-export function analyzeScript(script: dashql.DashQLScript): DashQLScriptBuffers {
+export function analyzeScript(script: dashql.DashQLScript, reportError: (error: unknown) => void = console.error): DashQLScriptBuffers {
     try {
         script.analyze();
 
@@ -105,8 +105,8 @@ export function analyzeScript(script: dashql.DashQLScript): DashQLScriptBuffers 
         const analyzed = script.getAnalyzed();
         return { parsed, analyzed, destroy: destroyBuffers };
 
-    } catch (e: any) {
-        console.error(e);
+    } catch (e: unknown) {
+        reportError(e);
     }
     return { parsed: null, analyzed: null, destroy: destroyBuffers };
 }

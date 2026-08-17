@@ -4,11 +4,13 @@ import * as arrow from 'apache-arrow';
 import { QueryExecutor } from '../connections/query_executor.js';
 import {
     createNotebookShellEnvironment,
-    createNotebookShellResultCommand,
-    estimateTerminalTableWidth,
-    NOTEBOOK_SHELL_AUTO_OVERLAY_ROW_LIMIT,
-    type NotebookShellResultMode,
 } from './notebook_shell_environment.js';
+import {
+    createShellResultCommand,
+    estimateTerminalTableWidth,
+    SHELL_AUTO_OVERLAY_ROW_LIMIT,
+    type ShellResultMode,
+} from '../../../shell/shell_result.js';
 
 describe('notebook shell environment', () => {
     it('renders small auto-mode results in the terminal', async () => {
@@ -33,7 +35,7 @@ describe('notebook shell environment', () => {
     });
 
     it('opens auto-mode results in the overlay above the row limit', async () => {
-        const rowCount = NOTEBOOK_SHELL_AUTO_OVERLAY_ROW_LIMIT + 1;
+        const rowCount = SHELL_AUTO_OVERLAY_ROW_LIMIT + 1;
         const execute = vi.fn<QueryExecutor>(() => [7, Promise.resolve(arrow.tableFromArrays({
             value: Array.from({ length: rowCount }, (_, index) => index),
         }))]);
@@ -73,7 +75,7 @@ describe('notebook shell environment', () => {
     });
 
     it('honors forced overlay and terminal result modes', async () => {
-        let mode: NotebookShellResultMode = 'overlay';
+        let mode: ShellResultMode = 'overlay';
         const execute = vi.fn<QueryExecutor>(() => [7, Promise.resolve(arrow.tableFromArrays({ value: [42] }))]);
         const environment = createNotebookShellEnvironment('notebook-1', execute, vi.fn(), () => mode);
         const result = vi.fn();
@@ -89,11 +91,11 @@ describe('notebook shell environment', () => {
     });
 
     it('configures and reports the result display mode', async () => {
-        let mode: NotebookShellResultMode = 'auto';
-        const command = createNotebookShellResultCommand(() => mode, next => { mode = next; });
+        let mode: ShellResultMode = 'auto';
+        const command = createShellResultCommand(() => mode, next => { mode = next; });
 
         expect(await command[2]([], {})).toBe(
-            `Result display: auto (overlay when results exceed ${NOTEBOOK_SHELL_AUTO_OVERLAY_ROW_LIMIT} rows or terminal width)`,
+            `Result display: auto (overlay when results exceed ${SHELL_AUTO_OVERLAY_ROW_LIMIT} rows or terminal width)`,
         );
         expect(await command[2](['overlay'], {})).toBe('Result display: overlay');
         expect(mode).toBe('overlay');

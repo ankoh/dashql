@@ -13,10 +13,9 @@ import type { BrowserShellController } from '../../../shell/browser_shell.js';
 import { createNotebookShell } from './notebook_shell_catalog.js';
 import {
     createNotebookShellEnvironment,
-    createNotebookShellResultCommand,
-    type NotebookShellResultMode,
 } from './notebook_shell_environment.js';
 import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
+import { createShellResultCommand, type ShellResultMode } from '../../../shell/shell_result.js';
 
 const LOG_CTX = 'notebook_shell_page';
 
@@ -40,7 +39,7 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
     const controllerRef = React.useRef<BrowserShellController | null>(null);
     const shellRef = React.useRef<DashQLShell | null>(null);
     const generationRef = React.useRef(0);
-    const resultModeRef = React.useRef<NotebookShellResultMode>('auto');
+    const resultModeRef = React.useRef<ShellResultMode>('auto');
     const terminalColumnsRef = React.useRef(100);
     const [status, setStatus] = React.useState('Instantiating Shell');
     const [resultQueryId, setResultQueryId] = React.useState<number | null>(null);
@@ -60,7 +59,7 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
             getResultMode,
             () => terminalColumnsRef.current,
         );
-        const resultCommand = createNotebookShellResultCommand(getResultMode, mode => {
+        const resultCommand = createShellResultCommand(getResultMode, mode => {
             resultModeRef.current = mode;
         });
         setStatus(shellRef.current == null ? 'Instantiating Shell' : 'Refreshing shell catalog');
