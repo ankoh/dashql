@@ -1,26 +1,24 @@
 import * as arrow from 'apache-arrow';
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
 import * as styles from './data_table.module.css';
 
 import { Grid, useGridCallbackRef } from 'react-window';
 
 import { ArrowTableFormatter } from '../../../../../compute/arrow_formatter.js';
-import { CLEAR_TABLE_ORDERING, ComputationAction, TableComputationState } from '../../../../../compute/computation_state.js';
+import { ComputationAction, TableComputationState } from '../../../../../compute/computation_state.js';
 import { Dispatch } from '../../../../../utils/variant.js';
-import { OrderByConstraint } from '../../../../../compute/sql/sqlframe_builder.js';
-import { TableOrderingTask, TaskStatus } from '../../../../../compute/computation_types.js';
-import { DataCell, DataCellData, HeaderNameCell, HeaderPlotsCell, TableColumnHeader } from './data_table_cell.js';
+import { DataCell, DataCellData, TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../../../../utils/classnames.js';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
-import { sortTableDispatched } from '../../../../../compute/computation_logic.js';
 import { useCrossFilters } from './use_cross_filters.js';
 import { observeSize } from '../../../../../ui/foundations/size_observer.js';
 import { CellDetailOverlay } from './cell_detail_overlay.js';
 import { useAppConfig } from '../../../../config/app_config.js';
 import { useLogger } from '../../../../../platform/logger/logger_provider.js';
 import { useScrollbarHeight } from '../../../../../utils/scrollbar.js';
-import { getColumnSortDirection, getNextColumnSortDirection } from './data_table_ordering.js';
+import { useDataTableOrdering } from './data_table_ordering.js';
+import { useDataTablePortalContainers } from './data_table_portals.js';
+import { DataTableStickyColumn, DataTableStickyHeaders } from './data_table_sticky_views.js';
 
 const LOG_CTX = 'data_table';
 
@@ -44,24 +42,6 @@ const COLUMN_HEADER_PLOTS_HEIGHT = 76;
 const ROW_HEIGHT = 26;
 const GRID_OVERSCAN_COUNT = 10;
 const NOOP_BRUSHING = () => { };
-
-function areOrderingConstraintsEqual(left: OrderByConstraint[], right: OrderByConstraint[]): boolean {
-    if (left.length !== right.length) {
-        return false;
-    }
-    for (let i = 0; i < left.length; ++i) {
-        const a = left[i];
-        const b = right[i];
-        if (
-            a.field !== b.field
-            || (a.ascending ?? true) !== (b.ascending ?? true)
-            || (a.nullsFirst ?? false) !== (b.nullsFirst ?? false)
-        ) {
-            return false;
-        }
-    }
-    return true;
-}
 
 interface FocusedCells {
     row: number | null,
@@ -170,102 +150,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         gridLayout,
     );
 
-    const activeOrderingConstraints = React.useMemo<OrderByConstraint[]>(() => {
-        const taskOrdering = computationState.tasks.orderingTask?.orderingConstraints;
-        if (taskOrdering != null && taskOrdering.length > 0) {
-            return taskOrdering;
-        }
-        return computationState.dataTableOrdering;
-    }, [computationState.dataTableOrdering, computationState.tasks.orderingTask?.orderingConstraints]);
-
-    // Recompute ordering whenever the active sort changes or the filtered subset changes.
-    React.useEffect(() => {
-        if (
-            !computationState.dataFrame
-            || !computationState.rowNumberColumnName
-            || activeOrderingConstraints.length === 0
-        ) {
-            return;
-        }
-        const currentTask = computationState.tasks.orderingTask;
-        const currentOrdering = computationState.orderingTable;
-        const filterVersion = computationState.filterTable?.version ?? null;
-        const hasUpToDateOrdering = (
-            currentOrdering != null
-            && currentTask?.progress.status === TaskStatus.TASK_SUCCEEDED
-            && currentTask.tableVersion.filterMatches(computationState.version)
-            && (filterVersion ? (currentTask.filterTable?.version?.filterMatches(filterVersion) ?? false) : (currentTask.filterTable === null))
-            && areOrderingConstraintsEqual(currentOrdering.orderingConstraints, activeOrderingConstraints)
-        );
-        if (hasUpToDateOrdering) {
-            return;
-        }
-        const hasUpToDateRunningTask = (
-            currentTask?.progress.status === TaskStatus.TASK_RUNNING
-            && currentTask.tableVersion.filterMatches(computationState.version)
-            && (filterVersion ? (currentTask.filterTable?.version?.filterMatches(filterVersion) ?? false) : (currentTask.filterTable === null))
-            && areOrderingConstraintsEqual(currentTask.orderingConstraints, activeOrderingConstraints)
-        );
-        if (hasUpToDateRunningTask) {
-            return;
-        }
-        const orderingTask: TableOrderingTask = {
-            tableId: computationState.tableId,
-            tableVersion: computationState.version,
-            inputDataTable: computationState.dataTable,
-            inputDataTableFieldIndex: computationState.dataTableFieldsByName,
-            inputDataFrame: computationState.dataFrame,
-            filterTable: computationState.filterTable,
-            rowNumberColumnName: computationState.rowNumberColumnName,
-            orderingConstraints: activeOrderingConstraints,
-        };
-        void sortTableDispatched(orderingTask, dispatchComputation);
-    }, [
-        activeOrderingConstraints,
-        computationState.dataFrame,
-        computationState.dataTable,
-        computationState.dataTableFieldsByName,
-        computationState.filterTable,
-        computationState.orderingTable,
-        computationState.rowNumberColumnName,
-        computationState.version,
-        computationState.tableId,
-        computationState.tasks.orderingTask,
-        dispatchComputation,
-    ]);
-
-    // Order by a column
-    const orderByColumn = React.useCallback((fieldId: number) => {
-        const fieldName = dataTable.schema.fields[fieldId].name;
-        const nextSortDirection = getNextColumnSortDirection(fieldName, activeOrderingConstraints);
-        if (nextSortDirection == null) {
-            dispatchComputation({ type: CLEAR_TABLE_ORDERING, value: computationState.tableId });
-            return;
-        }
-        const orderingConstraints: OrderByConstraint[] = [{
-            field: fieldName,
-            ascending: nextSortDirection,
-            nullsFirst: false,
-        }];
-        if (computationState.dataFrame && computationState.rowNumberColumnName) {
-            const orderingTask: TableOrderingTask = {
-                tableId: computationState.tableId,
-                tableVersion: computationState.version,
-                inputDataTable: computationState.dataTable,
-                inputDataTableFieldIndex: computationState.dataTableFieldsByName,
-                inputDataFrame: computationState.dataFrame,
-                filterTable: computationState.filterTable,
-                rowNumberColumnName: computationState.rowNumberColumnName,
-                orderingConstraints
-            };
-            void sortTableDispatched(orderingTask, dispatchComputation);
-        }
-    }, [activeOrderingConstraints, computationState, dataTable.schema.fields, dispatchComputation]);
-
-    const getSortDirection = React.useCallback((fieldId: number) => {
-        const fieldName = dataTable.schema.fields[fieldId].name;
-        return getColumnSortDirection(fieldName, activeOrderingConstraints);
-    }, [activeOrderingConstraints, dataTable.schema.fields]);
+    const { orderByColumn, getSortDirection } = useDataTableOrdering(computationState, dispatchComputation);
 
     // Maintain the focused cell - updates are stored in ref and read during next render
     const focusedCells = React.useRef<FocusedCells | null>(null);
@@ -390,217 +275,10 @@ export const DataTable: React.FC<Props> = (props: Props) => {
 
 
     // Create containers for sticky header and sticky column
-    const [portalContainers, setPortalContainers] = React.useState<{
-        header: HTMLDivElement;
-        data: HTMLDivElement;
-    } | null>(null);
-
-    React.useEffect(() => {
-        const gridElement = gridApi?.element;
-        if (!gridElement) {
-            setPortalContainers(null);
-            return;
-        }
-
-        // Create header container and prepend it (will be first in DOM, before Grid's inner content)
-        const headerContainer = document.createElement('div');
-        headerContainer.className = styles.sticky_header_portal;
-        gridElement.prepend(headerContainer);
-
-        // Create column container and append it (will be after Grid's inner content)
-        const dataContainer = document.createElement('div');
-        dataContainer.className = styles.sticky_column_portal;
-        gridElement.appendChild(dataContainer);
-
-        setPortalContainers({ header: headerContainer, data: dataContainer });
-        return () => {
-            headerContainer.remove();
-            dataContainer.remove();
-            setPortalContainers(null);
-        };
-    }, [gridApi]);
+    const portalContainers = useDataTablePortalContainers(gridApi);
 
     // Total height of data content (for sticky column sizing)
     const totalDataHeight = dataRowCount * ROW_HEIGHT;
-
-    // Render sticky headers via portal into the prepended container.
-    // Since it's before the Grid's inner content, sticky positioning works natively.
-    const renderStickyHeadersIntoPortal = () => {
-        if (!portalContainers?.header) return null;
-
-        return ReactDOM.createPortal(
-            <div
-                className={styles.sticky_header_container}
-                style={{
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 10,
-                    width: totalColumnsWidth,
-                    height: headerHeight,
-                }}
-            >
-                {/* Row 0: Column headers */}
-                <div className={styles.sticky_header_row} style={{ display: 'flex', height: COLUMN_HEADER_HEIGHT }}>
-                    {/* Sticky corner cell */}
-                    <div style={{ position: 'sticky', left: 0, zIndex: 11, flexShrink: 0 }}>
-                        <HeaderNameCell
-                            columnIndex={0}
-                            style={{ width: firstColumnWidth, height: COLUMN_HEADER_HEIGHT }}
-                            table={computationState.dataTable}
-                            gridLayout={gridLayout}
-                            dataFrame={computationState.dataFrame}
-                            rightmostVisibleColumn={gridLayout.columnCount - 1}
-                            sortAscending={getSortDirection(gridLayout.arrowFieldByColumnIndex[0])}
-                            onOrderByColumn={orderByColumn}
-                            onShowTable={props.onShowTable}
-                        />
-                    </div>
-                    {leftHeaderSpacerWidth > 0 && <div style={{ width: leftHeaderSpacerWidth, flexShrink: 0 }} />}
-                    {/* Render only the same buffered columns as the virtualized grid. */}
-                    {Array.from({ length: renderedColumnCount }, (_, i) => {
-                        const colIndex = firstRenderedColumn + i;
-                        return (
-                            <HeaderNameCell
-                                key={`header-0-${colIndex}`}
-                                columnIndex={colIndex}
-                                style={{
-                                    width: getColumnWidth(colIndex),
-                                    height: COLUMN_HEADER_HEIGHT,
-                                    flexShrink: 0,
-                                }}
-                                table={computationState.dataTable}
-                                gridLayout={gridLayout}
-                                dataFrame={computationState.dataFrame}
-                                rightmostVisibleColumn={gridLayout.columnCount - 1}
-                                sortAscending={getSortDirection(gridLayout.arrowFieldByColumnIndex[colIndex])}
-                                onOrderByColumn={orderByColumn}
-                                onShowTable={props.onShowTable}
-                            />
-                        );
-                    })}
-                    {rightHeaderSpacerWidth > 0 && <div style={{ width: rightHeaderSpacerWidth, flexShrink: 0 }} />}
-                </div>
-
-                {/* Row 1: Column plots (if enabled) */}
-                {columnHeader === TableColumnHeader.WithColumnPlots && (
-                    <div className={styles.sticky_header_row} style={{ display: 'flex', height: COLUMN_HEADER_PLOTS_HEIGHT }}>
-                        <div style={{ position: 'sticky', left: 0, zIndex: 11, flexShrink: 0 }}>
-                            <HeaderPlotsCell
-                                columnIndex={0}
-                                style={{ width: firstColumnWidth, height: COLUMN_HEADER_PLOTS_HEIGHT }}
-                                gridLayout={gridLayout}
-                                columnGroups={computationState.columnGroups}
-                                columnAggregations={computationState.columnAggregates}
-                                columnAggregationTasks={computationState.tasks.columnAggregationTasks}
-                                filteredColumnAggregations={computationState.filteredColumnAggregates}
-                                filteredColumnAggregationTasks={computationState.tasks.filteredColumnAggregationTasks}
-                                filteredColumnAggregationOutdated={computationState.filteredColumnAggregatesOutdated}
-                                tableAggregation={computationState.tableAggregation}
-                                filterTableEpoch={computationState.filterTable?.version ?? null}
-                                isVisible={true}
-                                rightmostVisibleColumn={gridLayout.columnCount - 1}
-                                onRequestFilteredColumnAggregation={requestFilteredColumnAggregation}
-                                onHistogramFilter={histogramFilter}
-                                onBrushingChange={NOOP_BRUSHING}
-                                onMostFrequentValueFilter={mostFrequentValueFilter}
-                            />
-                        </div>
-                        {leftHeaderSpacerWidth > 0 && <div style={{ width: leftHeaderSpacerWidth, flexShrink: 0 }} />}
-                        {Array.from({ length: renderedColumnCount }, (_, i) => {
-                            const colIndex = firstRenderedColumn + i;
-                            const style = {
-                                width: getColumnWidth(colIndex),
-                                height: COLUMN_HEADER_PLOTS_HEIGHT,
-                                flexShrink: 0,
-                            };
-                            return (
-                                <HeaderPlotsCell
-                                    key={`header-1-${colIndex}`}
-                                    columnIndex={colIndex}
-                                    style={style}
-                                    gridLayout={gridLayout}
-                                    columnGroups={computationState.columnGroups}
-                                    columnAggregations={computationState.columnAggregates}
-                                    columnAggregationTasks={computationState.tasks.columnAggregationTasks}
-                                    filteredColumnAggregations={computationState.filteredColumnAggregates}
-                                    filteredColumnAggregationTasks={computationState.tasks.filteredColumnAggregationTasks}
-                                    filteredColumnAggregationOutdated={computationState.filteredColumnAggregatesOutdated}
-                                    tableAggregation={computationState.tableAggregation}
-                                    filterTableEpoch={computationState.filterTable?.version ?? null}
-                                    isVisible={true}
-                                    rightmostVisibleColumn={gridLayout.columnCount - 1}
-                                    onRequestFilteredColumnAggregation={requestFilteredColumnAggregation}
-                                    onHistogramFilter={histogramFilter}
-                                    onBrushingChange={NOOP_BRUSHING}
-                                    onMostFrequentValueFilter={mostFrequentValueFilter}
-                                />
-                            );
-                        })}
-                        {rightHeaderSpacerWidth > 0 && <div style={{ width: rightHeaderSpacerWidth, flexShrink: 0 }} />}
-                    </div>
-                )}
-            </div>,
-            portalContainers.header
-        );
-    };
-
-    // Render sticky first column via portal - uses pure CSS sticky positioning
-    // The column is appended to Grid's scroll container and uses sticky left: 0
-    // Uses negative margin-top to pull up and overlay Grid content
-    const renderStickyColumnsIntoPortal = () => {
-        if (!portalContainers?.data) return null;
-
-        // allCells already includes react-window's overscan; do not apply it a second time.
-        const startRow = Math.max(0, renderedCells.rowStart);
-        const stopRow = Math.min(dataRowCount - 1, renderedCells.rowStop);
-        const visibleCount = Math.max(0, stopRow - startRow + 1);
-
-        return ReactDOM.createPortal(
-            <div
-                className={styles.sticky_column_container}
-                style={{
-                    position: 'sticky',
-                    left: 0,
-                    width: firstColumnWidth,
-                    height: totalDataHeight,
-                    marginTop: -totalDataHeight, // Pull up to overlay Grid content
-                    zIndex: 5,
-                    pointerEvents: 'none',
-                }}
-            >
-                {/* Render only visible first column cells with absolute positioning */}
-                {Array.from(
-                    { length: visibleCount },
-                    (_, i) => {
-                        const dataRowIndex = startRow + i;
-                        return (
-                            <div
-                                key={`col0-${dataRowIndex}`}
-                                style={{
-                                    position: 'absolute',
-                                    top: dataRowIndex * ROW_HEIGHT,
-                                    left: 0,
-                                    width: firstColumnWidth,
-                                    height: ROW_HEIGHT,
-                                    pointerEvents: 'auto',
-                                }}
-                            >
-                                <DataCell
-                                    ariaAttributes={{ "aria-colindex": 1, role: "gridcell" }}
-                                    rowIndex={dataRowIndex}
-                                    columnIndex={0}
-                                    style={{ width: firstColumnWidth, height: ROW_HEIGHT }}
-                                    {...gridData}
-                                    hideRowHeader={false}
-                                />
-                            </div>
-                        );
-                    }
-                )}
-            </div>,
-            portalContainers.data
-        );
-    };
 
     return (
         // The grid can be rendered within the notebook feed's deep Tauri drag region. Opt out so
@@ -631,8 +309,52 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                     cellProps={gridData}
                     className={styles.data_grid}
                 />
-                {renderStickyHeadersIntoPortal()}
-                {renderStickyColumnsIntoPortal()}
+                <DataTableStickyHeaders
+                    container={portalContainers?.header ?? null}
+                    totalWidth={totalColumnsWidth}
+                    headerHeight={headerHeight}
+                    firstColumnWidth={firstColumnWidth}
+                    leftSpacerWidth={leftHeaderSpacerWidth}
+                    rightSpacerWidth={rightHeaderSpacerWidth}
+                    firstRenderedColumn={firstRenderedColumn}
+                    renderedColumnCount={renderedColumnCount}
+                    getColumnWidth={getColumnWidth}
+                    columnHeader={columnHeader}
+                    nameCellProps={{
+                        table: computationState.dataTable,
+                        gridLayout,
+                        dataFrame: computationState.dataFrame,
+                        rightmostVisibleColumn: gridLayout.columnCount - 1,
+                        getSortDirection,
+                        onOrderByColumn: orderByColumn,
+                        onShowTable: props.onShowTable,
+                    }}
+                    plotCellProps={{
+                        gridLayout,
+                        columnGroups: computationState.columnGroups,
+                        columnAggregations: computationState.columnAggregates,
+                        columnAggregationTasks: computationState.tasks.columnAggregationTasks,
+                        filteredColumnAggregations: computationState.filteredColumnAggregates,
+                        filteredColumnAggregationTasks: computationState.tasks.filteredColumnAggregationTasks,
+                        filteredColumnAggregationOutdated: computationState.filteredColumnAggregatesOutdated,
+                        tableAggregation: computationState.tableAggregation,
+                        filterTableEpoch: computationState.filterTable?.version ?? null,
+                        isVisible: true,
+                        rightmostVisibleColumn: gridLayout.columnCount - 1,
+                        onRequestFilteredColumnAggregation: requestFilteredColumnAggregation,
+                        onHistogramFilter: histogramFilter,
+                        onBrushingChange: NOOP_BRUSHING,
+                        onMostFrequentValueFilter: mostFrequentValueFilter,
+                    }}
+                />
+                <DataTableStickyColumn
+                    container={portalContainers?.data ?? null}
+                    firstColumnWidth={firstColumnWidth}
+                    totalDataHeight={totalDataHeight}
+                    startRow={Math.max(0, renderedCells.rowStart)}
+                    stopRow={Math.min(dataRowCount - 1, renderedCells.rowStop)}
+                    gridData={gridData}
+                />
             </div>
             <CellDetailOverlay
                 isOpen={cellDetail != null}

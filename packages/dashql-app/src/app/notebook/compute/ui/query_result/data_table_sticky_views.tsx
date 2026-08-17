@@ -1,0 +1,136 @@
+import * as React from 'react';
+import * as ReactDOM from 'react-dom';
+import * as styles from './data_table.module.css';
+
+import type { DataCellData, HeaderNameCellProps, HeaderPlotsCellProps } from './data_table_cell.js';
+import { DataCell, HeaderNameCell, HeaderPlotsCell, TableColumnHeader } from './data_table_cell.js';
+import type { DataTablePortalContainers } from './data_table_portals.js';
+
+interface StickyHeadersProps {
+    container: DataTablePortalContainers['header'] | null;
+    totalWidth: number;
+    headerHeight: number;
+    firstColumnWidth: number;
+    leftSpacerWidth: number;
+    rightSpacerWidth: number;
+    firstRenderedColumn: number;
+    renderedColumnCount: number;
+    getColumnWidth: (columnIndex: number) => number;
+    columnHeader: TableColumnHeader;
+    nameCellProps: Omit<HeaderNameCellProps, 'columnIndex' | 'style' | 'sortAscending'> & {
+        getSortDirection: (fieldId: number) => boolean | null;
+    };
+    plotCellProps: Omit<HeaderPlotsCellProps, 'columnIndex' | 'style'>;
+}
+
+export const DataTableStickyHeaders: React.FC<StickyHeadersProps> = (props) => {
+    if (props.container == null) return null;
+    const renderNameCell = (columnIndex: number, sticky: boolean) => (
+        <HeaderNameCell
+            key={`header-0-${columnIndex}`}
+            columnIndex={columnIndex}
+            style={{
+                width: props.getColumnWidth(columnIndex),
+                height: 32,
+                ...(!sticky ? { flexShrink: 0 } : {}),
+            }}
+            table={props.nameCellProps.table}
+            gridLayout={props.nameCellProps.gridLayout}
+            dataFrame={props.nameCellProps.dataFrame}
+            rightmostVisibleColumn={props.nameCellProps.rightmostVisibleColumn}
+            sortAscending={props.nameCellProps.getSortDirection(props.nameCellProps.gridLayout.arrowFieldByColumnIndex[columnIndex])}
+            onOrderByColumn={props.nameCellProps.onOrderByColumn}
+            onShowTable={props.nameCellProps.onShowTable}
+        />
+    );
+    const renderPlotCell = (columnIndex: number, sticky: boolean) => (
+        <HeaderPlotsCell
+            key={`header-1-${columnIndex}`}
+            {...props.plotCellProps}
+            columnIndex={columnIndex}
+            style={{
+                width: props.getColumnWidth(columnIndex),
+                height: 76,
+                ...(!sticky ? { flexShrink: 0 } : {}),
+            }}
+        />
+    );
+
+    return ReactDOM.createPortal(
+        <div
+            className={styles.sticky_header_container}
+            style={{ position: 'sticky', top: 0, zIndex: 10, width: props.totalWidth, height: props.headerHeight }}
+        >
+            <div className={styles.sticky_header_row} style={{ display: 'flex', height: 32 }}>
+                <div style={{ position: 'sticky', left: 0, zIndex: 11, flexShrink: 0 }}>{renderNameCell(0, true)}</div>
+                {props.leftSpacerWidth > 0 && <div style={{ width: props.leftSpacerWidth, flexShrink: 0 }} />}
+                {Array.from({ length: props.renderedColumnCount }, (_, index) => renderNameCell(props.firstRenderedColumn + index, false))}
+                {props.rightSpacerWidth > 0 && <div style={{ width: props.rightSpacerWidth, flexShrink: 0 }} />}
+            </div>
+            {props.columnHeader === TableColumnHeader.WithColumnPlots && (
+                <div className={styles.sticky_header_row} style={{ display: 'flex', height: 76 }}>
+                    <div style={{ position: 'sticky', left: 0, zIndex: 11, flexShrink: 0 }}>{renderPlotCell(0, true)}</div>
+                    {props.leftSpacerWidth > 0 && <div style={{ width: props.leftSpacerWidth, flexShrink: 0 }} />}
+                    {Array.from({ length: props.renderedColumnCount }, (_, index) => renderPlotCell(props.firstRenderedColumn + index, false))}
+                    {props.rightSpacerWidth > 0 && <div style={{ width: props.rightSpacerWidth, flexShrink: 0 }} />}
+                </div>
+            )}
+        </div>,
+        props.container,
+    );
+};
+
+interface StickyColumnProps {
+    container: DataTablePortalContainers['data'] | null;
+    firstColumnWidth: number;
+    totalDataHeight: number;
+    startRow: number;
+    stopRow: number;
+    gridData: DataCellData;
+}
+
+export const DataTableStickyColumn: React.FC<StickyColumnProps> = (props) => {
+    if (props.container == null) return null;
+    const visibleCount = Math.max(0, props.stopRow - props.startRow + 1);
+    return ReactDOM.createPortal(
+        <div
+            className={styles.sticky_column_container}
+            style={{
+                position: 'sticky',
+                left: 0,
+                width: props.firstColumnWidth,
+                height: props.totalDataHeight,
+                marginTop: -props.totalDataHeight,
+                zIndex: 5,
+                pointerEvents: 'none',
+            }}
+        >
+            {Array.from({ length: visibleCount }, (_, index) => {
+                const rowIndex = props.startRow + index;
+                return (
+                    <div
+                        key={`col0-${rowIndex}`}
+                        style={{
+                            position: 'absolute',
+                            top: rowIndex * 26,
+                            left: 0,
+                            width: props.firstColumnWidth,
+                            height: 26,
+                            pointerEvents: 'auto',
+                        }}
+                    >
+                        <DataCell
+                            ariaAttributes={{ 'aria-colindex': 1, role: 'gridcell' }}
+                            rowIndex={rowIndex}
+                            columnIndex={0}
+                            style={{ width: props.firstColumnWidth, height: 26 }}
+                            {...props.gridData}
+                            hideRowHeader={false}
+                        />
+                    </div>
+                );
+            })}
+        </div>,
+        props.container,
+    );
+};
