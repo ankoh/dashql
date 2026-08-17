@@ -6,6 +6,7 @@ import { useFocusTrap } from '../../../ui/foundations/focus.js';
 import { Overlay, OverlaySize } from '../../../ui/foundations/overlay.js';
 import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
 import { QueryResultDetails } from '../compute/ui/query_result/query_result_details.js';
+import { TableColumnHeader } from '../compute/ui/query_result/data_table_cell.js';
 import * as styles from './shell_query_result_overlay.module.css';
 
 interface Props {
@@ -40,6 +41,7 @@ export const ShellQueryResultOverlay: React.FC<Props> = ({ query, onClose }) => 
                     debugMode={false}
                     fitHeight
                     maxHeight={MAX_OVERLAY_HEIGHT}
+                    columnHeader={TableColumnHeader.WithColumnPlots}
                     actions={(
                         <IconButton
                             ref={closeRef}

@@ -3,6 +3,7 @@ import * as React from 'react';
 import type { QueryExecutionState } from '../../../connections/query_execution_state.js';
 import { TabHeader, formatRowCountDetail, useResultRowCount } from '../../../ui/tab_header.js';
 import { QueryResultView } from './query_result_view.js';
+import { TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../../../../utils/classnames.js';
 import * as styles from './query_result_details.module.css';
 
@@ -12,11 +13,12 @@ interface Props {
     actions?: React.ReactNode;
     fitHeight?: boolean;
     maxHeight?: number;
+    columnHeader?: TableColumnHeader;
 }
 
 const HEADER_HEIGHT = 32;
 
-export const QueryResultDetails: React.FC<Props> = ({ query, debugMode, actions, fitHeight, maxHeight }) => {
+export const QueryResultDetails: React.FC<Props> = ({ query, debugMode, actions, fitHeight, maxHeight, columnHeader }) => {
     const { totalRows } = useResultRowCount(query);
     return (
         <div className={classNames(styles.root, { [styles.root_fit_height]: fitHeight })}>
@@ -31,6 +33,7 @@ export const QueryResultDetails: React.FC<Props> = ({ query, debugMode, actions,
                     debugMode={debugMode}
                     fitHeight={fitHeight}
                     maxHeight={maxHeight == null ? undefined : Math.max(0, maxHeight - HEADER_HEIGHT)}
+                    columnHeader={columnHeader}
                 />
             </div>
         </div>
