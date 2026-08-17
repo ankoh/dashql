@@ -25,6 +25,14 @@ std::shared_ptr<arrow::Buffer> WriteIPC(const std::shared_ptr<arrow::RecordBatch
     return output->Finish().ValueOrDie();
 }
 
+std::shared_ptr<arrow::Buffer> WriteIPCStream(const std::shared_ptr<arrow::RecordBatch>& batch) {
+    auto output = arrow::io::BufferOutputStream::Create().ValueOrDie();
+    auto writer = arrow::ipc::MakeStreamWriter(output, batch->schema()).ValueOrDie();
+    EXPECT_TRUE(writer->WriteRecordBatch(*batch).ok());
+    EXPECT_TRUE(writer->Close().ok());
+    return output->Finish().ValueOrDie();
+}
+
 std::shared_ptr<arrow::RecordBatch> MakeBatch() {
     arrow::StringBuilder names;
     EXPECT_TRUE(names.Append("alpha").ok());
@@ -66,6 +74,15 @@ TEST(ArrowRendererTest, RendersArrowIPC) {
               "│ 界    │    20 │\n"
               "│       │   300 │\n"
                "╰───────┴───────╯");
+}
+
+TEST(ArrowRendererTest, RendersArrowIPCStream) {
+    const auto ipc = WriteIPCStream(MakeBatch());
+    ArrowRenderer renderer{80};
+    auto output = renderer.RenderIPC(std::span<const uint8_t>{ipc->data(), static_cast<size_t>(ipc->size())});
+    ASSERT_TRUE(output.ok()) << output.status().ToString();
+    EXPECT_NE(output->find("alpha"), std::string::npos);
+    EXPECT_NE(output->find("300"), std::string::npos);
 }
 
 TEST(ArrowRendererTest, ConstrainsOutputToTerminalWidth) {

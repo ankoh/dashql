@@ -7,12 +7,22 @@ import { ShellQueryExecutionTracker } from './query_execution.js';
 
 describe('embedded database shell environment', () => {
     it('executes against the provided connection', async () => {
-        const result = new Uint8Array([1, 2, 3]);
+        const result = arrow.tableToIPC(arrow.tableFromArrays({ value: [42] }), 'file');
         const queryArrowIPC = vi.fn().mockResolvedValue(result);
         const environment = createEmbeddedDatabaseShellEnvironment({ queryArrowIPC } as any);
 
         await expect(environment.executeQuery('SELECT 42')).resolves.toBe(result);
         expect(queryArrowIPC).toHaveBeenCalledWith('SELECT 42');
+    });
+
+    it('passes Arrow IPC streams through to the shell renderer', async () => {
+        const stream = arrow.tableToIPC(arrow.tableFromArrays({ value: [42] }), 'stream');
+        const queryArrowIPC = vi.fn().mockResolvedValue(stream);
+        const environment = createEmbeddedDatabaseShellEnvironment({ queryArrowIPC } as any);
+
+        const result = await environment.executeQuery('SELECT 42');
+
+        expect(result).toBe(stream);
     });
 
     it('rejects an already cancelled query before reaching the database', async () => {

@@ -114,34 +114,54 @@ arrow::Result<std::string> FormatValue(const arrow::Array& array, int64_t row) {
     return EscapeCellText(scalar->ToString());
 }
 
-arrow::Result<Table> ReadIPC(std::span<const uint8_t> data) {
-    if (data.empty()) {
-        return arrow::Status::Invalid("Arrow IPC buffer is empty");
-    }
-    auto buffer = std::make_shared<arrow::Buffer>(data.data(), static_cast<int64_t>(data.size()));
-    auto input = std::make_shared<arrow::io::BufferReader>(std::move(buffer));
-    ARROW_ASSIGN_OR_RAISE(auto reader, arrow::ipc::RecordBatchFileReader::Open(input));
-
+Table CreateTable(const std::shared_ptr<arrow::Schema>& schema) {
     Table table;
-    const auto& schema = reader->schema();
     table.headers.reserve(schema->num_fields());
     table.alignments.reserve(schema->num_fields());
     for (const auto& field : schema->fields()) {
         table.headers.push_back(EscapeCellText(field->name()));
         table.alignments.push_back(IsRightAligned(field->type()->id()) ? Alignment::kRight : Alignment::kLeft);
     }
+    return table;
+}
 
-    for (int batch_index = 0; batch_index < reader->num_record_batches(); ++batch_index) {
-        ARROW_ASSIGN_OR_RAISE(auto batch, reader->ReadRecordBatch(batch_index));
-        for (int64_t row = 0; row < batch->num_rows(); ++row) {
-            std::vector<Cell> cells;
-            cells.reserve(batch->num_columns());
-            for (int column = 0; column < batch->num_columns(); ++column) {
-                ARROW_ASSIGN_OR_RAISE(auto text, FormatValue(*batch->column(column), row));
-                cells.push_back(Cell{std::move(text), table.alignments[column]});
-            }
-            table.rows.push_back(std::move(cells));
+arrow::Status AppendBatch(Table& table, const arrow::RecordBatch& batch) {
+    for (int64_t row = 0; row < batch.num_rows(); ++row) {
+        std::vector<Cell> cells;
+        cells.reserve(batch.num_columns());
+        for (int column = 0; column < batch.num_columns(); ++column) {
+            ARROW_ASSIGN_OR_RAISE(auto text, FormatValue(*batch.column(column), row));
+            cells.push_back(Cell{std::move(text), table.alignments[column]});
         }
+        table.rows.push_back(std::move(cells));
+    }
+    return arrow::Status::OK();
+}
+
+arrow::Result<Table> ReadIPC(std::span<const uint8_t> data) {
+    if (data.empty()) {
+        return arrow::Status::Invalid("Arrow IPC buffer is empty");
+    }
+    auto buffer = std::make_shared<arrow::Buffer>(data.data(), static_cast<int64_t>(data.size()));
+    auto input = std::make_shared<arrow::io::BufferReader>(buffer);
+    auto file_reader = arrow::ipc::RecordBatchFileReader::Open(input);
+    if (file_reader.ok()) {
+        auto reader = std::move(file_reader).ValueUnsafe();
+        auto table = CreateTable(reader->schema());
+        for (int batch_index = 0; batch_index < reader->num_record_batches(); ++batch_index) {
+            ARROW_ASSIGN_OR_RAISE(auto batch, reader->ReadRecordBatch(batch_index));
+            ARROW_RETURN_NOT_OK(AppendBatch(table, *batch));
+        }
+        return table;
+    }
+
+    input = std::make_shared<arrow::io::BufferReader>(std::move(buffer));
+    ARROW_ASSIGN_OR_RAISE(auto reader, arrow::ipc::RecordBatchStreamReader::Open(input));
+    auto table = CreateTable(reader->schema());
+    for (;;) {
+        ARROW_ASSIGN_OR_RAISE(auto batch, reader->Next());
+        if (!batch) break;
+        ARROW_RETURN_NOT_OK(AppendBatch(table, *batch));
     }
     return table;
 }

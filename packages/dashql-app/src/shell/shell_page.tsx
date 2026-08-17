@@ -8,14 +8,13 @@ import { createDashQLShell, type DashQLShell } from './api.js';
 import type { BrowserShellController } from './browser_shell.js';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { loginCommand } from './commands/login.js';
-import type { ShellQueryExecutionTracker } from './query_execution.js';
+import { useShellConnection } from './shell_connection.js';
 import * as styles from './shell_page.module.css';
 
 const LOG_CTX = 'standalone_shell';
 
 interface ShellPageProps {
     onEngineVersion: (version: string) => void;
-    queryExecutions: ShellQueryExecutionTracker;
 }
 
 function formatInstantiationProgress(bytesLoaded: number, bytesTotal: number): string {
@@ -27,6 +26,7 @@ function formatInstantiationProgress(bytesLoaded: number, bytesTotal: number): s
 export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const logger = useLogger();
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
+    const { setConnected, queryExecutions } = useShellConnection();
     const containerRef = React.useRef<HTMLDivElement>(null);
     const [status, setStatus] = React.useState('Instantiating database');
 
@@ -53,10 +53,11 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 return;
             }
             connection = nextConnection;
+            setConnected(true);
 
             setStatus('Instantiating shell');
             const nextShell = await createDashQLShell({
-                environment: createEmbeddedDatabaseShellEnvironment(connection, props.queryExecutions),
+                environment: createEmbeddedDatabaseShellEnvironment(connection, queryExecutions),
                 commands: [loginCommand],
                 onProgress: progress => {
                     if (!cancelled) {
@@ -102,9 +103,10 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             cancelled = true;
             controller?.dispose();
             shell?.destroy();
+            setConnected(false);
             void connection?.close();
         };
-    }, [logger, props.onEngineVersion, props.queryExecutions, setupEmbeddedDatabase]);
+    }, [logger, props.onEngineVersion, queryExecutions, setConnected, setupEmbeddedDatabase]);
 
     return (
         <main className={styles.page} aria-label="HyperDB Shell">

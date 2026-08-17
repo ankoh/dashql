@@ -10,27 +10,12 @@ import { useConnectionRegistry } from '../connection_registry.js';
 
 export * from '../../../../query/ui/query_history_viewer.js';
 
-export function QueryViewer(props: { onClose: () => void }) {
+export function QueryViewer(props: {
+    onClose: () => void;
+    getTarget?: typeof getQueryTarget;
+}) {
     const [connReg] = useConnectionRegistry();
-    const snapshots = React.useRef<Uint32Array>(new Uint32Array());
-    const [entries, setEntries] = React.useState<QueryEntry[]>([]);
-
-    React.useEffect(() => {
-        const snaps = new Uint32Array(connReg.connectionMap.size);
-        let i = 0;
-        for (const [, conn] of connReg.connectionMap) {
-            snaps[i++] = conn.snapshotQueriesActiveFinished;
-        }
-
-        let changed = snaps.length !== snapshots.current.length;
-        if (!changed) {
-            for (let j = 0; j < snaps.length; j++) {
-                if (snaps[j] !== snapshots.current[j]) { changed = true; break; }
-            }
-        }
-        if (!changed) return;
-        snapshots.current = snaps;
-
+    const entries = React.useMemo(() => {
         const next: QueryEntry[] = [];
         for (const [connectionId, conn] of connReg.connectionMap) {
             const connectorName = conn.connectorInfo.names.displayShort;
@@ -44,15 +29,15 @@ export function QueryViewer(props: { onClose: () => void }) {
                     next.push({
                         connectionId,
                         sourceName,
-                        target: getQueryTarget(query),
+                        target: props.getTarget?.(query) ?? getQueryTarget(query),
                         queryId,
                         query,
                     });
                 }
             }
         }
-        setEntries(next);
-    });
+        return next;
+    }, [connReg, props.getTarget]);
 
     return <QueryHistoryViewer entries={entries} onClose={props.onClose} />;
 }

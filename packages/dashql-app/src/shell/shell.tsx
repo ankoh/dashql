@@ -10,7 +10,8 @@ import { GitHubTheme } from '../theme/github_theme.js';
 import { LoggerToast } from '../ui/logger/logger_toast.js';
 import { ShellNavBar } from './shell_navbar.js';
 import { ShellPage } from './shell_page.js';
-import { ShellQueryExecutionTracker } from './query_execution.js';
+import { ShellConnectionProvider } from './shell_connection.js';
+import { ConnectionRegistry } from '../app/notebook/connections/connection_registry.js';
 import * as styles from './shell.module.css';
 
 import '../../static/fonts/fonts.css';
@@ -19,7 +20,6 @@ import '../styles/globals.css';
 
 export const Shell: React.FC = () => {
     const [engineVersion, setEngineVersion] = React.useState<string | null>(null);
-    const [queryExecutions] = React.useState(() => new ShellQueryExecutionTracker());
 
     return (
         <PlatformTypeProvider>
@@ -30,10 +30,14 @@ export const Shell: React.FC = () => {
                         <ProcessProvider>
                             <EmbeddedDatabaseProvider>
                                 <GitHubTheme>
-                                    <div className={styles.root}>
-                                        <ShellNavBar engineVersion={engineVersion} queryExecutions={queryExecutions} />
-                                        <ShellPage onEngineVersion={setEngineVersion} queryExecutions={queryExecutions} />
-                                    </div>
+                                    <ConnectionRegistry>
+                                        <ShellConnectionProvider>
+                                            <div className={styles.root}>
+                                                <ShellNavBar engineVersion={engineVersion} />
+                                                <ShellPage onEngineVersion={setEngineVersion} />
+                                            </div>
+                                        </ShellConnectionProvider>
+                                    </ConnectionRegistry>
                                 </GitHubTheme>
                             </EmbeddedDatabaseProvider>
                         </ProcessProvider>

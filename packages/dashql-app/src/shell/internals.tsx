@@ -6,8 +6,8 @@ import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import { OverlaySize } from '../ui/foundations/overlay.js';
 import { VerticalTabs, VerticalTabVariant } from '../ui/foundations/vertical_tabs.js';
 import { LogViewer } from '../ui/logs/log_viewer.js';
-import { QueryHistoryViewer, QueryTarget, type QueryEntry } from '../query/ui/query_history_viewer.js';
-import type { ShellQueryExecutionTracker } from './query_execution.js';
+import { QueryViewer } from '../app/notebook/connections/ui/query_viewer.js';
+import { QueryTarget } from '../query/ui/query_history_viewer.js';
 import * as styles from './shell_navbar.module.css';
 
 enum TabKey {
@@ -17,24 +17,7 @@ enum TabKey {
 
 interface ShellInternalsViewerProps {
     onClose: () => void;
-    queryExecutions: ShellQueryExecutionTracker;
 }
-
-const ShellQueryViewer: React.FC<ShellInternalsViewerProps> = props => {
-    const executions = React.useSyncExternalStore(
-        props.queryExecutions.subscribe,
-        props.queryExecutions.getSnapshot,
-        props.queryExecutions.getSnapshot,
-    );
-    const entries: QueryEntry[] = executions.map(query => ({
-        connectionId: 'shell',
-        sourceName: 'Hyper',
-        target: QueryTarget.LOCAL,
-        queryId: query.queryId,
-        query,
-    }));
-    return <QueryHistoryViewer entries={entries} onClose={props.onClose} />;
-};
 
 export const ShellInternalsViewer: React.FC<ShellInternalsViewerProps> = props => {
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.LogViewer);
@@ -66,14 +49,14 @@ export const ShellInternalsViewer: React.FC<ShellInternalsViewerProps> = props =
             tabRenderers={{
                 [TabKey.LogViewer]: () => <LogViewer onClose={props.onClose} />,
                 [TabKey.QueryViewer]: () => (
-                    <ShellQueryViewer {...props} />
+                    <QueryViewer onClose={props.onClose} getTarget={() => QueryTarget.LOCAL} />
                 ),
             }}
         />
     );
 };
 
-export const ShellInternals: React.FC<{ queryExecutions: ShellQueryExecutionTracker }> = props => {
+export const ShellInternals: React.FC = () => {
     const [isOpen, setIsOpen] = React.useState(false);
     const close = React.useCallback(() => setIsOpen(false), []);
 
@@ -99,7 +82,7 @@ export const ShellInternals: React.FC<{ queryExecutions: ShellQueryExecutionTrac
                 </button>
             )}
         >
-            <ShellInternalsViewer onClose={close} queryExecutions={props.queryExecutions} />
+            <ShellInternalsViewer onClose={close} />
         </AnchoredOverlay>
     );
 };
