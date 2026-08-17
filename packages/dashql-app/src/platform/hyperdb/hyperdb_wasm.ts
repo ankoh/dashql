@@ -228,8 +228,9 @@ export class HyperDBConnection implements EmbeddedTableImportConnection {
         return decodeArrowTable(await this.queryArrowIPC(query));
     }
 
-    async queryArrowIPC(query: string): Promise<Uint8Array> {
+    async queryArrowIPC(query: string, abort?: AbortSignal): Promise<Uint8Array> {
         return await this.run(async () => {
+            abort?.throwIfAborted();
             let queryHandle: number | null = null;
             const chunks: Uint8Array[] = [];
             let byteLength = 0;
@@ -237,9 +238,11 @@ export class HyperDBConnection implements EmbeddedTableImportConnection {
             try {
                 queryHandle = readHandle(await this.client.startQuery(this.connectionHandle, query), 'start query');
                 for (;;) {
+                    abort?.throwIfAborted();
                     let result = await this.client.pollQuery(queryHandle);
                     while (result.state === 'pending') {
                         await yieldToEventLoop();
+                        abort?.throwIfAborted();
                         result = await this.client.pollQuery(queryHandle);
                     }
                     if (result.state === 'chunk') {

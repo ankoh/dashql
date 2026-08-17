@@ -3,6 +3,7 @@ import * as dashql from '../../../core/index.js';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { HyperConnectorAction, reduceHyperConnectorState } from './hyper/hyper_connection_state.js';
+import { DuckDBConnectorAction, reduceDuckDBConnectorState } from './duckdb/duckdb_connection_state.js';
 import { SalesforceConnectionStateAction, reduceSalesforceConnectionState } from './salesforce/salesforce_connection_state.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
 import { generateCatalogScriptHeader, CatalogSource } from './catalog_sql_generator.js';
@@ -14,7 +15,7 @@ import {
     ConnectorType,
     HYPER_CONNECTOR,
     SALESFORCE_DATA_CLOUD_CONNECTOR,
-    DATALESS_CONNECTOR,
+    DUCKDB_CONNECTOR,
     TRINO_CONNECTOR,
 } from './connector_info.js';
 import {
@@ -38,7 +39,6 @@ import {
 } from './query_execution_state.js';
 import { Hasher } from '../../../utils/hash.js';
 import { reduceQueryAction } from './query_execution_state.js';
-import { DatalessConnectorAction, reduceDatalessConnectorState } from './dataless/dataless_connection_state.js';
 import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
@@ -239,7 +239,7 @@ export type ConnectionStateAction =
     | CatalogAction
     | QueryExecutionAction
     | HyperConnectorAction
-    | DatalessConnectorAction
+    | DuckDBConnectorAction
     | TrinoConnectorAction
     | SalesforceConnectionStateAction
     ;
@@ -311,8 +311,8 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 case TRINO_CONNECTOR:
                     newState = reduceTrinoConnectorState(cleaned, action as TrinoConnectorAction, storage);
                     break;
-                case DATALESS_CONNECTOR:
-                    newState = reduceDatalessConnectorState(cleaned, action as DatalessConnectorAction, storage);
+                case DUCKDB_CONNECTOR:
+                    newState = reduceDuckDBConnectorState(cleaned, action as DuckDBConnectorAction, storage);
                     break;
             }
 
@@ -410,8 +410,8 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 case TRINO_CONNECTOR:
                     newState = reduceTrinoConnectorState(state, action as TrinoConnectorAction, storage);
                     break;
-                case DATALESS_CONNECTOR:
-                    newState = reduceDatalessConnectorState(state, action as DatalessConnectorAction, storage);
+                case DUCKDB_CONNECTOR:
+                    newState = reduceDuckDBConnectorState(state, action as DuckDBConnectorAction, storage);
                     break;
             }
 
@@ -453,8 +453,8 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 case TRINO_CONNECTOR:
                     newState = reduceTrinoConnectorState(state, action as TrinoConnectorAction, storage);
                     break;
-                case DATALESS_CONNECTOR:
-                    newState = reduceDatalessConnectorState(state, action as DatalessConnectorAction, storage);
+                case DUCKDB_CONNECTOR:
+                    newState = reduceDuckDBConnectorState(state, action as DuckDBConnectorAction, storage);
                     break;
             }
             if (newState == null) {

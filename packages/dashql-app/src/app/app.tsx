@@ -45,6 +45,7 @@ import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database
 import { isDebugBuild } from '../globals.js';
 import { NativeNotebookSync } from './notebook/persistence/native_notebook_sync_react.js';
 import { NotebookComputeQueryExecutionProvider } from './notebook/connections/computation_query_execution.js';
+import { DuckDBConnector } from './notebook/connections/duckdb/duckdb_connector.js';
 
 import '../../static/fonts/fonts.css';
 import '../styles/colors.css';
@@ -59,27 +60,29 @@ const NotebookProviders = (props: { children: React.ReactElement }) => (
     <ConnectionRegistry>
         <SalesforceConnector>
             <HyperConnector>
-                <TrinoConnector>
-                    <ComputationRegistry>
-                        <NotebookComputeQueryExecutionProvider>
-                            <ComputationScheduler />
-                            <QueryExecutorProvider>
-                                <NotebookScriptsRegistryProvider>
-                                    <NativeNotebookSync />
-                                    <CatalogLoaderProvider>
-                                        <AgentRunProvider>
-                                            <NotebookCommands>
-                                                <AppLoader>
-                                                    {props.children}
-                                                </AppLoader>
-                                            </NotebookCommands>
-                                        </AgentRunProvider>
-                                    </CatalogLoaderProvider>
-                                </NotebookScriptsRegistryProvider>
-                            </QueryExecutorProvider>
-                        </NotebookComputeQueryExecutionProvider>
-                    </ComputationRegistry>
-                </TrinoConnector>
+                <DuckDBConnector>
+                    <TrinoConnector>
+                        <ComputationRegistry>
+                            <NotebookComputeQueryExecutionProvider>
+                                <ComputationScheduler />
+                                <QueryExecutorProvider>
+                                    <NotebookScriptsRegistryProvider>
+                                        <NativeNotebookSync />
+                                        <CatalogLoaderProvider>
+                                            <AgentRunProvider>
+                                                <NotebookCommands>
+                                                    <AppLoader>
+                                                        {props.children}
+                                                    </AppLoader>
+                                                </NotebookCommands>
+                                            </AgentRunProvider>
+                                        </CatalogLoaderProvider>
+                                    </NotebookScriptsRegistryProvider>
+                                </QueryExecutorProvider>
+                            </NotebookComputeQueryExecutionProvider>
+                        </ComputationRegistry>
+                    </TrinoConnector>
+                </DuckDBConnector>
             </HyperConnector>
         </SalesforceConnector>
     </ConnectionRegistry>

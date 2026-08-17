@@ -9,7 +9,7 @@ import type { NotebookScripts, ScriptData } from '../scripts/notebook_scripts.js
 import { analyzeAllScripts, createEmptyScriptData, destroyNotebookScripts, sortScriptFolderNamesNumerically } from '../scripts/notebook_scripts.js';
 import type { AnalyzeAllScriptsProgress } from '../scripts/notebook_scripts.js';
 import { decodeConnectionFromProto, restoreConnectionState } from '../connections/connection_import.js';
-import { ConnectorType, type ConnectorInfo } from '../connections/connector_info.js';
+import { CONNECTOR_TYPES, ConnectorType, type ConnectorInfo } from '../connections/connector_info.js';
 import type { StorageBackend, NotebookEntry, NotebookData, ScriptFolderData } from './storage_backend.js';
 import { StorageBackendType } from './storage_backend.js';
 import { validateNotebookData, describeInvalidNotebook, isValidUuid, NotebookValidationError, type InvalidNotebook } from './notebook_validation.js';
@@ -551,8 +551,8 @@ export async function restoreSingleNotebook(
     const connectionByNotebook = new Map<string, string>();
     const notebookScripts = new Map<string, NotebookScripts>();
     const notebookScriptsByConnection = new Map<string, string>();
-    const connectionStatesByType: string[][] = [[], [], [], []];
-    const notebookScriptsByConnectionType: string[][] = [[], [], [], []];
+    const connectionStatesByType: string[][] = CONNECTOR_TYPES.map(() => []);
+    const notebookScriptsByConnectionType: string[][] = CONNECTOR_TYPES.map(() => []);
 
     const noopConsumer = () => { };
     await restoreNotebookEntry(
@@ -614,9 +614,8 @@ export async function restoreAppState(
     const notebookScriptsByConnection = new Map<string, string>();
     const invalidNotebooks = new Map<string, InvalidNotebook>();
 
-    // Initialize indices (sized for all ConnectorType values: 0-3)
-    const connectionStatesByType: string[][] = [[], [], [], []];
-    const notebookScriptsByConnectionType: string[][] = [[], [], [], []];
+    const connectionStatesByType: string[][] = CONNECTOR_TYPES.map(() => []);
+    const notebookScriptsByConnectionType: string[][] = CONNECTOR_TYPES.map(() => []);
 
     // Initialize progress counters
     const restoreConnections = new ProgressCounter();

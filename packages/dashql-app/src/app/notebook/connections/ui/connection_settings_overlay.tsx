@@ -5,6 +5,7 @@ import { AnchoredOverlay } from '../../../../ui/foundations/anchored_overlay.js'
 import { AnchorAlignment, AnchorSide } from '../../../../ui/foundations/anchored_position.js';
 import { OverlaySize } from '../../../../ui/foundations/overlay.js';
 import { ConnectorType } from '../connector_info.js';
+import { isNativePlatform } from '../../../../platform/native_globals.js';
 import { useConnectionState } from '../connection_registry.js';
 import { ConnectorConfigTabs } from './connector_config_tabs.js';
 
@@ -18,8 +19,7 @@ interface Props {
 export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
     const [conn, _modifyConn] = useConnectionState(props.notebookId);
 
-    // Default to current connector type, or DATALESS if none
-    const currentConnectorType = conn?.connectorInfo.connectorType ?? ConnectorType.DATALESS;
+    const currentConnectorType = conn?.connectorInfo.connectorType ?? (isNativePlatform() ? ConnectorType.DUCKDB : ConnectorType.HYPER);
     const [selectedConnectorType, setSelectedConnectorType] = React.useState<ConnectorType>(currentConnectorType);
 
     // When connection changes, update selected tab if it's currently the same

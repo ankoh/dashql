@@ -9,7 +9,7 @@ import { AppLoadingStatus } from '../router/app_loading_status.js';
 import { Button, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../router/router.js';
 import { DASHQL_VERSION } from '../../globals.js';
-import { combineIndicatorStatus, getStatusFromProgressCounter, IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
+import { getStatusFromProgressCounter, IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
 import { useDashQLCoreSetup } from '../providers/core_provider.js';
@@ -93,11 +93,6 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
         run();
         return () => abort.abort();
     }, []);
-
-    const configStatus = combineIndicatorStatus(
-        getStatusFromProgressCounter(props.progress.setupDefaultConnections),
-        getStatusFromProgressCounter(props.progress.setupDefaultNotebooks),
-    );
 
     // Show the continue button?
     const showContinueButton = props.pauseAfterSetup && routeContext.appLoadingStatus == AppLoadingStatus.SETUP_DONE;

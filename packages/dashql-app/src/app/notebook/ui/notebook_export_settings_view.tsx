@@ -5,7 +5,6 @@ import { ToggleSwitch } from '../../../ui/foundations/toggle_switch.js';
 
 export interface NotebookExportSettings {
     withCatalog: boolean;
-    withConnectionInfo: boolean;
     withLoginHint: boolean;
 }
 
@@ -25,11 +24,6 @@ export const NotebookExportSettingsView: React.FC<Props> = (props: Props) => {
         props.setSettings({ ...props.settings, withCatalog: !props.settings.withCatalog });
     }, [props.settings, props.setSettings]);
 
-    const toggleConnectionInfo = React.useCallback((e: React.MouseEvent) => {
-        e.stopPropagation();
-        props.setSettings({ ...props.settings, withConnectionInfo: !props.settings.withConnectionInfo });
-    }, [props.settings, props.setSettings]);
-
     const toggleLoginHint = React.useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         props.setSettings({ ...props.settings, withLoginHint: !props.settings.withLoginHint });
@@ -38,25 +32,14 @@ export const NotebookExportSettingsView: React.FC<Props> = (props: Props) => {
     return (
         <div className={styles.root}>
             <div className={styles.part_list}>
-                <div id="export-toggle-connection-label" className={styles.part_name}>
-                    Connection Settings
-                </div>
-                <div className={styles.part_toggle}>
-                    <ToggleSwitch
-                        size="medium"
-                        checked={props.settings.withConnectionInfo}
-                        onClick={toggleConnectionInfo}
-                        aria-labelledby="export-toggle-connection-label"
-                    />
-                </div>
                 <div id="export-toggle-login-hint-label" className={styles.part_name}>
                     Login Hint
                 </div>
                 <div className={styles.part_toggle}>
                     <ToggleSwitch
                         size="medium"
-                        checked={props.withLoginHint && props.settings.withConnectionInfo && props.settings.withLoginHint}
-                        disabled={!props.withLoginHint || !props.settings.withConnectionInfo}
+                        checked={props.withLoginHint && props.settings.withLoginHint}
+                        disabled={!props.withLoginHint}
                         onClick={toggleLoginHint}
                         aria-labelledby="export-toggle-login-hint-label"
                     />

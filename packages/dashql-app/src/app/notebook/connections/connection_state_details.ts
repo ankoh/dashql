@@ -1,6 +1,6 @@
-import { ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR } from "./connector_info.js";
+import { ConnectorType, DUCKDB_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from "./connector_info.js";
 import { VariantKind } from "../../../utils/variant.js";
-import { computeDatalessConnectionSignature, createDatalessConnectionStateDetails, DatalessConnectionStateDetails } from "./dataless/dataless_connection_state.js";
+import { computeDuckDBConnectionSignature, createDuckDBConnectionStateDetails, DuckDBConnectionDetails } from "./duckdb/duckdb_connection_state.js";
 import { computeHyperConnectionSignature, createHyperConnectionStateDetails, HyperConnectionDetails } from "./hyper/hyper_connection_state.js";
 import { computeSalesforceConnectionSignature, createSalesforceConnectionStateDetails, SalesforceConnectionStateDetails } from "./salesforce/salesforce_connection_state.js";
 import { computeTrinoConnectionSignature, createTrinoConnectionStateDetails, TrinoConnectionStateDetails } from "./trino/trino_connection_state.js";
@@ -9,7 +9,7 @@ import { DefaultHasher } from "../../../utils/hash_default.js";
 
 export type ConnectionStateDetailsVariant =
     | VariantKind<typeof SALESFORCE_DATA_CLOUD_CONNECTOR, SalesforceConnectionStateDetails>
-    | VariantKind<typeof DATALESS_CONNECTOR, DatalessConnectionStateDetails>
+    | VariantKind<typeof DUCKDB_CONNECTOR, DuckDBConnectionDetails>
     | VariantKind<typeof HYPER_CONNECTOR, HyperConnectionDetails>
     | VariantKind<typeof TRINO_CONNECTOR, TrinoConnectionStateDetails>
     ;
@@ -31,10 +31,10 @@ export function createConnectionStateDetails(type: ConnectorType): ConnectionSta
                 type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                 value: createSalesforceConnectionStateDetails(),
             };
-        case ConnectorType.DATALESS:
+        case ConnectorType.DUCKDB:
             return {
-                type: DATALESS_CONNECTOR,
-                value: createDatalessConnectionStateDetails(),
+                type: DUCKDB_CONNECTOR,
+                value: createDuckDBConnectionStateDetails(),
             };
     }
 }
@@ -47,8 +47,8 @@ export function computeConnectionSignatureFromDetails(state: ConnectionStateDeta
             return computeHyperConnectionSignature(state.value, hasher);
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
             return computeSalesforceConnectionSignature(state.value, hasher);
-        case DATALESS_CONNECTOR:
-            return computeDatalessConnectionSignature(state.value, hasher);
+        case DUCKDB_CONNECTOR:
+            return computeDuckDBConnectionSignature(state.value, hasher);
     }
 }
 

@@ -13,24 +13,33 @@ const UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 function notebook(extra: Partial<NotebookData> = {}): NotebookData {
     return {
         notebookId: UUID,
-        connectionParams: { dataless: {} },
+        connectionParams: { duckdb: {} },
         metadata: {},
         ...extra,
     } as NotebookData;
 }
 
 describe('validateNotebookData', () => {
-    it('accepts a well-formed dataless notebook', () => {
+    it('accepts a well-formed DuckDB notebook', () => {
         expect(validateNotebookData(notebook())).toEqual({ ok: true });
     });
 
     it('accepts each known connector', () => {
+        const duckdb = notebook({ connectionParams: { duckdb: {} } });
         const hyper = notebook({ connectionParams: { hyper: {} } as any });
         const sf = notebook({ connectionParams: { salesforce: {} } as any });
         const trino = notebook({ connectionParams: { trino: {} } as any });
+        expect(validateNotebookData(duckdb).ok).toBe(true);
         expect(validateNotebookData(hyper).ok).toBe(true);
         expect(validateNotebookData(sf).ok).toBe(true);
         expect(validateNotebookData(trino).ok).toBe(true);
+    });
+
+    it('rejects legacy dataless notebooks', () => {
+        expect(validateNotebookData(notebook({ connectionParams: { dataless: {} } as any }))).toEqual({
+            ok: false,
+            error: NotebookValidationError.UnknownConnector,
+        });
     });
 
     it('rejects a notebook with an empty notebookId', () => {

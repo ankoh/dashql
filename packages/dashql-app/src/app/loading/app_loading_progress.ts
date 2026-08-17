@@ -12,8 +12,4 @@ export interface AppLoadingProgress {
     restoreNotebookScripts: ProgressCounter;
     /// Analyze the restored scripts
     analyzeScripts: ProgressCounter;
-    /// Setup default connections
-    setupDefaultConnections: ProgressCounter;
-    /// Setup defualt notebooks
-    setupDefaultNotebooks: ProgressCounter;
 }

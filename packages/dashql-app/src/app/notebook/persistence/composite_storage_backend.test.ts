@@ -189,7 +189,7 @@ const NATIVE_ID = '22222222-2222-2222-2222-222222222222';
 const NATIVE_DIR = '/Users/test/native-notebook';
 
 function notebookData(id: string, name: string, extra: Partial<NotebookData> = {}): NotebookData {
-    return { notebookId: id, name, connectionParams: { dataless: {} }, metadata: {}, ...extra };
+    return { notebookId: id, name, connectionParams: { duckdb: {} }, metadata: {}, ...extra };
 }
 
 describe('CompositeStorageBackend', () => {
@@ -497,7 +497,7 @@ describe('CompositeStorageBackend', () => {
         it('reports a missing notebook id instead of claiming the manifest is absent', async () => {
             fsStore.files.set(`${NATIVE_DIR}/dashql-notebook.json`, JSON.stringify({
                 sessionId: NATIVE_ID,
-                connectionParams: { dataless: {} },
+                connectionParams: { duckdb: {} },
                 notebook: {},
             }));
 

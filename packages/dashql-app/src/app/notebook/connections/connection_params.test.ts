@@ -3,6 +3,11 @@ import { sanitizeConnectionParamsForSharing, createDefaultConnectionParamsForCon
 import { CONNECTOR_INFOS, ConnectorType } from './connector_info.js';
 
 describe('createDefaultConnectionParamsForConnector', () => {
+    it('uses WASM for browser Hyper', () => {
+        const params = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.HYPER]);
+        expect(params).toMatchObject({ hyper: { protocol: 'WASM' } });
+    });
+
     it('uses HTTP for Salesforce', () => {
         const params = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD]);
         expect(params).toMatchObject({ salesforce: { hyperProtocol: 'V3_HTTP' } });
@@ -93,9 +98,9 @@ describe('sanitizeConnectionParamsForSharing', () => {
         expect(sanitized.hyper.endpoint).toBe('https://hyper.example.com');
     });
 
-    it('leaves dataless params untouched', () => {
-        const params: ConnectionParams = { dataless: { demoConnector: true } as any };
+    it('leaves DuckDB params untouched', () => {
+        const params: ConnectionParams = { duckdb: {} };
         const sanitized = sanitizeConnectionParamsForSharing(params) as any;
-        expect(sanitized.dataless.demoConnector).toBe(true);
+        expect(sanitized).toEqual({ duckdb: {} });
     });
 });

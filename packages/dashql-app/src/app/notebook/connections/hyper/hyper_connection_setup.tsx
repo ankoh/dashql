@@ -22,6 +22,9 @@ import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { useAppConfig } from '../../../config/app_config.js';
 import { useHyperGrpcClient, useHyperHttpClient } from './hyperdb_grpc_client_provider.js';
 import { RESET_CONNECTION } from '../connection_state.js';
+import { useEmbeddedDatabaseSetup, type EmbeddedDatabaseSetupFn } from '../../../../platform/database/embedded_database_provider.js';
+import { isNativePlatform } from '../../../../platform/native_globals.js';
+import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '../embedded/embedded_database_channel.js';
 
 const LOG_CTX = "hyper_setup";
 
@@ -34,8 +37,8 @@ function resolveClient(protocol: connection.HyperProtocol, grpcClient: HyperData
     return grpcClient;
 }
 
-export async function setupHyperConnection(updateState: Dispatch<HyperConnectorAction>, logger: Logger, params: connection.HyperConnectionParams, _config: HyperConnectorConfig, grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, abortSignal: AbortSignal): Promise<HyperDatabaseChannel | null> {
-    let channel: HyperDatabaseChannel;
+export async function setupHyperConnection(updateState: Dispatch<HyperConnectorAction>, logger: Logger, params: connection.HyperConnectionParams, _config: HyperConnectorConfig, grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, setupEmbeddedDatabase: EmbeddedDatabaseSetupFn, abortSignal: AbortSignal): Promise<HyperDatabaseChannel | null> {
+    let channel: HyperDatabaseChannel | null = null;
     try {
         // Start the channel setup
         updateState({
@@ -44,24 +47,29 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
         });
         abortSignal.throwIfAborted()
 
-        const client = resolveClient(params.protocol, grpcClient, httpClient);
+        if (params.protocol === 'WASM') {
+            if (isNativePlatform()) throw new Error('Hyper WASM is only available in the browser');
+            const database = await setupEmbeddedDatabase('hyper_wasm_connector');
+            channel = new EmbeddedHyperDatabaseChannel(new EmbeddedDatabaseChannel(await database.connect()));
+        } else {
+            const client = resolveClient(params.protocol, grpcClient, httpClient);
 
-        // Static connection context.
-        // The direct gRPC Hyper connector never changes the headers it injects.
-        const connectionContext: HyperDatabaseConnectionContext = {
-            getAttachedDatabases(): pb.salesforce_hyperdb_grpc_v1.pb.AttachedDatabase[] {
-                return (params.attachedDatabases ?? []) as any;
-            },
-            async getRequestMetadata(): Promise<Record<string, string>> {
-                return (params.metadata as any)?.data ?? {};
-            },
-            getQueryParameters(): Record<string, string> {
-                return params.queryParameters ?? {};
-            }
-        };
+            // Static connection context.
+            // The direct gRPC Hyper connector never changes the headers it injects.
+            const connectionContext: HyperDatabaseConnectionContext = {
+                getAttachedDatabases(): pb.salesforce_hyperdb_grpc_v1.pb.AttachedDatabase[] {
+                    return (params.attachedDatabases ?? []) as any;
+                },
+                async getRequestMetadata(): Promise<Record<string, string>> {
+                    return (params.metadata as any)?.data ?? {};
+                },
+                getQueryParameters(): Record<string, string> {
+                    return params.queryParameters ?? {};
+                }
+            };
 
-        // Create the channel
-        channel = await client.connect(params, connectionContext);
+            channel = await client.connect(params, connectionContext);
+        }
         abortSignal.throwIfAborted();
 
         // Mark the channel as ready
@@ -72,6 +80,7 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
         abortSignal.throwIfAborted();
 
     } catch (error: any) {
+        await channel?.close();
         if (error.name === 'AbortError') {
             logger.warn("Cancelled setup", {}, LOG_CTX);
             updateState({
@@ -112,13 +121,14 @@ export const HyperSetupProvider: React.FC<Props> = (props: Props) => {
     const connectorConfig = appConfig?.connectors?.hyper ?? null;
     const grpcClient = useHyperGrpcClient();
     const httpClient = useHyperHttpClient();
+    const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
 
     const api = React.useMemo<HyperSetupApi | null>(() => {
-        if (!connectorConfig || (!grpcClient && !httpClient)) {
+        if (!connectorConfig) {
             return null;
         }
         const setup = async (dispatch: Dispatch<HyperConnectorAction>, params: connection.HyperConnectionParams, abort: AbortSignal) => {
-            return await setupHyperConnection(dispatch, logger, params, connectorConfig, grpcClient, httpClient, abort);
+            return await setupHyperConnection(dispatch, logger, params, connectorConfig, grpcClient, httpClient, setupEmbeddedDatabase, abort);
         };
         const reset = async (dispatch: Dispatch<HyperConnectorAction>) => {
             dispatch({
@@ -127,7 +137,7 @@ export const HyperSetupProvider: React.FC<Props> = (props: Props) => {
             });
         };
         return { setup, reset };
-    }, [connectorConfig, grpcClient, httpClient, logger]);
+    }, [connectorConfig, grpcClient, httpClient, logger, setupEmbeddedDatabase]);
 
     return (
         <SETUP_CTX.Provider value={api} > {props.children} </SETUP_CTX.Provider>

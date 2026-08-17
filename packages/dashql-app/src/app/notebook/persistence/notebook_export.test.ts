@@ -46,7 +46,7 @@ describe('exportNotebookAsZip', () => {
             notebookId: 'test-uuid-1',
             notebookPath: 'test-notebook',
             name: 'Test Notebook',
-            connectionParams: { dataless: {} },
+            connectionParams: { duckdb: {} },
             metadata: {
                 originalFileName: 'test.sql',
                 createdAt: '2024-01-01T00:00:00Z',
@@ -113,7 +113,7 @@ describe('exportNotebookAsZip', () => {
             notebookId: 'test-uuid-1',
             notebookPath: 'test-notebook',
             name: 'Test Notebook',
-            connectionParams: { dataless: {} },
+            connectionParams: { duckdb: {} },
             metadata: {},
         };
 
@@ -137,7 +137,7 @@ describe('exportNotebookAsZip', () => {
             notebookId: 'empty-uuid',
             notebookPath: 'empty-notebook',
             name: 'Empty Notebook',
-            connectionParams: { dataless: {} },
+            connectionParams: { duckdb: {} },
             metadata: {},
         };
 
@@ -165,7 +165,7 @@ describe('exportNotebookAsZip', () => {
             notebookId: 'test-uuid-1',
             notebookPath: 'test-notebook',
             name: 'Test Notebook',
-            connectionParams: { dataless: {} },
+            connectionParams: { duckdb: {} },
             metadata: {},
         };
 
@@ -189,7 +189,7 @@ describe('exportNotebookAsZip', () => {
             notebookId: 'test-uuid-1',
             notebookPath: 'test-notebook',
             name: 'Test Notebook',
-            connectionParams: { dataless: {} },
+            connectionParams: { duckdb: {} },
             metadata: {},
         };
 
@@ -214,7 +214,7 @@ describe('exportNotebookAsZip', () => {
         const notebookData: NotebookData = {
             notebookId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
             name: 'Shared Notebook',
-            connectionParams: { dataless: {} },
+            connectionParams: { duckdb: {} },
             metadata: {},
         };
         vi.mocked(mockBackend.loadNotebook).mockResolvedValue(notebookData);
@@ -265,7 +265,7 @@ describe('exportNotebookAsSharedZip', () => {
             notebookId,
             notebookPath: notebookId,
             ...(name ? { name } : {}),
-            connectionParams: { dataless: {} },
+            connectionParams: { duckdb: {} },
             metadata: { originalFileName: 'notebook.sql' },
         } as unknown as NotebookData;
         return {
@@ -283,7 +283,7 @@ describe('exportNotebookAsSharedZip', () => {
         return JSON.parse(await notebookFile!.async('text'));
     }
 
-    const connectionParams = { dataless: {} };
+    const connectionParams = { duckdb: {} };
 
     it('carries the stored notebook name through so a shared link restores under the same label', async () => {
         const zipBlob = await exportNotebookAsSharedZip(makeBackend('uuid-1', 'My Analysis'), 'uuid-1', connectionParams);
@@ -324,26 +324,11 @@ describe('exportNotebookAsSharedZip', () => {
                 login: 'user@example.com',
             },
         };
-        const zipBlob = await exportNotebookAsSharedZip(makeBackend('uuid-1'), 'uuid-1', sfParams, true, false);
+        const zipBlob = await exportNotebookAsSharedZip(makeBackend('uuid-1'), 'uuid-1', sfParams, false);
         const notebook = await readNotebookData(zipBlob);
         expect(notebook.connectionParams.salesforce.appConsumerKey).toBe('consumer-key');
         expect(notebook.connectionParams.salesforce.login).toBe('');
         expect(notebook.connectionParams.salesforce.appConsumerSecret).toBe('');
     });
 
-    it('drops all connection info to a dataless notebook when the toggle is off', async () => {
-        const sfParams = {
-            salesforce: {
-                hyperProtocol: 'V3_HTTP',
-                instanceUrl: 'https://example.my.salesforce.com',
-                appConsumerKey: 'consumer-key',
-                appConsumerSecret: 'super-secret',
-                login: 'user@example.com',
-            },
-        };
-        const zipBlob = await exportNotebookAsSharedZip(makeBackend('uuid-1'), 'uuid-1', sfParams, false);
-        const notebook = await readNotebookData(zipBlob);
-        expect('salesforce' in notebook.connectionParams).toBe(false);
-        expect('dataless' in notebook.connectionParams).toBe(true);
-    });
 });

@@ -123,8 +123,8 @@ export class NativeDuckDB extends DuckDB {
     public detach(): void {
     }
 
-    public terminate(): void {
-        void this.destroyDatabase();
+    public async terminate(): Promise<void> {
+        await this.destroyDatabase();
     }
 
     public async ping(): Promise<void> {
@@ -220,9 +220,17 @@ export class NativeDuckDBConnection extends DuckDBConnection {
         await throwIfError(response);
     }
 
-    protected async queryArrowIPCImpl(query: string): Promise<Uint8Array> {
+    protected async queryArrowIPCImpl(query: string, abort?: AbortSignal): Promise<Uint8Array> {
+        abort?.throwIfAborted();
         const streamId = await this.startQueryStream(query);
-        return await this.readFullStream(streamId);
+        try {
+            return await this.readFullStream(streamId, abort);
+        } catch (error) {
+            if (abort?.aborted) {
+                await this.cancelQueryStream(streamId);
+            }
+            throw error;
+        }
     }
 
     protected async queryPendingImpl(query: string, _allowStreamResult: boolean): Promise<arrow.Table> {
@@ -379,10 +387,12 @@ export class NativeDuckDBConnection extends DuckDBConnection {
         };
     }
 
-    protected async readFullStream(streamId: number): Promise<Uint8Array> {
+    protected async readFullStream(streamId: number, abort?: AbortSignal): Promise<Uint8Array> {
         const chunks: Uint8Array[] = [];
         while (true) {
+            abort?.throwIfAborted();
             const batch = await this.readStreamBatch(streamId);
+            abort?.throwIfAborted();
             if (batch.bytes.byteLength > 0) {
                 chunks.push(batch.bytes);
             }
@@ -390,6 +400,14 @@ export class NativeDuckDBConnection extends DuckDBConnection {
                 return concatChunks(chunks);
             }
         }
+    }
+
+    protected async cancelQueryStream(streamId: number): Promise<void> {
+        const response = await this.database.request(
+            `/duckdb/database/${this.databaseId}/connection/${this.connectionId}/stream/${streamId}`,
+            { method: 'DELETE' },
+        );
+        await throwIfError(response);
     }
 
     protected async startPendingQuery(query: string): Promise<NativePendingBatch> {

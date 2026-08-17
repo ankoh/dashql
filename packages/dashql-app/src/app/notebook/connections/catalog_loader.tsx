@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useDynamicConnectionDispatch } from './connection_registry.js';
 import { CatalogUpdateTaskState, CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog_update_state.js';
 import { useSalesforceAPI } from './salesforce/salesforce_connector.js';
-import { CatalogResolver, DATALESS_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { CatalogResolver, DUCKDB_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import {
     CATALOG_UPDATE_CANCELLED,
     CATALOG_UPDATE_FAILED,
@@ -17,7 +17,6 @@ import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { createTrace } from '../../../platform/logger/trace_context.js';
 import { updateInformationSchemaCatalog } from './catalog_query_information_schema.js';
 import { updatePgCatalog } from './catalog_query_pg_attribute.js';
-import { updateDemoSchemaCatalog } from './dataless/dataless_demo_catalog.js';
 import { useConnectionScriptsDispatch } from '../scripts/notebook_scripts_registry.js';
 import { CATALOG_DID_UPDATE } from '../scripts/notebook_scripts.js';
 
@@ -114,8 +113,8 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                             await updateInformationSchemaCatalog(connectionId, connDispatch, updateId, catalog, schemas, executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
                             break;
                         }
-                        case DATALESS_CONNECTOR: {
-                            await updateDemoSchemaCatalog(connectionId, connDispatch, updateId, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
+                        case DUCKDB_CONNECTOR: {
+                            await updateInformationSchemaCatalog(connectionId, connDispatch, updateId, '', [], executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
                             break;
                         }
                         default:

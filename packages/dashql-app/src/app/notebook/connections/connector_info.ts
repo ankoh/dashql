@@ -1,19 +1,19 @@
 import { isNativePlatform } from "../../../platform/native_globals.js";
 
-export const DATALESS_CONNECTOR = Symbol('DATALESS_CONNECTOR');
+export const DUCKDB_CONNECTOR = Symbol('DUCKDB_CONNECTOR');
 export const SALESFORCE_DATA_CLOUD_CONNECTOR = Symbol('SALESFORCE_DATA_CLOUD_CONNECTOR');
 export const HYPER_CONNECTOR = Symbol('HYPER_CONNECTOR');
 export const TRINO_CONNECTOR = Symbol('TRINO_CONNECTOR');
 
 export enum ConnectorType {
-    DATALESS = 0,
-    HYPER = 1,
+    HYPER = 0,
+    DUCKDB = 1,
     SALESFORCE_DATA_CLOUD = 2,
     TRINO = 3,
 }
 export const CONNECTOR_TYPES: ConnectorType[] = [
-    ConnectorType.DATALESS,
     ConnectorType.HYPER,
+    ConnectorType.DUCKDB,
     ConnectorType.SALESFORCE_DATA_CLOUD,
     ConnectorType.TRINO,
 ];
@@ -70,31 +70,6 @@ export interface ConnectorFeatures {
 
 export const CONNECTOR_INFOS: ConnectorInfo[] = [
     {
-        connectorType: ConnectorType.DATALESS,
-        names: {
-            displayShort: 'Dataless',
-            displayLong: 'Dataless',
-            fileShort: 'dataless',
-        },
-        icons: {
-            colored: "cloud_offline",
-            uncolored: "cloud_offline",
-            outlines: "cloud_offline",
-        },
-        catalogResolver: CatalogResolver.SQL_SCRIPT,
-        features: {
-            manualSetup: false,
-            healthChecks: false,
-            schemaScript: true,
-            executeQueryAction: false,
-            refreshSchemaAction: false,
-        },
-        platforms: {
-            browser: true,
-            native: true,
-        },
-    },
-    {
         connectorType: ConnectorType.HYPER,
         names: {
             displayShort: 'Hyper',
@@ -116,6 +91,31 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
         },
         platforms: {
             browser: true,
+            native: true,
+        },
+    },
+    {
+        connectorType: ConnectorType.DUCKDB,
+        names: {
+            displayShort: 'DuckDB',
+            displayLong: 'DuckDB',
+            fileShort: 'duckdb',
+        },
+        icons: {
+            colored: "database",
+            uncolored: "database",
+            outlines: "database",
+        },
+        catalogResolver: CatalogResolver.SQL_INFORMATION_SCHEMA,
+        features: {
+            manualSetup: true,
+            healthChecks: true,
+            schemaScript: false,
+            executeQueryAction: true,
+            refreshSchemaAction: true,
+        },
+        platforms: {
+            browser: false,
             native: true,
         },
     },
@@ -171,41 +171,25 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     },
 ];
 
-/// Create a ConnectorInfo for a dataless connection with given settings
-export function createDatalessConnectorInfo(demoConnector: boolean): ConnectorInfo {
-    if (!demoConnector) {
-        return CONNECTOR_INFOS[ConnectorType.DATALESS];
-    }
-    return {
-        ...CONNECTOR_INFOS[ConnectorType.DATALESS],
-        catalogResolver: CatalogResolver.SQL_INFORMATION_SCHEMA,
-        features: {
-            manualSetup: true,
-            healthChecks: true,
-            schemaScript: false,
-            executeQueryAction: true,
-            refreshSchemaAction: true,
-        },
-        platforms: {
-            browser: true,
-            native: true,
-        },
-    };
-}
-
-export function getConnectorInfoForParams(params: { dataless?: any; hyper?: any; salesforce?: any; trino?: any }): ConnectorInfo | null {
-    if ("dataless" in params) {
-        const demoConnector = params.dataless?.demoConnector ?? false;
-        return createDatalessConnectorInfo(demoConnector);
-    }
+export function getConnectorInfoForParams(params: { duckdb?: any; hyper?: any; salesforce?: any; trino?: any }): ConnectorInfo | null {
     if ("hyper" in params) return CONNECTOR_INFOS[ConnectorType.HYPER];
+    if ("duckdb" in params) return CONNECTOR_INFOS[ConnectorType.DUCKDB];
     if ("salesforce" in params) return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
     if ("trino" in params) return CONNECTOR_INFOS[ConnectorType.TRINO];
     return null;
 }
 
-export function requiresSwitchingToNative(info: ConnectorInfo) {
-    return !info.platforms.browser && !isNativePlatform();
+export function isConnectorAvailable(info: ConnectorInfo): boolean {
+    return isNativePlatform() ? info.platforms.native : info.platforms.browser;
 }
 
-export const useConnectorList = () => CONNECTOR_INFOS;
+export function requiresSwitchingToNative(info: ConnectorInfo) {
+    return !isConnectorAvailable(info);
+}
+
+export const useConnectorList = () => {
+    const connectorTypes = isNativePlatform()
+        ? [ConnectorType.DUCKDB, ConnectorType.HYPER, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.TRINO]
+        : [ConnectorType.HYPER, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.TRINO];
+    return connectorTypes.map(type => CONNECTOR_INFOS[type]).filter(isConnectorAvailable);
+};

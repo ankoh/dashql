@@ -103,8 +103,8 @@ export async function queryInformationSchema(connectionId: string, connectionDis
             is_nullable,
             data_type
         FROM information_schema.columns
-        WHERE table_catalog = '${catalogName}'
-        ${schemaNames.length > 0 ? `AND table_schema IN ('${schemaNames.join("','")}')` : ''}
+        ${catalogName.length > 0 ? `WHERE table_catalog = '${catalogName}'` : ''}
+        ${schemaNames.length > 0 ? `${catalogName.length > 0 ? 'AND' : 'WHERE'} table_schema IN ('${schemaNames.join("','")}')` : ''}
     `;
 
     const args: QueryExecutionArgs = {

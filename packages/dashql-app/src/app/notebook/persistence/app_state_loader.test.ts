@@ -191,7 +191,7 @@ describe('restoreAppState', () => {
         expect(finalProgress.restoreConnections.failed).toBe(0);
     });
 
-    it('restores both demo and regular DATALESS notebooks', async () => {
+    it('rejects legacy dataless notebooks', async () => {
         const demoNotebook = { path: DEMO_ID };
         const datalessNotebook = { path: DATALESS_ID };
 
@@ -199,7 +199,7 @@ describe('restoreAppState', () => {
             notebookId: DEMO_ID,
             notebookPath: DEMO_ID,
             name: 'Demo',
-            connectionParams: { dataless: { demoConnector: true } },
+            connectionParams: { dataless: { demoConnector: true } } as any,
             metadata: { originalFileName: 'demo.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
@@ -207,7 +207,7 @@ describe('restoreAppState', () => {
             notebookId: DATALESS_ID,
             notebookPath: DATALESS_ID,
             name: 'Dataless',
-            connectionParams: { dataless: {} },
+            connectionParams: { dataless: {} } as any,
             metadata: { originalFileName: 'dataless.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
@@ -228,22 +228,13 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        // Both notebooks should be restored
-        expect(result.connectionStates.size).toBe(2);
-        const demoConnectionId = result.connectionByNotebook.get(DEMO_ID)!;
-        const datalessConnectionId = result.connectionByNotebook.get(DATALESS_ID)!;
-        expect(result.connectionStates.has(demoConnectionId)).toBe(true);
-        expect(result.connectionStates.has(datalessConnectionId)).toBe(true);
-        expect(result.notebookScripts.size).toBe(2);
-
-        // Verify both DATALESS connections are in correct type index
-        expect(result.connectionStatesByType[ConnectorType.DATALESS]).toContain(demoConnectionId);
-        expect(result.connectionStatesByType[ConnectorType.DATALESS]).toContain(datalessConnectionId);
+        expect(result.connectionStates.size).toBe(0);
+        expect(result.notebookScripts.size).toBe(0);
+        expect(result.invalidNotebooks.get(DEMO_ID)?.error).toBe('unknown_connector');
+        expect(result.invalidNotebooks.get(DATALESS_ID)?.error).toBe('unknown_connector');
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
-        expect(finalProgress.restoreConnections.succeeded).toBe(2);
-        expect(finalProgress.restoreCatalogs.succeeded).toBe(2);
-        expect(finalProgress.restoreNotebookScripts.succeeded).toBe(2);
+        expect(finalProgress.restoreConnections.skipped).toBe(2);
     });
 
     it('handles corrupted notebook gracefully', async () => {
@@ -254,7 +245,7 @@ describe('restoreAppState', () => {
             notebookId: GOOD_ID,
             notebookPath: GOOD_ID,
             name: 'Good',
-            connectionParams: { dataless: {} },
+            connectionParams: { duckdb: {} },
             metadata: { originalFileName: 'good.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
@@ -274,7 +265,7 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        // Good DATALESS notebook should be restored; a notebook whose files can't be read is surfaced
+        // A good notebook should be restored; a notebook whose files can't be read is surfaced
         // as invalid (blocked + deletable in the selector), not left as a silent restore failure.
         expect(result.connectionStates.size).toBe(1);
         expect(result.connectionStates.has(result.connectionByNotebook.get(GOOD_ID)!)).toBe(true);
@@ -283,7 +274,7 @@ describe('restoreAppState', () => {
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.failed).toBe(0);
         expect(finalProgress.restoreConnections.skipped).toBe(1); // unreadable notebook
-        expect(finalProgress.restoreConnections.succeeded).toBe(1); // good DATALESS notebook restored
+        expect(finalProgress.restoreConnections.succeeded).toBe(1);
     });
 
     it('restores notebooks without setupParams (inactive connections are never written, but handle gracefully)', async () => {
@@ -418,7 +409,7 @@ describe('restoreAppState', () => {
             notebookId: '',
             notebookPath: NO_ID_PATH,
             name: 'No Id',
-            connectionParams: { dataless: {} },
+            connectionParams: { duckdb: {} },
             metadata: { originalFileName: 'x.sql', createdAt: '2024-01-01T00:00:00Z' }
         } as any as NotebookData;
 
@@ -448,7 +439,7 @@ describe('restoreAppState', () => {
             notebookId: GOOD_ID,
             notebookPath: GOOD_ID,
             name: 'Good',
-            connectionParams: { dataless: {} },
+            connectionParams: { duckdb: {} },
             metadata: { originalFileName: 'good.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
@@ -671,7 +662,7 @@ describe('restoreAppState', () => {
             notebookId: MULTI_PAGE_ID,
             notebookPath: MULTI_PAGE_ID,
             name: 'Invalid Script',
-            connectionParams: { dataless: {} },
+            connectionParams: { duckdb: {} },
             metadata: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
@@ -778,7 +769,7 @@ describe('restoreAppState', () => {
         vi.mocked(mockBackend.loadNotebook).mockImplementation(async (notebookId) => ({
             notebookId,
             name: 'Imported Notebook',
-            connectionParams: { dataless: {} },
+            connectionParams: { duckdb: {} },
             metadata: {},
         }));
         vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null);
@@ -804,7 +795,7 @@ describe('restoreAppState', () => {
         vi.mocked(mockBackend.loadNotebook).mockResolvedValue({
             notebookId: NOTEBOOK_FAIL_ID,
             name: 'Notebook Fail',
-            connectionParams: { dataless: {} },
+            connectionParams: { duckdb: {} },
             metadata: {},
         });
         vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null);
@@ -828,7 +819,7 @@ describe('restoreAppState', () => {
         vi.mocked(mockBackend.loadNotebook).mockResolvedValue({
             notebookId: DATALESS_ID,
             name: 'Broken Connection',
-            connectionParams: { dataless: {} },
+            connectionParams: { duckdb: {} },
             metadata: {},
         });
         vi.mocked(mockCore.createCatalog).mockImplementationOnce(() => {

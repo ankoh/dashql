@@ -255,6 +255,9 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         abortSignal.throwIfAborted();
 
         // Start the channel setup
+        if (params.hyperProtocol === 'WASM') {
+            throw new Error('Salesforce connections do not support Hyper WASM');
+        }
         // const dcAuthInfo = getAuthI
         const connParams: connection.HyperConnectionParams = {
             protocol: params.hyperProtocol,

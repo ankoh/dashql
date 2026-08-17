@@ -4,7 +4,7 @@ import { AppLoadingStatus } from '../router/app_loading_status.js';
 import { NotebookSetupStatus } from '../router/notebook_setup_status.js';
 import { FINISH_SETUP, OPEN_LINK_NOTEBOOK, useRouteContext, useRouterNavigate } from '../router/router.js';
 import { isDebugBuild } from '../../globals.js';
-import { useConnectionRegistry, useConnectionStateAllocator, useDynamicConnectionDispatch } from '../notebook/connections/connection_registry.js';
+import { useConnectionRegistry, useConnectionStateAllocator } from '../notebook/connections/connection_registry.js';
 import { useDashQLCoreSetup } from '../providers/core_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { createTrace } from '../../platform/logger/trace_context.js';
@@ -21,7 +21,6 @@ import { loadApp } from './app_loading_logic.js';
 import { useAppConfig } from '../config/app_config.js';
 import { useStorage } from '../notebook/persistence/storage_provider.js';
 import { useNotebookScriptsRegistry } from '../notebook/scripts/notebook_scripts_registry.js';
-import { useDemoNotebookScriptsSetup } from '../notebook/connections/dataless/dataless_notebook.js';
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
 import { InvalidNotebook } from '../notebook/persistence/notebook_validation.js';
 
@@ -50,13 +49,10 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const allocateConnection = useConnectionStateAllocator();
     const [connReg, setConnReg] = useConnectionRegistry();
     const connectionSignatures = connReg.connectionsBySignature;
-    const connDispatch = useDynamicConnectionDispatch()[1];
     const [notebookScriptsRegistry, setNotebookScriptsRegistry] = useNotebookScriptsRegistry();
-    const setupDemoNotebookScripts = useDemoNotebookScriptsSetup();
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
 
     const appEvents = usePlatformEventListener();
-    const abortDefaultNotebookSwitch = React.useRef(new AbortController());
     const [loadedCore, setLoadedCore] = React.useState<any>(null);
     // Notebooks whose metadata was refused a load. Surfaced (marked invalid, blocked, deletable) in
     // the notebook selector instead of being silently dropped.
@@ -66,8 +62,6 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
         restoreCatalogs: new ProgressCounter(),
         restoreNotebookScripts: new ProgressCounter(),
         analyzeScripts: new ProgressCounter(),
-        setupDefaultConnections: new ProgressCounter(),
-        setupDefaultNotebooks: new ProgressCounter(),
     }));
     const [setupDone, resolveSetupDone, _rejectSetupDone] = React.useMemo(() => {
         let resolve: () => void;
@@ -87,11 +81,9 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
         const traced = logger.withTrace(createTrace());
         traced.debug("Consuming setup event", { "event_type": String(data.type) }, "app_loader");
 
-        // Stop the default notebook switch after DashQL is ready
-        abortDefaultNotebookSwitch.current.abort("notebook_setup_event");
         // Wait for core to be ready
         const core = await setupCore("app_setup");
-        // Wait for the default connections to be created
+        // Wait for the initial application restore to finish.
         await setupDone;
         // Configure the app with the setup event. This imports the shared notebook into storage and
         // restores it (connection + catalog + notebook) into fresh scratch maps. It reuses the same
@@ -150,7 +142,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
         return () => appEvents.unsubscribeSetupEvents(consumeSetupEvent);
     }, [appEvents]);
 
-    // Effect to run the default setup once at the beginning.
+    // Effect to run the initial setup once at the beginning.
     // We guard against re-runs triggered by config identity changes (e.g. AppSettingsSync
     // hydrating persisted settings into AppConfig). The abort controller is only fired
     // on unmount so an in-flight setup is not cancelled by an unrelated config update.
@@ -171,18 +163,19 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             traced.info("Initializing application", {}, "app_loader");
             const totalStartTime = performance.now();
 
-            // Wait for Core and HyperDB to be ready.
-            traced.info("Initializing Core and HyperDB", {}, "app_loader");
+            // Wait for Core and the platform's embedded database to be ready.
+            traced.info("Initializing Core and embedded database", {}, "app_loader");
             const coreStartTime = performance.now();
 
-            const [core] = await Promise.all([
-                setupCore("app_setup"),
-                setupEmbeddedDatabase("app_setup"),
-                loadFonts(),
-            ]);
+            const corePromise = setupCore("app_setup");
+            const embeddedDatabasePromise = setupEmbeddedDatabase("app_setup").catch(error => {
+                traced.warn("Embedded database initialization failed", { error: String(error) }, "app_loader");
+                return null;
+            });
+            const [core] = await Promise.all([corePromise, embeddedDatabasePromise, loadFonts()]);
 
             const coreDuration = performance.now() - coreStartTime;
-            traced.info("Core and HyperDB ready", {
+            traced.info("Core and embedded database ready", {
                 durationMs: coreDuration.toFixed(2)
             }, "app_loader");
 
@@ -191,7 +184,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
 
             // Load the app
             traced.info("Loading application state and notebooks", {}, "app_loader");
-            const loaded = await loadApp(config, traced, core, storageReader, setConnReg, allocateConnection, connDispatch, setNotebookScriptsRegistry, setupDemoNotebookScripts, setLoadingProgress, abort.signal);
+            const loaded = await loadApp(traced, core, storageReader, setConnReg, setNotebookScriptsRegistry, setLoadingProgress);
 
             // Surface any notebooks that were refused a load in the selector. This is just an
             // aggregate count for the log — each refused notebook already logs a WARN with its path
@@ -203,26 +196,14 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 setInvalidNotebooks(loaded.invalidNotebooks);
             }
 
-            // Get notebook ID directly from the loaded notebook
-            const demoNotebookId = loaded.demo.notebookId;
-
             const totalDuration = performance.now() - totalStartTime;
             traced.info("Application loaded successfully", {
-                demoNotebookId,
                 totalDurationMs: totalDuration.toFixed(2)
             }, "app_loader");
 
             // Mark the setup as done
             traced.info("Marking setup as done", {}, "app_loader");
             resolveSetupDone();
-
-            // Await the setup of the static notebook
-            // We might have received a notebook setup link in the meantime.
-            // In that case, don't default-select the demo notebook
-            if (abortDefaultNotebookSwitch.current.signal.aborted) {
-                traced.info("Notebook switch aborted by setup event", {}, "app_loader");
-                return;
-            }
 
             traced.info("Finishing setup", {}, "app_loader");
 

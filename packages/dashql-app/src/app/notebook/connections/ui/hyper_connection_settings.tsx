@@ -50,7 +50,7 @@ interface PageState {
 function buildPageStateFromParams(params: connection.HyperConnectionParams | undefined): PageState {
     const metadataDetails = (params?.metadata as { details?: Record<string, string> } | undefined)?.details;
     return {
-        protocol: params?.protocol ?? (isNativePlatform() ? "V3_DOCKER" : "V3_HTTP"),
+        protocol: params?.protocol ?? (isNativePlatform() ? "V3_DOCKER" : "WASM"),
         endpoint: params?.endpoint ?? "http://localhost:7484",
         mTlsKeyPath: params?.tls?.clientKeyPath ?? "",
         mTlsPubPath: params?.tls?.clientCertPath ?? "",
@@ -103,11 +103,13 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const protocol = pageState.protocol;
 
     // Docker and direct gRPC both require the native platform
-    const wrongPlatform = (protocol === "V3_GRPC" || protocol === "V3_DOCKER") && !isNativePlatform();
+    const wrongPlatform = protocol === 'WASM'
+        ? isNativePlatform()
+        : (protocol === "V3_GRPC" || protocol === "V3_DOCKER") && !isNativePlatform();
     const isDocker = protocol === "V3_DOCKER";
     const protocols: connection.HyperProtocol[] = isNativePlatform()
         ? ["V3_DOCKER", "V3_GRPC", "V3_HTTP"]
-        : ["V3_GRPC", "V3_HTTP"];
+        : ["WASM", "V3_HTTP"];
     const setProtocol = (v: connection.HyperProtocol) => setPageState(s => ({ ...s, protocol: v }));
     const setEndpoint = (v: string) => setPageState(s => ({ ...s, endpoint: v }));
     const setMTLSKeyPath = (v: string) => setPageState(s => ({ ...s, mTlsKeyPath: v }));
@@ -144,7 +146,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const setupAbortController = React.useRef<AbortController | null>(null);
     const setupConnection = async () => {
         // Is there a Hyper client?
-        if ((!grpcClient && !httpClient) || hyperSetup == null) {
+        if ((protocol !== 'WASM' && !grpcClient && !httpClient) || hyperSetup == null) {
             logger.error("Hyper connector is unavailable", {}, LOG_CTX);
             return;
         }
@@ -245,6 +247,16 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                     isEditMode={dockerEditMode}
                     onClose={props.onClose}
                 />
+            ) : protocol === 'WASM' ? (
+            <div className={style.body_container}>
+                <div className={style.section}>
+                    <div className={`${style.section_layout} ${style.body_section_layout}`}>
+                        <div className={style.grid_column_1_span_2}>
+                            Hyper runs locally in this browser using WebAssembly.
+                        </div>
+                    </div>
+                </div>
+            </div>
             ) : (
             <div className={style.body_container}>
                 <div className={style.section}>

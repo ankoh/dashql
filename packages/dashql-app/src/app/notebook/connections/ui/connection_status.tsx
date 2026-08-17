@@ -2,8 +2,6 @@ import * as React from 'react';
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import { ConnectionState } from '../connection_state.js';
-import { ConnectorType } from '../connector_info.js';
-import { DatalessConnectionStateDetails, isDemoConnector } from '../dataless/dataless_connection_state.js';
 import { Button, ButtonVariant } from '../../../../ui/foundations/button.js';
 
 interface ButtonProps {
@@ -33,10 +31,7 @@ export const ConnectionStatus = React.forwardRef<HTMLButtonElement, ButtonProps>
     const health = props.conn.connectionHealth ?? 0;
     const connectorIcon = props.conn.connectorInfo.icons.outlines;
 
-    const isDemo =
-        props.conn.connectorInfo.connectorType === ConnectorType.DATALESS &&
-        isDemoConnector(props.conn.details.value as DatalessConnectionStateDetails);
-    const connStatusText = isDemo ? "Demo" : props.conn.connectorInfo.names.displayShort;
+    const connStatusText = props.conn.connectorInfo.names.displayShort;
     const connStatusColor = CONNECTION_HEALTH_COLORS[health];
 
     const handleClick = () => {

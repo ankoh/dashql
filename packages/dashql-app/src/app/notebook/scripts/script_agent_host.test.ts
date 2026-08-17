@@ -18,7 +18,7 @@ import {
     reduceNotebookScripts,
     analyzeAllScripts,
 } from './notebook_scripts.js';
-import { createDatalessConnectorInfo } from '../connections/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
 import { StorageWriter, StorageWriteTaskVariant } from '../persistence/storage_writer.js';
 import { Logger } from '../../../platform/logger/logger.js';
 import { createEmptyMetadata, createScriptRef, generateScriptFileName, scriptDisplayName } from './script_types.js';
@@ -121,7 +121,7 @@ function buildNotebookScripts(focusedSql: string): { state: NotebookScripts; foc
         notebookId,
         connectionId: 'test-connection',
         notebookMetadata: createEmptyMetadata(),
-        connectorInfo: createDatalessConnectorInfo(true),
+        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
         connectionCatalog: catalog,
         scripts: {
             [committedKey]: { ...committedData, folderName: MAIN_FOLDER, fileName: file },

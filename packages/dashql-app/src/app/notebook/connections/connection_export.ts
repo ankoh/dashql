@@ -1,13 +1,13 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { ConnectionState } from "./connection_state.js";
-import { DATALESS_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { DUCKDB_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 
 export function encodeConnectionAsProto(state: ConnectionState): connection.Connection {
     switch (state.details.type) {
-        case DATALESS_CONNECTOR:
+        case DUCKDB_CONNECTOR:
             return {
-                dataless: state.details.value.proto,
+                duckdb: state.details.value.proto,
             };
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
             return {

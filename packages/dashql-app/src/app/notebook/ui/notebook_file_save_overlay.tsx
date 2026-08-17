@@ -18,11 +18,11 @@ import { StorageBackend } from '../persistence/storage_backend.js';
 import { IconButton } from '../../../ui/foundations/button.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../../globals.js';
 
-async function packAndCompressFile(backend: StorageBackend, conn: ConnectionState, notebookScripts: NotebookScripts, withConnectionInfo: boolean, withLoginHint: boolean): Promise<Uint8Array> {
+async function packAndCompressFile(backend: StorageBackend, conn: ConnectionState, notebookScripts: NotebookScripts, withLoginHint: boolean): Promise<Uint8Array> {
     const connectionParams = await import('../connections/connection_params.js').then(m =>
         m.getConnectionParamsFromStateDetails(conn.details)
     );
-    const zipBlob = await exportNotebookAsSharedZip(backend, notebookScripts.notebookId, connectionParams, withConnectionInfo, withLoginHint);
+    const zipBlob = await exportNotebookAsSharedZip(backend, notebookScripts.notebookId, connectionParams, withLoginHint);
     const arrayBuffer = await zipBlob.arrayBuffer();
     return new Uint8Array(arrayBuffer);
 }
@@ -44,7 +44,6 @@ export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
 
     const [settings, setSettings] = React.useState<NotebookExportSettings>({
         withCatalog: true,
-        withConnectionInfo: true,
         withLoginHint: true,
     });
 
@@ -60,7 +59,7 @@ export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
         }
         const cancellation = new AbortController();
         const pack = async () => {
-            const fileBytes = await packAndCompressFile(storage.backend, conn, notebookScripts, settings.withConnectionInfo, settings.withLoginHint);
+            const fileBytes = await packAndCompressFile(storage.backend, conn, notebookScripts, settings.withLoginHint);
             if (!cancellation.signal.aborted) {
                 setFileBytes(fileBytes);
             }

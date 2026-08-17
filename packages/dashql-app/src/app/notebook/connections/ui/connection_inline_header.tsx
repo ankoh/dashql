@@ -39,6 +39,7 @@ interface Props {
 }
 
 const PROTOCOL_LABELS: Record<connection.HyperProtocol, string> = {
+    WASM: "WASM",
     V3_DOCKER: "Docker",
     V3_GRPC: "gRPC",
     V3_HTTP: "HTTP",
@@ -99,7 +100,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
     let statusText: string = "";
     let indicatorStatus: IndicatorStatus = IndicatorStatus.None;
     if (props.wrongPlatform) {
-        statusText = "Connector is disabled in the browser";
+        statusText = "Connector is unavailable on this platform";
         indicatorStatus = IndicatorStatus.Skip;
     } else {
         statusText = getConnectionStatusText(props.connection?.connectionStatus, logger);

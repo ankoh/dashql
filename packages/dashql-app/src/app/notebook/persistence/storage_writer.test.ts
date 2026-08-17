@@ -19,7 +19,7 @@ import {
     storageWriteKeyWithinNotebook,
 } from './storage_writer.js';
 import { type ConnectionState } from '../connections/connection_state.js';
-import { createDatalessConnectionState } from '../connections/dataless/dataless_connection_state.js';
+import { createDuckDBConnectionState } from '../connections/duckdb/duckdb_connection_state.js';
 import { Logger } from '../../../platform/logger/logger.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -265,7 +265,7 @@ describe('StorageWriter notebook coordination', () => {
 });
 
 function makeConnection(notebookId: string): ConnectionState {
-    return { ...createDatalessConnectionState(dql!, new Map()), connectionId: crypto.randomUUID(), notebookId };
+    return { ...createDuckDBConnectionState(dql!, new Map()), connectionId: crypto.randomUUID(), notebookId };
 }
 
 describe('StorageWriter notebook manifest writes', () => {

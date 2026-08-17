@@ -95,31 +95,34 @@
       "required": ["successfulQueries", "canceledQueries", "failedQueries"],
       "additionalProperties": false
     },
-    "DatalessParams": {
+    "DuckDBConnectionParams": {
       "type": "object",
-      "description": "Connection Parameters - Dataless",
-      "properties": {
-        "demoConnector": {
-          "type": "boolean",
-          "description": "Enable demo connector with in-memory random data generation"
-        }
-      },
+      "description": "Connection Parameters - DuckDB",
+      "properties": {},
       "additionalProperties": false
     },
-    "DatalessConnectionDetails": {
+    "DuckDBConnectionDetails": {
       "type": "object",
-      "description": "Connection Details - Dataless",
+      "description": "Connection Details - DuckDB",
       "properties": {
+        "setupTimings": {
+          "$ref": "#/definitions/SetupTimings",
+          "description": "The setup timings"
+        },
         "setupParams": {
-          "$ref": "#/definitions/DatalessParams",
+          "$ref": "#/definitions/DuckDBConnectionParams",
           "description": "The params"
         },
         "channelError": {
           "type": "object",
-          "description": "Channel error details (for demo mode connections)"
+          "description": "The channel setup error (if any)"
+        },
+        "healthCheckError": {
+          "type": "object",
+          "description": "The health check error (if any)"
         }
       },
-      "required": ["setupParams"],
+      "required": ["setupTimings", "setupParams"],
       "additionalProperties": false
     },
     "TlsConfig": {
@@ -144,7 +147,7 @@
     },
     "HyperProtocol": {
       "type": "string",
-      "enum": ["V3_DOCKER", "V3_GRPC", "V3_HTTP"],
+      "enum": ["WASM", "V3_DOCKER", "V3_GRPC", "V3_HTTP"],
       "description": "The Hyper connection protocol"
     },
     "HyperConnectionParams": {
@@ -993,12 +996,12 @@
       "oneOf": [
         {
           "properties": {
-            "dataless": {
-              "$ref": "#/definitions/DatalessParams",
-              "description": "Parameters for dataless connections"
+            "duckdb": {
+              "$ref": "#/definitions/DuckDBConnectionParams",
+              "description": "Parameters for DuckDB connections"
             }
           },
-          "required": ["dataless"],
+          "required": ["duckdb"],
           "additionalProperties": false
         },
         {
@@ -1039,12 +1042,12 @@
       "oneOf": [
         {
           "properties": {
-            "dataless": {
-              "$ref": "#/definitions/DatalessConnectionDetails",
-              "description": "Details for Dataless connections"
+            "duckdb": {
+              "$ref": "#/definitions/DuckDBConnectionDetails",
+              "description": "Details for DuckDB connections"
             }
           },
-          "required": ["dataless"],
+          "required": ["duckdb"],
           "additionalProperties": false
         },
         {

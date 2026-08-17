@@ -9,7 +9,7 @@ export interface EmbeddedTableInsertOptions {
 export interface EmbeddedConnection {
     close(): Promise<void>;
     query(query: string): Promise<arrow.Table>;
-    queryArrowIPC(query: string): Promise<Uint8Array>;
+    queryArrowIPC(query: string, abort?: AbortSignal): Promise<Uint8Array>;
 }
 
 export interface EmbeddedTableImportConnection extends EmbeddedConnection {

@@ -38,7 +38,7 @@ import {
     notebookScriptsMatchStorageSnapshot,
     replaceNotebookScriptsFromStorage,
 } from './notebook_scripts.js';
-import { CONNECTOR_INFOS, ConnectorType, createDatalessConnectorInfo } from '../connections/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
 import {
     StorageWriter,
     StorageWriteTaskVariant,
@@ -136,7 +136,7 @@ function buildState(): NotebookScripts {
         notebookId,
         connectionId: crypto.randomUUID(),
         notebookMetadata: createEmptyMetadata(),
-        connectorInfo: createDatalessConnectorInfo(true),
+        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
         connectionCatalog: catalog,
         scripts: {
             [committedKey]: { ...committedData, folderName: MAIN_FOLDER, fileName: initialFile },

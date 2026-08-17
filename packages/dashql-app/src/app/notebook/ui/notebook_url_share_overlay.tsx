@@ -51,7 +51,6 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
     }));
     const [settings, setSettings] = React.useState<NotebookExportSettings>({
         withCatalog: false,
-        withConnectionInfo: true,
         withLoginHint: true,
     });
 
@@ -67,7 +66,7 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
             if (notebookScripts != null && connection != null) {
                 const conn = getConnectionParamsFromStateDetails(connection.details);
                 if (conn) {
-                    setupUrl = await exportNotebookAsUrl(storage.backend, notebookScripts.notebookId, conn, NotebookLinkTarget.WEB, settings.withConnectionInfo, settings.withLoginHint);
+                    setupUrl = await exportNotebookAsUrl(storage.backend, notebookScripts.notebookId, conn, NotebookLinkTarget.WEB, settings.withLoginHint);
                 }
             }
 

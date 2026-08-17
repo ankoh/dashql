@@ -34,6 +34,7 @@ import {
     CONNECTOR_INFOS,
     ConnectorType,
 } from '../notebook/connections/connector_info.js';
+import { isNativePlatform } from '../../platform/native_globals.js';
 import { createConnectionStateFromParams, createDefaultConnectionParamsForConnector } from '../notebook/connections/connection_params.js';
 import { ConnectionConfigCard } from '../notebook/connections/ui/connection_config_card.js';
 import { NotebookScriptsSetup } from '../notebook/scripts/notebook_scripts_setup.js';
@@ -191,7 +192,7 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
                 displayName: inv.title,
                 notebookName: null,
                 displayPath,
-                connectorType: inv.connectorType ?? ConnectorType.DATALESS,
+                connectorType: inv.connectorType ?? (isNativePlatform() ? ConnectorType.DUCKDB : ConnectorType.HYPER),
                 lastAccessed: null,
                 isNative: location.type === StorageBackendType.Native,
                 invalidReason: describeNotebookValidationError(inv.error),
@@ -246,9 +247,7 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
             return;
         }
 
-        // Skip card for DATALESS connectors or already-ONLINE connections
-        if (conn.connectorInfo.connectorType === ConnectorType.DATALESS ||
-            conn.connectionHealth === ConnectionHealth.ONLINE) {
+        if (conn.connectionHealth === ConnectionHealth.ONLINE) {
             navigate({ type: SELECT_NOTEBOOK, value: notebookId });
             return;
         }
@@ -263,7 +262,7 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
             return;
         }
 
-        const connectorType = ConnectorType.HYPER;
+        const connectorType = isNativePlatform() ? ConnectorType.DUCKDB : ConnectorType.HYPER;
         const connectorInfo = CONNECTOR_INFOS[connectorType];
 
         // Create default connection parameters

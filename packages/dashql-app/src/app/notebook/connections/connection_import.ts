@@ -3,7 +3,7 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { computeConnectionSignatureFromDetails, ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { LoggableException } from '../../../platform/logger/logger.js';
-import { CONNECTOR_INFOS, ConnectorInfo, ConnectorType, DATALESS_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR, createDatalessConnectorInfo } from './connector_info.js';
+import { CONNECTOR_INFOS, ConnectorInfo, ConnectorType, DUCKDB_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import { ConnectionHealth, ConnectionState, ConnectionStatus, createConnectionMetrics } from './connection_state.js';
 import { generateCatalogScriptHeader, CatalogSource } from './catalog_sql_generator.js';
 import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
@@ -13,18 +13,14 @@ import { QueryExecutionState } from './query_execution_state.js';
 const LOG_CTX = "connection";
 
 export function decodeConnectionFromProto(conn: connection.Connection, notebookId: string): [ConnectorInfo, ConnectionStateDetailsVariant] {
-    if ('dataless' in conn) {
-        const dl = conn.dataless as any;
-        // Handle both ConnectionParams format ({ demoConnector }) and Connection/Details format ({ setupParams: { demoConnector } })
-        const demoConnector = dl?.setupParams?.demoConnector ?? dl?.demoConnector ?? false;
-        const info: ConnectorInfo = createDatalessConnectorInfo(demoConnector);
-        // Normalize to DatalessConnectionDetails format (with setupParams wrapper).
-        // Storage uses ConnectionParams format ({ demoConnector }), not ConnectionDetails ({ setupParams: { demoConnector } }).
-        const proto = dl?.setupParams
-            ? (conn.dataless ?? { setupParams: {} })
-            : { setupParams: conn.dataless ?? {} } as any;
+    if ('duckdb' in conn) {
+        const duckdb = conn.duckdb as any;
+        const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.DUCKDB];
+        const proto = duckdb?.setupParams
+            ? duckdb
+            : { setupTimings: {}, setupParams: duckdb ?? {} };
         const details: ConnectionStateDetailsVariant = {
-            type: DATALESS_CONNECTOR,
+            type: DUCKDB_CONNECTOR,
             value: {
                 proto,
                 channel: null,

@@ -28,7 +28,6 @@ export const DEFAULT_AI_PROVIDER_SETTINGS: AIProviderSettings = {
 };
 
 export interface AppSettings {
-    setupDemoConnection?: boolean;
     pauseAfterAppSetup?: boolean;
     enableTableColumnPlots?: boolean;
     scriptDebugMode?: boolean;

@@ -39,7 +39,7 @@ export function createHyperConnectionStateDetails(params?: connection.HyperConne
         proto: {
             setupTimings: {},
             setupParams: params ?? {
-                protocol: isNativePlatform() ? "V3_DOCKER" : "V3_HTTP",
+                protocol: isNativePlatform() ? "V3_DOCKER" : "WASM",
                 endpoint: "",
                 tls: {
                     clientKeyPath: "",
@@ -68,7 +68,8 @@ export function getHyperConnectionDetails(state: ConnectionState | null): HyperC
 }
 
 export function computeHyperConnectionSignature(details: HyperConnectionDetails, hasher: Hasher) {
-    hasher.add("hyper-grpc");
+    hasher.add("hyper");
+    hasher.add(details.proto.setupParams?.protocol ?? "");
     hasher.add(details.proto.setupParams?.endpoint ?? "");
 }
 

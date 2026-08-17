@@ -131,7 +131,7 @@ function seedNotebook(backend: MemoryBackend, id: string): Promise<void> {
         await backend.saveNotebookManifest(id, {
             notebookId: id,
             name: `Notebook ${id}`,
-            connectionParams: { dataless: {} },
+            connectionParams: { duckdb: {} },
             metadata: {},
         });
         await backend.saveNotebookSchema(id, `-- schema ${id}`);

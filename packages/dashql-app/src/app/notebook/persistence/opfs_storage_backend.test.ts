@@ -207,7 +207,7 @@ describe('OPFSStorageBackend', () => {
             const notebookData: NotebookData = {
                 notebookId,
                 name: 'Layout Contract',
-                connectionParams: { dataless: {} },
+                connectionParams: { duckdb: {} },
                 metadata: {},
             };
 
@@ -274,7 +274,7 @@ describe('OPFSStorageBackend', () => {
                 notebookId: crypto.randomUUID(),
                 notebookPath: 'test-notebook',
                 name: 'Test Notebook',
-                connectionParams: { dataless: {} },
+                connectionParams: { duckdb: {} },
                 metadata: {
                     originalFileName: 'test.sql',
                     createdAt: '2024-01-01T00:00:00Z',
@@ -292,7 +292,7 @@ describe('OPFSStorageBackend', () => {
                 notebookId: crypto.randomUUID(),
                 notebookPath: 'test-notebook',
                 name: 'Test Notebook',
-                connectionParams: { dataless: {} },
+                connectionParams: { duckdb: {} },
                 metadata: {},
             };
 
@@ -307,7 +307,7 @@ describe('OPFSStorageBackend', () => {
                 notebookId: crypto.randomUUID(),
                 notebookPath: 'test-notebook',
                 name: 'Test Notebook',
-                connectionParams: { dataless: {} },
+                connectionParams: { duckdb: {} },
                 metadata: {},
             };
 
@@ -325,7 +325,7 @@ describe('OPFSStorageBackend', () => {
                 notebookId: crypto.randomUUID(),
                 notebookPath: 'test-notebook',
                 name: 'Test Notebook',
-                connectionParams: { dataless: {} },
+                connectionParams: { duckdb: {} },
                 metadata: {},
             };
 
@@ -344,7 +344,7 @@ describe('OPFSStorageBackend', () => {
                 notebookId: crypto.randomUUID(),
                 notebookPath: 'test-notebook',
                 name: 'Test Notebook',
-                connectionParams: { dataless: {} },
+                connectionParams: { duckdb: {} },
                 metadata: {},
             };
             await backend.saveNotebookManifest('test-notebook', notebookData);
@@ -407,7 +407,7 @@ describe('OPFSStorageBackend', () => {
                 notebookId: crypto.randomUUID(),
                 notebookPath: 'test-notebook',
                 name: 'Test Notebook',
-                connectionParams: { dataless: {} },
+                connectionParams: { duckdb: {} },
                 metadata: {},
             };
             await backend.saveNotebookManifest('test-notebook', notebookData);
@@ -525,7 +525,7 @@ describe('OPFSStorageBackend', () => {
                 notebookId: crypto.randomUUID(),
                 notebookPath: 'test-notebook',
                 name: 'Test Notebook',
-                connectionParams: { dataless: {} },
+                connectionParams: { duckdb: {} },
                 metadata: {},
             };
             await backend.saveNotebookManifest('test-notebook', notebookData);
@@ -559,7 +559,7 @@ describe('OPFSStorageBackend', () => {
                 notebookId: crypto.randomUUID(),
                 notebookPath: 'test-notebook',
                 name: 'Test Notebook',
-                connectionParams: { dataless: {} },
+                connectionParams: { duckdb: {} },
                 metadata: {},
             };
             await backend.saveNotebookManifest('test-notebook', notebookData);

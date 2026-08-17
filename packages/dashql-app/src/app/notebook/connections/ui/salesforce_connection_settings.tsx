@@ -20,7 +20,7 @@ import { IndicatorStatus } from '../../../../ui/foundations/status_indicator.js'
 import { classNames } from '../../../../utils/classnames.js';
 import { Logger } from '../../../../platform/logger/logger.js';
 import { Button, ButtonVariant } from '../../../../ui/foundations/button.js';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, DUCKDB_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../connector_info.js';
 import { isNativePlatform } from '../../../../platform/native_globals.js';
 import { ConnectionStateDetailsVariant } from '../connection_state_details.js';
 import type { DetailedError } from '../connection_types.js';
@@ -113,6 +113,8 @@ export function getConnectionError(status: ConnectionStateDetailsVariant | null)
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
             return (status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null) as DetailedError | null;
         case HYPER_CONNECTOR:
+            return (status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null) as DetailedError | null;
+        case DUCKDB_CONNECTOR:
             return (status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null) as DetailedError | null;
         default:
             return null;

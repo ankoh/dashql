@@ -1,15 +1,14 @@
 import * as dashql from '../../../core/index.js';
 import type * as app_notebook from '@ankoh/dashql-jsonschema/app_notebook.js';
 
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR, ConnectorInfo, createDatalessConnectorInfo } from './connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, DUCKDB_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR, ConnectorInfo } from './connector_info.js';
 import { ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus, createConnectionMetrics } from './connection_state.js';
 import { computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant } from './connection_state_details.js';
-import { createDatalessConnectionStateDetails } from './dataless/dataless_connection_state.js';
+import { createDuckDBConnectionStateDetails } from './duckdb/duckdb_connection_state.js';
 import { createHyperConnectionParamsSignature } from './hyper/hyper_connection_params.js';
 import { createHyperConnectionStateDetails } from './hyper/hyper_connection_state.js';
 import { createSalesforceConnectionParamsSignature } from './salesforce/salesforce_connection_params.js';
 import { createSalesforceConnectionStateDetails } from './salesforce/salesforce_connection_state.js';
-import { createDatalessConnectionParamsSignature } from './dataless/dataless_connection_params.js';
 import { createTrinoConnectionParamsSignature } from './trino/trino_connection_params.js';
 import { createTrinoConnectionStateDetails } from './trino/trino_connection_state.js';
 import { newConnectionSignature, ConnectionSignatureMap } from './connection_signature.js';
@@ -22,13 +21,10 @@ export type ConnectionParams = app_notebook.ConnectionParams;
 export type HyperConnectionParams = app_notebook.HyperConnectionParams;
 export type SalesforceConnectionParams = app_notebook.SalesforceConnectionParams;
 export type TrinoConnectionParams = app_notebook.TrinoConnectionParams;
-export type DatalessParams = app_notebook.DatalessParams;
+export type DuckDBConnectionParams = app_notebook.DuckDBConnectionParams;
 
 export function getConnectionInfoFromParams(params: ConnectionParams) {
-    if ('dataless' in params) {
-        const demoConnector = (params.dataless as any)?.demoConnector ?? false;
-        return createDatalessConnectorInfo(demoConnector);
-    }
+    if ('duckdb' in params) return CONNECTOR_INFOS[ConnectorType.DUCKDB];
     if ('trino' in params) return CONNECTOR_INFOS[ConnectorType.TRINO];
     if ('hyper' in params) return CONNECTOR_INFOS[ConnectorType.HYPER];
     if ('salesforce' in params) return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
@@ -36,7 +32,7 @@ export function getConnectionInfoFromParams(params: ConnectionParams) {
 }
 
 export function getConnectionStateDetailsFromParams(params: ConnectionParams): ConnectionStateDetailsVariant | null {
-    if ('dataless' in params) return { type: DATALESS_CONNECTOR, value: createDatalessConnectionStateDetails(params.dataless as any) };
+    if ('duckdb' in params) return { type: DUCKDB_CONNECTOR, value: createDuckDBConnectionStateDetails(params.duckdb as any) };
     if ('trino' in params) return { type: TRINO_CONNECTOR, value: createTrinoConnectionStateDetails(params.trino as any) };
     if ('hyper' in params) return { type: HYPER_CONNECTOR, value: createHyperConnectionStateDetails(params.hyper as any) };
     if ('salesforce' in params) return { type: SALESFORCE_DATA_CLOUD_CONNECTOR, value: createSalesforceConnectionStateDetails(params.salesforce as any) };
@@ -45,8 +41,8 @@ export function getConnectionStateDetailsFromParams(params: ConnectionParams): C
 
 export function getConnectionParamsFromStateDetails(params: ConnectionStateDetailsVariant): ConnectionParams | null {
     switch (params.type) {
-        case DATALESS_CONNECTOR:
-            return { dataless: params.value.proto?.setupParams ?? {} };
+        case DUCKDB_CONNECTOR:
+            return { duckdb: params.value.proto?.setupParams ?? {} };
         case TRINO_CONNECTOR:
             if (!params.value.proto.setupParams) return null;
             return { trino: params.value.proto.setupParams };
@@ -97,7 +93,7 @@ export function sanitizeConnectionParamsForSharing(params: ConnectionParams, wit
             },
         };
     }
-    // Dataless carries no secrets.
+    // Embedded DuckDB carries no secrets.
     return params;
 }
 
@@ -115,7 +111,7 @@ export function connectionParamsHaveLoginHint(params: ConnectionParams | null): 
 }
 
 export function createConnectionParamsSignature(params: ConnectionParams): any {
-    if ('dataless' in params) return createDatalessConnectionParamsSignature(params.dataless);
+    if ('duckdb' in params) return ['duckdb'];
     if ('trino' in params) return createTrinoConnectionParamsSignature(params.trino);
     if ('hyper' in params) return createHyperConnectionParamsSignature(params.hyper);
     if ('salesforce' in params) return createSalesforceConnectionParamsSignature(params.salesforce);
@@ -162,10 +158,10 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: Conn
 
 export function createDefaultConnectionParamsForConnector(connector: ConnectorInfo): ConnectionParams {
     switch (connector.connectorType) {
-        case ConnectorType.DATALESS:
-            return { dataless: {} };
+        case ConnectorType.DUCKDB:
+            return { duckdb: {} };
         case ConnectorType.HYPER:
-            return { hyper: { protocol: isNativePlatform() ? 'V3_DOCKER' : 'V3_HTTP', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } };
+            return { hyper: { protocol: isNativePlatform() ? 'V3_DOCKER' : 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } };
         case ConnectorType.SALESFORCE_DATA_CLOUD:
             return { salesforce: { hyperProtocol: 'V3_HTTP', instanceUrl: '', appConsumerKey: '', appConsumerSecret: '', login: '' } };
         case ConnectorType.TRINO:

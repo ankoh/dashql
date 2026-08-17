@@ -18,7 +18,7 @@ export interface NotebookExportOptions {
     /// Transform the notebook metadata after it is loaded from the backend and before it is written
     /// into the ZIP. The script folders and draft are always exported verbatim from disk; only the
     /// `dashql-notebook.json` payload passes through here. The sharing path uses this to sanitize
-    /// connection secrets, strip the login hint, force a dataless connection, or override the name.
+    /// connection secrets, strip the login hint, or override the name.
     /// Receives the notebook as stored; returns the notebook to serialize.
     transformNotebook?: (notebook: NotebookData) => NotebookData;
 }
@@ -91,22 +91,16 @@ export async function exportNotebookAsZip(
 /// Script folders, scripts, the draft and the notebook name are read straight from disk (via
 /// `exportNotebookAsZip`) so the shared archive matches the persisted notebook exactly. Only the
 /// connection params are rewritten for sharing: the stored params are swapped for the live
-/// connection's params, sanitized of secrets (or dropped entirely for a dataless share), with the
-/// login hint optionally stripped.
+/// connection's params, sanitized of secrets, with the login hint optionally stripped.
 export async function exportNotebookAsSharedZip(
     backend: StorageBackend,
     notebookId: string,
     connectionParams: any,
-    // When true, include the connection identity (secrets stripped) so a recipient gets a
-    // prefilled sign-in. When false, drop it entirely and share a dataless notebook.
-    withConnectionInfo: boolean = true,
     // When true, carry the login hint (the sharer's resolved account username) in the shared
     // connection identity. When false, strip it so the link/file doesn't reveal who shared it.
     withLoginHint: boolean = true
 ): Promise<Blob> {
-    const sharedConnectionParams: ConnectionParams = withConnectionInfo
-        ? sanitizeConnectionParamsForSharing(connectionParams, withLoginHint)
-        : { dataless: {} };
+    const sharedConnectionParams: ConnectionParams = sanitizeConnectionParamsForSharing(connectionParams, withLoginHint);
 
     return await exportNotebookAsZip(notebookId, backend, {
         transformNotebook: (notebook: NotebookData): NotebookData => ({
@@ -122,10 +116,9 @@ export async function exportNotebookAsUrl(
     notebookId: string,
     connectionParams: any,
     target: NotebookLinkTarget,
-    withConnectionInfo: boolean = true,
     withLoginHint: boolean = true
 ): Promise<URL> {
-    const zipBlob = await exportNotebookAsSharedZip(backend, notebookId, connectionParams, withConnectionInfo, withLoginHint);
+    const zipBlob = await exportNotebookAsSharedZip(backend, notebookId, connectionParams, withLoginHint);
     const zipBytes = new Uint8Array(await zipBlob.arrayBuffer());
 
     // Wrap the zip in AppEventData - convert to base64 string as required by JSON schema

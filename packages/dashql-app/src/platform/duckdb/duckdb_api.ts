@@ -31,7 +31,7 @@ export function encodeArrowTable(table: arrow.Table): Uint8Array {
 
 export abstract class DuckDB implements EmbeddedDatabase<DuckDBConnection> {
     public abstract detach(): void;
-    public abstract terminate(): void;
+    public abstract terminate(): Promise<void>;
     public abstract ping(): Promise<void>;
     public abstract open(options?: DuckDBOpenOptions): Promise<void>;
     public abstract reset(): Promise<void>;
@@ -61,9 +61,9 @@ export abstract class DuckDBConnection implements EmbeddedTableImportConnection 
         return decodeArrowTable(await this.queryArrowIPCImpl(query));
     }
 
-    public async queryArrowIPC(query: string): Promise<Uint8Array> {
+    public async queryArrowIPC(query: string, abort?: AbortSignal): Promise<Uint8Array> {
         this.checkClosed();
-        return await this.queryArrowIPCImpl(query);
+        return await this.queryArrowIPCImpl(query, abort);
     }
 
     public async queryPending(query: string, allowStreamResult: boolean = false): Promise<arrow.Table> {
@@ -107,7 +107,7 @@ export abstract class DuckDBConnection implements EmbeddedTableImportConnection 
     }
 
     protected abstract closeImpl(): Promise<void>;
-    protected abstract queryArrowIPCImpl(query: string): Promise<Uint8Array>;
+    protected abstract queryArrowIPCImpl(query: string, abort?: AbortSignal): Promise<Uint8Array>;
     protected abstract queryPendingImpl(query: string, allowStreamResult: boolean): Promise<arrow.Table>;
     protected abstract pollPendingImpl(): Promise<arrow.Table>;
     protected abstract cancelPendingImpl(): Promise<void>;
