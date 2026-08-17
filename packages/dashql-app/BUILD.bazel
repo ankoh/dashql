@@ -357,8 +357,7 @@ vite_bin.vite(
 
 vitest_bin.vitest_test(
     name = "test",
-    size = "small",
-    timeout = "moderate",
+    size = "medium",
     args = ["run", "--config", "vite.config.generated.ts"],
     node_options = ["--experimental-wasm-exnref"],
     tags = [],

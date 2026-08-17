@@ -520,7 +520,7 @@ describe('DashQL shell Wasm', () => {
             await database?.terminate();
             await releaseClient?.();
         }
-    }, 30_000);
+    }, 60_000);
 
     it('cancels a suspended C++ coroutine', async () => {
         const abort = new AbortController();

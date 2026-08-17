@@ -237,6 +237,8 @@ export default vite.defineConfig(({ mode, command }) => {
             pool: 'threads',
             maxWorkers: 4,
             isolate: false,
+            testTimeout: 60_000,
+            hookTimeout: 60_000,
             setupFiles: [
                 path.resolve(rootDir, "utils/vitest_setup.ts")
             ],

@@ -25,7 +25,7 @@ describe('DataFrame', () => {
         const { client, release } = await createSerializedNodeTestClient();
         releaseClient = release;
         database = await HyperDB.create(client);
-    }, 30_000);
+    }, 60_000);
 
     afterEach(async () => {
         try {

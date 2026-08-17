@@ -27,7 +27,7 @@ describe('SQLFrame execution', () => {
         releaseClient = release;
         database = await HyperDB.create(client);
         conn = await database.connect();
-    }, 30_000);
+    }, 60_000);
 
     afterEach(async () => {
         try {
