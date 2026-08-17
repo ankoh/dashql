@@ -47,6 +47,7 @@ export function useNotebookScriptsSetup(): NotebookScriptsSetup {
             instance: conn.instance,
             connectorInfo: conn.connectorInfo,
             notebookId: conn.notebookId,
+            connectionId: conn.connectionId,
             connectionCatalog: conn.catalog,
             scripts: {
                 [mainScriptData.scriptKey]: mainScriptData,

@@ -142,17 +142,18 @@ export function FileLoader(props: Props) {
                 const notebookId = restored.notebookId;
                 abortController.signal.throwIfAborted();
                 setConnectionRegistry(registry => {
-                    registry.connectionMap.set(notebookId, restored.connection);
-                    registry.connectionsByType[restored.connectorType].push(notebookId);
+                    registry.connectionMap.set(restored.connection.connectionId, restored.connection);
+                    registry.connectionByNotebook.set(notebookId, restored.connection.connectionId);
+                    registry.connectionsByType[restored.connectorType].push(restored.connection.connectionId);
                     registry.connectionsBySignature.set(
                         restored.connection.connectionSignature.signatureString,
-                        notebookId,
+                        restored.connection.connectionId,
                     );
                     return { ...registry };
                 });
                 setNotebookScriptsRegistry(registry => {
                     registry.notebookScriptsMap.set(notebookId, restored.notebookScripts);
-                    registry.notebookScriptsByConnection.set(notebookId, notebookId);
+                    registry.notebookScriptsByConnection.set(restored.connection.connectionId, notebookId);
                     registry.notebookScriptsByConnectionType[restored.connectorType].push(notebookId);
                     return { ...registry };
                 });

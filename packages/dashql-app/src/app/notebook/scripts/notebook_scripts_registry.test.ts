@@ -6,7 +6,7 @@ import { ConnectorType } from '../connections/connector_info.js';
 // removeNotebookScriptsFromRegistry only reads notebookScriptsMap and entry.connectorInfo.connectorType, so a
 // tiny stand-in NotebookScripts is enough — no Wasm needed.
 function scripts(notebookId: string, connectorType: ConnectorType): NotebookScripts {
-    return { notebookId, connectorInfo: { connectorType } } as unknown as NotebookScripts;
+    return { notebookId, connectionId: `connection-${notebookId}`, connectorInfo: { connectorType } } as unknown as NotebookScripts;
 }
 
 function registry(entries: Array<[string, ConnectorType]>): NotebookScriptsRegistry {
@@ -17,7 +17,7 @@ function registry(entries: Array<[string, ConnectorType]>): NotebookScriptsRegis
     };
     for (const [notebookId, connectorType] of entries) {
         reg.notebookScriptsMap.set(notebookId, scripts(notebookId, connectorType));
-        reg.notebookScriptsByConnection.set(notebookId, notebookId);
+        reg.notebookScriptsByConnection.set(`connection-${notebookId}`, notebookId);
         reg.notebookScriptsByConnectionType[connectorType].push(notebookId);
     }
     return reg;
@@ -29,7 +29,7 @@ describe('removeNotebookScriptsFromRegistry', () => {
         const next = removeNotebookScriptsFromRegistry(reg, 'a');
 
         expect(next.notebookScriptsMap.has('a')).toBe(false);
-        expect(next.notebookScriptsByConnection.has('a')).toBe(false);
+        expect(next.notebookScriptsByConnection.has('connection-a')).toBe(false);
         expect(next.notebookScriptsByConnectionType[ConnectorType.HYPER]).not.toContain('a');
     });
 
@@ -39,7 +39,7 @@ describe('removeNotebookScriptsFromRegistry', () => {
 
         expect(next.notebookScriptsMap.has('a')).toBe(false);
         expect(next.notebookScriptsMap.has('b')).toBe(true);
-        expect(next.notebookScriptsByConnection.get('b')).toBe('b');
+        expect(next.notebookScriptsByConnection.get('connection-b')).toBe('b');
         expect(next.notebookScriptsByConnectionType[ConnectorType.HYPER]).toEqual(['b']);
     });
 

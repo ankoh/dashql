@@ -57,6 +57,7 @@ export function createDefaultNotebookScripts(
     const state: NotebookScriptsInput = {
         instance: conn.instance,
         notebookId: conn.notebookId,
+        connectionId: conn.connectionId,
         notebookMetadata: {
             originType: 'LOCAL',
             originalFileName: '',

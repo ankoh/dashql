@@ -1,5 +1,5 @@
 import { ScalarFilter } from './sql/sqlframe_builder.js';
-import { VariantKind } from "../../../shared/utils/variant.js";
+import { VariantKind } from "../shared/utils/variant.js";
 import { OrdinalGridColumnGroup, StringGridColumnGroup } from "./computation_types.js";
 
 export const HISTOGRAM_FILTER = Symbol("HISTOGRAM_FILTER");

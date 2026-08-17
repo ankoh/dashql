@@ -1,9 +1,8 @@
 // @vitest-environment node
 import { QueryExecutionStatus, QueryType } from './query_execution_state.js';
 import { allocateQueryId, executeTrackedQuery } from './tracked_query_execution.js';
-import { ShellQueryExecutionTracker } from '../../../shell/query_execution.js';
-import { createConnectionMetrics } from './connection_state.js';
-import { reduceQueryAction, type QueryExecutionHistoryState } from './query_execution_state.js';
+import { ShellQueryExecutionTracker } from '../shell/query_execution.js';
+import { createQueryExecutionMetrics, reduceQueryAction, type QueryExecutionHistoryState } from './query_execution_state.js';
 
 const metadata = {
     queryType: QueryType.INTERNAL_SQLFRAME,
@@ -11,7 +10,6 @@ const metadata = {
     description: null,
     issuer: 'SQLFrame',
     userProvided: false,
-    parentQueryId: 7,
 };
 
 describe('executeTrackedQuery', () => {
@@ -64,7 +62,7 @@ describe('executeTrackedQuery', () => {
             queriesFinished: new Map(),
             queriesFinishedOrdered: [],
             snapshotQueriesActiveFinished: 1,
-            metrics: createConnectionMetrics(),
+            metrics: createQueryExecutionMetrics(),
         };
         await executeTrackedQuery({
             query: 'SELECT 1',

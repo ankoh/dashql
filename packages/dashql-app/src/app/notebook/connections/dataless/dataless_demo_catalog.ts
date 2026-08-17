@@ -9,7 +9,7 @@ import { fetchPrefetchedHyperFunctions, loadPrefetchedHyperFunctions } from "../
 const demo_schema_url = new URL('../../../static/examples/demo/schema.sql', import.meta.url);
 
 export async function updateDemoSchemaCatalog(
-    notebookId: string,
+    connectionId: string,
     connectionDispatch: DynamicConnectionDispatch,
     updateId: number,
     catalog: dashql.DashQLCatalog,
@@ -24,7 +24,7 @@ export async function updateDemoSchemaCatalog(
     const catalogSQL = await schemaResponse.text();
     const functionsSQL = functionsResponse;
 
-    connectionDispatch(notebookId, {
+    connectionDispatch(connectionId, {
         type: CATALOG_UPDATE_SCHEMA_SCRIPT,
         value: [updateId],
     });

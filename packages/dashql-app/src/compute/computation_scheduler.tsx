@@ -4,18 +4,16 @@ import * as arrow from 'apache-arrow';
 import * as computationLogic from './computation_logic.js';
 
 import { DataFrame } from './data_frame.js';
-import { AsyncValue } from '../../../shared/utils/async_value.js';
+import { AsyncValue } from '../shared/utils/async_value.js';
 import { COLUMN_AGGREGATION_SUCCEEDED, ComputationAction, UNREGISTER_SCHEDULER_TASK, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, TABLE_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, UPDATE_SCHEDULER_TASK } from './computation_state.js';
-import { Dispatch, VariantKind } from '../../../shared/utils/variant.js';
-import { LoggableException, Logger, stringifyError } from '../../../shared/platform/logger/logger.js';
-import { createTrace } from '../../../shared/platform/logger/trace_context.js';
+import { Dispatch, VariantKind } from '../shared/utils/variant.js';
+import { LoggableException, Logger, stringifyError } from '../shared/platform/logger/logger.js';
+import { createTrace } from '../shared/platform/logger/trace_context.js';
 import { TaskStatus, TableFilteringTask, TableOrderingTask, TableAggregationTask, FilterTable, OrderingTable, TableAggregation, ColumnGroup, SystemColumnComputationTask, ColumnAggregationTask, ColumnAggregationVariant, TaskProgress, WithFilter, WithFilterEpoch } from "./computation_types.js";
 import { useComputationRegistry } from "./computation_registry.js";
-import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
+import { useLogger } from '../shared/platform/logger/logger_provider.js';
 import type { ComputeQueryExecution } from './computation_logic.js';
-import { useDynamicConnectionDispatch } from '../connections/connection_registry.js';
-import { QueryType, type QueryExecutionTracker } from '../connections/query_execution_state.js';
-import { executeTrackedQuery } from '../connections/tracked_query_execution.js';
+import { useCreateComputeQueryExecution } from './computation_query_execution.js';
 
 const LOG_CTX = 'scheduler';
 
@@ -48,8 +46,8 @@ interface SchedulerState {
 
 export function ComputationScheduler(props: React.PropsWithChildren<{}>) {
     const logger = useLogger();
-    const [, connectionDispatch] = useDynamicConnectionDispatch();
     const [computationState, dispatchComputation] = useComputationRegistry();
+    const createQueryExecution = useCreateComputeQueryExecution();
 
     const schedulerState = React.useRef<SchedulerState>({ launched: new Set() });
     React.useEffect(() => {
@@ -64,11 +62,7 @@ export function ComputationScheduler(props: React.PropsWithChildren<{}>) {
             launched.add(id);
 
             // Process a task asynchronously
-            const tracker: QueryExecutionTracker = {
-                dispatch: action => connectionDispatch(task.value.notebookId, action),
-            };
-            const executeQuery = createSQLFrameQueryExecution(task, tracker);
-            processTask(task, dispatchComputation, logger, executeQuery);
+            processTask(task, dispatchComputation, logger, createQueryExecution?.(task));
         }
         // Cleanup tasks that are no longer in included in the background tasks
         for (const l of launched) {
@@ -79,23 +73,6 @@ export function ComputationScheduler(props: React.PropsWithChildren<{}>) {
     });
 
     return props.children;
-}
-
-export function createSQLFrameQueryExecution(task: TaskVariant, tracker: QueryExecutionTracker): ComputeQueryExecution {
-    return (query, execute) => executeTrackedQuery({
-        query,
-        tracker,
-        metadata: {
-            queryType: QueryType.INTERNAL_SQLFRAME,
-            title: getTaskQueryTitle(task),
-            description: null,
-            issuer: 'SQLFrame',
-            userProvided: false,
-            parentQueryId: task.value.tableId,
-        },
-        execute,
-        errorTarget: LOG_CTX,
-    });
 }
 
 export async function processTask(
@@ -245,22 +222,5 @@ function getTaskVariantName(task: TaskVariant): string {
             return "system_column";
         case FILTERED_COLUMN_AGGREGATION_TASK:
             return "filtered_column_aggregation"
-    }
-}
-
-function getTaskQueryTitle(task: TaskVariant): string {
-    switch (task.type) {
-        case COLUMN_AGGREGATION_TASK:
-            return 'Column aggregation';
-        case TABLE_FILTERING_TASK:
-            return 'Table filtering';
-        case TABLE_ORDERING_TASK:
-            return 'Table ordering';
-        case TABLE_AGGREGATION_TASK:
-            return 'Table aggregation';
-        case SYSTEM_COLUMN_COMPUTATION_TASK:
-            return 'System column computation';
-        case FILTERED_COLUMN_AGGREGATION_TASK:
-            return 'Filtered column aggregation';
     }
 }

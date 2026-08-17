@@ -411,7 +411,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         if (scriptData == null || props.connection?.connectionHealth !== ConnectionHealth.ONLINE) {
             return;
         }
-        runNotebookScript(props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+        runNotebookScript(props.connection.connectionId, props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
     }, [props.hideDetails, props.connection?.connectionHealth, props.notebookScripts, props.modifyNotebookScripts, scriptData, executeQuery, logger]);
     const handleRerun = React.useCallback(async (cacheKey: string | null) => {
         if (scriptData == null) {
@@ -422,7 +422,9 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         if (cacheKey != null) {
             await storageReader.backend.deleteQueryResultCache(props.notebookScripts.notebookId, cacheKey).catch(() => { });
         }
-        runNotebookScript(props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+        if (props.connection != null) {
+            runNotebookScript(props.connection.connectionId, props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+        }
     }, [props.notebookScripts, props.modifyNotebookScripts, scriptData, executeQuery, storageReader, logger]);
 
     const agentRunState = useAgentRunState(scriptData?.latestAgentRunId ?? null);
@@ -621,7 +623,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                             initialTab={props.initialTab}
                             tableDebugMode={tableDebugMode}
                             onCancelQuery={activeQueryId != null
-                                ? () => cancelQuery(props.notebookScripts.notebookId, activeQueryId)
+                                ? () => props.connection && cancelQuery(props.connection.connectionId, activeQueryId)
                                 : undefined}
                             onCancelAgent={() => cancelAgentRun(props.notebookScripts.notebookId)}
                             onClose={props.hideDetails}

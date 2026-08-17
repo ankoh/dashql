@@ -20,6 +20,7 @@ const LOG_CTX = "app_state_loader";
 
 export interface RestoredAppState {
     connectionStates: Map<string, ConnectionState>;
+    connectionByNotebook: Map<string, string>;
     connectionStatesByType: string[][];
     connectionSignatures: Map<string, string | null>;
     notebookScripts: Map<string, NotebookScripts>;
@@ -54,6 +55,7 @@ async function restoreNotebookScripts(
     core: DashQL,
     backend: StorageBackend,
     notebookId: string,
+    connectionId: string,
     connectorInfo: ConnectorInfo,
     connectionCatalog: any,
     notebookMetadata: any,
@@ -170,6 +172,7 @@ async function restoreNotebookScripts(
         const notebookScripts: NotebookScripts = {
             instance: core,
             notebookId,
+            connectionId,
             notebookMetadata,
             connectorInfo,
             connectionCatalog,
@@ -197,6 +200,7 @@ async function restoreNotebookEntry(
     logger: Logger,
     notebookEntry: NotebookEntry,
     connectionStates: Map<string, ConnectionState>,
+    connectionByNotebook: Map<string, string>,
     connectionSignatures: Map<string, string | null>,
     connectionStatesByType: string[][],
     notebookScripts: Map<string, NotebookScripts>,
@@ -289,8 +293,9 @@ async function restoreNotebookEntry(
         notebookData.name?.trim() || null
     );
 
-    connectionStates.set(notebookId, connectionState);
-    connectionStatesByType[connectorInfo.connectorType].push(notebookId);
+    connectionStates.set(connectionState.connectionId, connectionState);
+    connectionByNotebook.set(notebookId, connectionState.connectionId);
+    connectionStatesByType[connectorInfo.connectorType].push(connectionState.connectionId);
 
     const connectionDuration = performance.now() - connectionStartTime;
     logger.info("Connection restored", {
@@ -405,6 +410,7 @@ async function restoreNotebookEntry(
             core,
             backend,
             notebookId,
+            connectionState.connectionId,
             connectorInfo,
             connectionState.catalog,
             notebookData.metadata,
@@ -486,7 +492,7 @@ async function restoreNotebookEntry(
         }
 
         notebookScripts.set(notebookId, restoredNotebookScripts);
-        notebookScriptsByConnection.set(notebookId, notebookId);
+        notebookScriptsByConnection.set(connectionState.connectionId, notebookId);
         notebookScriptsByConnectionType[connectorInfo.connectorType].push(notebookId);
     }
     // A notebook that failed to restore contributes no scripts to analyze, so the
@@ -542,6 +548,7 @@ export async function restoreSingleNotebook(
     const notebookEntry: NotebookEntry = { path: notebookId, storageType: StorageBackendType.OPFS };
 
     const connectionStates = new Map<string, ConnectionState>();
+    const connectionByNotebook = new Map<string, string>();
     const notebookScripts = new Map<string, NotebookScripts>();
     const notebookScriptsByConnection = new Map<string, string>();
     const connectionStatesByType: string[][] = [[], [], [], []];
@@ -554,6 +561,7 @@ export async function restoreSingleNotebook(
         logger,
         notebookEntry,
         connectionStates,
+        connectionByNotebook,
         connectionSignatures,
         connectionStatesByType,
         notebookScripts,
@@ -566,7 +574,8 @@ export async function restoreSingleNotebook(
         noopConsumer,
     );
 
-    const connection = connectionStates.get(notebookId);
+    const connectionId = connectionByNotebook.get(notebookId);
+    const connection = connectionId == null ? null : connectionStates.get(connectionId);
     if (!connection) {
         // restoreNotebookEntry only fails to register a connection by throwing (invalid/unreadable), which
         // would have propagated above. Reaching here means the persisted id didn't match — treat it
@@ -599,6 +608,7 @@ export async function restoreAppState(
     const startTime = performance.now();
 
     const connectionStates = new Map<string, ConnectionState>();
+    const connectionByNotebook = new Map<string, string>();
     const connectionSignatures = new Map<string, string | null>();
     const notebookScripts = new Map<string, NotebookScripts>();
     const notebookScriptsByConnection = new Map<string, string>();
@@ -660,6 +670,7 @@ export async function restoreAppState(
                     logger,
                     notebookEntry,
                     connectionStates,
+                    connectionByNotebook,
                     connectionSignatures,
                     connectionStatesByType,
                     notebookScripts,
@@ -755,6 +766,7 @@ export async function restoreAppState(
 
     return {
         connectionStates,
+        connectionByNotebook,
         connectionStatesByType,
         connectionSignatures,
         notebookScripts,

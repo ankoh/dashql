@@ -1,7 +1,7 @@
 import type * as app_notebook from '@ankoh/dashql-jsonschema/app_notebook.js';
 import type { TopLevelSpec } from 'vega-lite';
 
-import type { UmapRequest } from '../compute/umap/umap_projection.js';
+import type { UmapRequest } from '../../../compute/umap/umap_projection.js';
 import { UmapSpec, umapRequestFromSpec } from '../compute/ui/visualization/umap/umap_spec.js';
 import { randomScriptName } from './script_name.js';
 

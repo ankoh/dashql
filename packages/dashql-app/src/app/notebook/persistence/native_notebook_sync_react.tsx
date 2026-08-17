@@ -127,7 +127,8 @@ export const NativeNotebookSync: React.FC = () => {
                 reader.backend.loadScriptDraft(notebookId),
             ]);
             const snapshot: NotebookScriptsStorageSnapshot = { folders: pages, draft };
-            const connection = connectionRegistryRef.current.connectionMap.get(notebookId);
+            const connectionId = connectionRegistryRef.current.connectionByNotebook.get(notebookId);
+            const connection = connectionId == null ? null : connectionRegistryRef.current.connectionMap.get(connectionId);
             const currentNotebookScripts = notebookScriptsRegistryRef.current.notebookScriptsMap.get(notebookId);
             const notebookUnchanged = currentNotebookScripts != null && notebookScriptsMatchStorageSnapshot(currentNotebookScripts, snapshot);
             const catalogUnchanged = connection != null && connectionCatalogMatchesStorage(connection, schema, functions);
@@ -138,7 +139,7 @@ export const NativeNotebookSync: React.FC = () => {
             // A delayed watcher event for our own completed write can arrive after a newer local edit
             // is already pending. The completed snapshot identifies that event without suppressing a
             // genuinely different external version.
-            if (snapshotMatchesCompletedWrite(notebookId, snapshot, schema, functions, connection, currentNotebookScripts, writer)) {
+            if (snapshotMatchesCompletedWrite(notebookId, snapshot, schema, functions, connection ?? undefined, currentNotebookScripts, writer)) {
                 return;
             }
 
@@ -167,7 +168,8 @@ export const NativeNotebookSync: React.FC = () => {
             if (decision.discardPendingWrites) {
                 writer.cancelPendingWritesForNotebook(notebookId, isReloadedKey);
             }
-            const latestConnection = connectionRegistryRef.current.connectionMap.get(notebookId);
+            const latestConnectionId = connectionRegistryRef.current.connectionByNotebook.get(notebookId);
+            const latestConnection = latestConnectionId == null ? null : connectionRegistryRef.current.connectionMap.get(latestConnectionId);
             const latestNotebookScripts = notebookScriptsRegistryRef.current.notebookScriptsMap.get(notebookId);
             const catalogChanged = latestConnection != null
                 ? replaceConnectionCatalogFromStorage(latestConnection, schema, functions)
@@ -232,7 +234,7 @@ export const NativeNotebookSync: React.FC = () => {
         if (!isNativePlatform() || !serviceRef.current) {
             return;
         }
-        const notebooks = [...connectionRegistry.connectionMap.keys()]
+        const notebooks = [...connectionRegistry.connectionByNotebook.keys()]
             .map(notebookId => nativeNotebookWatchForLocation(notebookId, reader.getNotebookLocation(notebookId)))
             .filter((watch): watch is NonNullable<typeof watch> => watch != null);
         void serviceRef.current.reconcile(notebooks);

@@ -35,6 +35,7 @@ describe('createDefaultNotebookScripts', () => {
         const notebookId = crypto.randomUUID();
         const conn: ConnectionState = {
             ...createDatalessConnectionState(dql!, new Map()),
+            connectionId: crypto.randomUUID(),
             notebookId,
         };
         const allocateNotebookScripts = vi.fn((state: NotebookScriptsInput): [string, NotebookScripts] => {

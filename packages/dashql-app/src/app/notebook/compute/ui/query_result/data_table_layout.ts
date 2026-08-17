@@ -1,8 +1,8 @@
 import * as arrow from 'apache-arrow';
 
-import { TableComputationState } from "../../computation_state.js";
-import { ArrowTableFormatter } from "./arrow_formatter.js";
-import { ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN } from "../../computation_types.js";
+import { TableComputationState } from "../../../../../compute/computation_state.js";
+import { ArrowTableFormatter } from "../../../../../compute/arrow_formatter.js";
+import { ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN } from "../../../../../compute/computation_types.js";
 
 export interface DataTableLayout {
     columnCount: number;

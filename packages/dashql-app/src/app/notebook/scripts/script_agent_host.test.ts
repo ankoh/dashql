@@ -119,6 +119,7 @@ function buildNotebookScripts(focusedSql: string): { state: NotebookScripts; foc
     let state: NotebookScripts = {
         instance: dql!,
         notebookId,
+        connectionId: 'test-connection',
         notebookMetadata: createEmptyMetadata(),
         connectorInfo: createDatalessConnectorInfo(true),
         connectionCatalog: catalog,

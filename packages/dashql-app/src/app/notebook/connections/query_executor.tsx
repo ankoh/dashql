@@ -4,29 +4,28 @@ import * as React from 'react';
 import { useConnectionState, useDynamicConnectionDispatch } from './connection_registry.js';
 import {
     createQueryResponseStreamMetrics,
+    QUERY_CACHE_RECORDED,
+    QUERY_PROCESSING_RESULTS,
+    QUERY_PROCESSED_RESULTS,
+    QUERY_PROGRESS_UPDATED,
+    QUERY_RECEIVED_ALL_BATCHES,
+    QUERY_RECEIVED_BATCH,
     QueryExecutionProgress,
     QueryExecutionResponseStream,
     QueryExecutionTracker,
-} from './query_execution_state.js';
+} from '../../../query/query_execution_state.js';
 import { useSalesforceAPI } from './salesforce/salesforce_connector.js';
 import { DATALESS_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
-import {
-    QUERY_PROGRESS_UPDATED,
-    QUERY_RECEIVED_BATCH,
-    QUERY_RECEIVED_ALL_BATCHES,
-    QUERY_PROCESSED_RESULTS,
-    QUERY_PROCESSING_RESULTS,
-    QUERY_CACHE_RECORDED,
-} from './connection_state.js';
-import { useComputationRegistry } from '../compute/computation_registry.js';
-import { analyzeTable } from '../compute/computation_logic.js';
-import { DELETE_COMPUTATION } from '../compute/computation_state.js';
-import { useComputeDatabase } from '../compute/compute_connection_provider.js';
+import { useComputationRegistry } from '../../../compute/computation_registry.js';
+import { analyzeTable } from '../../../compute/computation_logic.js';
+import { DELETE_COMPUTATION } from '../../../compute/computation_state.js';
+import { useComputeDatabase } from '../../../compute/compute_connection_provider.js';
 import { useStorageReader } from '../persistence/storage_provider.js';
-import { type CachedQueryResult } from '../persistence/storage_backend.js';
+import { createNotebookQueryResultCache } from '../persistence/notebook_query_result_cache.js';
+import type { CachedQueryResult } from '../../../query/query_result_cache.js';
 import { getConnectionParamsFromStateDetails, createConnectionParamsSignature } from './connection_params.js';
 import { ConnectionStateDetailsVariant } from './connection_state_details.js';
-import { computeQueryResultCacheKey } from './query_result_cache_key.js';
+import { computeQueryResultCacheKey } from '../../../query/query_result_cache_key.js';
 import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
 import { createTrace, type TraceContext } from '../../../shared/platform/logger/trace_context.js';
 import { QueryExecutionArgs } from './query_execution_args.js';
@@ -37,7 +36,7 @@ import { executeDemoQuery } from './dataless/dataless_demo_query_execution.js';
 import { AsyncConsumerLambdas } from '../../../shared/utils/async_consumer.js';
 import { LoggableException, stringifyError } from '../../../shared/platform/logger/logger.js';
 import type { LogRecord } from '../../../shared/platform/logger/log_buffer.js';
-import { allocateQueryId, executeTrackedQuery } from './tracked_query_execution.js';
+import { allocateQueryId, executeTrackedQuery } from '../../../query/tracked_query_execution.js';
 
 const LOG_CTX = 'query_executor';
 
@@ -62,8 +61,8 @@ export async function computeQueryCacheKeyForConnection(
 }
 
 /// The query executor function
-export type QueryExecutor = (notebookId: string, args: QueryExecutionArgs) => [number, Promise<arrow.Table | null>];
-export type CancelQuery = (notebookId: string, queryId: number) => void;
+export type QueryExecutor = (connectionId: string, args: QueryExecutionArgs) => [number, Promise<arrow.Table | null>];
+export type CancelQuery = (connectionId: string, queryId: number) => void;
 interface QueryExecutionRuntime {
     cancellation: AbortController;
     resultStream: QueryExecutionResponseStream | null;
@@ -84,9 +83,9 @@ export function useQueryState(notebookId: string | null, queryId: number | null)
     return connReg?.queriesActive.get(queryId) ?? connReg?.queriesFinished.get(queryId) ?? null;
 }
 
-function createNotebookQueryExecutionTracker(notebookId: string, dispatch: ReturnType<typeof useDynamicConnectionDispatch>[1]): QueryExecutionTracker {
+function createConnectionQueryExecutionTracker(connectionId: string, dispatch: ReturnType<typeof useDynamicConnectionDispatch>[1]): QueryExecutionTracker {
     return {
-        dispatch: action => dispatch(notebookId, action),
+        dispatch: action => dispatch(connectionId, action),
     };
 }
 
@@ -105,18 +104,18 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     const queryRuntimes = React.useRef(new Map<number, QueryExecutionRuntime>());
 
     // Execute a query with pre-allocated query id
-    const executeImpl = React.useCallback(async (notebookId: string, args: QueryExecutionArgs, queryId: number, runtime: QueryExecutionRuntime, trace: TraceContext): Promise<arrow.Table | null> => {
+    const executeImpl = React.useCallback(async (connectionId: string, args: QueryExecutionArgs, queryId: number, runtime: QueryExecutionRuntime, trace: TraceContext): Promise<arrow.Table | null> => {
         const traced = logger.withTrace(trace);
         if (!computeDb) {
             throw new Error(`Compute database is not yet ready`);
         }
-        // Check if we know the notebook id.
-        const conn = connMap.get(notebookId);
+        const conn = connMap.get(connectionId);
         if (!conn) {
-            traced.error("Connection not configured", { notebookId, "query": queryId.toString() }, LOG_CTX);
-            throw new Error(`Couldn't find a connection with notebook id ${notebookId}`);
+            traced.error("Connection not configured", { connectionId, "query": queryId.toString() }, LOG_CTX);
+            throw new Error(`Couldn't find a connection with id ${connectionId}`);
         }
-        const queryTracker = createNotebookQueryExecutionTracker(notebookId, connDispatch);
+        const notebookId = conn.notebookId;
+        const queryTracker = createConnectionQueryExecutionTracker(connectionId, connDispatch);
         const execution = await executeTrackedQuery({
             query: args.query,
             metadata: args.metadata,
@@ -141,6 +140,9 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 if (args.cacheable) {
                     cacheHash = await computeQueryCacheKeyForConnection(conn.details, args.query);
                 }
+                const resultCache = cacheHash == null
+                    ? null
+                    : createNotebookQueryResultCache(storageReader.backend, notebookId);
 
                 // XXX Add explicit query preparation here later
 
@@ -154,7 +156,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             if (cacheHash != null) {
                 let cached: CachedQueryResult | null = null;
                 try {
-                    cached = await storageReader.backend.loadQueryResultCache(notebookId, cacheHash);
+                    cached = await resultCache!.load(cacheHash);
                 } catch (e: any) {
                     traced.warn("Failed to read query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
                 }
@@ -171,7 +173,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     // leaves the payload's "cached at" write time intact. Best-effort: a failure here
                     // must never surface into the query path (it only means the entry looks colder to
                     // eviction than it is).
-                    void storageReader.backend.touchQueryResultCacheAccess(notebookId, cacheHash).catch((e: any) => {
+                    void resultCache!.touch(cacheHash).catch((e: any) => {
                         traced.warn("Failed to record query cache access", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
                     });
                     traced.info("Served query from cache", {
@@ -320,7 +322,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     value: [queryId],
                 });
 
-                await analyzeTable(notebookId, queryId, table!, computeDispatch, computeDb, traced, args.projection);
+                await analyzeTable(queryId, table!, computeDispatch, computeDb, traced, args.projection);
                 initialState.cancellation.signal.throwIfAborted();
 
                 queryTracker.dispatch({
@@ -360,7 +362,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 // a quota/permission failure just logs.
                 if (!servedFromCache && cacheHash != null && table != null) {
             const bytes = arrow.tableToIPC(table, 'stream');
-            void storageReader.backend.saveQueryResultCache(notebookId, cacheHash, bytes).then(() => {
+            void resultCache!.store(cacheHash, bytes).then(() => {
                 // The write landed: record the key (but not servedFromCache — this run hit the
                 // backend) so the UI can offer to delete the freshly-cached entry. The "cached at"
                 // time is the write we just made; a later hit reads the precise mtime from disk.
@@ -381,7 +383,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     }, [computeDb, connMap, computeDispatch, logger, sfApi, storageReader]);
 
     // Allocate the next query id and start the execution
-    const execute = React.useCallback<QueryExecutor>((notebookId: string, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] => {
+    const execute = React.useCallback<QueryExecutor>((connectionId: string, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] => {
         const queryId = allocateQueryId();
         const trace = createTrace();
         const runtime: QueryExecutionRuntime = {
@@ -397,7 +399,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             }
         };
         if (logObserver != null) logger.buffer.subscribeTrace(trace.traceId, logObserver);
-        const execution = executeImpl(notebookId, args, queryId, runtime, trace);
+        const execution = executeImpl(connectionId, args, queryId, runtime, trace);
         const removeRuntime = () => {
             queryRuntimes.current.delete(queryId);
             if (logObserver != null) logger.buffer.unsubscribeTrace(trace.traceId, logObserver);
@@ -406,7 +408,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         return [queryId, execution];
     }, [executeImpl, logger]);
 
-    const cancel = React.useCallback<CancelQuery>((notebookId, queryId) => {
+    const cancel = React.useCallback<CancelQuery>((connectionId, queryId) => {
         const runtime = queryRuntimes.current.get(queryId);
         if (runtime == null) return;
         runtime.cancellation.abort();
@@ -414,7 +416,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         void cancellation?.catch((e: any) => {
             logger.warn('Failed to cancel query at the backend', {
                 query: queryId.toString(),
-                notebookId,
+                connectionId,
                 error: stringifyError(e),
             }, LOG_CTX);
         });

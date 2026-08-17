@@ -2,8 +2,8 @@ import * as React from 'react';
 
 import * as styles from './column_aggregation_bar.module.css';
 import { QueryExecutionState } from '../../../connections/query_execution_state.js';
-import { useComputationRegistry } from '../../computation_registry.js';
-import { ArrowTableFormatter } from '../query_result/arrow_formatter.js';
+import { useComputationRegistry } from '../../../../../compute/computation_registry.js';
+import { ArrowTableFormatter } from '../../../../../compute/arrow_formatter.js';
 import { computeTableLayout, DataTableLayout } from '../query_result/data_table_layout.js';
 import { HeaderPlotsCell } from '../query_result/data_table_cell.js';
 import { useCrossFilters } from '../query_result/use_cross_filters.js';

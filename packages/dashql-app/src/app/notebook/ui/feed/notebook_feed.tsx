@@ -201,7 +201,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = (props: CollapsedScriptCa
         if (entryStatus?.kind === EntryStatusKind.Agent) {
             cancelAgentRun(props.notebookId);
         } else if (entryStatus?.kind === EntryStatusKind.Query && props.scriptData?.latestQueryId != null) {
-            cancelQuery(props.notebookId, props.scriptData.latestQueryId);
+            if (props.connection != null) cancelQuery(props.connection.connectionId, props.scriptData.latestQueryId);
         }
     }, [cancelAgentRun, cancelQuery, entryStatus?.kind, props.scriptData?.latestQueryId, props.notebookId]);
 
@@ -277,7 +277,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = (props: CollapsedScriptCa
                             disabled={!queryActive && !props.canExecute}
                             onClick={() => {
                                 if (queryActive && props.scriptData?.latestQueryId != null) {
-                                    cancelQuery(props.notebookId, props.scriptData.latestQueryId);
+                                    if (props.connection != null) cancelQuery(props.connection.connectionId, props.scriptData.latestQueryId);
                                 } else {
                                     props.onExecute(props.scriptFileName);
                                 }
@@ -730,7 +730,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         if (queryText.trim().length === 0) {
             return;
         }
-        const [queryId, execution] = executeQuery(props.notebookScripts.notebookId, {
+        const [queryId, execution] = executeQuery(props.conn!.connectionId, {
             query: queryText,
             analyzeResults: true,
             replaceComputationId: scriptData.latestQueryId,
@@ -759,7 +759,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         const queryText = scriptData && execute ? compileQuery(scriptData, logger) : '';
         props.modifyNotebookScripts({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
         if (execute && !isDisconnected && queryText.trim().length > 0) {
-            const [queryId, execution] = executeQuery(notebookScripts.notebookId, {
+            const [queryId, execution] = executeQuery(props.conn!.connectionId, {
                 query: queryText,
                 analyzeResults: true,
                 replaceComputationId: scriptData?.latestQueryId,
@@ -794,7 +794,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         if (cacheKey != null) {
             await storageReader.backend.deleteQueryResultCache(notebookScripts.notebookId, cacheKey).catch(() => { });
         }
-        runNotebookScript(notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+        runNotebookScript(props.conn!.connectionId, notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
     }, [props.notebookScripts, props.modifyNotebookScripts, isDisconnected, executeQuery, storageReader, logger]);
 
     const handleExecuteEntry = React.useCallback((fileName: string) => {
@@ -803,7 +803,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         const entry = notebookScripts.scriptFolders[notebookScripts.scriptFocus.folderName]?.scripts[fileName];
         const scriptData = entry != null ? notebookScripts.scripts[entry.scriptId] : undefined;
         if (scriptData == null) return;
-        runNotebookScript(notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+        runNotebookScript(props.conn!.connectionId, notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
     }, [executeQuery, isDisconnected, props.modifyNotebookScripts, props.notebookScripts, logger]);
 
     // Send the compose editor's text to the agent run as a natural-language prompt. Context is

@@ -51,7 +51,7 @@ export function createNotebookShellResultCommand(
 }
 
 export function createNotebookShellEnvironment(
-    notebookId: string,
+    connectionId: string,
     executeQuery: QueryExecutor,
     cancelQuery: CancelQuery,
     getResultMode: () => NotebookShellResultMode = () => 'auto',
@@ -59,7 +59,7 @@ export function createNotebookShellEnvironment(
 ): DashQLShellEnvironment {
     return {
         async executeQuery(query, signal, onProgress, onResult) {
-            const [queryId, execution] = executeQuery(notebookId, {
+            const [queryId, execution] = executeQuery(connectionId, {
                 query,
                 analyzeResults: true,
                 cacheable: false,
@@ -73,7 +73,7 @@ export function createNotebookShellEnvironment(
                     userProvided: true,
                 },
             });
-            const abort = () => cancelQuery(notebookId, queryId);
+            const abort = () => cancelQuery(connectionId, queryId);
             if (signal?.aborted) {
                 abort();
             } else {

@@ -67,6 +67,7 @@ export async function loadApp(config: AppConfig, logger: TracedLogger, core: das
     }, "app_loading");
     resetConnections({
         connectionMap: state.connectionStates,
+        connectionByNotebook: state.connectionByNotebook,
         connectionsByType: state.connectionStatesByType,
         connectionsBySignature: state.connectionSignatures,
     });
@@ -98,21 +99,21 @@ export async function loadApp(config: AppConfig, logger: TracedLogger, core: das
         const demoSetupStartTime = performance.now();
 
         // Find an existing dataless connection with demoConnector enabled
-        const existingDemoNotebookId = findDemoConnection(state.connectionStatesByType, state.connectionStates);
+        const existingDemoConnectionId = findDemoConnection(state.connectionStatesByType, state.connectionStates);
 
-        if (!existingDemoNotebookId) {
+        if (!existingDemoConnectionId) {
             traced.info("Creating demo connection", {}, "app_loading");
             demoConn = allocateConnection(createDatalessConnectionState(core, state.connectionSignatures, { demoConnector: true }));
         } else {
-            demoConn = state.connectionStates.get(existingDemoNotebookId)!;
-            traced.info("Using existing demo connection", { notebookId: existingDemoNotebookId }, "app_loading");
+            demoConn = state.connectionStates.get(existingDemoConnectionId)!;
+            traced.info("Using existing demo connection", { connectionId: existingDemoConnectionId }, "app_loading");
         }
 
         // Create the default demo params
         traced.info("Creating demo database channel", {}, "app_loading");
         const demoChannel = new DemoDatabaseChannel();
         // Curry the dispatch
-        const dispatch = (action: ConnectionStateAction) => modifyConnection(demoConn!.notebookId, action);
+        const dispatch = (action: ConnectionStateAction) => modifyConnection(demoConn!.connectionId, action);
         // Setup the demo connection
         traced.info("Setting up demo connection", {}, "app_loading");
         await setupDatalessDemoConnection(dispatch, traced, demoChannel, abortSignal);
@@ -142,7 +143,7 @@ export async function loadApp(config: AppConfig, logger: TracedLogger, core: das
     const notebookSetupStartTime = performance.now();
 
     let demoNotebookScripts: NotebookScripts;
-    const existingDemoNotebookId = findDemoNotebook(state.notebookScriptsByConnectionType, state.connectionStatesByType, state.connectionStates, state.notebookScripts);
+    const existingDemoNotebookId = findDemoNotebook(state.notebookScriptsByConnectionType, state.connectionStates, state.connectionByNotebook, state.notebookScripts);
     if (!existingDemoNotebookId) {
         traced.info("Creating demo notebook", {}, "app_loading");
         demoNotebookScripts = await setupDemoNotebookScripts(demoConn, abortSignal);
@@ -183,12 +184,12 @@ export async function loadApp(config: AppConfig, logger: TracedLogger, core: das
 /// Find an existing dataless connection with demoConnector enabled
 function findDemoConnection(connectionStatesByType: string[][], connectionStates: Map<string, ConnectionState>): string | null {
     const datalessIds = connectionStatesByType[ConnectorType.DATALESS] ?? [];
-    for (const notebookId of datalessIds) {
-        const conn = connectionStates.get(notebookId);
+    for (const connectionId of datalessIds) {
+        const conn = connectionStates.get(connectionId);
         if (conn) {
             const details = conn.details.value as DatalessConnectionStateDetails;
             if (isDemoConnector(details)) {
-                return notebookId;
+                return connectionId;
             }
         }
     }
@@ -198,8 +199,8 @@ function findDemoConnection(connectionStatesByType: string[][], connectionStates
 /// Find an existing notebook connected to a demo connection
 function findDemoNotebook(
     notebookScriptsByConnectionType: string[][],
-    connectionStatesByType: string[][],
     connectionStates: Map<string, ConnectionState>,
+    connectionByNotebook: Map<string, string>,
     notebookScripts: Map<string, NotebookScripts>,
 ): string | null {
     // Look through dataless notebooks to find one connected to a demo-mode connection
@@ -208,7 +209,8 @@ function findDemoNotebook(
         const nb = notebookScripts.get(nbId);
         if (!nb) continue;
         // Check the associated connection for demoConnector
-        const conn = connectionStates.get(nb.notebookId);
+        const connectionId = connectionByNotebook.get(nb.notebookId);
+        const conn = connectionId == null ? null : connectionStates.get(connectionId);
         if (conn && conn.details.type === DATALESS_CONNECTOR) {
             const details = conn.details.value as DatalessConnectionStateDetails;
             if (isDemoConnector(details)) {

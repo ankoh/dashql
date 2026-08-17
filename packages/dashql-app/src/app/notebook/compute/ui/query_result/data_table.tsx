@@ -5,15 +5,15 @@ import * as styles from './data_table.module.css';
 
 import { Grid, useGridCallbackRef } from 'react-window';
 
-import { ArrowTableFormatter } from './arrow_formatter.js';
-import { CLEAR_TABLE_ORDERING, ComputationAction, TableComputationState } from '../../computation_state.js';
+import { ArrowTableFormatter } from '../../../../../compute/arrow_formatter.js';
+import { CLEAR_TABLE_ORDERING, ComputationAction, TableComputationState } from '../../../../../compute/computation_state.js';
 import { Dispatch } from '../../../../../shared/utils/variant.js';
-import { OrderByConstraint } from '../../sql/sqlframe_builder.js';
-import { TableOrderingTask, TaskStatus } from '../../computation_types.js';
+import { OrderByConstraint } from '../../../../../compute/sql/sqlframe_builder.js';
+import { TableOrderingTask, TaskStatus } from '../../../../../compute/computation_types.js';
 import { DataCell, DataCellData, HeaderNameCell, HeaderPlotsCell, TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../../../../shared/utils/classnames.js';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
-import { sortTableDispatched } from '../../computation_logic.js';
+import { sortTableDispatched } from '../../../../../compute/computation_logic.js';
 import { useCrossFilters } from './use_cross_filters.js';
 import { observeSize } from '../../../../../shared/ui/foundations/size_observer.js';
 import { CellDetailOverlay } from './cell_detail_overlay.js';
@@ -210,7 +210,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
             return;
         }
         const orderingTask: TableOrderingTask = {
-            notebookId: computationState.notebookId,
             tableId: computationState.tableId,
             tableVersion: computationState.version,
             inputDataTable: computationState.dataTable,
@@ -250,7 +249,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         }];
         if (computationState.dataFrame && computationState.rowNumberColumnName) {
             const orderingTask: TableOrderingTask = {
-                notebookId: computationState.notebookId,
                 tableId: computationState.tableId,
                 tableVersion: computationState.version,
                 inputDataTable: computationState.dataTable,

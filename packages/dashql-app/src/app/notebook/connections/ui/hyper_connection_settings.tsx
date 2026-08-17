@@ -159,7 +159,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
             setupAbortController.current = new AbortController();
             const hyperChannel = await hyperSetup.setup(dispatchConnectionState, setupParams, setupAbortController.current.signal);
             if (hyperChannel != null) {
-                await performHealthCheck(queryExecutor, connectionState.notebookId, { type: 'hyper', channel: hyperChannel }, dispatchConnectionState, setupAbortController.current.signal);
+                await performHealthCheck(queryExecutor, connectionState.connectionId, { type: 'hyper', channel: hyperChannel }, dispatchConnectionState, setupAbortController.current.signal);
             }
 
             // Start the the inital catalog update

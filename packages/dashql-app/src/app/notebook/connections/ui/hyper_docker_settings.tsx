@@ -193,7 +193,7 @@ export const HyperDockerSettingsPanel: React.FC<Props> = (props: Props) => {
             };
             const channel = await hyperSetup.setup(dispatchConnectionState, params, setupAbort.current.signal);
             if (channel != null) {
-                await performHealthCheck(queryExecutor, connectionState.notebookId, { type: 'hyper', channel }, dispatchConnectionState, setupAbort.current.signal);
+                await performHealthCheck(queryExecutor, connectionState.connectionId, { type: 'hyper', channel }, dispatchConnectionState, setupAbort.current.signal);
             }
         } catch (_error: any) {
             // Errors are surfaced through the connection state; nothing to do here.

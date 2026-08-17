@@ -106,6 +106,7 @@ export function restoreConnectionState(instance: dashql.DashQL, notebookId: stri
     const restoredCatalogFunctionScript = catalogFunctionScript;
 
     const state: ConnectionState = {
+        connectionId: crypto.randomUUID(),
         notebookId,
         name,
         instance,

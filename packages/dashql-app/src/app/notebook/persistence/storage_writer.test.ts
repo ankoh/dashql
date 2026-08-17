@@ -265,7 +265,7 @@ describe('StorageWriter notebook coordination', () => {
 });
 
 function makeConnection(notebookId: string): ConnectionState {
-    return { ...createDatalessConnectionState(dql!, new Map()), notebookId };
+    return { ...createDatalessConnectionState(dql!, new Map()), connectionId: crypto.randomUUID(), notebookId };
 }
 
 describe('StorageWriter notebook manifest writes', () => {

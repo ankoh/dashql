@@ -3,9 +3,9 @@ import * as d3 from 'd3';
 import * as styles from './histogram_cell.module.css';
 
 import { observeSize } from '../../../../../shared/ui/foundations/size_observer.js';
-import { ColumnAggregationVariant, OrdinalColumnAggregation, ORDINAL_COLUMN, TableAggregation, WithFilterEpoch } from '../../computation_types.js';
-import { dataTypeToString } from './arrow_formatter.js';
-import { BIN_COUNT } from '../../computation_logic.js';
+import { ColumnAggregationVariant, OrdinalColumnAggregation, ORDINAL_COLUMN, TableAggregation, WithFilterEpoch } from '../../../../../compute/computation_types.js';
+import { dataTypeToString } from '../../../../../compute/arrow_formatter.js';
+import { BIN_COUNT } from '../../../../../compute/computation_logic.js';
 import { getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
 import { formatHistogramFocusDescription } from './histogram_label.js';
 

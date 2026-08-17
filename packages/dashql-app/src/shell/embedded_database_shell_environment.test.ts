@@ -1,7 +1,7 @@
 // @vitest-environment node
 import * as arrow from 'apache-arrow';
 
-import { QueryExecutionStatus } from '../app/notebook/connections/query_execution_state.js';
+import { QueryExecutionStatus } from '../query/query_execution_state.js';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { ShellQueryExecutionTracker } from './query_execution.js';
 

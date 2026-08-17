@@ -3,7 +3,7 @@ import * as styles from './data_table.module.css';
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import { classNames } from '../../../../../shared/utils/classnames.js';
-import { ColumnAggregationTask, ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilter, WithFilterEpoch, WithProgress, ComputationStateVersion } from '../../computation_types.js';
+import { ColumnAggregationTask, ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilter, WithFilterEpoch, WithProgress, ComputationStateVersion } from '../../../../../compute/computation_types.js';
 import { RectangleWaveSpinner } from '../../../../../shared/ui/foundations/spinners.js';
 import { BrushingStateCallback, HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentCell, MostFrequentValueFilterCallback } from './mostfrequent_cell.js';

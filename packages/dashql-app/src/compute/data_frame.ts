@@ -1,10 +1,10 @@
 import * as arrow from 'apache-arrow';
 
-import { Logger } from '../../../shared/platform/logger/logger.js';
+import { Logger } from '../shared/platform/logger/logger.js';
 import type {
     EmbeddedComputeDatabase,
     EmbeddedTableImportConnection,
-} from '../../../shared/platform/database/embedded_database.js';
+} from '../shared/platform/database/embedded_database.js';
 
 const LOG_CTX = "data_frame";
 

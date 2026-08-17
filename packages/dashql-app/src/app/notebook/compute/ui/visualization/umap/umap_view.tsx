@@ -6,10 +6,10 @@ import { EmbeddingScatter, EmbeddingPoints } from './embedding_scatter.js';
 import { UmapSpec } from './umap_spec.js';
 import { extractCategories } from './umap_categories.js';
 import { UmapInfoPanel, UmapAttribute } from './umap_info_panel.js';
-import { useComputationRegistry } from '../../../computation_registry.js';
-import { ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '../../../computation_types.js';
-import { extractFloat32Column } from '../../../umap/umap_extraction.js';
-import { makeArrowValueFormatter } from '../../query_result/arrow_formatter.js';
+import { useComputationRegistry } from '../../../../../../compute/computation_registry.js';
+import { ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '../../../../../../compute/computation_types.js';
+import { extractFloat32Column } from '../../../../../../compute/umap/umap_extraction.js';
+import { makeArrowValueFormatter } from '../../../../../../compute/arrow_formatter.js';
 import { resolveVisibleRowIndices } from '../../query_result/visible_rows.js';
 
 interface Props {

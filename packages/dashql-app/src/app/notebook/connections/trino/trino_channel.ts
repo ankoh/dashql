@@ -7,7 +7,7 @@ import { TrinoApiClientInterface, TrinoApiEndpoint, TrinoQueryData, TrinoQueryRe
 import { ChannelError, RawProxyError } from '../../../../shared/platform/channel_common.js';
 import { AsyncValue } from '../../../../shared/utils/async_value.js';
 import { AsyncConsumer } from '../../../../shared/utils/async_consumer.js';
-import { translateAnyRowsToArrowBatch } from '../../compute/arrow_conversion.js';
+import { translateAnyRowsToArrowBatch } from '../../../../compute/arrow_conversion.js';
 
 const LOG_CTX = 'trino_channel';
 

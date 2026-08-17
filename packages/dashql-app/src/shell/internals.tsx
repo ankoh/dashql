@@ -6,7 +6,7 @@ import { AnchoredOverlay } from '../shared/ui/foundations/anchored_overlay.js';
 import { OverlaySize } from '../shared/ui/foundations/overlay.js';
 import { VerticalTabs, VerticalTabVariant } from '../shared/ui/foundations/vertical_tabs.js';
 import { LogViewer } from '../shared/ui/logs/log_viewer.js';
-import { QueryHistoryViewer, QueryTarget, type QueryEntry } from '../app/notebook/connections/ui/query_viewer.js';
+import { QueryHistoryViewer, QueryTarget, type QueryEntry } from '../query/ui/query_history_viewer.js';
 import type { ShellQueryExecutionTracker } from './query_execution.js';
 import * as styles from './shell_navbar.module.css';
 

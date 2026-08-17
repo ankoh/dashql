@@ -134,6 +134,7 @@ function buildState(): NotebookScripts {
     return {
         instance: dql!,
         notebookId,
+        connectionId: crypto.randomUUID(),
         notebookMetadata: createEmptyMetadata(),
         connectorInfo: createDatalessConnectorInfo(true),
         connectionCatalog: catalog,

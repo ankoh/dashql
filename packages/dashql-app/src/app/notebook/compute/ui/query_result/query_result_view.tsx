@@ -4,7 +4,7 @@ import * as styles from './query_result_view.module.css';
 import { QueryExecutionState } from '../../../connections/query_execution_state.js';
 import { DataTable } from './data_table.js';
 import { TableColumnHeader } from './data_table_cell.js';
-import { useComputationRegistry } from '../../computation_registry.js';
+import { useComputationRegistry } from '../../../../../compute/computation_registry.js';
 import { classNames } from '../../../../../shared/utils/classnames.js';
 
 interface Props {

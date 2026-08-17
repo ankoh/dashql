@@ -16,8 +16,9 @@ import { useLogger } from '../../../shared/platform/logger/logger_provider.js';
 /// explicitly observes modifications of the registry map.
 /// Instead, shallow-compare the entire registry object again.
 export interface ConnectionRegistry {
-    connectionMap: Map<string, ConnectionState>;  // notebookId -> ConnectionState
-    connectionsByType: string[][];  // arrays of notebookIds by connector type
+    connectionMap: Map<string, ConnectionState>;  // connectionId -> ConnectionState
+    connectionByNotebook: Map<string, string>;  // notebookId -> connectionId
+    connectionsByType: string[][];  // arrays of connectionIds by connector type
     connectionsBySignature: ConnectionSignatureMap;
 }
 
@@ -25,7 +26,7 @@ export type SetConnectionRegistryAction = React.SetStateAction<ConnectionRegistr
 export type ConnectionAllocator = (state: ConnectionStateWithoutId) => ConnectionState;
 export type ConnectionCloner = (state: ConnectionState) => ConnectionState;
 export type ConnectionDispatch = (action: ConnectionStateAction) => void;
-export type DynamicConnectionDispatch = (notebookId: string | null, action: ConnectionStateAction) => void;
+export type DynamicConnectionDispatch = (connectionId: string | null, action: ConnectionStateAction) => void;
 
 const CONNECTION_REGISTRY_CTX = React.createContext<[ConnectionRegistry, Dispatch<SetConnectionRegistryAction>] | null>(null);
 
@@ -37,6 +38,7 @@ export const ConnectionRegistry: React.FC<Props> = (props: Props) => {
     const [reg, setReg] = React.useState<ConnectionRegistry>(() => {
         return ({
             connectionMap: new Map(),
+            connectionByNotebook: new Map(),
             connectionsByType: CONNECTOR_TYPES.map(() => ([])),
             connectionsBySignature: new Map(),
         });
@@ -54,11 +56,13 @@ export function useConnectionStateAllocator(): ConnectionAllocator {
         // The notebook UUID is the authoritative identity. New notebooks are implicitly OPFS-backed;
         // their physical location is recorded in the manifest when first persisted.
         const notebookId = crypto.randomUUID();
-        const conn: ConnectionState = { ...state, notebookId };
+        const connectionId = crypto.randomUUID();
+        const conn: ConnectionState = { ...state, connectionId, notebookId };
         setReg((reg) => {
-            reg.connectionMap.set(notebookId, conn);
-            reg.connectionsByType[state.connectorInfo.connectorType].push(notebookId);
-            reg.connectionsBySignature.set(state.connectionSignature.signatureString, notebookId);
+            reg.connectionMap.set(connectionId, conn);
+            reg.connectionByNotebook.set(notebookId, connectionId);
+            reg.connectionsByType[state.connectorInfo.connectorType].push(connectionId);
+            reg.connectionsBySignature.set(state.connectionSignature.signatureString, connectionId);
             return { ...reg };
         });
         // Don't persist yet - wait until connection is configured
@@ -77,7 +81,7 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
     const logger = useLogger();
 
     // Queue for batching dispatch calls to avoid concurrent rendering issues
-    const pendingActionsRef = React.useRef<Array<{ notebookId: string; action: ConnectionStateAction }>>([]);
+    const pendingActionsRef = React.useRef<Array<{ connectionId: string; action: ConnectionStateAction }>>([]);
     const flushScheduledRef = React.useRef(false);
 
     // Flush all pending actions in a single state update
@@ -88,10 +92,10 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
         pendingActionsRef.current = [];
 
         setRegistry((reg: ConnectionRegistry) => {
-            for (const { notebookId, action } of actions) {
-                const prev = reg.connectionMap.get(notebookId);
+            for (const { connectionId, action } of actions) {
+                const prev = reg.connectionMap.get(connectionId);
                 if (!prev) {
-                    console.warn(`no connection registered with notebook id ${notebookId}`);
+                    console.warn(`no connection registered with id ${connectionId}`);
                     continue;
                 }
                 const connectionSignature = prev.connectionSignature.signatureString;
@@ -100,17 +104,18 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
 
                 if (action.type == DELETE_CONNECTION) {
                     reg.connectionsBySignature.delete(connectionSignature);
-                    reg.connectionsByType[connectorType] = reg.connectionsByType[connectorType].filter(id => id != notebookId);
-                    reg.connectionMap.delete(notebookId);
+                    reg.connectionsByType[connectorType] = reg.connectionsByType[connectorType].filter(id => id != connectionId);
+                    reg.connectionByNotebook.delete(prev.notebookId);
+                    reg.connectionMap.delete(connectionId);
                 } else {
-                    reg.connectionMap.set(notebookId, next);
+                    reg.connectionMap.set(connectionId, next);
                     // Update type index when connector type changes
                     if (action.type == SWITCH_CONNECTOR_TYPE && next.connectorInfo.connectorType !== connectorType) {
-                        reg.connectionsByType[connectorType] = reg.connectionsByType[connectorType].filter(id => id != notebookId);
-                        reg.connectionsByType[next.connectorInfo.connectorType].push(notebookId);
+                        reg.connectionsByType[connectorType] = reg.connectionsByType[connectorType].filter(id => id != connectionId);
+                        reg.connectionsByType[next.connectorInfo.connectorType].push(connectionId);
                         // Update signature
                         reg.connectionsBySignature.delete(connectionSignature);
-                        reg.connectionsBySignature.set(next.connectionSignature.signatureString, notebookId);
+                        reg.connectionsBySignature.set(next.connectionSignature.signatureString, connectionId);
                     }
                 }
             }
@@ -119,13 +124,13 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
     }, [setRegistry, storageWriter, logger]);
 
     /// Helper to modify a dynamic connection
-    const dispatch = React.useCallback((notebookId: string | null, action: ConnectionStateAction) => {
+    const dispatch = React.useCallback((connectionId: string | null, action: ConnectionStateAction) => {
         // No id provided? Then do nothing.
-        if (notebookId == null) {
+        if (connectionId == null) {
             return;
         }
         // Queue the action
-        pendingActionsRef.current.push({ notebookId, action });
+        pendingActionsRef.current.push({ connectionId, action });
 
         // Schedule a flush if not already scheduled
         if (!flushScheduledRef.current) {
@@ -139,6 +144,7 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
 
 export function useConnectionState(notebookId: string | null): [ConnectionState | null, ConnectionDispatch] {
     const [registry, dispatch] = useDynamicConnectionDispatch();
-    const capturingDispatch = React.useCallback((action: ConnectionStateAction) => dispatch(notebookId, action), [notebookId, dispatch]);
-    return [notebookId == null ? null : (registry.connectionMap.get(notebookId) ?? null), capturingDispatch]
+    const connectionId = notebookId == null ? null : registry.connectionByNotebook.get(notebookId) ?? null;
+    const capturingDispatch = React.useCallback((action: ConnectionStateAction) => dispatch(connectionId, action), [connectionId, dispatch]);
+    return [connectionId == null ? null : (registry.connectionMap.get(connectionId) ?? null), capturingDispatch]
 }

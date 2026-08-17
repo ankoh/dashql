@@ -130,7 +130,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         // they are edited, so the resolved VISUALIZE query / derived
                         // annotations are already present here.
                         const queryText = compileQuery(scriptData, logger);
-                        const [queryId, execution] = executeQuery(notebookScripts.notebookId, {
+                        const [queryId, execution] = executeQuery(connection!.connectionId, {
                             query: queryText,
                             analyzeResults: true,
                             replaceComputationId: scriptData.latestQueryId,
@@ -153,7 +153,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                     } else if (isCatalogRefreshRunning(connection)) {
                         logger.debug("Catalog refresh already running", { notebookId: connection.notebookId }, LOG_CTX);
                     } else {
-                        refreshCatalog(connection.notebookId, true);
+                        refreshCatalog(connection.connectionId, true);
                     }
                     break;
                 case NotebookCommandType.CloseNotebook: {

@@ -4,8 +4,8 @@ import * as styles from './data_table.module.css';
 
 import type { CellComponentProps } from 'react-window';
 
-import { ArrowTableFormatter } from './arrow_formatter.js';
-import { ColumnGroup } from '../../computation_types.js';
+import { ArrowTableFormatter } from '../../../../../compute/arrow_formatter.js';
+import { ColumnGroup } from '../../../../../compute/computation_types.js';
 import { DataTableLayout } from './data_table_layout.js';
 import { peekFormat } from './format_peek.js';
 

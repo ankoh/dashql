@@ -1,4 +1,4 @@
-import { OrderByConstraint } from '../../sql/sqlframe_builder.js';
+import { OrderByConstraint } from '../../../../../compute/sql/sqlframe_builder.js';
 
 export function getColumnSortDirection(field: string, ordering: OrderByConstraint[]): boolean | null {
     if (ordering.length !== 1 || ordering[0].field !== field) {

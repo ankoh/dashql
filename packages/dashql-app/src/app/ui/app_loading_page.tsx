@@ -11,7 +11,7 @@ import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../r
 import { DASHQL_VERSION } from '../../shared/globals.js';
 import { combineIndicatorStatus, getStatusFromProgressCounter, IndicatorStatus, StatusIndicator } from '../../shared/ui/foundations/status_indicator.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
-import { useComputeDatabase } from '../notebook/compute/compute_connection_provider.js';
+import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
 import { useDashQLCoreSetup } from '../providers/core_provider.js';
 import { useStorageReader } from '../notebook/persistence/storage_provider.js';
 import { AppLoadingProgress } from '../loading/app_loading_progress.js';

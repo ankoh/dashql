@@ -2,15 +2,13 @@ import * as arrow from 'apache-arrow';
 
 import {
     QUERY_RECEIVED_ALL_BATCHES,
-} from '../app/notebook/connections/connection_state.js';
-import {
     createQueryResponseStreamMetrics,
     QueryType,
     type QueryExecutionTracker,
-} from '../app/notebook/connections/query_execution_state.js';
+} from '../query/query_execution_state.js';
 import type { EmbeddedConnection } from '../shared/platform/database/embedded_database.js';
 import { DashQLShellEnvironment } from './api.js';
-import { executeTrackedQuery } from '../app/notebook/connections/tracked_query_execution.js';
+import { executeTrackedQuery } from '../query/tracked_query_execution.js';
 
 export function createEmbeddedDatabaseShellEnvironment(
     connection: EmbeddedConnection,

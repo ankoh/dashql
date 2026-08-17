@@ -1,4 +1,4 @@
-import { UmapRequest } from "../compute/umap/umap_projection.js";
+import { UmapRequest } from "../../../compute/umap/umap_projection.js";
 import { HyperDatabaseChannel } from "./hyper/hyperdb_grpc_client.js";
 import { QueryMetadata } from "./query_execution_state.js";
 import { SalesforceDatabaseChannel } from "./salesforce/salesforce_api_client.js";

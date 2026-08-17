@@ -1,6 +1,6 @@
 import type { UMAPOptions } from '@dashql/umap-wasm';
 
-import type { UmapRequest } from '../../../umap/umap_projection.js';
+import type { UmapRequest } from '../../../../../../compute/umap/umap_projection.js';
 
 /// The UMAP projection spec, mirroring the JSON emitted by the analyzer's
 /// `GenerateUmapSpec` (see packages/dashql-core/src/visualize/vegalite_generator.cc).

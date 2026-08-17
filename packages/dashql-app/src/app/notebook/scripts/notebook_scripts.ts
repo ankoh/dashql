@@ -55,6 +55,8 @@ export interface NotebookScripts {
     instance: core.DashQL;
     /// The notebook identifier.
     notebookId: string;
+    /// Runtime connection associated with this notebook.
+    connectionId: string;
     /// The notebook metadata
     notebookMetadata: NotebookMetadataType;
     /// The connector info

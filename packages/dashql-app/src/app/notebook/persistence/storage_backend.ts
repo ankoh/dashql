@@ -2,6 +2,8 @@ import type * as app_manifest from '@ankoh/dashql-jsonschema/app_manifest.js';
 import type * as app_notebook from '@ankoh/dashql-jsonschema/app_notebook.js';
 
 import type { CacheFileStat } from './query_result_cache_eviction.js';
+import type { CachedQueryResult } from '../../../query/query_result_cache.js';
+export type { CachedQueryResult } from '../../../query/query_result_cache.js';
 
 // Storage file and folder naming conventions
 export const STORAGE_MANIFEST_FILE = 'dashql-manifest.json';
@@ -17,14 +19,6 @@ export const STORAGE_CACHE_EXTENSION = '.arrow';
 /// `.arrow` files are authoritative, so a missing marker just falls back to the payload's own mtime.
 export const STORAGE_CACHE_ACCESS_SUFFIX = '.last_access';
 
-/// A cached query result loaded from disk: the Arrow IPC bytes plus the entry's write time.
-export interface CachedQueryResult {
-    /// The Arrow IPC (stream) bytes of the cached result.
-    bytes: Uint8Array;
-    /// When the cache entry was written (the `.arrow` file's mtime, in epoch milliseconds). This is
-    /// a write time, not a last-access time: a cache hit does not re-touch the file.
-    cachedAtMs: number;
-}
 export const STORAGE_SCRIPT_SCHEMA = 'dashql-relations.sql';
 export const STORAGE_SCRIPT_FUNCTIONS = 'dashql-functions.sql';
 export const STORAGE_SCRIPT_DRAFT = 'dashql-draft.sql';

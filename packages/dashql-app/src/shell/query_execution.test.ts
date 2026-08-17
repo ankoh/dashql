@@ -3,12 +3,10 @@ import {
     EXECUTE_QUERY,
     QUERY_FAILED,
     QUERY_SUCCEEDED,
-} from '../app/notebook/connections/connection_state.js';
-import {
     createQueryExecutionState,
     QueryExecutionStatus,
     QueryType,
-} from '../app/notebook/connections/query_execution_state.js';
+} from '../query/query_execution_state.js';
 import { LoggableException } from '../shared/platform/logger/logger.js';
 import { SHELL_QUERY_HISTORY_LIMIT, ShellQueryExecutionTracker } from './query_execution.js';
 

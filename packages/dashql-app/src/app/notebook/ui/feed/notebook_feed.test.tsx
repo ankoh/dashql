@@ -156,6 +156,7 @@ import { NotebookFeed } from './notebook_feed.js';
 
 function createOnlineConnection(activeQueryIds: number[] = []): ConnectionState {
     return {
+        connectionId: 'test-connection',
         connectionHealth: ConnectionHealth.ONLINE,
         queriesActive: new Map(activeQueryIds.map(id => [id, {}])),
         queriesActiveOrdered: activeQueryIds,
@@ -202,6 +203,7 @@ function makeScriptData(scriptKey: number, text: string, fileName: string = '', 
 function createNotebookScripts(): NotebookScripts {
     return {
         notebookId: crypto.randomUUID(),
+        connectionId: crypto.randomUUID(),
         instance: {} as any,
         notebookMetadata: {} as any,
         connectorInfo: {} as any,
@@ -442,7 +444,7 @@ describe('NotebookFeed', () => {
         const executeButtons = container.querySelectorAll('[aria-label="Execute script query"]');
         act(() => (executeButtons[1] as HTMLButtonElement).click());
 
-        expect(mockState.executeQuery).toHaveBeenCalledWith(notebookScripts.notebookId, expect.objectContaining({
+        expect(mockState.executeQuery).toHaveBeenCalledWith('test-connection', expect.objectContaining({
             query: 'select 2',
             cacheable: true,
         }));
@@ -460,7 +462,7 @@ describe('NotebookFeed', () => {
         const stop = container.querySelector('[aria-label="Stop script query"]') as HTMLButtonElement;
         expect(stop).not.toBeNull();
         act(() => stop.click());
-        expect(mockState.cancelQuery).toHaveBeenCalledWith(notebookScripts.notebookId, 42);
+        expect(mockState.cancelQuery).toHaveBeenCalledWith('test-connection', 42);
         expect(mockState.executeQuery).not.toHaveBeenCalled();
     });
 
@@ -1188,7 +1190,7 @@ describe('NotebookFeed', () => {
         const cancel = container.querySelector('[aria-label="Cancel query"]') as HTMLButtonElement;
         expect(cancel).not.toBeNull();
         act(() => cancel.click());
-        expect(mockState.cancelQuery).toHaveBeenCalledWith(notebookScripts.notebookId, 42);
+        expect(mockState.cancelQuery).toHaveBeenCalledWith('test-connection', 42);
     });
 
     it('keeps the status bar once a query succeeds', () => {

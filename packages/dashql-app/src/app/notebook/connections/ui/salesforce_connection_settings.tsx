@@ -222,7 +222,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
             setupAbortController.current = new AbortController();
             const sfChannel = await sfSetup.setup(dispatchConnectionState, setupParams, setupAbortController.current.signal);
             if (connectionState != null) {
-                await performHealthCheck(queryExecutor, connectionState.notebookId, { type: 'salesforce', channel: sfChannel }, dispatchConnectionState, setupAbortController.current.signal);
+                await performHealthCheck(queryExecutor, connectionState.connectionId, { type: 'salesforce', channel: sfChannel }, dispatchConnectionState, setupAbortController.current.signal);
             }
 
 

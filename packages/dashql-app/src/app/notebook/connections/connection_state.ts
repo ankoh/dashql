@@ -1,7 +1,6 @@
 import * as core from '../../../shared/core/index.js';
 import * as dashql from '../../../shared/core/index.js';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import * as arrow from 'apache-arrow';
 
 import { HyperConnectorAction, reduceHyperConnectorState } from './hyper/hyper_connection_state.js';
 import { SalesforceConnectionStateAction, reduceSalesforceConnectionState } from './salesforce/salesforce_connection_state.js';
@@ -19,9 +18,22 @@ import {
     TRINO_CONNECTOR,
 } from './connector_info.js';
 import {
-    QueryExecutionProgress,
-    QueryExecutionResponseStream,
-    QueryExecutionMetrics,
+    createQueryExecutionMetrics,
+    EXECUTE_QUERY,
+    QUERY_CANCELLED,
+    QUERY_FAILED,
+    QUERY_PROGRESS_UPDATED,
+    QUERY_RECEIVED_BATCH,
+    QUERY_RUNNING,
+    QUERY_RECEIVED_ALL_BATCHES,
+    QueryExecutionAction,
+    QUERY_SUCCEEDED,
+    QUERY_PROCESSED_RESULTS,
+    QUERY_PREPARING,
+    QUERY_SENDING,
+    QUERY_PROCESSING_RESULTS,
+    QUERY_CACHE_RECORDED,
+    QUERY_CACHE_DELETED,
     QueryExecutionState,
 } from './query_execution_state.js';
 import { Hasher } from '../../../shared/utils/hash.js';
@@ -31,7 +43,7 @@ import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_c
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
 import { DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK, groupNotebookManifestWrites, StorageWriter, WRITE_NOTEBOOK_MANIFEST } from '../persistence/storage_writer.js';
-import { LoggableException, Logger } from '../../../shared/platform/logger/logger.js';
+import { Logger } from '../../../shared/platform/logger/logger.js';
 
 export interface CatalogUpdates {
     /// The running tasks
@@ -51,6 +63,8 @@ export interface CatalogUpdates {
 }
 
 export interface ConnectionState {
+    /// Runtime identity of the connection. Independent from its notebook association.
+    connectionId: string;
     /// The authoritative bare notebook UUID.
     notebookId: string;
     /// The user-supplied notebook name, or null if the user never named this notebook. Persisted as
@@ -185,7 +199,7 @@ export function printConnectionHealth(health: ConnectionHealth) {
     }
 }
 
-export type ConnectionStateWithoutId = Omit<ConnectionState, "notebookId">;
+export type ConnectionStateWithoutId = Omit<ConnectionState, "connectionId" | "notebookId">;
 
 export const DELETE_CONNECTION = Symbol('DELETE_CONNECTION');
 export const RESET_CONNECTION = Symbol('RESET_CONNECTION');
@@ -201,21 +215,6 @@ export const CATALOG_UPDATE_SUCCEEDED = Symbol('CATALOG_UPDATE_SUCCEEDED');
 export const CATALOG_UPDATE_FAILED = Symbol('CATALOG_UPDATE_FAILED');
 export const CATALOG_UPDATE_CANCELLED = Symbol('CATALOG_UPDATE_CANCELLED');
 
-export const EXECUTE_QUERY = Symbol('EXECUTE_QUERY');
-export const QUERY_PREPARING = Symbol('QUERY_PREPARING');
-export const QUERY_SENDING = Symbol('QUERY_SENDING');
-export const QUERY_RUNNING = Symbol('QUERY_RUNNING');
-export const QUERY_PROGRESS_UPDATED = Symbol('QUERY_PROGRESS_UPDATED');
-export const QUERY_RECEIVED_BATCH = Symbol('QUERY_RECEIVED_BATCH');
-export const QUERY_RECEIVED_ALL_BATCHES = Symbol('QUERY_RECEIVED_ALL_BATCHES');
-export const QUERY_PROCESSING_RESULTS = Symbol('QUERY_PROCESSING_RESULTS');
-export const QUERY_PROCESSED_RESULTS = Symbol('QUERY_PROCESSED_RESULTS');
-export const QUERY_SUCCEEDED = Symbol('QUERY_SUCCEEDED');
-export const QUERY_FAILED = Symbol('QUERY_FAILED');
-export const QUERY_CANCELLED = Symbol('QUERY_CANCELLED');
-export const QUERY_CACHE_RECORDED = Symbol('QUERY_CACHE_RECORDED');
-export const QUERY_CACHE_DELETED = Symbol('QUERY_CACHE_DELETED');
-
 export const HEALTH_CHECK_STARTED = Symbol('HEALTH_CHECK_STARTED');
 export const HEALTH_CHECK_CANCELLED = Symbol('HEALTH_CHECK_CANCELLED');
 export const HEALTH_CHECK_SUCCEEDED = Symbol('HEALTH_CHECK_SUCCEEDED');
@@ -229,23 +228,6 @@ export type CatalogAction =
     | VariantKind<typeof CATALOG_UPDATE_CANCELLED, [number, Error]>
     | VariantKind<typeof CATALOG_UPDATE_FAILED, [number, Error]>
     | VariantKind<typeof CATALOG_UPDATE_SUCCEEDED, [number]>
-    ;
-
-export type QueryExecutionAction =
-    | VariantKind<typeof EXECUTE_QUERY, [number, QueryExecutionState]>
-    | VariantKind<typeof QUERY_PREPARING, [number]>
-    | VariantKind<typeof QUERY_SENDING, [number]>
-    | VariantKind<typeof QUERY_RUNNING, [number, QueryExecutionResponseStream | null]>
-    | VariantKind<typeof QUERY_PROGRESS_UPDATED, [number, QueryExecutionProgress]>
-    | VariantKind<typeof QUERY_RECEIVED_BATCH, [number, arrow.RecordBatch, QueryExecutionMetrics]>
-    | VariantKind<typeof QUERY_RECEIVED_ALL_BATCHES, [number, arrow.Table, Map<string, string>, QueryExecutionMetrics]>
-    | VariantKind<typeof QUERY_PROCESSING_RESULTS, [number]>
-    | VariantKind<typeof QUERY_PROCESSED_RESULTS, [number]>
-    | VariantKind<typeof QUERY_SUCCEEDED, [number]>
-    | VariantKind<typeof QUERY_FAILED, [number, LoggableException, QueryExecutionMetrics | null]>
-    | VariantKind<typeof QUERY_CANCELLED, [number, LoggableException, QueryExecutionMetrics | null]>
-    | VariantKind<typeof QUERY_CACHE_RECORDED, [number, string, boolean, number | null]>
-    | VariantKind<typeof QUERY_CACHE_DELETED, [number]>
     ;
 
 export type ConnectionStateAction =
@@ -494,29 +476,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 }
 
 export function createConnectionMetrics(): connection.ConnectionMetrics {
-    return {
-        successfulQueries: {
-            totalQueries: 0,
-            totalBatchesReceived: 0,
-            totalRowsReceived: 0,
-            accumulatedTimeUntilFirstBatch: 0,
-            accumulatedQueryDuration: 0,
-        },
-        canceledQueries: {
-            totalQueries: 0,
-            totalBatchesReceived: 0,
-            totalRowsReceived: 0,
-            accumulatedTimeUntilFirstBatch: 0,
-            accumulatedQueryDuration: 0,
-        },
-        failedQueries: {
-            totalQueries: 0,
-            totalBatchesReceived: 0,
-            totalRowsReceived: 0,
-            accumulatedTimeUntilFirstBatch: 0,
-            accumulatedQueryDuration: 0,
-        },
-    };
+    return createQueryExecutionMetrics();
 }
 
 export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, connSigs: ConnectionSignatureMap, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {

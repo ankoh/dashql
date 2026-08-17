@@ -2,18 +2,16 @@ import * as arrow from 'apache-arrow';
 
 import { OrderByConstraint } from './sql/sqlframe_builder.js';
 import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderingTable, TableFilteringTask, WithProgress, TaskStatus, WithFilter, WithFilterEpoch, ComputationStateVersion } from './computation_types.js';
-import { VariantKind } from '../../../shared/utils/variant.js';
+import { VariantKind } from '../shared/utils/variant.js';
 import { CrossFilters } from './cross_filters.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
-import { Logger } from '../../../shared/platform/logger/logger.js';
+import { Logger } from '../shared/platform/logger/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
 
 const LOG_CTX = 'computation_state';
 
 /// The table computation state
 export interface TableComputationState {
-    /// The notebook that owns the query result.
-    notebookId: string;
     /// The table id
     tableId: number;
     /// The tasks
@@ -104,9 +102,8 @@ export function createArrowFieldIndex(table: arrow.Table): Map<string, number> {
 }
 
 /// Create the table computation state
-export function createTableComputationState(computationId: number, table: arrow.Table, tableColumns: ColumnGroup[], tableLifetime: AbortController, notebookId: string = 'test'): TableComputationState {
+export function createTableComputationState(computationId: number, table: arrow.Table, tableColumns: ColumnGroup[], tableLifetime: AbortController): TableComputationState {
     return {
-        notebookId,
         tableId: computationId,
         tasks: {
             filteringTask: null,
@@ -156,7 +153,7 @@ export type ComputationAction =
     | VariantKind<typeof UPDATE_SCHEDULER_TASK, [TaskVariant, Partial<TaskProgress>]>
     | VariantKind<typeof UNREGISTER_SCHEDULER_TASK, TaskVariant>
 
-    | VariantKind<typeof COMPUTATION_FROM_QUERY_RESULT, [string, number, arrow.Table, ColumnGroup[], AbortController]>
+    | VariantKind<typeof COMPUTATION_FROM_QUERY_RESULT, [number, arrow.Table, ColumnGroup[], AbortController]>
     | VariantKind<typeof DELETE_COMPUTATION, [number]>
     | VariantKind<typeof CREATED_DATA_FRAME, [number, DataFrame]>
 
@@ -201,12 +198,12 @@ export function reduceComputationState(state: ComputationState, action: Computat
         }
 
         case COMPUTATION_FROM_QUERY_RESULT: {
-            const [notebookId, tableId, table, tableColumns, tableLifetime] = action.value;
+            const [tableId, table, tableColumns, tableLifetime] = action.value;
             const previousTableState = state.tableComputations[tableId];
             if (previousTableState !== undefined) {
                 destroyTableComputationState(previousTableState, memory);
             }
-            const tableState = createTableComputationState(tableId, table, tableColumns, tableLifetime, notebookId);
+            const tableState = createTableComputationState(tableId, table, tableColumns, tableLifetime);
             return {
                 ...state,
                 tableComputations: {
@@ -626,7 +623,6 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 return ({
                     ...tasks,
                     filteringTask: {
-                        notebookId: filterTask.notebookId,
                         tableId: filterTask.tableId,
                         tableVersion: newStateVersion,
                         inputDataTable: filterTask.inputDataTable,
@@ -659,7 +655,6 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 return ({
                     ...tasks,
                     orderingTask: {
-                        notebookId: orderTask.notebookId,
                         tableId: orderTask.tableId,
                         tableVersion: tableState.version,
                         inputDataTable: orderTask.inputDataTable,
@@ -685,7 +680,6 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 return ({
                     ...tasks,
                     tableAggregationTask: {
-                        notebookId: aggTask.notebookId,
                         tableId: aggTask.tableId,
                         tableVersion: aggTask.tableVersion,
                         columnEntries: aggTask.columnEntries,
@@ -708,7 +702,6 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 return ({
                     ...tasks,
                     systemColumnTask: {
-                        notebookId: sysTask.notebookId,
                         tableId: sysTask.tableId,
                         tableVersion: sysTask.tableVersion,
                         columnEntries: sysTask.columnEntries,
@@ -733,7 +726,6 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 const prev = tasks.columnAggregationTasks[colTask.columnId];
                 const updated = [...tasks.columnAggregationTasks];
                 updated[colTask.columnId] = {
-                    notebookId: colTask.notebookId,
                     tableId: colTask.tableId,
                     tableVersion: colTask.tableVersion,
                     columnId: colTask.columnId,
@@ -763,7 +755,6 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 const prev = tasks.filteredColumnAggregationTasks[filteredTask.columnId];
                 const updated = [...tasks.filteredColumnAggregationTasks];
                 updated[filteredTask.columnId] = {
-                    notebookId: filteredTask.notebookId,
                     tableId: filteredTask.tableId,
                     tableVersion: filteredTask.tableVersion,
                     columnId: filteredTask.columnId,
@@ -950,6 +941,7 @@ function releaseColumnAggregates(aggregates: (ColumnAggregationVariant | null)[]
 
 /// Helper to destroy state of a table
 function destroyTableComputationState(state: TableComputationState, memory: DataFrameRegistry) {
+    state.dataTableLifetime.abort();
     // Release data frames
     memory.release(state.dataFrame);
     memory.release(state.filterTable?.dataFrame);

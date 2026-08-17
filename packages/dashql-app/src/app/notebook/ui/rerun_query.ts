@@ -17,6 +17,7 @@ export function registerNotebookScriptQuery(
 }
 
 export function runNotebookScript(
+    connectionId: string,
     notebookScripts: NotebookScripts,
     scriptData: ScriptData,
     executeQuery: QueryExecutor,
@@ -27,7 +28,7 @@ export function runNotebookScript(
     if (queryText.trim().length === 0) {
         return;
     }
-    const [queryId, execution] = executeQuery(notebookScripts.notebookId, {
+    const [queryId, execution] = executeQuery(connectionId, {
         query: queryText,
         analyzeResults: true,
         replaceComputationId: scriptData.latestQueryId,

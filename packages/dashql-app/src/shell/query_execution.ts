@@ -1,11 +1,11 @@
-import type { QueryExecutionAction } from '../app/notebook/connections/connection_state.js';
-import { createConnectionMetrics } from '../app/notebook/connections/connection_state.js';
 import {
+    createQueryExecutionMetrics,
+    type QueryExecutionAction,
     type QueryExecutionHistoryState,
     type QueryExecutionState,
     type QueryExecutionTracker,
     reduceQueryAction,
-} from '../app/notebook/connections/query_execution_state.js';
+} from '../query/query_execution_state.js';
 
 export const SHELL_QUERY_HISTORY_LIMIT = 100;
 
@@ -16,7 +16,7 @@ export class ShellQueryExecutionTracker implements QueryExecutionTracker {
         queriesFinished: new Map(),
         queriesFinishedOrdered: [],
         snapshotQueriesActiveFinished: 1,
-        metrics: createConnectionMetrics(),
+        metrics: createQueryExecutionMetrics(),
     };
     private snapshot: readonly QueryExecutionState[] = [];
     private readonly listeners = new Set<() => void>();

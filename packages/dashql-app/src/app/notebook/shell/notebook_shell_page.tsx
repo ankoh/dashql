@@ -54,7 +54,7 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
         let cancelled = false;
         const getResultMode = () => resultModeRef.current;
         const environment = createNotebookShellEnvironment(
-            connection.notebookId,
+                connection.connectionId,
             executeQuery,
             cancelQuery,
             getResultMode,

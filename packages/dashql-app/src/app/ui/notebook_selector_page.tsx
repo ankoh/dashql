@@ -50,6 +50,8 @@ import { useKeyEvents, KeyEventHandler } from '../../shared/utils/key_events.js'
 import { AnchorAlignment, AnchorSide } from '../../shared/ui/foundations/anchored_position.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { InvalidNotebook, describeNotebookValidationError } from '../notebook/persistence/notebook_validation.js';
+import { useComputationRegistry } from '../../compute/computation_registry.js';
+import { DELETE_COMPUTATION } from '../../compute/computation_state.js';
 
 interface Props {
     connectionRegistry: ConnectionRegistry;
@@ -92,6 +94,7 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
     const [isEditMode, setIsEditMode] = React.useState(false);
     const [showInternals, setShowInternals] = React.useState<boolean>(false);
     const [_registry, connectionDispatch] = useDynamicConnectionDispatch();
+    const [_computationState, computationDispatch] = useComputationRegistry();
     const deleteNotebookScripts = useNotebookScriptsDeletion();
     const storageWriter = useStorageWriter();
     const storageReader = useStorageReader();
@@ -129,7 +132,9 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
         // Build notebook data using each notebook's full display path (opfs://notebooks/<uuid> or
         // fs://<absolute-path>), reconstructed from its uuid + physical location — the same value
         // the notebook bar shows.
-        for (const [notebookId, connection] of props.connectionRegistry.connectionMap) {
+        for (const [notebookId, connectionId] of props.connectionRegistry.connectionByNotebook) {
+            const connection = props.connectionRegistry.connectionMap.get(connectionId);
+            if (!connection) continue;
             const notebookScripts = props.notebookScriptsRegistry.notebookScriptsMap.get(notebookId);
             if (!notebookScripts) continue;
 
@@ -233,7 +238,8 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
     }, [sortableIds, storageReader.backend, logger]);
 
     const onNotebookClick = React.useCallback((notebookId: string) => {
-        const conn = props.connectionRegistry.connectionMap.get(notebookId);
+        const connectionId = props.connectionRegistry.connectionByNotebook.get(notebookId);
+        const conn = connectionId == null ? null : props.connectionRegistry.connectionMap.get(connectionId);
 
         // Invalid notebooks were refused a load and have no connection — never open them.
         if (!conn) {
@@ -292,10 +298,11 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
 
     const handleBack = React.useCallback(() => {
         if (configNotebookId) {
-            const conn = props.connectionRegistry.connectionMap.get(configNotebookId);
+            const connectionId = props.connectionRegistry.connectionByNotebook.get(configNotebookId);
+            const conn = connectionId == null ? null : props.connectionRegistry.connectionMap.get(connectionId);
             // Only cleanup if this was a NEW notebook (not yet persisted)
             if (conn?.connectionHealth === ConnectionHealth.NOT_STARTED && !conn.active) {
-                connectionDispatch(configNotebookId, { type: DELETE_CONNECTION, value: null });
+                connectionDispatch(conn.connectionId, { type: DELETE_CONNECTION, value: null });
             }
         }
         navigate({ type: CANCEL_NOTEBOOK_SETUP, value: null });
@@ -332,7 +339,8 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
     useKeyEvents(keyHandlers);
 
     const handleConnected = React.useCallback((notebookId: string) => {
-        const conn = props.connectionRegistry.connectionMap.get(notebookId);
+        const connectionId = props.connectionRegistry.connectionByNotebook.get(notebookId);
+        const conn = connectionId == null ? null : props.connectionRegistry.connectionMap.get(connectionId);
         if (conn) {
             const existingNotebookScripts = props.notebookScriptsRegistry.notebookScriptsMap.get(notebookId);
             if (!existingNotebookScripts) {
@@ -368,8 +376,11 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
         deleteNotebookScripts(item.notebookId);
 
         // Then delete the connection (destroys the catalog + connection state).
-        connectionDispatch(item.notebookId, { type: DELETE_CONNECTION, value: null });
-    }, [storageWriter, connectionDispatch, deleteNotebookScripts, props.onDeleteInvalidNotebook]);
+        for (const queryId of [...item.connection!.queriesActiveOrdered, ...item.connection!.queriesFinishedOrdered]) {
+            computationDispatch({ type: DELETE_COMPUTATION, value: [queryId] });
+        }
+        connectionDispatch(item.connection!.connectionId, { type: DELETE_CONNECTION, value: null });
+    }, [storageWriter, connectionDispatch, computationDispatch, deleteNotebookScripts, props.onDeleteInvalidNotebook]);
 
     return (
         <div className={baseStyles.page} data-tauri-drag-region>
@@ -393,8 +404,8 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
                             notebookId={configNotebookId}
                             onBack={handleBack}
                             onConnected={handleConnected}
-                            onSkip={props.connectionRegistry.connectionMap.get(configNotebookId)?.active ? handleSkip : undefined}
-                            headerTitle={props.connectionRegistry.connectionMap.get(configNotebookId)?.active ? "Connect" : undefined}
+                            onSkip={props.connectionRegistry.connectionMap.get(props.connectionRegistry.connectionByNotebook.get(configNotebookId) ?? '')?.active ? handleSkip : undefined}
+                            headerTitle={props.connectionRegistry.connectionMap.get(props.connectionRegistry.connectionByNotebook.get(configNotebookId) ?? '')?.active ? "Connect" : undefined}
                         />
                     ) : (
                         <div className={`${baseStyles.card} ${styles.card_wrapper}`}>

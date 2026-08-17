@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-vi.mock('../../computation_registry.js', () => ({
+vi.mock('../../../../../compute/computation_registry.js', () => ({
     useComputationRegistry: () => [{ tableComputations: {} }, vi.fn()],
 }));
 vi.mock('vega-embed', () => ({

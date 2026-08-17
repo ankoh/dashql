@@ -120,14 +120,15 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 // notebook's connection + notebook into them here. Without this the notebook exists
                 // only in storage and the connection setup screen would have nothing to render.
                 setConnReg(reg => {
-                    reg.connectionMap.set(restoredNotebook.notebookId, restoredNotebook.connection);
-                    reg.connectionsByType[restoredNotebook.connectorType].push(restoredNotebook.notebookId);
-                    reg.connectionsBySignature.set(restoredNotebook.connection.connectionSignature.signatureString, restoredNotebook.notebookId);
+                    reg.connectionMap.set(restoredNotebook.connection.connectionId, restoredNotebook.connection);
+                    reg.connectionByNotebook.set(restoredNotebook.notebookId, restoredNotebook.connection.connectionId);
+                    reg.connectionsByType[restoredNotebook.connectorType].push(restoredNotebook.connection.connectionId);
+                    reg.connectionsBySignature.set(restoredNotebook.connection.connectionSignature.signatureString, restoredNotebook.connection.connectionId);
                     return { ...reg };
                 });
                 setNotebookScriptsRegistry(reg => {
                     reg.notebookScriptsMap.set(restoredNotebook.notebookId, restoredNotebook.notebookScripts);
-                    reg.notebookScriptsByConnection.set(restoredNotebook.notebookId, restoredNotebook.notebookId);
+                    reg.notebookScriptsByConnection.set(restoredNotebook.connection.connectionId, restoredNotebook.notebookId);
                     reg.notebookScriptsByConnectionType[restoredNotebook.connectorType].push(restoredNotebook.notebookId);
                     return { ...reg };
                 });

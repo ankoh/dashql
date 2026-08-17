@@ -1,10 +1,11 @@
 import { vi } from 'vitest';
+import * as arrow from 'apache-arrow';
 
 import * as computationLogic from './computation_logic.js';
 
-import { AsyncValue } from '../../../shared/utils/async_value.js';
-import { LoggableException } from '../../../shared/platform/logger/logger.js';
-import { TestLogger } from '../../../shared/platform/logger/test_logger.js';
+import { AsyncValue } from '../shared/utils/async_value.js';
+import { LoggableException } from '../shared/platform/logger/logger.js';
+import { TestLogger } from '../shared/platform/logger/test_logger.js';
 import { TaskStatus, ComputationStateVersion } from './computation_types.js';
 import {
     ComputationAction,
@@ -19,7 +20,7 @@ import {
 } from './computation_state.js';
 import {
     processTask,
-    createSQLFrameQueryExecution,
+    ComputationScheduler,
     TaskVariant,
     TABLE_FILTERING_TASK,
     TABLE_ORDERING_TASK,
@@ -28,10 +29,73 @@ import {
     COLUMN_AGGREGATION_TASK,
     FILTERED_COLUMN_AGGREGATION_TASK,
 } from './computation_scheduler.js';
-import { Dispatch } from '../../../shared/utils/variant.js';
+import { Dispatch } from '../shared/utils/variant.js';
 import type { ComputeQueryExecution } from './computation_logic.js';
-import { QueryExecutionStatus, QueryType } from '../connections/query_execution_state.js';
-import { ShellQueryExecutionTracker } from '../../../shell/query_execution.js';
+import * as React from 'react';
+import { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { ComputationRegistry, useComputationRegistry } from './computation_registry.js';
+import { ComputeQueryExecutionProvider } from './computation_query_execution.js';
+import { COMPUTATION_FROM_QUERY_RESULT, SCHEDULE_TASK } from './computation_state.js';
+import { LoggerProvider } from '../shared/platform/logger/logger_provider.js';
+
+vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+
+function ScheduleTask(props: { task: TaskVariant }) {
+    const [, dispatch] = useComputationRegistry();
+    React.useEffect(() => {
+        dispatch({
+            type: COMPUTATION_FROM_QUERY_RESULT,
+            value: [props.task.value.tableId, arrow.tableFromArrays({ value: [1] }), [], new AbortController()],
+        });
+        dispatch({ type: SCHEDULE_TASK, value: props.task });
+    }, [dispatch, props.task]);
+    return null;
+}
+
+describe('ComputationScheduler', () => {
+    let container: HTMLDivElement;
+    let root: Root;
+
+    beforeEach(() => {
+        container = document.createElement('div');
+        document.body.appendChild(container);
+        root = createRoot(container);
+    });
+
+    afterEach(() => {
+        act(() => root.unmount());
+        container.remove();
+    });
+
+    it('creates an internal query executor for scheduled tasks', async () => {
+        const executeQuery = vi.fn(<T,>(_queryText: string, execute: () => Promise<T>) => execute()) as ComputeQueryExecution;
+        const createExecution = vi.fn(() => executeQuery);
+        vi.spyOn(computationLogic, 'filterTable').mockResolvedValue(null);
+        const task: TaskVariant = {
+            type: TABLE_FILTERING_TASK,
+            value: { tableId: 42 } as any,
+            result: new AsyncValue() as any,
+        };
+
+        await act(async () => {
+            root.render(
+                <LoggerProvider>
+                    <ComputationRegistry>
+                        <ComputeQueryExecutionProvider createExecution={createExecution}>
+                            <ComputationScheduler />
+                            <ScheduleTask task={task} />
+                        </ComputeQueryExecutionProvider>
+                    </ComputationRegistry>
+                </LoggerProvider>,
+            );
+            await new Promise(resolve => setTimeout(resolve, 0));
+        });
+
+        expect(createExecution).toHaveBeenCalled();
+        expect(computationLogic.filterTable).toHaveBeenCalledWith(expect.anything(), expect.anything(), executeQuery);
+    });
+});
 
 describe('processTask', () => {
     let logger: TestLogger;
@@ -88,7 +152,7 @@ describe('processTask', () => {
     });
 
     it('passes the internal query executor to computation logic', async () => {
-        const executeQuery = vi.fn(<T>(_queryText: string, execute: () => Promise<T>) => execute()) as ComputeQueryExecution;
+        const executeQuery = vi.fn(<T,>(_queryText: string, execute: () => Promise<T>) => execute()) as ComputeQueryExecution;
         const task: TaskVariant = {
             type: TABLE_FILTERING_TASK,
             value: { tableId: 42 } as any,
@@ -99,29 +163,6 @@ describe('processTask', () => {
         await processTask(task, dispatch, logger, executeQuery);
 
         expect(computationLogic.filterTable).toHaveBeenCalledWith(task.value, expect.anything(), executeQuery);
-    });
-
-    it('records SQLFrame executions in the shared query history', async () => {
-        const tracker = new ShellQueryExecutionTracker();
-        const task: TaskVariant = {
-            type: TABLE_FILTERING_TASK,
-            value: { notebookId: 'notebook', tableId: 42 } as any,
-            result: new AsyncValue() as any,
-            taskId: 13,
-        };
-
-        await createSQLFrameQueryExecution(task, tracker)('SELECT filtered', async () => undefined);
-
-        expect(tracker.getSnapshot()).toMatchObject([{
-            queryText: 'SELECT filtered',
-            status: QueryExecutionStatus.SUCCEEDED,
-            queryMetadata: {
-                queryType: QueryType.INTERNAL_SQLFRAME,
-                title: 'Table filtering',
-                issuer: 'SQLFrame',
-                parentQueryId: 42,
-            },
-        }]);
     });
 
     it('processes TABLE_ORDERING_TASK successfully', async () => {

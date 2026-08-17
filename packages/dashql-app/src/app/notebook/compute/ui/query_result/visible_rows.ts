@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 
-import { TableComputationState } from '../../computation_state.js';
+import { TableComputationState } from '../../../../../compute/computation_state.js';
 
 /// Resolve the active row-id indirection for a table computation.
 ///

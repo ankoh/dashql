@@ -13,8 +13,8 @@ import {
 describe('notebook shell environment', () => {
     it('renders small auto-mode results in the terminal', async () => {
         const progress = vi.fn();
-        const execute = vi.fn<QueryExecutor>((notebookId, args) => {
-            expect(notebookId).toBe('notebook-1');
+        const execute = vi.fn<QueryExecutor>((connectionId, args) => {
+            expect(connectionId).toBe('connection-7');
             expect(args.query).toBe('SELECT 42');
             expect(args.analyzeResults).toBe(true);
             expect(args.throwOnError).toBe(true);
@@ -22,7 +22,7 @@ describe('notebook shell environment', () => {
             return [7, Promise.resolve(arrow.tableFromArrays({ value: [42] }))];
         });
         const cancel = vi.fn();
-        const environment = createNotebookShellEnvironment('notebook-1', execute, cancel);
+        const environment = createNotebookShellEnvironment('connection-7', execute, cancel);
 
         const result = vi.fn();
         const bytes = await environment.executeQuery('SELECT 42', undefined, progress, result);
@@ -107,12 +107,12 @@ describe('notebook shell environment', () => {
             resolveExecution = resolve;
         })]);
         const cancel = vi.fn();
-        const environment = createNotebookShellEnvironment('notebook-1', execute, cancel);
+        const environment = createNotebookShellEnvironment('connection-7', execute, cancel);
         const abort = new AbortController();
         const execution = environment.executeQuery('SELECT 42', abort.signal);
 
         abort.abort();
-        expect(cancel).toHaveBeenCalledWith('notebook-1', 9);
+        expect(cancel).toHaveBeenCalledWith('connection-7', 9);
         resolveExecution!(arrow.tableFromArrays({ value: [42] }));
         await execution;
     });

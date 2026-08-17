@@ -1,15 +1,15 @@
 import * as arrow from 'apache-arrow';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { ArrowTableFormatter } from './ui/query_result/arrow_formatter.js';
+import { ArrowTableFormatter } from './arrow_formatter.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
-import { AsyncValue } from '../../../shared/utils/async_value.js';
+import { AsyncValue } from '../shared/utils/async_value.js';
 import { CLEAR_TABLE_ORDERING, COMPUTATION_FROM_QUERY_RESULT, CREATED_DATA_FRAME, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UMAP_COMPUTATION_SUCCEEDED, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
 import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, ComputationStateVersion, FilterTable, LIST_COLUMN, OrderingTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from './computation_types.js';
-import { LoggableException } from '../../../shared/platform/logger/logger.js';
+import { LoggableException } from '../shared/platform/logger/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from './computation_scheduler.js';
-import { TestLogger } from '../../../shared/platform/logger/test_logger.js';
-import type { EmbeddedComputeDatabase } from '../../../shared/platform/database/embedded_database.js';
+import { TestLogger } from '../shared/platform/logger/test_logger.js';
+import type { EmbeddedComputeDatabase } from '../shared/platform/database/embedded_database.js';
 
 function createMockDataFrame(tableName: string): DataFrame {
     return new DataFrame({} as EmbeddedComputeDatabase, tableName);
@@ -199,7 +199,7 @@ describe('ComputationState', () => {
         const tableLifetime = new AbortController();
         const action: ComputationAction = {
             type: COMPUTATION_FROM_QUERY_RESULT,
-            value: ['notebook', 1, inputTable, inputTableColumns, tableLifetime],
+            value: [1, inputTable, inputTableColumns, tableLifetime],
         };
         const output = reduceComputationState(state, action, memory, logger);
         expect(Object.entries(output.tableComputations).length).toEqual(1);
@@ -285,6 +285,7 @@ describe('ComputationState', () => {
         };
         const output = reduceComputationState(state, action, memory, logger);
         expect(Object.entries(output.tableComputations).length).toEqual(0);
+        expect(tableLifetime.signal.aborted).toBe(true);
     });
 
     it('releases the previous computation when replacing the same table id', () => {
@@ -295,7 +296,7 @@ describe('ComputationState', () => {
 
         state = reduceComputationState(state, {
             type: COMPUTATION_FROM_QUERY_RESULT,
-            value: ['notebook', 1, inputTable, inputTableColumns, new AbortController()],
+            value: [1, inputTable, inputTableColumns, new AbortController()],
         }, memory, logger);
         state = reduceComputationState(state, {
             type: CREATED_DATA_FRAME,
@@ -304,7 +305,7 @@ describe('ComputationState', () => {
 
         state = reduceComputationState(state, {
             type: COMPUTATION_FROM_QUERY_RESULT,
-            value: ['notebook', 1, inputTable, inputTableColumns, new AbortController()],
+            value: [1, inputTable, inputTableColumns, new AbortController()],
         }, memory, logger);
 
         expect(state.tableComputations[1].dataFrame).toBeNull();
@@ -327,7 +328,6 @@ describe('ComputationState', () => {
                     type: TABLE_FILTERING_TASK,
                     value: {
                         tableId: 1,
-                        notebookId: 'notebook',
                         tableVersion: new ComputationStateVersion(0, 20),
                         inputDataTable: inputTable,
                         inputDataTableFieldIndex: inputTableFieldIndex,
@@ -388,7 +388,6 @@ describe('ComputationState', () => {
                     type: TABLE_ORDERING_TASK,
                     value: {
                         tableId: 1,
-                        notebookId: 'notebook',
                         tableVersion: new ComputationStateVersion(0, 20),
                         inputDataTable: inputTable,
                         inputDataTableFieldIndex: inputTableFieldIndex,
@@ -449,7 +448,6 @@ describe('ComputationState', () => {
                     type: TABLE_AGGREGATION_TASK,
                     value: {
                         tableId: 1,
-                        notebookId: 'notebook',
                         tableVersion: new ComputationStateVersion(0, 20),
                         inputDataFrame,
                         columnEntries: inputTableColumns,
@@ -492,7 +490,6 @@ describe('ComputationState', () => {
                     type: SYSTEM_COLUMN_COMPUTATION_TASK,
                     value: {
                         tableId: 1,
-                        notebookId: 'notebook',
                         tableVersion: new ComputationStateVersion(0, 20),
                         inputDataFrame,
                         inputTable: inputTable,
@@ -548,7 +545,6 @@ describe('ComputationState', () => {
                     type: COLUMN_AGGREGATION_TASK,
                     value: {
                         tableId: 1,
-                        notebookId: 'notebook',
                         tableVersion: new ComputationStateVersion(0, 20),
                         inputDataFrame,
                         columnId: 1,
@@ -607,7 +603,6 @@ describe('ComputationState', () => {
                     type: FILTERED_COLUMN_AGGREGATION_TASK,
                     value: {
                         tableId: 1,
-                        notebookId: 'notebook',
                         tableVersion: new ComputationStateVersion(0, 20),
                         inputDataFrame,
                         columnId: 1,
@@ -765,7 +760,6 @@ describe('ComputationState', () => {
             state.tableComputations[1].version = new ComputationStateVersion(0, 10);
             state.tableComputations[1].dataFrame = inputDataFrame;
             state.tableComputations[1].tasks.orderingTask = {
-                notebookId: 'notebook',
                 tableId: 1,
                 tableVersion: state.tableComputations[1].version,
                 inputDataTable: inputTable,
@@ -839,7 +833,6 @@ describe('ComputationState', () => {
             state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
             state.tableComputations[1].dataFrame = inputDataFrame;
             state.tableComputations[1].tasks.orderingTask = {
-                notebookId: 'notebook',
                 tableId: 1,
                 tableVersion: state.tableComputations[1].version,
                 inputDataTable: inputTable,
@@ -929,7 +922,6 @@ describe('ComputationState', () => {
             );
             state.tableComputations[1].filteredColumnAggregatesOutdated[1] = true;
             state.tableComputations[1].tasks.filteredColumnAggregationTasks[1] = {
-                notebookId: 'notebook',
                 tableId: 1,
                 tableVersion: new ComputationStateVersion(0, 20),
                 inputDataFrame,

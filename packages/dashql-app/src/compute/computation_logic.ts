@@ -1,16 +1,16 @@
 import * as arrow from 'apache-arrow';
 
-import { ArrowTableFormatter } from './ui/query_result/arrow_formatter.js';
+import { ArrowTableFormatter } from './arrow_formatter.js';
 import { DataFrame, generateTableName } from './data_frame.js';
-import { AsyncValue } from '../../../shared/utils/async_value.js';
+import { AsyncValue } from '../shared/utils/async_value.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
 import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SCHEDULE_TASK, UMAP_COMPUTATION_SUCCEEDED } from './computation_state.js';
 import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderingTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, WithFilter, WithFilterEpoch, ComputationStateVersion } from './computation_types.js';
-import { Dispatch, VariantKind } from '../../../shared/utils/variant.js';
-import { LoggableException, LoggerLike, stringifyError } from '../../../shared/platform/logger/logger.js';
-import { assert } from '../../../shared/utils/assert.js';
+import { Dispatch, VariantKind } from '../shared/utils/variant.js';
+import { LoggableException, LoggerLike, stringifyError } from '../shared/platform/logger/logger.js';
+import { assert } from '../shared/utils/assert.js';
 import { SQLFrame } from './sql/sqlframe_builder.js';
-import type { EmbeddedComputeDatabase } from '../../../shared/platform/database/embedded_database.js';
+import type { EmbeddedComputeDatabase } from '../shared/platform/database/embedded_database.js';
 import { UmapRequest, projectWithUMAP } from './umap/umap_projection.js';
 import { extractEmbeddingMatrix } from './umap/umap_extraction.js';
 export type ComputeQueryExecution = <T>(queryText: string, execute: () => Promise<T>) => Promise<T>;
@@ -78,12 +78,12 @@ function isTemporalType(typeId: arrow.Type): boolean {
 ///     Whenever a user updates a cross-filter (by brushing or selecting a distinct value), we just recompute the column summaries
 ///     with the new set of cross-filters and update the UI.
 ///
-export async function analyzeTable(notebookId: string, tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, database: EmbeddedComputeDatabase, logger: LoggerLike, projection?: UmapRequest): Promise<void> {
+export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, database: EmbeddedComputeDatabase, logger: LoggerLike, projection?: UmapRequest): Promise<void> {
     let gridColumnGroups = buildGridColumnGroups(table!);
     const computeAbortCtrl = new AbortController();
     dispatch({
         type: COMPUTATION_FROM_QUERY_RESULT,
-        value: [notebookId, tableId, table!, gridColumnGroups, computeAbortCtrl]
+        value: [tableId, table!, gridColumnGroups, computeAbortCtrl]
     });
 
     const inputTableName = generateTableName("__input");
@@ -95,7 +95,6 @@ export async function analyzeTable(notebookId: string, tableId: number, table: a
 
     // Compute table aggregates
     const tableAggregationTask: TableAggregationTask = {
-        notebookId,
         tableId,
         tableVersion: new ComputationStateVersion(0, 0),
         columnEntries: gridColumnGroups,
@@ -106,7 +105,6 @@ export async function analyzeTable(notebookId: string, tableId: number, table: a
 
     // Precompute the system columns
     const precomputationTask: SystemColumnComputationTask = {
-        notebookId,
         tableId,
         tableVersion: new ComputationStateVersion(0, 0),
         columnEntries: gridColumnGroups,
@@ -132,7 +130,6 @@ export async function analyzeTable(notebookId: string, tableId: number, table: a
             continue;
         }
         const columnAggregationTask: ColumnAggregationTask = {
-            notebookId,
             tableId,
             tableVersion: new ComputationStateVersion(0, 0),
             columnId,

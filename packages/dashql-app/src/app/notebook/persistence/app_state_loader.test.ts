@@ -167,16 +167,17 @@ describe('restoreAppState', () => {
         );
 
         expect(result.connectionStates.size).toBe(1);
-        expect(result.connectionStates.has(HYPER_ID)).toBe(true);
+        const connectionId = result.connectionByNotebook.get(HYPER_ID)!;
+        expect(result.connectionStates.has(connectionId)).toBe(true);
         expect(result.notebookScripts.size).toBe(1);
         expect(result.notebookScripts.has(HYPER_ID)).toBe(true);
 
-        const connection = result.connectionStates.get(HYPER_ID)!;
+        const connection = result.connectionStates.get(connectionId)!;
         expect(connection.notebookId).toBe(HYPER_ID);
         expect(connection.connectorInfo.connectorType).toBe(ConnectorType.HYPER);
 
         // Verify connection is in correct type index
-        expect(result.connectionStatesByType[ConnectorType.HYPER]).toContain(HYPER_ID);
+        expect(result.connectionStatesByType[ConnectorType.HYPER]).toContain(connectionId);
 
         const notebookScripts = result.notebookScripts.get(HYPER_ID)!;
         expect(notebookScripts.notebookId).toBe(HYPER_ID);
@@ -229,13 +230,15 @@ describe('restoreAppState', () => {
 
         // Both notebooks should be restored
         expect(result.connectionStates.size).toBe(2);
-        expect(result.connectionStates.has(DEMO_ID)).toBe(true);
-        expect(result.connectionStates.has(DATALESS_ID)).toBe(true);
+        const demoConnectionId = result.connectionByNotebook.get(DEMO_ID)!;
+        const datalessConnectionId = result.connectionByNotebook.get(DATALESS_ID)!;
+        expect(result.connectionStates.has(demoConnectionId)).toBe(true);
+        expect(result.connectionStates.has(datalessConnectionId)).toBe(true);
         expect(result.notebookScripts.size).toBe(2);
 
         // Verify both DATALESS connections are in correct type index
-        expect(result.connectionStatesByType[ConnectorType.DATALESS]).toContain(DEMO_ID);
-        expect(result.connectionStatesByType[ConnectorType.DATALESS]).toContain(DATALESS_ID);
+        expect(result.connectionStatesByType[ConnectorType.DATALESS]).toContain(demoConnectionId);
+        expect(result.connectionStatesByType[ConnectorType.DATALESS]).toContain(datalessConnectionId);
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.succeeded).toBe(2);
@@ -274,7 +277,7 @@ describe('restoreAppState', () => {
         // Good DATALESS notebook should be restored; a notebook whose files can't be read is surfaced
         // as invalid (blocked + deletable in the selector), not left as a silent restore failure.
         expect(result.connectionStates.size).toBe(1);
-        expect(result.connectionStates.has(GOOD_ID)).toBe(true);
+        expect(result.connectionStates.has(result.connectionByNotebook.get(GOOD_ID)!)).toBe(true);
         expect(result.invalidNotebooks.get(BAD_ID)?.error).toBe('notebook_unreadable');
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
@@ -314,7 +317,7 @@ describe('restoreAppState', () => {
 
         // Should restore even without setupParams
         expect(result.connectionStates.size).toBe(1);
-        expect(result.connectionStates.has(UNCONFIGURED_ID)).toBe(true);
+        expect(result.connectionStates.has(result.connectionByNotebook.get(UNCONFIGURED_ID)!)).toBe(true);
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.succeeded).toBe(1);
@@ -551,7 +554,7 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        const connection = result.connectionStates.get(SCHEMA_ID)!;
+        const connection = result.connectionStates.get(result.connectionByNotebook.get(SCHEMA_ID)!)!;
         expect(connection.catalogUpdates.restoredAt).not.toBeNull();
 
         // Verify catalogRelationScript was updated with schema
@@ -922,9 +925,9 @@ describe('restoreAppState', () => {
         expect(result.notebookScripts.size).toBe(3);
 
         // Verify type indices are populated correctly
-        expect(result.connectionStatesByType[ConnectorType.HYPER]).toContain(HYPER_ID);
-        expect(result.connectionStatesByType[ConnectorType.SALESFORCE_DATA_CLOUD]).toContain(SF_ID);
-        expect(result.connectionStatesByType[ConnectorType.TRINO]).toContain(TRINO_ID);
+        expect(result.connectionStatesByType[ConnectorType.HYPER]).toContain(result.connectionByNotebook.get(HYPER_ID));
+        expect(result.connectionStatesByType[ConnectorType.SALESFORCE_DATA_CLOUD]).toContain(result.connectionByNotebook.get(SF_ID));
+        expect(result.connectionStatesByType[ConnectorType.TRINO]).toContain(result.connectionByNotebook.get(TRINO_ID));
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.succeeded).toBe(3);

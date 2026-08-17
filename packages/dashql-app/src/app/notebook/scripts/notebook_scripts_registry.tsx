@@ -16,7 +16,7 @@ import { REPLACE_NOTEBOOK_SCRIPTS, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupNotebo
 export interface NotebookScriptsRegistry {
     /// The scripts map (notebookId -> NotebookScripts)
     notebookScriptsMap: Map<string, NotebookScripts>;
-    /// The index to find scripts associated with a connection (1:1 mapping, notebookId -> notebookId)
+    /// The index to find scripts associated with a connection (connectionId -> notebookId)
     notebookScriptsByConnection: Map<string, string>;
     /// The index to find scripts associated with a connection type (arrays of notebookIds)
     notebookScriptsByConnectionType: string[][];
@@ -62,8 +62,7 @@ export function useNotebookScriptsAllocator(): NotebookScriptsAllocator {
                 scripts.notebookMetadata.originalFileName = `${scripts.connectorInfo.names.fileShort}`;
             }
 
-            // 1:1 mapping: notebookId -> notebookId
-            reg.notebookScriptsByConnection.set(notebookId, notebookId);
+            reg.notebookScriptsByConnection.set(state.connectionId, notebookId);
             reg.notebookScriptsByConnectionType[state.connectorInfo.connectorType].push(notebookId);
             reg.notebookScriptsMap.set(notebookId, scripts);
             return { ...reg };
@@ -87,8 +86,7 @@ export function removeNotebookScriptsFromRegistry(reg: NotebookScriptsRegistry, 
     const entry = reg.notebookScriptsMap.get(notebookId);
     if (!entry) return reg;
     reg.notebookScriptsMap.delete(notebookId);
-    // 1:1 mapping: notebookId -> notebookId
-    reg.notebookScriptsByConnection.delete(notebookId);
+    reg.notebookScriptsByConnection.delete(entry.connectionId);
     const connectorType = entry.connectorInfo.connectorType;
     reg.notebookScriptsByConnectionType[connectorType] =
         reg.notebookScriptsByConnectionType[connectorType].filter(id => id !== notebookId);
@@ -137,7 +135,8 @@ export function useNotebookScripts(id: string | null): [NotebookScripts | null, 
 
         setRegistry((reg: NotebookScriptsRegistry) => {
             // Check if the connection is active to gate storage writes
-            const active = connReg.connectionMap.get(id)?.active ?? false;
+            const connectionId = connReg.connectionByNotebook.get(id);
+            const active = connectionId == null ? false : connReg.connectionMap.get(connectionId)?.active ?? false;
             for (const action of actions) {
                 const prev = reg.notebookScriptsMap.get(id);
                 if (!prev) {
@@ -186,7 +185,6 @@ export function useConnectionScriptsDispatch(): ModifyConnectionNotebookScripts 
 
         setRegistry((reg: NotebookScriptsRegistry) => {
             for (const { conn, action } of actions) {
-                // Since 1:1 mapping, notebookId -> notebookId
                 const notebookId = reg.notebookScriptsByConnection.get(conn);
                 if (notebookId) {
                     const prev = reg.notebookScriptsMap.get(notebookId);

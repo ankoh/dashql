@@ -42,7 +42,7 @@ function toDetailedError(error: unknown): DetailedError {
 /// keep their existing try/catch semantics.
 export async function performHealthCheck(
     executor: QueryExecutor,
-    notebookId: string,
+    connectionId: string,
     channel: HealthCheckChannel,
     dispatch: ConnectionDispatch,
     abortSignal: AbortSignal,
@@ -50,7 +50,7 @@ export async function performHealthCheck(
     dispatch({ type: HEALTH_CHECK_STARTED, value: null });
     abortSignal.throwIfAborted();
 
-    const [, execution] = executor(notebookId, {
+    const [, execution] = executor(connectionId, {
         query: pickProbeQuery(channel),
         analyzeResults: false,
         metadata: {

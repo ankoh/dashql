@@ -88,7 +88,7 @@ function generateCatalogSQLFromPgAttribute(result: PgAttributeColumnsTable, data
 }
 
 export async function queryPgAttribute(
-    notebookId: string,
+    connectionId: string,
     connectionDispatch: DynamicConnectionDispatch,
     updateId: number,
     databaseName: string,
@@ -137,8 +137,8 @@ export async function queryPgAttribute(
             userProvided: false
         }
     };
-    const [queryId, queryExecution] = executor(notebookId, args);
-    connectionDispatch(notebookId, {
+    const [queryId, queryExecution] = executor(connectionId, args);
+    connectionDispatch(connectionId, {
         type: CATALOG_UPDATE_REGISTER_QUERY,
         value: [updateId, queryId]
     });
@@ -149,7 +149,7 @@ export async function queryPgAttribute(
 
 export async function updatePgSchemaScript(
     logger: LoggerLike,
-    notebookId: string,
+    connectionId: string,
     connectionDispatch: DynamicConnectionDispatch,
     updateId: number,
     databaseName: string,
@@ -158,7 +158,7 @@ export async function updatePgSchemaScript(
     catalog: dashql.DashQLCatalog,
     catalogRelationScript: dashql.DashQLScript
 ): Promise<void> {
-    const queryResult = await queryPgAttribute(notebookId, connectionDispatch, updateId, databaseName, schemaNames, executor);
+    const queryResult = await queryPgAttribute(connectionId, connectionDispatch, updateId, databaseName, schemaNames, executor);
     if (queryResult == null || queryResult.numRows === 0) {
         throw new Error('pg_attribute returned no catalog relations');
     }
@@ -169,7 +169,7 @@ export async function updatePgSchemaScript(
         throw new Error('pg_attribute returned no usable catalog relations');
     }
 
-    connectionDispatch(notebookId, {
+    connectionDispatch(connectionId, {
         type: CATALOG_UPDATE_SCHEMA_SCRIPT,
         value: [updateId]
     });
@@ -193,7 +193,7 @@ export async function updatePgSchemaScript(
 
 async function updatePgFunctionScript(
     logger: LoggerLike,
-    notebookId: string,
+    connectionId: string,
     connectionDispatch: DynamicConnectionDispatch,
     updateId: number,
     databaseName: string,
@@ -201,7 +201,7 @@ async function updatePgFunctionScript(
     catalog: dashql.DashQLCatalog,
     catalogFunctionScript: dashql.DashQLScript
 ): Promise<void> {
-    const queryResult = await queryPgProc(notebookId, connectionDispatch, updateId, executor);
+    const queryResult = await queryPgProc(connectionId, connectionDispatch, updateId, executor);
     if (queryResult == null || queryResult.numRows === 0) {
         return;
     }
@@ -228,7 +228,7 @@ async function updatePgFunctionScript(
 
 export async function updatePgCatalog(
     logger: LoggerLike,
-    notebookId: string,
+    connectionId: string,
     connectionDispatch: DynamicConnectionDispatch,
     updateId: number,
     databaseName: string,
@@ -240,7 +240,7 @@ export async function updatePgCatalog(
     catalogFunctionScript: dashql.DashQLScript
 ): Promise<void> {
     await Promise.all([
-        updatePgSchemaScript(logger, notebookId, connectionDispatch, updateId, databaseName, schemaNames, executor, catalog, catalogRelationScript),
-        updatePgFunctionScript(logger, notebookId, connectionDispatch, updateId, databaseName, executor, catalog, catalogFunctionScript),
+        updatePgSchemaScript(logger, connectionId, connectionDispatch, updateId, databaseName, schemaNames, executor, catalog, catalogRelationScript),
+        updatePgFunctionScript(logger, connectionId, connectionDispatch, updateId, databaseName, executor, catalog, catalogFunctionScript),
     ]);
 }

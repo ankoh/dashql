@@ -1,14 +1,14 @@
 import * as React from 'react';
 
-import { ComputationAction, SET_CROSS_FILTERS, TableComputationState } from '../../computation_state.js';
-import { CrossFilters } from '../../cross_filters.js';
+import { ComputationAction, SET_CROSS_FILTERS, TableComputationState } from '../../../../../compute/computation_state.js';
+import { CrossFilters } from '../../../../../compute/cross_filters.js';
 import { Dispatch } from '../../../../../shared/utils/variant.js';
-import { ORDINAL_COLUMN, STRING_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableAggregation, TableFilteringTask, TaskStatus, WithFilter, ColumnAggregationTask } from '../../computation_types.js';
-import { ScalarFilter } from '../../sql/sqlframe_builder.js';
+import { ORDINAL_COLUMN, STRING_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableAggregation, TableFilteringTask, TaskStatus, WithFilter, ColumnAggregationTask } from '../../../../../compute/computation_types.js';
+import { ScalarFilter } from '../../../../../compute/sql/sqlframe_builder.js';
 import { HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { DataTableLayout } from './data_table_layout.js';
-import { computeFilteredColumnAggregatesDispatched, filterTableDispatched } from '../../computation_logic.js';
+import { computeFilteredColumnAggregatesDispatched, filterTableDispatched } from '../../../../../compute/computation_logic.js';
 
 /// Compare two scalar filter lists for equality.
 function scalarFiltersEqual(left: ScalarFilter[], right: ScalarFilter[]): boolean {
@@ -215,7 +215,6 @@ export function useCrossFilters(
         }
         const scheduleKey = `${computationState.version.toString()}:${scalarFiltersKey(crossFilterTransforms)}`;
         const filteringTask: TableFilteringTask = {
-            notebookId: computationState.notebookId,
             tableId: computationState.tableId,
             tableVersion: computationState.version,
             inputDataTable: computationState.dataTable,
@@ -266,7 +265,6 @@ export function useCrossFilters(
         }
 
         const task: WithFilter<ColumnAggregationTask> = {
-            notebookId: state.notebookId,
             tableId: state.tableId,
             tableVersion: state.version,
             columnId,

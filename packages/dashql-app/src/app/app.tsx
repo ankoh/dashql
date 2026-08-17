@@ -6,10 +6,10 @@ import { AppConfigProvider } from './config/app_config.js';
 import { AppLoader } from './loading/app_loader.js';
 import { AppSettingsSync } from './config/app_settings_sync.js';
 import { CatalogLoaderProvider } from './notebook/connections/catalog_loader.js';
-import { ComputationRegistry } from './notebook/compute/computation_registry.js';
-import { ComputationScheduler } from './notebook/compute/computation_scheduler.js';
+import { ComputationRegistry } from '../compute/computation_registry.js';
+import { ComputationScheduler } from '../compute/computation_scheduler.js';
 import { ConnectionRegistry } from './notebook/connections/connection_registry.js';
-import { ComputeConnectionProvider } from './notebook/compute/compute_connection_provider.js';
+import { ComputeConnectionProvider } from '../compute/compute_connection_provider.js';
 import { DashQLCoreProvider } from './providers/core_provider.js';
 import { FileDownloaderProvider } from '../shared/platform/file/file_downloader_provider.js';
 import { FileDropzone } from './ui/file_dropzone.js';
@@ -44,6 +44,7 @@ import { stringifyError } from '../shared/platform/logger/logger.js';
 import { EmbeddedDatabaseProvider } from '../shared/platform/database/embedded_database_provider.js';
 import { isDebugBuild } from '../shared/globals.js';
 import { NativeNotebookSync } from './notebook/persistence/native_notebook_sync_react.js';
+import { NotebookComputeQueryExecutionProvider } from './notebook/connections/computation_query_execution.js';
 
 import '../../static/fonts/fonts.css';
 import '../shared/styles/colors.css';
@@ -60,21 +61,23 @@ const NotebookProviders = (props: { children: React.ReactElement }) => (
             <HyperConnector>
                 <TrinoConnector>
                     <ComputationRegistry>
-                        <ComputationScheduler />
-                        <QueryExecutorProvider>
-                            <NotebookScriptsRegistryProvider>
-                                <NativeNotebookSync />
-                                <CatalogLoaderProvider>
-                                    <AgentRunProvider>
-                                        <NotebookCommands>
-                                            <AppLoader>
-                                                {props.children}
-                                            </AppLoader>
-                                        </NotebookCommands>
-                                    </AgentRunProvider>
-                                </CatalogLoaderProvider>
-                            </NotebookScriptsRegistryProvider>
-                        </QueryExecutorProvider>
+                        <NotebookComputeQueryExecutionProvider>
+                            <ComputationScheduler />
+                            <QueryExecutorProvider>
+                                <NotebookScriptsRegistryProvider>
+                                    <NativeNotebookSync />
+                                    <CatalogLoaderProvider>
+                                        <AgentRunProvider>
+                                            <NotebookCommands>
+                                                <AppLoader>
+                                                    {props.children}
+                                                </AppLoader>
+                                            </NotebookCommands>
+                                        </AgentRunProvider>
+                                    </CatalogLoaderProvider>
+                                </NotebookScriptsRegistryProvider>
+                            </QueryExecutorProvider>
+                        </NotebookComputeQueryExecutionProvider>
                     </ComputationRegistry>
                 </TrinoConnector>
             </HyperConnector>

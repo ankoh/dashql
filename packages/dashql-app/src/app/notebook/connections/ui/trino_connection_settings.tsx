@@ -301,7 +301,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
             const connectionParams: connection.TrinoConnectionParams = pageState.newParams;
             const trinoChannel = await trinoSetup.setup(dispatchConnectionState, connectionParams, setupAbortController.current.signal);
             if (trinoChannel != null) {
-                await performHealthCheck(queryExecutor, connectionState.notebookId, { type: 'trino', channel: trinoChannel }, dispatchConnectionState, setupAbortController.current.signal);
+                await performHealthCheck(queryExecutor, connectionState.connectionId, { type: 'trino', channel: trinoChannel }, dispatchConnectionState, setupAbortController.current.signal);
             }
 
         } catch (error: any) {

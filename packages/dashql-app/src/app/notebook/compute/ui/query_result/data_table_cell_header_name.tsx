@@ -5,7 +5,7 @@ import symbols from '@ankoh/dashql-svg-symbols';
 
 import { classNames } from '../../../../../shared/utils/classnames.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../../../../shared/ui/foundations/button.js';
-import { DataFrame } from '../../data_frame.js';
+import { DataFrame } from '../../../../../compute/data_frame.js';
 import { DataTableLayout } from './data_table_layout.js';
 
 /// ---------------------------------------------------------------------------

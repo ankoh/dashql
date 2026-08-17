@@ -56,7 +56,7 @@ vi.mock('../agent/agent_run_provider.js', () => ({
 vi.mock('../persistence/storage_provider.js', () => ({
     useStorageReader: () => ({ backend: { deleteQueryResultCache: vi.fn() } }),
 }));
-vi.mock('../compute/computation_registry.js', () => ({
+vi.mock('../../../compute/computation_registry.js', () => ({
     useComputationRegistry: () => [{ tableComputations: {} }, vi.fn()],
 }));
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
@@ -105,6 +105,7 @@ function makeScriptData(scriptKey: number, text: string, fileName: string) {
 function createNotebookScripts(): NotebookScripts {
     return {
         notebookId: crypto.randomUUID(),
+        connectionId: crypto.randomUUID(),
         instance: { createScript: mockState.createScript } as any,
         notebookMetadata: {} as any,
         connectorInfo: {} as any,
@@ -168,7 +169,7 @@ describe('ScriptDetails', () => {
         const notebookScripts = createNotebookScripts();
         const modifyNotebookScripts = vi.fn();
         const hideDetails = vi.fn();
-        const connection = { connectionHealth: ConnectionHealth.ONLINE } as ConnectionState;
+        const connection = { connectionId: 'test-connection', connectionHealth: ConnectionHealth.ONLINE } as ConnectionState;
 
         act(() => {
             root.render(
@@ -193,7 +194,7 @@ describe('ScriptDetails', () => {
         act(() => handler!.callback(event));
 
         expect(hideDetails).toHaveBeenCalledOnce();
-        expect(mockState.executeQuery).toHaveBeenCalledWith(notebookScripts.notebookId, expect.objectContaining({
+        expect(mockState.executeQuery).toHaveBeenCalledWith('test-connection', expect.objectContaining({
             query: 'select 2',
             cacheable: true,
         }));
@@ -204,7 +205,7 @@ describe('ScriptDetails', () => {
         const notebookScripts = createNotebookScripts();
         const modifyNotebookScripts = vi.fn();
         const hideDetails = vi.fn();
-        const connection = { connectionHealth: ConnectionHealth.ONLINE } as ConnectionState;
+        const connection = { connectionId: 'test-connection', connectionHealth: ConnectionHealth.ONLINE } as ConnectionState;
 
         act(() => {
             root.render(
@@ -223,7 +224,7 @@ describe('ScriptDetails', () => {
         act(() => executeButton.click());
 
         expect(hideDetails).toHaveBeenCalledOnce();
-        expect(mockState.executeQuery).toHaveBeenCalledWith(notebookScripts.notebookId, expect.objectContaining({
+        expect(mockState.executeQuery).toHaveBeenCalledWith('test-connection', expect.objectContaining({
             query: 'select 2',
             cacheable: true,
         }));
