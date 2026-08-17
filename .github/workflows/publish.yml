@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
     pages_deploy:
-        name: Cloudflare Pages Deploy
+        name: Cloudflare Pages
         runs-on: ubuntu-24.04
         permissions:
             contents: read
