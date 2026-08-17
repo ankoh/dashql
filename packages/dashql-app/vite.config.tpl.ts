@@ -235,6 +235,7 @@ export default vite.defineConfig(({ mode, command }) => {
             globals: true,
             environment: 'jsdom',
             pool: 'threads',
+            maxWorkers: 4,
             isolate: false,
             setupFiles: [
                 path.resolve(rootDir, "utils/vitest_setup.ts")
