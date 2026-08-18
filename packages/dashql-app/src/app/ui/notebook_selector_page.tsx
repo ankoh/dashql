@@ -451,7 +451,7 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
                                     </div>
                                 ) : (
                                     <div className={styles.empty_state}>
-                                        <p>No notebooks available</p>
+                                        <p>Create your first notebook with '+'</p>
                                     </div>
                                 )}
                                 <div className={baseStyles.card_actions}>

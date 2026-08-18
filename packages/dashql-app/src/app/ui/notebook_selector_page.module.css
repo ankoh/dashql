@@ -161,7 +161,7 @@
 }
 
 .empty_state {
-    padding: 48px 24px;
+    padding: 24px;
     text-align: center;
     color: hsl(210, 12%, 50%);
     font-size: 14px;
