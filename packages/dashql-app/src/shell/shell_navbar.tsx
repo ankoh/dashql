@@ -51,20 +51,39 @@ const VersionButton: React.FC<VersionButtonProps> = (props: VersionButtonProps) 
                     </IconButton>
                 </div>
                 <div className={styles.versionInfo}>
-                    <div>hyperdb version</div>
+                    <div className={styles.versionLabel}>
+                        <svg width="16px" height="16px" aria-hidden="true">
+                            <use xlinkHref={`${symbols}#hyper_outlines`} />
+                        </svg>
+                        <span>hyperdb</span>
+                    </div>
                     <div>{props.engineVersion ?? 'Loading...'}</div>
-                    <div>hyperdb-wasm version</div>
+                    <a
+                        className={styles.versionLinkButton}
+                        href="https://www.npmjs.com/package/hyperdb-wasm"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Open hyperdb-wasm on npm"
+                    >
+                        <svg width="16px" height="16px" aria-hidden="true">
+                            <use xlinkHref={`${symbols}#npmjs`} />
+                        </svg>
+                        <span>hyperdb-wasm</span>
+                    </a>
                     <div>{HYPERDB_WASM_VERSION}</div>
-                    <div>dashql version</div>
+                    <a
+                        className={styles.versionLinkButton}
+                        href="https://github.com/ankoh/dashql"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Open DashQL on GitHub"
+                    >
+                        <svg width="16px" height="16px" aria-hidden="true">
+                            <use xlinkHref={`${symbols}#github`} />
+                        </svg>
+                        <span>dashql</span>
+                    </a>
                     <div>{DASHQL_VERSION}</div>
-                </div>
-                <div className={styles.versionLinks}>
-                    <a href="https://www.npmjs.com/package/hyperdb-wasm" target="_blank" rel="noopener noreferrer">
-                        hyperdb-wasm on npm
-                    </a>
-                    <a href="https://github.com/ankoh/dashql" target="_blank" rel="noopener noreferrer">
-                        dashql on GitHub
-                    </a>
                 </div>
             </div>
         </AnchoredOverlay>

@@ -78,24 +78,45 @@
 
 .version_info {
     display: grid;
-    grid-template-columns: max-content 1fr;
-    column-gap: 40px;
-    row-gap: 16px;
-    padding: 12px 16px;
+    grid-template-columns: 144px 1fr;
+    column-gap: 0px;
+    row-gap: 8px;
+    align-items: center;
+    padding: 12px 16px 12px 8px;
     font-size: 0.9rem;
 }
 
-.version_links {
-    display: flex;
-    gap: 16px;
-    padding: 12px 16px;
-    border-top: 1px solid var(--border_color_primary);
-    font-size: 0.9rem;
+.version_label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 8px;
 }
 
-.version_links a:focus-visible {
+.version_link_button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 8px;
+    justify-self: start;
+    border: 1px solid transparent;
+    border-radius: var(--border_radius);
+    color: inherit;
+    font-size: 0.85rem;
+    text-decoration: none;
+}
+
+.version_link_button:hover {
+    border-color: var(--border_color_primary);
+    background: var(--bg_color_secondary);
+}
+
+.version_link_button:focus-visible {
     outline: 2px solid currentColor;
-    outline-offset: 2px;
+    outline-offset: 1px;
 }
 
 @media (max-width: 600px) {
