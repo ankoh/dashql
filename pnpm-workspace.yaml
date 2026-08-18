@@ -1,4 +1,4 @@
 packages:
   - 'packages/*'
 minimumReleaseAgeExclude:
-  - hyperdb-wasm@0.0.26305-dev.wasm.gdf59cd37
+  - hyperdb-wasm@0.0.26305-dev.wasm.gdf59cd37 || 0.0.26306-dev.wasm.g0f7bea54
