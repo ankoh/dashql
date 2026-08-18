@@ -2,6 +2,7 @@
 export const DASHQL_BUILD_MODE: string = process.env.DASHQL_BUILD_MODE!;
 export const DASHQL_VERSION: string = process.env.DASHQL_VERSION!;
 export const DASHQL_GIT_COMMIT: string = process.env.DASHQL_GIT_COMMIT!;
+export const HYPERDB_WASM_VERSION: string = process.env.HYPERDB_WASM_VERSION!;
 
 // The URL of the git repository
 export const DASHQL_GIT_REPO: URL = new URL(`https://github.com/ankoh/dashql/tree/${DASHQL_GIT_COMMIT}`);

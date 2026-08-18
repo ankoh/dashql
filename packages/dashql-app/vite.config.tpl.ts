@@ -6,6 +6,7 @@ import * as nodeFs from "node:fs";
 
 const DASHQL_VERSION = "__DASHQL_VERSION__";
 const DASHQL_COMMIT = "__DASHQL_COMMIT__";
+const HYPERDB_WASM_VERSION = "__HYPERDB_WASM_VERSION__";
 
 export default vite.defineConfig(({ mode, command }) => {
     const isNativeBuild = mode === 'native';
@@ -88,6 +89,7 @@ export default vite.defineConfig(({ mode, command }) => {
             'process.env.DASHQL_BUILD_MODE': JSON.stringify(command === 'serve' ? 'development' : 'production'),
             'process.env.DASHQL_VERSION': JSON.stringify(DASHQL_VERSION),
             'process.env.DASHQL_GIT_COMMIT': JSON.stringify(DASHQL_COMMIT),
+            'process.env.HYPERDB_WASM_VERSION': JSON.stringify(HYPERDB_WASM_VERSION),
             'process.env.DASHQL_APP_URL': JSON.stringify(process.env.DASHQL_APP_URL || 'https://dashql.app'),
             'process.env.DASHQL_RELATIVE_IMPORTS': JSON.stringify(isReloc),
             'process.env.DASHQL_NATIVE_BUILD': JSON.stringify(isNativeBuild),

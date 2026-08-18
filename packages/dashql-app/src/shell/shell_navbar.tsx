@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
-import { DASHQL_VERSION } from '../globals.js';
+import { DASHQL_VERSION, HYPERDB_WASM_VERSION } from '../globals.js';
 import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import { ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import { ShellInternals } from './internals.js';
@@ -14,14 +14,8 @@ interface VersionButtonProps {
     engineVersion: string | null;
 }
 
-export function formatNavbarEngineVersion(version: string): string {
-    if (!version.includes('__UNVERSIONED_HYPER__')) return version;
-    return `${version.split(',', 1)[0]}, unversioned`;
-}
-
 const VersionButton: React.FC<VersionButtonProps> = (props: VersionButtonProps) => {
     const [isOpen, setIsOpen] = React.useState(false);
-    const navbarVersion = props.engineVersion == null ? 'Hyper' : formatNavbarEngineVersion(props.engineVersion);
 
     return (
         <AnchoredOverlay
@@ -36,12 +30,12 @@ const VersionButton: React.FC<VersionButtonProps> = (props: VersionButtonProps) 
                     {...anchorProps}
                     type="button"
                     className={styles.actionButton}
-                    aria-label={props.engineVersion == null ? 'Hyper version' : `Hyper version ${props.engineVersion}`}
+                    aria-label={`HyperDB WASM version ${HYPERDB_WASM_VERSION}`}
                 >
                     <svg className={styles.actionIcon} width="16px" height="16px" aria-hidden="true">
                         <use xlinkHref={`${symbols}#package`} />
                     </svg>
-                    <span className={styles.actionLabel}>{navbarVersion}</span>
+                    <span className={styles.actionLabel}>{HYPERDB_WASM_VERSION}</span>
                 </button>
             )}
         >
@@ -57,9 +51,11 @@ const VersionButton: React.FC<VersionButtonProps> = (props: VersionButtonProps) 
                     </IconButton>
                 </div>
                 <div className={styles.versionInfo}>
-                    <div>Hyper Version</div>
+                    <div>hyperdb version</div>
                     <div>{props.engineVersion ?? 'Loading...'}</div>
-                    <div>Shell Version</div>
+                    <div>hyperdb-wasm version</div>
+                    <div>{HYPERDB_WASM_VERSION}</div>
+                    <div>dashql version</div>
                     <div>{DASHQL_VERSION}</div>
                 </div>
             </div>
