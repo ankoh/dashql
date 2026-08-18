@@ -723,7 +723,7 @@ export class DashQLShell {
                         return await this.environment.executeQuery(effectInput, signal, onProgress, onResult);
                     }
                     const command = await this.executeCommand(effectInput, signal);
-                    const output = this.textEncoder.encode(command.output);
+                    const output = this.textEncoder.encode(withTrailingNewline(command.output));
                     const encoded = new Uint8Array(output.byteLength + 1);
                     encoded[0] = command.clearTerminal ? 1 : 0;
                     encoded.set(output, 1);
@@ -734,10 +734,15 @@ export class DashQLShell {
                         status: DashQLShellEffectCompletionStatus.SUCCESS,
                         data,
                     }),
-                    error => finish({
-                        status: DashQLShellEffectCompletionStatus.ERROR,
-                        data: this.textEncoder.encode(error instanceof Error ? error.message : String(error)),
-                    }),
+                    error => {
+                        const message = error instanceof Error ? error.message : String(error);
+                        finish({
+                            status: DashQLShellEffectCompletionStatus.ERROR,
+                            data: this.textEncoder.encode(effect.type === DashQLShellEffectType.EXECUTE_COMMAND
+                                ? withTrailingNewline(message)
+                                : message),
+                        });
+                    },
                 );
         });
     }
@@ -898,6 +903,11 @@ function createShellCommands(
     ]);
     for (const command of extensions) register(command);
     return commands;
+}
+
+function withTrailingNewline(output: string): string {
+    if (output.length === 0) return output;
+    return output.replace(/(?:\r\n|\n|\r)+$/, '') + '\r\n';
 }
 
 function formatElapsed(elapsedMs: number): string {

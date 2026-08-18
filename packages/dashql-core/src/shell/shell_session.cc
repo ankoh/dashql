@@ -835,7 +835,9 @@ ShellOperation ShellSession::RenderArrowIPC(std::span<const uint8_t> data) const
     if (!rendered.ok()) {
         return {ShellStatus::kArrowError, rendered.status().ToString()};
     }
-    return {ShellStatus::kOk, std::move(rendered).ValueUnsafe()};
+    auto output = std::move(rendered).ValueUnsafe();
+    if (!output.empty()) output.append(vt100::kNewLine);
+    return {ShellStatus::kOk, std::move(output)};
 }
 
 ShellOperation ShellSession::StartQuery(std::string_view query) {

@@ -340,35 +340,60 @@ describe('DashQL shell Wasm', () => {
         });
         shell.setPrompt('.login alice');
 
-        await expect(shell.submitPrompt()).resolves.toBe('logged in as alice');
+        await expect(shell.submitPrompt()).resolves.toBe('logged in as alice\r\n');
         expect(execute).toHaveBeenCalledWith(['alice'], expect.objectContaining({ signal: expect.any(AbortSignal) }));
 
         shell.setPrompt('.help');
         await expect(shell.submitPrompt()).resolves.toContain('.login');
     });
 
+    it('normalizes trailing newlines in JavaScript dot command output', async () => {
+        shell.destroy();
+        shell = await DashQLShell.create({
+            environment: { executeQuery: (query, signal) => executeQuery(query, signal) },
+            commands: [
+                ['none', 'Return no output', () => undefined],
+                ['bare', 'Return output without a newline', () => 'bare'],
+                ['line-feed', 'Return output with a line feed', () => 'line feed\n'],
+                ['crlf', 'Return output with CRLF', () => 'crlf\r\n'],
+            ],
+            terminalColumns: 80,
+            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+        });
+
+        for (const [command, expected] of [
+            ['.none', ''],
+            ['.bare', 'bare\r\n'],
+            ['.line-feed', 'line feed\r\n'],
+            ['.crlf', 'crlf\r\n'],
+        ]) {
+            shell.setPrompt(command);
+            await expect(shell.submitPrompt()).resolves.toBe(expected);
+        }
+    });
+
     it('configures and reports query timing', async () => {
         shell.setPrompt('.timer');
-        await expect(shell.submitPrompt()).resolves.toBe('Timer: off');
+        await expect(shell.submitPrompt()).resolves.toBe('Timer: off\r\n');
 
         shell.setPrompt('.timer on');
-        await expect(shell.submitPrompt()).resolves.toBe('Timer: on');
+        await expect(shell.submitPrompt()).resolves.toBe('Timer: on\r\n');
 
         shell.setPrompt('SELECT 42;');
         await expect(shell.submitPrompt()).resolves.toMatch(/test database is not configured\r\nElapsed: \d+ ms/);
 
         shell.setPrompt('.timer off');
-        await expect(shell.submitPrompt()).resolves.toBe('Timer: off');
+        await expect(shell.submitPrompt()).resolves.toBe('Timer: off\r\n');
         shell.setPrompt('SELECT 42;');
         await expect(shell.submitPrompt()).resolves.toBe('test database is not configured');
 
         shell.setPrompt('.timer invalid');
-        await expect(shell.submitPrompt()).resolves.toBe('usage: .timer [on|off]');
+        await expect(shell.submitPrompt()).resolves.toBe('usage: .timer [on|off]\r\n');
     });
 
     it('reports unknown dot commands without executing SQL', async () => {
         shell.setPrompt('.missing');
-        await expect(shell.submitPrompt()).resolves.toBe('unknown command: .missing');
+        await expect(shell.submitPrompt()).resolves.toBe('unknown command: .missing\r\n');
     });
 
     it('rejects duplicate and invalid dot command registrations', async () => {
@@ -660,7 +685,7 @@ describe('DashQL shell Wasm', () => {
                 '│     1 │ alpha │\n' +
                 '│    20 │ 界    │\n' +
                 '│   300 │       │\n' +
-                '╰───────┴───────╯',
+                '╰───────┴───────╯\r\n',
             );
         } finally {
             if (connection) await connection.close();

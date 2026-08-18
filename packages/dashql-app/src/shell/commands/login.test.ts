@@ -16,7 +16,7 @@ describe('standalone shell login command', () => {
             shell.setPrompt('.help');
             expect(await shell.submitPrompt()).toContain('.login');
             shell.setPrompt('.login');
-            expect(await shell.submitPrompt()).toBe(LOGIN_UNAVAILABLE_MESSAGE);
+            expect(await shell.submitPrompt()).toBe(LOGIN_UNAVAILABLE_MESSAGE + '\r\n');
             expect(executeQuery).not.toHaveBeenCalled();
         } finally {
             shell.destroy();

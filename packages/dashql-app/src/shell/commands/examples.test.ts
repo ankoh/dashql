@@ -17,11 +17,11 @@ describe('shell examples command', () => {
             expect(await shell.submitPrompt()).toContain('.examples');
 
             shell.setPrompt('.examples');
-            expect(await shell.submitPrompt()).toBe(SHELL_EXAMPLES);
+            expect(await shell.submitPrompt()).toBe(SHELL_EXAMPLES + '\r\n');
             expect(executeQuery).not.toHaveBeenCalled();
 
             shell.setPrompt('.examples q1');
-            await expect(shell.submitPrompt()).resolves.toBe('usage: .examples');
+            await expect(shell.submitPrompt()).resolves.toBe('usage: .examples\r\n');
         } finally {
             shell.destroy();
         }

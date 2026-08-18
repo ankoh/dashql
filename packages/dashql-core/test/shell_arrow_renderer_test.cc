@@ -209,6 +209,23 @@ TEST(ShellSessionTest, SuspendsAndResumesQueryCoroutine) {
         std::span<const uint8_t>{ipc->data(), static_cast<size_t>(ipc->size())});
     ASSERT_EQ(complete.status, ShellStatus::kOk);
     EXPECT_NE(complete.data.find("alpha"), std::string::npos);
+    EXPECT_TRUE(complete.data.ends_with(vt100::kNewLine));
+}
+
+TEST(ShellSessionTest, KeepsEmptyQueryResultsEmpty) {
+    Catalog catalog;
+    ShellSession session{catalog, 80};
+    const auto pending = session.StartQuery("CREATE TABLE foo(a INT)");
+    ASSERT_EQ(pending.status, ShellStatus::kPending);
+
+    const auto ipc = WriteIPC(
+        arrow::RecordBatch::Make(arrow::schema({}), 0, std::vector<std::shared_ptr<arrow::Array>>{}));
+    const auto complete = session.CompleteEffect(
+        ReadU64(pending.data, 8),
+        EffectCompletionStatus::kSuccess,
+        std::span<const uint8_t>{ipc->data(), static_cast<size_t>(ipc->size())});
+    ASSERT_EQ(complete.status, ShellStatus::kOk);
+    EXPECT_TRUE(complete.data.empty());
 }
 
 TEST(ShellSessionTest, SuspendsDotCommandAsEffect) {

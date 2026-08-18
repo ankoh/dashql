@@ -571,6 +571,26 @@ TEST(ShellApiTest, ScopesAutoWrapToTerminalOutput) {
     dashql_shell_destroy(shell);
 }
 
+TEST(ShellApiTest, LeavesBlankLineAfterTerminalResult) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+
+    DashQLShellTerminalResult output{};
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    constexpr std::string_view query_output = "╰────────╯\r\n";
+    ASSERT_EQ(dashql_shell_terminal_finish_query(shell, reinterpret_cast<const uint8_t*>(query_output.data()),
+                                                 query_output.size(), false, &output),
+              DASHQL_SHELL_OK);
+    EXPECT_NE(TerminalData(output).find(std::string{query_output} + std::string{dashql::shell::vt100::kNewLine}),
+              std::string_view::npos)
+        << TerminalData(output);
+    dashql_shell_terminal_result_destroy(&output);
+    dashql_shell_destroy(shell);
+}
+
 TEST(ShellApiTest, RendersAndClearsSingleLineQueryProgress) {
     dashql::Catalog catalog;
     auto* shell = dashql_shell_new(&catalog, 20);
