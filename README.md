@@ -38,7 +38,7 @@ bazel run //packages/dashql-native:dev
 bazel run --config=debug //packages/dashql-app:dev
 
 # We bundle the web app with two routers
-# - '/'-paths for GitHub pages -> :pages (CDN URL rewrite to /)
+# - '/'-paths for Cloudflare Pages -> :pages
 # - '#/'-paths for native apps -> :reloc
 bazel build //packages/dashql-app:pages
 bazel build //packages/dashql-app:reloc
@@ -81,8 +81,7 @@ HYPERD_BINARY=/abs/path/to/hyperd bazel run //packages/hyper-docker:load_image
 ### Continuous Deployment
 
 - We're continuously deploying main to [dashql.app](https://dashql.app)
-    - `//packages/dashql-app:pages` is published using GitHub pages
-    - We proxy GitHub pages through Cloudflare
+    - `//packages/dashql-app:pages` is published to Cloudflare Pages
     - We use aggressive caching with cache busting
 - Native apps and update bundles are published to **get.dashql.app**
 - We're maintaining release manifests under [get.dashql.app/stable.json](https://get.dashql.app/stable.json) and [get.dashql.app/canary.json](https://get.dashql.app/canary.json)
