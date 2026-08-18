@@ -24,6 +24,10 @@ class CountingClient implements HyperDBEngineClient {
         return this.client.ready();
     }
 
+    initialize(settings: string): Promise<HyperDBResult> {
+        return this.client.initialize(settings);
+    }
+
     connect(): Promise<HyperDBResult> {
         this.connectCount++;
         return this.client.connect();

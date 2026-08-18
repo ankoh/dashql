@@ -17,8 +17,11 @@ export type HyperDBResult =
     | { state: 'error'; error: string }
     | { state: 'busy'; error: string };
 
+export type HyperDBSettings = Readonly<Record<string, string | number | boolean | null>>;
+
 export interface HyperDBEngineClient {
     ready(): Promise<void>;
+    initialize(settings: string): Promise<HyperDBResult>;
     connect(): Promise<HyperDBResult>;
     disconnect(connection: number): Promise<HyperDBResult>;
     createDatabase(databaseName: string, persistent: boolean): Promise<HyperDBResult>;
@@ -114,10 +117,13 @@ export class HyperDB implements EmbeddedComputeDatabase {
     private termination: Promise<void> | null = null;
     private terminated = false;
 
-    constructor(private readonly client: HyperDBEngineClient) {}
+    constructor(
+        private readonly client: HyperDBEngineClient,
+        private readonly settings?: HyperDBSettings,
+    ) {}
 
-    static async create(client: HyperDBEngineClient): Promise<HyperDB> {
-        const database = new HyperDB(client);
+    static async create(client: HyperDBEngineClient, settings?: HyperDBSettings): Promise<HyperDB> {
+        const database = new HyperDB(client, settings);
         await database.initialize();
         return database;
     }
@@ -193,6 +199,12 @@ export class HyperDB implements EmbeddedComputeDatabase {
         if (!this.initialization) {
             this.initialization = (async () => {
                 await this.client.ready();
+                if (this.settings) {
+                    expectOK(
+                        await this.client.initialize(JSON.stringify(this.settings)),
+                        'initialize HyperDB settings',
+                    );
+                }
                 expectOK(await this.client.createDatabase(DATABASE_NAME, false), 'create database');
             })().catch(error => {
                 this.initialization = null;

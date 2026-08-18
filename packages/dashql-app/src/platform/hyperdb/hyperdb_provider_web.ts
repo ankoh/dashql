@@ -33,10 +33,16 @@ export async function setupWebHyperDB(context: string, logger: Logger): Promise<
         const { createBrowserClient } = await import('hyperdb-wasm/raw');
         const engineScript = createEngineScript();
         try {
-            const database = await HyperDB.create(createBrowserClient({
-                engineUrl: engineScript.url,
-                workerUrl: HYPERDB_WORKER_URL,
-            }));
+            const database = await HyperDB.create(
+                createBrowserClient({
+                    engineUrl: engineScript.url,
+                    workerUrl: HYPERDB_WORKER_URL,
+                }),
+                {
+                    'global.experimental_view_creation': true,
+                    'global.experimental_persisted_view_creation': true,
+                },
+            );
             const terminate = database.terminate.bind(database);
             database.terminate = async () => {
                 try {

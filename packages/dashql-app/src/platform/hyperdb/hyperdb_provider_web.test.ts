@@ -61,7 +61,13 @@ describe('setupWebHyperDB', () => {
             engineUrl: 'blob:https://example.test/hyperdb-engine',
             workerUrl: expect.any(URL),
         });
-        expect(mockState.createHyperDB).toHaveBeenCalledWith(mockState.client);
+        expect(mockState.createHyperDB).toHaveBeenCalledWith(
+            mockState.client,
+            {
+                'global.experimental_view_creation': true,
+                'global.experimental_persisted_view_creation': true,
+            },
+        );
         expect(mockState.blobParts.join('')).toContain(
             'self.HYPERDB_WASM_MODULE=self.Module??{};',
         );

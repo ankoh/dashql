@@ -45,6 +45,11 @@ class FakeHyperDBEngineClient implements HyperDBEngineClient {
         return Promise.resolve();
     }
 
+    initialize(settings: string): Promise<HyperDBResult> {
+        this.calls.push(`initialize:${settings}`);
+        return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
+    }
+
     connect(): Promise<HyperDBResult> {
         const connection = this.nextConnection++;
         this.calls.push(`connect:${connection}`);
@@ -198,6 +203,20 @@ describe('HyperDB embedded database adapter', () => {
         expect(client.detachDatabaseCount).toBe(3);
         expect(client.dropDatabaseCount).toBe(1);
         expect(client.terminateCount).toBe(1);
+    });
+
+    it('initializes the engine settings before creating the shared database', async () => {
+        const client = new FakeHyperDBEngineClient();
+        await HyperDB.create(client, {
+            'global.experimental_view_creation': true,
+            'global.experimental_persisted_view_creation': true,
+        });
+
+        expect(client.calls).toEqual([
+            'ready',
+            'initialize:{"global.experimental_view_creation":true,"global.experimental_persisted_view_creation":true}',
+            'create-database:__dashql_compute:false',
+        ]);
     });
 
     it('creates shared Arrow tables in the attached database', async () => {
