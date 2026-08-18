@@ -7,11 +7,22 @@ runs:
     - name: Switch off unstable Azure Ubuntu mirror
       shell: bash
       run: |
-        for source in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources; do
+        for source in \
+          /etc/apt/apt-mirrors.txt \
+          /etc/apt/sources.list \
+          /etc/apt/sources.list.d/*.list \
+          /etc/apt/sources.list.d/*.sources; do
           [[ -f "$source" ]] || continue
-          sudo sed -i \
-            -e 's|http://azure.archive.ubuntu.com/ubuntu/|http://archive.ubuntu.com/ubuntu/|g' \
-            -e 's|http://security.ubuntu.com/ubuntu/|http://archive.ubuntu.com/ubuntu/|g' \
+          sudo sed -E -i \
+            -e 's|https?://azure\.archive\.ubuntu\.com/ubuntu/|https://archive.ubuntu.com/ubuntu/|g' \
+            -e 's|https?://security\.ubuntu\.com/ubuntu/|https://archive.ubuntu.com/ubuntu/|g' \
             "$source"
         done
+
+        if sudo grep -R -E 'https?://azure\.archive\.ubuntu\.com/ubuntu/' \
+          /etc/apt/apt-mirrors.txt /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then
+          echo 'Azure Ubuntu mirror is still configured' >&2
+          exit 1
+        fi
+
         sudo apt-get update
