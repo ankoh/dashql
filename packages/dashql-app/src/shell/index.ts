@@ -18,4 +18,3 @@ export type {
     DashQLShellTerminalOutput,
 } from './api.js';
 export { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
-export { ShellSessionRelationCatalog } from './session_relation_catalog.js';

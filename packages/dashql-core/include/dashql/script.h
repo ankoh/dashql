@@ -198,6 +198,8 @@ class ParsedScript {
 
     /// Derive source spans and contiguous description comment blocks after parsing.
     std::vector<StatementDescription> AssociateDescriptions() const;
+    /// Pack normalized metadata for a single statement.
+    std::unique_ptr<buffers::parser::StatementT> PackStatement(size_t statement_id) const;
 
     /// Get the nodes
     auto& GetNodes() const { return nodes; }
@@ -440,6 +442,5 @@ class Script {
                                                 bool parse_if_outdated = true);
     bool IsFullyFormattable(const buffers::formatting::FormattingConfigT& config, bool parse_if_outdated = true);
 };
-
 
 }  // namespace dashql

@@ -97,8 +97,7 @@ uint32_t StorePromptResult(DashQLShellPromptResult* result, dashql::shell::Promp
     return result->status;
 }
 
-uint32_t StoreTerminalResult(DashQLShellTerminalResult* result,
-                             dashql::shell::ShellOperation output,
+uint32_t StoreTerminalResult(DashQLShellTerminalResult* result, dashql::shell::ShellOperation output,
                              dashql::shell::PromptInputAction action = dashql::shell::PromptInputAction::kNone) {
     if (output.data.size() > std::numeric_limits<uint32_t>::max()) {
         output.status = dashql::shell::ShellStatus::kInternalError;
@@ -194,13 +193,21 @@ DashQLShell* dashql_shell_new(dashql::Catalog* catalog, uint32_t terminal_column
     }
 }
 
-void dashql_shell_destroy(DashQLShell* shell) {
-    delete shell;
-}
+void dashql_shell_destroy(DashQLShell* shell) { delete shell; }
 
 void dashql_shell_resize(DashQLShell* shell, uint32_t terminal_columns) {
     if (shell != nullptr) {
         shell->session.Resize(terminal_columns);
+    }
+}
+
+uint32_t dashql_shell_session_relations_set(DashQLShell* shell, bool enabled) {
+    if (shell == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
+    try {
+        shell->session.SetTrackSessionRelations(enabled);
+        return DASHQL_SHELL_OK;
+    } catch (...) {
+        return DASHQL_SHELL_INTERNAL_ERROR;
     }
 }
 
@@ -212,9 +219,7 @@ uint32_t dashql_shell_commands_set(DashQLShell* shell, const uint8_t* commands, 
         shell->session.SetCommands({reinterpret_cast<const char*>(commands), commands_length}));
 }
 
-uint32_t dashql_shell_prompt_set(DashQLShell* shell,
-                                 const uint8_t* text,
-                                 size_t text_length,
+uint32_t dashql_shell_prompt_set(DashQLShell* shell, const uint8_t* text, size_t text_length,
                                  DashQLShellPromptResult* result) {
     if (text == nullptr && text_length != 0) {
         if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
@@ -227,9 +232,7 @@ uint32_t dashql_shell_prompt_set(DashQLShell* shell,
     });
 }
 
-uint32_t dashql_shell_prompt_insert(DashQLShell* shell,
-                                    const uint8_t* text,
-                                    size_t text_length,
+uint32_t dashql_shell_prompt_insert(DashQLShell* shell, const uint8_t* text, size_t text_length,
                                     DashQLShellPromptResult* result) {
     if (text == nullptr && text_length != 0) {
         if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
@@ -273,11 +276,9 @@ uint32_t dashql_shell_prompt_complete(DashQLShell* shell, size_t limit, DashQLSh
     }
 }
 
-uint32_t dashql_shell_prompt_apply_completion(DashQLShell* shell,
-                                              const DashQLShellCompletionCandidate* candidate,
+uint32_t dashql_shell_prompt_apply_completion(DashQLShell* shell, const DashQLShellCompletionCandidate* candidate,
                                               DashQLShellPromptResult* result) {
-    if (candidate == nullptr ||
-        (candidate->display_text_ptr == nullptr && candidate->display_text_length != 0) ||
+    if (candidate == nullptr || (candidate->display_text_ptr == nullptr && candidate->display_text_length != 0) ||
         (candidate->completion_text_ptr == nullptr && candidate->completion_text_length != 0)) {
         if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
         ResetPromptResult(result);
@@ -285,8 +286,8 @@ uint32_t dashql_shell_prompt_apply_completion(DashQLShell* shell,
                                  {dashql::shell::ShellStatus::kInvalidArgument, 0, 0, {}, "invalid completion"});
     }
     const dashql::shell::CompletionCandidate completion{
-        .display_text = std::string{reinterpret_cast<const char*>(candidate->display_text_ptr),
-                                    candidate->display_text_length},
+        .display_text =
+            std::string{reinterpret_cast<const char*>(candidate->display_text_ptr), candidate->display_text_length},
         .completion_text = std::string{reinterpret_cast<const char*>(candidate->completion_text_ptr),
                                        candidate->completion_text_length},
         .continuation_text = {},
@@ -301,10 +302,7 @@ uint32_t dashql_shell_prompt_apply_completion(DashQLShell* shell,
     return InvokePrompt(shell, result, [&](auto& session) { return session.ApplyCompletion(completion); });
 }
 
-uint32_t dashql_shell_prompt_consume(DashQLShell* shell,
-                                     uint32_t key,
-                                     const uint8_t* text,
-                                     size_t text_length,
+uint32_t dashql_shell_prompt_consume(DashQLShell* shell, uint32_t key, const uint8_t* text, size_t text_length,
                                      DashQLShellPromptResult* result) {
     if (key > DASHQL_SHELL_INPUT_END || (text == nullptr && text_length != 0)) {
         if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
@@ -347,30 +345,23 @@ void dashql_shell_completion_result_destroy(DashQLShellCompletionResult* result)
     ResetCompletionResult(result);
 }
 
-uint32_t dashql_shell_terminal_open(DashQLShell* shell,
-                                    const uint8_t* prompt,
-                                    size_t prompt_length,
+uint32_t dashql_shell_terminal_open(DashQLShell* shell, const uint8_t* prompt, size_t prompt_length,
                                     DashQLShellTerminalResult* result) {
     if (prompt == nullptr && prompt_length != 0) {
         if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
         ResetTerminalResult(result);
-        return StoreTerminalResult(result,
-                                   {dashql::shell::ShellStatus::kInvalidArgument, "invalid terminal prompt"});
+        return StoreTerminalResult(result, {dashql::shell::ShellStatus::kInvalidArgument, "invalid terminal prompt"});
     }
     const std::string_view value{reinterpret_cast<const char*>(prompt), prompt_length};
     return InvokeTerminal(shell, result, [=](auto& session) { return session.OpenTerminal(value); });
 }
 
-uint32_t dashql_shell_terminal_consume(DashQLShell* shell,
-                                       uint32_t key,
-                                       const uint8_t* text,
-                                       size_t text_length,
+uint32_t dashql_shell_terminal_consume(DashQLShell* shell, uint32_t key, const uint8_t* text, size_t text_length,
                                        DashQLShellTerminalResult* result) {
     if (key > DASHQL_SHELL_INPUT_END || (text == nullptr && text_length != 0)) {
         if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
         ResetTerminalResult(result);
-        return StoreTerminalResult(result,
-                                   {dashql::shell::ShellStatus::kInvalidArgument, "invalid terminal input"});
+        return StoreTerminalResult(result, {dashql::shell::ShellStatus::kInvalidArgument, "invalid terminal input"});
     }
     const std::string_view value{reinterpret_cast<const char*>(text), text_length};
     return InvokeTerminal(shell, result, [=](auto& session) {
@@ -378,10 +369,7 @@ uint32_t dashql_shell_terminal_consume(DashQLShell* shell,
     });
 }
 
-uint32_t dashql_shell_terminal_finish_query(DashQLShell* shell,
-                                            const uint8_t* output,
-                                            size_t output_length,
-                                            bool error,
+uint32_t dashql_shell_terminal_finish_query(DashQLShell* shell, const uint8_t* output, size_t output_length, bool error,
                                             DashQLShellTerminalResult* result) {
     if (output == nullptr && output_length != 0) {
         if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
@@ -393,37 +381,29 @@ uint32_t dashql_shell_terminal_finish_query(DashQLShell* shell,
     return InvokeTerminal(shell, result, [=](auto& session) { return session.FinishTerminalQuery(value, error); });
 }
 
-uint32_t dashql_shell_terminal_query_progress(DashQLShell* shell,
-                                              const uint8_t* message,
-                                              size_t message_length,
-                                              bool advance_frame,
-                                              DashQLShellTerminalResult* result) {
-    if (message == nullptr && message_length != 0) {
-        if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
-        ResetTerminalResult(result);
-        return StoreTerminalResult(
-            result, {dashql::shell::ShellStatus::kInvalidArgument, "invalid terminal query progress"});
-    }
-    const std::string_view value{reinterpret_cast<const char*>(message), message_length};
-    return InvokeTerminal(shell, result, [=](auto& session) {
-        return session.RenderTerminalQueryProgress(value, advance_frame);
-    });
-}
-
-uint32_t dashql_shell_terminal_query_progress_clear(DashQLShell* shell,
-                                                    DashQLShellTerminalResult* result) {
-    return InvokeTerminal(shell, result, [](auto& session) { return session.ClearTerminalQueryProgress(); });
-}
-
-uint32_t dashql_shell_terminal_status(DashQLShell* shell,
-                                      const uint8_t* message,
-                                      size_t message_length,
-                                      DashQLShellTerminalResult* result) {
+uint32_t dashql_shell_terminal_query_progress(DashQLShell* shell, const uint8_t* message, size_t message_length,
+                                              bool advance_frame, DashQLShellTerminalResult* result) {
     if (message == nullptr && message_length != 0) {
         if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
         ResetTerminalResult(result);
         return StoreTerminalResult(result,
-                                   {dashql::shell::ShellStatus::kInvalidArgument, "invalid terminal status"});
+                                   {dashql::shell::ShellStatus::kInvalidArgument, "invalid terminal query progress"});
+    }
+    const std::string_view value{reinterpret_cast<const char*>(message), message_length};
+    return InvokeTerminal(shell, result,
+                          [=](auto& session) { return session.RenderTerminalQueryProgress(value, advance_frame); });
+}
+
+uint32_t dashql_shell_terminal_query_progress_clear(DashQLShell* shell, DashQLShellTerminalResult* result) {
+    return InvokeTerminal(shell, result, [](auto& session) { return session.ClearTerminalQueryProgress(); });
+}
+
+uint32_t dashql_shell_terminal_status(DashQLShell* shell, const uint8_t* message, size_t message_length,
+                                      DashQLShellTerminalResult* result) {
+    if (message == nullptr && message_length != 0) {
+        if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
+        ResetTerminalResult(result);
+        return StoreTerminalResult(result, {dashql::shell::ShellStatus::kInvalidArgument, "invalid terminal status"});
     }
     const std::string_view value{reinterpret_cast<const char*>(message), message_length};
     return InvokeTerminal(shell, result, [=](auto& session) { return session.RenderTerminalStatus(value); });
@@ -446,9 +426,7 @@ uint32_t dashql_shell_history_export(DashQLShell* shell, DashQLShellResult* resu
     }
 }
 
-uint32_t dashql_shell_history_import(DashQLShell* shell,
-                                     const uint8_t* data,
-                                     size_t data_length,
+uint32_t dashql_shell_history_import(DashQLShell* shell, const uint8_t* data, size_t data_length,
                                      DashQLShellResult* result) {
     if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
     ResetResult(result);
@@ -463,9 +441,7 @@ uint32_t dashql_shell_history_import(DashQLShell* shell,
     }
 }
 
-uint32_t dashql_shell_start_query(DashQLShell* shell,
-                                  const uint8_t* query,
-                                  size_t query_length,
+uint32_t dashql_shell_start_query(DashQLShell* shell, const uint8_t* query, size_t query_length,
                                   DashQLShellResult* result) {
     if (result == nullptr) {
         return DASHQL_SHELL_INVALID_ARGUMENT;
@@ -484,12 +460,8 @@ uint32_t dashql_shell_start_query(DashQLShell* shell,
     }
 }
 
-uint32_t dashql_shell_complete_effect(DashQLShell* shell,
-                                      uint32_t effect_id_low,
-                                      uint32_t effect_id_high,
-                                      uint32_t completion_status,
-                                      const uint8_t* data,
-                                      size_t data_length,
+uint32_t dashql_shell_complete_effect(DashQLShell* shell, uint32_t effect_id_low, uint32_t effect_id_high,
+                                      uint32_t completion_status, const uint8_t* data, size_t data_length,
                                       DashQLShellResult* result) {
     if (result == nullptr) {
         return DASHQL_SHELL_INVALID_ARGUMENT;
@@ -501,9 +473,8 @@ uint32_t dashql_shell_complete_effect(DashQLShell* shell,
     }
     try {
         const auto status = static_cast<dashql::shell::EffectCompletionStatus>(completion_status);
-        return StoreOperation(result,
-                              shell->session.CompleteEffect(ReadEffectId(effect_id_low, effect_id_high), status,
-                                                            std::span<const uint8_t>{data, data_length}));
+        return StoreOperation(result, shell->session.CompleteEffect(ReadEffectId(effect_id_low, effect_id_high), status,
+                                                                    std::span<const uint8_t>{data, data_length}));
     } catch (const std::exception& error) {
         return StoreResult(result, DASHQL_SHELL_INTERNAL_ERROR, error.what());
     } catch (...) {
@@ -511,9 +482,7 @@ uint32_t dashql_shell_complete_effect(DashQLShell* shell,
     }
 }
 
-uint32_t dashql_shell_cancel_effect(DashQLShell* shell,
-                                    uint32_t effect_id_low,
-                                    uint32_t effect_id_high,
+uint32_t dashql_shell_cancel_effect(DashQLShell* shell, uint32_t effect_id_low, uint32_t effect_id_high,
                                     DashQLShellResult* result) {
     if (result == nullptr) {
         return DASHQL_SHELL_INVALID_ARGUMENT;
@@ -538,5 +507,4 @@ void dashql_shell_result_destroy(DashQLShellResult* result) {
     delete static_cast<std::string*>(result->owner_ptr);
     ResetResult(result);
 }
-
 }

@@ -203,6 +203,7 @@ cc_library(
         "src/shell/api.cc",
         "src/shell/arrow_renderer.cc",
         "src/shell/prompt_buffer.cc",
+        "src/shell/session_relation_catalog.cc",
         "src/shell/shell_session.cc",
     ],
     hdrs = glob(["include/dashql/shell/*.h"]),

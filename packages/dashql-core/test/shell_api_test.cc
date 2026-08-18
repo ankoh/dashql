@@ -1,10 +1,10 @@
-#include "dashql/shell/api.h"
-
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "dashql/catalog.h"
 #include "dashql/script.h"
+#include "dashql/shell/api.h"
 #include "dashql/shell/vt100.h"
 #include "gtest/gtest.h"
 
@@ -26,11 +26,56 @@ size_t CountOccurrences(std::string_view text, std::string_view needle) {
     return count;
 }
 
-uint32_t ConsumeTerminal(DashQLShell* shell,
-                         uint32_t key,
-                         DashQLShellTerminalResult* result,
+uint32_t ConsumeTerminal(DashQLShell* shell, uint32_t key, DashQLShellTerminalResult* result,
                          std::string_view text = {}) {
-    return dashql_shell_terminal_consume(shell, key, reinterpret_cast<const uint8_t*>(text.data()), text.size(), result);
+    return dashql_shell_terminal_consume(shell, key, reinterpret_cast<const uint8_t*>(text.data()), text.size(),
+                                         result);
+}
+
+uint64_t ReadU64(const uint8_t* data) {
+    uint64_t value = 0;
+    for (size_t i = 0; i < sizeof(value); ++i) value |= static_cast<uint64_t>(data[i]) << (i * 8);
+    return value;
+}
+
+uint32_t CompleteQuery(DashQLShell* shell, std::string_view query, uint32_t completion_status) {
+    DashQLShellResult result{};
+    EXPECT_EQ(dashql_shell_start_query(shell, reinterpret_cast<const uint8_t*>(query.data()), query.size(), &result),
+              DASHQL_SHELL_PENDING);
+    if (result.status != DASHQL_SHELL_PENDING || result.data_length < 16) {
+        dashql_shell_result_destroy(&result);
+        return DASHQL_SHELL_INTERNAL_ERROR;
+    }
+    const auto effect_id = ReadU64(result.data_ptr + 8);
+    dashql_shell_result_destroy(&result);
+    const auto status =
+        dashql_shell_complete_effect(shell, static_cast<uint32_t>(effect_id), static_cast<uint32_t>(effect_id >> 32),
+                                     completion_status, nullptr, 0, &result);
+    dashql_shell_result_destroy(&result);
+    return status;
+}
+
+std::vector<std::string> CompleteText(DashQLShell* shell, std::string_view query) {
+    DashQLShellPromptResult prompt{};
+    EXPECT_EQ(dashql_shell_prompt_set(shell, reinterpret_cast<const uint8_t*>(query.data()), query.size(), &prompt),
+              DASHQL_SHELL_OK);
+    dashql_shell_prompt_result_destroy(&prompt);
+
+    DashQLShellCompletionResult completions{};
+    EXPECT_EQ(dashql_shell_prompt_complete(shell, 50, &completions), DASHQL_SHELL_OK);
+    std::vector<std::string> output;
+    const auto* candidates = static_cast<const DashQLShellCompletionCandidate*>(completions.candidates_ptr);
+    for (size_t i = 0; i < completions.count; ++i) {
+        output.emplace_back(reinterpret_cast<const char*>(candidates[i].completion_text_ptr),
+                            candidates[i].completion_text_length);
+    }
+    dashql_shell_completion_result_destroy(&completions);
+    return output;
+}
+
+bool HasCompletion(DashQLShell* shell, std::string_view query, std::string_view expected) {
+    const auto completions = CompleteText(shell, query);
+    return std::find(completions.begin(), completions.end(), expected) != completions.end();
 }
 
 TEST(ShellApiTest, EditsAndSubmitsPrompt) {
@@ -61,10 +106,106 @@ TEST(ShellApiTest, EditsAndSubmitsPrompt) {
     DashQLShellResult operation{};
     EXPECT_EQ(dashql_shell_prompt_submit(shell, &operation), DASHQL_SHELL_PENDING);
     ASSERT_GE(operation.data_length, 16u);
-    EXPECT_EQ(
-        (std::string_view{reinterpret_cast<const char*>(operation.data_ptr + 16), operation.data_length - 16}),
-        "select 01");
+    EXPECT_EQ((std::string_view{reinterpret_cast<const char*>(operation.data_ptr + 16), operation.data_length - 16}),
+              "select 01");
     dashql_shell_result_destroy(&operation);
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, TracksCreatedAndDroppedSessionRelations) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+    dashql_shell_session_relations_set(shell, true);
+
+    EXPECT_EQ(CompleteQuery(shell, "CREATE TABLE orders (order_id BIGINT, amount DOUBLE)", DASHQL_SHELL_EFFECT_SUCCESS),
+              DASHQL_SHELL_ARROW_ERROR);
+    EXPECT_TRUE(HasCompletion(shell, "select * from ord", "orders"));
+    EXPECT_TRUE(HasCompletion(shell, "select * from orders where orders.", "order_id"));
+
+    EXPECT_EQ(CompleteQuery(shell, "DROP TABLE orders", DASHQL_SHELL_EFFECT_SUCCESS), DASHQL_SHELL_ARROW_ERROR);
+    EXPECT_FALSE(HasCompletion(shell, "select * from ord", "orders"));
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, TracksQualifiedAndDerivedSessionRelations) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+    dashql_shell_session_relations_set(shell, true);
+
+    EXPECT_EQ(CompleteQuery(shell, "CREATE TABLE source (id BIGINT, amount DOUBLE)", DASHQL_SHELL_EFFECT_SUCCESS),
+              DASHQL_SHELL_ARROW_ERROR);
+    EXPECT_EQ(CompleteQuery(shell, "CREATE TABLE analytics.totals AS SELECT id, amount AS total FROM source",
+                            DASHQL_SHELL_EFFECT_SUCCESS),
+              DASHQL_SHELL_ARROW_ERROR);
+    EXPECT_EQ(CompleteQuery(shell, "CREATE VIEW report AS SELECT * FROM analytics.totals", DASHQL_SHELL_EFFECT_SUCCESS),
+              DASHQL_SHELL_ARROW_ERROR);
+    EXPECT_EQ(CompleteQuery(shell, "SELECT id AS copied_id INTO warehouse.reporting.copied FROM source",
+                            DASHQL_SHELL_EFFECT_SUCCESS),
+              DASHQL_SHELL_ARROW_ERROR);
+
+    EXPECT_TRUE(HasCompletion(shell, "select * from analytics.tot", "totals"));
+    EXPECT_TRUE(HasCompletion(shell, "select * from analytics.totals t where t.", "total"));
+    EXPECT_TRUE(HasCompletion(shell, "select * from report where report.", "total"));
+    EXPECT_TRUE(HasCompletion(shell, "select * from warehouse.reporting.copied where copied.", "copied_id"));
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, ReplacesAndSelectivelyDropsSessionRelations) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+    dashql_shell_session_relations_set(shell, true);
+
+    EXPECT_EQ(CompleteQuery(shell, "CREATE TABLE inventory (old_id BIGINT)", DASHQL_SHELL_EFFECT_SUCCESS),
+              DASHQL_SHELL_ARROW_ERROR);
+    EXPECT_EQ(
+        CompleteQuery(shell, "CREATE TABLE inventory (new_id BIGINT, quantity INTEGER)", DASHQL_SHELL_EFFECT_SUCCESS),
+        DASHQL_SHELL_ARROW_ERROR);
+    EXPECT_FALSE(HasCompletion(shell, "select * from inventory i where i.old", "old_id"));
+    EXPECT_TRUE(HasCompletion(shell, "select * from inventory i where i.new", "new_id"));
+    EXPECT_TRUE(HasCompletion(shell, "select * from inventory i where i.quan", "quantity"));
+
+    EXPECT_EQ(CompleteQuery(shell, "CREATE TABLE public.events (public_id BIGINT)", DASHQL_SHELL_EFFECT_SUCCESS),
+              DASHQL_SHELL_ARROW_ERROR);
+    EXPECT_EQ(CompleteQuery(shell, "CREATE TABLE analytics.events (analytics_id BIGINT)", DASHQL_SHELL_EFFECT_SUCCESS),
+              DASHQL_SHELL_ARROW_ERROR);
+    EXPECT_EQ(CompleteQuery(shell, "DROP TABLE analytics.events", DASHQL_SHELL_EFFECT_SUCCESS),
+              DASHQL_SHELL_ARROW_ERROR);
+    EXPECT_TRUE(HasCompletion(shell, "select * from public.events e where e.", "public_id"));
+    EXPECT_FALSE(HasCompletion(shell, "select * from analytics.eve", "events"));
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, SessionRelationsOnlyTrackSuccessfulSingleDdlStatements) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+    dashql_shell_session_relations_set(shell, true);
+
+    EXPECT_EQ(CompleteQuery(shell, "CREATE TABLE failed (id BIGINT)", DASHQL_SHELL_EFFECT_ERROR), DASHQL_SHELL_OK);
+    EXPECT_EQ(CompleteQuery(shell, "CREATE TABLE alpha_untracked (id BIGINT); CREATE TABLE beta_untracked (id BIGINT)",
+                            DASHQL_SHELL_EFFECT_SUCCESS),
+              DASHQL_SHELL_ARROW_ERROR);
+    EXPECT_EQ(CompleteQuery(shell, "ATTACH DATABASE source AS source", DASHQL_SHELL_EFFECT_SUCCESS),
+              DASHQL_SHELL_ARROW_ERROR);
+
+    EXPECT_FALSE(HasCompletion(shell, "select * from fail", "failed"));
+    EXPECT_FALSE(HasCompletion(shell, "select * from alpha_untr", "alpha_untracked"));
+    EXPECT_FALSE(HasCompletion(shell, "select * from beta_untr", "beta_untracked"));
+    EXPECT_FALSE(HasCompletion(shell, "select * from sou", "source"));
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, SessionRelationTrackingIsOptIn) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+
+    EXPECT_EQ(CompleteQuery(shell, "CREATE TABLE untracked (id BIGINT)", DASHQL_SHELL_EFFECT_SUCCESS),
+              DASHQL_SHELL_ARROW_ERROR);
+    EXPECT_FALSE(HasCompletion(shell, "select * from untr", "untracked"));
     dashql_shell_destroy(shell);
 }
 
@@ -82,14 +223,14 @@ TEST(ShellApiTest, StripsTrailingSemicolonWhenSubmittingPrompt) {
     DashQLShellResult operation{};
     ASSERT_EQ(dashql_shell_prompt_submit(shell, &operation), DASHQL_SHELL_PENDING);
     ASSERT_GE(operation.data_length, 16u);
-    EXPECT_EQ(
-        (std::string_view{reinterpret_cast<const char*>(operation.data_ptr + 16), operation.data_length - 16}),
-        "SELECT ';' AS value");
+    EXPECT_EQ((std::string_view{reinterpret_cast<const char*>(operation.data_ptr + 16), operation.data_length - 16}),
+              "SELECT ';' AS value");
     dashql_shell_result_destroy(&operation);
 
     const auto history = dashql_shell_history_export(shell, &operation);
     ASSERT_EQ(history, DASHQL_SHELL_OK);
-    const auto history_data = std::string_view{reinterpret_cast<const char*>(operation.data_ptr), operation.data_length};
+    const auto history_data =
+        std::string_view{reinterpret_cast<const char*>(operation.data_ptr), operation.data_length};
     ASSERT_GE(history_data.size(), sizeof(uint32_t));
     EXPECT_EQ(history_data.substr(sizeof(uint32_t)), query);
     dashql_shell_result_destroy(&operation);
@@ -122,9 +263,10 @@ TEST(ShellApiTest, DrivesPromptInteractionAndHistory) {
 
     DashQLShellPromptResult prompt{};
     const std::string incomplete = "select 1";
-    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_TEXT,
-                                          reinterpret_cast<const uint8_t*>(incomplete.data()), incomplete.size(), &prompt),
-              DASHQL_SHELL_OK);
+    ASSERT_EQ(
+        dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_TEXT, reinterpret_cast<const uint8_t*>(incomplete.data()),
+                                    incomplete.size(), &prompt),
+        DASHQL_SHELL_OK);
     EXPECT_EQ(prompt.action, DASHQL_SHELL_INPUT_NONE);
     dashql_shell_prompt_result_destroy(&prompt);
 
@@ -134,9 +276,10 @@ TEST(ShellApiTest, DrivesPromptInteractionAndHistory) {
     dashql_shell_prompt_result_destroy(&prompt);
 
     const std::string terminator = ";";
-    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_TEXT,
-                                          reinterpret_cast<const uint8_t*>(terminator.data()), terminator.size(), &prompt),
-              DASHQL_SHELL_OK);
+    ASSERT_EQ(
+        dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_TEXT, reinterpret_cast<const uint8_t*>(terminator.data()),
+                                    terminator.size(), &prompt),
+        DASHQL_SHELL_OK);
     dashql_shell_prompt_result_destroy(&prompt);
     ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_ENTER, nullptr, 0, &prompt), DASHQL_SHELL_OK);
     EXPECT_EQ(prompt.action, DASHQL_SHELL_INPUT_SUBMIT);
@@ -254,9 +397,9 @@ TEST(ShellApiTest, RendersHighlightedTerminalPrompt) {
 
     DashQLShellTerminalResult output{};
     const std::string prompt = "db> ";
-    ASSERT_EQ(dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(),
-                                         &output),
-              DASHQL_SHELL_OK);
+    ASSERT_EQ(
+        dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(), &output),
+        DASHQL_SHELL_OK);
     std::string expected;
     expected.append(dashql::shell::vt100::kDisableAutoWrap);
     expected.append(dashql::shell::vt100::kCarriageReturn);
@@ -337,9 +480,9 @@ TEST(ShellApiTest, ScopesAutoWrapToTerminalOutput) {
     dashql_shell_terminal_result_destroy(&output);
 
     constexpr std::string_view status = "working";
-    ASSERT_EQ(dashql_shell_terminal_status(shell, reinterpret_cast<const uint8_t*>(status.data()), status.size(),
-                                           &output),
-              DASHQL_SHELL_OK);
+    ASSERT_EQ(
+        dashql_shell_terminal_status(shell, reinterpret_cast<const uint8_t*>(status.data()), status.size(), &output),
+        DASHQL_SHELL_OK);
     const auto status_output = TerminalData(output);
     EXPECT_LT(status_output.find(dashql::shell::vt100::kEnableAutoWrap), status_output.find(status)) << status_output;
     EXPECT_LT(status_output.find(status), status_output.find(dashql::shell::vt100::kDisableAutoWrap)) << status_output;
@@ -394,8 +537,8 @@ TEST(ShellApiTest, ReflowsLongPromptWithoutRepeatingPreviousRender) {
 
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, "SELECT 123456789"), DASHQL_SHELL_OK);
     EXPECT_NE(TerminalData(output).find(dashql::shell::vt100::Sequence(1, dashql::shell::vt100::Command::kCursorDown) +
-                                         std::string{dashql::shell::vt100::kBold} + "     -> " +
-                                         std::string{dashql::shell::vt100::kResetAttributes}),
+                                        std::string{dashql::shell::vt100::kBold} + "     -> " +
+                                        std::string{dashql::shell::vt100::kResetAttributes}),
               std::string_view::npos);
     dashql_shell_terminal_result_destroy(&output);
 
@@ -448,9 +591,9 @@ TEST(ShellApiTest, RedrawsLongStringWithoutScrollingDuringCleanup) {
 
     DashQLShellTerminalResult output{};
     constexpr std::string_view prompt = "hyper> ";
-    ASSERT_EQ(dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(),
-                                         &output),
-              DASHQL_SHELL_OK);
+    ASSERT_EQ(
+        dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(), &output),
+        DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     const std::string query = "select '" + std::string(170, 'o') + "'";
@@ -476,9 +619,9 @@ TEST(ShellApiTest, AllocatesNewRowsBeforeRedrawingLongPrompt) {
 
     DashQLShellTerminalResult output{};
     constexpr std::string_view prompt = "hyper> ";
-    ASSERT_EQ(dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(),
-                                         &output),
-              DASHQL_SHELL_OK);
+    ASSERT_EQ(
+        dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(), &output),
+        DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     const std::string query = "select '" + std::string(135, 'o') + "'";
@@ -507,9 +650,9 @@ TEST(ShellApiTest, RendersInlineCompletionHintAtRightMarginWithAutoWrapDisabled)
 
     DashQLShellTerminalResult output{};
     constexpr std::string_view prompt = "hyper> ";
-    ASSERT_EQ(dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(),
-                                         &output),
-              DASHQL_SHELL_OK);
+    ASSERT_EQ(
+        dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(), &output),
+        DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     const std::string query = "select '" + std::string(154, 'o') + "' a";
@@ -569,13 +712,13 @@ TEST(ShellApiTest, NavigatesAndAcceptsTerminalCompletionOverlay) {
     EXPECT_NE(TerminalData(output).find("select"), std::string_view::npos);
     const auto completion_anchor = dashql::shell::vt100::Sequence(1, dashql::shell::vt100::Command::kCursorDown) +
                                    dashql::shell::vt100::Sequence(8, dashql::shell::vt100::Command::kCursorForward);
-    EXPECT_NE(TerminalData(output).find(completion_anchor +
-                                        std::string{dashql::shell::vt100::kForegroundBrightBlack} + "╭"),
-              std::string_view::npos);
-    EXPECT_EQ(TerminalData(output).find(dashql::shell::vt100::Sequence(
-                                            8, dashql::shell::vt100::Command::kCursorForward) +
-                                        std::string{dashql::shell::vt100::kEraseEntireLine}),
-              std::string_view::npos);
+    EXPECT_NE(
+        TerminalData(output).find(completion_anchor + std::string{dashql::shell::vt100::kForegroundBrightBlack} + "╭"),
+        std::string_view::npos);
+    EXPECT_EQ(
+        TerminalData(output).find(dashql::shell::vt100::Sequence(8, dashql::shell::vt100::Command::kCursorForward) +
+                                  std::string{dashql::shell::vt100::kEraseEntireLine}),
+        std::string_view::npos);
     EXPECT_NE(TerminalData(output).find(std::string{dashql::shell::vt100::kForegroundBrightBlack} + "╰"),
               std::string_view::npos);
     EXPECT_EQ(TerminalData(output).find(std::string{dashql::shell::vt100::kEraseEntireLine} + "> "),
@@ -639,8 +782,7 @@ TEST(ShellApiTest, ListsHintsAndAcceptsColumnAfterFullyQualifiedTableAlias) {
     ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
-    constexpr std::string_view query =
-        "select * from uip_iceberg.cdp_usage_nonprod_events.hyperdb_queries q where q.";
+    constexpr std::string_view query = "select * from uip_iceberg.cdp_usage_nonprod_events.hyperdb_queries q where q.";
     for (const char character : query) {
         ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, std::string_view{&character, 1}),
                   DASHQL_SHELL_OK);
@@ -837,9 +979,10 @@ TEST(ShellApiTest, CyclesInlineQualificationHintsWithLeftAndRight) {
     ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
-    const std::string query = "CREATE TABLE orders(customer_id BIGINT); CREATE TABLE customers(customer_id BIGINT); "
-                              "SELECT customer_id FROM orders o JOIN customers c ON o.customer_id = c.customer_id "
-                              "WHERE customer_id";
+    const std::string query =
+        "CREATE TABLE orders(customer_id BIGINT); CREATE TABLE customers(customer_id BIGINT); "
+        "SELECT customer_id FROM orders o JOIN customers c ON o.customer_id = c.customer_id "
+        "WHERE customer_id";
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, query), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
@@ -1002,9 +1145,9 @@ TEST(ShellApiTest, RendersInlineCompletionHintBeforeLaterPromptLines) {
 
     DashQLShellTerminalResult output{};
     constexpr std::string_view prompt = "trino> ";
-    ASSERT_EQ(dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(),
-                                         &output),
-              DASHQL_SHELL_OK);
+    ASSERT_EQ(
+        dashql_shell_terminal_open(shell, reinterpret_cast<const uint8_t*>(prompt.data()), prompt.size(), &output),
+        DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
     constexpr std::string_view query = "with foo as (\nselect * from hyperdb_quer\n\n) ";
@@ -1022,8 +1165,7 @@ TEST(ShellApiTest, RendersInlineCompletionHintBeforeLaterPromptLines) {
     dashql_shell_terminal_result_destroy(&output);
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_LEFT, &output), DASHQL_SHELL_OK);
     const auto rendered = TerminalData(output);
-    EXPECT_NE(rendered.find(std::string{dashql::shell::vt100::kForegroundBrightBlack} + "ies"),
-              std::string_view::npos)
+    EXPECT_NE(rendered.find(std::string{dashql::shell::vt100::kForegroundBrightBlack} + "ies"), std::string_view::npos)
         << rendered;
     EXPECT_NE(rendered.find(dashql::shell::vt100::Sequence(3, dashql::shell::vt100::Command::kInsertCharacter)),
               std::string_view::npos)
@@ -1041,8 +1183,9 @@ TEST(ShellApiTest, RendersAndAcceptsQualificationHintBeforeCursor) {
     ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
-    const std::string query = "SELECT customer_id FROM orders o JOIN customers c ON o.customer_id = c.customer_id "
-                              "WHERE customer_id";
+    const std::string query =
+        "SELECT customer_id FROM orders o JOIN customers c ON o.customer_id = c.customer_id "
+        "WHERE customer_id";
     const std::string schema = "CREATE TABLE orders(customer_id BIGINT); CREATE TABLE customers(customer_id BIGINT); ";
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, schema), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
@@ -1080,9 +1223,9 @@ TEST(ShellApiTest, RendersAndAcceptsQualificationHintBeforeCursor) {
     EXPECT_NE(selected_output.find(dashql::shell::vt100::kForegroundBrightBlack), std::string::npos);
 
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TAB, &output), DASHQL_SHELL_OK);
-    EXPECT_NE(TerminalData(output).find(dashql::shell::vt100::Sequence(
-                                            2, dashql::shell::vt100::Command::kInsertCharacter)),
-              std::string_view::npos);
+    EXPECT_NE(
+        TerminalData(output).find(dashql::shell::vt100::Sequence(2, dashql::shell::vt100::Command::kInsertCharacter)),
+        std::string_view::npos);
     dashql_shell_terminal_result_destroy(&output);
 
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TAB, &output), DASHQL_SHELL_OK);

@@ -18,6 +18,8 @@
 
 namespace dashql::shell {
 
+class SessionRelationCatalog;
+
 enum class ShellStatus : uint32_t {
     kOk = 0,
     kInvalidArgument = 1,
@@ -108,6 +110,7 @@ class ShellSession {
     ShellSession& operator=(const ShellSession&) = delete;
 
     void Resize(uint32_t terminal_columns);
+    void SetTrackSessionRelations(bool enabled);
     ShellStatus SetCommands(std::string_view commands);
     PromptBuffer& prompt() { return prompt_; }
     const PromptBuffer& prompt() const { return prompt_; }
@@ -129,9 +132,7 @@ class ShellSession {
     PromptInputAction terminal_action() const;
     ShellOperation SubmitPrompt();
     ShellOperation StartQuery(std::string_view query);
-    ShellOperation CompleteEffect(uint64_t effect_id,
-                                  EffectCompletionStatus status,
-                                  std::span<const uint8_t> data);
+    ShellOperation CompleteEffect(uint64_t effect_id, EffectCompletionStatus status, std::span<const uint8_t> data);
     ShellOperation CancelEffect(uint64_t effect_id);
     std::string ExportHistory() const;
     ShellStatus ImportHistory(std::span<const uint8_t> data);
@@ -143,6 +144,7 @@ class ShellSession {
 
     struct PendingEffect {
         EffectType type;
+        std::string payload;
         Task::Handle coroutine;
         std::shared_ptr<EffectState> state;
     };
@@ -171,9 +173,7 @@ class ShellSession {
     Task ExecuteQuery(std::string query);
     Task ExecuteCommand(std::string command);
     ShellOperation RenderArrowIPC(std::span<const uint8_t> data) const;
-    void SuspendEffect(EffectType type,
-                       std::string payload,
-                       Task::Handle coroutine,
+    void SuspendEffect(EffectType type, std::string payload, Task::Handle coroutine,
                        std::shared_ptr<EffectState> state);
     ShellOperation Resume(Task::Handle coroutine);
     ShellOperation CollectOperation(Task::Handle coroutine);
@@ -195,6 +195,7 @@ class ShellSession {
     void DestroyPendingEffects();
 
     Catalog& catalog_;
+    std::unique_ptr<SessionRelationCatalog> session_relations_;
     PromptBuffer prompt_;
     ArrowRenderer renderer_;
     std::deque<std::string> history_;

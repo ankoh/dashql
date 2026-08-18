@@ -1,7 +1,6 @@
 import createDashQLShellModule from '@ankoh/dashql-shell-js';
 import shellWasmUrl from '@ankoh/dashql-shell-wasm?url';
 import { DashQL, DashQLCatalog, DashQLModuleOptions, DashQLScript, EmscriptenModule } from '../core/api.js';
-import { ShellSessionRelationCatalog } from './session_relation_catalog.js';
 
 const RESULT_SIZE = 16;
 const RESULT_STATUS = 0;
@@ -41,6 +40,7 @@ export interface DashQLShellModule extends EmscriptenModule {
     _dashql_shell_new(catalog: number, terminalColumns: number): number;
     _dashql_shell_destroy(shell: number): void;
     _dashql_shell_resize(shell: number, terminalColumns: number): void;
+    _dashql_shell_session_relations_set(shell: number, enabled: boolean): number;
     _dashql_shell_commands_set(shell: number, commands: number, commandsLength: number): number;
     _dashql_shell_prompt_set(shell: number, text: number, textLength: number, result: number): number;
     _dashql_shell_prompt_insert(shell: number, text: number, textLength: number, result: number): number;
@@ -214,7 +214,6 @@ export class DashQLShell {
     protected readonly lifecycleAbort = new AbortController();
     protected activeExecution: AbortController | null = null;
     protected readonly catalogScripts: DashQLScript[] = [];
-    protected sessionRelations: ShellSessionRelationCatalog | null = null;
     protected readonly commands: Map<string, DashQLShellCommand>;
 
     protected constructor(
@@ -335,7 +334,11 @@ export class DashQLShell {
             commands,
         );
         if (options.trackSessionRelations) {
-            shell.sessionRelations = new ShellSessionRelationCatalog(shell);
+            const status = module._dashql_shell_session_relations_set(shell.shell, true) as DashQLShellStatus;
+            if (status !== DashQLShellStatus.OK) {
+                shell.destroy();
+                throw new DashQLShellError(status, 'failed to enable session relation tracking');
+            }
         }
         return shell;
     }
@@ -700,9 +703,7 @@ export class DashQLShell {
             Promise.resolve()
                 .then(async () => {
                     if (effect.type === DashQLShellEffectType.EXECUTE_QUERY) {
-                        const result = await this.environment.executeQuery(effectInput, signal, onProgress, onResult);
-                        this.sessionRelations?.applySuccessfulQuery(effectInput);
-                        return result;
+                        return await this.environment.executeQuery(effectInput, signal, onProgress, onResult);
                     }
                     const command = await this.executeCommand(effectInput, signal);
                     const output = this.textEncoder.encode(command.output);
@@ -832,8 +833,6 @@ export class DashQLShell {
             this.lifecycleAbort.abort();
             this.module._dashql_shell_destroy(this.shell);
             this.shell = 0;
-            this.sessionRelations?.destroy();
-            this.sessionRelations = null;
             for (let i = this.catalogScripts.length - 1; i >= 0; --i) {
                 this.catalogScripts[i].destroy();
             }

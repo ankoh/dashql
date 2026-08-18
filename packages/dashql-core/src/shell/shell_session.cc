@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "dashql/analyzer/completion.h"
+#include "dashql/shell/session_relation_catalog.h"
 #include "dashql/shell/vt100.h"
 #include "utf8proc/utf8proc_wrapper.hpp"
 
@@ -131,10 +132,7 @@ void AdvancePromptPrefix(std::string_view prefix, size_t columns, PromptLayout& 
     }
 }
 
-void BreakPromptLine(std::string* output,
-                     std::string_view continuation,
-                     std::string_view active_style,
-                     size_t columns,
+void BreakPromptLine(std::string* output, std::string_view continuation, std::string_view active_style, size_t columns,
                      PromptLayout& layout) {
     if (output != nullptr) {
         if (!active_style.empty()) output->append(vt100::kResetAttributes);
@@ -151,9 +149,7 @@ void BreakPromptLine(std::string* output,
     if (output != nullptr && !active_style.empty()) output->append(active_style);
 }
 
-PromptLayout LayoutPrompt(std::string_view text,
-                          std::string_view initial,
-                          std::string_view continuation,
+PromptLayout LayoutPrompt(std::string_view text, std::string_view initial, std::string_view continuation,
                           size_t columns) {
     columns = std::max<size_t>(columns, 1);
     PromptLayout layout;
@@ -177,11 +173,8 @@ PromptLayout LayoutPrompt(std::string_view text,
     return layout;
 }
 
-PromptLayout RenderHighlightedPrompt(std::string& output,
-                                     std::string_view highlighted,
-                                     std::string_view initial,
-                                     std::string_view continuation,
-                                     size_t columns) {
+PromptLayout RenderHighlightedPrompt(std::string& output, std::string_view highlighted, std::string_view initial,
+                                     std::string_view continuation, size_t columns) {
     columns = std::max<size_t>(columns, 1);
     PromptLayout layout;
     AppendPromptPrefix(&output, initial, columns, layout);
@@ -334,8 +327,11 @@ ShellSession::~ShellSession() {
     DestroyPendingEffects();
 }
 
-void ShellSession::Resize(uint32_t terminal_columns) {
-    renderer_.Resize(terminal_columns);
+void ShellSession::Resize(uint32_t terminal_columns) { renderer_.Resize(terminal_columns); }
+
+void ShellSession::SetTrackSessionRelations(bool enabled) {
+    if (enabled == (session_relations_ != nullptr)) return;
+    session_relations_ = enabled ? std::make_unique<SessionRelationCatalog>(catalog_) : nullptr;
 }
 
 ShellStatus ShellSession::SetCommands(std::string_view commands) {
@@ -345,8 +341,7 @@ ShellStatus ShellSession::SetCommands(std::string_view commands) {
     while (begin < commands.size()) {
         const auto end = commands.find('\n', begin);
         const auto name = commands.substr(begin, end - begin);
-        if (name.empty() || name.front() == '.' ||
-            !std::all_of(name.begin(), name.end(), [](unsigned char character) {
+        if (name.empty() || name.front() == '.' || !std::all_of(name.begin(), name.end(), [](unsigned char character) {
                 return (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9') ||
                        character == '_' || character == '-';
             })) {
@@ -360,9 +355,7 @@ ShellStatus ShellSession::SetCommands(std::string_view commands) {
     return ShellStatus::kOk;
 }
 
-PromptInputAction ShellSession::terminal_action() const {
-    return terminal_action_;
-}
+PromptInputAction ShellSession::terminal_action() const { return terminal_action_; }
 
 PromptSnapshot ShellSession::SetPrompt(std::string_view text) {
     if (!prompt_.SetText(text)) {
@@ -455,12 +448,11 @@ std::vector<CompletionCandidate> ShellSession::CompletePrompt(size_t limit) {
                 if (is_function) qualification_text.append("()");
                 const auto qualification_offset = candidate.target_location_qualified.offset();
                 const auto target_offset = candidate.target_location.offset();
-                const bool qualifier_already_present = qualification_offset <= target_offset &&
-                                                       target_offset <= prompt_text.size() &&
-                                                       qualification_text ==
-                                                           prompt_text.substr(qualification_offset,
-                                                                              target_offset - qualification_offset) +
-                                                               completion_text;
+                const bool qualifier_already_present =
+                    qualification_offset <= target_offset && target_offset <= prompt_text.size() &&
+                    qualification_text ==
+                        prompt_text.substr(qualification_offset, target_offset - qualification_offset) +
+                            completion_text;
                 if (!qualifier_already_present) {
                     qualification_texts.push_back(std::move(qualification_text));
                 }
@@ -472,8 +464,8 @@ std::vector<CompletionCandidate> ShellSession::CompletePrompt(size_t limit) {
             .continuation_text = std::string{candidate.keyword_continuation},
             .is_identity = candidate.candidate_tags.contains(buffers::completion::CandidateTag::IDENTITY),
             .qualification_texts = std::move(qualification_texts),
-            .completion_cursor_offset = static_cast<uint32_t>(completion_text.size() -
-                                                               (completion_text.ends_with("()") ? 1 : 0)),
+            .completion_cursor_offset =
+                static_cast<uint32_t>(completion_text.size() - (completion_text.ends_with("()") ? 1 : 0)),
             .target_offset = candidate.target_location.offset(),
             .target_length = candidate.target_location.length(),
             .qualification_target_offset = candidate.target_location_qualified.offset(),
@@ -859,8 +851,7 @@ ShellOperation ShellSession::StartQuery(std::string_view query) {
     const auto& parsed = script.GetParsedScript();
     constexpr auto extensions = static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE);
     if (parsed && (parsed->feature_flags & extensions) != 0) {
-        return {ShellStatus::kInvalidArgument,
-                "DashQL VISUALIZE syntax is not executable in the shell"};
+        return {ShellStatus::kInvalidArgument, "DashQL VISUALIZE syntax is not executable in the shell"};
     }
 
     outgoing_effect_.reset();
@@ -869,8 +860,7 @@ ShellOperation ShellSession::StartQuery(std::string_view query) {
     return Resume(task.Release());
 }
 
-ShellOperation ShellSession::CompleteEffect(uint64_t effect_id,
-                                            EffectCompletionStatus status,
+ShellOperation ShellSession::CompleteEffect(uint64_t effect_id, EffectCompletionStatus status,
                                             std::span<const uint8_t> data) {
     auto pending = pending_effects_.find(effect_id);
     if (pending == pending_effects_.end()) {
@@ -881,6 +871,13 @@ ShellOperation ShellSession::CompleteEffect(uint64_t effect_id,
     completed_operation_.reset();
     auto effect = std::move(pending->second);
     pending_effects_.erase(pending);
+    if (status == EffectCompletionStatus::kSuccess && effect.type == EffectType::kExecuteQuery && session_relations_) {
+        try {
+            session_relations_->ApplySuccessfulQuery(effect.payload);
+        } catch (...) {
+            // The remote engine may accept syntax that the local analyzer does not understand.
+        }
+    }
     effect.state->completion = EffectCompletion{status, std::vector<uint8_t>{data.begin(), data.end()}};
     return Resume(effect.coroutine);
 }
@@ -941,15 +938,13 @@ Task ShellSession::ExecuteCommand(std::string command) {
     }
 }
 
-void ShellSession::SuspendEffect(EffectType type,
-                                 std::string payload,
-                                 Task::Handle coroutine,
+void ShellSession::SuspendEffect(EffectType type, std::string payload, Task::Handle coroutine,
                                  std::shared_ptr<EffectState> state) {
     if (outgoing_effect_.has_value()) {
         throw std::logic_error{"invalid concurrent shell effect"};
     }
     const auto effect_id = next_effect_id_++;
-    auto [_, inserted] = pending_effects_.emplace(effect_id, PendingEffect{type, coroutine, std::move(state)});
+    auto [_, inserted] = pending_effects_.emplace(effect_id, PendingEffect{type, payload, coroutine, std::move(state)});
     if (!inserted) {
         throw std::logic_error{"invalid concurrent shell effect"};
     }
@@ -1038,9 +1033,8 @@ std::string ShellSession::RenderTerminalPrompt() {
         const auto token_begin = token_idx < packed->token_offsets.size()
                                      ? static_cast<size_t>(packed->token_offsets[token_idx])
                                      : std::numeric_limits<size_t>::max();
-        const auto comment_begin = comment_idx < comments.size()
-                                       ? static_cast<size_t>(comments[comment_idx].offset())
-                                       : std::numeric_limits<size_t>::max();
+        const auto comment_begin = comment_idx < comments.size() ? static_cast<size_t>(comments[comment_idx].offset())
+                                                                 : std::numeric_limits<size_t>::max();
         const bool is_comment = comment_begin < token_begin;
         const auto begin = is_comment ? comment_begin : token_begin;
         const auto length = is_comment ? comments[comment_idx].length() : packed->token_lengths[token_idx];
@@ -1105,8 +1099,7 @@ std::string ShellSession::OpenTerminalCompletionOverlay(std::vector<CompletionCa
     const auto text = prompt_.Text();
     const auto target = std::min<size_t>(overlay.candidates.front().target_offset, text.size());
     overlay.hint_only = overlay.candidates.size() == 1 ||
-                        (overlay.candidates.front().target_length == 0 &&
-                         (target == 0 || text[target - 1] != '.'));
+                        (overlay.candidates.front().target_length == 0 && (target == 0 || text[target - 1] != '.'));
     const auto terminal_prompt = terminal_prompt_length_ == 0
                                      ? std::string_view{"dashql> "}
                                      : std::string_view{terminal_prompt_storage_.data(), terminal_prompt_length_};
@@ -1123,14 +1116,16 @@ std::string ShellSession::OpenTerminalCompletionOverlay(std::vector<CompletionCa
     }
     const auto available_content_width =
         std::max<size_t>(1, terminal_columns > overlay.anchor_column + 4 ? terminal_columns - overlay.anchor_column - 4
-                                                                        : max_content_width);
+                                                                         : max_content_width);
     for (auto& candidate : overlay.candidates) {
-        candidate.display_text = TruncateDisplayText(EscapeTerminalText(candidate.display_text), available_content_width);
+        candidate.display_text =
+            TruncateDisplayText(EscapeTerminalText(candidate.display_text), available_content_width);
         overlay.content_width = std::max(overlay.content_width, DisplayWidth(candidate.display_text));
     }
     SelectTerminalCompletionHint(overlay, text);
     if (overlay.anchor_column + overlay.content_width + 4 > terminal_columns) {
-        overlay.anchor_column = terminal_columns > overlay.content_width + 4 ? terminal_columns - overlay.content_width - 4 : 0;
+        overlay.anchor_column =
+            terminal_columns > overlay.content_width + 4 ? terminal_columns - overlay.content_width - 4 : 0;
     }
     return RenderTerminalCompletionOverlay();
 }
@@ -1317,10 +1312,10 @@ ShellOperation ShellSession::AcceptTerminalCompletion() {
     auto candidate = std::move(overlay.candidates[overlay.selection]);
     terminal_completion_overlays.erase(this);
     const auto continuation = candidate.continuation_text;
-    const auto qualification = candidate.qualification_texts.empty()
-                                   ? std::string{}
-                                   : candidate.qualification_texts[std::min(variant_selection,
-                                                                           candidate.qualification_texts.size() - 1)];
+    const auto qualification =
+        candidate.qualification_texts.empty()
+            ? std::string{}
+            : candidate.qualification_texts[std::min(variant_selection, candidate.qualification_texts.size() - 1)];
     const auto snapshot = ApplyCompletion(candidate);
     if (snapshot.status != ShellStatus::kOk) return {snapshot.status, std::move(snapshot.message)};
     prompt_.script().Parse();

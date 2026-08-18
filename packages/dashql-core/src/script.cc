@@ -54,8 +54,8 @@ ScannedScript::ScannedScript(std::string text, TextVersion text_version, Catalog
 buffers::parser::TextSpan ScannedScript::ResolveTextSpan(buffers::parser::SymbolSpan span) const {
     if (span.length() == 0) {
         if (span.offset() >= symbols.GetSize()) {
-            return buffers::parser::TextSpan(
-                static_cast<uint32_t>(text_buffer.size() > 2 ? text_buffer.size() - 2 : 0), 0);
+            return buffers::parser::TextSpan(static_cast<uint32_t>(text_buffer.size() > 2 ? text_buffer.size() - 2 : 0),
+                                             0);
         }
         auto& sym = symbols[span.offset()];
         return buffers::parser::TextSpan(sym.location.offset(), 0);
@@ -228,11 +228,12 @@ ParsedScript::ParsedScript(std::shared_ptr<ScannedScript> scan, parser::ParseCon
         }
     }
     assert(std::is_sorted(statements.begin(), statements.end(),
-                           [](auto& l, auto& r) { return l.nodes_begin < r.nodes_begin; }));
+                          [](auto& l, auto& r) { return l.nodes_begin < r.nodes_begin; }));
 }
 
-static std::unique_ptr<buffers::parser::StatementT> PackStatement(const ParsedScript& parsed, size_t statement_id) {
-    const auto& statement = parsed.statements[statement_id];
+std::unique_ptr<buffers::parser::StatementT> ParsedScript::PackStatement(size_t statement_id) const {
+    const auto& parsed = *this;
+    const auto& statement = statements[statement_id];
     auto out = statement.Pack();
     const auto& root = parsed.nodes[statement.root];
     auto find_attribute = [&](buffers::parser::AttributeKey key) -> const buffers::parser::Node* {
@@ -284,20 +285,16 @@ static std::unique_ptr<buffers::parser::StatementT> PackStatement(const ParsedSc
                        buffers::parser::AttributeKey::SQL_CREATE_TABLE_NAME);
             break;
         case buffers::parser::StatementType::CREATE_TABLE_AS:
-            set_target(buffers::parser::StatementTargetType::TABLE,
-                       buffers::parser::AttributeKey::SQL_CREATE_AS_NAME);
+            set_target(buffers::parser::StatementTargetType::TABLE, buffers::parser::AttributeKey::SQL_CREATE_AS_NAME);
             break;
         case buffers::parser::StatementType::CREATE_VIEW:
-            set_target(buffers::parser::StatementTargetType::VIEW,
-                       buffers::parser::AttributeKey::SQL_VIEW_NAME);
+            set_target(buffers::parser::StatementTargetType::VIEW, buffers::parser::AttributeKey::SQL_VIEW_NAME);
             break;
         case buffers::parser::StatementType::DROP_TABLE:
-            set_target(buffers::parser::StatementTargetType::TABLE,
-                       buffers::parser::AttributeKey::SQL_DROP_NAME);
+            set_target(buffers::parser::StatementTargetType::TABLE, buffers::parser::AttributeKey::SQL_DROP_NAME);
             break;
         case buffers::parser::StatementType::DROP_VIEW:
-            set_target(buffers::parser::StatementTargetType::VIEW,
-                       buffers::parser::AttributeKey::SQL_DROP_NAME);
+            set_target(buffers::parser::StatementTargetType::VIEW, buffers::parser::AttributeKey::SQL_DROP_NAME);
             break;
         case buffers::parser::StatementType::SELECT_INTO: {
             auto* into = find_select_attribute(buffers::parser::AttributeKey::SQL_SELECT_INTO);
@@ -429,9 +426,8 @@ std::vector<ParsedScript::StatementDescription> ParsedScript::AssociateDescripti
         while (end < comments.size() && comments[end].offset() < statement_metadata.source_span.offset()) {
             auto& comment = comments[end];
             bool first = end == begin;
-            bool allowed = first
-                ? IsLeadingDescriptionCommentGap(input, cursor, comment)
-                : IsDescriptionGap(input, cursor, comment.offset());
+            bool allowed = first ? IsLeadingDescriptionCommentGap(input, cursor, comment)
+                                 : IsDescriptionGap(input, cursor, comment.offset());
             if (!allowed) {
                 begin = end + 1;
             }
@@ -520,7 +516,7 @@ flatbuffers::Offset<buffers::parser::ParsedScript> ParsedScript::Pack(flatbuffer
     out.statements.reserve(statements.size());
     auto descriptions = AssociateDescriptions();
     for (size_t i = 0; i < statements.size(); ++i) {
-        auto statement = PackStatement(*this, i);
+        auto statement = PackStatement(i);
         auto& metadata = descriptions[i];
         statement->statement_span = std::make_unique<buffers::parser::TextSpan>(metadata.statement_span);
         statement->description_begin = metadata.description_begin;
@@ -1190,8 +1186,7 @@ void AnalyzedScript::FollowPathUpwards(uint32_t ast_node_id, std::vector<uint32_
     }
 }
 
-Script::Script(Catalog& catalog)
-    : catalog(catalog), catalog_entry_id(catalog.AllocateEntryId()), text(1024) {}
+Script::Script(Catalog& catalog) : catalog(catalog), catalog_entry_id(catalog.AllocateEntryId()), text(1024) {}
 
 Script::~Script() { catalog.DropScript(*this); }
 
