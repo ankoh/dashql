@@ -63,7 +63,7 @@ export interface BrowserShellController {
 }
 
 export function formatQueryCompletion(rowCount: number): string {
-    return `Query completed (${rowCount} ${rowCount === 1 ? 'row' : 'rows'})`;
+    return `Query completed (${rowCount} ${rowCount === 1 ? 'row' : 'rows'})${VT100.NEW_LINE}`;
 }
 
 export function formatTerminalGreeter(lines: readonly string[]): string {
