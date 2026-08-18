@@ -24,6 +24,7 @@ export interface PlanSceneOperatorStatistics {
     inputCardinalityConsumed: bigint;
     outputCardinalityEstimated: number;
     outputCardinalityProduced: bigint;
+    outputRows: number;
     memoryBytes: bigint;
 }
 
@@ -31,6 +32,7 @@ export interface PlanSceneEdge {
     id: bigint;
     childOperator: number;
     parentOperator: number;
+    outputRows: number;
     path: string;
 }
 
@@ -71,6 +73,37 @@ function readProperties(vm: dashql.buffers.view.PlanViewModel, op: dashql.buffer
     return properties;
 }
 
+function readNumberProperty(value: unknown, names: readonly string[]): number | null {
+    if (value == null || typeof value !== 'object' || Array.isArray(value)) return null;
+    const properties = value as Record<string, unknown>;
+    for (const name of names) {
+        const metric = properties[name];
+        if (typeof metric === 'number' && Number.isFinite(metric)) return metric;
+    }
+    return null;
+}
+
+export function resolveOutputRows(properties: Record<string, unknown>, estimatedRows: number): number {
+    const statistics = properties.statistics;
+    const actualRows = readNumberProperty(statistics, ['output-rows', 'outputRows'])
+        ?? readNumberProperty(properties, ['output-rows', 'outputRows']);
+    if (actualRows != null) return Math.max(0, actualRows);
+    const sourceEstimate = readNumberProperty(properties, ['estimated-rows', 'estimatedRows', 'cardinality']);
+    if (sourceEstimate != null) return Math.max(0, sourceEstimate);
+    const nestedEstimate = readNumberProperty(statistics, ['estimated-rows', 'estimatedRows', 'cardinality']);
+    if (nestedEstimate != null) return Math.max(0, nestedEstimate);
+    return Number.isFinite(estimatedRows) ? Math.max(0, estimatedRows) : 0;
+}
+
+export function scaleOutputRowWidths(values: readonly number[], minWidth = 1, maxWidth = 8): number[] {
+    const finiteValues = values.map(value => Number.isFinite(value) ? Math.max(0, value) : 0);
+    let maxValue = 0;
+    for (const value of finiteValues) maxValue = Math.max(maxValue, value);
+    if (maxValue === 0 || maxWidth <= minWidth) return finiteValues.map(() => minWidth);
+    const denominator = Math.log1p(maxValue);
+    return finiteValues.map(value => minWidth + Math.log1p(value) / denominator * (maxWidth - minWidth));
+}
+
 export function truncatePlanLabel(label: string, maxChars: number): string {
     const chars = Array.from(label);
     if (chars.length <= maxChars) return label;
@@ -107,6 +140,7 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
         const statistics = op.executionStatistics(tmpStatistics)!;
         const typeName = readString(vm, op.operatorTypeName());
         const label = readString(vm, op.operatorLabel()) ?? typeName ?? 'operator';
+        const properties = readProperties(vm, op);
         operators[op.operatorId()] = {
             id: op.operatorId(),
             typeName,
@@ -118,9 +152,10 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
                 inputCardinalityConsumed: statistics.inputCardinalityConsumed(),
                 outputCardinalityEstimated: statistics.outputCardinalityEstimated(),
                 outputCardinalityProduced: statistics.outputCardinalityProduced(),
+                outputRows: resolveOutputRows(properties, statistics.outputCardinalityEstimated()),
                 memoryBytes: statistics.memoryBytes(),
             },
-            properties: readProperties(vm, op),
+            properties,
         };
     }
 
@@ -136,7 +171,13 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
             child.rect.x, child.rect.y, parent.rect.x, parent.rect.y,
             child.rect.width, child.rect.height, parent.rect.width, parent.rect.height, 4,
         ).render();
-        edges.push({ id: edge.edgeId(), childOperator: child.id, parentOperator: parent.id, path });
+        edges.push({
+            id: edge.edgeId(),
+            childOperator: child.id,
+            parentOperator: parent.id,
+            outputRows: child.statistics.outputRows,
+            path,
+        });
     }
 
     const pipelines: PlanScenePipeline[] = [];

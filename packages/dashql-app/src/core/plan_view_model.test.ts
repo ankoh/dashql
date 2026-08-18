@@ -83,5 +83,28 @@ describe('Plan View Model', () => {
             expect(plan.pipelineEdges(0)!.childOperator()).toEqual(0);
             expect(plan.pipelineEdges(0)!.parentOperator()).toEqual(1);
         });
+        it('preserves estimated and analyzed output rows', () => {
+            const viewModel = dql!.createPlanViewModel(DEFAULT_LAYOUT_CONFIG);
+            const planPtr = viewModel.loadHyperPlan(`{
+                "operator":"executiontarget","cardinality":100,
+                "input":{
+                    "operator":"tablescan","estimated-rows":80,
+                    "statistics":{"output-rows":0}
+                }
+            }`);
+            const plan = planPtr.read();
+            const scan = plan.operators(0)!;
+            const target = plan.operators(1)!;
+            expect(scan.executionStatistics()!.outputCardinalityEstimated()).toEqual(80);
+            expect(scan.executionStatistics()!.outputCardinalityProduced()).toEqual(0n);
+            expect(target.executionStatistics()!.outputCardinalityEstimated()).toEqual(100);
+
+            const properties: Record<string, unknown> = {};
+            for (let i = 0; i < scan.attributeCount(); ++i) {
+                const attribute = plan.attributes(scan.attributesBegin() + i)!;
+                properties[plan.stringDictionary(attribute.name())!] = JSON.parse(plan.stringDictionary(attribute.valueJson())!);
+            }
+            expect(properties.statistics).toEqual({ 'output-rows': 0 });
+        });
     });
 });

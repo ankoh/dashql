@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ScreenFullIcon, ZoomInIcon, ZoomOutIcon } from '@primer/octicons-react';
+import { RowsIcon, ScreenFullIcon, ZoomInIcon, ZoomOutIcon } from '@primer/octicons-react';
 import { select, zoom, zoomIdentity, ZoomBehavior, ZoomTransform } from 'd3';
 
 import * as dashql from '../../../../../core/index.js';
@@ -10,7 +10,7 @@ import { AnchoredOverlay } from '../../../../../ui/foundations/anchored_overlay.
 import { AnchorAlignment, AnchorSide } from '../../../../../ui/foundations/anchored_position.js';
 import { OverlaySize } from '../../../../../ui/foundations/overlay.js';
 import { PlanExecutionController } from './plan_execution_controller.js';
-import { materializePlanScene, PlanScene, PlanSceneOperator } from './plan_scene.js';
+import { materializePlanScene, PlanScene, PlanSceneOperator, scaleOutputRowWidths } from './plan_scene.js';
 import * as styles from './plan_view.module.css';
 
 const FIT_PADDING = 24;
@@ -55,7 +55,12 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
     const zoomRef = React.useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
     const transformRef = React.useRef<ZoomTransform>(zoomIdentity);
     const [selection, setSelection] = React.useState<{ operator: PlanSceneOperator; anchor: SVGGElement } | null>(null);
+    const [metric, setMetric] = React.useState<'rows' | null>('rows');
     const [positionRevision, setPositionRevision] = React.useState(0);
+    const edgeWidths = React.useMemo(
+        () => metric === 'rows' ? scaleOutputRowWidths(scene.edges.map(edge => edge.outputRows)) : scene.edges.map(() => 1),
+        [metric, scene.edges],
+    );
 
     React.useLayoutEffect(() => {
         controller.reset(scene.operators.length, scene.pipelines.length);
@@ -156,7 +161,14 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
                         ))}
                     </g>
                     <g aria-hidden="true">
-                        {scene.edges.map(edge => <path key={edge.id.toString()} className={styles.edge} d={edge.path} />)}
+                        {scene.edges.map((edge, edgeIndex) => (
+                            <path
+                                key={edge.id.toString()}
+                                className={styles.edge}
+                                d={edge.path}
+                                style={{ strokeWidth: edgeWidths[edgeIndex] }}
+                            />
+                        ))}
                     </g>
                     <g>
                         {scene.operators.map(operator => (
@@ -173,6 +185,18 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
                     </g>
                 </g>
             </svg>
+            <ButtonGroup className={styles.metric_controls} aria-label="Plan metric controls">
+                <IconButton
+                    className={styles.metric_button}
+                    variant={ButtonVariant.Default}
+                    size={ButtonSize.Small}
+                    aria-label="Encode output rows as edge thickness"
+                    aria-pressed={metric === 'rows'}
+                    onClick={() => setMetric(current => current === 'rows' ? null : 'rows')}
+                >
+                    <RowsIcon size={12} />
+                </IconButton>
+            </ButtonGroup>
             <ButtonGroup className={styles.controls} aria-label="Plan zoom controls">
                 <IconButton variant={ButtonVariant.Default} size={ButtonSize.Small} aria-label="Zoom in" onClick={() => zoomBy(1.25)}><ZoomInIcon size={12} /></IconButton>
                 <IconButton variant={ButtonVariant.Default} size={ButtonSize.Small} aria-label="Zoom out" onClick={() => zoomBy(0.8)}><ZoomOutIcon size={12} /></IconButton>
