@@ -6,10 +6,10 @@ import {
     createNotebookShellEnvironment,
 } from './notebook_shell_environment.js';
 import {
-    createShellResultCommand,
+    createShellOutputCommand,
     estimateTerminalTableWidth,
     SHELL_AUTO_OVERLAY_ROW_LIMIT,
-    type ShellResultMode,
+    type ShellOutputMode,
 } from '../../../shell/shell_result.js';
 
 describe('notebook shell environment', () => {
@@ -74,8 +74,8 @@ describe('notebook shell environment', () => {
         expect(result).not.toHaveBeenCalled();
     });
 
-    it('honors forced overlay and terminal result modes', async () => {
-        let mode: ShellResultMode = 'overlay';
+    it('honors forced UI, terminal, and off output modes', async () => {
+        let mode: ShellOutputMode = 'ui';
         const execute = vi.fn<QueryExecutor>(() => [7, Promise.resolve(arrow.tableFromArrays({ value: [42] }))]);
         const environment = createNotebookShellEnvironment('notebook-1', execute, vi.fn(), () => mode);
         const result = vi.fn();
@@ -88,19 +88,24 @@ describe('notebook shell environment', () => {
         expect(arrow.tableFromIPC(await environment.executeQuery('SELECT 42', undefined, undefined, result))
             .getChild('value')?.get(0)).toBe(42);
         expect(result).not.toHaveBeenCalled();
+
+        mode = 'off';
+        expect(arrow.tableFromIPC(await environment.executeQuery('SELECT 42', undefined, undefined, result)).numCols).toBe(0);
+        expect(result).not.toHaveBeenCalled();
     });
 
-    it('configures and reports the result display mode', async () => {
-        let mode: ShellResultMode = 'auto';
-        const command = createShellResultCommand(() => mode, next => { mode = next; });
+    it('configures and reports the query output mode', async () => {
+        let mode: ShellOutputMode = 'auto';
+        const command = createShellOutputCommand(() => mode, next => { mode = next; });
 
         expect(await command[2]([], {})).toBe(
-            `Result display: auto (overlay when results exceed ${SHELL_AUTO_OVERLAY_ROW_LIMIT} rows or terminal width)`,
+            `Query output: auto (UI when results exceed ${SHELL_AUTO_OVERLAY_ROW_LIMIT} rows or terminal width)`,
         );
-        expect(await command[2](['overlay'], {})).toBe('Result display: overlay');
-        expect(mode).toBe('overlay');
-        expect(await command[2](['term'], {})).toBe('Result display: term');
-        expect(() => command[2](['invalid'], {})).toThrow('usage: .result [auto|overlay|term]');
+        expect(await command[2](['ui'], {})).toBe('Query output: ui');
+        expect(mode).toBe('ui');
+        expect(await command[2](['term'], {})).toBe('Query output: term');
+        expect(await command[2](['off'], {})).toBe('Query output: off');
+        expect(() => command[2](['invalid'], {})).toThrow('usage: .output [auto|ui|term|off]');
     });
 
     it('propagates aborts to the connection query executor', async () => {

@@ -12,7 +12,7 @@ import { ShellQueryResultOverlay } from '../app/notebook/shell/shell_query_resul
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { loginCommand } from './commands/login.js';
 import { useShellConnection } from './shell_connection.js';
-import { createShellResultCommand, type ShellResultMode } from './shell_result.js';
+import { createShellOutputCommand, type ShellOutputMode } from './shell_result.js';
 import * as styles from './shell_page.module.css';
 
 const LOG_CTX = 'standalone_shell';
@@ -33,7 +33,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const { setConnected, queryExecutions } = useShellConnection();
     const [, dispatchComputation] = useComputationRegistry();
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const resultModeRef = React.useRef<ShellResultMode>('auto');
+    const outputModeRef = React.useRef<ShellOutputMode>('auto');
     const terminalColumnsRef = React.useRef(100);
     const [status, setStatus] = React.useState('Instantiating database');
     const [resultQueryId, setResultQueryId] = React.useState<number | null>(null);
@@ -72,10 +72,10 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             setConnected(true);
 
             setStatus('Instantiating shell');
-            const getResultMode = () => resultModeRef.current;
+            const getOutputMode = () => outputModeRef.current;
             const nextShell = await createDashQLShell({
                 environment: createEmbeddedDatabaseShellEnvironment(connection, queryExecutions, {
-                    getResultMode,
+                    getOutputMode,
                     getTerminalColumns: () => terminalColumnsRef.current,
                     prepareResult: (queryId, table) => analyzeTable(
                         queryId,
@@ -88,7 +88,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 trackSessionRelations: true,
                 commands: [
                     loginCommand,
-                    createShellResultCommand(getResultMode, mode => { resultModeRef.current = mode; }),
+                    createShellOutputCommand(getOutputMode, mode => { outputModeRef.current = mode; }),
                 ],
                 onProgress: progress => {
                     if (!cancelled) {

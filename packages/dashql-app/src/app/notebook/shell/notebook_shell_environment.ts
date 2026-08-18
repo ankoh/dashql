@@ -4,8 +4,8 @@ import { CancelQuery, QueryExecutor } from '../connections/query_executor.js';
 import { QueryType } from '../connections/query_execution_state.js';
 import type { DashQLShellEnvironment } from '../../../shell/api.js';
 import {
-    shouldShowResultOverlay,
-    type ShellResultMode,
+    shouldShowResultUI,
+    type ShellOutputMode,
 } from '../../../shell/shell_result.js';
 
 const EMPTY_RESULT_IPC = arrow.tableToIPC(arrow.tableFromArrays({}), 'file');
@@ -14,7 +14,7 @@ export function createNotebookShellEnvironment(
     connectionId: string,
     executeQuery: QueryExecutor,
     cancelQuery: CancelQuery,
-    getResultMode: () => ShellResultMode = () => 'auto',
+    getOutputMode: () => ShellOutputMode = () => 'auto',
     getTerminalColumns: () => number = () => 100,
 ): DashQLShellEnvironment {
     return {
@@ -45,11 +45,12 @@ export function createNotebookShellEnvironment(
                     if (signal?.aborted) throw new DOMException('Query was cancelled', 'AbortError');
                     throw new Error('Query failed without an error');
                 }
-                const showOverlay = shouldShowResultOverlay(getResultMode(), table, getTerminalColumns());
-                if (showOverlay) {
+                const outputMode = getOutputMode();
+                if (shouldShowResultUI(outputMode, table, getTerminalColumns())) {
                     onResult?.(queryId, table.numRows);
                     return EMPTY_RESULT_IPC;
                 }
+                if (outputMode === 'off') return EMPTY_RESULT_IPC;
                 return arrow.tableToIPC(table, 'file');
             } finally {
                 signal?.removeEventListener('abort', abort);

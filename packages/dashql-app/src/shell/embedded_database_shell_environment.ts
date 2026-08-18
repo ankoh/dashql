@@ -9,12 +9,12 @@ import {
 import type { EmbeddedConnection } from '../platform/database/embedded_database.js';
 import { DashQLShellEnvironment } from './api.js';
 import { executeTrackedQuery } from '../query/tracked_query_execution.js';
-import { shouldShowResultOverlay, type ShellResultMode } from './shell_result.js';
+import { shouldShowResultUI, type ShellOutputMode } from './shell_result.js';
 
 const EMPTY_RESULT_IPC = arrow.tableToIPC(arrow.tableFromArrays({}), 'file');
 
 interface EmbeddedDatabaseShellEnvironmentOptions {
-    getResultMode?: () => ShellResultMode;
+    getOutputMode?: () => ShellOutputMode;
     getTerminalColumns?: () => number;
     prepareResult?: (queryId: number, table: arrow.Table) => void | Promise<void>;
 }
@@ -61,16 +61,18 @@ export function createEmbeddedDatabaseShellEnvironment(
                             type: QUERY_RECEIVED_ALL_BATCHES,
                             value: [tracked.queryId, table, new Map(), metrics],
                         });
-                        const showOverlay = shouldShowResultOverlay(
-                            options.getResultMode?.() ?? 'auto',
+                        const outputMode = options.getOutputMode?.() ?? 'auto';
+                        const showUI = shouldShowResultUI(
+                            outputMode,
                             table,
                             options.getTerminalColumns?.() ?? 100,
                         );
-                        if (showOverlay && onResult != null) {
+                        if (showUI && onResult != null) {
                             await options.prepareResult?.(tracked.queryId, table);
                             onResult(tracked.queryId, table.numRows);
                             return EMPTY_RESULT_IPC;
                         }
+                        if (outputMode === 'off') return EMPTY_RESULT_IPC;
                         return queryResult;
                     },
                 });

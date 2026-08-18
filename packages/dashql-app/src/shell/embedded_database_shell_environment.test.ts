@@ -46,7 +46,7 @@ describe('embedded database shell environment', () => {
         expect(queryArrowIPC).toHaveBeenCalledWith('CREATE TABLE foo(a INT)');
     });
 
-    it('prepares and opens results in overlay mode', async () => {
+    it('prepares and opens results in UI mode', async () => {
         const table = arrow.tableFromArrays({ value: [42] });
         const queryArrowIPC = vi.fn().mockResolvedValue(arrow.tableToIPC(table, 'file'));
         const prepareResult = vi.fn();
@@ -54,7 +54,7 @@ describe('embedded database shell environment', () => {
             { queryArrowIPC } as any,
             undefined,
             {
-                getResultMode: () => 'overlay',
+                getOutputMode: () => 'ui',
                 prepareResult,
             },
         );
@@ -65,6 +65,23 @@ describe('embedded database shell environment', () => {
         expect(arrow.tableFromIPC(result).numCols).toBe(0);
         expect(prepareResult).toHaveBeenCalledWith(expect.any(Number), expect.objectContaining({ numRows: 1 }));
         expect(onResult).toHaveBeenCalledWith(expect.any(Number), 1);
+    });
+
+    it('suppresses query output in off mode', async () => {
+        const table = arrow.tableFromArrays({ value: [42] });
+        const queryArrowIPC = vi.fn().mockResolvedValue(arrow.tableToIPC(table, 'file'));
+        const environment = createEmbeddedDatabaseShellEnvironment(
+            { queryArrowIPC } as any,
+            undefined,
+            { getOutputMode: () => 'off' },
+        );
+        const onResult = vi.fn();
+
+        const result = await environment.executeQuery('SELECT 42', undefined, undefined, onResult);
+
+        expect(arrow.tableFromIPC(result).numCols).toBe(0);
+        expect(queryArrowIPC).toHaveBeenCalledWith('SELECT 42');
+        expect(onResult).not.toHaveBeenCalled();
     });
 
     it('rejects an already cancelled query before reaching the database', async () => {

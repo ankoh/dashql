@@ -15,7 +15,7 @@ import {
     createNotebookShellEnvironment,
 } from './notebook_shell_environment.js';
 import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
-import { createShellResultCommand, type ShellResultMode } from '../../../shell/shell_result.js';
+import { createShellOutputCommand, type ShellOutputMode } from '../../../shell/shell_result.js';
 
 const LOG_CTX = 'notebook_shell_page';
 
@@ -39,7 +39,7 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
     const controllerRef = React.useRef<BrowserShellController | null>(null);
     const shellRef = React.useRef<DashQLShell | null>(null);
     const generationRef = React.useRef(0);
-    const resultModeRef = React.useRef<ShellResultMode>('auto');
+    const outputModeRef = React.useRef<ShellOutputMode>('auto');
     const terminalColumnsRef = React.useRef(100);
     const [status, setStatus] = React.useState('Instantiating Shell');
     const [resultQueryId, setResultQueryId] = React.useState<number | null>(null);
@@ -51,20 +51,20 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
         if (connection == null || containerRef.current == null) return;
         const generation = ++generationRef.current;
         let cancelled = false;
-        const getResultMode = () => resultModeRef.current;
+        const getOutputMode = () => outputModeRef.current;
         const environment = createNotebookShellEnvironment(
                 connection.connectionId,
             executeQuery,
             cancelQuery,
-            getResultMode,
+            getOutputMode,
             () => terminalColumnsRef.current,
         );
-        const resultCommand = createShellResultCommand(getResultMode, mode => {
-            resultModeRef.current = mode;
+        const outputCommand = createShellOutputCommand(getOutputMode, mode => {
+            outputModeRef.current = mode;
         });
         setStatus(shellRef.current == null ? 'Instantiating Shell' : 'Refreshing shell catalog');
         void createNotebookShell({ relationsSql, functionsSql }, environment, {
-            commands: [resultCommand],
+            commands: [outputCommand],
             onProgress: progress => {
                 if (!cancelled && generation === generationRef.current) {
                     setStatus(`Instantiating Shell: ${formatInstantiationProgress(progress.bytesLoaded, progress.bytesTotal)}`);
