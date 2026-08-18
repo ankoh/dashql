@@ -25,7 +25,10 @@ artifact. Cloudflare does not clone or build the repository.
 
 Cloudflare Pages treats a deployment without a top-level `404.html` as a single-page app. Unknown
 paths are served by `index.html`, while uploaded files and everything under `/static/` are served
-directly. `packages/dashql-app/_redirects` internally rewrites `/oauth.html` to Pages' canonical
+directly. A directory-local `static/404.html` ensures missing static assets return a real 404 instead
+of the SPA shell without disabling top-level SPA routing. The Pages artifact also copies the runtime
+`static/config.json` alongside Vite's generated assets. `packages/dashql-app/_redirects` internally
+rewrites `/oauth.html` to Pages' canonical
 `/oauth` asset without changing the browser URL. This avoids Pages' default redirect to an
 extensionless URL because OAuth providers and the token exchange require the registered
 `https://dashql.app/oauth.html` redirect URI to remain exact.
@@ -33,7 +36,10 @@ extensionless URL because OAuth providers and the token exchange require the reg
 `packages/dashql-app/_headers` is included in the Bazel `//packages/dashql-app:pages` output. It
 defines the cross-origin isolation headers and browser cache policy:
 
-- `/static/*` and `/releases/*`: one year, immutable.
+- Web assets use Pages' deployment-aware default (`max-age=0, must-revalidate`). Do not override
+  `/static/*` with an immutable browser TTL: header rules match the requested URL, so a temporary
+  404 for a fingerprinted URL would inherit that TTL too.
+- `/releases/*`: one year, immutable.
 - Uncompressed WASM under `/static/wasm/*.wasm`: `Content-Type: application/wasm`.
 - Brotli-compressed WASM under `/static/assets/*.br`: `Content-Encoding: br` and
   `Content-Type: application/wasm`.

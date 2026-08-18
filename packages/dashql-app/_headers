@@ -3,10 +3,6 @@
   Cross-Origin-Opener-Policy: same-origin
   Access-Control-Allow-Origin: *
 
-# Vite fingerprints generated assets, so browsers can retain them across deployments.
-/static/*
-  Cache-Control: public, max-age=31536000, immutable
-
 # Serve uncompressed WebAssembly with the MIME type required for streaming compilation.
 /static/wasm/*.wasm
   Content-Type: application/wasm

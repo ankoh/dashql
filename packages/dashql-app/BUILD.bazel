@@ -262,6 +262,7 @@ copy_to_bin(
         "static/**/*.webmanifest",
         "static/**/*.xml",
         "static/**/*.sql",
+        "static/**/*.html",
         "static/config.json",
     ]),
 )
@@ -372,12 +373,15 @@ copy_to_directory(
         ":pages_vite",
         "_headers",
         "_redirects",
+        "static/404.html",
+        "static/config.json",
     ],
     out = "pages_deploy",
     replace_prefixes = {
         "pages": "",
         "packages/dashql-app/_headers": "_headers",
         "packages/dashql-app/_redirects": "_redirects",
+        "packages/dashql-app/static": "static",
     },
     visibility = ["//visibility:public"],
 )
