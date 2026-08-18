@@ -124,6 +124,16 @@ describe('HyperDB embedded database integration', () => {
         await connection.close();
     });
 
+    it('returns no Arrow IPC chunks for successful DDL', async () => {
+        const connection = await database!.connect();
+
+        const result = await connection.queryArrowIPC('CREATE TABLE foo(a INT)');
+
+        expect(result).toHaveLength(0);
+        expect(toPlainObjects(await connection.query('SELECT * FROM foo'))).toEqual([]);
+        await connection.close();
+    });
+
     it('keeps shared tables visible across physical DataFrame connections', async () => {
         const inputName = generateTableName('__hyper_input');
         const summaryName = generateTableName('__hyper_summary');

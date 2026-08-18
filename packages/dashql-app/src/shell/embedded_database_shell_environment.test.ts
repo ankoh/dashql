@@ -25,6 +25,16 @@ describe('embedded database shell environment', () => {
         expect(result).toBe(stream);
     });
 
+    it('normalizes successful queries without result chunks', async () => {
+        const queryArrowIPC = vi.fn().mockResolvedValue(new Uint8Array());
+        const environment = createEmbeddedDatabaseShellEnvironment({ queryArrowIPC } as any);
+
+        const result = await environment.executeQuery('CREATE TABLE foo(a INT)');
+
+        expect(arrow.tableFromIPC(result).numCols).toBe(0);
+        expect(queryArrowIPC).toHaveBeenCalledWith('CREATE TABLE foo(a INT)');
+    });
+
     it('prepares and opens results in overlay mode', async () => {
         const table = arrow.tableFromArrays({ value: [42] });
         const queryArrowIPC = vi.fn().mockResolvedValue(arrow.tableToIPC(table, 'file'));

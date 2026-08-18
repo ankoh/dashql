@@ -45,11 +45,15 @@ export function createEmbeddedDatabaseShellEnvironment(
                         userProvided: true,
                     },
                     execute: async tracked => {
-                        const queryResult = await connection.queryArrowIPC(query);
+                        let queryResult = await connection.queryArrowIPC(query);
                         cancellation.signal.throwIfAborted();
+                        const totalDataBytesReceived = queryResult.byteLength;
+                        if (queryResult.byteLength === 0) {
+                            queryResult = EMPTY_RESULT_IPC;
+                        }
                         const table = arrow.tableFromIPC(queryResult);
                         const metrics = createQueryResponseStreamMetrics();
-                        metrics.totalDataBytesReceived = queryResult.byteLength;
+                        metrics.totalDataBytesReceived = totalDataBytesReceived;
                         metrics.totalBatchesReceived = table.batches.length;
                         metrics.totalRowsReceived = table.numRows;
                         tracked.dispatch({
