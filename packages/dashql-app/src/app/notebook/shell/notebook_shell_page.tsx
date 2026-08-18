@@ -16,9 +16,6 @@ import {
 } from './notebook_shell_environment.js';
 import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
 import { createShellOutputCommand, type ShellOutputMode } from '../../../shell/shell_result.js';
-import { createShellFilesCommand, ShellFileRegistry } from '../../../shell/shell_files.js';
-import { useFileDownloader } from '../../../platform/file/file_downloader_provider.js';
-import { examplesCommand } from '../../../shell/commands/examples.js';
 
 const LOG_CTX = 'notebook_shell_page';
 
@@ -38,9 +35,7 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
     const executeQuery = useQueryExecutor();
     const cancelQuery = useCancelQuery();
     const { setMode } = useNotebookViewMode();
-    const fileDownloader = useFileDownloader();
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const fileRegistryRef = React.useRef(new ShellFileRegistry());
     const controllerRef = React.useRef<BrowserShellController | null>(null);
     const shellRef = React.useRef<DashQLShell | null>(null);
     const generationRef = React.useRef(0);
@@ -69,11 +64,7 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
         });
         setStatus(shellRef.current == null ? 'Instantiating Shell' : 'Refreshing shell catalog');
         void createNotebookShell({ relationsSql, functionsSql }, environment, {
-            commands: [
-                examplesCommand,
-                outputCommand,
-                createShellFilesCommand(fileRegistryRef.current, fileDownloader),
-            ],
+            commands: [outputCommand],
             onProgress: progress => {
                 if (!cancelled && generation === generationRef.current) {
                     setStatus(`Instantiating Shell: ${formatInstantiationProgress(progress.bytesLoaded, progress.bytesTotal)}`);
@@ -118,7 +109,7 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
         return () => {
             cancelled = true;
         };
-    }, [connection?.notebookId, relationsSql, functionsSql, executeQuery, cancelQuery, fileDownloader, setMode]);
+    }, [connection?.notebookId, relationsSql, functionsSql, executeQuery, cancelQuery, setMode]);
 
     React.useEffect(() => {
         if (active) controllerRef.current?.focus();
