@@ -16,17 +16,18 @@ jobs:
         name: Core Wasm Fastbuild
         runs-on: ubuntu-24.04
         steps:
-            - name: Install apt dependencies
-              shell: bash
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y clang lld
-
             - uses: actions/checkout@v6
               with:
                   submodules: 'recursive'
                   fetch-depth: 0
                   ref: ${{ inputs.commit || github.sha }}
+
+            - uses: ./.github/actions/setup-ubuntu-mirror
+
+            - name: Install apt dependencies
+              shell: bash
+              run: |
+                  sudo apt-get install -y clang lld
 
             - name: Setup Bazel
               uses: ./.github/actions/setup-bazel
@@ -45,17 +46,18 @@ jobs:
         name: Core Wasm Release
         runs-on: ubuntu-24.04
         steps:
-            - name: Install apt dependencies
-              shell: bash
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y clang lld
-
             - uses: actions/checkout@v6
               with:
                   submodules: 'recursive'
                   fetch-depth: 0
                   ref: ${{ inputs.commit || github.sha }}
+
+            - uses: ./.github/actions/setup-ubuntu-mirror
+
+            - name: Install apt dependencies
+              shell: bash
+              run: |
+                  sudo apt-get install -y clang lld
 
             - name: Setup Bazel
               uses: ./.github/actions/setup-bazel
@@ -75,10 +77,17 @@ jobs:
         runs-on: ubuntu-24.04
         needs: [core_wasm_fastbuild]
         steps:
+            - uses: actions/checkout@v6
+              with:
+                  submodules: 'recursive'
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit || github.sha }}
+
+            - uses: ./.github/actions/setup-ubuntu-mirror
+
             - name: Install apt dependencies
               shell: bash
               run: |
-                  sudo apt-get update
                   sudo apt-get install -y \
                     clang \
                     lld \
@@ -88,12 +97,6 @@ jobs:
                     libwebkit2gtk-4.1-dev \
                     libayatana-appindicator3-dev \
                     librsvg2-dev
-
-            - uses: actions/checkout@v6
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ inputs.commit || github.sha }}
 
             - name: Setup Bazel
               uses: ./.github/actions/setup-bazel
@@ -132,10 +135,17 @@ jobs:
         runs-on: ubuntu-24.04
         needs: [core_wasm_release]
         steps:
+            - uses: actions/checkout@v6
+              with:
+                  submodules: 'recursive'
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit || github.sha }}
+
+            - uses: ./.github/actions/setup-ubuntu-mirror
+
             - name: Install apt dependencies
               shell: bash
               run: |
-                  sudo apt-get update
                   sudo apt-get install -y \
                     clang \
                     lld \
@@ -145,12 +155,6 @@ jobs:
                     libwebkit2gtk-4.1-dev \
                     libayatana-appindicator3-dev \
                     librsvg2-dev
-
-            - uses: actions/checkout@v6
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ inputs.commit || github.sha }}
 
             - name: Setup Bazel
               uses: ./.github/actions/setup-bazel

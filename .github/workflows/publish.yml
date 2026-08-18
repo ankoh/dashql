@@ -46,17 +46,18 @@ jobs:
         name: Native apps
         runs-on: ubuntu-24.04
         steps:
-            - name: Install apt dependencies
-              shell: bash
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y lld
-
             - uses: actions/checkout@v6
               with:
                   submodules: 'recursive'
                   fetch-depth: 0
                   ref: ${{ inputs.commit || github.sha }}
+
+            - uses: ./.github/actions/setup-ubuntu-mirror
+
+            - name: Install apt dependencies
+              shell: bash
+              run: |
+                  sudo apt-get install -y lld
 
             - name: Setup Bazel
               uses: ./.github/actions/setup-bazel

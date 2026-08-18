@@ -1,0 +1,17 @@
+name: 'Setup Ubuntu mirror'
+description: 'Replace unstable Azure Ubuntu package mirrors with the Ubuntu archive'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Switch off unstable Azure Ubuntu mirror
+      shell: bash
+      run: |
+        for source in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources; do
+          [[ -f "$source" ]] || continue
+          sudo sed -i \
+            -e 's|http://azure.archive.ubuntu.com/ubuntu/|http://archive.ubuntu.com/ubuntu/|g' \
+            -e 's|http://security.ubuntu.com/ubuntu/|http://archive.ubuntu.com/ubuntu/|g' \
+            "$source"
+        done
+        sudo apt-get update
