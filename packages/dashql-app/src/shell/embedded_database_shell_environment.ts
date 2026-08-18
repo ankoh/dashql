@@ -25,7 +25,7 @@ export function createEmbeddedDatabaseShellEnvironment(
     options: EmbeddedDatabaseShellEnvironmentOptions = {},
 ): DashQLShellEnvironment {
     return {
-        executeQuery: async (query, signal, _onProgress, onResult) => {
+        executeQuery: async (query, signal, onProgress, onResult) => {
             const cancellation = new AbortController();
             const abort = () => cancellation.abort();
             if (signal?.aborted) abort();
@@ -45,6 +45,7 @@ export function createEmbeddedDatabaseShellEnvironment(
                         userProvided: true,
                     },
                     execute: async tracked => {
+                        onProgress?.('Executing query');
                         let queryResult = await connection.queryArrowIPC(query);
                         cancellation.signal.throwIfAborted();
                         const totalDataBytesReceived = queryResult.byteLength;

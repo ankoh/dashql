@@ -15,6 +15,17 @@ describe('embedded database shell environment', () => {
         expect(queryArrowIPC).toHaveBeenCalledWith('SELECT 42');
     });
 
+    it('reports progress while the database query is running', async () => {
+        const result = arrow.tableToIPC(arrow.tableFromArrays({ value: [42] }), 'file');
+        const queryArrowIPC = vi.fn().mockResolvedValue(result);
+        const environment = createEmbeddedDatabaseShellEnvironment({ queryArrowIPC } as any);
+        const onProgress = vi.fn();
+
+        await environment.executeQuery('SELECT 42', undefined, onProgress);
+
+        expect(onProgress).toHaveBeenCalledWith('Executing query');
+    });
+
     it('passes Arrow IPC streams through to the shell renderer', async () => {
         const stream = arrow.tableToIPC(arrow.tableFromArrays({ value: [42] }), 'stream');
         const queryArrowIPC = vi.fn().mockResolvedValue(stream);

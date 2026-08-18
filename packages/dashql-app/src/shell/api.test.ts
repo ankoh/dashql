@@ -576,6 +576,19 @@ describe('DashQL shell Wasm', () => {
         expect(shell.consumePromptInput(DashQLShellPromptInput.DOWN).cursorByteOffset).toBe('SELECT ab\nFROM tabl'.length);
     });
 
+    it('continues through history after loading a multiline query with Up', async () => {
+        shell.setPrompt('SELECT 1;');
+        await shell.submitPrompt();
+        shell.setPrompt('SELECT 2\n;');
+        await shell.submitPrompt();
+        shell.setPrompt('');
+
+        expect(shell.consumePromptInput(DashQLShellPromptInput.UP).text).toBe('SELECT 2\n;');
+        expect(shell.consumePromptInput(DashQLShellPromptInput.UP).text).toBe('SELECT 1;');
+        expect(shell.consumePromptInput(DashQLShellPromptInput.DOWN).text).toBe('SELECT 2\n;');
+        expect(shell.consumePromptInput(DashQLShellPromptInput.DOWN).text).toBe('');
+    });
+
     it('navigates to the prompt start and end', () => {
         const query = 'SELECT 👩‍💻';
         shell.consumePromptInput(DashQLShellPromptInput.TEXT, query);
