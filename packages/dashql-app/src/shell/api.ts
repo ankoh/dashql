@@ -122,6 +122,10 @@ interface DashQLShellEffectResult {
     data: Uint8Array;
 }
 
+interface DashQLShellSettings {
+    timer: boolean;
+}
+
 export interface DashQLShellOptions {
     environment: DashQLShellEnvironment;
     trackSessionRelations?: boolean;
@@ -215,6 +219,7 @@ export class DashQLShell {
     protected activeExecution: AbortController | null = null;
     protected readonly catalogScripts: DashQLScript[] = [];
     protected readonly commands: Map<string, DashQLShellCommand>;
+    protected readonly settings: DashQLShellSettings;
 
     protected constructor(
         protected readonly module: DashQLShellModule,
@@ -223,8 +228,10 @@ export class DashQLShell {
         protected readonly environment: DashQLShellEnvironment,
         terminalColumns: number,
         commands: Map<string, DashQLShellCommand>,
+        settings: DashQLShellSettings,
     ) {
         this.commands = commands;
+        this.settings = settings;
         this.shell = module._dashql_shell_new(catalog.ptr.assertNotNull(), terminalColumns);
         if (this.shell === 0) {
             throw new DashQLShellError(DashQLShellStatus.INTERNAL_ERROR, 'failed to create DashQL shell');
@@ -254,7 +261,8 @@ export class DashQLShell {
     }
 
     static async create(options: DashQLShellOptions): Promise<DashQLShell> {
-        const commands = createShellCommands(options.commands ?? []);
+        const settings: DashQLShellSettings = { timer: false };
+        const commands = createShellCommands(options.commands ?? [], settings);
         const wasmUrl = options.wasmUrl?.toString() ?? shellWasmUrl;
         const instantiateModule = async (
             onProgress: ((progress: DashQLShellInstantiationProgress) => void) | undefined,
@@ -332,6 +340,7 @@ export class DashQLShell {
             options.environment,
             options.terminalColumns ?? 100,
             commands,
+            settings,
         );
         if (options.trackSessionRelations) {
             const status = module._dashql_shell_session_relations_set(shell.shell, true) as DashQLShellStatus;
@@ -572,9 +581,14 @@ export class DashQLShell {
 
         try {
             let operation = start();
+            let queryElapsedMs: number | null = null;
             while (operation.status === DashQLShellStatus.PENDING) {
                 const effect = this.requireEffect(operation);
+                const timerStartedAt = effect.type === DashQLShellEffectType.EXECUTE_QUERY && this.settings.timer
+                    ? performance.now()
+                    : null;
                 const completion = await this.runEffect(effect, executionAbort.signal, onProgress, onResult);
+                if (timerStartedAt != null) queryElapsedMs = performance.now() - timerStartedAt;
                 if (this.shell === 0) {
                     throw new DashQLShellError(DashQLShellStatus.STALE_EFFECT, 'DashQL shell was destroyed');
                 }
@@ -582,7 +596,10 @@ export class DashQLShell {
                     ? this.cancelEffect(effect.id)
                     : this.completeEffect(effect.id, completion.status, completion.data);
             }
-            return this.requireComplete(operation);
+            const output = this.requireComplete(operation);
+            return queryElapsedMs == null
+                ? output
+                : `${output}${output.length === 0 ? '' : '\r\n'}Elapsed: ${formatElapsed(queryElapsedMs)}`;
         } finally {
             this.lifecycleAbort.signal.removeEventListener('abort', abortExecution);
             signal?.removeEventListener('abort', abortExecution);
@@ -848,7 +865,10 @@ export class DashQLShell {
     }
 }
 
-function createShellCommands(extensions: readonly DashQLShellCommand[]): Map<string, DashQLShellCommand> {
+function createShellCommands(
+    extensions: readonly DashQLShellCommand[],
+    settings: DashQLShellSettings,
+): Map<string, DashQLShellCommand> {
     const commands = new Map<string, DashQLShellCommand>();
     const register = (command: DashQLShellCommand) => {
         const name = command[0].toLowerCase();
@@ -857,6 +877,17 @@ function createShellCommands(extensions: readonly DashQLShellCommand[]): Map<str
         commands.set(name, [name, command[1], command[2]]);
     };
     register(['clear', 'Clear the terminal screen', () => undefined]);
+    register([
+        'timer',
+        'Set query timer: on or off',
+        args => {
+            if (args.length > 1 || (args.length === 1 && !['on', 'off'].includes(args[0]))) {
+                throw new Error('usage: .timer [on|off]');
+            }
+            if (args.length === 1) settings.timer = args[0] === 'on';
+            return `Timer: ${settings.timer ? 'on' : 'off'}`;
+        },
+    ]);
     register([
         'help',
         'List available dot commands',
@@ -867,6 +898,19 @@ function createShellCommands(extensions: readonly DashQLShellCommand[]): Map<str
     ]);
     for (const command of extensions) register(command);
     return commands;
+}
+
+function formatElapsed(elapsedMs: number): string {
+    if (elapsedMs < 1000) return `${Math.round(elapsedMs)} ms`;
+    if (elapsedMs < 60_000) return `${(elapsedMs / 1000).toFixed(3)} s`;
+    const totalSeconds = Math.floor(elapsedMs / 1000);
+    const milliseconds = Math.floor(elapsedMs) % 1000;
+    const seconds = totalSeconds % 60;
+    const totalMinutes = Math.floor(totalSeconds / 60);
+    const minutes = totalMinutes % 60;
+    const hours = Math.floor(totalMinutes / 60);
+    const suffix = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
+    return hours === 0 ? suffix : `${String(hours).padStart(2, '0')}:${suffix}`;
 }
 
 export async function createDashQLShell(options: DashQLShellOptions): Promise<DashQLShell> {

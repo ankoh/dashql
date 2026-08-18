@@ -347,6 +347,25 @@ describe('DashQL shell Wasm', () => {
         await expect(shell.submitPrompt()).resolves.toContain('.login');
     });
 
+    it('configures and reports query timing', async () => {
+        shell.setPrompt('.timer');
+        await expect(shell.submitPrompt()).resolves.toBe('Timer: off');
+
+        shell.setPrompt('.timer on');
+        await expect(shell.submitPrompt()).resolves.toBe('Timer: on');
+
+        shell.setPrompt('SELECT 42;');
+        await expect(shell.submitPrompt()).resolves.toMatch(/test database is not configured\r\nElapsed: \d+ ms/);
+
+        shell.setPrompt('.timer off');
+        await expect(shell.submitPrompt()).resolves.toBe('Timer: off');
+        shell.setPrompt('SELECT 42;');
+        await expect(shell.submitPrompt()).resolves.toBe('test database is not configured');
+
+        shell.setPrompt('.timer invalid');
+        await expect(shell.submitPrompt()).resolves.toBe('usage: .timer [on|off]');
+    });
+
     it('reports unknown dot commands without executing SQL', async () => {
         shell.setPrompt('.missing');
         await expect(shell.submitPrompt()).resolves.toBe('unknown command: .missing');
