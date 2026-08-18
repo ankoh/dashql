@@ -333,7 +333,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "KnGxIzrwK+0KdSWqbGG4a4eaq7xM03bH4Dhoo1DYc5A=",
+        "bzlTransitiveDigest": "33gqqf3Of0CRh/j084eAytJbs2g9lJll2DqfRGPU9Zo=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -366,12 +366,6 @@
               "strip_prefix": "flatbuffers-25.12.19",
               "urls": [
                 "https://github.com/google/flatbuffers/archive/refs/tags/v25.12.19.zip"
-              ],
-              "patches": [
-                "@@//bazel/patches:flatbuffers_pthread.patch"
-              ],
-              "patch_args": [
-                "-p1"
               ]
             }
           },
@@ -531,7 +525,7 @@
     },
     "//packages/dashql-data:deps.bzl%dashql_datasets": {
       "general": {
-        "bzlTransitiveDigest": "EKHxN2VEFsFouUCdBGxgIge0Pne4ZfDqaTQCYK5qzbo=",
+        "bzlTransitiveDigest": "M2Jf7ZhfIapxKeyzwrIRbeAWgeOr9bF/CvfNVvSGcaI=",
         "usagesDigest": "9/L3i6J/hCuVodSExd/OhU+8RgPqZrNJh2dYfdMS3tc=",
         "recordedInputs": [
           "REPO_MAPPING:,aspect_bazel_lib aspect_bazel_lib+",

@@ -32,6 +32,11 @@ describe('DashQL shell Wasm', () => {
 
     afterEach(() => shell.destroy());
 
+    it('uses non-shared Wasm memory', () => {
+        expect((shell as any).module.HEAPU8.buffer).toBeInstanceOf(ArrayBuffer);
+        expect((shell as any).module.HEAPU8.buffer).not.toBeInstanceOf(SharedArrayBuffer);
+    });
+
     it('rejects operations after destruction', () => {
         shell.destroy();
         expect(() => shell.resize(40)).toThrowError(DashQLShellError);

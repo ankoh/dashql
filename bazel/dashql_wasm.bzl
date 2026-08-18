@@ -110,8 +110,5 @@ def dashql_wasm_linkopts(exports, initial_memory, environment, maximum_memory = 
         "-sUSE_SDL=0",
     ]
     if maximum_memory != None:
-        linkopts.extend([
-            "-sMAXIMUM_MEMORY=" + str(maximum_memory),
-            "-sPTHREAD_POOL_SIZE=0",
-        ])
+        linkopts.append("-sMAXIMUM_MEMORY=" + str(maximum_memory))
     return linkopts

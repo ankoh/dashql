@@ -127,24 +127,6 @@ cc_library(
 )
 
 cc_library(
-    name = "parser_generated_wasm_pthread",
-    srcs = ["//grammar:gen/include/dashql/parser/parser_generated.cc"],
-    copts = WASM_COPTS + ["-O1", "-matomics"],
-    features = ["use_pthreads", "wasm_exceptions", "wasm_simd"],
-    target_compatible_with = ["@platforms//cpu:wasm32"],
-    deps = CORE_DEPS,
-)
-
-cc_library(
-    name = "scanner_generated_wasm_pthread",
-    srcs = ["//grammar:scanner_generated"],
-    copts = WASM_COPTS + ["-matomics"],
-    features = ["use_pthreads", "wasm_exceptions", "wasm_simd"],
-    target_compatible_with = ["@platforms//cpu:wasm32"],
-    deps = [":parser_generated_wasm_pthread"] + CORE_DEPS,
-)
-
-cc_library(
     name = "scanner_generated_wasm",
     srcs = ["//grammar:scanner_generated"],
     copts = WASM_COPTS,
@@ -156,12 +138,12 @@ cc_library(
 cc_library(
     name = "dashql_core_wasm_library",
     srcs = LIB_SRCS,
-    copts = WASM_COPTS + ["-matomics"],
-    features = ["use_pthreads", "wasm_exceptions", "wasm_simd"],
+    copts = WASM_COPTS,
+    features = ["wasm_exceptions", "wasm_simd"],
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [
-        ":parser_generated_wasm_pthread",
-        ":scanner_generated_wasm_pthread",
+        ":parser_generated_wasm",
+        ":scanner_generated_wasm",
     ] + CORE_DEPS,
     visibility = ["//visibility:private"],
 )
@@ -204,7 +186,6 @@ SHELL_COPTS = [
 
 SHELL_WASM_COPTS = SHELL_COPTS + [
     "-DWASM=1",
-    "-matomics",
     "-mbulk-memory",
 ]
 
@@ -230,7 +211,6 @@ cc_library(
         "//conditions:default": SHELL_COPTS,
     }),
     features = [
-        "use_pthreads",
         "wasm_exceptions",
     ],
     includes = ["include"],
@@ -264,7 +244,6 @@ cc_binary(
     name = "dashql_shell_wasm",
     copts = SHELL_WASM_COPTS,
     features = [
-        "use_pthreads",
         "wasm_exceptions",
         "wasm_simd",
     ],
