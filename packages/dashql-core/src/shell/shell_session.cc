@@ -1098,8 +1098,9 @@ std::string ShellSession::OpenTerminalCompletionOverlay(std::vector<CompletionCa
     overlay.candidates = std::move(candidates);
     const auto text = prompt_.Text();
     const auto target = std::min<size_t>(overlay.candidates.front().target_offset, text.size());
-    overlay.hint_only = overlay.candidates.size() == 1 ||
-                        (overlay.candidates.front().target_length == 0 && (target == 0 || text[target - 1] != '.'));
+    const bool follows_dot = target > 0 && text[target - 1] == '.';
+    overlay.hint_only = !follows_dot &&
+                        (overlay.candidates.size() == 1 || overlay.candidates.front().target_length == 0);
     const auto terminal_prompt = terminal_prompt_length_ == 0
                                      ? std::string_view{"dashql> "}
                                      : std::string_view{terminal_prompt_storage_.data(), terminal_prompt_length_};

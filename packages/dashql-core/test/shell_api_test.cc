@@ -819,6 +819,33 @@ TEST(ShellApiTest, ListsHintsAndAcceptsColumnAfterFullyQualifiedTableAlias) {
     dashql_shell_destroy(shell);
 }
 
+TEST(ShellApiTest, ListsColumnsAfterShortTableAlias) {
+    dashql::Catalog catalog;
+    dashql::Script schema{catalog};
+    schema.InsertTextAt(0, "CREATE TABLE foo(only_column BIGINT);");
+    schema.Analyze();
+    ASSERT_NO_THROW(catalog.LoadScript(schema, 0));
+
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+    DashQLShellTerminalResult output{};
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    constexpr std::string_view query = "select * from foo x where x.";
+    for (const char character : query) {
+        ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, std::string_view{&character, 1}),
+                  DASHQL_SHELL_OK);
+        if (character != query.back()) dashql_shell_terminal_result_destroy(&output);
+    }
+    EXPECT_NE(TerminalData(output).find("only_column"), std::string_view::npos) << TerminalData(output);
+    EXPECT_NE(TerminalData(output).find("╭"), std::string_view::npos) << TerminalData(output);
+    EXPECT_NE(TerminalData(output).find(dashql::shell::vt100::kReverseVideo), std::string_view::npos)
+        << TerminalData(output);
+    dashql_shell_terminal_result_destroy(&output);
+    dashql_shell_destroy(shell);
+}
+
 TEST(ShellApiTest, ListsColumnsAfterQualifiedAliasBeforeLaterPromptLines) {
     dashql::Catalog catalog;
     dashql::Script schema{catalog};
