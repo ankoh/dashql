@@ -15,6 +15,7 @@ import { ConnectionRegistry } from '../app/notebook/connections/connection_regis
 import { ComputationRegistry } from '../compute/computation_registry.js';
 import { ComputationScheduler } from '../compute/computation_scheduler.js';
 import { DashQLCoreProvider } from '../app/providers/core_provider.js';
+import { ShellComputeQueryExecutionProvider } from './computation_query_execution.js';
 import * as styles from './shell.module.css';
 
 import '../../static/fonts/fonts.css';
@@ -35,13 +36,15 @@ export const Shell: React.FC = () => {
                                 <GitHubTheme>
                                     <DashQLCoreProvider>
                                         <ComputationRegistry>
-                                            <ComputationScheduler />
                                             <ConnectionRegistry>
                                                 <ShellConnectionProvider>
-                                                    <div className={styles.root}>
-                                                        <ShellNavBar engineVersion={engineVersion} />
-                                                        <ShellPage onEngineVersion={setEngineVersion} />
-                                                    </div>
+                                                    <ShellComputeQueryExecutionProvider>
+                                                        <ComputationScheduler />
+                                                        <div className={styles.root}>
+                                                            <ShellNavBar engineVersion={engineVersion} />
+                                                            <ShellPage onEngineVersion={setEngineVersion} />
+                                                        </div>
+                                                    </ShellComputeQueryExecutionProvider>
                                                 </ShellConnectionProvider>
                                             </ConnectionRegistry>
                                         </ComputationRegistry>
