@@ -106,9 +106,9 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             fileShort: 'duckdb',
         },
         icons: {
-            colored: "database",
-            uncolored: "database",
-            outlines: "database",
+            colored: "duckdb",
+            uncolored: "duckdb_nocolor",
+            outlines: "duckdb_nocolor",
         },
         catalogResolver: CatalogResolver.SQL_INFORMATION_SCHEMA,
         features: {
@@ -195,7 +195,7 @@ export function requiresSwitchingToNative(info: ConnectorInfo) {
 
 export const useConnectorList = () => {
     const connectorTypes = isNativePlatform()
-        ? [ConnectorType.DUCKDB, ConnectorType.HYPER, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.TRINO]
+        ? [ConnectorType.HYPER, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.TRINO, ConnectorType.DUCKDB]
         : [ConnectorType.HYPER, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.TRINO];
     return connectorTypes.map(type => CONNECTOR_INFOS[type]).filter(isConnectorAvailable);
 };

@@ -16,13 +16,13 @@ describe('connector list', () => {
         expect(CONNECTOR_INFOS[ConnectorType.DUCKDB].platforms.browser).toBe(false);
     });
 
-    it('shows DuckDB first in Tauri', () => {
+    it('shows DuckDB last in Tauri', () => {
         (globalThis as any).__TAURI_INTERNALS__ = {};
         expect(useConnectorList().map(info => info.connectorType)).toEqual([
-            ConnectorType.DUCKDB,
             ConnectorType.HYPER,
             ConnectorType.SALESFORCE_DATA_CLOUD,
             ConnectorType.TRINO,
+            ConnectorType.DUCKDB,
         ]);
     });
 });
@@ -35,5 +35,15 @@ describe('connector hello world scripts', () => {
         [ConnectorType.TRINO, 'select version();'],
     ])('defines an executable starter query for %s', (connectorType, expected) => {
         expect(CONNECTOR_INFOS[connectorType].helloWorldScript).toBe(expected);
+    });
+});
+
+describe('connector icons', () => {
+    it('uses DuckDB-specific symbols', () => {
+        expect(CONNECTOR_INFOS[ConnectorType.DUCKDB].icons).toEqual({
+            colored: 'duckdb',
+            uncolored: 'duckdb_nocolor',
+            outlines: 'duckdb_nocolor',
+        });
     });
 });
