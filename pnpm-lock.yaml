@@ -136,8 +136,8 @@ importers:
         specifier: ^10.4.1
         version: 10.4.1
       hyperdb-wasm:
-        specifier: 0.0.26297-dev.wasm.g08f2873d
-        version: 0.0.26297-dev.wasm.g08f2873d
+        specifier: 0.0.26304-dev.wasm.g36a4b6a4
+        version: 0.0.26304-dev.wasm.g36a4b6a4
       immutable:
         specifier: ^5.1.9
         version: 5.1.9
@@ -925,9 +925,6 @@ packages:
   '@types/lodash@4.17.24':
     resolution: {integrity: sha512-gIW7lQLZbue7lRSWEFql49QJJWThrTFFeIMJdp3eH4tKoxm1OvEPg02rm4wCCSHS0cL3/Fizimb35b7k8atwsQ==}
 
-  '@types/node@20.19.43':
-    resolution: {integrity: sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==}
-
   '@types/node@24.12.4':
     resolution: {integrity: sha512-GUUEShf+PBCGW2KaXwcIt3Yk+e3pkKwWKb9GSyM9WQVE+ep2jzmHdGsHzu4wgcZy5fN9FBdVzjpBQsYlpfpgLA==}
 
@@ -1083,10 +1080,6 @@ packages:
   ansi-styles@4.3.0:
     resolution: {integrity: sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==}
     engines: {node: '>=8'}
-
-  apache-arrow@19.0.1:
-    resolution: {integrity: sha512-APmMLzS4qbTivLrPdQXexGM4JRr+0g62QDaobzEvip/FdQIrv2qLy0mD5Qdmw4buydtVJgbFeKR8f59I6PPGDg==}
-    hasBin: true
 
   apache-arrow@21.1.0:
     resolution: {integrity: sha512-kQrYLxhC+NTVVZ4CCzGF6L/uPVOzJmD1T3XgbiUnP7oTeVFOFgEUu6IKNwCDkpFoBVqDKQivlX4RUFqqnWFlEA==}
@@ -1485,9 +1478,6 @@ packages:
     resolution: {integrity: sha512-f7ccFPK3SXFHpx15UIGyRJ/FJQctuKZ0zVuN3frBo4HnK3cay9VEW0R6yPYFHC0AgqhukPzKjq22t5DmAyqGyw==}
     engines: {node: '>=16'}
 
-  flatbuffers@24.12.23:
-    resolution: {integrity: sha512-dLVCAISd5mhls514keQzmEG6QHmUUsNuWsb4tFafIUwvvgDjXhtfAYSKOzt5SWOy+qByV5pbsDZ+Vb7HUOBEdA==}
-
   flatbuffers@25.9.23:
     resolution: {integrity: sha512-MI1qs7Lo4Syw0EOzUl0xjs2lsoeqFku44KpngfIduHBYvzm8h2+7K8YMQh1JtVVVrUvhLpNwqVi4DERegUJhPQ==}
 
@@ -1525,8 +1515,8 @@ packages:
     resolution: {integrity: sha512-CV9TW3Y3f8/wT0BRFc1/KAVQ3TUHiXmaAb6VW9vtiMFf7SLoMd1PdAc4W3KFOFETBJUb90KatHqlsZMWV+R9Gg==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
 
-  hyperdb-wasm@0.0.26297-dev.wasm.g08f2873d:
-    resolution: {integrity: sha512-Byap55XCsndcoyJeqtOzMChNBwm+jzOJqvxMbn1OQo8ZS4tkR8aggihBEX8uYexGYslMDG6WC74ZWL5QbZZPPg==}
+  hyperdb-wasm@0.0.26304-dev.wasm.g36a4b6a4:
+    resolution: {integrity: sha512-fz8ymBA5Rblw+aH5gX10I4YcEOa3+cncSj2cANYBFVVaCcqlX3JTGMk4x/jgXMNxchw2DpLFyfhQuGFRkppxWg==}
     engines: {node: '>=24'}
 
   iconv-lite@0.6.3:
@@ -2187,9 +2177,6 @@ packages:
   typical@7.3.0:
     resolution: {integrity: sha512-ya4mg/30vm+DOWfBg4YK3j2WD6TWtRkCbasOJr40CseYENzCUby/7rIvXA99JGsQHeNxLbnXdyLLxKSv3tauFw==}
     engines: {node: '>=12.17'}
-
-  undici-types@6.21.0:
-    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
   undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
@@ -3148,10 +3135,6 @@ snapshots:
 
   '@types/lodash@4.17.24': {}
 
-  '@types/node@20.19.43':
-    dependencies:
-      undici-types: 6.21.0
-
   '@types/node@24.12.4':
     dependencies:
       undici-types: 7.16.0
@@ -3342,20 +3325,6 @@ snapshots:
   ansi-styles@4.3.0:
     dependencies:
       color-convert: 2.0.1
-
-  apache-arrow@19.0.1:
-    dependencies:
-      '@swc/helpers': 0.5.20
-      '@types/command-line-args': 5.2.3
-      '@types/command-line-usage': 5.0.4
-      '@types/node': 20.19.43
-      command-line-args: 6.0.2
-      command-line-usage: 7.0.4
-      flatbuffers: 24.12.23
-      json-bignum: 0.0.3
-      tslib: 2.8.1
-    transitivePeerDependencies:
-      - '@75lb/nature'
 
   apache-arrow@21.1.0:
     dependencies:
@@ -3771,8 +3740,6 @@ snapshots:
       flatted: 3.4.2
       keyv: 4.5.4
 
-  flatbuffers@24.12.23: {}
-
   flatbuffers@25.9.23: {}
 
   flatted@3.4.2: {}
@@ -3809,9 +3776,9 @@ snapshots:
     transitivePeerDependencies:
       - '@noble/hashes'
 
-  hyperdb-wasm@0.0.26297-dev.wasm.g08f2873d:
+  hyperdb-wasm@0.0.26304-dev.wasm.g36a4b6a4:
     dependencies:
-      apache-arrow: 19.0.1
+      apache-arrow: 21.1.0
     transitivePeerDependencies:
       - '@75lb/nature'
 
@@ -4424,8 +4391,6 @@ snapshots:
   typescript@6.0.3: {}
 
   typical@7.3.0: {}
-
-  undici-types@6.21.0: {}
 
   undici-types@7.16.0: {}
 

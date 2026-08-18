@@ -8,7 +8,7 @@
 
 ### HyperDB requirements
 
-The tested package is `hyperdb-wasm@0.0.26297-dev.wasm.g08f2873d`. Its engine is built with:
+The tested package is `hyperdb-wasm@0.0.26304-dev.wasm.g36a4b6a4`. Its engine is built with:
 
 - WebAssembly Memory64 (`-m64` / wasm64).
 - WebAssembly exceptions.
