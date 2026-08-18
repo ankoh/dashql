@@ -527,7 +527,7 @@ PromptSnapshot ShellSession::ConsumePromptInput(PromptInputKey key, std::string_
             prompt_.MoveToEnd();
             break;
         case PromptInputKey::kUp:
-            if (prompt_.MoveUp()) break;
+            if (history_cursor_ == history_.size() && prompt_.MoveUp()) break;
             [[fallthrough]];
         case PromptInputKey::kHistoryPrevious:
             if (!history_.empty() && history_cursor_ > 0) {
@@ -537,7 +537,7 @@ PromptSnapshot ShellSession::ConsumePromptInput(PromptInputKey key, std::string_
             }
             break;
         case PromptInputKey::kDown:
-            if (prompt_.MoveDown()) break;
+            if (history_cursor_ == history_.size() && prompt_.MoveDown()) break;
             [[fallthrough]];
         case PromptInputKey::kHistoryNext:
             if (history_cursor_ < history_.size()) {

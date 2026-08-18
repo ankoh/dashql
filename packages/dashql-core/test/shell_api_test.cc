@@ -368,6 +368,42 @@ TEST(ShellApiTest, NavigatesMultilinePromptWithUpAndDown) {
     dashql_shell_destroy(shell);
 }
 
+TEST(ShellApiTest, ContinuesHistoryNavigationAfterLoadingMultilinePrompt) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+
+    std::string history;
+    for (const auto query : {std::string_view{"SELECT 1;"}, std::string_view{"SELECT 2\n;"}}) {
+        const auto size = static_cast<uint32_t>(query.size());
+        for (size_t i = 0; i < sizeof(size); ++i) history.push_back(static_cast<char>(size >> (i * 8)));
+        history.append(query);
+    }
+    DashQLShellResult operation{};
+    ASSERT_EQ(dashql_shell_history_import(shell, reinterpret_cast<const uint8_t*>(history.data()), history.size(),
+                                          &operation),
+              DASHQL_SHELL_OK);
+    dashql_shell_result_destroy(&operation);
+
+    DashQLShellPromptResult prompt{};
+    ASSERT_EQ(dashql_shell_prompt_set(shell, nullptr, 0, &prompt), DASHQL_SHELL_OK);
+    dashql_shell_prompt_result_destroy(&prompt);
+
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_UP, nullptr, 0, &prompt), DASHQL_SHELL_OK);
+    EXPECT_EQ(PromptText(prompt), "SELECT 2\n;");
+    dashql_shell_prompt_result_destroy(&prompt);
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_UP, nullptr, 0, &prompt), DASHQL_SHELL_OK);
+    EXPECT_EQ(PromptText(prompt), "SELECT 1;");
+    dashql_shell_prompt_result_destroy(&prompt);
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_DOWN, nullptr, 0, &prompt), DASHQL_SHELL_OK);
+    EXPECT_EQ(PromptText(prompt), "SELECT 2\n;");
+    dashql_shell_prompt_result_destroy(&prompt);
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_DOWN, nullptr, 0, &prompt), DASHQL_SHELL_OK);
+    EXPECT_TRUE(PromptText(prompt).empty());
+    dashql_shell_prompt_result_destroy(&prompt);
+    dashql_shell_destroy(shell);
+}
+
 TEST(ShellApiTest, NavigatesToPromptStartAndEnd) {
     dashql::Catalog catalog;
     auto* shell = dashql_shell_new(&catalog, 80);
