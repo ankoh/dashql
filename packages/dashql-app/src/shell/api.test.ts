@@ -201,6 +201,34 @@ describe('DashQL shell Wasm', () => {
         expect(shell.openTerminal('db> ').data).toContain('db> ');
     });
 
+    it('copies query effects from shared Wasm memory before decoding them', async () => {
+        const heap = (shell as any).module.HEAPU8 as any;
+        const slice = heap.slice;
+        // Model browsers retaining the shared backing buffer when slicing pthread Wasm memory.
+        heap.slice = function (start?: number, end?: number) {
+            return this.subarray(start, end);
+        };
+        const decoder = new TextDecoder();
+        (shell as any).textDecoder = {
+            decode(input?: AllowSharedBufferSource) {
+                if (ArrayBuffer.isView(input) && input.buffer instanceof SharedArrayBuffer) {
+                    throw new TypeError('The provided ArrayBufferView value must not be shared');
+                }
+                return decoder.decode(input);
+            },
+        } as TextDecoder;
+        executeQuery = async query => {
+            expect(query).toBe('CREATE TABLE foo(a INT)');
+            return arrow.tableToIPC(arrow.tableFromArrays({}), 'file');
+        };
+
+        try {
+            await expect(shell.executeQuery('CREATE TABLE foo(a INT)')).resolves.toBe('');
+        } finally {
+            heap.slice = slice;
+        }
+    });
+
     it('redraws a wrapped prompt from its current physical row', () => {
         shell.resize(16);
         shell.openTerminal('hyper> ');

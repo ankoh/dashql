@@ -762,7 +762,7 @@ export class DashQLShell {
             const outputPointer = this.module.HEAPU32[resultIndex + RESULT_DATA_POINTER];
             return {
                 status,
-                data: this.module.HEAPU8.slice(outputPointer, outputPointer + outputLength),
+                data: new Uint8Array(this.module.HEAPU8.subarray(outputPointer, outputPointer + outputLength)),
             };
         } finally {
             this.module._dashql_shell_result_destroy(result);
