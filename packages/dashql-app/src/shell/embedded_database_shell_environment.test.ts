@@ -15,6 +15,22 @@ describe('embedded database shell environment', () => {
         expect(queryArrowIPC).toHaveBeenCalledWith('SELECT 42');
     });
 
+    it('executes repeated queries against the database instead of caching results', async () => {
+        const first = arrow.tableToIPC(arrow.tableFromArrays({ value: [1] }), 'file');
+        const second = arrow.tableToIPC(arrow.tableFromArrays({ value: [2] }), 'file');
+        const queryArrowIPC = vi.fn()
+            .mockResolvedValueOnce(first)
+            .mockResolvedValueOnce(second);
+        const environment = createEmbeddedDatabaseShellEnvironment({ queryArrowIPC } as any);
+
+        const firstResult = await environment.executeQuery('SELECT value');
+        const secondResult = await environment.executeQuery('SELECT value');
+
+        expect(queryArrowIPC).toHaveBeenCalledTimes(2);
+        expect(arrow.tableFromIPC(firstResult).getChild('value')?.get(0)).toBe(1);
+        expect(arrow.tableFromIPC(secondResult).getChild('value')?.get(0)).toBe(2);
+    });
+
     it('reports progress while the database query is running', async () => {
         const result = arrow.tableToIPC(arrow.tableFromArrays({ value: [42] }), 'file');
         const queryArrowIPC = vi.fn().mockResolvedValue(result);

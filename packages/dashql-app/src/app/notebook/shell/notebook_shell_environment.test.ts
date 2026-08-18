@@ -19,6 +19,7 @@ describe('notebook shell environment', () => {
             expect(connectionId).toBe('connection-7');
             expect(args.query).toBe('SELECT 42');
             expect(args.analyzeResults).toBe(true);
+            expect(args.cacheable).toBe(false);
             expect(args.throwOnError).toBe(true);
             args.onLog?.('Executing query');
             return [7, Promise.resolve(arrow.tableFromArrays({ value: [42] }))];

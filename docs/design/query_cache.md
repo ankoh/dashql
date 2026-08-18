@@ -6,7 +6,7 @@ DashQL caches successful user-query results in notebook-local files. A repeat of
 
 The cache stores an Arrow IPC stream for a result table. It applies only when the caller opts in through `QueryExecutionArgs.cacheable`.
 
-Notebook user queries opt in, including explicit execution, execute-on-send, agent-triggered visualization re-execution, and reruns. Internal catalog, setup, and health-check queries do not set the flag and therefore never read or write the cache. Merely loading or viewing a notebook does not execute queries or read cached results; a user-triggered execution is required.
+Notebook user queries opt in, including explicit execution, execute-on-send, agent-triggered visualization re-execution, and reruns. Shell queries never opt in: the notebook shell sets `cacheable: false`, and the standalone shell executes directly against its embedded database connection. Internal catalog, setup, and health-check queries also do not set the flag and therefore never read or write the cache. Merely loading or viewing a notebook does not execute queries or read cached results; a user-triggered execution is required.
 
 The cache is deliberately not a general consistency mechanism. It assumes that a result is a pure function of its connection signature and query text. Callers must not mark a query cacheable when that assumption does not hold.
 
