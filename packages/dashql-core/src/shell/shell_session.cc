@@ -655,7 +655,8 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
         return {ShellStatus::kOk, std::move(output)};
     }
     output_prefix.append(RenderTerminalPrompt());
-    if (key != PromptInputKey::kForceSubmit && key != PromptInputKey::kTab) {
+    if (key != PromptInputKey::kForceSubmit && key != PromptInputKey::kTab && key != PromptInputKey::kUp &&
+        key != PromptInputKey::kDown) {
         output_prefix.append(RefreshTerminalCompletionOverlay());
     }
     return {ShellStatus::kOk, std::move(output_prefix)};

@@ -608,6 +608,24 @@ describe('DashQL shell Wasm', () => {
         expect(shell.consumePromptInput(DashQLShellPromptInput.DOWN).text).toBe('');
     });
 
+    it('continues terminal history navigation after recalled queries open completion', async () => {
+        shell.setPrompt('SELECT 1;');
+        await shell.submitPrompt();
+        shell.setPrompt('SELECT 2;');
+        await shell.submitPrompt();
+        shell.setPrompt('');
+        shell.openTerminal('db> ');
+
+        shell.consumeTerminalInput(DashQLShellPromptInput.UP);
+        shell.consumeTerminalInput(DashQLShellPromptInput.UP);
+        expect(shell.movePromptRight().text).toBe('SELECT 1;');
+
+        shell.consumeTerminalInput(DashQLShellPromptInput.DOWN);
+        expect(shell.movePromptRight().text).toBe('SELECT 2;');
+        shell.consumeTerminalInput(DashQLShellPromptInput.DOWN);
+        expect(shell.movePromptRight().text).toBe('');
+    });
+
     it('navigates to the prompt start and end', () => {
         const query = 'SELECT 👩‍💻';
         shell.consumePromptInput(DashQLShellPromptInput.TEXT, query);
