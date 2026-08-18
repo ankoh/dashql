@@ -13,6 +13,8 @@ import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shel
 import { loginCommand } from './commands/login.js';
 import { useShellConnection } from './shell_connection.js';
 import { createShellOutputCommand, type ShellOutputMode } from './shell_result.js';
+import { createShellFilesCommand, ShellFileRegistry } from './shell_files.js';
+import { useFileDownloader } from '../platform/file/file_downloader_provider.js';
 import * as styles from './shell_page.module.css';
 
 const LOG_CTX = 'standalone_shell';
@@ -32,7 +34,9 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
     const { setConnected, queryExecutions } = useShellConnection();
     const [, dispatchComputation] = useComputationRegistry();
+    const fileDownloader = useFileDownloader();
     const containerRef = React.useRef<HTMLDivElement>(null);
+    const fileRegistryRef = React.useRef(new ShellFileRegistry());
     const outputModeRef = React.useRef<ShellOutputMode>('auto');
     const terminalColumnsRef = React.useRef(100);
     const [status, setStatus] = React.useState('Instantiating database');
@@ -89,6 +93,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 commands: [
                     loginCommand,
                     createShellOutputCommand(getOutputMode, mode => { outputModeRef.current = mode; }),
+                    createShellFilesCommand(fileRegistryRef.current, fileDownloader),
                 ],
                 onProgress: progress => {
                     if (!cancelled) {
@@ -139,7 +144,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             setConnected(false);
             void connection?.close();
         };
-    }, [dispatchComputation, logger, props.onEngineVersion, queryExecutions, setConnected, setupEmbeddedDatabase]);
+    }, [dispatchComputation, fileDownloader, logger, props.onEngineVersion, queryExecutions, setConnected, setupEmbeddedDatabase]);
 
     return (
         <main className={styles.page} aria-label="HyperDB Shell">
