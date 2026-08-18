@@ -191,7 +191,7 @@ describe('DashQL shell Wasm', () => {
         const output = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, "SELECT '界' FROM t").data;
         expect(output).toContain(VT100.BOLD_FOREGROUND_PINK + 'SELECT' + VT100.RESET_ATTRIBUTES);
         expect(output).toContain(VT100.FOREGROUND_CORAL + "'界'" + VT100.RESET_ATTRIBUTES);
-        expect(output).toContain(VT100.FOREGROUND_BLUE + 't' + VT100.RESET_ATTRIBUTES);
+        expect(output).toContain(VT100.FOREGROUND_SILVER + 't' + VT100.RESET_ATTRIBUTES);
     });
 
     it('copies terminal output from shared Wasm memory before decoding it', () => {
@@ -481,7 +481,7 @@ describe('DashQL shell Wasm', () => {
 
         const firstStep = shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
         expect(firstStep.data).toContain(VT100.BOLD_FOREGROUND_PINK + 'SELECT' + VT100.RESET_ATTRIBUTES);
-        expect(firstStep.data).toContain(VT100.FOREGROUND_BLUE + 'supplier' + VT100.RESET_ATTRIBUTES);
+        expect(firstStep.data).toContain(VT100.FOREGROUND_SILVER + 'supplier' + VT100.RESET_ATTRIBUTES);
         expect(firstStep.data).toContain(VT100.BOLD_FOREGROUND_PINK + 'group' + VT100.RESET_ATTRIBUTES);
         expect(firstStep.data).toContain(VT100.FOREGROUND_BRIGHT_BLACK + ' by');
         expect(shell.movePromptRight().text).toBe('SELECT * FROM supplier group');

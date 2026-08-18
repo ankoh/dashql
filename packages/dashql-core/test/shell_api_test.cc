@@ -280,7 +280,7 @@ TEST(ShellApiTest, RendersHighlightedTerminalPrompt) {
     EXPECT_NE(rendered.find(std::string{dashql::shell::vt100::kForegroundCoral} + "'界'" +
                             std::string{dashql::shell::vt100::kResetAttributes}),
               std::string::npos);
-    EXPECT_NE(rendered.find(std::string{dashql::shell::vt100::kForegroundBlue} + "t" +
+    EXPECT_NE(rendered.find(std::string{dashql::shell::vt100::kForegroundSilver} + "t" +
                             std::string{dashql::shell::vt100::kResetAttributes}),
               std::string::npos);
     dashql_shell_terminal_result_destroy(&output);
@@ -921,7 +921,7 @@ TEST(ShellApiTest, AppliesKeywordCompletionInMultipleSteps) {
                                         std::string{dashql::shell::vt100::kResetAttributes}),
               std::string_view::npos)
         << TerminalData(output);
-    EXPECT_NE(TerminalData(output).find(std::string{dashql::shell::vt100::kForegroundBlue} + "supplier" +
+    EXPECT_NE(TerminalData(output).find(std::string{dashql::shell::vt100::kForegroundSilver} + "supplier" +
                                         std::string{dashql::shell::vt100::kResetAttributes}),
               std::string_view::npos)
         << TerminalData(output);

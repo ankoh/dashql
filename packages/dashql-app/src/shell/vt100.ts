@@ -26,7 +26,7 @@ export const VT100 = {
     FOREGROUND_BRIGHT_BLACK: '\x1b[90m',
     BOLD_FOREGROUND_PINK: '\x1b[1;38;2;255;122;178m',
     FOREGROUND_CORAL: '\x1b[38;2;255;129;112m',
-    FOREGROUND_BLUE: '\x1b[38;2;121;192;255m',
+    FOREGROUND_SILVER: '\x1b[38;2;201;209;217m',
 } as const;
 
 // Mirrors the shell core's parameterized CSI encoding for browser-side assertions and adapters.
