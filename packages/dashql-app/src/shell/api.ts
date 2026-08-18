@@ -599,7 +599,7 @@ export class DashQLShell {
             const output = this.requireComplete(operation);
             return queryElapsedMs == null
                 ? output
-                : `${output}${output.length === 0 ? '' : '\r\n'}Elapsed: ${formatElapsed(queryElapsedMs)}`;
+                : `${output}${output.length === 0 || /(?:\r\n|\n|\r)$/.test(output) ? '' : '\r\n'}Elapsed: ${formatElapsed(queryElapsedMs)}`;
         } finally {
             this.lifecycleAbort.signal.removeEventListener('abort', abortExecution);
             signal?.removeEventListener('abort', abortExecution);
@@ -738,9 +738,7 @@ export class DashQLShell {
                         const message = error instanceof Error ? error.message : String(error);
                         finish({
                             status: DashQLShellEffectCompletionStatus.ERROR,
-                            data: this.textEncoder.encode(effect.type === DashQLShellEffectType.EXECUTE_COMMAND
-                                ? withTrailingNewline(message)
-                                : message),
+                            data: this.textEncoder.encode(withTrailingNewline(message)),
                         });
                     },
                 );

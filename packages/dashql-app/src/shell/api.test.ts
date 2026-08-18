@@ -96,12 +96,12 @@ describe('DashQL shell Wasm', () => {
             wasmBinary: await DASHQL_SHELL_PRECOMPILED,
         });
 
-        await expect(shell.executeQuery('CREATE TABLE failed (id BIGINT)')).resolves.toBe('expected');
+        await expect(shell.executeQuery('CREATE TABLE failed (id BIGINT)')).resolves.toBe('expected\r\n');
         shell.setPrompt('select * from fail');
         expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'failed')).toBe(false);
 
         await shell.executeQuery('CREATE TABLE retained (id BIGINT)');
-        await expect(shell.executeQuery('DROP TABLE retained')).resolves.toBe('expected');
+        await expect(shell.executeQuery('DROP TABLE retained')).resolves.toBe('expected\r\n');
         shell.setPrompt('select * from reta');
         expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'retained')).toBe(true);
 
@@ -130,7 +130,7 @@ describe('DashQL shell Wasm', () => {
             throw new Error('backend unavailable');
         };
         shell.setPrompt('SELECT 42;');
-        await expect(shell.submitPrompt()).resolves.toBe('backend unavailable');
+        await expect(shell.submitPrompt()).resolves.toBe('backend unavailable\r\n');
     });
 
     it('forwards query progress through the asynchronous effect interface', async () => {
@@ -148,7 +148,7 @@ describe('DashQL shell Wasm', () => {
         });
         shell.setPrompt('SELECT 42;');
 
-        await expect(shell.submitPrompt(undefined, progress)).resolves.toBe('expected');
+        await expect(shell.submitPrompt(undefined, progress)).resolves.toBe('expected\r\n');
         expect(progress).toHaveBeenCalledWith('Executing query');
     });
 
@@ -178,7 +178,7 @@ describe('DashQL shell Wasm', () => {
         };
         const prompt = "SELECT ';' AS value;  \n";
         shell.setPrompt(prompt);
-        await expect(shell.submitPrompt()).resolves.toBe('expected');
+        await expect(shell.submitPrompt()).resolves.toBe('expected\r\n');
         expect(new TextDecoder().decode(shell.exportHistory()).endsWith(prompt)).toBe(true);
     });
 
@@ -385,7 +385,7 @@ describe('DashQL shell Wasm', () => {
         shell.setPrompt('.timer off');
         await expect(shell.submitPrompt()).resolves.toBe('Timer: off\r\n');
         shell.setPrompt('SELECT 42;');
-        await expect(shell.submitPrompt()).resolves.toBe('test database is not configured');
+        await expect(shell.submitPrompt()).resolves.toBe('test database is not configured\r\n');
 
         shell.setPrompt('.timer invalid');
         await expect(shell.submitPrompt()).resolves.toBe('usage: .timer [on|off]\r\n');
