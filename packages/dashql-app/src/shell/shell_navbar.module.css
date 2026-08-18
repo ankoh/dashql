@@ -85,6 +85,19 @@
     font-size: 0.9rem;
 }
 
+.version_links {
+    display: flex;
+    gap: 16px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border_color_primary);
+    font-size: 0.9rem;
+}
+
+.version_links a:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
 @media (max-width: 600px) {
     .action_label {
         display: none;

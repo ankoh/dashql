@@ -58,6 +58,14 @@ const VersionButton: React.FC<VersionButtonProps> = (props: VersionButtonProps) 
                     <div>dashql version</div>
                     <div>{DASHQL_VERSION}</div>
                 </div>
+                <div className={styles.versionLinks}>
+                    <a href="https://www.npmjs.com/package/hyperdb-wasm" target="_blank" rel="noopener noreferrer">
+                        hyperdb-wasm on npm
+                    </a>
+                    <a href="https://github.com/ankoh/dashql" target="_blank" rel="noopener noreferrer">
+                        dashql on GitHub
+                    </a>
+                </div>
             </div>
         </AnchoredOverlay>
     );
