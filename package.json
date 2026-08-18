@@ -49,7 +49,7 @@
     "apache-arrow": "^21.1.0",
     "d3": "^7.9.0",
     "d3-color": "^3.1.0",
-    "dexie": "^4.4.4",
+    "dexie": "^4.4.5",
     "eslint": "^10.4.1",
     "flatbuffers": "^25.9.23",
     "hyperdb-wasm": "0.0.26306-dev.wasm.g0f7bea54",
