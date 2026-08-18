@@ -24,15 +24,18 @@ export interface PlanSceneOperatorStatistics {
     inputCardinalityConsumed: bigint;
     outputCardinalityEstimated: number;
     outputCardinalityProduced: bigint;
-    outputRows: number;
+    hasOutputCardinalityProduced: boolean;
     memoryBytes: bigint;
 }
+
+export type PlanRowMetric = 'estimatedRows' | 'outputRows';
 
 export interface PlanSceneEdge {
     id: bigint;
     childOperator: number;
     parentOperator: number;
-    outputRows: number;
+    outputCardinalityEstimated: number;
+    outputCardinalityProduced: number | null;
     path: string;
 }
 
@@ -83,20 +86,18 @@ function readNumberProperty(value: unknown, names: readonly string[]): number | 
     return null;
 }
 
-export function resolveOutputRows(properties: Record<string, unknown>, estimatedRows: number): number {
+export function hasOutputCardinalityProduced(properties: Record<string, unknown>): boolean {
     const statistics = properties.statistics;
-    const actualRows = readNumberProperty(statistics, ['output-rows', 'outputRows'])
-        ?? readNumberProperty(properties, ['output-rows', 'outputRows']);
-    if (actualRows != null) return Math.max(0, actualRows);
-    const sourceEstimate = readNumberProperty(properties, ['estimated-rows', 'estimatedRows', 'cardinality']);
-    if (sourceEstimate != null) return Math.max(0, sourceEstimate);
-    const nestedEstimate = readNumberProperty(statistics, ['estimated-rows', 'estimatedRows', 'cardinality']);
-    if (nestedEstimate != null) return Math.max(0, nestedEstimate);
-    return Number.isFinite(estimatedRows) ? Math.max(0, estimatedRows) : 0;
+    return readNumberProperty(statistics, ['output-rows', 'outputRows']) != null
+        || readNumberProperty(properties, ['output-rows', 'outputRows']) != null;
 }
 
-export function scaleOutputRowWidths(values: readonly number[], minWidth = 1, maxWidth = 8): number[] {
-    const finiteValues = values.map(value => Number.isFinite(value) ? Math.max(0, value) : 0);
+export function selectDefaultRowMetric(edges: readonly Pick<PlanSceneEdge, 'outputCardinalityProduced'>[]): PlanRowMetric {
+    return edges.some(edge => edge.outputCardinalityProduced != null) ? 'outputRows' : 'estimatedRows';
+}
+
+export function scaleRowWidths(values: readonly (number | null)[], minWidth = 1, maxWidth = 8): number[] {
+    const finiteValues = values.map(value => value != null && Number.isFinite(value) ? Math.max(0, value) : 0);
     let maxValue = 0;
     for (const value of finiteValues) maxValue = Math.max(maxValue, value);
     if (maxValue === 0 || maxWidth <= minWidth) return finiteValues.map(() => minWidth);
@@ -141,6 +142,7 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
         const typeName = readString(vm, op.operatorTypeName());
         const label = readString(vm, op.operatorLabel()) ?? typeName ?? 'operator';
         const properties = readProperties(vm, op);
+        const hasProducedRows = hasOutputCardinalityProduced(properties);
         operators[op.operatorId()] = {
             id: op.operatorId(),
             typeName,
@@ -152,7 +154,7 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
                 inputCardinalityConsumed: statistics.inputCardinalityConsumed(),
                 outputCardinalityEstimated: statistics.outputCardinalityEstimated(),
                 outputCardinalityProduced: statistics.outputCardinalityProduced(),
-                outputRows: resolveOutputRows(properties, statistics.outputCardinalityEstimated()),
+                hasOutputCardinalityProduced: hasProducedRows,
                 memoryBytes: statistics.memoryBytes(),
             },
             properties,
@@ -175,7 +177,10 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
             id: edge.edgeId(),
             childOperator: child.id,
             parentOperator: parent.id,
-            outputRows: child.statistics.outputRows,
+            outputCardinalityEstimated: child.statistics.outputCardinalityEstimated,
+            outputCardinalityProduced: child.statistics.hasOutputCardinalityProduced
+                ? Number(child.statistics.outputCardinalityProduced)
+                : null,
             path,
         });
     }

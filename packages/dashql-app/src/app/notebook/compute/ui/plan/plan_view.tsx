@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { RowsIcon, ScreenFullIcon, ZoomInIcon, ZoomOutIcon } from '@primer/octicons-react';
+import { GraphIcon, RowsIcon, ScreenFullIcon, ZoomInIcon, ZoomOutIcon } from '@primer/octicons-react';
 import { select, zoom, zoomIdentity, ZoomBehavior, ZoomTransform } from 'd3';
 
 import * as dashql from '../../../../../core/index.js';
@@ -10,7 +10,7 @@ import { AnchoredOverlay } from '../../../../../ui/foundations/anchored_overlay.
 import { AnchorAlignment, AnchorSide } from '../../../../../ui/foundations/anchored_position.js';
 import { OverlaySize } from '../../../../../ui/foundations/overlay.js';
 import { PlanExecutionController } from './plan_execution_controller.js';
-import { materializePlanScene, PlanScene, PlanSceneOperator, scaleOutputRowWidths } from './plan_scene.js';
+import { materializePlanScene, PlanRowMetric, PlanScene, PlanSceneOperator, scaleRowWidths, selectDefaultRowMetric } from './plan_scene.js';
 import * as styles from './plan_view.module.css';
 
 const FIT_PADDING = 24;
@@ -55,10 +55,15 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
     const zoomRef = React.useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
     const transformRef = React.useRef<ZoomTransform>(zoomIdentity);
     const [selection, setSelection] = React.useState<{ operator: PlanSceneOperator; anchor: SVGGElement } | null>(null);
-    const [metric, setMetric] = React.useState<'rows' | null>('rows');
+    const defaultMetric = React.useMemo(() => selectDefaultRowMetric(scene.edges), [scene.edges]);
+    const [metricSelection, setMetricSelection] = React.useState<{ scene: PlanScene; metric: PlanRowMetric } | null>(null);
+    const metric = metricSelection?.scene === scene ? metricSelection.metric : defaultMetric;
     const [positionRevision, setPositionRevision] = React.useState(0);
+    const hasOutputRows = React.useMemo(() => scene.edges.some(edge => edge.outputCardinalityProduced != null), [scene.edges]);
     const edgeWidths = React.useMemo(
-        () => metric === 'rows' ? scaleOutputRowWidths(scene.edges.map(edge => edge.outputRows)) : scene.edges.map(() => 1),
+        () => scaleRowWidths(scene.edges.map(edge => metric === 'outputRows'
+            ? edge.outputCardinalityProduced
+            : edge.outputCardinalityEstimated)),
         [metric, scene.edges],
     );
 
@@ -190,9 +195,20 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
                     className={styles.metric_button}
                     variant={ButtonVariant.Default}
                     size={ButtonSize.Small}
-                    aria-label="Encode output rows as edge thickness"
-                    aria-pressed={metric === 'rows'}
-                    onClick={() => setMetric(current => current === 'rows' ? null : 'rows')}
+                    aria-label="Encode estimated rows as edge thickness"
+                    aria-pressed={metric === 'estimatedRows'}
+                    onClick={() => setMetricSelection({ scene, metric: 'estimatedRows' })}
+                >
+                    <GraphIcon size={12} />
+                </IconButton>
+                <IconButton
+                    className={styles.metric_button}
+                    variant={ButtonVariant.Default}
+                    size={ButtonSize.Small}
+                    aria-label="Encode actual output rows as edge thickness"
+                    aria-pressed={metric === 'outputRows'}
+                    disabled={!hasOutputRows}
+                    onClick={() => setMetricSelection({ scene, metric: 'outputRows' })}
                 >
                     <RowsIcon size={12} />
                 </IconButton>
