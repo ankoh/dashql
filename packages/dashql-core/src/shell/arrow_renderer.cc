@@ -28,6 +28,7 @@ constexpr size_t CELL_PADDING = 2;
 constexpr size_t MIN_CONTENT_WIDTH = 1;
 constexpr size_t MAX_ROW_HEIGHT = 20;
 constexpr std::string_view TRUNCATION_MARKER = "...";
+constexpr std::string_view NO_RESULTS_MESSAGE = "No results";
 
 struct Cell {
     std::string text;
@@ -390,7 +391,7 @@ void AppendRow(std::string& output,
 
 std::string RenderTable(const Table& table, size_t terminal_columns) {
     if (table.headers.empty()) {
-        return {};
+        return std::string{NO_RESULTS_MESSAGE};
     }
     const auto widths = ResolveColumnWidths(table, terminal_columns);
     std::string output;

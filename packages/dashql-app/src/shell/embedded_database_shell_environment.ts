@@ -67,7 +67,7 @@ export function createEmbeddedDatabaseShellEnvironment(
                             table,
                             options.getTerminalColumns?.() ?? 100,
                         );
-                        if (showUI && onResult != null) {
+                        if (showUI && table.numCols > 0 && onResult != null) {
                             await options.prepareResult?.(tracked.queryId, table);
                             onResult(tracked.queryId, table.numRows);
                             return EMPTY_RESULT_IPC;

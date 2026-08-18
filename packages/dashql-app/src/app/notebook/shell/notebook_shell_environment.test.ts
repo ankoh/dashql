@@ -95,6 +95,17 @@ describe('notebook shell environment', () => {
         expect(result).not.toHaveBeenCalled();
     });
 
+    it('does not open a result UI for successful statements without columns', async () => {
+        const execute = vi.fn<QueryExecutor>(() => [7, Promise.resolve(arrow.tableFromArrays({}))]);
+        const environment = createNotebookShellEnvironment('notebook-1', execute, vi.fn(), () => 'ui');
+        const result = vi.fn();
+
+        const bytes = await environment.executeQuery('CREATE TABLE foo(a INT)', undefined, undefined, result);
+
+        expect(arrow.tableFromIPC(bytes).numCols).toBe(0);
+        expect(result).not.toHaveBeenCalled();
+    });
+
     it('configures and reports the query output mode', async () => {
         let mode: ShellOutputMode = 'auto';
         const command = createShellOutputCommand(() => mode, next => { mode = next; });

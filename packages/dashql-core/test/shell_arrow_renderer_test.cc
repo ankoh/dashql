@@ -225,7 +225,7 @@ TEST(ShellSessionTest, KeepsEmptyQueryResultsEmpty) {
         EffectCompletionStatus::kSuccess,
         std::span<const uint8_t>{ipc->data(), static_cast<size_t>(ipc->size())});
     ASSERT_EQ(complete.status, ShellStatus::kOk);
-    EXPECT_TRUE(complete.data.empty());
+    EXPECT_EQ(complete.data, "No results\r\n");
 }
 
 TEST(ShellSessionTest, SuspendsDotCommandAsEffect) {

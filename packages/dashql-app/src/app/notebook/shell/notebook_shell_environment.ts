@@ -46,7 +46,7 @@ export function createNotebookShellEnvironment(
                     throw new Error('Query failed without an error');
                 }
                 const outputMode = getOutputMode();
-                if (shouldShowResultUI(outputMode, table, getTerminalColumns())) {
+                if (table.numCols > 0 && shouldShowResultUI(outputMode, table, getTerminalColumns())) {
                     onResult?.(queryId, table.numRows);
                     return EMPTY_RESULT_IPC;
                 }

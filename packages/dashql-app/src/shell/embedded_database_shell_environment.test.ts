@@ -83,6 +83,26 @@ describe('embedded database shell environment', () => {
         expect(onResult).toHaveBeenCalledWith(expect.any(Number), 1);
     });
 
+    it('does not open a result UI for successful statements without columns', async () => {
+        const queryArrowIPC = vi.fn().mockResolvedValue(new Uint8Array());
+        const prepareResult = vi.fn();
+        const environment = createEmbeddedDatabaseShellEnvironment(
+            { queryArrowIPC } as any,
+            undefined,
+            {
+                getOutputMode: () => 'ui',
+                prepareResult,
+            },
+        );
+        const onResult = vi.fn();
+
+        const result = await environment.executeQuery('CREATE TABLE foo(a INT)', undefined, undefined, onResult);
+
+        expect(arrow.tableFromIPC(result).numCols).toBe(0);
+        expect(prepareResult).not.toHaveBeenCalled();
+        expect(onResult).not.toHaveBeenCalled();
+    });
+
     it('suppresses query output in off mode', async () => {
         const table = arrow.tableFromArrays({ value: [42] });
         const queryArrowIPC = vi.fn().mockResolvedValue(arrow.tableToIPC(table, 'file'));

@@ -230,7 +230,7 @@ describe('DashQL shell Wasm', () => {
         };
 
         try {
-            await expect(shell.executeQuery('CREATE TABLE foo(a INT)')).resolves.toBe('');
+            await expect(shell.executeQuery('CREATE TABLE foo(a INT)')).resolves.toBe('No results\r\n');
         } finally {
             heap.slice = slice;
         }
@@ -675,7 +675,7 @@ describe('DashQL shell Wasm', () => {
                 return arrow.tableToIPC(arrow.tableFromIPC(stream), 'file');
             };
 
-            await expect(shell.executeQuery('CREATE TABLE foo(a INT)')).resolves.toBe('');
+            await expect(shell.executeQuery('CREATE TABLE foo(a INT)')).resolves.toBe('No results\r\n');
             await expect(shell.executeQuery(
                 "SELECT * FROM (VALUES (1, 'alpha'), (20, '界'), (300, NULL)) AS t(value, name)",
             )).resolves.toBe(
