@@ -30,7 +30,7 @@ std::string_view TokenStyle(ScannerTokenType type) {
         case ScannerTokenType::KEYWORD:
             return vt100::kBoldForegroundPink;
         case ScannerTokenType::KEYWORD_VIS:
-            return vt100::kItalicForegroundTeal;
+            return vt100::kItalicForegroundBlue;
         case ScannerTokenType::LITERAL_INTEGER:
         case ScannerTokenType::LITERAL_FLOAT:
         case ScannerTokenType::LITERAL_BINARY:
@@ -42,7 +42,7 @@ std::string_view TokenStyle(ScannerTokenType type) {
         case ScannerTokenType::OPERATOR:
             return vt100::kForegroundPink;
         case ScannerTokenType::IDENTIFIER:
-            return vt100::kForegroundTeal;
+            return vt100::kForegroundBlue;
         case ScannerTokenType::COMMENT:
             return vt100::kForegroundGray;
         default:

@@ -50,11 +50,11 @@ inline constexpr std::string_view kReverseVideo = "\x1b[7m";
 inline constexpr std::string_view kForegroundRed = "\x1b[31m";
 inline constexpr std::string_view kForegroundBrightBlack = "\x1b[90m";
 inline constexpr std::string_view kBoldForegroundPink = "\x1b[1;38;2;255;122;178m";
-inline constexpr std::string_view kItalicForegroundTeal = "\x1b[3;38;2;107;170;159m";
+inline constexpr std::string_view kItalicForegroundBlue = "\x1b[3;38;2;121;192;255m";
 inline constexpr std::string_view kForegroundPurple = "\x1b[38;2;218;186;255m";
 inline constexpr std::string_view kForegroundCoral = "\x1b[38;2;255;129;112m";
 inline constexpr std::string_view kForegroundPink = "\x1b[38;2;255;122;178m";
-inline constexpr std::string_view kForegroundTeal = "\x1b[38;2;107;170;159m";
+inline constexpr std::string_view kForegroundBlue = "\x1b[38;2;121;192;255m";
 inline constexpr std::string_view kForegroundGray = "\x1b[38;2;127;140;152m";
 
 }  // namespace dashql::shell::vt100

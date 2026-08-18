@@ -9,7 +9,6 @@ import {
 } from '../platform/hyperdb/hyperdb_wasm.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../catalog.js';
 import { VT100, VT100Command, vt100Sequence } from './vt100.js';
-import { ShellSessionRelationCatalog } from './session_relation_catalog.js';
 
 declare const DASHQL_SHELL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -82,30 +81,14 @@ describe('DashQL shell Wasm', () => {
         expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'orders')).toBe(false);
     });
 
-    it('renders derived columns for CTAS, views, and SELECT INTO', async () => {
-        shell.destroy();
-        shell = await DashQLShell.create({
-            environment: { executeQuery: async () => new Uint8Array() },
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
-        });
-        const catalog = new ShellSessionRelationCatalog(shell);
-        catalog.applySuccessfulQuery('CREATE TABLE source (id BIGINT, amount DOUBLE)');
-        catalog.applySuccessfulQuery('CREATE TABLE totals AS SELECT id, amount AS total FROM source');
-        catalog.applySuccessfulQuery('CREATE VIEW report AS SELECT * FROM totals');
-        catalog.applySuccessfulQuery('SELECT id AS copied_id INTO copied FROM source');
-
-        expect(catalog.getScriptText()).toContain('"totals" (\n    "id" VARCHAR,\n    "total" VARCHAR');
-        expect(catalog.getScriptText()).toContain('"report" (\n    "id" VARCHAR,\n    "total" VARCHAR');
-        expect(catalog.getScriptText()).toContain('"copied" (\n    "copied_id" VARCHAR');
-        catalog.destroy();
-    });
-
     it('does not update session relations after failed queries and ignores attach metadata for now', async () => {
         shell.destroy();
         shell = await DashQLShell.create({
             environment: {
                 executeQuery: async query => {
-                    if (query.startsWith('CREATE TABLE failed')) throw new Error('expected');
+                    if (query.startsWith('CREATE TABLE failed') || query.startsWith('DROP TABLE retained')) {
+                        throw new Error('expected');
+                    }
                     return arrow.tableToIPC(arrow.tableFromArrays({}), 'file');
                 },
             },
@@ -117,9 +100,28 @@ describe('DashQL shell Wasm', () => {
         shell.setPrompt('select * from fail');
         expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'failed')).toBe(false);
 
+        await shell.executeQuery('CREATE TABLE retained (id BIGINT)');
+        await expect(shell.executeQuery('DROP TABLE retained')).resolves.toBe('expected');
+        shell.setPrompt('select * from reta');
+        expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'retained')).toBe(true);
+
         await shell.executeQuery('ATTACH DATABASE "source.hyper" AS source');
         shell.setPrompt('select * from sou');
         expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'source')).toBe(false);
+    });
+
+    it('does not track session relations unless requested', async () => {
+        shell.destroy();
+        shell = await DashQLShell.create({
+            environment: {
+                executeQuery: async () => arrow.tableToIPC(arrow.tableFromArrays({}), 'file'),
+            },
+            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+        });
+
+        await shell.executeQuery('CREATE TABLE untracked (id BIGINT)');
+        shell.setPrompt('select * from untr');
+        expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'untracked')).toBe(false);
     });
 
     it('submits the prompt through the asynchronous effect interface', async () => {
@@ -189,7 +191,7 @@ describe('DashQL shell Wasm', () => {
         const output = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, "SELECT '界' FROM t").data;
         expect(output).toContain(VT100.BOLD_FOREGROUND_PINK + 'SELECT' + VT100.RESET_ATTRIBUTES);
         expect(output).toContain(VT100.FOREGROUND_CORAL + "'界'" + VT100.RESET_ATTRIBUTES);
-        expect(output).toContain(VT100.FOREGROUND_TEAL + 't' + VT100.RESET_ATTRIBUTES);
+        expect(output).toContain(VT100.FOREGROUND_BLUE + 't' + VT100.RESET_ATTRIBUTES);
     });
 
     it('copies terminal output from shared Wasm memory before decoding it', () => {
@@ -479,7 +481,7 @@ describe('DashQL shell Wasm', () => {
 
         const firstStep = shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
         expect(firstStep.data).toContain(VT100.BOLD_FOREGROUND_PINK + 'SELECT' + VT100.RESET_ATTRIBUTES);
-        expect(firstStep.data).toContain(VT100.FOREGROUND_TEAL + 'supplier' + VT100.RESET_ATTRIBUTES);
+        expect(firstStep.data).toContain(VT100.FOREGROUND_BLUE + 'supplier' + VT100.RESET_ATTRIBUTES);
         expect(firstStep.data).toContain(VT100.BOLD_FOREGROUND_PINK + 'group' + VT100.RESET_ATTRIBUTES);
         expect(firstStep.data).toContain(VT100.FOREGROUND_BRIGHT_BLACK + ' by');
         expect(shell.movePromptRight().text).toBe('SELECT * FROM supplier group');

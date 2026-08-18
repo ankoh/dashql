@@ -24,6 +24,10 @@ function quoteIdentifier(identifier: string): string {
     return `"${identifier.replace(/"/g, '""')}"`;
 }
 
+function readIdentifier(identifier: string | null): string {
+    return identifier?.replace(/""/g, '"') ?? '';
+}
+
 function canonicalizeTarget(target: StatementTarget): StatementTarget {
     return {
         databaseName: target.databaseName,
@@ -41,9 +45,9 @@ function readTarget(statement: core.buffers.parser.Statement): StatementTarget |
     const relationName = target?.relationName();
     if (target == null || !relationName) return null;
     return canonicalizeTarget({
-        databaseName: target.databaseName() ?? '',
-        schemaName: target.schemaName() ?? '',
-        relationName,
+        databaseName: readIdentifier(target.databaseName()),
+        schemaName: readIdentifier(target.schemaName()),
+        relationName: readIdentifier(relationName),
     });
 }
 
@@ -56,16 +60,16 @@ function readCreatedRelation(
         const name = table?.tableName();
         if (table == null || name == null) continue;
         const candidate = canonicalizeTarget({
-            databaseName: name.databaseName() ?? '',
-            schemaName: name.schemaName() ?? '',
-            relationName: name.tableName() ?? '',
+            databaseName: readIdentifier(name.databaseName()),
+            schemaName: readIdentifier(name.schemaName()),
+            relationName: readIdentifier(name.tableName()),
         });
         if (targetKey(candidate) !== targetKey(target)) continue;
 
         const columns: string[] = [];
         for (let j = 0; j < table.tableColumnsLength(); ++j) {
             const columnName = table.tableColumns(j)?.columnName();
-            if (columnName) columns.push(columnName);
+            if (columnName) columns.push(readIdentifier(columnName));
         }
         return { ...target, columns };
     }
