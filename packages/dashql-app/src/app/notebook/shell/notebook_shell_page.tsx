@@ -18,6 +18,7 @@ import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
 import { createShellOutputCommand, type ShellOutputMode } from '../../../shell/shell_result.js';
 import { createShellFilesCommand, ShellFileRegistry } from '../../../shell/shell_files.js';
 import { useFileDownloader } from '../../../platform/file/file_downloader_provider.js';
+import { examplesCommand } from '../../../shell/commands/examples.js';
 
 const LOG_CTX = 'notebook_shell_page';
 
@@ -69,6 +70,7 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
         setStatus(shellRef.current == null ? 'Instantiating Shell' : 'Refreshing shell catalog');
         void createNotebookShell({ relationsSql, functionsSql }, environment, {
             commands: [
+                examplesCommand,
                 outputCommand,
                 createShellFilesCommand(fileRegistryRef.current, fileDownloader),
             ],

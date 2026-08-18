@@ -11,6 +11,7 @@ import { useComputationRegistry } from '../compute/computation_registry.js';
 import { ShellQueryResultOverlay } from '../app/notebook/shell/shell_query_result_overlay.js';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { loginCommand } from './commands/login.js';
+import { examplesCommand } from './commands/examples.js';
 import { useShellConnection } from './shell_connection.js';
 import { createShellOutputCommand, type ShellOutputMode } from './shell_result.js';
 import { createShellFilesCommand, ShellFileRegistry } from './shell_files.js';
@@ -91,6 +92,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 }),
                 trackSessionRelations: true,
                 commands: [
+                    examplesCommand,
                     loginCommand,
                     createShellOutputCommand(getOutputMode, mode => { outputModeRef.current = mode; }),
                     createShellFilesCommand(fileRegistryRef.current, fileDownloader),
