@@ -52,7 +52,7 @@
     "dexie": "^4.4.5",
     "eslint": "^10.4.1",
     "flatbuffers": "^25.9.23",
-    "hyperdb-wasm": "0.0.26306-dev.wasm.g0f7bea54",
+    "hyperdb-wasm": "0.0.26308-dev.wasm.gae25030d",
     "immutable": "^5.1.9",
     "jsdom": "^29.1.1",
     "json-schema-to-typescript": "^15.0.4",
