@@ -16,7 +16,7 @@ import { useDashQLCoreSetup } from '../../../../providers/core_provider.js';
 import { CopyToClipboardButton } from '../../../../../utils/clipboard.js';
 import { useKeyEvents } from '../../../../../utils/key_events.js';
 import { peekFormat } from './format_peek.js';
-import { createPlanLayoutConfig, PlanView as HyperPlanView } from '../plan/plan_view.js';
+import { HyperPlanView } from '../plan/hyper_plan_view.js';
 
 const LOG_CTX = 'cell_detail_overlay';
 
@@ -217,56 +217,6 @@ function SqlTextView(props: SqlTextViewProps) {
 }
 
 
-/// Hyper plan sub-view.
-function PlanView(props: { planText: string }) {
-    const coreSetup = useDashQLCoreSetup();
-    const [layoutConfig] = React.useState<dashql.buffers.view.PlanLayoutConfigT>(() => createPlanLayoutConfig(false));
-    const [failed, setFailed] = React.useState(false);
-    const [plan, setPlan] = React.useState<dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel> | null>(null);
-
-    const viewModelRef = React.useRef<dashql.DashQLPlanViewModel | null>(null);
-
-    // Parse and materialize the plan whenever the text changes.
-    React.useEffect(() => {
-        let cancelled = false;
-        setFailed(false);
-        const run = async () => {
-            const core = await coreSetup('cell_detail_plan');
-            if (cancelled) return;
-            if (viewModelRef.current == null) {
-                viewModelRef.current = core.createPlanViewModel(layoutConfig);
-            }
-            let nextPlan: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel, dashql.buffers.view.PlanViewModelT> | null = null;
-            try {
-                nextPlan = viewModelRef.current.loadHyperPlan(props.planText);
-            } catch (e: any) {
-                console.warn(e);
-                if (!cancelled) setFailed(true);
-            }
-            if (nextPlan != null && !cancelled) {
-                setPlan(nextPlan);
-            }
-        };
-        run();
-        return () => { cancelled = true; };
-    }, [props.planText, coreSetup, layoutConfig]);
-
-    // Destroy the view model on unmount
-    React.useEffect(() => {
-        return () => {
-            setPlan(null);
-            viewModelRef.current?.destroy();
-            viewModelRef.current = null;
-        };
-    }, []);
-
-    if (failed) {
-        return <div className={styles.plan_error}>Could not render plan</div>;
-    }
-    return <div className={styles.plan_container}>{plan != null && <HyperPlanView plan={plan} />}</div>;
-}
-
-
 export interface CellDetailOverlayProps {
     isOpen: boolean;
     onClose: () => void;
@@ -416,7 +366,11 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
                             />
                         )}
                         {selectedFormat === FormatMode.Plan && formats.plan != null && (
-                            <PlanView planText={formats.plan} />
+                            <HyperPlanView
+                                planText={formats.plan}
+                                className={styles.plan_container}
+                                fallback={<div className={styles.plan_error}>Could not render plan</div>}
+                            />
                         )}
                     </div>
                 </div>

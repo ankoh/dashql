@@ -83,6 +83,29 @@ describe('embedded database shell environment', () => {
         expect(onResult).toHaveBeenCalledWith(expect.any(Number), 1);
     });
 
+    it('prepares and opens a 1x1 plan candidate in auto mode', async () => {
+        const plan = '{"operator":"executiontarget","operatorId":1}';
+        const table = arrow.tableFromArrays({ value: [plan] });
+        const queryArrowIPC = vi.fn().mockResolvedValue(arrow.tableToIPC(table, 'file'));
+        const prepareResult = vi.fn();
+        const environment = createEmbeddedDatabaseShellEnvironment(
+            { queryArrowIPC } as any,
+            undefined,
+            {
+                getOutputMode: () => 'auto',
+                getTerminalColumns: () => 1000,
+                prepareResult,
+            },
+        );
+        const onResult = vi.fn();
+
+        const result = await environment.executeQuery('SELECT plan', undefined, undefined, onResult);
+
+        expect(arrow.tableFromIPC(result).numCols).toBe(0);
+        expect(prepareResult).toHaveBeenCalledOnce();
+        expect(onResult).toHaveBeenCalledWith(expect.any(Number), 1);
+    });
+
     it('does not open a result UI for successful statements without columns', async () => {
         const queryArrowIPC = vi.fn().mockResolvedValue(new Uint8Array());
         const prepareResult = vi.fn();

@@ -7,6 +7,20 @@ const TABLE_FRAME_WIDTH_PER_COLUMN = 3;
 
 export type ShellOutputMode = 'auto' | 'ui' | 'term' | 'off';
 
+export function getPlanResultText(table: arrow.Table | null): string | null {
+    if (table == null || table.numRows !== 1 || table.numCols !== 1) return null;
+    const value = table.getChildAt(0)?.get(0);
+    if (typeof value !== 'string') return null;
+    try {
+        const parsed = JSON.parse(value);
+        return parsed != null && typeof parsed === 'object' && !Array.isArray(parsed) && typeof parsed.operator === 'string'
+            ? value
+            : null;
+    } catch {
+        return null;
+    }
+}
+
 function textWidth(value: unknown): number {
     if (value == null) return 0;
     return String(value).split(/\r?\n/, -1).reduce((width, line) => Math.max(width, Array.from(line).length), 0);
@@ -31,6 +45,8 @@ export function estimateTerminalTableWidth(table: arrow.Table): number {
 export function shouldShowResultUI(mode: ShellOutputMode, table: arrow.Table, terminalColumns: number): boolean {
     return mode === 'ui'
         || (mode === 'auto' && (
+            getPlanResultText(table) != null
+            ||
             table.numRows > SHELL_AUTO_OVERLAY_ROW_LIMIT
             || estimateTerminalTableWidth(table) > Math.max(terminalColumns, 1)
         ));

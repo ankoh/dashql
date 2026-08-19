@@ -75,6 +75,18 @@ describe('notebook shell environment', () => {
         expect(result).not.toHaveBeenCalled();
     });
 
+    it('opens a 1x1 plan candidate in auto mode even when it fits in the terminal', async () => {
+        const plan = '{"operator":"executiontarget","operatorId":1}';
+        const execute = vi.fn<QueryExecutor>(() => [7, Promise.resolve(arrow.tableFromArrays({ value: [plan] }))]);
+        const environment = createNotebookShellEnvironment('notebook-1', execute, vi.fn(), () => 'auto', () => 1000);
+        const result = vi.fn();
+
+        const bytes = await environment.executeQuery('SELECT plan', undefined, undefined, result);
+
+        expect(arrow.tableFromIPC(bytes).numCols).toBe(0);
+        expect(result).toHaveBeenCalledWith(7, 1);
+    });
+
     it('honors forced UI, terminal, and off output modes', async () => {
         let mode: ShellOutputMode = 'ui';
         const execute = vi.fn<QueryExecutor>(() => [7, Promise.resolve(arrow.tableFromArrays({ value: [42] }))]);
