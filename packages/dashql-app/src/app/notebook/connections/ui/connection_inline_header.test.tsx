@@ -73,4 +73,25 @@ describe('ConnectionInlineHeader', () => {
         expect(container.querySelector('button')?.textContent).toBe('Connect');
         expect(container.textContent).toContain('Disconnected');
     });
+
+    it('renders an optional action immediately after the connector name', () => {
+        const connector = CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
+        act(() => root.render(
+            <LoggerProvider>
+                <ConnectionInlineHeader
+                    connector={connector}
+                    connection={null}
+                    wrongPlatform={false}
+                    setupConnection={() => {}}
+                    notebookScripts={null}
+                    connectorNameAction={<button type="button">History</button>}
+                />
+            </LoggerProvider>,
+        ));
+
+        const connectorInfo = Array.from(container.querySelectorAll('button'))
+            .find(button => button.textContent === 'History')!.parentElement!;
+        expect(connectorInfo.children[1].textContent).toBe('Salesforce Data Cloud');
+        expect(connectorInfo.children[2].textContent).toBe('History');
+    });
 });

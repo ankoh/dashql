@@ -18,6 +18,7 @@ export const STORAGE_CACHE_EXTENSION = '.arrow';
 /// into an LRU without rewriting the (potentially large) payload. The marker is advisory: the
 /// `.arrow` files are authoritative, so a missing marker just falls back to the payload's own mtime.
 export const STORAGE_CACHE_ACCESS_SUFFIX = '.last_access';
+export const STORAGE_SHELL_FOLDER = 'dashql-shell';
 
 export const STORAGE_SCRIPT_SCHEMA = 'dashql-relations.sql';
 export const STORAGE_SCRIPT_FUNCTIONS = 'dashql-functions.sql';

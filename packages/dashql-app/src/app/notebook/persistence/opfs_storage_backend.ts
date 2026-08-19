@@ -1,4 +1,4 @@
-import { type NotebookRegistryBackend, type NotebookData, type ScriptFolderData, type ScriptData, type NotebookEntry, type StorageManifest, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_NOTEBOOKS_FOLDER, STORAGE_NOTEBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION, STORAGE_CACHE_ACCESS_SUFFIX } from './storage_backend.js';
+import { type NotebookRegistryBackend, type NotebookData, type ScriptFolderData, type ScriptData, type NotebookEntry, type StorageManifest, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_NOTEBOOKS_FOLDER, STORAGE_NOTEBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION, STORAGE_CACHE_ACCESS_SUFFIX, STORAGE_SHELL_FOLDER } from './storage_backend.js';
 import { type CacheFileStat, type QueryResultCacheStore, evictToFit } from './query_result_cache_eviction.js';
 
 /// Origin Private File System storage backend.
@@ -556,11 +556,15 @@ export class OPFSStorageBackend implements NotebookRegistryBackend {
             console.warn('Failed to clear manifest:', error);
         }
 
-        // Step 2: Delete the entire notebooks folder
-        try {
-            await root.removeEntry(STORAGE_NOTEBOOKS_FOLDER, { recursive: true });
-        } catch (error) {
-            console.warn('Failed to delete notebooks folder:', error);
+        // Step 2: Delete app-owned data folders while leaving unrelated origin storage untouched.
+        for (const folder of [STORAGE_NOTEBOOKS_FOLDER, STORAGE_SHELL_FOLDER]) {
+            try {
+                await root.removeEntry(folder, { recursive: true });
+            } catch (error) {
+                if ((error as DOMException).name !== 'NotFoundError') {
+                    console.warn(`Failed to delete ${folder} folder:`, error);
+                }
+            }
         }
     }
 

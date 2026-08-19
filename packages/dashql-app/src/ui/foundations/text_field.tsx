@@ -57,6 +57,7 @@ function TextFieldValidation(props: { validation?: TextFieldValidationStatus }) 
 }
 
 export function TextField(props: {
+    inputRef?: React.Ref<HTMLInputElement>;
     className?: string;
     name?: string;
     caption?: string;
@@ -86,6 +87,7 @@ export function TextField(props: {
             {props.name && <div className={styles.text_field_name}>{props.name}</div>}
             {props.caption && <div className={styles.text_field_caption}>{props.caption}</div>}
             <TextInput
+                ref={props.inputRef}
                 className={classNames(styles.text_field_input, {
                     [styles.text_field_disabled]: props.disabled
                 })}

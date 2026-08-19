@@ -126,6 +126,7 @@ interface Props {
 }
 
 export interface SalesforceConnectionAliasField {
+    inputRef?: React.Ref<HTMLInputElement>;
     value: string;
     onChange: React.ChangeEventHandler<HTMLInputElement>;
     validation?: TextFieldValidationStatus;
@@ -156,6 +157,7 @@ interface SalesforceConnectionSettingsPageProps {
     resetSetup: () => void;
     onClose?: () => void;
     alias?: SalesforceConnectionAliasField;
+    connectorNameAction?: React.ReactNode;
     statusText?: string;
     indicatorStatus?: IndicatorStatus;
     statusError?: string | null;
@@ -183,14 +185,16 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
                 indicatorStatus={props.indicatorStatus}
                 statusError={props.statusError}
                 connectionHealth={props.connectionHealth}
+                connectorNameAction={props.connectorNameAction}
             />
             <div className={style.body_container}>
                 {props.alias && (
                     <div className={style.section}>
                         <div className={classNames(style.section_layout, style.body_section_layout)}>
                             <TextField
+                                inputRef={props.alias.inputRef}
                                 name="Connection Alias"
-                                caption="Alias used to address this connection in the shell"
+                                caption="Name saved in login history and used to address this connection in the shell"
                                 value={props.alias.value}
                                 onChange={props.alias.onChange}
                                 placeholder="Alias"

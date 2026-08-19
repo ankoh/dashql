@@ -14,6 +14,7 @@ import { ShellQueryResultOverlay } from '../app/notebook/shell/shell_query_resul
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { createLoginCommand, type SalesforceLoginAuthentication } from './commands/login.js';
 import { createRefreshCommand } from './commands/refresh.js';
+import { SalesforceLoginHistoryStore } from './salesforce_login_history.js';
 import { examplesCommand } from './commands/examples.js';
 import { useShellConnection } from './shell_connection.js';
 import { createShellOutputCommand, type ShellOutputMode } from './shell_result.js';
@@ -53,9 +54,12 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const appEvents = usePlatformEventListener();
     const platformType = usePlatformType();
     const appConfig = useAppConfig();
+    const loginHistoryRef = React.useRef(new SalesforceLoginHistoryStore());
     const attachmentManagerRef = React.useRef<SalesforceRemoteAttachmentManager | null>(null);
     const { controller: loginDialog, dialog } = useSalesforceLoginDialog({
         hasAlias: (alias: string) => attachmentManagerRef.current?.hasAlias(alias) ?? false,
+        loadHistory: () => loginHistoryRef.current.load(),
+        deleteHistoryEntry: organizationId => loginHistoryRef.current.delete(organizationId),
     });
     const containerRef = React.useRef<HTMLDivElement>(null);
     const fileRegistryRef = React.useRef(new ShellFileRegistry());
@@ -161,8 +165,28 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                     await attachmentManager.attach(alias, authentication.dataCloudAccessToken, signal);
                     authentications.set(alias.toLowerCase(), authentication);
                 },
-                onSuccess: alias => {
-                    loginDialog.succeed(`Attached ${alias}`);
+                onSuccess: async (form, authentication) => {
+                    const organizationId = authentication.coreUserInfo?.organizationId
+                        ?? authentication.dataCloudAccessToken.jwt.payload.orgId;
+                    if (organizationId) {
+                        try {
+                            await loginHistoryRef.current.record({
+                                organizationId,
+                                name: form.alias,
+                                instanceUrl: authentication.coreAccessToken.instanceUrl ?? form.instanceUrl,
+                                appConsumerKey: form.appConsumerKey,
+                                loginHint: authentication.coreUserInfo?.preferredUsername
+                                    ?? authentication.coreUserInfo?.email,
+                            });
+                        } catch (error) {
+                            logger.warn('Failed to persist Salesforce login history', {
+                                error: stringifyError(error),
+                            }, LOG_CTX);
+                        }
+                    } else {
+                        logger.warn('Salesforce login did not return an organization ID; history was not updated', {}, LOG_CTX);
+                    }
+                    loginDialog.succeed(`Attached ${form.alias}`);
                 },
                 onError: error => {
                     loginDialog.fail(stringifyError(error));

@@ -25,7 +25,7 @@ export interface SalesforceLoginCommandDependencies {
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
     ): Promise<void>;
-    onSuccess?(alias: string): void;
+    onSuccess?(form: SalesforceLoginForm, authentication: SalesforceLoginAuthentication): void | Promise<void>;
     onError?(error: unknown): 'retry' | void;
 }
 
@@ -64,7 +64,7 @@ export function createLoginCommand(dependencies: SalesforceLoginCommandDependenc
                     await dependencies.attach(alias, authentication, operationSignal, onProgress);
                     operationSignal?.throwIfAborted();
 
-                    dependencies.onSuccess?.(alias);
+                    await dependencies.onSuccess?.(form, authentication);
                     return `Attached Salesforce as ${alias}`;
                 } catch (error) {
                     if (form?.oauthPopup && !form.oauthPopup.closed) form.oauthPopup.close();

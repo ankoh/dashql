@@ -612,4 +612,14 @@ describe('OPFSStorageBackend', () => {
             ).rejects.toThrow();
         });
     });
+
+    it('clears notebook and standalone shell OPFS data', async () => {
+        await mockRoot.getDirectoryHandle('notebooks', { create: true });
+        await mockRoot.getDirectoryHandle('dashql-shell', { create: true });
+
+        await backend.clearAllStorage();
+
+        await expect(mockRoot.getDirectoryHandle('notebooks')).rejects.toMatchObject({ name: 'NotFoundError' });
+        await expect(mockRoot.getDirectoryHandle('dashql-shell')).rejects.toMatchObject({ name: 'NotFoundError' });
+    });
 });

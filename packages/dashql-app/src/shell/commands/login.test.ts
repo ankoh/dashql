@@ -61,7 +61,8 @@ describe('Salesforce login command', () => {
     });
 
     it('authenticates and attaches without resolving a catalog', async () => {
-        const { dependencies, authentication } = createDependencies();
+        const onSuccess = vi.fn();
+        const { dependencies, authentication } = createDependencies({ onSuccess });
         const onProgress = vi.fn();
         await expect(execute(dependencies, { onProgress })).resolves.toBe('Attached Salesforce as salesforce');
         expect(dependencies.authenticate).toHaveBeenCalledWith(
@@ -82,6 +83,10 @@ describe('Salesforce login command', () => {
         );
         expect(onProgress).toHaveBeenNthCalledWith(1, 'Authenticating with Salesforce');
         expect(onProgress).toHaveBeenNthCalledWith(2, 'Attaching Salesforce connection as salesforce');
+        expect(onSuccess).toHaveBeenCalledWith(
+            expect.objectContaining({ alias: 'salesforce' }),
+            authentication,
+        );
     });
 
     it('returns no text when authentication is aborted', async () => {
@@ -120,5 +125,16 @@ describe('Salesforce login command', () => {
         expect(authenticate).toHaveBeenNthCalledWith(2, secondForm, undefined, undefined);
         expect(onError).toHaveBeenCalledOnce();
         expect(dependencies.attach).toHaveBeenCalledOnce();
+    });
+
+    it('does not report success when attachment fails', async () => {
+        const onSuccess = vi.fn();
+        const { dependencies } = createDependencies({
+            attach: vi.fn().mockRejectedValue(new Error('attachment failed')),
+            onSuccess,
+        });
+
+        await expect(execute(dependencies)).rejects.toThrow('attachment failed');
+        expect(onSuccess).not.toHaveBeenCalled();
     });
 });

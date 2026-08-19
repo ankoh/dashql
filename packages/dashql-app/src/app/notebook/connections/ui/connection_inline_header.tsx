@@ -37,6 +37,7 @@ interface Props {
     onClose?: () => void;
     /// Extra actions rendered fully right in the status bar, after the connect button.
     trailingStatusActions?: React.ReactNode;
+    connectorNameAction?: React.ReactNode;
     statusText?: string;
     indicatorStatus?: IndicatorStatus;
     statusError?: string | null;
@@ -127,6 +128,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                     <div className={style.connector_name}>
                         {props.connector.names.displayLong}
                     </div>
+                    {props.connectorNameAction}
                 </div>
                 <div className={style.actions}>
                     {props.protocol !== undefined && props.onProtocolChange && props.protocols && props.protocols.length > 1 && (
