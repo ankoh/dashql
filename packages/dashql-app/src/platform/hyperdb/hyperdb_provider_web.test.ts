@@ -65,8 +65,13 @@ describe('setupWebHyperDB', () => {
             mockState.client,
             {
                 identifier_resolution: 'case_insensitive',
-                'global.experimental_view_creation': true,
-                'global.experimental_persisted_view_creation': true,
+                experimental_view_creation: true,
+                experimental_persisted_view_creation: true,
+                hyper_introspection_functions: true,
+                log_json_export: true,
+                log_rotation_size: 1024,
+                log_rotation_age: 60,
+                log_file_max_count: 10,
             },
         );
         expect(mockState.blobParts.join('')).toContain(

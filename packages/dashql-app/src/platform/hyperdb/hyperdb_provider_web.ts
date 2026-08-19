@@ -14,6 +14,17 @@ const HYPERDB_ENGINE_URL = new URL(engineUrl as string, import.meta.url);
 const HYPERDB_WORKER_URL = new URL(workerUrl as string, import.meta.url);
 const HYPERDB_WASM_URL = new URL(wasmUrl as string, import.meta.url);
 
+const HYPERDB_SETTINGS = {
+    identifier_resolution: 'case_insensitive',
+    experimental_view_creation: true,
+    experimental_persisted_view_creation: true,
+    hyper_introspection_functions: true,
+    log_json_export: true,
+    log_rotation_size: 1024,
+    log_rotation_age: 60,
+    log_file_max_count: 10,
+} as const;
+
 function createEngineScript(): { url: string; revoke: () => void } {
     const source = `self.HYPERDB_WASM_MODULE=self.Module??{};self.HYPERDB_WASM_MODULE.locateFile=(path,prefix)=>path==='hyperdb-wasm.wasm'?${JSON.stringify(HYPERDB_WASM_URL.href)}:prefix+path;importScripts(${JSON.stringify(HYPERDB_ENGINE_URL.href)});`;
     const url = URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
@@ -38,11 +49,7 @@ export async function setupWebHyperDB(context: string, logger: Logger): Promise<
                     engineUrl: engineScript.url,
                     workerUrl: HYPERDB_WORKER_URL,
                 }),
-                {
-                    identifier_resolution: 'case_insensitive',
-                    'global.experimental_view_creation': true,
-                    'global.experimental_persisted_view_creation': true,
-                },
+                HYPERDB_SETTINGS,
             );
             const terminate = database.terminate.bind(database);
             database.terminate = async () => {
