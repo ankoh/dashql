@@ -39,7 +39,12 @@ function createManager(options: {
         return new Uint8Array();
     });
     const connection = { queryArrowIPC } as unknown as EmbeddedConnection;
-    const loadCatalogScript = vi.fn();
+    const functionScript = {} as any;
+    const catalogScript = {} as any;
+    const loadCatalogScript = vi.fn()
+        .mockReturnValueOnce(functionScript)
+        .mockReturnValueOnce(catalogScript);
+    const replaceCatalogScript = vi.fn();
     const logger = new TestLogger();
     const dependencies: SalesforceRemoteAttachmentDependencies = {
         loadPrefetchedFunctionSql: vi.fn().mockResolvedValue('functions'),
@@ -47,10 +52,16 @@ function createManager(options: {
         logger,
     };
     return {
-        manager: new SalesforceRemoteAttachmentManager(connection, { loadCatalogScript }, dependencies),
+        manager: new SalesforceRemoteAttachmentManager(
+            connection,
+            { loadCatalogScript, replaceCatalogScript },
+            dependencies,
+        ),
         sql,
         queryArrowIPC,
         loadCatalogScript,
+        replaceCatalogScript,
+        catalogScript,
         dependencies,
         logger,
     };
@@ -68,7 +79,6 @@ describe('SalesforceRemoteAttachmentManager', () => {
         await manager.attach(
             'a"; DETACH db; --',
             makeToken('https://data.example.com:8443/path', "tenant'one", "jwt'one"),
-            CATALOG,
         );
         expect(sql[0]).toContain("SET global.hyper_remote_endpoints = '");
         expect(sql[0]).toContain("jwt''one");
@@ -77,34 +87,20 @@ describe('SalesforceRemoteAttachmentManager', () => {
         );
     });
 
-    it('executes setting, gate, and attach in order before loading catalogs', async () => {
+    it('executes setting, gate, and attach without loading catalogs', async () => {
         const { manager, sql, loadCatalogScript, logger } = createManager();
         await expect(manager.attach(
             'Salesforce',
             makeToken('https://data.example.com:8443/api', 'tenant-1', 'jwt.payload.signature'),
-            CATALOG,
-        )).resolves.toEqual({ alias: 'Salesforce', tableCount: 2, columnCount: 3 });
+        )).resolves.toEqual({ alias: 'Salesforce' });
 
         expect(sql).toEqual([
             'SET global.hyper_remote_endpoints = \'{"key-salesforce":{"connection":{"host":"https://data.example.com","port":8443},"tenant":"tenant-1","token":"jwt.payload.signature"}}\'',
             'SET global.experimental_dbregistry_hyper_remote = true',
             'ATTACH DATABASE "hyper.remote://key-salesforce" AS "Salesforce"',
         ]);
-        expect(loadCatalogScript).toHaveBeenCalledTimes(2);
-        expect(loadCatalogScript).toHaveBeenNthCalledWith(
-            1,
-            'functions',
-            SALESFORCE_CATALOG_RANK,
-        );
-        expect(loadCatalogScript).toHaveBeenNthCalledWith(
-            2,
-            expect.stringMatching(/^CREATE TABLE "Salesforce"\."public"\."Account"/),
-            SALESFORCE_CATALOG_RANK,
-        );
+        expect(loadCatalogScript).not.toHaveBeenCalled();
         expect(manager.hasAlias('salesforce')).toBe(true);
-        expect(Array.from({ length: logger.buffer.length }, (_, index) => logger.buffer.at(index)?.message)).toContain(
-            'Completed Salesforce relation catalog load',
-        );
         const startRecord = Array.from({ length: logger.buffer.length }, (_, index) => logger.buffer.at(index))
             .find(record => record?.message === 'Starting Salesforce database attachment');
         expect(startRecord?.keyValues).toMatchObject({
@@ -119,50 +115,61 @@ describe('SalesforceRemoteAttachmentManager', () => {
         }
     });
 
-    it('preserves the first endpoint and loads function SQL only once for a second alias', async () => {
+    it('preserves the first endpoint when attaching a second alias', async () => {
         const { manager, sql, loadCatalogScript, dependencies } = createManager();
-        await manager.attach('One', makeToken('https://one.example.com', 'tenant-1', 'jwt-1'), CATALOG);
-        await manager.attach('Two', makeToken('https://two.example.com:9443', 'tenant-2', 'jwt-2'), CATALOG);
+        await manager.attach('One', makeToken('https://one.example.com', 'tenant-1', 'jwt-1'));
+        await manager.attach('Two', makeToken('https://two.example.com:9443', 'tenant-2', 'jwt-2'));
 
         const secondSetting = sql[3];
         expect(secondSetting).toContain('"key-one":{"connection":{"host":"https://one.example.com","port":443}');
         expect(secondSetting).toContain('"key-two":{"connection":{"host":"https://two.example.com","port":9443}');
-        expect(dependencies.loadPrefetchedFunctionSql).toHaveBeenCalledTimes(1);
-        expect(loadCatalogScript).toHaveBeenCalledTimes(3);
+        expect(dependencies.loadPrefetchedFunctionSql).not.toHaveBeenCalled();
+        expect(loadCatalogScript).not.toHaveBeenCalled();
         expect(manager.hasAlias('ONE')).toBe(true);
         expect(manager.hasAlias('two')).toBe(true);
+        expect(manager.getAliases()).toEqual(['One', 'Two']);
+    });
+
+    it('loads functions once and replaces an existing alias catalog', async () => {
+        const { manager, loadCatalogScript, replaceCatalogScript, catalogScript, dependencies } = createManager();
+        await manager.attach('Salesforce', makeToken('https://data.example.com', 'tenant-1', 'jwt-1'));
+
+        await manager.refreshCatalog('salesFORCE', CATALOG);
+        await manager.refreshCatalog('Salesforce', {
+            tables: [{ name: 'Contact', columns: [{ name: 'Id', ordinalPosition: 0, dataType: 'Text' }] }],
+        });
+
+        expect(dependencies.loadPrefetchedFunctionSql).toHaveBeenCalledOnce();
+        expect(loadCatalogScript).toHaveBeenCalledTimes(2);
+        expect(loadCatalogScript).toHaveBeenNthCalledWith(1, 'functions', SALESFORCE_CATALOG_RANK);
+        expect(loadCatalogScript).toHaveBeenNthCalledWith(
+            2,
+            expect.stringMatching(/^CREATE TABLE "Salesforce"\."public"\."Account"/),
+            SALESFORCE_CATALOG_RANK,
+        );
+        expect(replaceCatalogScript).toHaveBeenCalledWith(
+            catalogScript,
+            expect.stringMatching(/^CREATE TABLE "Salesforce"\."public"\."Contact"/),
+            SALESFORCE_CATALOG_RANK,
+        );
+    });
+
+    it('rejects refreshes for unknown aliases', async () => {
+        const { manager, loadCatalogScript } = createManager();
+        await expect(manager.refreshCatalog('missing', CATALOG)).rejects.toThrow(
+            'Salesforce alias not found: missing',
+        );
+        expect(loadCatalogScript).not.toHaveBeenCalled();
     });
 
     it('rejects duplicate aliases case-insensitively without executing more SQL', async () => {
         const { manager, queryArrowIPC } = createManager();
         const token = makeToken('https://data.example.com', 'tenant-1', 'jwt-1');
-        await manager.attach('Salesforce', token, CATALOG);
-        await expect(manager.attach('salesFORCE', token, CATALOG)).rejects.toThrow(
+        await manager.attach('Salesforce', token);
+        await expect(manager.attach('salesFORCE', token)).rejects.toThrow(
             'Salesforce alias already exists: salesFORCE',
         );
         expect(queryArrowIPC).toHaveBeenCalledTimes(3);
-    });
-
-    it('rolls back attachment and the complete endpoint setting when catalog loading fails', async () => {
-        const { manager, sql, loadCatalogScript } = createManager();
-        loadCatalogScript.mockImplementationOnce(() => {
-            throw new Error('catalog failed');
-        });
-        await expect(manager.attach(
-            'Salesforce',
-            makeToken('https://data.example.com', 'tenant-1', 'jwt-1'),
-            CATALOG,
-        )).rejects.toThrow('catalog failed');
-
-        expect(sql).toEqual([
-            'SET global.hyper_remote_endpoints = \'{"key-salesforce":{"connection":{"host":"https://data.example.com","port":443},"tenant":"tenant-1","token":"jwt-1"}}\'',
-            'SET global.experimental_dbregistry_hyper_remote = true',
-            'ATTACH DATABASE "hyper.remote://key-salesforce" AS "Salesforce"',
-            'DETACH "Salesforce"',
-            "SET global.hyper_remote_endpoints = '{}'",
-            'SET global.experimental_dbregistry_hyper_remote = false',
-        ]);
-        expect(manager.hasAlias('salesforce')).toBe(false);
     });
 
     it('restores the setting without detaching when attach fails', async () => {
@@ -170,7 +177,6 @@ describe('SalesforceRemoteAttachmentManager', () => {
         await expect(manager.attach(
             'Salesforce',
             makeToken('https://data.example.com', 'tenant-1', 'jwt-1'),
-            CATALOG,
         )).rejects.toThrow('query failed');
         expect(sql.slice(-2)).toEqual([
             "SET global.hyper_remote_endpoints = '{}'",

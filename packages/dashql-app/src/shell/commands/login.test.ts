@@ -2,7 +2,6 @@
 import {
     createLoginCommand,
     type SalesforceLoginAuthentication,
-    type SalesforceLoginCatalog,
     type SalesforceLoginCommandDependencies,
     type SalesforceLoginCommandContext,
 } from './login.js';
@@ -15,12 +14,6 @@ function createDependencies(overrides: Partial<SalesforceLoginCommandDependencie
             jwt: { raw: 'data-cloud-token', header: {}, payload: {} },
         } as connection.SalesforceDataCloudAccessToken,
     };
-    const catalog: SalesforceLoginCatalog = {
-        tableCount: 2,
-        columnCount: 5,
-        tables: [],
-        functionsSQL: 'functions',
-    };
     const dependencies: SalesforceLoginCommandDependencies = {
         requestForm: vi.fn().mockResolvedValue({
             alias: 'salesforce',
@@ -30,11 +23,10 @@ function createDependencies(overrides: Partial<SalesforceLoginCommandDependencie
         }),
         hasAlias: vi.fn().mockReturnValue(false),
         authenticate: vi.fn().mockResolvedValue(authentication),
-        resolveCatalog: vi.fn().mockResolvedValue(catalog),
         attach: vi.fn().mockResolvedValue(undefined),
         ...overrides,
     };
-    return { dependencies, authentication, catalog };
+    return { dependencies, authentication };
 }
 
 function execute(dependencies: SalesforceLoginCommandDependencies, context: SalesforceLoginCommandContext = {}) {
@@ -68,12 +60,10 @@ describe('Salesforce login command', () => {
         expect(dependencies.authenticate).not.toHaveBeenCalled();
     });
 
-    it('authenticates, resolves the optimized catalog, attaches, and reports counts', async () => {
-        const { dependencies, authentication, catalog } = createDependencies();
+    it('authenticates and attaches without resolving a catalog', async () => {
+        const { dependencies, authentication } = createDependencies();
         const onProgress = vi.fn();
-        await expect(execute(dependencies, { onProgress })).resolves.toBe(
-            'Attached Salesforce as salesforce: 2 tables, 5 columns',
-        );
+        await expect(execute(dependencies, { onProgress })).resolves.toBe('Attached Salesforce as salesforce');
         expect(dependencies.authenticate).toHaveBeenCalledWith(
             {
                 alias: 'salesforce',
@@ -84,17 +74,14 @@ describe('Salesforce login command', () => {
             undefined,
             onProgress,
         );
-        expect(dependencies.resolveCatalog).toHaveBeenCalledWith(authentication, undefined, onProgress);
         expect(dependencies.attach).toHaveBeenCalledWith(
             'salesforce',
             authentication,
-            catalog,
             undefined,
             onProgress,
         );
         expect(onProgress).toHaveBeenNthCalledWith(1, 'Authenticating with Salesforce');
-        expect(onProgress).toHaveBeenNthCalledWith(2, 'Resolving optimized Salesforce catalog');
-        expect(onProgress).toHaveBeenNthCalledWith(3, 'Attaching Salesforce connection as salesforce');
+        expect(onProgress).toHaveBeenNthCalledWith(2, 'Attaching Salesforce connection as salesforce');
     });
 
     it('returns no text when authentication is aborted', async () => {
@@ -107,7 +94,7 @@ describe('Salesforce login command', () => {
             }),
         });
         await expect(execute(dependencies, { signal: abort.signal })).resolves.toBeUndefined();
-        expect(dependencies.resolveCatalog).not.toHaveBeenCalled();
+        expect(dependencies.attach).not.toHaveBeenCalled();
     });
 
     it('restarts the login flow after a handled error', async () => {
@@ -127,9 +114,7 @@ describe('Salesforce login command', () => {
         const { dependencies, authentication } = createDependencies({ requestForm, authenticate, onError });
         authenticate.mockResolvedValueOnce(authentication);
 
-        await expect(execute(dependencies)).resolves.toBe(
-            'Attached Salesforce as salesforce: 2 tables, 5 columns',
-        );
+        await expect(execute(dependencies)).resolves.toBe('Attached Salesforce as salesforce');
         expect(requestForm).toHaveBeenCalledTimes(2);
         expect(authenticate).toHaveBeenNthCalledWith(1, firstForm, undefined, undefined);
         expect(authenticate).toHaveBeenNthCalledWith(2, secondForm, undefined, undefined);

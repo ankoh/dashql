@@ -2,6 +2,7 @@ import type { EmbeddedConnection } from '../platform/database/embedded_database.
 import { generateSchemaSQL } from '../app/notebook/connections/catalog_sql_generator.js';
 import type { LoggerLike } from '../platform/logger/logger.js';
 import type { DashQLShell } from './api.js';
+import type { DashQLScript } from '../core/api.js';
 
 export const SALESFORCE_CATALOG_RANK = 100;
 const ENDPOINT_KEY_PREFIX = 'salesforce-';
@@ -37,8 +38,6 @@ export interface SalesforceRemoteCatalog {
 
 export interface SalesforceRemoteAttachment {
     readonly alias: string;
-    readonly tableCount: number;
-    readonly columnCount: number;
 }
 
 export interface SalesforceRemoteAttachmentDependencies {
@@ -53,6 +52,11 @@ export type SalesforceRemoteAttachmentStage =
     | 'ENABLING_REMOTE_DATABASES'
     | 'ATTACHING_DATABASE'
     | 'LOADING_CATALOG';
+
+interface SalesforceRemoteAttachmentState {
+    readonly alias: string;
+    catalogScript: DashQLScript | null;
+}
 
 interface HyperRemoteEndpointConfig {
     readonly connection: {
@@ -110,30 +114,33 @@ function summarizeEndpoint(endpoint: HyperRemoteEndpointConfig): Record<string, 
 }
 
 export class SalesforceRemoteAttachmentManager {
-    private readonly aliases = new Set<string>();
+    private readonly attachments = new Map<string, SalesforceRemoteAttachmentState>();
     private readonly endpoints = new Map<string, HyperRemoteEndpointConfig>();
     private functionCatalogLoaded = false;
     private gateEnabled = false;
 
     constructor(
         private readonly connection: EmbeddedConnection,
-        private readonly shell: Pick<DashQLShell, 'loadCatalogScript'>,
+        private readonly shell: Pick<DashQLShell, 'loadCatalogScript' | 'replaceCatalogScript'>,
         private readonly dependencies: SalesforceRemoteAttachmentDependencies,
     ) {}
 
     hasAlias(alias: string): boolean {
-        return this.aliases.has(alias.toLowerCase());
+        return this.attachments.has(alias.toLowerCase());
+    }
+
+    getAliases(): readonly string[] {
+        return Array.from(this.attachments.values(), attachment => attachment.alias);
     }
 
     async attach(
         alias: string,
         token: SalesforceRemoteDataCloudToken,
-        catalog: SalesforceRemoteCatalog,
         signal?: AbortSignal,
     ): Promise<SalesforceRemoteAttachment> {
         signal?.throwIfAborted();
         const normalizedAlias = alias.toLowerCase();
-        if (this.aliases.has(normalizedAlias)) throw new Error(`Salesforce alias already exists: ${alias}`);
+        if (this.attachments.has(normalizedAlias)) throw new Error(`Salesforce alias already exists: ${alias}`);
 
         const endpointKey = (this.dependencies.createEndpointKey ?? defaultCreateEndpointKey)(alias);
         if (this.endpoints.has(endpointKey)) throw new Error(`Salesforce endpoint key already exists: ${endpointKey}`);
@@ -153,8 +160,6 @@ export class SalesforceRemoteAttachmentManager {
             alias,
             endpointKey,
             ...summarizeEndpoint(endpoint),
-            tableCount: catalog.tables.length.toString(),
-            columnCount: catalog.tables.reduce((count, table) => count + table.columns.length, 0).toString(),
         });
 
         try {
@@ -181,80 +186,8 @@ export class SalesforceRemoteAttachmentManager {
                 signal,
             );
             attached = true;
-
-            this.dependencies.onStage?.('LOADING_CATALOG');
-            const catalogStartedAt = performance.now();
-            this.logInfo('Starting Salesforce catalog registration', { alias, endpointKey });
-            if (!this.functionCatalogLoaded) {
-                const functionSqlStartedAt = performance.now();
-                this.logInfo('Starting Salesforce function catalog resolution', {
-                    alias,
-                    endpointKey,
-                    source: catalog.functionsSQL == null ? 'prefetched-fetch' : 'resolved-catalog',
-                });
-                const functionSql = catalog.functionsSQL ?? await this.dependencies.loadPrefetchedFunctionSql(signal);
-                this.logInfo('Completed Salesforce function catalog resolution', {
-                    alias,
-                    endpointKey,
-                    elapsedMs: (performance.now() - functionSqlStartedAt).toFixed(0),
-                    scriptChars: functionSql.length.toString(),
-                });
-                signal?.throwIfAborted();
-                const schemaSqlStartedAt = performance.now();
-                this.logInfo('Starting Salesforce relation catalog generation', { alias, endpointKey });
-                const tables = new Map(catalog.tables.map(table => [table.name, [...table.columns]]));
-                const catalogSql = generateSchemaSQL(alias, 'public', tables);
-                this.logInfo('Completed Salesforce relation catalog generation', {
-                    alias,
-                    endpointKey,
-                    elapsedMs: (performance.now() - schemaSqlStartedAt).toFixed(0),
-                    scriptChars: catalogSql.length.toString(),
-                });
-                this.logInfo('Starting Salesforce function catalog load', {
-                    alias,
-                    endpointKey,
-                    scriptChars: functionSql.length.toString(),
-                });
-                this.shell.loadCatalogScript(functionSql, SALESFORCE_CATALOG_RANK);
-                this.logInfo('Completed Salesforce function catalog load', { alias, endpointKey });
-                this.logInfo('Starting Salesforce relation catalog load', {
-                    alias,
-                    endpointKey,
-                    scriptChars: catalogSql.length.toString(),
-                });
-                this.shell.loadCatalogScript(catalogSql, SALESFORCE_CATALOG_RANK);
-                this.logInfo('Completed Salesforce relation catalog load', { alias, endpointKey });
-                this.functionCatalogLoaded = true;
-            } else {
-                const schemaSqlStartedAt = performance.now();
-                this.logInfo('Starting Salesforce relation catalog generation', { alias, endpointKey });
-                const tables = new Map(catalog.tables.map(table => [table.name, [...table.columns]]));
-                const catalogSql = generateSchemaSQL(alias, 'public', tables);
-                this.logInfo('Completed Salesforce relation catalog generation', {
-                    alias,
-                    endpointKey,
-                    elapsedMs: (performance.now() - schemaSqlStartedAt).toFixed(0),
-                    scriptChars: catalogSql.length.toString(),
-                });
-                signal?.throwIfAborted();
-                this.logInfo('Starting Salesforce relation catalog load', {
-                    alias,
-                    endpointKey,
-                    scriptChars: catalogSql.length.toString(),
-                });
-                this.shell.loadCatalogScript(catalogSql, SALESFORCE_CATALOG_RANK);
-                this.logInfo('Completed Salesforce relation catalog load', { alias, endpointKey });
-            }
-            this.logInfo('Completed Salesforce catalog registration', {
-                alias,
-                endpointKey,
-                elapsedMs: (performance.now() - catalogStartedAt).toFixed(0),
-            });
-
-            // Catalog installation is the commit point. Do not turn a completed attachment into
-            // a detached database merely because cancellation raced with the final synchronous load.
             this.endpoints.set(endpointKey, endpoint);
-            this.aliases.add(normalizedAlias);
+            this.attachments.set(normalizedAlias, { alias, catalogScript: null });
             this.gateEnabled = true;
             committed = true;
             this.logInfo('Completed Salesforce database attachment', {
@@ -262,11 +195,7 @@ export class SalesforceRemoteAttachmentManager {
                 endpointKey,
                 elapsedMs: (performance.now() - attachStartedAt).toFixed(0),
             });
-            return {
-                alias,
-                tableCount: catalog.tables.length,
-                columnCount: catalog.tables.reduce((count, table) => count + table.columns.length, 0),
-            };
+            return { alias };
         } catch (error) {
             if (committed) throw error;
             this.logError('Salesforce database attachment failed', {
@@ -294,6 +223,55 @@ export class SalesforceRemoteAttachmentManager {
             }
             throw error;
         }
+    }
+
+    async refreshCatalog(
+        alias: string,
+        catalog: SalesforceRemoteCatalog,
+        signal?: AbortSignal,
+    ): Promise<void> {
+        signal?.throwIfAborted();
+        const attachment = this.attachments.get(alias.toLowerCase());
+        if (attachment == null) throw new Error(`Salesforce alias not found: ${alias}`);
+
+        this.dependencies.onStage?.('LOADING_CATALOG');
+        const catalogStartedAt = performance.now();
+        this.logInfo('Starting Salesforce catalog registration', { alias: attachment.alias });
+        if (!this.functionCatalogLoaded) {
+            const functionSqlStartedAt = performance.now();
+            this.logInfo('Starting Salesforce function catalog resolution', {
+                alias: attachment.alias,
+                source: catalog.functionsSQL == null ? 'prefetched-fetch' : 'resolved-catalog',
+            });
+            const functionSql = catalog.functionsSQL ?? await this.dependencies.loadPrefetchedFunctionSql(signal);
+            this.logInfo('Completed Salesforce function catalog resolution', {
+                alias: attachment.alias,
+                elapsedMs: (performance.now() - functionSqlStartedAt).toFixed(0),
+                scriptChars: functionSql.length.toString(),
+            });
+            signal?.throwIfAborted();
+            this.shell.loadCatalogScript(functionSql, SALESFORCE_CATALOG_RANK);
+            this.functionCatalogLoaded = true;
+        }
+
+        const schemaSqlStartedAt = performance.now();
+        const tables = new Map(catalog.tables.map(table => [table.name, [...table.columns]]));
+        const catalogSql = generateSchemaSQL(attachment.alias, 'public', tables);
+        this.logInfo('Completed Salesforce relation catalog generation', {
+            alias: attachment.alias,
+            elapsedMs: (performance.now() - schemaSqlStartedAt).toFixed(0),
+            scriptChars: catalogSql.length.toString(),
+        });
+        signal?.throwIfAborted();
+        if (attachment.catalogScript == null) {
+            attachment.catalogScript = this.shell.loadCatalogScript(catalogSql, SALESFORCE_CATALOG_RANK);
+        } else {
+            this.shell.replaceCatalogScript(attachment.catalogScript, catalogSql, SALESFORCE_CATALOG_RANK);
+        }
+        this.logInfo('Completed Salesforce catalog registration', {
+            alias: attachment.alias,
+            elapsedMs: (performance.now() - catalogStartedAt).toFixed(0),
+        });
     }
 
     private serializeEndpoints(endpoints: ReadonlyMap<string, HyperRemoteEndpointConfig>): string {

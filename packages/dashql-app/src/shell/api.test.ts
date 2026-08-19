@@ -61,6 +61,26 @@ describe('DashQL shell Wasm', () => {
         expect(() => shell.setPrompt('select sales.discount(1.0);')).not.toThrow();
     });
 
+    it('replaces a loaded catalog script in place', () => {
+        const script = shell.loadCatalogScript(
+            'CREATE TABLE sales.orders (order_id BIGINT);',
+            CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
+        );
+        shell.setPrompt('select * from ord');
+        expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'orders')).toBe(true);
+
+        shell.replaceCatalogScript(
+            script,
+            'CREATE TABLE sales.customers (customer_id BIGINT);',
+            CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
+        );
+
+        shell.setPrompt('select * from ord');
+        expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'orders')).toBe(false);
+        shell.setPrompt('select * from cust');
+        expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'customers')).toBe(true);
+    });
+
     it('auto-qualifies non-default database tables on the first Tab when enabled', async () => {
         shell.destroy();
         shell = await DashQLShell.create({

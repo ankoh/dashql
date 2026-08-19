@@ -12,7 +12,8 @@ import { analyzeTable } from '../compute/computation_logic.js';
 import { useComputationRegistry } from '../compute/computation_registry.js';
 import { ShellQueryResultOverlay } from '../app/notebook/shell/shell_query_result_overlay.js';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
-import { createLoginCommand } from './commands/login.js';
+import { createLoginCommand, type SalesforceLoginAuthentication } from './commands/login.js';
+import { createRefreshCommand } from './commands/refresh.js';
 import { examplesCommand } from './commands/examples.js';
 import { useShellConnection } from './shell_connection.js';
 import { createShellOutputCommand, type ShellOutputMode } from './shell_result.js';
@@ -99,6 +100,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             setStatus('Instantiating shell');
             const getOutputMode = () => outputModeRef.current;
             let attachmentManager: SalesforceRemoteAttachmentManager;
+            const authentications = new Map<string, SalesforceLoginAuthentication>();
             const loginCommand = createLoginCommand({
                 requestForm: loginDialog.request,
                 hasAlias: alias => attachmentManager?.hasAlias(alias) ?? false,
@@ -154,10 +156,25 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                         },
                     });
                 },
-                resolveCatalog: async (authentication, signal, onProgress) => {
+                attach: async (alias, authentication, signal) => {
+                    loginDialog.update({ status: `Attaching database as ${alias}` });
+                    await attachmentManager.attach(alias, authentication.dataCloudAccessToken, signal);
+                    authentications.set(alias.toLowerCase(), authentication);
+                },
+                onSuccess: alias => {
+                    loginDialog.succeed(`Attached ${alias}`);
+                },
+                onError: error => {
+                    loginDialog.fail(stringifyError(error));
+                    return 'retry';
+                },
+            });
+            const refreshCommand = createRefreshCommand({
+                getAliases: () => attachmentManager?.getAliases() ?? [],
+                getAuthentication: alias => authentications.get(alias.toLowerCase()),
+                resolveCatalog: async (alias, authentication, signal, onProgress) => {
                     if (!httpClient) throw new Error('HTTP client is not ready');
-                    onProgress?.('Fetching Salesforce catalog metadata');
-                    loginDialog.update({ status: 'Fetching Salesforce catalog metadata' });
+                    onProgress?.(`Fetching Salesforce catalog metadata for ${alias}`);
                     const resolved = await resolveSalesforceCatalog(
                         logger,
                         authentication.coreAccessToken,
@@ -172,17 +189,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                         tables: Array.from(resolved.tables, ([name, columns]) => ({ name, columns })),
                     };
                 },
-                attach: async (alias, authentication, catalog, signal) => {
-                    loginDialog.update({ status: `Attaching database as ${alias}` });
-                    await attachmentManager.attach(alias, authentication.dataCloudAccessToken, catalog, signal);
-                },
-                onSuccess: (alias, catalog) => {
-                    loginDialog.succeed(`Attached ${alias}: ${catalog.tableCount} tables, ${catalog.columnCount} columns`);
-                },
-                onError: error => {
-                    loginDialog.fail(stringifyError(error));
-                    return 'retry';
-                },
+                refreshCatalog: (alias, catalog, signal) => attachmentManager.refreshCatalog(alias, catalog, signal),
             });
             const nextShell = await createDashQLShell({
                 environment: createEmbeddedDatabaseShellEnvironment(connection, queryExecutions, {
@@ -201,6 +208,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 commands: [
                     examplesCommand,
                     loginCommand,
+                    refreshCommand,
                     createShellOutputCommand(getOutputMode, mode => { outputModeRef.current = mode; }),
                     createShellFilesCommand(fileRegistryRef.current, fileDownloader),
                 ],

@@ -2,7 +2,6 @@ import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import type { DashQLShellCommand, DashQLShellCommandContext } from '../api.js';
 import type { SalesforceLoginFormValues } from '../salesforce_login_dialog.js';
-import type { SalesforceRemoteCatalogTable } from '../salesforce_remote_attachment.js';
 
 export type SalesforceLoginForm = SalesforceLoginFormValues;
 
@@ -10,13 +9,6 @@ export interface SalesforceLoginAuthentication {
     readonly coreAccessToken: connection.SalesforceCoreAccessToken;
     readonly dataCloudAccessToken: connection.SalesforceDataCloudAccessToken;
     readonly coreUserInfo?: connection.SalesforceCoreUserInfo;
-}
-
-export interface SalesforceLoginCatalog {
-    readonly tableCount: number;
-    readonly columnCount: number;
-    readonly tables: readonly SalesforceRemoteCatalogTable[];
-    readonly functionsSQL: string;
 }
 
 export interface SalesforceLoginCommandDependencies {
@@ -27,19 +19,13 @@ export interface SalesforceLoginCommandDependencies {
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
     ): Promise<SalesforceLoginAuthentication>;
-    resolveCatalog(
-        authentication: SalesforceLoginAuthentication,
-        signal?: AbortSignal,
-        onProgress?: (message: string) => void,
-    ): Promise<SalesforceLoginCatalog>;
     attach(
         alias: string,
         authentication: SalesforceLoginAuthentication,
-        catalog: SalesforceLoginCatalog,
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
     ): Promise<void>;
-    onSuccess?(alias: string, catalog: SalesforceLoginCatalog): void;
+    onSuccess?(alias: string): void;
     onError?(error: unknown): 'retry' | void;
 }
 
@@ -74,16 +60,12 @@ export function createLoginCommand(dependencies: SalesforceLoginCommandDependenc
                     const authentication = await dependencies.authenticate(form, operationSignal, onProgress);
                     operationSignal?.throwIfAborted();
 
-                    onProgress?.('Resolving optimized Salesforce catalog');
-                    const catalog = await dependencies.resolveCatalog(authentication, operationSignal, onProgress);
-                    operationSignal?.throwIfAborted();
-
                     onProgress?.(`Attaching Salesforce connection as ${alias}`);
-                    await dependencies.attach(alias, authentication, catalog, operationSignal, onProgress);
+                    await dependencies.attach(alias, authentication, operationSignal, onProgress);
                     operationSignal?.throwIfAborted();
 
-                    dependencies.onSuccess?.(alias, catalog);
-                    return `Attached Salesforce as ${alias}: ${catalog.tableCount} tables, ${catalog.columnCount} columns`;
+                    dependencies.onSuccess?.(alias);
+                    return `Attached Salesforce as ${alias}`;
                 } catch (error) {
                     if (form?.oauthPopup && !form.oauthPopup.closed) form.oauthPopup.close();
                     if (isAbortError(error, form?.abortSignal ?? signal)) return;

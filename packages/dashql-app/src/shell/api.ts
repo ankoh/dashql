@@ -377,6 +377,13 @@ export class DashQLShell {
         }
     }
 
+    replaceCatalogScript(script: DashQLScript, text: string, rank: number): void {
+        this.assertAlive();
+        script.replaceText(text);
+        script.analyze();
+        this.catalog.loadScript(script, rank);
+    }
+
     resize(terminalColumns: number): void {
         this.assertAlive();
         this.module._dashql_shell_resize(this.shell, terminalColumns);
