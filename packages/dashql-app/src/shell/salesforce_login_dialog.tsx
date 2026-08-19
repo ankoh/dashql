@@ -154,12 +154,18 @@ export function useSalesforceLoginDialog(
         }));
     }, []);
     const succeed = React.useCallback((message: string) => {
+        const pending = pendingRequestRef.current;
+        pendingRequestRef.current = null;
+        if (pending?.signal != null && pending.onAbort != null) {
+            pending.signal.removeEventListener('abort', pending.onAbort);
+        }
         setDialogState(state => ({
             ...state,
             phase: 'succeeded',
             status: message,
             indicator: IndicatorStatus.Succeeded,
         }));
+        setIsOpen(false);
     }, []);
     const fail = React.useCallback((message: string) => {
         setDialogState(state => ({

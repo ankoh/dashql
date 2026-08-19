@@ -161,6 +161,18 @@ describe('useSalesforceLoginDialog', () => {
         expect(document.querySelector('[role="dialog"]')).toBeNull();
     });
 
+    it('closes automatically when login succeeds', async () => {
+        openOAuthPopup.mockReturnValue({} as Window);
+        const result = open();
+        fillValidForm();
+        submit();
+        await expect(result).resolves.toEqual(expect.objectContaining({ alias: 'production' }));
+
+        act(() => controller.succeed('Attached production'));
+
+        expect(document.querySelector('[role="dialog"]')).toBeNull();
+    });
+
     it('rejects duplicate aliases inline before opening OAuth', async () => {
         act(() => root.render(<Harness openOAuthPopup={openOAuthPopup} hasAlias={(alias: string) => alias.toLowerCase() === 'production'} />));
         const result = open();
