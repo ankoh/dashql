@@ -1084,9 +1084,9 @@ std::string ShellSession::RenderTerminalPrompt() {
                                   : std::string_view{};
     const auto is_registered_command = std::find(commands_.begin(), commands_.end(), command_name) != commands_.end();
     if (is_registered_command) {
-        highlighted.reserve(text.size() + vt100::kBoldForegroundPink.size() + vt100::kResetAttributes.size());
+        highlighted.reserve(text.size() + vt100::kBold.size() + vt100::kResetAttributes.size());
         highlighted.append(text.substr(0, command_begin));
-        highlighted.append(vt100::kBoldForegroundPink);
+        highlighted.append(vt100::kBold);
         highlighted.append(text.substr(command_begin, command_name_end - command_begin));
         highlighted.append(vt100::kResetAttributes);
         highlighted.append(text.substr(command_name_end));
